@@ -1,0 +1,48 @@
+/* Signup page styles moved from Signup.tsx */
+.signup-root {
+  display: flex;
+  height: 100vh;
+}
+
+.signup-bg {
+  flex: 1;
+  background-image: url('/background.jpg');
+  background-size: cover;
+  background-position: center;
+}
+
+.signup-content {
+  flex: 1;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: white;
+}
+
+.signup-paper {
+  padding: 32px;
+  width: 80%;
+  max-width: 500px;
+}
+
+.signup-grid {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+.signup-grid-row {
+  display: flex;
+  gap: 16px;
+}
+.signup-grid-row:not(:first-child) {
+  flex-direction: column;
+  gap: 0;
+}
+
+.signup-btn {
+  margin-top: 24px;
+}
+
+.signup-link {
+  margin-top: 16px;
+}

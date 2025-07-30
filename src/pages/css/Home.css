@@ -1,0 +1,35 @@
+
+/* Split layout for Home page */
+.home-split-root {
+  display: flex;
+  height: 100vh;
+}
+
+.home-split-left {
+  flex: 1;
+  background-image: url('../../components/homebg.png');
+  background-size: cover;
+  background-position: center;
+  width: 60%;
+}
+
+.home-split-right {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: #fff;
+}
+
+.home-title {
+  font-size: 2.5rem;
+  font-weight: bold;
+  margin-bottom: 1.5rem;
+  color: #222;
+}
+
+.home-welcome {
+  font-size: 1.5rem;
+  color: #444;
+}
