@@ -7,7 +7,7 @@ import {
   Paper,
   Grid
 } from '@mui/material';
-import './css/Signup.css';
+import '../css/Signup.css';
 
 const Signup = () => {
   return (
