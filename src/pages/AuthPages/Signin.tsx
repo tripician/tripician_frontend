@@ -79,7 +79,7 @@ const Signin = () => {
           
           <div className="signin-bottom-text">
             Dont have an account? 
-            <a href="#" className="signin-link">Sign up</a>
+            <a href="/signup" className="signin-link">Sign up</a>
           </div>
           <div className="signin-divider">
             <span>or</span>
