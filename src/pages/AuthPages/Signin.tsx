@@ -31,7 +31,7 @@ const Signin = () => {
       <div className="signin-split-right">
         <div className="signin-card">
           <div className="signin-logo">
-            <img src={tripicianLogo} alt="Tripician Logo"/>                   
+            <img src={tripicianLogo} alt="Tripician Logo"/>
           </div>
 
           
@@ -48,7 +48,7 @@ const Signin = () => {
                 <FormControl
                   variant="outlined"
                   fullWidth
-                  sx={{ m: 1 }}
+                  sx={{ m: 0 }}
                 >
                   <InputLabel htmlFor="outlined-adornment-password">Password</InputLabel>
                   <OutlinedInput

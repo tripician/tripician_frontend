@@ -31,18 +31,22 @@
   flex-direction: column;
   align-items: center;
 }
+
 .signin-logo {
   display: flex;
-  height: 100px;
+  height: 10vh;
   margin-bottom: 6vh;
+  justify-content: center;
 }
 
 .signin-form {
   width: 100%;
   display: flex;
   flex-direction: column;
-  gap: 1vh; /* Ensures tight spacing between fields and button */
+  justify-content: center;
+  align-items: center;
 }
+
 .signin-inputs{
   gap: 1vh;
 }
@@ -53,7 +57,7 @@
   align-items: center;
   gap: 0.5vh;
   width: 100%;
-  margin-bottom: 2vh;;
+  margin-bottom: 1vh;
 }
 
 .signin-password-row .MuiFormControl-root {
@@ -68,13 +72,13 @@
   transition: color 0.2s;
   white-space: nowrap;
 }
+
 .signin-forgot:hover {
   color: #1565c0;
 }
 
-.signin-btn {
+.signin-button-stack {
   width: 100%;
-  background: #1976d2; /* Blue */
   color: #fff;
   font-size: 1.1rem;
   font-weight: 600;
@@ -87,6 +91,7 @@
   transition: background 0.2s;
   box-shadow: 0 2px 4px 0 rgba(25, 118, 210, 0.08);
 }
+
 .signin-btn:hover {
   background: #1565c0; /* Darker blue on hover */
 }
