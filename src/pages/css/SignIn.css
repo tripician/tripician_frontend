@@ -89,7 +89,6 @@
   margin-bottom: 8px;
   cursor: pointer;
   transition: background 0.2s;
-  box-shadow: 0 2px 4px 0 rgba(25, 118, 210, 0.08);
 }
 
 .signin-btn:hover {
