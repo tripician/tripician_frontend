@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Avatar, Menu, MenuItem, Box, Typography, IconButton } from "@mui/material";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
+import SearchBar from "../PageLayout/Common/SearchBar";
 
 interface TopBarProps  {
     selectedMenuItem: string; // Add this prop
@@ -37,6 +38,8 @@ const TopBar: React.FC<TopBarProps > = ({selectedMenuItem}) => {
       <Typography variant="h5" fontWeight={600} color="text.primary">
         {selectedMenuItem}
       </Typography>
+
+      <SearchBar/>
 
       <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
         <IconButton>
