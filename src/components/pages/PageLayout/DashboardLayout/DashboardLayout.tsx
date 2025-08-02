@@ -23,6 +23,7 @@ import tripicianLogo from '../../../../assets/TripicianLogofullwhite.png'; // Ad
 
 interface Props {
   children: React.ReactNode;
+  onMenuItemChange?: (itemName: string) => void; // Callback for menu item changes
 }
 
 const drawerWidth = 240;
@@ -35,7 +36,7 @@ const menuItems = [
   { text: 'Settings', icon: <SettingsIcon /> },
 ];
 
-const DashboardLayout: React.FC<Props> = ({ children }) => {
+const DashboardLayout: React.FC<Props> = ({ children, onMenuItemChange }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [isCollapsed, setIsCollapsed] = useState(false);
@@ -48,6 +49,15 @@ const DashboardLayout: React.FC<Props> = ({ children }) => {
 
   const toggleDrawer = () => {
     setIsCollapsed(!isCollapsed);
+  };
+
+  // Handle menu item selection
+  const handleMenuItemClick = (itemText: string) => {
+    setSelectedItem(itemText);
+    // Call the callback function to notify parent component
+    if (onMenuItemChange) {
+      onMenuItemChange(itemText);
+    }
   };
 
   const currentDrawerWidth = isCollapsed ? collapsedDrawerWidth : drawerWidth;
@@ -126,7 +136,7 @@ const DashboardLayout: React.FC<Props> = ({ children }) => {
               >
                 <ListItem
                   component="button"
-                  onClick={() => setSelectedItem(item.text)}
+                  onClick={() => handleMenuItemClick(item.text)}
                   sx={{
                     borderRadius: 1,
                     px: isCollapsed ? 1 : 2,
@@ -212,7 +222,9 @@ const DashboardLayout: React.FC<Props> = ({ children }) => {
         component="main" 
         sx={{ 
           flexGrow: 1, 
-          p: 4, 
+          pl: 4,
+          pr: 4,
+          pt: 2,
           backgroundColor: '#f5f5f5', 
           minHeight: '100vh',
           transition: theme.transitions.create('margin', {

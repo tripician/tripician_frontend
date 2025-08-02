@@ -16,13 +16,17 @@ import { useState } from 'react';
 
 const Dashboard: React.FC = () => {
     const [tabValue, setTabValue] = useState(0);
+    const [selectedMenuItem, setSelectedMenuItem] = useState('Dashboard');
     const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
         setTabValue(newValue);
       };
+      const handleMenuItemChange = (itemName : string) => {
+        setSelectedMenuItem(itemName)
+      }
 
   return (
-    <DashboardLayout>
-      <TopBar/>
+    <DashboardLayout onMenuItemChange={handleMenuItemChange}>
+      <TopBar selectedMenuItem = {selectedMenuItem}/>
       <Tabs
         value={tabValue}
         className="mb-3"

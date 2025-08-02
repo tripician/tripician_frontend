@@ -62,8 +62,7 @@ const TripCard: React.FC<TripCardProps> = ({ title, location, image, progress, e
                 </div>
               )}
             </div>
-          )}
-          
+          )}          
         </div>
         {edited && (
           <p className="card-text small text-white-50 mt-2">
