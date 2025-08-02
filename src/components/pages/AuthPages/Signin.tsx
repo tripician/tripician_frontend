@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import '../css/Signin.css';
-import tripicianLogo from '../../assets/TripicianLogofull2.png'; 
+import '../../css/Signin.css';
+import tripicianLogo from '../../../assets/TripicianLogofull2.png'; 
 import TextField from '@mui/material/TextField';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';

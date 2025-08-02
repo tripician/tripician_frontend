@@ -1,5 +1,6 @@
 import React from 'react';
-import tripicianLogo from '../../assets/TripicianLogofull2.png'; 
+import tripicianLogo from '../../../assets/TripicianLogofull2.png'; 
+import '../../css/Signup.css';
 import { useState } from 'react';
 
 import {
@@ -14,7 +15,6 @@ import {
   OutlinedInput,
   Stack
 } from '@mui/material';
-import '../css/Signup.css';
 import { VisibilityOff, Visibility } from '@mui/icons-material';
 
 const Signup = () => {
