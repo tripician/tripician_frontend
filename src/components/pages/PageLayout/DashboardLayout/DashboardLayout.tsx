@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import Footer from "../../PageLayout/Common/Footer";
 import { 
   Box, 
   Drawer, 
@@ -63,6 +64,7 @@ const DashboardLayout: React.FC<Props> = ({ children, onMenuItemChange }) => {
   const currentDrawerWidth = isCollapsed ? collapsedDrawerWidth : drawerWidth;
 
   return (
+    <>
     <Box sx={{ display: 'flex' }}>
       <Drawer
         variant="permanent"
@@ -236,6 +238,8 @@ const DashboardLayout: React.FC<Props> = ({ children, onMenuItemChange }) => {
         {children}
       </Box>
     </Box>
+    <Footer/>
+    </>
   );
 };
 
