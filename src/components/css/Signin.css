@@ -12,6 +12,12 @@
   background-position: center;
 }
 
+@media (max-width: 768px) {
+  .signin-split-left {
+    display: none;
+  }
+}
+
 .signin-split-right {
   flex: 1;
   display: flex;

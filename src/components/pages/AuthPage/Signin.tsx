@@ -70,8 +70,9 @@ const Signin = () => {
                     label="Password"
                   />
                 </FormControl>
-                <a href="#" className="signin-forgot">Forgot password?</a>
+                
               </div>
+              <a href="#" className="signin-forgot">Forgot password?</a>
               <Stack spacing={3} direction="column" className="signin-button-stack">
                 <Button variant="contained" type="submit">Sign in</Button>
               </Stack>

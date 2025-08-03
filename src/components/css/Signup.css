@@ -13,6 +13,12 @@
   background-position: center;
 }
 
+@media (max-width: 768px) {
+  .signup-bg {
+    display: none;
+  }
+}
+
 .signup-content {
   flex: 1;
   display: flex;
