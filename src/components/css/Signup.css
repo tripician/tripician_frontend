@@ -2,13 +2,21 @@
 .signup-root {
   display: flex;
   height: 100vh;
+  width: 100vw;
+  justify-content: center;
 }
 
 .signup-bg {
   flex: 1;
-  background-image: url('/background.jpg');
+  background-image: url('../../assets/AuthBG.jpg');
   background-size: cover;
   background-position: center;
+}
+
+@media (max-width: 768px) {
+  .signup-bg {
+    display: none;
+  }
 }
 
 .signup-content {
@@ -32,7 +40,7 @@
 }
 .signup-grid-row {
   display: flex;
-  gap: 16px;
+  gap: 2vh;
 }
 .signup-grid-row:not(:first-child) {
   flex-direction: column;
@@ -45,4 +53,18 @@
 
 .signup-link {
   margin-top: 16px;
+}
+
+.signup-button-stack {
+  width: 100%;
+  color: #fff;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border: none;
+  border-radius: 8px;
+  padding: 12px 0;
+  margin-top: 8px; /* Slightly reduced */
+  margin-bottom: 8px;
+  cursor: pointer;
+  transition: background 0.2s;
 }

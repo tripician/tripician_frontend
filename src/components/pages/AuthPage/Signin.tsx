@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
-import '../css/Signin.css';
-import tripicianLogo from '../../assets/TripicianLogofull2.png'; 
+import '../../css/Signin.css';
+import tripicianLogo from '../../../assets/TripicianLogofull2.png'; 
 import TextField from '@mui/material/TextField';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
@@ -70,8 +70,9 @@ const Signin = () => {
                     label="Password"
                   />
                 </FormControl>
-                <a href="#" className="signin-forgot">Forgot password?</a>
+                
               </div>
+              <a href="#" className="signin-forgot">Forgot password?</a>
               <Stack spacing={3} direction="column" className="signin-button-stack">
                 <Button variant="contained" type="submit">Sign in</Button>
               </Stack>
@@ -79,7 +80,7 @@ const Signin = () => {
           
           <div className="signin-bottom-text">
             Dont have an account? 
-            <a href="#" className="signin-link">Sign up</a>
+            <a href="/signup" className="signin-link">Sign up</a>
           </div>
           <div className="signin-divider">
             <span>or</span>
