@@ -43,6 +43,7 @@
   height: 10vh;
   margin-bottom: 6vh;
   justify-content: center;
+  margin-bottom: 0;
 }
 
 .signin-form {
