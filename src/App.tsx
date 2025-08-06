@@ -1,18 +1,35 @@
-import { Routes, Route } from 'react-router-dom'
+import { Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
 import Signin from './components/pages/AuthPage/Signin'
 import Signup from './components/pages/AuthPage/Signup'
-import Dashboard from './components/pages/Dashboardpage/Dashboard'
+import Dashboard from './components/pages/DashboardPage/Dashboard'
+import ProtectedRoute from './services/Auth/ProtectedRoute'
 
 function App() {
   return (
-    <>
-    <Routes>
-      <Route path="/" element={<Dashboard />} />
-      <Route path="/signin" element={<Signin />} />
-      <Route path="/signup" element={<Signup />} />
-    </Routes>
-    </>
+    <div className="App">
+      <Routes>
+        {/* Public Routes */}
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/signin" element={<Signin />} />
+        
+        {/* Protected Routes */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Default redirect */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        
+        {/* Catch all - redirect to signin */}
+        <Route path="*" element={<Navigate to="/signin" replace />} />
+      </Routes>
+    </div>
   )
 }
 
