@@ -14,13 +14,10 @@ export const useAuthToken = () => {
   });
 
   useEffect(() => {
-    // Check for stored token on component mount
     const checkAuthState = () => {
       const token = localStorage.getItem('accessToken');
       
       if (token) {
-        // You might want to validate the token here
-        // For now, we'll assume it's valid if it exists
         setAuthState({
           isAuthenticated: true,
           token: token,
@@ -51,15 +48,33 @@ export const useAuthToken = () => {
     });
   };
 
-  const logout = () => {
-    localStorage.removeItem('accessToken');
-    localStorage.removeItem('refreshToken');
-    
-    setAuthState({
-      isAuthenticated: false,
-      token: null,
-      loading: false
-    });
+  const logout = async () => {
+    try {
+      // Optional: Call your API logout endpoint
+      const token = localStorage.getItem('accessToken');
+      if (token) {
+        await fetch('/api/auth/logout', {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${token}`,
+            'Content-Type': 'application/json'
+          }
+        });
+      }
+    } catch (error) {
+      console.error('Logout API call failed:', error);
+      // Continue with client-side cleanup even if API call fails
+    } finally {
+      // Always clear local storage and update state
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      
+      setAuthState({
+        isAuthenticated: false,
+        token: null,
+        loading: false
+      });
+    }
   };
 
   const getToken = () => {

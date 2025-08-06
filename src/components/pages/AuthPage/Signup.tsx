@@ -28,7 +28,6 @@ const Signup = () => {
     const [formData, setFormData] = useState({
       firstName: '',
       lastName: '',
-      nickname: '',
       email: '',
       password: '',
       confirmPassword: ''
@@ -83,9 +82,8 @@ const Signup = () => {
       try {
         // Fixed: Map frontend field names to backend field names
         const signupData = {
-          fname: formData.firstName,        // Changed from firstName to fname
-          lname: formData.lastName,         // Changed from lastName to lname
-          nickname: formData.nickname,
+          fname: formData.firstName,        
+          lname: formData.lastName,         
           email: formData.email,
           password: formData.password
         };
@@ -159,14 +157,6 @@ const Signup = () => {
                     value={formData.lastName}
                     onChange={handleInputChange('lastName')}
                     required
-                />
-              </div>
-              <div className="signup-grid-row">
-                <TextField 
-                    label="Nickname" 
-                    fullWidth
-                    value={formData.nickname}
-                    onChange={handleInputChange('nickname')}
                 />
               </div>
               <div className="signup-grid-row">

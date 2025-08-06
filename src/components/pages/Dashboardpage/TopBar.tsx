@@ -2,6 +2,8 @@ import React, { useState } from "react";
 import { Avatar, Menu, MenuItem, Box, Typography, IconButton } from "@mui/material";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import SearchBar from "../PageLayout/Common/SearchBar";
+import { useNavigate } from 'react-router-dom';
+import { useAuthToken } from '../../../hooks/useAuth0Token';
 
 interface TopBarProps  {
     selectedMenuItem: string; // Add this prop
@@ -10,6 +12,9 @@ interface TopBarProps  {
 const TopBar: React.FC<TopBarProps > = ({selectedMenuItem}) => {
   const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
   const open = Boolean(anchorEl);
+  const { logout, isAuthenticated } = useAuthToken();
+  const navigate = useNavigate();
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
 
   const handleClick = (event: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(event.currentTarget);
@@ -17,6 +22,18 @@ const TopBar: React.FC<TopBarProps > = ({selectedMenuItem}) => {
 
   const handleClose = () => {
     setAnchorEl(null);
+  };
+
+  const handleLogout = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    } finally {
+      setIsLoggingOut(false);
+    }
   };
 
   return (
@@ -59,7 +76,12 @@ const TopBar: React.FC<TopBarProps > = ({selectedMenuItem}) => {
           transformOrigin={{ vertical: "top", horizontal: "right" }}
         >
           <MenuItem onClick={handleClose}>Account</MenuItem>
-          <MenuItem onClick={handleClose}>Logout</MenuItem>
+          <MenuItem onClick={handleLogout} 
+                    disabled={isLoggingOut}
+                    className="logout-btn"
+          >
+                    {isLoggingOut ? 'Logging out...' : 'Logout'}
+          </MenuItem>
         </Menu>
       </Box>
     </Box>
@@ -67,3 +89,7 @@ const TopBar: React.FC<TopBarProps > = ({selectedMenuItem}) => {
 };
 
 export default TopBar;
+function setIsLoggingOut(arg0: boolean) {
+  throw new Error("Function not implemented.");
+}
+

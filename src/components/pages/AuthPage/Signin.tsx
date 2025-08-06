@@ -23,7 +23,7 @@ const Signin = () => {
 
   // Form state
   const [formData, setFormData] = useState({
-    nickname: '',
+    email: '',
     password: ''
   });
 
@@ -51,12 +51,12 @@ const Signin = () => {
   };
 
   const validateForm = () => {
-    if (!formData.nickname || !formData.password) {
+    if (!formData.email || !formData.password) {
       setError('Please fill in all fields.');
       return false;
     }
-    if (!/\S+@\S+\.\S+/.test(formData.nickname)) {
-      setError('Please enter a valid nickname address.');
+    if (!/\S+@\S+\.\S+/.test(formData.email)) {
+      setError('Please enter a valid email address.');
       return false;
     }
     return true;
@@ -72,7 +72,7 @@ const Signin = () => {
 
     try {
       const signInData = {
-        nickname: formData.nickname,
+        email: formData.email,
         password: formData.password
       };
 
@@ -92,7 +92,7 @@ const Signin = () => {
         
         // Clear form data
         setFormData({
-          nickname: '',
+          email: '',
           password: ''
         });
         
@@ -109,7 +109,7 @@ const Signin = () => {
       
       // Handle different types of errors
       if (err.response?.status === 401) {
-        setError('Invalid nickname or password. Please try again.');
+        setError('Invalid email or password. Please try again.');
       } else if (err.response?.status === 400) {
         setError(err.response?.data?.message || 'Invalid signin data. Please check your information.');
       } else if (err.response?.status >= 500) {
@@ -156,14 +156,14 @@ const Signin = () => {
           <form className="signin-form" onSubmit={handleSubmit}>
               <TextField
                 id="loginid"
-                label="Nickname Address"
+                label="Email Address"
                 variant="outlined"
                 fullWidth
                 type="text"
-                value={formData.nickname}
-                onChange={handleInputChange('nickname')}
+                value={formData.email}
+                onChange={handleInputChange('email')}
                 required
-                autoComplete="nickname"
+                autoComplete="email"
                 sx={{ m: 1 }}
               />
 

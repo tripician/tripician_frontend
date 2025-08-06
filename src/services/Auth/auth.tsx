@@ -3,13 +3,12 @@ import axios from 'axios';
 interface SignupData {
   fname: string;
   lname: string;
-  nickname: string;
   email: string;
   password: string;
 }
 
 interface SignInData {
-  nickname: string;
+  email: string;
   password: string;
 }
 
@@ -17,7 +16,6 @@ interface SyncUserData {
   Auth0UserId: string;
   fname: string;
   lname: string;
-  nickname?: string;
   email: string;
   dob?: string;
   gender?: string;
@@ -29,7 +27,6 @@ interface UserProfile {
   id: string;
   email: string;
   name: string;
-  nickname: string;
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:44338';
