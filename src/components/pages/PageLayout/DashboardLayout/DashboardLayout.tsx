@@ -20,7 +20,6 @@ import {
   Menu as MenuIcon,
   Add as AddIcon
 } from '@mui/icons-material';
-import tripicianLogo from '../../../../assets/TripicianLogofullwhite.png'; // Adjust the path as necessary
 
 interface Props {
   children: React.ReactNode;
@@ -107,7 +106,7 @@ const DashboardLayout: React.FC<Props> = ({ children, onMenuItemChange }) => {
             {!isCollapsed && (
               <div className="signin-logo">
                 <img 
-                  src={tripicianLogo} 
+                  src={import.meta.env.VITE_TRIPICIAN_LOGO_WHITE_URL} 
                   alt="Tripician Logo"
                 />
               </div>

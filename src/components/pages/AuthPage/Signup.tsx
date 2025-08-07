@@ -1,5 +1,4 @@
 import React from 'react';
-import tripicianLogo from '../../../assets/TripicianLogofull2.png'; 
 import '../../css/Signup.css';
 import { useState } from 'react';
 
@@ -112,7 +111,7 @@ const Signup = () => {
           
         <Paper elevation={3} className="signup-paper">
           <div className="signin-logo">
-            <img src={tripicianLogo} alt="Tripician Logo"/>
+            <img src={import.meta.env.VITE_TRIPICIAN_LOGO_FULL_BLACK_URL} alt="Tripician Logo"/>
           </div>
           <Box className="signup-subheader" sx={{ textAlign: 'center', mb: 3 }}>
               <Typography 

@@ -9,7 +9,6 @@ import dubai from '../../../assets/dubai.jpg';
 import astana from '../../../assets/astana.jpg';
 import khiva from '../../../assets/khiva.jpg';
 import sapa from '../../../assets/paris.jpg';
-import user from '../../../assets/user.png';
 import TopBar from './TopBar';
 import { Tabs, Tab } from '@mui/material';
 import { useState } from 'react';
@@ -23,7 +22,8 @@ const Dashboard: React.FC = () => {
       const handleMenuItemChange = (itemName : string) => {
         setSelectedMenuItem(itemName)
       }
-
+      const user = import.meta.env.VITE_NO_PROFILE_PIC_URL
+      
       var items = [
         { title: 'Socializing in Santorini', image: santorini, location: 'Greece', progress: 100, edited: '8h ago', members: [user, user, user, user, user] },
         { title: 'Spring in Sapa', image: sapa, location: 'Vietnam', progress: 30, edited: '2h ago', members: [user, user, user] },

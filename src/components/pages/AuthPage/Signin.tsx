@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import '../../css/Signin.css';
-import tripicianLogo from '../../../assets/TripicianLogofull2.png'; 
 import TextField from '@mui/material/TextField';
 import FormControl from '@mui/material/FormControl';
 import InputLabel from '@mui/material/InputLabel';
@@ -145,7 +144,7 @@ const Signin = () => {
       <div className="signin-split-right">
         <div className="signin-card">
           <div className="signin-logo">
-            <img src={tripicianLogo} alt="Tripician Logo"/>
+            <img src={import.meta.env.VITE_TRIPICIAN_LOGO_FULL_BLACK_URL} alt="Tripician Logo"/>
           </div>
 
           {/* Display error message if signin fails */}
