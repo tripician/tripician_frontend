@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Link, Container, Divider } from '@mui/material';
+import { Box, Typography, Link, Container } from '@mui/material';
 
 interface FooterProps {
   sidebarWidth?: number;
@@ -7,7 +7,7 @@ interface FooterProps {
 }
 
 const Footer: React.FC<FooterProps> = ({ 
-  sidebarWidth = 240, 
+  sidebarWidth = '100vw', 
   isCollapsed = false 
 }) => {
   const currentYear = new Date().getFullYear();

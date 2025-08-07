@@ -7,7 +7,7 @@ interface TripCardProps {
   image: string;
   progress?: number;
   edited?: string;
-  members?: string[];
+  members?: { name: string; profilePic: string }[];
 }
 
 const TripCard: React.FC<TripCardProps> = ({ title, location, image, progress, edited, members }) => {
@@ -34,7 +34,7 @@ const TripCard: React.FC<TripCardProps> = ({ title, location, image, progress, e
               {members.slice(0, 3).map((src, idx) => (
                 <img
                   key={idx}
-                  src={src}
+                  src={src.profilePic}
                   alt="member"
                   className="rounded-circle border border-2 border-white"
                   style={{
