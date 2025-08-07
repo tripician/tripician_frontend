@@ -2,13 +2,13 @@ import React from 'react';
 import DashboardLayout from '../PageLayout/DashboardLayout/DashboardLayout';
 import TripCard from './TripCard';
 import '../../css/Dashboard.css';
-import santorini from '../../../assets/santorini.jpg';
-import kyoto from '../../../assets/kyoto.jpg';
-import paris from '../../../assets/paris.jpg';
-import dubai from '../../../assets/dubai.jpg';
-import astana from '../../../assets/astana.jpg';
-import khiva from '../../../assets/khiva.jpg';
-import sapa from '../../../assets/sapa.jpg';
+import santorini from '../../../assets/santorini.png';
+import kyoto from '../../../assets/kyoto.png';
+import paris from '../../../assets/paris.png';
+import dubai from '../../../assets/dubai.png';
+import astana from '../../../assets/astana.png';
+import khiva from '../../../assets/khiva.png';
+import sapa from '../../../assets/sapa.png';
 import TopBar from './TopBar';
 import { Tabs, Tab } from '@mui/material';
 import { useState } from 'react';
@@ -38,8 +38,11 @@ const Dashboard: React.FC = () => {
     { title: 'Kyoto Adventure', image: kyoto, location: 'Tokyo', progress: 9, edited: '5 days ago', members: [user, user] },
     { title: 'Paris Getaway', image: paris, location: 'France', progress: 2, members: [user, user, user, user] }];
 
-  
-  const[plans, setPlans] = useState(allPlans);
+  const private_plans = allPlans.filter(plan => plan.members[0] === user1 && plan.progress === 100 && plan.members.length === 1);
+  const group_plans = allPlans.filter(plan => plan.members.includes(user1) && plan.members.length > 1);
+  const in_progress_plans = allPlans.filter(plan => plan.progress < 100);
+
+  const[plans, setPlans] = useState(private_plans);
   const [tabValue, setTabValue] = useState(0);
   const [selectedMenuItem, setSelectedMenuItem] = useState('Dashboard');
 
@@ -47,13 +50,13 @@ const Dashboard: React.FC = () => {
     setTabValue(newValue);
     console.log('Tab changed to:', newValue);
     if (newValue === 0) {
-      setPlans(allPlans.filter(plan => plan.members[0] === user1 && plan.progress === 100 && plan.members.length === 1));
+      setPlans(private_plans);
     }
     else if (newValue === 1) {
-      setPlans(allPlans.filter(plan => plan.members.includes(user1) && plan.members.length > 1));
+      setPlans(group_plans);
     } 
     else if (newValue === 2) {
-      setPlans(allPlans.filter(plan => plan.progress < 100 ));
+      setPlans(in_progress_plans);
     }
   };
   const handleMenuItemChange = (itemName: string) => {
