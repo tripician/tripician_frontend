@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import Footer from "../../PageLayout/Common/Footer";
+import Footer from "./Footer";
 import {
   Box,
   Drawer,
@@ -10,9 +10,11 @@ import {
   IconButton,
   useTheme,
   useMediaQuery,
-  Tooltip
+  Tooltip,
+  Avatar
 } from '@mui/material';
 import {
+  Home as HomeIcon,
   Dashboard as DashboardIcon,
   People as CommunityIcon,
   Person as ProfileIcon,
@@ -29,18 +31,19 @@ interface Props {
 const drawerWidth = 240;
 const collapsedDrawerWidth = 64;
 
+const profileItem = { text: 'Profile', icon: <ProfileIcon /> }
 const menuItems = [
+  { text: 'Home', icon: <HomeIcon /> },
   { text: 'Dashboard', icon: <DashboardIcon /> },
   { text: 'Community', icon: <CommunityIcon /> },
-  { text: 'Profile', icon: <ProfileIcon /> },
   { text: 'Settings', icon: <SettingsIcon /> },
 ];
 
-const DashboardLayout: React.FC<Props> = ({ children, onMenuItemChange }) => {
+const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [selectedItem, setSelectedItem] = useState('Dashboard');
+  const [selectedItem, setSelectedItem] = useState('Home');
 
   useEffect(() => {
     setIsCollapsed(isMobile);
@@ -180,39 +183,60 @@ const DashboardLayout: React.FC<Props> = ({ children, onMenuItemChange }) => {
           </List>
         </Box>
 
-        {/* Create Trip Button */}
-        {isCollapsed ? (
-          <Tooltip title="Create trip" placement="right" arrow>
-            <IconButton
-              sx={{
-                backgroundColor: 'white',
-                color: '#1976d2',
-                '&:hover': {
-                  backgroundColor: '#f0f0f0',
-                },
-                mb: 1,
-              }}
-            >
-              <AddIcon />
-            </IconButton>
-          </Tooltip>
-        ) : (
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
+        {/* Profile Button */}
+        <Tooltip
+          key={profileItem.text}
+          title={isCollapsed ? profileItem.text : ''}
+          placement="right"
+          arrow
+        >
+          <ListItem
+            component="button"
+            onClick={() => handleMenuItemClick(profileItem.text)}
             sx={{
-              mt: 2,
-              backgroundColor: 'white',
-              color: '#1976d2',
-              fontWeight: 'bold',
+              borderRadius: 1,
+              px: isCollapsed ? 1 : 2,
+              py: 1.5,
+              mb: 1,
+              minHeight: 48,
+              justifyContent: isCollapsed ? 'center' : 'flex-start',
+              backgroundColor: selectedItem === profileItem.text ? 'rgba(255,255,255,0.15)' : 'transparent',
               '&:hover': {
-                backgroundColor: '#f0f0f0',
+                backgroundColor: selectedItem === profileItem.text
+                  ? 'rgba(255,255,255,0.2)'
+                  : 'rgba(255,255,255,0.1)',
               },
+              transition: 'all 0.2s ease-in-out',
             }}
           >
-            Create trip
-          </Button>
-        )}
+            <Box
+              sx={{
+                color: selectedItem === profileItem.text ? '#fff' : 'rgba(255,255,255,0.8)',
+                display: 'flex',
+                alignItems: 'center',
+                minWidth: 24,
+                mr: isCollapsed ? 0 : 2,
+              }}
+            >
+              <Avatar
+                src={import.meta.env.VITE_NO_PROFILE_PIC_URL}
+                sx={{ width: 36, height: 36, cursor: "pointer" }}
+              />
+            </Box>
+            {!isCollapsed && (
+              <ListItemText
+                primary={profileItem.text}
+                sx={{
+                  color: selectedItem === profileItem.text ? '#fff' : 'rgba(255,255,255,0.8)',
+                  fontWeight: selectedItem === profileItem.text ? 600 : 400,
+                  '& .MuiListItemText-primary': {
+                    fontSize: '0.95rem',
+                  },
+                }}
+              />
+            )}
+          </ListItem>
+        </Tooltip>
       </Drawer>
 
       {/* Right Side: Main Content + Footer */}
@@ -243,4 +267,4 @@ const DashboardLayout: React.FC<Props> = ({ children, onMenuItemChange }) => {
   );
 };
 
-export default DashboardLayout;
+export default NavigationPannel;

@@ -1,9 +1,11 @@
 import React, { useState } from "react";
-import { Avatar, Menu, MenuItem, Box, Typography, IconButton } from "@mui/material";
+import { Avatar, Menu, MenuItem, Box, Typography, IconButton, Tooltip, Button } from "@mui/material";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
-import SearchBar from "../PageLayout/Common/SearchBar";
+import SearchBar from "../CommonComponents/SearchBar";
 import { useNavigate } from 'react-router-dom';
-import { useAuthToken } from '../../../hooks/useAuth0Token';
+import { useAuthToken } from '../../../../hooks/useAuth0Token';
+import {Add as AddIcon} from '@mui/icons-material';
+
 
 interface TopBarProps  {
     selectedMenuItem: string; // Add this prop
@@ -62,6 +64,23 @@ const TopBar: React.FC<TopBarProps > = ({selectedMenuItem}) => {
           <NotificationsNoneIcon sx={{ color: "text.secondary" }} fontSize="medium" />
         </IconButton>
 
+        {/* Create Trip Button */}
+        <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            sx={{
+              mt: 2,
+              backgroundColor: 'white',
+              color: '#1976d2',
+              fontWeight: 'bold',
+              '&:hover': {
+                backgroundColor: '#f0f0f0',
+              },
+            }}
+          >
+            Create trip
+        </Button>
+
         <Avatar
           onClick={handleClick}
           src={import.meta.env.VITE_NO_PROFILE_PIC_URL}
@@ -88,8 +107,4 @@ const TopBar: React.FC<TopBarProps > = ({selectedMenuItem}) => {
 };
 
 export default TopBar;
-
-function setIsLoggingOut(arg0: boolean) {
-  throw new Error("Function not implemented.");
-}
 
