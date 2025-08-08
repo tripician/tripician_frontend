@@ -17,7 +17,7 @@ import {
   Typography
 } from '@mui/material';
 import { VisibilityOff, Visibility, Explore } from '@mui/icons-material';
-import { authAPI } from '../../../services/Auth/auth';
+import { authAPI } from '../../../services/APIs/Auth/auth';
 import { useNavigate } from 'react-router-dom';
 
 const Signup = () => {
@@ -81,8 +81,8 @@ const Signup = () => {
       try {
         // Fixed: Map frontend field names to backend field names
         const signupData = {
-          fname: formData.firstName,        
-          lname: formData.lastName,         
+          fname: formData.firstName,
+          lname: formData.lastName,
           email: formData.email,
           password: formData.password
         };

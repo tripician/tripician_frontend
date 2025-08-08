@@ -13,6 +13,7 @@ import TopBar from './TopBar';
 import { Tabs, Tab } from '@mui/material';
 import { useState } from 'react';
 
+
 const Dashboard: React.FC = () => {
   // Sample data for trips
   // In a real application, this data would be fetched from an API
@@ -36,34 +37,38 @@ const Dashboard: React.FC = () => {
     { title: 'Winter in Khiva', image: khiva, location: 'Uzbekistan', progress: 10, edited: '2h ago', members: [user, user, user] },
     { title: 'Citylife in Dubai', image: dubai, location: 'UAE', progress: 35, edited: '2h ago', members: [user, user, user] },
     { title: 'Kyoto Adventure', image: kyoto, location: 'Tokyo', progress: 9, edited: '5 days ago', members: [user, user] },
-    { title: 'Paris Getaway', image: paris, location: 'France', progress: 2, members: [user, user, user, user] }];
+    { title: 'Paris Getaway', image: paris, location: 'France', progress: 2, edited: '10 days ago', members: [user, user, user, user] }];
 
-  const private_plans = allPlans.filter(plan => plan.members[0] === user1 && plan.progress === 100 && plan.members.length === 1);
+  const private_plans = allPlans.filter(plan => plan.members[0] === user1 && plan.members.length === 1);
   const group_plans = allPlans.filter(plan => plan.members.includes(user1) && plan.members.length > 1);
   const in_progress_plans = allPlans.filter(plan => plan.progress < 100);
+  const completed_plans = allPlans.filter(plan => plan.progress === 100);
 
-  const[plans, setPlans] = useState(private_plans);
+  const[plans, setPlans] = useState(allPlans);
   const [tabValue, setTabValue] = useState(0);
   const [selectedMenuItem, setSelectedMenuItem] = useState('Dashboard');
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
-    console.log('Tab changed to:', newValue);
     if (newValue === 0) {
-      setPlans(private_plans);
+      setPlans(allPlans);
     }
     else if (newValue === 1) {
-      setPlans(group_plans);
+      setPlans(private_plans);
     } 
     else if (newValue === 2) {
+      setPlans(group_plans);
+    }
+    else if (newValue === 3) {
+      setPlans(completed_plans);
+    }
+    else if (newValue === 4) {
       setPlans(in_progress_plans);
     }
   };
   const handleMenuItemChange = (itemName: string) => {
     setSelectedMenuItem(itemName);
-  }; 
-
-  
+  };
   
   return (
     <DashboardLayout onMenuItemChange={handleMenuItemChange}>
@@ -77,8 +82,10 @@ const Dashboard: React.FC = () => {
         aria-label="trip tabs"
         sx={{ pl: 0}}
       >
-        <Tab label="Private Plans"  sx={{ textTransform: "none", fontWeight: "bold"}}/>
-        <Tab label="Group Plans"  sx={{ textTransform: "none", fontWeight: "bold" }}/>
+        <Tab label="All Plans"  sx={{ textTransform: "none", fontWeight: "bold"}}/>
+        <Tab label="Private"  sx={{ textTransform: "none", fontWeight: "bold" }}/>
+        <Tab label="Group"  sx={{ textTransform: "none", fontWeight: "bold" }}/>
+        <Tab label="Completed"  sx={{ textTransform: "none", fontWeight: "bold" }}/>
         <Tab label="In Progress"  sx={{ textTransform: "none", fontWeight: "bold" }}/>
       </Tabs>
       

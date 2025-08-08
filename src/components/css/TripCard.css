@@ -3,6 +3,8 @@
   border-radius: 12px;
   overflow: hidden;
   height: 320px;
+  transition: transform 0.3s ease, box-shadow 0.3s ease, filter 0.3s ease;
+  cursor: pointer;
 }
 .trip-image-wrapper {
   height: 100%;
@@ -13,9 +15,20 @@
   width: 100%;
   height: 100%;
   display: block;
+  transition: transform 0.4s ease;
 }
 .card-img-overlay {
   background: linear-gradient(to top, rgba(0,0,0,0.7), rgba(0,0,0,0.1));
   padding: 0rem;
   width: 100%;
+}
+
+.trip-card:hover {
+  transform: translateY(-5px) scale(1.02);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.15);
+  filter: brightness(1.05);
+}
+
+.trip-card:hover img {
+  transform: scale(1.05);
 }

@@ -13,7 +13,7 @@ import Button from '@mui/material/Button';
 import GoogleIcon from '@mui/icons-material/Google';
 import AppleIcon from '@mui/icons-material/Apple';
 import Alert from '@mui/material/Alert';
-import { authAPI } from '../../../services/Auth/auth';
+import { authAPI } from '../../../services/APIs/Auth/auth';
 import { useNavigate } from 'react-router-dom';
 
 const Signin = () => {

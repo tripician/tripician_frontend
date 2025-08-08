@@ -1,6 +1,6 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
-import { useAuthToken } from '../../hooks/useAuth0Token';
+import { useAuthToken } from '../hooks/useAuth0Token';
 import { Box, CircularProgress } from '@mui/material';
 
 interface ProtectedRouteProps {

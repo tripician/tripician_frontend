@@ -18,7 +18,7 @@ const TripCard: React.FC<TripCardProps> = ({ title, location, image, progress, e
       </div>
       <div className="card-img-overlay d-flex flex-column justify-content-end text-white">
         <h5 className="card-title fw-bold">{title}</h5>
-        <p className="card-text small">{location}</p>
+        <p className="card-text small text-white-50 mt-0">{location}</p>
         {progress !== undefined && (
           <div className="progress mb-2" style={{ height: '2px' }}>
             <div
