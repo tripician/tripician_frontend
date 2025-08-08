@@ -1,3 +1,9 @@
+# Few important things
+- Used cloudinary for photo storages : https://console.cloudinary.com/app/
+- Auth management system (Auth0) : https://auth0.com/
+
+
+
 # React + TypeScript + Vite
 
 This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
