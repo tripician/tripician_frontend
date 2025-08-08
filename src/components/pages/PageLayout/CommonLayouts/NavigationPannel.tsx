@@ -104,7 +104,7 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
             }}
           >
             {!isCollapsed && (
-              <div className="signin-logo">
+              <div className="common-logo">
                 <img
                   src={import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_URL}
                   alt="Tripician Logo"
@@ -199,6 +199,7 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
               py: 1.5,
               mb: 1,
               minHeight: 48,
+              border: '1px solid rgba(255,255,255,0.2)',
               justifyContent: isCollapsed ? 'center' : 'flex-start',
               backgroundColor: selectedItem === profileItem.text ? 'rgba(255,255,255,0.15)' : 'transparent',
               '&:hover': {

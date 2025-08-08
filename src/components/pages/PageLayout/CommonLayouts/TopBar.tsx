@@ -69,38 +69,18 @@ const TopBar: React.FC<TopBarProps > = ({selectedMenuItem}) => {
             variant="contained"
             startIcon={<AddIcon />}
             sx={{
-              mt: 2,
-              backgroundColor: 'white',
-              color: '#1976d2',
+              mt: 0,
+              backgroundColor: '#1976d2',
+              color: '#f0f0f0',
               fontWeight: 'bold',
               '&:hover': {
-                backgroundColor: '#f0f0f0',
+                backgroundColor: '#2391ffff',
+                color: '#f0f0f0',
               },
             }}
           >
             Create trip
         </Button>
-
-        <Avatar
-          onClick={handleClick}
-          src={import.meta.env.VITE_NO_PROFILE_PIC_URL}
-          sx={{ width: 36, height: 36, cursor: "pointer" }}
-        />
-        <Menu
-          anchorEl={anchorEl}
-          open={open}
-          onClose={handleClose}
-          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-          transformOrigin={{ vertical: "top", horizontal: "right" }}
-        >
-          <MenuItem onClick={handleClose}>Account</MenuItem>
-          <MenuItem onClick={handleLogout} 
-                    disabled={isLoggingOut}
-                    className="logout-btn"
-          >
-                    {isLoggingOut ? 'Logging out...' : 'Logout'}
-          </MenuItem>
-        </Menu>
       </Box>
     </Box>
   );
