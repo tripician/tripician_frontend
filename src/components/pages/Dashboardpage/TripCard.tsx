@@ -7,7 +7,7 @@ interface TripCardProps {
   image: string;
   progress?: number;
   edited?: string;
-  members?: string[];
+  members?: { name: string; profilePic: string }[];
 }
 
 const TripCard: React.FC<TripCardProps> = ({ title, location, image, progress, edited, members }) => {
@@ -18,7 +18,7 @@ const TripCard: React.FC<TripCardProps> = ({ title, location, image, progress, e
       </div>
       <div className="card-img-overlay d-flex flex-column justify-content-end text-white">
         <h5 className="card-title fw-bold">{title}</h5>
-        <p className="card-text small">{location}</p>
+        <p className="card-text small text-white-50 mt-0">{location}</p>
         {progress !== undefined && (
           <div className="progress mb-2" style={{ height: '2px' }}>
             <div
@@ -34,7 +34,7 @@ const TripCard: React.FC<TripCardProps> = ({ title, location, image, progress, e
               {members.slice(0, 3).map((src, idx) => (
                 <img
                   key={idx}
-                  src={src}
+                  src={src.profilePic}
                   alt="member"
                   className="rounded-circle border border-2 border-white"
                   style={{

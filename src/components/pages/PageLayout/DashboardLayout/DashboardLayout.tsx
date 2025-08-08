@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import Footer from "../../PageLayout/Common/Footer";
-import { 
-  Box, 
-  Drawer, 
-  List, 
-  ListItemText, 
-  Button, 
+import {
+  Box,
+  Drawer,
+  List,
+  ListItemText,
+  Button,
   ListItem,
   IconButton,
   useTheme,
@@ -20,11 +20,10 @@ import {
   Menu as MenuIcon,
   Add as AddIcon
 } from '@mui/icons-material';
-import tripicianLogo from '../../../../assets/TripicianLogofullwhite.png'; // Adjust the path as necessary
 
 interface Props {
   children: React.ReactNode;
-  onMenuItemChange?: (itemName: string) => void; // Callback for menu item changes
+  onMenuItemChange?: (itemName: string) => void;
 }
 
 const drawerWidth = 240;
@@ -43,7 +42,6 @@ const DashboardLayout: React.FC<Props> = ({ children, onMenuItemChange }) => {
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selectedItem, setSelectedItem] = useState('Dashboard');
 
-  // Auto-collapse on mobile
   useEffect(() => {
     setIsCollapsed(isMobile);
   }, [isMobile]);
@@ -52,10 +50,8 @@ const DashboardLayout: React.FC<Props> = ({ children, onMenuItemChange }) => {
     setIsCollapsed(!isCollapsed);
   };
 
-  // Handle menu item selection
   const handleMenuItemClick = (itemText: string) => {
     setSelectedItem(itemText);
-    // Call the callback function to notify parent component
     if (onMenuItemChange) {
       onMenuItemChange(itemText);
     }
@@ -64,8 +60,8 @@ const DashboardLayout: React.FC<Props> = ({ children, onMenuItemChange }) => {
   const currentDrawerWidth = isCollapsed ? collapsedDrawerWidth : drawerWidth;
 
   return (
-    <>
-    <Box sx={{ display: 'flex' }}>
+    <Box sx={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+      {/* Sidebar */}
       <Drawer
         variant="permanent"
         anchor="left"
@@ -93,7 +89,7 @@ const DashboardLayout: React.FC<Props> = ({ children, onMenuItemChange }) => {
           },
         }}
       >
-        {/* Header with Logo and Menu Toggle */}
+        {/* Sidebar Header */}
         <Box>
           <Box
             sx={{
@@ -106,8 +102,8 @@ const DashboardLayout: React.FC<Props> = ({ children, onMenuItemChange }) => {
           >
             {!isCollapsed && (
               <div className="signin-logo">
-                <img 
-                  src={tripicianLogo} 
+                <img
+                  src={import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_URL}
                   alt="Tripician Logo"
                 />
               </div>
@@ -127,7 +123,7 @@ const DashboardLayout: React.FC<Props> = ({ children, onMenuItemChange }) => {
             )}
           </Box>
 
-          {/* Navigation Items */}
+          {/* Menu Items */}
           <List sx={{ px: 0 }}>
             {menuItems.map((item) => (
               <Tooltip
@@ -148,8 +144,8 @@ const DashboardLayout: React.FC<Props> = ({ children, onMenuItemChange }) => {
                     justifyContent: isCollapsed ? 'center' : 'flex-start',
                     backgroundColor: selectedItem === item.text ? 'rgba(255,255,255,0.15)' : 'transparent',
                     '&:hover': {
-                      backgroundColor: selectedItem === item.text 
-                        ? 'rgba(255,255,255,0.2)' 
+                      backgroundColor: selectedItem === item.text
+                        ? 'rgba(255,255,255,0.2)'
                         : 'rgba(255,255,255,0.1)',
                     },
                     transition: 'all 0.2s ease-in-out',
@@ -219,27 +215,31 @@ const DashboardLayout: React.FC<Props> = ({ children, onMenuItemChange }) => {
         )}
       </Drawer>
 
-      {/* Main Content */}
-      <Box 
-        component="main" 
-        sx={{ 
-          flexGrow: 1, 
-          pl: 4,
-          pr: 4,
-          pt: 2,
-          backgroundColor: '#f5f5f5', 
-          minHeight: '100vh',
-          transition: theme.transitions.create('margin', {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.enteringScreen,
-          }),
-        }}
-      >
-        {children}
+      {/* Right Side: Main Content + Footer */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1, height: '100vh', overflow: 'hidden' }}>
+        {/* Main Content Area */}
+        <Box
+          component="main"
+          sx={{
+            flexGrow: 1,
+            overflowY: 'auto',
+            backgroundColor: '#f5f5f5',
+            pl: 4,
+            pr: 4,
+            pt: 2,
+            transition: theme.transitions.create('margin', {
+              easing: theme.transitions.easing.sharp,
+              duration: theme.transitions.duration.enteringScreen,
+            }),
+          }}
+        >
+          {children}
+        </Box>
+
+        {/* Footer */}
+        <Footer />
       </Box>
     </Box>
-    <Footer/>
-    </>
   );
 };
 

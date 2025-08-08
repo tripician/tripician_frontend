@@ -45,7 +45,6 @@ const TopBar: React.FC<TopBarProps > = ({selectedMenuItem}) => {
         width: "100%",
         className: "mb-4",
         position: "sticky",
-        top: 0,
         zIndex: 1100,
         backgroundColor: "#f5f5f5",
         padding: "1% 0 1% 0",
@@ -65,7 +64,7 @@ const TopBar: React.FC<TopBarProps > = ({selectedMenuItem}) => {
 
         <Avatar
           onClick={handleClick}
-          src="/assets/user.png"
+          src={import.meta.env.VITE_NO_PROFILE_PIC_URL}
           sx={{ width: 36, height: 36, cursor: "pointer" }}
         />
         <Menu
@@ -89,6 +88,7 @@ const TopBar: React.FC<TopBarProps > = ({selectedMenuItem}) => {
 };
 
 export default TopBar;
+
 function setIsLoggingOut(arg0: boolean) {
   throw new Error("Function not implemented.");
 }

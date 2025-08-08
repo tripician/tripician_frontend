@@ -3,7 +3,7 @@ import './App.css'
 import Signin from './components/pages/AuthPage/Signin'
 import Signup from './components/pages/AuthPage/Signup'
 import Dashboard from './components/pages/DashboardPage/Dashboard'
-import ProtectedRoute from './services/Auth/ProtectedRoute'
+import ProtectedRoute from './services/ProtectedRoute'
 
 function App() {
   return (

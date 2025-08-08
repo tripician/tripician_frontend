@@ -2,37 +2,74 @@ import React from 'react';
 import DashboardLayout from '../PageLayout/DashboardLayout/DashboardLayout';
 import TripCard from './TripCard';
 import '../../css/Dashboard.css';
-import santorini from '../../../assets/santorini.jpg';
-import kyoto from '../../../assets/kyoto.jpg';
-import paris from '../../../assets/paris.jpg';
-import dubai from '../../../assets/dubai.jpg';
-import astana from '../../../assets/astana.jpg';
-import khiva from '../../../assets/khiva.jpg';
-import sapa from '../../../assets/paris.jpg';
-import user from '../../../assets/user.png';
+import santorini from '../../../assets/santorini.png';
+import kyoto from '../../../assets/kyoto.png';
+import paris from '../../../assets/paris.png';
+import dubai from '../../../assets/dubai.png';
+import astana from '../../../assets/astana.png';
+import khiva from '../../../assets/khiva.png';
+import sapa from '../../../assets/sapa.png';
 import TopBar from './TopBar';
 import { Tabs, Tab } from '@mui/material';
 import { useState } from 'react';
 
+
 const Dashboard: React.FC = () => {
-    const [tabValue, setTabValue] = useState(0);
-    const [selectedMenuItem, setSelectedMenuItem] = useState('Dashboard');
-    const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-        setTabValue(newValue);
-      };
-      const handleMenuItemChange = (itemName : string) => {
-        setSelectedMenuItem(itemName)
-      }
+  // Sample data for trips
+  // In a real application, this data would be fetched from an API
+  const user = {
+    name: 'Abhisek Roy',
+    profilePic: import.meta.env.VITE_NO_PROFILE_PIC_URL
+  }
+  const user1 = {
+    name: 'Srideep Kar',
+    profilePic: import.meta.env.VITE_NO_PROFILE_PIC_URL
+  }
+  const user2 = {
+    name: 'Rahul Singha',
+    profilePic: import.meta.env.VITE_NO_PROFILE_PIC_URL
+  }
 
-      var items = [
-        { title: 'Socializing in Santorini', image: santorini, location: 'Greece', progress: 100, edited: '8h ago', members: [user, user, user, user, user] },
-        { title: 'Spring in Sapa', image: sapa, location: 'Vietnam', progress: 30, edited: '2h ago', members: [user, user, user] },
-        { title: 'Autumn in astana', image: astana, location: 'Kazakhstan', progress: 60, edited: '2h ago', members: [user, user, user] },
-        { title: 'Winter in Khiva', image: khiva, location: 'Uzbekistan', progress: 10, edited: '2h ago', members: [user, user, user] },
-        { title: 'Citylife in Dubai', image: dubai, location: 'UAE', progress: 90, edited: '2h ago', members: [user, user, user] },
-        { title: 'Kyoto Adventure', image: kyoto, location: 'Tokyo', edited: '5 days ago', members: [user, user] },
-        { title: 'Paris Getaway', image: paris, location: 'France', members: [user, user, user, user] }];
+  var allPlans = [
+    { title: 'Socializing in Santorini', image: santorini, location: 'Greece', progress: 100, edited: '8h ago', members: [user1] },
+    { title: 'Spring in Sapa', image: sapa, location: 'Vietnam', progress: 30, edited: '2h ago', members: [user1, user2, user] },
+    { title: 'Autumn in astana', image: astana, location: 'Kazakhstan', progress: 60, edited: '2h ago', members: [user1, user2, user] },
+    { title: 'Winter in Khiva', image: khiva, location: 'Uzbekistan', progress: 10, edited: '2h ago', members: [user, user, user] },
+    { title: 'Citylife in Dubai', image: dubai, location: 'UAE', progress: 35, edited: '2h ago', members: [user, user, user] },
+    { title: 'Kyoto Adventure', image: kyoto, location: 'Tokyo', progress: 9, edited: '5 days ago', members: [user, user] },
+    { title: 'Paris Getaway', image: paris, location: 'France', progress: 2, edited: '10 days ago', members: [user, user, user, user] }];
 
+  const private_plans = allPlans.filter(plan => plan.members[0] === user1 && plan.members.length === 1);
+  const group_plans = allPlans.filter(plan => plan.members.includes(user1) && plan.members.length > 1);
+  const in_progress_plans = allPlans.filter(plan => plan.progress < 100);
+  const completed_plans = allPlans.filter(plan => plan.progress === 100);
+
+  const[plans, setPlans] = useState(allPlans);
+  const [tabValue, setTabValue] = useState(0);
+  const [selectedMenuItem, setSelectedMenuItem] = useState('Dashboard');
+
+  const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+    setTabValue(newValue);
+    if (newValue === 0) {
+      setPlans(allPlans);
+    }
+    else if (newValue === 1) {
+      setPlans(private_plans);
+    } 
+    else if (newValue === 2) {
+      setPlans(group_plans);
+    }
+    else if (newValue === 3) {
+      setPlans(completed_plans);
+    }
+    else if (newValue === 4) {
+      setPlans(in_progress_plans);
+    }
+  };
+  const handleMenuItemChange = (itemName: string) => {
+    setSelectedMenuItem(itemName);
+  };
+  
   return (
     <DashboardLayout onMenuItemChange={handleMenuItemChange}>
       <TopBar selectedMenuItem = {selectedMenuItem}/>
@@ -45,27 +82,28 @@ const Dashboard: React.FC = () => {
         aria-label="trip tabs"
         sx={{ pl: 0}}
       >
-        <Tab label="Public Trips"  sx={{ textTransform: "none", fontWeight: "bold"}}/>
-        <Tab label="Private Trips"  sx={{ textTransform: "none", fontWeight: "bold" }}/>
+        <Tab label="All Plans"  sx={{ textTransform: "none", fontWeight: "bold"}}/>
+        <Tab label="Private"  sx={{ textTransform: "none", fontWeight: "bold" }}/>
+        <Tab label="Group"  sx={{ textTransform: "none", fontWeight: "bold" }}/>
+        <Tab label="Completed"  sx={{ textTransform: "none", fontWeight: "bold" }}/>
         <Tab label="In Progress"  sx={{ textTransform: "none", fontWeight: "bold" }}/>
       </Tabs>
       
       <div className="trip-cards-container mb-5">
 
-            {items.map((item, index) => (
+            {plans.map((plan, index) => (
                 <TripCard
                 key={index}
-                title={item.title}
-                location={item.location}
-                image= {item.image}
-                progress={item.progress}
-                edited={item.edited}
-                members={item.members}
+                title={plan.title}
+                location={plan.location}
+                image= {plan.image}
+                progress={plan.progress}
+                edited={plan.edited}
+                members={plan.members}
                 />
             ))}          
       </div>
     </DashboardLayout>
   );
 };
-
 export default Dashboard;
