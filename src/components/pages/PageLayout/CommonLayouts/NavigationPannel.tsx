@@ -82,7 +82,7 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
             flexDirection: 'column',
             justifyContent: 'space-between',
             p: isCollapsed ? 1 : 2,
-            background: 'linear-gradient(180deg, #002837ff 0%, #66a6ff 100%)',
+            background: 'linear-gradient(180deg, #00222eff 0%, #3a72c2ff 100%)',
             color: 'white',
             overflowX: 'hidden',
             transition: theme.transitions.create('width', {
