@@ -46,7 +46,7 @@ const Dashboard: React.FC = () => {
 
   const[plans, setPlans] = useState(allPlans);
   const [tabValue, setTabValue] = useState(0);
-  const [selectedMenuItem, setSelectedMenuItem] = useState('Home');
+  const [selectedMenuItem, setSelectedMenuItem] = useState('Dashboard');
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);

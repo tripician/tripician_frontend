@@ -20,9 +20,11 @@ const TopBar: React.FC<TopBarProps > = ({selectedMenuItem}) => {
         position: "sticky",
         top: 0,
         zIndex: 1100,
-        backgroundColor: "#f5f5f5",
-        padding: "16px 24px",
-        borderBottom: "1px solid rgba(0, 0, 0, 0.05)",
+        background: 'rgba(255, 255, 255, 0.95)', // Semi-transparent white
+        backdropFilter: 'blur(10px)', // Modern glass morphism effect
+        borderBottom: "1px solid rgba(0, 0, 0, 0.08)",
+        padding: "20px 24px", // Increased padding for more breathing room
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)', // Subtle shadow
       }}
     >
       {/* Left Section - Title (Fixed width to prevent shifting) */}
@@ -32,19 +34,40 @@ const TopBar: React.FC<TopBarProps > = ({selectedMenuItem}) => {
           flexShrink: 0, // Prevent shrinking
         }}
       >
-        <Typography 
-          variant="h5" 
-          fontWeight={600} 
-          color="text.primary"
-          sx={{
-            whiteSpace: "nowrap", // Prevent text wrapping
-            overflow: "hidden",
-            textOverflow: "ellipsis",
-            fontSize: { xs: "1.25rem", md: "1.5rem" }, // Responsive font size
-          }}
-        >
-          {selectedMenuItem}
-        </Typography>
+        <Box sx={{ position: 'relative' }}>
+          <Typography 
+            variant="h4" 
+            fontWeight={700} 
+            sx={{
+              whiteSpace: "nowrap", // Prevent text wrapping
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              fontSize: { xs: "1.5rem", md: "1.75rem" }, // Larger, more modern sizing
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              textShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              letterSpacing: '-0.02em', // Tighter letter spacing for modern look
+              position: 'relative',
+              transition: 'all 0.3s ease-in-out', // Smooth transition
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                bottom: -4,
+                left: 0,
+                width: '60px',
+                height: '3px',
+                background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+                borderRadius: '2px',
+                opacity: 0.8,
+                transition: 'width 0.3s ease-in-out', // Animate the underline
+              }
+            }}
+          >
+            {selectedMenuItem}
+          </Typography>
+        </Box>
       </Box>
 
       {/* Center Section - Search Bar (Flexible width) */}

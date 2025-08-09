@@ -72,12 +72,8 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
   };
 
   const handleMenuItemClick = (itemText: string) => {
-    setSelectedItem(itemText);
-    if (onMenuItemChange) {
-      onMenuItemChange(itemText);
-    }
-    
-    // Navigate to the corresponding route
+    // Only navigate, don't update state here to prevent race conditions
+    // Let the useEffect handle state updates based on route changes
     if (itemText === 'Profile') {
       navigate('/profile');
     } else {
