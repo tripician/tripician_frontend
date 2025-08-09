@@ -52,7 +52,7 @@ const Home: React.FC = () => {
 
   return (
     <NavigationPannel onMenuItemChange={handleMenuItemChange}>
-      <Box sx={{ width: "100%", backgroundColor: "#f5f5f5", minHeight: "100vh" }}>
+      <Box sx={{ width: "100%", backgroundColor: "#f5f5f5", minHeight: "calc(100vh - 100px)" }}>
         <TopBar selectedMenuItem={selectedMenuItem} />
         
         {/* Hero Section */}

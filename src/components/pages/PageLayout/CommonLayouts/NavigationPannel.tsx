@@ -266,27 +266,37 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
 
       {/* Right Side: Main Content + Footer */}
       <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1, height: '100vh', overflow: 'hidden' }}>
-        {/* Main Content Area */}
+        {/* Main Content Area with Footer inside scrollable area */}
         <Box
           component="main"
           sx={{
             flexGrow: 1,
             overflowY: 'auto',
             backgroundColor: '#f5f5f5',
-            pl: 4,
-            pr: 4,
-            pt: 2,
+            display: 'flex',
+            flexDirection: 'column',
             transition: theme.transitions.create('margin', {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.enteringScreen,
             }),
           }}
         >
-          {children}
-        </Box>
+          {/* Content Container */}
+          <Box
+            sx={{
+              flexGrow: 1,
+              pl: 4,
+              pr: 4,
+              pt: 2,
+              pb: 2, // Add bottom padding
+            }}
+          >
+            {children}
+          </Box>
 
-        {/* Footer */}
-        <Footer />
+          {/* Footer - now inside scrollable area */}
+          <Footer />
+        </Box>
       </Box>
     </Box>
   );
