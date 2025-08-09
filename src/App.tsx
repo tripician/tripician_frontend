@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
 import Signin from './components/pages/AuthPage/Signin'
 import Signup from './components/pages/AuthPage/Signup'
-import Dashboard from './components/pages/Dashboardpage/Dashboard'
+import Dashboard from './components/pages/DashboardPage/Dashboard'
 import Profile from './components/pages/ProfilePage/Profile'
 import Home from './components/pages/HomePage/Home'
 import Community from './components/pages/CommunityPage/Community'
@@ -13,7 +13,6 @@ function App() {
   return (
     <div className="App">
       <Routes>
-        {/* Public Routes */}
         <Route path="/signup" element={<Signup />} />
         <Route path="/signin" element={<Signin />} />
         
