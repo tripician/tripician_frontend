@@ -70,12 +70,14 @@ const TopBar: React.FC<TopBarProps > = ({selectedMenuItem}) => {
             startIcon={<AddIcon />}
             sx={{
               mt: 0,
-              backgroundColor: '#1976d2',
-              color: '#f0f0f0',
+              backgroundColor: '#008bbdff',
+              color: '#f0f0f0ff',
               fontWeight: 'bold',
+              boxShadow: 'none',
               '&:hover': {
-                backgroundColor: '#2391ffff',
-                color: '#f0f0f0',
+                backgroundColor: '#ffffff',
+                color: '#008bbdff',
+                border: '1px solid #008bbdff',
               },
             }}
           >
