@@ -1,5 +1,5 @@
 import React from 'react';
-import DashboardLayout from '../PageLayout/DashboardLayout/DashboardLayout';
+import NavigationPannel from '../PageLayout/CommonLayouts/NavigationPannel';
 import TripCard from './TripCard';
 import '../../css/Dashboard.css';
 import santorini from '../../../assets/santorini.png';
@@ -9,7 +9,7 @@ import dubai from '../../../assets/dubai.png';
 import astana from '../../../assets/astana.png';
 import khiva from '../../../assets/khiva.png';
 import sapa from '../../../assets/sapa.png';
-import TopBar from './TopBar';
+import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import { Tabs, Tab } from '@mui/material';
 import { useState } from 'react';
 
@@ -46,7 +46,7 @@ const Dashboard: React.FC = () => {
 
   const[plans, setPlans] = useState(allPlans);
   const [tabValue, setTabValue] = useState(0);
-  const [selectedMenuItem, setSelectedMenuItem] = useState('Dashboard');
+  const [selectedMenuItem, setSelectedMenuItem] = useState('Home');
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -71,7 +71,7 @@ const Dashboard: React.FC = () => {
   };
   
   return (
-    <DashboardLayout onMenuItemChange={handleMenuItemChange}>
+    <NavigationPannel onMenuItemChange={handleMenuItemChange}>
       <TopBar selectedMenuItem = {selectedMenuItem}/>
       <Tabs
         value={tabValue}
@@ -103,7 +103,7 @@ const Dashboard: React.FC = () => {
                 />
             ))}          
       </div>
-    </DashboardLayout>
+    </NavigationPannel>
   );
 };
 export default Dashboard;

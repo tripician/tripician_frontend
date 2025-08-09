@@ -40,10 +40,19 @@
 
 .signin-logo {
   display: flex;
-  height: 10vh;
+  height: 5vh;
   margin-bottom: 6vh;
+  margin-top: 2vh;
   justify-content: center;
-  margin-bottom: 0;
+}
+
+.common-logo {
+  display: flex;
+  height: 4vh;
+  margin-bottom: 6vh;
+  margin-top: 2vh;
+  margin-left: 2vh;
+  justify-content: center;
 }
 
 .signin-form {

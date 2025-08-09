@@ -1,9 +1,11 @@
 import React, { useState } from "react";
-import { Avatar, Menu, MenuItem, Box, Typography, IconButton } from "@mui/material";
+import { Avatar, Menu, MenuItem, Box, Typography, IconButton, Tooltip, Button } from "@mui/material";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
-import SearchBar from "../PageLayout/Common/SearchBar";
+import SearchBar from "../CommonComponents/SearchBar";
 import { useNavigate } from 'react-router-dom';
-import { useAuthToken } from '../../../hooks/useAuth0Token';
+import { useAuthToken } from '../../../../hooks/useAuth0Token';
+import {Add as AddIcon} from '@mui/icons-material';
+
 
 interface TopBarProps  {
     selectedMenuItem: string; // Add this prop
@@ -62,34 +64,29 @@ const TopBar: React.FC<TopBarProps > = ({selectedMenuItem}) => {
           <NotificationsNoneIcon sx={{ color: "text.secondary" }} fontSize="medium" />
         </IconButton>
 
-        <Avatar
-          onClick={handleClick}
-          src={import.meta.env.VITE_NO_PROFILE_PIC_URL}
-          sx={{ width: 36, height: 36, cursor: "pointer" }}
-        />
-        <Menu
-          anchorEl={anchorEl}
-          open={open}
-          onClose={handleClose}
-          anchorOrigin={{ vertical: "bottom", horizontal: "right" }}
-          transformOrigin={{ vertical: "top", horizontal: "right" }}
-        >
-          <MenuItem onClick={handleClose}>Account</MenuItem>
-          <MenuItem onClick={handleLogout} 
-                    disabled={isLoggingOut}
-                    className="logout-btn"
+        {/* Create Trip Button */}
+        <Button
+            variant="contained"
+            startIcon={<AddIcon />}
+            sx={{
+              mt: 0,
+              backgroundColor: '#008bbdff',
+              color: '#f0f0f0ff',
+              fontWeight: 'bold',
+              boxShadow: 'none',
+              '&:hover': {
+                backgroundColor: '#ffffff',
+                color: '#008bbdff',
+                border: '1px solid #008bbdff',
+              },
+            }}
           >
-                    {isLoggingOut ? 'Logging out...' : 'Logout'}
-          </MenuItem>
-        </Menu>
+            Create trip
+        </Button>
       </Box>
     </Box>
   );
 };
 
 export default TopBar;
-
-function setIsLoggingOut(arg0: boolean) {
-  throw new Error("Function not implemented.");
-}
 
