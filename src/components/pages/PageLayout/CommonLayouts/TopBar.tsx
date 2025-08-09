@@ -1,9 +1,7 @@
-import React, { useState } from "react";
-import { Avatar, Menu, MenuItem, Box, Typography, IconButton, Tooltip, Button } from "@mui/material";
+import React from "react";
+import { Box, Typography, IconButton, Button } from "@mui/material";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import SearchBar from "../CommonComponents/SearchBar";
-import { useNavigate } from 'react-router-dom';
-import { useAuthToken } from '../../../../hooks/useAuth0Token';
 import {Add as AddIcon} from '@mui/icons-material';
 
 
@@ -12,31 +10,6 @@ interface TopBarProps  {
 }
 
 const TopBar: React.FC<TopBarProps > = ({selectedMenuItem}) => {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
-  const { logout, isAuthenticated } = useAuthToken();
-  const navigate = useNavigate();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    try {
-      await logout();
-      navigate('/login');
-    } catch (error) {
-      console.error('Logout failed:', error);
-    } finally {
-      setIsLoggingOut(false);
-    }
-  };
 
   return (
     <Box

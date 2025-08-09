@@ -87,7 +87,7 @@ const Signin = () => {
           localStorage.setItem('refreshToken', response.data.refreshToken);
         }
         
-        setSuccess('Sign in successful! Redirecting to dashboard...');
+        setSuccess('Sign in successful! Redirecting to home...');
         
         // Clear form data
         setFormData({
@@ -95,9 +95,9 @@ const Signin = () => {
           password: ''
         });
         
-        // Redirect to dashboard after a short delay
+        // Redirect to home after a short delay
         setTimeout(() => {
-          navigate('/dashboard'); // Change this to your dashboard route
+          navigate('/home');
         }, 1500);
       } else {
         setError('Unexpected response from server. Please try again.');

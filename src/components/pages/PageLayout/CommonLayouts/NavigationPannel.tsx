@@ -1,11 +1,11 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useLocation } from 'react-router-dom';
 import Footer from "./Footer";
 import {
   Box,
   Drawer,
   List,
   ListItemText,
-  Button,
   ListItem,
   IconButton,
   useTheme,
@@ -20,7 +20,6 @@ import {
   Person as ProfileIcon,
   Settings as SettingsIcon,
   Menu as MenuIcon,
-  Add as AddIcon
 } from '@mui/icons-material';
 
 interface Props {
@@ -31,19 +30,38 @@ interface Props {
 const drawerWidth = 240;
 const collapsedDrawerWidth = 64;
 
-const profileItem = { text: 'Profile', icon: <ProfileIcon /> }
+const profileItem = { text: 'Profile', icon: <ProfileIcon />, path: '/profile' };
 const menuItems = [
-  { text: 'Home', icon: <HomeIcon /> },
-  { text: 'Dashboard', icon: <DashboardIcon /> },
-  { text: 'Community', icon: <CommunityIcon /> },
-  { text: 'Settings', icon: <SettingsIcon /> },
+  { text: 'Home', icon: <HomeIcon />, path: '/home' },
+  { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
+  { text: 'Community', icon: <CommunityIcon />, path: '/community' },
+  { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
 ];
 
 const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
   const theme = useTheme();
+  const navigate = useNavigate();
+  const location = useLocation();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selectedItem, setSelectedItem] = useState('Home');
+
+  // Update selected item based on current route
+  useEffect(() => {
+    const currentPath = location.pathname;
+    const currentItem = menuItems.find(item => item.path === currentPath);
+    if (currentItem) {
+      setSelectedItem(currentItem.text);
+      if (onMenuItemChange) {
+        onMenuItemChange(currentItem.text);
+      }
+    } else if (currentPath === '/profile') {
+      setSelectedItem('Profile');
+      if (onMenuItemChange) {
+        onMenuItemChange('Profile');
+      }
+    }
+  }, [location.pathname, onMenuItemChange]);
 
   useEffect(() => {
     setIsCollapsed(isMobile);
@@ -57,6 +75,16 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
     setSelectedItem(itemText);
     if (onMenuItemChange) {
       onMenuItemChange(itemText);
+    }
+    
+    // Navigate to the corresponding route
+    if (itemText === 'Profile') {
+      navigate('/profile');
+    } else {
+      const menuItem = menuItems.find(item => item.text === itemText);
+      if (menuItem) {
+        navigate(menuItem.path);
+      }
     }
   };
 

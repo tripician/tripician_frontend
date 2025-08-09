@@ -51,7 +51,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
   onSearch,
   onResultSelect,
   suggestions = mockSuggestions,
-  width = '100%',
   variant = 'outlined',
 }) => {
   const [query, setQuery] = useState('');

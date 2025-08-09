@@ -50,7 +50,7 @@ const ProfileContent = styled(Box)(({ theme }) => ({
   flexWrap: 'wrap',
 }));
 
-const ProfileAvatar = styled(Avatar)(({ theme }) => ({
+const ProfileAvatar = styled(Avatar)(() => ({
   width: 120,
   height: 120,
   border: '4px solid rgba(255, 255, 255, 0.9)',
@@ -109,7 +109,7 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
 }) => {
 
     const [isLoggingOut, setIsLoggingOut] = useState(false);
-    const { logout, isAuthenticated } = useAuthToken();
+    const { logout } = useAuthToken();
     const navigate = useNavigate();
     const onLogoutClick = async () => {
         setIsLoggingOut(true);
