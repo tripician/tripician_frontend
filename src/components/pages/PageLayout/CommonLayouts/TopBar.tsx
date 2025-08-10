@@ -1,9 +1,7 @@
-import React, { useState } from "react";
-import { Avatar, Menu, MenuItem, Box, Typography, IconButton, Tooltip, Button } from "@mui/material";
+import React from "react";
+import { Box, Typography, IconButton, Button } from "@mui/material";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import SearchBar from "../CommonComponents/SearchBar";
-import { useNavigate } from 'react-router-dom';
-import { useAuthToken } from '../../../../hooks/useAuth0Token';
 import {Add as AddIcon} from '@mui/icons-material';
 
 
@@ -12,76 +10,124 @@ interface TopBarProps  {
 }
 
 const TopBar: React.FC<TopBarProps > = ({selectedMenuItem}) => {
-  const [anchorEl, setAnchorEl] = useState<null | HTMLElement>(null);
-  const open = Boolean(anchorEl);
-  const { logout, isAuthenticated } = useAuthToken();
-  const navigate = useNavigate();
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
-
-  const handleClick = (event: React.MouseEvent<HTMLElement>) => {
-    setAnchorEl(event.currentTarget);
-  };
-
-  const handleClose = () => {
-    setAnchorEl(null);
-  };
-
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    try {
-      await logout();
-      navigate('/login');
-    } catch (error) {
-      console.error('Logout failed:', error);
-    } finally {
-      setIsLoggingOut(false);
-    }
-  };
 
   return (
     <Box
       sx={{
         display: "flex",
-        justifyContent: "space-between",
         alignItems: "center",
         width: "100%",
-        className: "mb-4",
         position: "sticky",
+        top: 0,
         zIndex: 1100,
-        backgroundColor: "#f5f5f5",
-        padding: "1% 0 1% 0",
+        background: 'rgba(255, 255, 255, 0.95)', // Semi-transparent white
+        backdropFilter: 'blur(10px)', // Modern glass morphism effect
+        borderBottom: "1px solid rgba(0, 0, 0, 0.08)",
+        padding: "20px 24px", // Increased padding for more breathing room
+        boxShadow: '0 1px 3px rgba(0, 0, 0, 0.05)', // Subtle shadow
       }}
     >
-    
-      <Typography variant="h5" fontWeight={600} color="text.primary">
-        {selectedMenuItem}
-      </Typography>
+      {/* Left Section - Title (Fixed width to prevent shifting) */}
+      <Box
+        sx={{
+          minWidth: { xs: "120px", md: "200px" }, // Responsive minimum width
+          flexShrink: 0, // Prevent shrinking
+        }}
+      >
+        <Box sx={{ position: 'relative' }}>
+          <Typography 
+            variant="h4" 
+            fontWeight={700} 
+            sx={{
+              whiteSpace: "nowrap", // Prevent text wrapping
+              overflow: "hidden",
+              textOverflow: "ellipsis",
+              fontSize: { xs: "1.5rem", md: "1.75rem" }, // Larger, more modern sizing
+              background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
+              backgroundClip: 'text',
+              WebkitBackgroundClip: 'text',
+              WebkitTextFillColor: 'transparent',
+              textShadow: '0 2px 4px rgba(0,0,0,0.1)',
+              letterSpacing: '-0.02em', // Tighter letter spacing for modern look
+              position: 'relative',
+              transition: 'all 0.3s ease-in-out', // Smooth transition
+              '&::after': {
+                content: '""',
+                position: 'absolute',
+                bottom: -4,
+                left: 0,
+                width: '60px',
+                height: '3px',
+                background: 'linear-gradient(90deg, #667eea 0%, #764ba2 100%)',
+                borderRadius: '2px',
+                opacity: 0.8,
+                transition: 'width 0.3s ease-in-out', // Animate the underline
+              }
+            }}
+          >
+            {selectedMenuItem}
+          </Typography>
+        </Box>
+      </Box>
 
-      <SearchBar/>
+      {/* Center Section - Search Bar (Flexible width) */}
+      <Box
+        sx={{
+          flexGrow: 1, // Take up remaining space
+          display: "flex",
+          justifyContent: "center",
+          px: { xs: 1, md: 3 }, // Less padding on mobile
+        }}
+      >
+        <Box sx={{ maxWidth: "500px", width: "100%" }}>
+          <SearchBar />
+        </Box>
+      </Box>
 
-      <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
-        <IconButton>
+      {/* Right Section - Actions (Fixed width to prevent shifting) */}
+      <Box 
+        sx={{ 
+          display: "flex", 
+          alignItems: "center", 
+          gap: { xs: 1, md: 2 }, // Less gap on mobile
+          minWidth: { xs: "120px", md: "180px" }, // Responsive minimum width
+          justifyContent: "flex-end",
+          flexShrink: 0, // Prevent shrinking
+        }}
+      >
+        <IconButton
+          sx={{
+            width: 44, // Fixed width
+            height: 44, // Fixed height
+            '&:hover': {
+              backgroundColor: 'rgba(0, 0, 0, 0.04)',
+            }
+          }}
+        >
           <NotificationsNoneIcon sx={{ color: "text.secondary" }} fontSize="medium" />
         </IconButton>
 
         {/* Create Trip Button */}
         <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            sx={{
-              mt: 0,
-              backgroundColor: '#008bbdff',
-              color: '#f0f0f0ff',
-              fontWeight: 'bold',
-              boxShadow: 'none',
-              '&:hover': {
-                backgroundColor: '#ffffff',
-                color: '#008bbdff',
-                border: '1px solid #008bbdff',
-              },
-            }}
-          >
-            Create trip
+          variant="contained"
+          startIcon={<AddIcon />}
+          sx={{
+            minWidth: "120px", // Fixed minimum width
+            height: "36px", // Fixed height
+            backgroundColor: '#008bbdff',
+            color: '#f0f0f0ff',
+            fontWeight: 'bold',
+            boxShadow: 'none',
+            border: '1px solid transparent', // Invisible border to prevent size change
+            '&:hover': {
+              backgroundColor: '#ffffff',
+              color: '#008bbdff',
+              border: '1px solid #008bbdff',
+              boxShadow: 'none', // Ensure no shadow changes
+            },
+          }}
+        >
+          Create trip
         </Button>
       </Box>
     </Box>

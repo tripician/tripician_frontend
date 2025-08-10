@@ -51,7 +51,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
   onSearch,
   onResultSelect,
   suggestions = mockSuggestions,
-  width = '100%',
   variant = 'outlined',
 }) => {
   const [query, setQuery] = useState('');
@@ -133,7 +132,9 @@ const SearchBar: React.FC<SearchBarProps> = ({
     <Box 
       sx={{ 
         position: 'relative', 
-        width: '50%',
+        width: '100%', // Use full width of parent container
+        maxWidth: '500px', // Set maximum width
+        minWidth: '300px', // Set minimum width to prevent shrinking
         display: { xs: 'none', md: 'block' }, // Hide on mobile, show on desktop
       }}
     >

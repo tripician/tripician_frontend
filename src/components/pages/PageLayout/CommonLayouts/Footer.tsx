@@ -1,17 +1,8 @@
 import React from 'react';
 import { Box, Typography, Link, Container } from '@mui/material';
 
-interface FooterProps {
-  sidebarWidth?: number;
-  isCollapsed?: boolean;
-}
-
-const Footer: React.FC<FooterProps> = ({ 
-  sidebarWidth = '100vw', 
-  isCollapsed = false 
-}) => {
+const Footer: React.FC = () => {
   const currentYear = new Date().getFullYear();
-  const currentSidebarWidth = isCollapsed ? 64 : sidebarWidth;
 
   return (
     <Box
@@ -20,9 +11,8 @@ const Footer: React.FC<FooterProps> = ({
         backgroundColor: '#1a1a1a',
         color: 'white',
         py: 3,
-        mt: 'auto',
-        ml: { xs: 0, md: `${currentSidebarWidth}px` },
-        transition: 'margin-left 0.3s ease',
+        mt: 'auto', // Push footer to bottom of content
+        // Removed sidebar margin since footer is now inside main content area
       }}
     >
       <Container maxWidth="lg">
