@@ -43,8 +43,8 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  deleteUserProfile: (token: string) => 
-    apiClient.post('/profile/deleteuserprofilebyid', {}, {
+  deleteUserProfile: (token: string, id: number) => 
+    apiClient.post(`/profile/deleteuserprofilebyid/${id}`, {}, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
