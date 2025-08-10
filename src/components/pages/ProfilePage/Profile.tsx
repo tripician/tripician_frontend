@@ -10,7 +10,7 @@ import { apiServices } from '../../../services/APIs/ApiServices';
 interface UserProfileData {
   id?: string;
   email?: string;
-  name?: string;
+  name?: string; 
   firstName?: string;
   lastName?: string;
   phone?: string;
