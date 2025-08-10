@@ -1,11 +1,10 @@
 import { Box, Typography, Card, CardContent, CircularProgress, Alert, Button } from "@mui/material";
 import UserProfileBanner from "./UserProfileBanner";
 import NavigationPannel from "../PageLayout/CommonLayouts/NavigationPannel";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import TopBar from "../PageLayout/CommonLayouts/TopBar";
 import { useAuthToken } from '../../../hooks/useAuth0Token';
 import { apiServices } from '../../../services/APIs/ApiServices';
-import { useQuery } from '@tanstack/react-query';
 
 // Define interface for profile data
 interface UserProfileData {
@@ -24,6 +23,9 @@ interface UserProfileData {
 
 const Profile: React.FC = () => {
   const [selectedMenuItem, setSelectedMenuItem] = useState('Profile');
+  const [profileData, setProfileData] = useState<UserProfileData | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   
   const handleMenuItemChange = (itemName: string) => {
     setSelectedMenuItem(itemName);
@@ -31,35 +33,48 @@ const Profile: React.FC = () => {
   
   const { getToken, isAuthenticated, loading: authLoading } = useAuthToken();
 
-  const { 
-    data: profileData, 
-    isLoading, 
-    error, 
-    refetch,
-    isError 
-  } = useQuery<UserProfileData>({
-    queryKey: ['userProfile'],
-    queryFn: async (): Promise<UserProfileData> => {
+  // Fetch profile data function
+  const fetchProfileData = async () => {
+    if (!isAuthenticated || authLoading) return;
+    
+    setIsLoading(true);
+    setError(null);
+    
+    try {
       const token = getToken();
       if (!token) throw new Error('Authentication token not found');
       
-      try {
-        const response = await apiServices.getUserProfile(token);
-        return response.data;
-      } catch (error: any) {
-        if (error.response?.status === 401) {
-          throw new Error('Authentication expired. Please log in again.');
-        }
-        if (error.response?.status === 404) {
-          throw new Error('Profile not found.');
-        }
-        throw new Error(error.response?.data?.message || 'Failed to fetch profile');
+      const response = await apiServices.getUserProfile(token);
+      setProfileData(response.data);
+    } catch (error: any) {
+      let errorMessage = 'Failed to fetch profile';
+      
+      if (error.response?.status === 401) {
+        errorMessage = 'Authentication expired. Please log in again.';
+      } else if (error.response?.status === 404) {
+        errorMessage = 'Profile not found.';
+      } else if (error.response?.data?.message) {
+        errorMessage = error.response.data.message;
       }
-    },
-    enabled: isAuthenticated && !authLoading,
-    retry: 2,
-    staleTime: 5 * 60 * 1000, // 5 minutes
-  });
+      
+      setError(errorMessage);
+      console.error('Profile fetch error:', error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  // Effect to fetch profile data when component mounts or auth state changes
+  useEffect(() => {
+    if (isAuthenticated && !authLoading) {
+      fetchProfileData();
+    }
+  }, [isAuthenticated, authLoading]);
+
+  // Refetch function for retry button
+  const refetch = () => {
+    fetchProfileData();
+  };
 
   // Loading state
   if (authLoading || isLoading) {
@@ -86,29 +101,27 @@ const Profile: React.FC = () => {
   }
 
   // Error state
-  if (isError && error) {
+  if (error) {
     return (
       <NavigationPannel onMenuItemChange={handleMenuItemChange}>
         <Box sx={{ width: "100%", backgroundColor: "#e1e0e0ff" }}>
           <TopBar selectedMenuItem={selectedMenuItem} />
           <Box sx={{ p: 3 }}>
             <Alert 
-              severity="error" 
+              severity="error"
               action={
                 <Button color="inherit" size="small" onClick={() => refetch()}>
                   Retry
                 </Button>
               }
             >
-              Error loading profile: {error.message}
+              Error loading profile: {error}
             </Alert>
           </Box>
         </Box>
       </NavigationPannel>
     );
-  }
-
-  // Authentication check
+  }  // Authentication check
   if (!isAuthenticated) {
     return (
       <NavigationPannel onMenuItemChange={handleMenuItemChange}>
