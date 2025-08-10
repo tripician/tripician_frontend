@@ -9,6 +9,11 @@ import Community from './components/pages/CommunityPage/Community'
 import Settings from './components/pages/SettingsPage/Settings'
 import ProtectedRoute from './services/APIs/Auth/ProtectedRoute'
 
+// Import debug utilities for development
+if (process.env.NODE_ENV === 'development') {
+  import('./utils/authDebug');
+}
+
 function App() {
   return (
     <div className="App">

@@ -31,7 +31,7 @@ const Profile: React.FC = () => {
     setSelectedMenuItem(itemName);
   };
   
-  const { getToken, isAuthenticated, loading: authLoading } = useAuthToken();
+  const { getToken, isAuthenticated, loading: authLoading, logout } = useAuthToken();
 
   // Fetch profile data function
   const fetchProfileData = async () => {
@@ -42,7 +42,9 @@ const Profile: React.FC = () => {
     
     try {
       const token = getToken();
-      if (!token) throw new Error('Authentication token not found');
+      if (!token) {
+        throw new Error('No authentication token found');
+      }
       
       const response = await apiServices.getUserProfile(token);
       setProfileData(response.data);
@@ -50,11 +52,17 @@ const Profile: React.FC = () => {
       let errorMessage = 'Failed to fetch profile';
       
       if (error.response?.status === 401) {
-        errorMessage = 'Authentication expired. Please log in again.';
+        errorMessage = 'Your session has expired. Redirecting to login...';
+        // The 401 interceptor in ApiServices will handle logout automatically
+        return; // Early return since logout will handle the redirect
       } else if (error.response?.status === 404) {
         errorMessage = 'Profile not found.';
       } else if (error.response?.data?.message) {
         errorMessage = error.response.data.message;
+      } else if (error.message === 'No authentication token found') {
+        errorMessage = 'Authentication required. Please log in.';
+        logout(); // Manually trigger logout for missing token
+        return;
       }
       
       setError(errorMessage);
@@ -102,20 +110,43 @@ const Profile: React.FC = () => {
 
   // Error state
   if (error) {
+    const isAuthError = error.includes('session has expired') || error.includes('Authentication required');
+    
     return (
       <NavigationPannel onMenuItemChange={handleMenuItemChange}>
         <Box sx={{ width: "100%", backgroundColor: "#e1e0e0ff" }}>
           <TopBar selectedMenuItem={selectedMenuItem} />
           <Box sx={{ p: 3 }}>
             <Alert 
-              severity="error"
+              severity={isAuthError ? "warning" : "error"}
               action={
-                <Button color="inherit" size="small" onClick={() => refetch()}>
-                  Retry
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1 }}>
+                  {isAuthError && (
+                    <Button 
+                      color="inherit" 
+                      size="small" 
+                      onClick={() => logout()}
+                    >
+                      Login Again
+                    </Button>
+                  )}
+                  {!isAuthError && (
+                    <Button color="inherit" size="small" onClick={() => refetch()}>
+                      Retry
+                    </Button>
+                  )}
+                </Box>
               }
             >
-              Error loading profile: {error}
+              {isAuthError ? (
+                <>
+                  <strong>Authentication Issue:</strong> {error}
+                </>
+              ) : (
+                <>
+                  <strong>Error loading profile:</strong> {error}
+                </>
+              )}
             </Alert>
           </Box>
         </Box>

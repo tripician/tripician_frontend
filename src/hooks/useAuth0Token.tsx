@@ -44,6 +44,29 @@ export const useAuthToken = () => {
     return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
+  // Listen for global auth logout events (e.g., from 401 responses)
+  useEffect(() => {
+    const handleAuthLogout = (e: CustomEvent) => {
+      console.log('Global logout triggered:', e.detail?.reason);
+      setAuthState({
+        isAuthenticated: false,
+        token: null,
+        loading: false
+      });
+      
+      // Optionally trigger navigation to signin
+      if (e.detail?.reason === 'token_expired') {
+        // Using setTimeout to avoid state update conflicts
+        setTimeout(() => {
+          window.location.href = '/signin';
+        }, 100);
+      }
+    };
+
+    window.addEventListener('auth:logout', handleAuthLogout as EventListener);
+    return () => window.removeEventListener('auth:logout', handleAuthLogout as EventListener);
+  }, []);
+
   const login = useCallback((token: string, refreshToken?: string) => {
     localStorage.setItem('accessToken', token);
     if (refreshToken) {

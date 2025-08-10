@@ -11,6 +11,25 @@ const apiClient = axios.create({
   },
 });
 
+// Add response interceptor to handle 401 errors globally
+apiClient.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response?.status === 401) {
+      // Token is expired or invalid - trigger logout
+      // Clear local storage immediately
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      
+      // Dispatch custom event for logout
+      window.dispatchEvent(new CustomEvent('auth:logout', { 
+        detail: { reason: 'token_expired' }
+      }));
+    }
+    return Promise.reject(error);
+  }
+);
+
 // API service that accepts token
 export const apiServices = {
   // User Profile methods - matching your backend routes
