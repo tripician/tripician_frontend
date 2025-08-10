@@ -7,7 +7,7 @@ import Profile from './components/pages/ProfilePage/Profile'
 import Home from './components/pages/HomePage/Home'
 import Community from './components/pages/CommunityPage/Community'
 import Settings from './components/pages/SettingsPage/Settings'
-import ProtectedRoute from './services/ProtectedRoute'
+import ProtectedRoute from './services/APIs/Auth/ProtectedRoute'
 
 function App() {
   return (

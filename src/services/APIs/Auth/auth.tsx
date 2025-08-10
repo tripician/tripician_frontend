@@ -101,12 +101,11 @@ export const createAuthenticatedAPI = (token: string) => {
   );
 
   return {
-    // User management
-    syncUser: (userData: SyncUserData) => authenticatedClient.post('/users/syncuser', userData),
-    getProfile: () => authenticatedClient.get('/user/profile'),
-    updateProfile: (data: Partial<UserProfile>) => authenticatedClient.put('/user/profile', data),
-    deleteAccount: () => authenticatedClient.delete('/user/account'),
-    
+    // UserProfile management
+    getUserProfile: () => authenticatedClient.get('/user/getuserprofile'),
+    updateUserProfile: (data: Partial<UserProfile>) => authenticatedClient.put('/user/updateuserprofile', data),
+    deleteUserAccount: () => authenticatedClient.delete('/user/deleteuseraccount'),
+
     // Trip management (example endpoints)
     getTrips: () => authenticatedClient.get('/trips'),
     createTrip: (tripData: any) => authenticatedClient.post('/trips', tripData),
