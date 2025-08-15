@@ -16,7 +16,7 @@ export default function ProfileBadges() {
     const el = rowRef.current;
     if (!el) return;
     setShowLeft(el.scrollLeft > 0);
-    setShowRight(el.scrollLeft + el.clientWidth < el.scrollWidth - 1);
+    setShowRight(el.scrollLeft + el.offsetWidth < el.scrollWidth - 1);
   };
 
   useEffect(() => {
@@ -32,7 +32,8 @@ export default function ProfileBadges() {
   // Arrow click handlers
   const scrollBy = (amount: number) => {
     if (rowRef.current) {
-      rowRef.current.scrollBy({ left: amount, behavior: 'smooth' });
+      rowRef.current.scrollTo({ left: rowRef.current.scrollLeft + amount, behavior: 'smooth' });
+      setTimeout(checkArrows, 350); // update arrows after scroll
     }
   };
 
@@ -69,13 +70,14 @@ export default function ProfileBadges() {
         sx={{
           display: 'flex',
           flexWrap: 'nowrap',
-          overflowX: 'auto',
+          overflowX: 'hidden',
           overflowY: 'hidden',
           scrollbarWidth: 'none',
           msOverflowStyle: 'none',
           '&::-webkit-scrollbar': { display: 'none' },
           scrollBehavior: 'smooth',
           width: '100%',
+          whiteSpace: 'nowrap',
           pl: showLeft ? 4 : 0,
           pr: showRight ? 4 : 0,
         }}
