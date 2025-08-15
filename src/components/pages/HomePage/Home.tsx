@@ -47,7 +47,7 @@ const Home: React.FC = () => {
   ];
 
   const handleExploreTrips = () => {
-    navigate('/dashboard');
+    navigate('/profile');
   };
 
   return (
