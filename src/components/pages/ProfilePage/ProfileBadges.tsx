@@ -61,8 +61,8 @@ export default function ProfileBadges() {
     <Box
       sx={{
         position: 'relative',
-        flexShrink: 1,
-        flexGrow: 0,
+        width: '100%',
+        maxWidth: '100vw',
         minWidth: 0,
         display: 'flex',
         alignItems: 'center',
@@ -70,22 +70,22 @@ export default function ProfileBadges() {
         py: 1,
         px: { xs: 0, md: 1 },
         boxSizing: 'border-box',
-        width: 'auto',
-        maxWidth: '100%',
+        background: '#fff', // for visual debugging, can remove later
       }}
     >
       <IconButton
         size="small"
         onClick={() => scrollBy(-120)}
         sx={{
-          visibility: showLeft ? 'visible' : 'hidden',
           background: '#fff',
           boxShadow: 1,
           mr: 1,
           zIndex: 2,
+          opacity: showLeft ? 1 : 0.3,
         }}
-        tabIndex={showLeft ? 0 : -1}
+        tabIndex={0}
         aria-label="Scroll left"
+        disabled={!showLeft}
       >
         <ChevronLeftIcon />
       </IconButton>
@@ -102,8 +102,8 @@ export default function ProfileBadges() {
           '&::-webkit-scrollbar': { display: 'none' },
           scrollBehavior: 'smooth',
           minWidth: 0,
-          flexShrink: 1,
-          flexGrow: 0,
+          width: '100%',
+          maxWidth: '100%',
           whiteSpace: 'nowrap',
           pl: 0,
           pr: 0,
@@ -122,14 +122,15 @@ export default function ProfileBadges() {
         size="small"
         onClick={() => scrollBy(120)}
         sx={{
-          visibility: showRight ? 'visible' : 'hidden',
           background: '#fff',
           boxShadow: 1,
           ml: 1,
           zIndex: 2,
+          opacity: showRight ? 1 : 0.3,
         }}
-        tabIndex={showRight ? 0 : -1}
+        tabIndex={0}
         aria-label="Scroll right"
+        disabled={!showRight}
       >
         <ChevronRightIcon />
       </IconButton>
