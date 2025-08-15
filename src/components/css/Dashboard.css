@@ -22,7 +22,7 @@
   color: #fff;
 }
 
-/* Trip cards container - aligned with right card design */
+/* Trip cards container - clean grid, equal gap */
 .trip-cards-container {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)) !important;
@@ -50,28 +50,22 @@
   max-width: 100%; /* allow full responsive width */
 }
 
-/* Responsive adjustments */
 @media (max-width: 768px) {
   .trip-cards-container {
     grid-template-columns: 1fr;
     gap: 16px;
-    padding: 0;
   }
 }
-
 @media (min-width: 769px) and (max-width: 1200px) {
   .trip-cards-container {
     grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
     gap: 20px;
-    padding: 0;
   }
 }
-
 @media (min-width: 1201px) {
   .trip-cards-container {
     grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
     gap: 20px;
-    padding: 0;
   }
 }
 .tabs {
@@ -121,10 +115,6 @@
   scrollbar-width: none;
 }
 
-.trip-card {
-  flex: 1 1 300px; /* grow, shrink, basis */
-  max-width: 100%; /* allow full responsive width */
-}
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
