@@ -80,6 +80,17 @@ const EditButton = styled(IconButton)(() => ({
   },
 }));
 
+const BottomFade = styled(Box)(() => ({
+  position: 'absolute',
+  bottom: 0,
+  left: 0,
+  right: 0,
+  height: '20vh', // controls fade height
+  background: 'linear-gradient(to top, rgba(225, 225, 225, 1), transparent)',
+  zIndex: 2, // above background but below content
+  pointerEvents: 'none',
+}));
+
 const LogoutButton = styled(Button)(({ theme }) => ({
   position: 'absolute',
   bottom: 16,
@@ -96,8 +107,6 @@ const LogoutButton = styled(Button)(({ theme }) => ({
   },
 }));
 
-
-
 const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
   name = 'Srideep Kar',
   bio = 'Passionate traveler and abstract photographer',
@@ -107,27 +116,29 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
   backgroundUrl = 'https://images.unsplash.com/photo-1526772662000-3f88f10405ff?auto=format&fit=crop&w=1500&q=80',
   onEditClick
 }) => {
+  const [isLoggingOut, setIsLoggingOut] = useState(false);
+  const { logout } = useAuthToken();
+  const navigate = useNavigate();
+  
+  const onLogoutClick = async () => {
+    setIsLoggingOut(true);
+    try {
+      await logout();
+      navigate('/login');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    } finally {
+      setIsLoggingOut(false);
+    }
+  };
 
-    const [isLoggingOut, setIsLoggingOut] = useState(false);
-    const { logout } = useAuthToken();
-    const navigate = useNavigate();
-    const onLogoutClick = async () => {
-        setIsLoggingOut(true);
-        try {
-        await logout();
-        navigate('/login');
-        } catch (error) {
-        console.error('Logout failed:', error);
-        } finally {
-        setIsLoggingOut(false);
-        }
-    };
   return (
     <Box sx={{ maxWidth: '100vw', p: 0, m: 0 }}>
       <ProfileContainer sx={{ backgroundImage: `url(${backgroundUrl})` }}>
+        <BottomFade />
         <Overlay />
 
-        {/* Action Buttons */}
+        {/* Action Buttons - Kept in same position */}
         <EditButton onClick={onEditClick}>
           <EditIcon />
         </EditButton>
