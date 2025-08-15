@@ -58,12 +58,35 @@ export default function ProfileBadges() {
 ];
 
   return (
-    <Box sx={{ position: 'relative', width: '100%', minWidth: 0, display: 'flex', alignItems: 'center', overflow: 'hidden', py: 1 }}>
-      {showLeft && (
-        <IconButton size="small" onClick={() => scrollBy(-120)} sx={{ position: 'absolute', left: 0, zIndex: 2, background: '#fff', boxShadow: 1 }}>
-          <ChevronLeftIcon />
-        </IconButton>
-      )}
+    <Box
+      sx={{
+        position: 'relative',
+        width: '100%',
+        maxWidth: '100vw',
+        minWidth: 0,
+        display: 'flex',
+        alignItems: 'center',
+        overflow: 'hidden',
+        py: 1,
+        px: { xs: 0, md: 1 },
+        boxSizing: 'border-box',
+      }}
+    >
+      <IconButton
+        size="small"
+        onClick={() => scrollBy(-120)}
+        sx={{
+          visibility: showLeft ? 'visible' : 'hidden',
+          background: '#fff',
+          boxShadow: 1,
+          mr: 1,
+          zIndex: 2,
+        }}
+        tabIndex={showLeft ? 0 : -1}
+        aria-label="Scroll left"
+      >
+        <ChevronLeftIcon />
+      </IconButton>
       <Box
         ref={rowRef}
         onScroll={handleScroll}
@@ -78,9 +101,11 @@ export default function ProfileBadges() {
           scrollBehavior: 'smooth',
           width: '100%',
           minWidth: 0,
+          maxWidth: '100vw',
           whiteSpace: 'nowrap',
           pl: 0,
           pr: 0,
+          gap: { xs: 1, md: 2 },
         }}
       >
         {badges.map((badge, index) => (
@@ -91,11 +116,21 @@ export default function ProfileBadges() {
           />
         ))}
       </Box>
-      {showRight && (
-        <IconButton size="small" onClick={() => scrollBy(120)} sx={{ position: 'absolute', right: 0, zIndex: 2, background: '#fff', boxShadow: 1 }}>
-          <ChevronRightIcon />
-        </IconButton>
-      )}
+      <IconButton
+        size="small"
+        onClick={() => scrollBy(120)}
+        sx={{
+          visibility: showRight ? 'visible' : 'hidden',
+          background: '#fff',
+          boxShadow: 1,
+          ml: 1,
+          zIndex: 2,
+        }}
+        tabIndex={showRight ? 0 : -1}
+        aria-label="Scroll right"
+      >
+        <ChevronRightIcon />
+      </IconButton>
     </Box>
   );
 }
