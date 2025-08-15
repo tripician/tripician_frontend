@@ -61,9 +61,8 @@ export default function ProfileBadges() {
     <Box
       sx={{
         position: 'relative',
-        width: '100%',
-        maxWidth: '100vw',
         minWidth: 0,
+        flex: 1,
         display: 'flex',
         alignItems: 'center',
         overflow: 'hidden',
@@ -101,8 +100,7 @@ export default function ProfileBadges() {
           '&::-webkit-scrollbar': { display: 'none' },
           scrollBehavior: 'smooth',
           minWidth: 0,
-          width: '100%',
-          maxWidth: '100%',
+          width: 'auto',
           flexShrink: 1,
           flexGrow: 0,
           whiteSpace: 'nowrap',
