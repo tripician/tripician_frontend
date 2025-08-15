@@ -61,8 +61,8 @@ export default function ProfileBadges() {
     <Box
       sx={{
         position: 'relative',
-        width: '100%',
-        maxWidth: '100vw',
+        flexShrink: 1,
+        flexGrow: 0,
         minWidth: 0,
         display: 'flex',
         alignItems: 'center',
@@ -70,6 +70,8 @@ export default function ProfileBadges() {
         py: 1,
         px: { xs: 0, md: 1 },
         boxSizing: 'border-box',
+        width: 'auto',
+        maxWidth: '100%',
       }}
     >
       <IconButton
@@ -99,9 +101,9 @@ export default function ProfileBadges() {
           msOverflowStyle: 'none',
           '&::-webkit-scrollbar': { display: 'none' },
           scrollBehavior: 'smooth',
-          width: '100%',
           minWidth: 0,
-          maxWidth: '100vw',
+          flexShrink: 1,
+          flexGrow: 0,
           whiteSpace: 'nowrap',
           pl: 0,
           pr: 0,
