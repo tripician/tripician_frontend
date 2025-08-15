@@ -25,14 +25,18 @@ import Dashboard from "../DashboardPage/Dashboard";
 interface UserProfileData {
   id?: string;
   email?: string;
-  name?: string; 
-  firstName?: string;
-  lastName?: string;
+  fname?: string;
+  lname?: string;
   phone?: string;
   dateOfBirth?: string;
   gender?: string;
   country?: string;
   bio?: string;
+  coverpicture?: string;
+  profilepicture?: string;
+  facebook?: string;
+  twitter?: string;
+  instagram?: string;
   // Add other fields based on your backend response
 }
 
@@ -195,7 +199,14 @@ const Profile: React.FC = () => {
         <TopBar selectedMenuItem={selectedMenuItem} />
         
         {/* UserProfileBanner - Edit/Logout buttons remain in same position */}
-        <UserProfileBanner />
+        <UserProfileBanner 
+          name = {profileData?.fname + " " + profileData?.lname }
+          bio = {profileData?.bio}
+          following = {12}
+          followers = {12}
+          avatarUrl = {profileData?.profilepicture}
+          backgroundUrl = {profileData?.coverpicture}
+        />
         
         {/* Profile Badges */}
         <Box sx={{ px: 2, mt: 1, mb: 1 }}>
@@ -236,12 +247,15 @@ const Profile: React.FC = () => {
               <ProfileDetailsRightCard
                 title="Profile Details"
                 rows={[
-                  { label: "Full Name", value: profileData?.name },
+                  { label: "Full Name", value: profileData?.fname + " " + profileData?.lname },
                   { label: "Email", value: profileData?.email },
                   { label: "Phone", value: profileData?.phone },
                   { label: "Country", value: profileData?.country },
                   { label: "Gender", value: profileData?.gender },
                   { label: "Date of Birth", value: formatDate(profileData?.dateOfBirth) },
+                  { label: "facebook", value: profileData?.facebook },
+                  { label: "facebook", value: profileData?.twitter },
+                  { label: "facebook", value: profileData?.instagram }
                 ]}
               />
             </Box>
