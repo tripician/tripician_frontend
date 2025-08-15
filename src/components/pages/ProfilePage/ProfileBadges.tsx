@@ -70,7 +70,6 @@ export default function ProfileBadges() {
         py: 1,
         px: { xs: 0, md: 1 },
         boxSizing: 'border-box',
-        background: '#fff', // for visual debugging, can remove later
       }}
     >
       <IconButton
@@ -104,6 +103,8 @@ export default function ProfileBadges() {
           minWidth: 0,
           width: '100%',
           maxWidth: '100%',
+          flexShrink: 1,
+          flexGrow: 0,
           whiteSpace: 'nowrap',
           pl: 0,
           pr: 0,
