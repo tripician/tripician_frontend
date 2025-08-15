@@ -58,7 +58,7 @@ export default function ProfileBadges() {
 ];
 
   return (
-    <Box sx={{ position: 'relative', width: '100%', display: 'flex', alignItems: 'center', py: 1, px: 1 }}>
+    <Box sx={{ position: 'relative', width: '100%', minWidth: 0, display: 'flex', alignItems: 'center', overflow: 'hidden', py: 1 }}>
       {showLeft && (
         <IconButton size="small" onClick={() => scrollBy(-120)} sx={{ position: 'absolute', left: 0, zIndex: 2, background: '#fff', boxShadow: 1 }}>
           <ChevronLeftIcon />
@@ -77,9 +77,10 @@ export default function ProfileBadges() {
           '&::-webkit-scrollbar': { display: 'none' },
           scrollBehavior: 'smooth',
           width: '100%',
+          minWidth: 0,
           whiteSpace: 'nowrap',
-          pl: showLeft ? 4 : 0,
-          pr: showRight ? 4 : 0,
+          pl: 0,
+          pr: 0,
         }}
       >
         {badges.map((badge, index) => (
