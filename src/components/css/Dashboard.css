@@ -22,24 +22,32 @@
   color: #fff;
 }
 
+/* Trip cards container - aligned with right card design */
 .trip-cards-container {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 20px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  padding: 20px;
+  margin-top: 20px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Remove scrollbars inside container */
+.trip-cards-container::-webkit-scrollbar {
+  display: none;
+}
+.trip-cards-container {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
 }
 
 .trip-card {
   flex: 1 1 300px; /* grow, shrink, basis */
-  max-width: 220px; /* prevent cards from getting too wide */
-}
-
-/* Alternative approach - if you want more control over spacing */
-.trip-cards-container-alt {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
-  gap: 24px;
-  padding: 0;
-  justify-content: start;
+  max-width: 100%; /* allow full responsive width */
 }
 
 /* Responsive adjustments */
@@ -47,6 +55,155 @@
   .trip-cards-container {
     grid-template-columns: 1fr;
     gap: 16px;
+    padding: 15px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1200px) {
+  .trip-cards-container {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+}
+
+@media (min-width: 1201px) {
+  .trip-cards-container {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+  }
+}
+.tabs {
+  display: flex;
+  gap: 1rem;
+}
+
+.tab-button {
+  background-color: transparent;
+  border: none;
+  font-weight: 600;
+  color: #555;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.tab-button:hover {
+  background-color: #eaeaea;
+}
+
+.tab-button.active {
+  background-color: #333;
+  color: #fff;
+}
+
+/* Trip cards container - aligned with right card design */
+.trip-cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  padding: 20px;
+  margin-top: 20px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Remove scrollbars inside container */
+.trip-cards-container::-webkit-scrollbar {
+  display: none;
+}
+.trip-cards-container {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.trip-card {
+  flex: 1 1 300px; /* grow, shrink, basis */
+  max-width: 100%; /* allow full responsive width */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .trip-cards-container {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 15px;
+  }
+}
+
+@media (min-width: 769px) and (max-width: 1200px) {
+  .trip-cards-container {
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+  }
+}
+
+@media (min-width: 1201px) {
+  .trip-cards-container {
+    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+    gap: 24px;
+  }
+}
+.tabs {
+  display: flex;
+  gap: 1rem;
+}
+
+.tab-button {
+  background-color: transparent;
+  border: none;
+  font-weight: 600;
+  color: #555;
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  transition: background 0.2s;
+}
+
+.tab-button:hover {
+  background-color: #eaeaea;
+}
+
+.tab-button.active {
+  background-color: #333;
+  color: #fff;
+}
+
+/* Trip cards container - aligned with right card design */
+.trip-cards-container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 24px;
+  padding: 20px;
+  margin-top: 20px;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* Remove scrollbars inside container */
+.trip-cards-container::-webkit-scrollbar {
+  display: none;
+}
+.trip-cards-container {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.trip-card {
+  flex: 1 1 300px; /* grow, shrink, basis */
+  max-width: 100%; /* allow full responsive width */
+}
+
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .trip-cards-container {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 15px;
   }
 }
 

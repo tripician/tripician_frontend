@@ -18,6 +18,8 @@ import { useAuthToken } from '../../../hooks/useAuth0Token';
 import { apiServices } from '../../../services/APIs/ApiServices';
 import ProfileBadges from "./ProfileBadges";
 import ProfileDetailsRightCard from "./ProfileDetailsRightCard";
+// import { Dashboard } from "@mui/icons-material";
+import Dashboard from "../DashboardPage/Dashboard";
 
 // Define interface for profile data
 interface UserProfileData {
@@ -205,90 +207,7 @@ const Profile: React.FC = () => {
           {/* Two-column section using Box instead of Grid if Grid causes issues */}
           <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
             {/* Left column: "Your Contributions" gallery */}
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Card sx={{ mb: 2 }}>
-                <CardContent>
-                  <Typography variant="h5" gutterBottom>
-                    Your Contributions
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    See your trip reviews and shared itineraries
-                  </Typography>
-
-                  {/* Image tiles to mimic the mock */}
-                  <ImageList cols={3} gap={8} sx={{ m: 0, overflow: "hidden" }}>
-                    {[
-                      "https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=800&auto=format&fit=crop",
-                      "https://images.unsplash.com/photo-1500530855697-b586d89ba3ee?q=80&w=800&auto=format&fit=crop",
-                      "https://images.unsplash.com/photo-1507525428034-b723cf961d3e?q=80&w=800&auto=format&fit=crop",
-                      "https://images.unsplash.com/photo-1500534314209-a25ddb2bd429?q=80&w=800&auto=format&fit=crop",
-                      "https://images.unsplash.com/photo-1500043357865-c6b8827edf2a?q=80&w=800&auto=format&fit=crop",
-                      "https://images.unsplash.com/photo-1491553895911-0055eca6402d?q=80&w=800&auto=format&fit=crop",
-                    ].map((src, i) => (
-                      <ImageListItem key={i}>
-                        <img 
-                          src={src} 
-                          alt={`contrib-${i}`} 
-                          loading="lazy" 
-                          style={{ borderRadius: 8 }} 
-                        />
-                      </ImageListItem>
-                    ))}
-                  </ImageList>
-                </CardContent>
-              </Card>
-
-              {/* Recent Reviews block */}
-              <Card>
-                <CardContent>
-                  <Typography variant="h6" gutterBottom>
-                    Recent Reviews
-                  </Typography>
-                  <Typography variant="body2" color="text.secondary" sx={{ mb: 2 }}>
-                    Great hike with stunning reviews along the way
-                  </Typography>
-                  <Box sx={{ display: "flex", gap: 2, flexWrap: "wrap" }}>
-                    <Box sx={{ display: "flex", gap: 1.5, alignItems: "flex-start", maxWidth: 360 }}>
-                      <img
-                        src="https://images.unsplash.com/photo-1501785888041-af3ef285b470?q=80&w=300&auto=format&fit=crop"
-                        alt="review-1"
-                        style={{ width: 56, height: 56, borderRadius: 8, objectFit: "cover" }}
-                      />
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">
-                          April 3, 2024
-                        </Typography>
-                        <Typography variant="body2" fontWeight={600}>
-                          Great hike with stunning views
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Great hike with stunning views along the way
-                        </Typography>
-                      </Box>
-                    </Box>
-
-                    <Box sx={{ display: "flex", gap: 1.5, alignItems: "flex-start", maxWidth: 360 }}>
-                      <img
-                        src="https://images.unsplash.com/photo-1500043357865-c6b8827edf2a?q=80&w=300&auto=format&fit=crop"
-                        alt="review-2"
-                        style={{ width: 56, height: 56, borderRadius: 8, objectFit: "cover" }}
-                      />
-                      <Box>
-                        <Typography variant="caption" color="text.secondary">
-                          March 20, 2024
-                        </Typography>
-                        <Typography variant="body2" fontWeight={600}>
-                          Incredible city with much history
-                        </Typography>
-                        <Typography variant="body2" color="text.secondary">
-                          Incredible city with much history to explore!
-                        </Typography>
-                      </Box>
-                    </Box>
-                  </Box>
-                </CardContent>
-              </Card>
-            </Box>
+            <Dashboard/>
 
             {/* Right column: Profile Details card */}
             <Box sx={{ width: { xs: '100%', md: '300px' }, flexShrink: 0 }}>
