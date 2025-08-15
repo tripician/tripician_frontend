@@ -205,12 +205,34 @@ const Profile: React.FC = () => {
         <Box sx={{ p: 2 }}>
 
           {/* Two-column section using Box instead of Grid if Grid causes issues */}
-          <Box sx={{ display: 'flex', gap: 2, flexDirection: { xs: 'column', md: 'row' } }}>
-            {/* Left column: "Your Contributions" gallery */}
-            <Dashboard/>
+          <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', md: 'row' }, alignItems: 'flex-start' }}>
+            {/* Left column: Dashboard in a card-like container */}
+            <Box
+              sx={{
+                flex: 1,
+                minWidth: 0,
+                maxWidth: { md: 'calc(100% - 340px)' },
+                background: '#fff',
+                borderRadius: 2,
+                boxShadow: 1,
+                p: { xs: 1, md: 2 },
+                mb: { xs: 2, md: 0 },
+              }}
+            >
+              <Dashboard />
+            </Box>
 
             {/* Right column: Profile Details card */}
-            <Box sx={{ width: { xs: '100%', md: '300px' }, flexShrink: 0 }}>
+            <Box
+              sx={{
+                width: { xs: '100%', md: '320px' },
+                flexShrink: 0,
+                background: '#fff',
+                borderRadius: 2,
+                boxShadow: 1,
+                p: 2,
+              }}
+            >
               <ProfileDetailsRightCard
                 title="Profile Details"
                 rows={[
