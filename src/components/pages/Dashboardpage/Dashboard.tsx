@@ -71,8 +71,9 @@ const Dashboard: React.FC = () => {
   };
   
   return (
-    <NavigationPannel onMenuItemChange={handleMenuItemChange}>
-      <TopBar selectedMenuItem = {selectedMenuItem}/>
+    // <NavigationPannel onMenuItemChange={handleMenuItemChange}>
+    // <TopBar selectedMenuItem = {selectedMenuItem}/>
+    <>
       <Tabs
         value={tabValue}
         className="mb-3"
@@ -101,9 +102,10 @@ const Dashboard: React.FC = () => {
                 edited={plan.edited}
                 members={plan.members}
                 />
-            ))}          
+            ))}
       </div>
-    </NavigationPannel>
+      </>
+    // </NavigationPannel>
   );
 };
 export default Dashboard;

@@ -33,7 +33,6 @@ const collapsedDrawerWidth = 64;
 const profileItem = { text: 'Profile', icon: <ProfileIcon />, path: '/profile' };
 const menuItems = [
   { text: 'Home', icon: <HomeIcon />, path: '/home' },
-  { text: 'Dashboard', icon: <DashboardIcon />, path: '/dashboard' },
   { text: 'Community', icon: <CommunityIcon />, path: '/community' },
   { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
 ];
@@ -265,7 +264,7 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
       </Drawer>
 
       {/* Right Side: Main Content + Footer */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1, height: '100vh', overflow: 'hidden' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1, height: '100vh', overflow: 'visible' }}>
         {/* Main Content Area with Footer inside scrollable area */}
         <Box
           component="main"
