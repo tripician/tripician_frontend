@@ -105,7 +105,7 @@ export default function ProfileBadges() {
     <Box
       sx={{
         position: 'relative',
-        minWidth: 0,
+        width: '100%',
         flex: 1,
         display: 'flex',
         alignItems: 'center',
@@ -130,7 +130,7 @@ export default function ProfileBadges() {
         disabled={!showLeft}
       >
         <ChevronLeftIcon />
-      </IconButton>
+        </IconButton>
       <Box
         ref={rowRef}
         onScroll={handleScroll}

@@ -264,7 +264,7 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
       </Drawer>
 
       {/* Right Side: Main Content + Footer */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1, width: '100vw', height: '100vh', overflow: 'visible' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1, width: `calc(100vw - ${currentDrawerWidth}px)`, height: '100vh', overflow: 'visible' }}>
         {/* Main Content Area with Footer inside scrollable area */}
         <Box
           component="main"

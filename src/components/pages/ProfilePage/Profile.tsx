@@ -195,7 +195,7 @@ const Profile: React.FC = () => {
 
   return (
     <NavigationPannel onMenuItemChange={handleMenuItemChange}>
-      <Box sx={{ maxWidth: "100vw", backgroundColor: "#e1e0e0ff" }}>
+      <Box sx={{ maxWidth: "100%", backgroundColor: "#e1e0e0ff" }}>
         <TopBar selectedMenuItem={selectedMenuItem} />
         
         {/* UserProfileBanner - Edit/Logout buttons remain in same position */}

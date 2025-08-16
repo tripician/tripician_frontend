@@ -133,7 +133,7 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
   };
 
   return (
-    <Box sx={{ maxWidth: '100vw', p: 0, m: 0 }}>
+    <Box sx={{ maxWidth: '100%', p: 0, m: 0 }}>
       <ProfileContainer sx={{ backgroundImage: `url(${backgroundUrl})` }}>
         <BottomFade />
         <Overlay />
