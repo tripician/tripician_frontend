@@ -86,7 +86,7 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
   const currentDrawerWidth = isCollapsed ? collapsedDrawerWidth : drawerWidth;
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh', width: '100vw', overflow: 'hidden' }}>
+    <Box sx={{ display: 'flex', height: '100vh', maxWidth: '100vw', overflow: 'hidden' }}>
       {/* Sidebar */}
       <Drawer
         variant="permanent"
@@ -264,7 +264,7 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
       </Drawer>
 
       {/* Right Side: Main Content + Footer */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1, height: '100vh', overflow: 'visible' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1, width: `calc(100vw - ${currentDrawerWidth}px)`, height: '100vh', overflow: 'visible' }}>
         {/* Main Content Area with Footer inside scrollable area */}
         <Box
           component="main"
