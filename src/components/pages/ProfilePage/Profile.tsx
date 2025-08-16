@@ -137,7 +137,7 @@ const Profile: React.FC = () => {
     
     return (
       <NavigationPannel onMenuItemChange={handleMenuItemChange}>
-        <Box sx={{ width: "100%", backgroundColor: "#e1e0e0ff" }}>
+        <Box sx={{ width: "100vw", backgroundColor: "#e1e0e0ff" }}>
           <TopBar selectedMenuItem={selectedMenuItem} />
           <Box sx={{ p: 3 }}>
             <Alert 
@@ -181,7 +181,7 @@ const Profile: React.FC = () => {
   if (!isAuthenticated) {
     return (
       <NavigationPannel onMenuItemChange={handleMenuItemChange}>
-        <Box sx={{ width: "100%", backgroundColor: "#e1e0e0ff" }}>
+        <Box sx={{ width: "100vw", backgroundColor: "#e1e0e0ff" }}>
           <TopBar selectedMenuItem={selectedMenuItem} />
           <Box sx={{ p: 3 }}>
             <Alert severity="warning">
@@ -195,7 +195,7 @@ const Profile: React.FC = () => {
 
   return (
     <NavigationPannel onMenuItemChange={handleMenuItemChange}>
-      <Box sx={{ width: "100%", backgroundColor: "#e1e0e0ff" }}>
+      <Box sx={{ maxWidth: "100vw", backgroundColor: "#e1e0e0ff" }}>
         <TopBar selectedMenuItem={selectedMenuItem} />
         
         {/* UserProfileBanner - Edit/Logout buttons remain in same position */}
@@ -216,7 +216,7 @@ const Profile: React.FC = () => {
         <Box sx={{ p: 2 }}>
 
           {/* Two-column section using Box instead of Grid if Grid causes issues */}
-          <Box sx={{ display: 'flex', gap: 3, flexDirection: { xs: 'column', md: 'row' }, alignItems: 'flex-start' }}>
+          <Box sx={{ maxWidth: "100vw",display: 'flex', gap: 3, flexDirection: { xs: 'column', md: 'row' }, alignItems: 'flex-start' }}>
             {/* Left column: Dashboard in a card-like container */}
             <Box
               sx={{
