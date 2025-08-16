@@ -54,50 +54,6 @@ export default function ProfileBadges() {
     {
       country : "Vietnam",
       flagUrl : "https://res.cloudinary.com/ddt3rcyhv/image/upload/v1755240289/Vietnam_cagk5x.png"
-    },
-    {
-      country : "Vietnam",
-      flagUrl : "https://res.cloudinary.com/ddt3rcyhv/image/upload/v1755240289/Vietnam_cagk5x.png"
-    },
-    {
-      country : "Vietnam",
-      flagUrl : "https://res.cloudinary.com/ddt3rcyhv/image/upload/v1755240289/Vietnam_cagk5x.png"
-    },
-    {
-      country : "Vietnam",
-      flagUrl : "https://res.cloudinary.com/ddt3rcyhv/image/upload/v1755240289/Vietnam_cagk5x.png"
-    },
-    {
-      country : "Vietnam",
-      flagUrl : "https://res.cloudinary.com/ddt3rcyhv/image/upload/v1755240289/Vietnam_cagk5x.png"
-    },
-    {
-      country : "Vietnam",
-      flagUrl : "https://res.cloudinary.com/ddt3rcyhv/image/upload/v1755240289/Vietnam_cagk5x.png"
-    },
-    {
-      country : "Vietnam",
-      flagUrl : "https://res.cloudinary.com/ddt3rcyhv/image/upload/v1755240289/Vietnam_cagk5x.png"
-    },
-    {
-      country : "Vietnam",
-      flagUrl : "https://res.cloudinary.com/ddt3rcyhv/image/upload/v1755240289/Vietnam_cagk5x.png"
-    },
-    {
-      country : "Vietnam",
-      flagUrl : "https://res.cloudinary.com/ddt3rcyhv/image/upload/v1755240289/Vietnam_cagk5x.png"
-    },
-    {
-      country : "Vietnam",
-      flagUrl : "https://res.cloudinary.com/ddt3rcyhv/image/upload/v1755240289/Vietnam_cagk5x.png"
-    },
-    {
-      country : "Vietnam",
-      flagUrl : "https://res.cloudinary.com/ddt3rcyhv/image/upload/v1755240289/Vietnam_cagk5x.png"
-    },
-    {
-      country : "Vietnam",
-      flagUrl : "https://res.cloudinary.com/ddt3rcyhv/image/upload/v1755240289/Vietnam_cagk5x.png"
     }
 ];
 
