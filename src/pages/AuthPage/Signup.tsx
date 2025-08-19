@@ -1,5 +1,5 @@
 import React from 'react';
-import '../../css/Signup.css';
+import '../../assets/css/Signup.css';
 import { useState } from 'react';
 
 import {
@@ -17,7 +17,7 @@ import {
   Typography
 } from '@mui/material';
 import { VisibilityOff, Visibility, Explore } from '@mui/icons-material';
-import { authAPI } from '../../../services/APIs/Auth/auth';
+import { authAPI } from '../../services/APIs/Auth/auth';
 import { useNavigate } from 'react-router-dom';
 
 const Signup = () => {

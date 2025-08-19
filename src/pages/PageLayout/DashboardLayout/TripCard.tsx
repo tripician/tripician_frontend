@@ -1,5 +1,5 @@
 import React from 'react';
-import '../../css/TripCard.css';
+import '../../../assets/css/TripCard.css';
 
 interface TripCardProps {
   title: string;

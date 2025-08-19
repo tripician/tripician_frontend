@@ -1,7 +1,7 @@
 // Debug utility for testing authentication scenarios
 // Remove this file in production
 
-import { apiServices } from '../services/APIs/ApiServices';
+import { apiServices } from '../services/APIs/apiServices';
 
 export const authDebug = {
   // Simulate expired token by setting an invalid token

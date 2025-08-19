@@ -11,15 +11,15 @@ import {
   ImageListItem 
 } from "@mui/material";
 import UserProfileBanner from "./UserProfileBanner";
-import NavigationPannel from "../PageLayout/CommonLayouts/NavigationPannel";
+import NavigationPannel from "../PageLayout/CommonLayouts/NavigationPanel";
 import { useState, useEffect } from "react";
 import TopBar from "../PageLayout/CommonLayouts/TopBar";
-import { useAuthToken } from '../../../hooks/useAuth0Token';
-import { apiServices } from '../../../services/APIs/ApiServices';
+import { useAuthToken } from '../../hooks/useAuth0Token';
+import { apiServices } from '../../services/APIs/apiServices';
 import ProfileBadges from "./ProfileBadges";
 import ProfileDetailsRightCard from "./ProfileDetailsRightCard";
 // import { Dashboard } from "@mui/icons-material";
-import Dashboard from "../DashboardPage/Dashboard";
+import Dashboard from "../PageLayout/DashboardLayout/Dashboard";
 
 // Define interface for profile data
 interface UserProfileData {
