@@ -37,6 +37,7 @@ interface UserProfileData {
   facebook?: string;
   twitter?: string;
   instagram?: string;
+  website?: string;
   // Add other fields based on your backend response
 }
 
@@ -255,7 +256,8 @@ const Profile: React.FC = () => {
                   { label: "Date of Birth", value: formatDate(profileData?.dateOfBirth) },
                   { label: "facebook", value: profileData?.facebook },
                   { label: "facebook", value: profileData?.twitter },
-                  { label: "facebook", value: profileData?.instagram }
+                  { label: "facebook", value: profileData?.instagram },
+                  { label: "website", value: profileData?.website}
                 ]}
               />
             </Box>
