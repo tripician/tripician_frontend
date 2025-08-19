@@ -1,7 +1,7 @@
 import React from "react";
 import { Box, Typography, IconButton, Button } from "@mui/material";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
-import SearchBar from "../CommonComponents/SearchBar";
+import SearchBar from "../../../components/CommonComponents/SearchBar";
 import {Add as AddIcon} from '@mui/icons-material';
 
 

@@ -4,7 +4,7 @@ import { styled } from '@mui/material/styles';
 import EditIcon from '@mui/icons-material/Edit';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useNavigate } from 'react-router-dom';
-import { useAuthToken } from '../../../hooks/useAuth0Token';
+import { useAuthToken } from '../../hooks/useAuth0Token';
 
 interface UserProfileBannerProps {
   name?: string;

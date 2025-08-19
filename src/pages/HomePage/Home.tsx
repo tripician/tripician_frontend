@@ -1,14 +1,14 @@
 import React, { useState } from 'react';
 import { Box, Typography, Card, CardContent, CardMedia, Button } from '@mui/material';
-import NavigationPannel from '../PageLayout/CommonLayouts/NavigationPannel';
+import NavigationPannel from '../PageLayout/CommonLayouts/NavigationPanel';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import { useNavigate } from 'react-router-dom';
 
 // Import destination images
-import santorini from '../../../assets/santorini.png';
-import kyoto from '../../../assets/kyoto.png';
-import paris from '../../../assets/paris.png';
-import dubai from '../../../assets/dubai.png';
+import santorini from '../../assets/santorini.png';
+import kyoto from '../../assets/kyoto.png';
+import paris from '../../assets/paris.png';
+import dubai from '../../assets/dubai.png';
 
 const Home: React.FC = () => {
   const [selectedMenuItem, setSelectedMenuItem] = useState('Home');

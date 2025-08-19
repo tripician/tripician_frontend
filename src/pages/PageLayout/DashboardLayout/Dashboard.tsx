@@ -1,7 +1,6 @@
 import React from 'react';
-import NavigationPannel from '../PageLayout/CommonLayouts/NavigationPannel';
 import TripCard from './TripCard';
-import '../../css/Dashboard.css';
+import '../../../assets/css/Dashboard.css';
 import santorini from '../../../assets/santorini.png';
 import kyoto from '../../../assets/kyoto.png';
 import paris from '../../../assets/paris.png';
@@ -9,7 +8,6 @@ import dubai from '../../../assets/dubai.png';
 import astana from '../../../assets/astana.png';
 import khiva from '../../../assets/khiva.png';
 import sapa from '../../../assets/sapa.png';
-import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import { Tabs, Tab } from '@mui/material';
 import { useState } from 'react';
 

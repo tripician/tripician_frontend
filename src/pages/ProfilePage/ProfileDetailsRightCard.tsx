@@ -1,5 +1,5 @@
 import { Card, CardContent, Typography, Box, Divider } from "@mui/material";
-import SocialMediaButtons from "../PageLayout/CommonComponents/SocialMediaButtons";
+import SocialMediaButtons from "../../components/CommonComponents/SocialMediaButtons";
 
 type KV = { label: string; value?: string | number | null };
 
