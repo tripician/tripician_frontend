@@ -18,7 +18,7 @@ export default function ProfileDetailsRightCard({ rows, title = "Profile Details
         <Divider sx={{ mb: 1.5 }} />
         <Box sx={{ display: "grid", rowGap: 1.25 }}>
           {rows
-            .filter(r => r.label !== "facebook" && r.label !== "twitter" &&  r.label !== "instagram" &&  r.value !== undefined && r.value !== null && String(r.value).trim() !== "")
+            .filter(r => r.label !== "facebook" && r.label !== "twitter" &&  r.label !== "instagram" &&  r.label !== "website" &&  r.value !== undefined && r.value !== null && String(r.value).trim() !== "")
             .map((r, idx) => (
               <Box key={idx}>
                 <Typography variant="caption" color="text.secondary">
@@ -34,6 +34,7 @@ export default function ProfileDetailsRightCard({ rows, title = "Profile Details
         facebook = {rows.find(row => row.label === "facebook")?.value}
         twitter = {rows.find(row => row.label === "twitter")?.value}
         instagram = {rows.find(row => row.label === "instagram")?.value}
+        website = {rows.find(row => row.label === "website")?.value}
       />
     </Card>
   );
