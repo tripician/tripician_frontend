@@ -1,14 +1,16 @@
 import React from 'react';
+import NavigationPannel from '../PageLayout/CommonLayouts/NavigationPanel';
 import TripCard from './TripCard';
-import '../../../assets/css/Dashboard.css';
-import santorini from '../../../assets/santorini.png';
-import kyoto from '../../../assets/kyoto.png';
-import paris from '../../../assets/paris.png';
-import dubai from '../../../assets/dubai.png';
-import astana from '../../../assets/astana.png';
-import khiva from '../../../assets/khiva.png';
-import sapa from '../../../assets/sapa.png';
-import { Tabs, Tab } from '@mui/material';
+import '../../assets/css/Dashboard.css';
+import santorini from '../../assets/santorini.png';
+import kyoto from '../../assets/kyoto.png';
+import paris from '../../assets/paris.png';
+import dubai from '../../assets/dubai.png';
+import astana from '../../assets/astana.png';
+import khiva from '../../assets/khiva.png';
+import sapa from '../../assets/sapa.png';
+import TopBar from '../PageLayout/CommonLayouts/TopBar';
+import { Tabs, Tab, Box } from '@mui/material';
 import { useState } from 'react';
 
 
@@ -69,41 +71,65 @@ const Dashboard: React.FC = () => {
   };
   
   return (
-    // <NavigationPannel onMenuItemChange={handleMenuItemChange}>
-    // <TopBar selectedMenuItem = {selectedMenuItem}/>
-    <>
-      <Tabs
-        value={tabValue}
-        className="mb-3"
-        onChange={handleTabChange}
-        textColor="primary"
-        indicatorColor="primary"
-        aria-label="trip tabs"
-        sx={{ pl: 0}}
-      >
-        <Tab label="All Plans"  sx={{ textTransform: "none", fontWeight: "bold"}}/>
-        <Tab label="Private"  sx={{ textTransform: "none", fontWeight: "bold" }}/>
-        <Tab label="Group"  sx={{ textTransform: "none", fontWeight: "bold" }}/>
-        <Tab label="Completed"  sx={{ textTransform: "none", fontWeight: "bold" }}/>
-        <Tab label="In Progress"  sx={{ textTransform: "none", fontWeight: "bold" }}/>
-      </Tabs>
-      
-      <div className="trip-cards-container mb-5">
-
+    <NavigationPannel onMenuItemChange={handleMenuItemChange}>
+      <Box sx={{ width: "100%", backgroundColor: "#e1e0e0ff", minHeight: "100vh" }}>
+        <TopBar selectedMenuItem = {selectedMenuItem}/>
+        
+        <Box sx={{ justifyContent: "center" }}>
+          <Tabs
+            value={tabValue}
+            className="mb-1 mt-1"
+            onChange={handleTabChange}
+            variant="fullWidth"
+            aria-label="trip tabs"
+            sx={{
+              pl: 0,
+              mt: 1,
+              ml: 3,
+              '& .MuiTabs-flexContainer': {
+                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                borderRadius: '8px',
+                padding: '4px',
+              },
+              '& .MuiTab-root': {
+                minHeight: '40px',
+                borderRadius: '6px',
+                margin: '0 2px',
+                textTransform: 'none',
+                fontWeight: 'bold',
+                '&.Mui-selected': {
+                  backgroundColor: 'white',
+                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                  color: 'primary.main',
+                },
+              },
+              '& .MuiTabs-indicator': {
+                display: 'none', // Hide the default indicator since we're using background color
+              },
+            }}
+          >
+            <Tab label="All Plans" />
+            <Tab label="Private" />
+            <Tab label="Group" />
+            <Tab label="Completed" />
+            <Tab label="In Progress" />
+          </Tabs>
+          <div className="trip-cards-container mb-5">
             {plans.map((plan, index) => (
-                <TripCard
+              <TripCard
                 key={index}
                 title={plan.title}
                 location={plan.location}
-                image= {plan.image}
+                image={plan.image}
                 progress={plan.progress}
                 edited={plan.edited}
                 members={plan.members}
-                />
+              />
             ))}
-      </div>
-      </>
-    // </NavigationPannel>
+          </div>
+        </Box>
+      </Box>
+    </NavigationPannel>
   );
 };
 export default Dashboard;

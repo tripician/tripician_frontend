@@ -1,5 +1,5 @@
 import React from 'react';
-import '../../../assets/css/TripCard.css';
+import '../../assets/css/TripCard.css';
 
 interface TripCardProps {
   title: string;
@@ -12,7 +12,7 @@ interface TripCardProps {
 
 const TripCard: React.FC<TripCardProps> = ({ title, location, image, progress, edited, members }) => {
   return (
-    <div className="trip-card card border-0" style={{ width: '100%', height: '50vh' }}>
+    <div className="trip-card card border-0" style={{ width: '100%', height: '40vh' }}>
       <div className="trip-image-wrapper">
         <img src={image} className="card-img-top" alt={title} />
       </div>

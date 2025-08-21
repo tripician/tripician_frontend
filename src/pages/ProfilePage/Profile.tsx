@@ -1,17 +1,18 @@
 import { 
   Box, Typography, Card, CardContent, CircularProgress, 
-  Alert, Button 
+  Alert, Button, Container
 } from "@mui/material";
+import { Refresh, Person } from "@mui/icons-material";
 import UserProfileBanner from "./UserProfileBanner";
 import NavigationPanel from "../PageLayout/CommonLayouts/NavigationPanel";
 import { useState, useEffect } from "react";
 import TopBar from "../PageLayout/CommonLayouts/TopBar";
 import ProfileBadges from "./ProfileBadges";
 import ProfileDetailsRightCard from "./ProfileDetailsRightCard";
-import Dashboard from "../PageLayout/DashboardLayout/Dashboard";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "../../store";
 import { fetchUserProfile } from "../../store/userSlice";
+import ProfileDashboard from "../PageLayout/ProfileLayouts/ProfileDashboard";
 
 const Profile: React.FC = () => {
   const [selectedMenuItem, setSelectedMenuItem] = useState("Profile");
@@ -37,18 +38,33 @@ const Profile: React.FC = () => {
   if (loading) {
     return (
       <NavigationPanel onMenuItemChange={handleMenuItemChange}>
-        <Box sx={{ width: "100%", backgroundColor: "#e1e0e0ff" }}>
+        <Box sx={{ 
+          width: "100%", 
+          backgroundColor: "#f8fafc",
+          minHeight: "100vh"
+        }}>
           <TopBar selectedMenuItem={selectedMenuItem} />
           <Box 
             sx={{ 
               display: "flex", 
+              flexDirection: "column",
               justifyContent: "center", 
               alignItems: "center", 
-              minHeight: "60vh" 
+              minHeight: "60vh",
+              gap: 2
             }}
           >
-            <CircularProgress size={60} />
-            <Typography variant="h6" sx={{ ml: 2 }}>
+            <CircularProgress 
+              size={48} 
+              sx={{ color: "#3b82f6" }}
+            />
+            <Typography 
+              variant="h6" 
+              sx={{ 
+                color: "#374151",
+                fontWeight: 500
+              }}
+            >
               Loading profile...
             </Typography>
           </Box>
@@ -61,20 +77,38 @@ const Profile: React.FC = () => {
   if (error) {
     return (
       <NavigationPanel onMenuItemChange={handleMenuItemChange}>
-        <Box sx={{ width: "100vw", backgroundColor: "#e1e0e0ff" }}>
+        <Box sx={{ 
+          width: "100%", 
+          backgroundColor: "#f8fafc",
+          minHeight: "100vh"
+        }}>
           <TopBar selectedMenuItem={selectedMenuItem} />
-          <Box sx={{ p: 3 }}>
+          <Container maxWidth="lg" sx={{ pt: 3 }}>
             <Alert 
               severity="error"
+              sx={{
+                borderRadius: 2,
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
+              }}
               action={
-                <Button color="inherit" size="small" onClick={() => dispatch(fetchUserProfile())}>
+                <Button 
+                  color="inherit" 
+                  size="small" 
+                  onClick={() => dispatch(fetchUserProfile())}
+                  sx={{ fontWeight: 500 }}
+                >
                   Retry
                 </Button>
               }
             >
-              <strong>Error loading profile:</strong> {error}
+              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                Error loading profile:
+              </Typography>
+              <Typography variant="body2">
+                {error}
+              </Typography>
             </Alert>
-          </Box>
+          </Container>
         </Box>
       </NavigationPanel>
     );
@@ -84,11 +118,26 @@ const Profile: React.FC = () => {
   if (!profile) {
     return (
       <NavigationPanel onMenuItemChange={handleMenuItemChange}>
-        <Box sx={{ width: "100vw", backgroundColor: "#e1e0e0ff" }}>
+        <Box sx={{ 
+          width: "100%", 
+          backgroundColor: "#f8fafc",
+          minHeight: "100vh"
+        }}>
           <TopBar selectedMenuItem={selectedMenuItem} />
-          <Box sx={{ p: 3 }}>
-            <Alert severity="warning">Please log in to view your profile.</Alert>
-          </Box>
+          <Container maxWidth="lg" sx={{ pt: 3 }}>
+            <Alert 
+              severity="warning"
+              sx={{
+                borderRadius: 2,
+                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
+              }}
+              icon={<Person />}
+            >
+              <Typography variant="body1" sx={{ fontWeight: 500 }}>
+                Please log in to view your profile.
+              </Typography>
+            </Alert>
+          </Container>
         </Box>
       </NavigationPanel>
     );
@@ -97,7 +146,11 @@ const Profile: React.FC = () => {
   // ✅ Main UI
   return (
     <NavigationPanel onMenuItemChange={handleMenuItemChange}>
-      <Box sx={{ maxWidth: "100%", backgroundColor: "#e1e0e0ff" }}>
+      <Box sx={{ 
+        width: "100%", 
+        backgroundColor: "#f8fafc",
+        minHeight: "100vh"
+      }}>
         <TopBar selectedMenuItem={selectedMenuItem} />
 
         {/* Banner */}
@@ -111,17 +164,18 @@ const Profile: React.FC = () => {
         />
 
         {/* Badges */}
-        <Box sx={{ px: 2, mt: 1, mb: 1 }}>
-          <ProfileBadges />
-        </Box>
+        <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 } }}>
+          <Box sx={{ mt: 2, mb: 3 }}>
+            <ProfileBadges />
+          </Box>
+        </Container>
 
-        <Box sx={{ p: 2 }}>
+        <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 }, pb: 4 }}>
           <Box 
             sx={{ 
-              maxWidth: "100vw",
               display: "flex", 
               gap: 3, 
-              flexDirection: { xs: "column", md: "row" }, 
+              flexDirection: { xs: "column", lg: "row" }, 
               alignItems: "flex-start" 
             }}
           >
@@ -130,63 +184,88 @@ const Profile: React.FC = () => {
               sx={{
                 flex: 1,
                 minWidth: 0,
-                maxWidth: { md: "calc(100% - 340px)" },
-                background: "#fff",
-                borderRadius: 2,
-                boxShadow: 1,
-                p: { xs: 1, md: 2 },
-                mb: { xs: 2, md: 0 },
+                width: "100%"
               }}
             >
-              <Dashboard />
+                  <ProfileDashboard />
             </Box>
 
             {/* Right: Profile details */}
             <Box
               sx={{
-                width: { xs: "100%", md: "320px" },
+                width: { xs: "100%", lg: "20vw" },
                 flexShrink: 0,
-                background: "#fff",
-                borderRadius: 2,
-                boxShadow: 1,
-                p: 2,
               }}
             >
-              <ProfileDetailsRightCard
-                title="Profile Details"
-                rows={[
-                  { label: "Full Name", value: `${profile.fname ?? ""} ${profile.lname ?? ""}` },
-                  { label: "Email", value: profile.email },
-                  { label: "Phone", value: profile.phone },
-                  { label: "Country", value: profile.country },
-                  { label: "Gender", value: profile.gender },
-                  { label: "Date of Birth", value: formatDate(profile.dateOfBirth) },
-                  { label: "Facebook", value: profile.facebook },
-                  { label: "Twitter", value: profile.twitter },
-                  { label: "Instagram", value: profile.instagram },
-                  { label: "Website", value: profile.website }
-                ]}
-              />
+                  <ProfileDetailsRightCard
+                    title="Profile Details"
+                    rows={[
+                      { label: "Email", value: profile.email },
+                      { label: "Phone", value: profile.phone },
+                      { label: "Country", value: profile.country },
+                      { label: "Gender", value: profile.gender },
+                      { label: "Date of Birth", value: formatDate(profile.dateOfBirth) },
+                      { label: "Facebook", value: profile.facebook },
+                      { label: "Twitter", value: profile.twitter },
+                      { label: "Instagram", value: profile.instagram },
+                      { label: "Website", value: profile.website }
+                    ]}
+                  />
             </Box>
           </Box>
 
           {/* Refresh Button */}
-          <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
+          <Box sx={{ 
+            display: "flex", 
+            justifyContent: "center", 
+            mt: 4 
+          }}>
             <Button 
               variant="outlined" 
+              startIcon={<Refresh />}
               onClick={() => dispatch(fetchUserProfile())}
               disabled={loading}
+              sx={{
+                textTransform: "none",
+                fontWeight: 500,
+                px: 3,
+                py: 1.5,
+                borderRadius: 2,
+                borderColor: "#d1d5db",
+                color: "#374151",
+                "&:hover": {
+                  borderColor: "#9ca3af",
+                  backgroundColor: "#f9fafb"
+                },
+                "&:disabled": {
+                  opacity: 0.6
+                }
+              }}
             >
-              Refresh Profile
+              {loading ? "Refreshing..." : "Refresh Profile"}
             </Button>
           </Box>
 
           {/* Debug info (dev only) */}
           {process.env.NODE_ENV === "development" && (
-            <Card sx={{ mt: 3, backgroundColor: "#f5f5f5" }}>
-              <CardContent>
-                <Typography variant="h6" gutterBottom>
-                  Debug: Raw Profile Data
+            <Card sx={{ 
+              mt: 4, 
+              borderRadius: 2,
+              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+              border: "1px solid #e5e7eb",
+              backgroundColor: "#fef3c7"
+            }}>
+              <CardContent sx={{ p: 3 }}>
+                <Typography 
+                  variant="h6" 
+                  gutterBottom
+                  sx={{ 
+                    color: "#92400e",
+                    fontWeight: 600,
+                    fontSize: "1.1rem"
+                  }}
+                >
+                  🔧 Debug: Raw Profile Data
                 </Typography>
                 <Box 
                   component="pre" 
@@ -195,8 +274,10 @@ const Profile: React.FC = () => {
                     overflow: "auto",
                     backgroundColor: "#ffffff",
                     p: 2,
-                    borderRadius: 1,
-                    border: "1px solid #ddd"
+                    borderRadius: 1.5,
+                    border: "1px solid #d1d5db",
+                    maxHeight: "400px",
+                    fontFamily: "Monaco, 'Cascadia Code', 'Roboto Mono', monospace"
                   }}
                 >
                   {JSON.stringify(profile, null, 2)}
@@ -204,7 +285,7 @@ const Profile: React.FC = () => {
               </CardContent>
             </Card>
           )}
-        </Box>
+        </Container>
       </Box>
     </NavigationPanel>
   );

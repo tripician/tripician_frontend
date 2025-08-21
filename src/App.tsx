@@ -2,7 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
 import Signin from './pages/AuthPage/Signin'
 import Signup from './pages/AuthPage/Signup'
-import Dashboard from './pages/PageLayout/DashboardLayout/Dashboard'
+import Dashboard from './pages/DashboardPage/Dashboard'
 import Profile from './pages/ProfilePage/Profile'
 import Home from './pages/HomePage/Home'
 import Community from './pages/CommunityPage/Community'
@@ -27,6 +27,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Home />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <Dashboard />
             </ProtectedRoute>
           } 
         />

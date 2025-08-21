@@ -21,6 +21,7 @@ import {
 import {
   Home as HomeIcon,
   People as CommunityIcon,
+  Dashboard as DasboardIcon,
   Person as ProfileIcon,
   Settings as SettingsIcon,
   Menu as MenuIcon,
@@ -39,6 +40,7 @@ const collapsedDrawerWidth = 64;
 
 const menuItems = [
   { text: 'Home', icon: <HomeIcon />, path: '/home' },
+  { text: 'Dashboard', icon: <DasboardIcon />, path: '/dashboard' },
   { text: 'Community', icon: <CommunityIcon />, path: '/community' },
   { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
 ];
