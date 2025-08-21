@@ -1,6 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Footer from "./Footer";
+import { useSelector, useDispatch } from "react-redux";
+import type { RootState, AppDispatch } from "../../../store";
+import { fetchUserProfile } from "../../../store/userSlice";
+
 import {
   Box,
   Drawer,
@@ -13,9 +17,9 @@ import {
   Tooltip,
   Avatar
 } from '@mui/material';
+
 import {
   Home as HomeIcon,
-  Dashboard as DashboardIcon,
   People as CommunityIcon,
   Person as ProfileIcon,
   Settings as SettingsIcon,
@@ -30,7 +34,9 @@ interface Props {
 const drawerWidth = 240;
 const collapsedDrawerWidth = 64;
 
-const profileItem = { text: 'Profile', icon: <ProfileIcon />, path: '/profile' };
+ 
+
+
 const menuItems = [
   { text: 'Home', icon: <HomeIcon />, path: '/home' },
   { text: 'Community', icon: <CommunityIcon />, path: '/community' },
@@ -44,6 +50,25 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selectedItem, setSelectedItem] = useState('Home');
+
+  const dispatch = useDispatch<AppDispatch>();
+
+  // ✅ Get user profile from Redux store
+  const { profile, loading, error } = useSelector((state: RootState) => state.user);
+
+  // Fetch profile once when component mounts
+  useEffect(() => {
+    if (!profile) {
+      dispatch(fetchUserProfile());
+    }
+  }, [dispatch, profile]);
+
+  const profilename = loading
+  ? "Loading..."
+  : error
+    ? "Profile"
+    : `${profile?.fname ?? ""} ${profile?.lname ?? ""}`;
+  const profileItem = { text: profilename, icon: <ProfileIcon />, path: '/profile' };
 
   // Update selected item based on current route
   useEffect(() => {
@@ -215,7 +240,7 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
         >
           <ListItem
             component="button"
-            onClick={() => handleMenuItemClick(profileItem.text)}
+            onClick={() => handleMenuItemClick("Profile")}
             sx={{
               borderRadius: 1,
               px: isCollapsed ? 1 : 2,
@@ -243,7 +268,7 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
               }}
             >
               <Avatar
-                src={import.meta.env.VITE_NO_PROFILE_PIC_URL}
+                src={profile?.profilepicture || import.meta.env.VITE_NO_PROFILE_PIC_URL}
                 sx={{ width: 36, height: 36, cursor: "pointer" }}
               />
             </Box>
