@@ -1,125 +1,50 @@
 import { 
-  Box, 
-  Typography, 
-  Card, 
-  CardContent, 
-  CircularProgress, 
-  Alert, 
-  Button, 
-  Grid, 
-  ImageList, 
-  ImageListItem 
+  Box, Typography, Card, CardContent, CircularProgress, 
+  Alert, Button 
 } from "@mui/material";
 import UserProfileBanner from "./UserProfileBanner";
-import NavigationPannel from "../PageLayout/CommonLayouts/NavigationPanel";
+import NavigationPanel from "../PageLayout/CommonLayouts/NavigationPanel";
 import { useState, useEffect } from "react";
 import TopBar from "../PageLayout/CommonLayouts/TopBar";
-import { useAuthToken } from '../../hooks/useAuth0Token';
-import { apiServices } from '../../services/APIs/apiServices';
 import ProfileBadges from "./ProfileBadges";
 import ProfileDetailsRightCard from "./ProfileDetailsRightCard";
-// import { Dashboard } from "@mui/icons-material";
 import Dashboard from "../PageLayout/DashboardLayout/Dashboard";
-
-// Define interface for profile data
-interface UserProfileData {
-  id?: string;
-  email?: string;
-  fname?: string;
-  lname?: string;
-  phone?: string;
-  dateOfBirth?: string;
-  gender?: string;
-  country?: string;
-  bio?: string;
-  coverpicture?: string;
-  profilepicture?: string;
-  facebook?: string;
-  twitter?: string;
-  instagram?: string;
-  website?: string;
-  // Add other fields based on your backend response
-}
+import { useSelector, useDispatch } from "react-redux";
+import type { RootState, AppDispatch } from "../../store";
+import { fetchUserProfile } from "../../store/userSlice";
 
 const Profile: React.FC = () => {
-  const [selectedMenuItem, setSelectedMenuItem] = useState('Profile');
-  const [profileData, setProfileData] = useState<UserProfileData | null>(null);
-  const [isLoading, setIsLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  
+  const [selectedMenuItem, setSelectedMenuItem] = useState("Profile");
+  const dispatch = useDispatch<AppDispatch>();
+
+  // ✅ Get user profile from Redux store
+  const { profile, loading, error } = useSelector((state: RootState) => state.user);
+
+  // Fetch profile once when component mounts
+  useEffect(() => {
+    dispatch(fetchUserProfile());
+  }, [dispatch]);
+
   const handleMenuItemChange = (itemName: string) => {
     setSelectedMenuItem(itemName);
   };
-  
-  const { getToken, isAuthenticated, loading: authLoading, logout } = useAuthToken();
 
-  // Helper function for date formatting
   const formatDate = (dateString?: string) => {
     return dateString ? new Date(dateString).toLocaleDateString() : undefined;
   };
 
-  // Fetch profile data function
-  const fetchProfileData = async () => {
-    if (!isAuthenticated || authLoading) return;
-    
-    setIsLoading(true);
-    setError(null);
-    
-    try {
-      const token = getToken();
-      if (!token) {
-        throw new Error('No authentication token found');
-      }
-      
-      const response = await apiServices.getUserProfile(token);
-      setProfileData(response.data);
-    } catch (error: any) {
-      let errorMessage = 'Failed to fetch profile';
-      
-      if (error.response?.status === 401) {
-        errorMessage = 'Your session has expired. Redirecting to login...';
-        return;
-      } else if (error.response?.status === 404) {
-        errorMessage = 'Profile not found.';
-      } else if (error.response?.data?.message) {
-        errorMessage = error.response.data.message;
-      } else if (error.message === 'No authentication token found') {
-        errorMessage = 'Authentication required. Please log in.';
-        logout();
-        return;
-      }
-      
-      setError(errorMessage);
-      console.error('Profile fetch error:', error);
-    } finally {
-      setIsLoading(false);
-    }
-  };
-
-  // Effect to fetch profile data when component mounts or auth state changes
-  useEffect(() => {
-    if (isAuthenticated && !authLoading) {
-      fetchProfileData();
-    }
-  }, [isAuthenticated, authLoading]);
-
-  // Refetch function for retry button
-  const refetch = () => {
-    fetchProfileData();
-  };
-
-  // Loading state
-  if (authLoading || isLoading) {
+  // ✅ Loading state
+  if (loading) {
     return (
-      <NavigationPannel onMenuItemChange={handleMenuItemChange}>
+      <NavigationPanel onMenuItemChange={handleMenuItemChange}>
         <Box sx={{ width: "100%", backgroundColor: "#e1e0e0ff" }}>
           <TopBar selectedMenuItem={selectedMenuItem} />
           <Box 
             sx={{ 
-              display: 'flex', 
-              justifyContent: 'center', 
-              alignItems: 'center', 
-              minHeight: '60vh' 
+              display: "flex", 
+              justifyContent: "center", 
+              alignItems: "center", 
+              minHeight: "60vh" 
             }}
           >
             <CircularProgress size={60} />
@@ -128,103 +53,85 @@ const Profile: React.FC = () => {
             </Typography>
           </Box>
         </Box>
-      </NavigationPannel>
+      </NavigationPanel>
     );
   }
 
-  // Error state
+  // ✅ Error state
   if (error) {
-    const isAuthError = error.includes('session has expired') || error.includes('Authentication required');
-    
     return (
-      <NavigationPannel onMenuItemChange={handleMenuItemChange}>
+      <NavigationPanel onMenuItemChange={handleMenuItemChange}>
         <Box sx={{ width: "100vw", backgroundColor: "#e1e0e0ff" }}>
           <TopBar selectedMenuItem={selectedMenuItem} />
           <Box sx={{ p: 3 }}>
             <Alert 
-              severity={isAuthError ? "warning" : "error"}
+              severity="error"
               action={
-                <Box sx={{ display: 'flex', gap: 1 }}>
-                  {isAuthError && (
-                    <Button 
-                      color="inherit" 
-                      size="small" 
-                      onClick={() => logout()}
-                    >
-                      Login Again
-                    </Button>
-                  )}
-                  {!isAuthError && (
-                    <Button color="inherit" size="small" onClick={() => refetch()}>
-                      Retry
-                    </Button>
-                  )}
-                </Box>
+                <Button color="inherit" size="small" onClick={() => dispatch(fetchUserProfile())}>
+                  Retry
+                </Button>
               }
             >
-              {isAuthError ? (
-                <>
-                  <strong>Authentication Issue:</strong> {error}
-                </>
-              ) : (
-                <>
-                  <strong>Error loading profile:</strong> {error}
-                </>
-              )}
+              <strong>Error loading profile:</strong> {error}
             </Alert>
           </Box>
         </Box>
-      </NavigationPannel>
+      </NavigationPanel>
     );
   }
 
-  // Authentication check
-  if (!isAuthenticated) {
+  // ✅ If no profile (not authenticated)
+  if (!profile) {
     return (
-      <NavigationPannel onMenuItemChange={handleMenuItemChange}>
+      <NavigationPanel onMenuItemChange={handleMenuItemChange}>
         <Box sx={{ width: "100vw", backgroundColor: "#e1e0e0ff" }}>
           <TopBar selectedMenuItem={selectedMenuItem} />
           <Box sx={{ p: 3 }}>
-            <Alert severity="warning">
-              Please log in to view your profile.
-            </Alert>
+            <Alert severity="warning">Please log in to view your profile.</Alert>
           </Box>
         </Box>
-      </NavigationPannel>
+      </NavigationPanel>
     );
   }
 
+  // ✅ Main UI
   return (
-    <NavigationPannel onMenuItemChange={handleMenuItemChange}>
+    <NavigationPanel onMenuItemChange={handleMenuItemChange}>
       <Box sx={{ maxWidth: "100%", backgroundColor: "#e1e0e0ff" }}>
         <TopBar selectedMenuItem={selectedMenuItem} />
-        
-        {/* UserProfileBanner - Edit/Logout buttons remain in same position */}
+
+        {/* Banner */}
         <UserProfileBanner 
-          name = {profileData?.fname + " " + profileData?.lname }
-          bio = {profileData?.bio}
-          following = {12}
-          followers = {12}
-          avatarUrl = {profileData?.profilepicture}
-          backgroundUrl = {profileData?.coverpicture}
+          name={`${profile.fname ?? ""} ${profile.lname ?? ""}`}
+          bio={profile.bio}
+          following={12}
+          followers={12}
+          avatarUrl={profile.profilepicture}
+          backgroundUrl={profile.coverpicture}
         />
-        
-        {/* Profile Badges */}
+
+        {/* Badges */}
         <Box sx={{ px: 2, mt: 1, mb: 1 }}>
           <ProfileBadges />
         </Box>
-        
-        <Box sx={{ p: 2 }}>
 
-          {/* Two-column section using Box instead of Grid if Grid causes issues */}
-          <Box sx={{ maxWidth: "100vw",display: 'flex', gap: 3, flexDirection: { xs: 'column', md: 'row' }, alignItems: 'flex-start' }}>
-            {/* Left column: Dashboard in a card-like container */}
+        <Box sx={{ p: 2 }}>
+          <Box 
+            sx={{ 
+              maxWidth: "100vw",
+              display: "flex", 
+              gap: 3, 
+              flexDirection: { xs: "column", md: "row" }, 
+              alignItems: "flex-start" 
+            }}
+          >
+            {/* Left: Dashboard */}
             <Box
               sx={{
                 flex: 1,
                 minWidth: 0,
-                maxWidth: { md: 'calc(100% - 340px)' },
-                background: '#fff',
+                maxWidth: { md: "calc(100% - 340px)" },
+                background: "#fff",
                 borderRadius: 2,
                 boxShadow: 1,
                 p: { xs: 1, md: 2 },
@@ -234,12 +141,12 @@ const Profile: React.FC = () => {
               <Dashboard />
             </Box>
 
-            {/* Right column: Profile Details card */}
+            {/* Right: Profile details */}
             <Box
               sx={{
-                width: { xs: '100%', md: '320px' },
+                width: { xs: "100%", md: "320px" },
                 flexShrink: 0,
-                background: '#fff',
+                background: "#fff",
                 borderRadius: 2,
                 boxShadow: 1,
                 p: 2,
@@ -248,35 +155,35 @@ const Profile: React.FC = () => {
               <ProfileDetailsRightCard
                 title="Profile Details"
                 rows={[
-                  { label: "Full Name", value: profileData?.fname + " " + profileData?.lname },
-                  { label: "Email", value: profileData?.email },
-                  { label: "Phone", value: profileData?.phone },
-                  { label: "Country", value: profileData?.country },
-                  { label: "Gender", value: profileData?.gender },
-                  { label: "Date of Birth", value: formatDate(profileData?.dateOfBirth) },
-                  { label: "facebook", value: profileData?.facebook },
-                  { label: "facebook", value: profileData?.twitter },
-                  { label: "facebook", value: profileData?.instagram },
-                  { label: "website", value: profileData?.website}
+                  { label: "Full Name", value: `${profile.fname ?? ""} ${profile.lname ?? ""}` },
+                  { label: "Email", value: profile.email },
+                  { label: "Phone", value: profile.phone },
+                  { label: "Country", value: profile.country },
+                  { label: "Gender", value: profile.gender },
+                  { label: "Date of Birth", value: formatDate(profile.dateOfBirth) },
+                  { label: "Facebook", value: profile.facebook },
+                  { label: "Twitter", value: profile.twitter },
+                  { label: "Instagram", value: profile.instagram },
+                  { label: "Website", value: profile.website }
                 ]}
               />
             </Box>
           </Box>
 
           {/* Refresh Button */}
-          <Box sx={{ display: 'flex', justifyContent: 'center', mt: 2 }}>
+          <Box sx={{ display: "flex", justifyContent: "center", mt: 2 }}>
             <Button 
               variant="outlined" 
-              onClick={() => refetch()}
-              disabled={isLoading}
+              onClick={() => dispatch(fetchUserProfile())}
+              disabled={loading}
             >
               Refresh Profile
             </Button>
           </Box>
 
-          {/* Debug Information - Remove in production */}
-          {process.env.NODE_ENV === 'development' && profileData && (
-            <Card sx={{ mt: 3, backgroundColor: '#f5f5f5' }}>
+          {/* Debug info (dev only) */}
+          {process.env.NODE_ENV === "development" && (
+            <Card sx={{ mt: 3, backgroundColor: "#f5f5f5" }}>
               <CardContent>
                 <Typography variant="h6" gutterBottom>
                   Debug: Raw Profile Data
@@ -284,22 +191,22 @@ const Profile: React.FC = () => {
                 <Box 
                   component="pre" 
                   sx={{ 
-                    fontSize: '0.8rem', 
-                    overflow: 'auto',
-                    backgroundColor: '#ffffff',
+                    fontSize: "0.8rem", 
+                    overflow: "auto",
+                    backgroundColor: "#ffffff",
                     p: 2,
                     borderRadius: 1,
-                    border: '1px solid #ddd'
+                    border: "1px solid #ddd"
                   }}
                 >
-                  {JSON.stringify(profileData, null, 2)}
+                  {JSON.stringify(profile, null, 2)}
                 </Box>
               </CardContent>
             </Card>
           )}
         </Box>
       </Box>
-    </NavigationPannel>
+    </NavigationPanel>
   );
 };
 

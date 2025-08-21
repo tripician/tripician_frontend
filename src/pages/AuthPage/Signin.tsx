@@ -15,10 +15,14 @@ import AppleIcon from '@mui/icons-material/Apple';
 import Alert from '@mui/material/Alert';
 import { authAPI } from '../../services/APIs/Auth/auth';
 import { useNavigate } from 'react-router-dom';
+import { fetchUserProfile } from '../../store/userSlice';
+import { useDispatch } from "react-redux";
+import type { AppDispatch } from '../../store';
 
 const Signin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
 
   // Form state
   const [formData, setFormData] = useState({
@@ -78,6 +82,9 @@ const Signin = () => {
       console.log('Sending signin data:', signInData);
       const response = await authAPI.signin(signInData);
       console.log('SignIn response:', response);
+
+      // ✅ fetch profile once and store globally
+      dispatch(fetchUserProfile());
       
       // Check if the response indicates success
       if (response.data?.success && response.data?.accessToken) {
@@ -249,3 +256,4 @@ const Signin = () => {
 };
 
 export default Signin;
+
