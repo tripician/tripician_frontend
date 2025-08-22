@@ -26,7 +26,7 @@ const SettingsTopNav: React.FC<SettingsTopNavProps> = ({
           '& .MuiTabs-flexContainer': {
             backgroundColor: 'rgba(0, 0, 0, 0.04)',
             borderRadius: '8px',
-            padding: '4px',
+            padding: '4px',            
           },
           '& .MuiTab-root': {
             minHeight: '40px',
@@ -44,7 +44,7 @@ const SettingsTopNav: React.FC<SettingsTopNavProps> = ({
         <Tab
           value="profile"
           label={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700}}>
               <User size={16} />
               Profile
             </Box>
@@ -53,7 +53,7 @@ const SettingsTopNav: React.FC<SettingsTopNavProps> = ({
         <Tab
           value="notifications"
           label={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700 }}>
               <Bell size={16} />
               Notifications
             </Box>
@@ -62,7 +62,7 @@ const SettingsTopNav: React.FC<SettingsTopNavProps> = ({
         <Tab
           value="privacy"
           label={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700 }}>
               <Shield size={16} />
               Privacy
             </Box>
@@ -71,7 +71,7 @@ const SettingsTopNav: React.FC<SettingsTopNavProps> = ({
         <Tab
           value="preferences"
           label={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700 }}>
               <Globe size={16} />
               Preferences
             </Box>

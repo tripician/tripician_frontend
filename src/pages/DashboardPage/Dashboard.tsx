@@ -78,14 +78,15 @@ const Dashboard: React.FC = () => {
         <Box sx={{ justifyContent: "center" }}>
           <Tabs
             value={tabValue}
-            className="mb-1 mt-1"
+            className="mb-1 mt-3"
             onChange={handleTabChange}
             variant="fullWidth"
             aria-label="trip tabs"
             sx={{
               pl: 0,
-              mt: 1,
-              ml: 3,
+              mt: "1%",
+              ml: "2%",
+              mr: "2%",
               '& .MuiTabs-flexContainer': {
                 backgroundColor: 'rgba(0, 0, 0, 0.04)',
                 borderRadius: '8px',

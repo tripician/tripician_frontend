@@ -190,34 +190,39 @@ const ProfileDashboard: React.FC = () => {
   };
 
   return (
-    <Box sx={{ bgcolor: "grey.50", minHeight: "100vh" }}>
-      {/* Top navigation. Ensure the onChange signature matches your component’s props */}
-      <ProfileLayoutNav
-        selectedSettingsMenuItem={tabs[activeTab] ?? ""}
-        onChange={(value: string | number) => {
-          // If your nav passes a label or index, normalize it to an index
-          const index =
-            typeof value === "number"
-              ? value
-              : Math.max(0, tabs.findIndex((t) => t === value));
-          setActiveTab(index);
-        }}
-      />
+    <Card sx={{ 
+          height: "100%",
+          borderRadius: "8px"
+        }}>
+      <Box sx={{ minHeight: "100vh" }}>
+        {/* Top navigation. Ensure the onChange signature matches your component’s props */}
+        <ProfileLayoutNav
+          selectedSettingsMenuItem={tabs[activeTab] ?? ""}
+          onChange={(value: string | number) => {
+            // If your nav passes a label or index, normalize it to an index
+            const index =
+              typeof value === "number"
+                ? value
+                : Math.max(0, tabs.findIndex((t) => t === value));
+            setActiveTab(index);
+          }}
+        />
 
-      <Container maxWidth="lg" sx={{ py: 4 }}>        
+        <Container maxWidth="lg" sx={{ py: 4 }}>        
 
-        {/* Panels */}
-        {tabs.map((_, index) => (
-          <TabPanel key={index} value={activeTab} index={index}>
-            <Grid container spacing={3}>
-              {posts.map((post) => (
-                <PostCard key={post.id} post={post} />
-              ))}
-            </Grid>
-          </TabPanel>
-        ))}
-      </Container>
-    </Box>
+          {/* Panels */}
+          {tabs.map((_, index) => (
+            <TabPanel key={index} value={activeTab} index={index}>
+              <Grid container spacing={3}>
+                {posts.map((post) => (
+                  <PostCard key={post.id} post={post} />
+                ))}
+              </Grid>
+            </TabPanel>
+          ))}
+        </Container>
+      </Box>
+      </Card>
   );
 };
 

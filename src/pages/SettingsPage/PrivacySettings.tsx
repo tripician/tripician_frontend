@@ -119,7 +119,7 @@ const PrivacySettings: React.FC = () => {
   );
 
   return (
-    <Box sx={{ maxWidth: 800, mx: "auto", p: 2 }}>
+    <Box sx={{ maxWidth: "100%"}}>
       {/* Profile Privacy Section */}
       <Card
         sx={{

@@ -86,7 +86,7 @@ const BottomFade = styled(Box)(() => ({
   left: 0,
   right: 0,
   height: '20vh', // controls fade height
-  background: 'linear-gradient(to top, rgba(225, 225, 225, 1), transparent)',
+  background: 'linear-gradient(to top, rgba(251, 251, 251, 1), transparent)',
   zIndex: 2, // above background but below content
   pointerEvents: 'none',
 }));

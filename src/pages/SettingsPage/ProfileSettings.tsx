@@ -19,7 +19,7 @@ const ProfileSettings: React.FC = () => {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   return (
-    <Box sx={{ maxWidth: 800, mx: "auto", p: 2 }}>
+    <Box sx={{ maxWidth: "100%"}}>
       {/* Profile Photo Section */}
       <Card
         sx={{
@@ -30,17 +30,7 @@ const ProfileSettings: React.FC = () => {
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>
-            <Box
-              component="span"
-              sx={{
-                width: 20,
-                height: 20,
-                borderRadius: "50%",
-                bgcolor: "primary.main",
-                display: "inline-block",
-              }}
-            />
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>            
             <Typography 
               variant="h6" 
               sx={{ 

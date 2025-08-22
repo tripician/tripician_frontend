@@ -21,42 +21,42 @@ const Settings: React.FC = () => {
   return (
     <NavigationPannel onMenuItemChange={handleMenuItemChange}>
       <Box sx={{ width: "100%", backgroundColor: "#f5f5f5", minHeight: "calc(100vh - 100px)" }}>
-  <TopBar selectedMenuItem={selectedMenuItem} />
+      <TopBar selectedMenuItem={selectedMenuItem} />
 
-  {/* background full width */}
-  <Box
-    sx={{
-      width: "100%",
-      backgroundColor: "#e1e0e0ff",
-      minHeight: "100vh",
-      py: 4,
-    }}
-  >
-    {/* content container (same width as forms/cards) */}
-    <Box
-      sx={{
-        maxWidth: "1200px", // keeps consistent width
-        mx: "auto", // centers horizontally
-        display: "flex",
-        flexDirection: "column",
-        gap: 3,
-        px: { xs: 2, md: 4 },
-      }}
-    >
-      {/* Top nav bar */}
-      <SettingsTopNav
-        selectedSettingsMenuItem={selectedSettingsMenuItem}
-        onChange={setSelectedSettingsMenuItem}
-      />
+      {/* background full width */}
+      <Box
+        sx={{
+          width: "100%",
+          backgroundColor: "#e1e0e0ff",
+          minHeight: "100vh",
+          py: 4,
+        }}
+      >
+        {/* content container (same width as forms/cards) */}
+        <Box
+          sx={{
+            maxWidth: "100%", // keeps consistent width
+            mx: "auto", // centers horizontally
+            display: "flex",
+            flexDirection: "column",
+            gap: 3,
+            px: { xs: 2, md: 4 },
+          }}
+        >
+          {/* Top nav bar */}
+          <SettingsTopNav
+            selectedSettingsMenuItem={selectedSettingsMenuItem}
+            onChange={setSelectedSettingsMenuItem}
+          />
 
-      {/* Conditional rendering */}
-      {selectedSettingsMenuItem === "Profile" && <ProfileSettings />}
-      {selectedSettingsMenuItem === "Notifications" && <NotificationsSettings/>}
-      {selectedSettingsMenuItem === "Privacy" && <PrivacySettings/>}
-      {selectedSettingsMenuItem === "Preferences" && <PreferencesSettings/>}
+          {/* Conditional rendering */}
+          {selectedSettingsMenuItem === "Profile" && <ProfileSettings />}
+          {selectedSettingsMenuItem === "Notifications" && <NotificationsSettings/>}
+          {selectedSettingsMenuItem === "Privacy" && <PrivacySettings/>}
+          {selectedSettingsMenuItem === "Preferences" && <PreferencesSettings/>}
+        </Box>
+      </Box>
     </Box>
-  </Box>
-</Box>
 
     </NavigationPannel>
   );

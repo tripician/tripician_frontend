@@ -127,7 +127,7 @@ const NotificationsSettings: React.FC = () => {
   );
 
   return (
-    <Box sx={{ maxWidth: 800, mx: "auto", p: 2 }}>
+    <Box sx={{ maxWidth: "100%"}}>
       {/* Email Notifications Section */}
       <Card
         sx={{
