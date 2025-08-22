@@ -187,7 +187,7 @@ const Profile: React.FC = () => {
                 width: "100%"
               }}
             >
-                  <ProfileDashboard />
+              <ProfileDashboard />
             </Box>
 
             {/* Right: Profile details */}
