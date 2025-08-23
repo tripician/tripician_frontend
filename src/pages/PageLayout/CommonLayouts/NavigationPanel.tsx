@@ -314,7 +314,7 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
               pl: 4,
               pr: 4,
               pt: 2,
-              pb: 2, // Add bottom padding
+              pb: 2,
             }}
           >
             {children}
