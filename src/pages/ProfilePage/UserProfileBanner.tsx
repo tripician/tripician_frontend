@@ -58,6 +58,32 @@ const ProfileAvatar = styled(Avatar)(() => ({
   boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
 }));
 
+
+const ProfileAvatarWrapper = styled(Box)(() => ({
+  position: "relative",
+  display: "inline-block",
+  "&:hover .avatar-edit-overlay": {
+    opacity: 1,
+    visibility: "visible",
+  },
+}));
+
+const AvatarEditOverlay = styled(IconButton)(({ theme }) => ({
+  position: "absolute",
+  bottom: 8,
+  right: 8,
+  backgroundColor: "rgba(0,0,0,0.6)",
+  color: "white",
+  padding: 6,
+  borderRadius: "50%",
+  opacity: 0,
+  visibility: "hidden",
+  transition: "opacity 0.3s ease, visibility 0.3s ease",
+  "&:hover": {
+    backgroundColor: "rgba(0,0,0,0.8)",
+  },
+}));
+
 const StatsContainer = styled(Box)(({ theme }) => ({
   display: 'flex',
   gap: theme.spacing(4),
@@ -157,7 +183,16 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
 
         {/* Profile Details */}
         <ProfileContent>
-          <ProfileAvatar src={avatarUrl} alt={`${name}'s profile`} />
+          <ProfileAvatarWrapper>
+            <ProfileAvatar src={avatarUrl} alt={`${name}'s profile`} />
+            <AvatarEditOverlay
+              className="avatar-edit-overlay"
+              size="small"
+              onClick={onEditClick}
+            >
+              <EditIcon fontSize="small" />
+            </AvatarEditOverlay>
+          </ProfileAvatarWrapper>
 
           <Box sx={{ flex: 1 }}>
             <Typography
