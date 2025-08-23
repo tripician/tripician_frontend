@@ -10,9 +10,9 @@ import {
   Chip,
   ToggleButton,
   ToggleButtonGroup,
-  Divider,
   Grid,
   InputAdornment,
+  Divider,
 } from "@mui/material";
 import {
   Close as CloseIcon,
@@ -20,110 +20,208 @@ import {
   CalendarToday as CalendarIcon,
   ArrowForward as ArrowForwardIcon,
   LocationOn as LocationIcon,
-  GroupAdd as GroupAddIcon,
-  Search as SearchIcon,
-  Send as SendIcon,
+  Group as GroupIcon,
+  ArrowDropDown as ArrowDropDownIcon,
 } from "@mui/icons-material";
 
-interface CreateTripModalProps {
+interface TripCreationModalProps {
   open: boolean;
   onClose: () => void;
 }
 
-const CreateTripModal: React.FC<CreateTripModalProps> = ({ open, onClose }) => {
-  const [tripName, setTripName] = useState("");
-  const [destination, setDestination] = useState("");
-  const [selectedDates, setSelectedDates] = useState<string[]>([]);
-  const [travelStyle, setTravelStyle] = useState<string | null>("Relaxed");
-  const [showInviteSection, setShowInviteSection] = useState(false);
+interface FormData {
+  tripName: string;
+  selectedCountries: string[];
+  startDate: string;
+  endDate: string;
+  visibility: "Trip members" | "My followers" | "Everyone";
+  inviteEmail: string;
+}
 
-  const handleDateChange = (_event: ChangeEvent<{}>, newValue: string[]) => {
-    setSelectedDates(newValue);
+const COUNTRIES = [
+  "Afghanistan",
+  "Aland Islands",
+  "Albania",
+  "Algeria",
+  "American Samoa",
+  "Andorra",
+  "Angola",
+  "Anguilla",
+  "Antarctica",
+  "Antigua and Barbuda",
+  "Argentina",
+  "Armenia",
+  "Aruba",
+  "Australia",
+  "Austria",
+  "Azerbaijan",
+  "Bahamas",
+  "Bahrain",
+  "Bangladesh",
+  "Barbados",
+];
+
+const primary = "#1976d2";
+
+const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) => {
+  const [formData, setFormData] = useState<FormData>({
+    tripName: "",
+    selectedCountries: [],
+    startDate: "",
+    endDate: "",
+    visibility: "My followers",
+    inviteEmail: "",
+  });
+
+  const [showInviteSection, setShowInviteSection] = useState(true);
+
+  const handleInputChange =
+    (field: keyof FormData) =>
+    (event: ChangeEvent<HTMLInputElement>) => {
+      setFormData((prev) => ({
+        ...prev,
+        [field]: event.target.value,
+      }));
+    };
+
+  const handleCountryChange = (_: any, newValue: string[]) => {
+    setFormData((prev) => ({ ...prev, selectedCountries: newValue }));
   };
 
-  const handleStyleChange = (_event: React.MouseEvent<HTMLElement>, newStyle: string | null) => {
-    if (newStyle !== null) setTravelStyle(newStyle);
+  const handleVisibilityChange = (_: any, newVisibility: FormData["visibility"] | null) => {
+    if (newVisibility) {
+      setFormData((prev) => ({ ...prev, visibility: newVisibility }));
+    }
   };
 
-  const handleInviteClick = () => setShowInviteSection(true);
+  const handleInviteFriend = () => {
+    if (formData.inviteEmail.trim()) {
+      // integrate invite flow
+      console.log("Inviting:", formData.inviteEmail);
+      setFormData((p) => ({ ...p, inviteEmail: "" }));
+    }
+  };
+
+  const handleStartPlanning = () => {
+    console.log("Trip data:", formData);
+    handleClose();
+  };
+
+  const resetForm = () => {
+    setFormData({
+      tripName: "",
+      selectedCountries: [],
+      startDate: "",
+      endDate: "",
+      visibility: "My followers",
+      inviteEmail: "",
+    });
+    setShowInviteSection(true);
+  };
 
   const handleClose = () => {
-    setShowInviteSection(false);
+    resetForm();
     onClose();
   };
 
+  const canStart = formData.tripName.trim().length > 0 && formData.selectedCountries.length > 0;
+
   return (
-    <Modal open={open} onClose={handleClose}>
+    <Modal
+      open={open}
+      onClose={handleClose}
+      sx={{ display: "flex", alignItems: "center", justifyContent: "center", p: 2 }}
+    >
       <Box
         sx={{
-          position: "absolute",
-          top: "50%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
-          width: "70vw", // keep width fixed
-          height: "85vh",
+          width: showInviteSection ? "70vw" : "40vw",
+          maxWidth: "92vw",
+          height: 620,
           bgcolor: "background.paper",
-          borderRadius: "16px",
-          boxShadow: "0 20px 40px rgba(25, 118, 210, 0.15)",
+          borderRadius: 3,
+          boxShadow: "0 24px 48px rgba(25,118,210,0.18)",
           overflow: "hidden",
           display: "flex",
-          outline: "none",
         }}
       >
-        {/* Left Content */}
-        <Box
-          sx={{
-            flex: 1,
-            p: 4,
-            display: "flex",
-            flexDirection: "column",
-            overflowY: "auto",
-            transition: "all 0.5s ease",
-          }}
-        >
-          {/* Header */}
-          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 3 }}>
-            <Typography variant="h5" fontWeight="bold" color="primary">
-              Create Your Trip
+        {/* Left panel – main form */}
+        <Box sx={{ flex: "0 0 40vw", p: 4, overflowY: "auto" }}>
+          {/* Header with close */}
+          <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
+            <Typography sx={{ fontWeight: 600, color: primary, display: "flex", alignItems: "center", gap: 1 }}>
+              <LocationIcon fontSize="small" />
+              Trip name
             </Typography>
-            <IconButton onClick={handleClose}>
+            <IconButton
+              onClick={handleClose}
+              sx={{
+                color: primary,
+                "&:hover": { backgroundColor: "rgba(25,118,210,0.08)" },
+              }}
+            >
               <CloseIcon />
             </IconButton>
           </Box>
 
-          {/* Trip Name */}
           <TextField
-            label="Trip Name"
+            placeholder="Give your trip a name.."
+            value={formData.tripName}
+            onChange={handleInputChange("tripName")}
             fullWidth
-            value={tripName}
-            onChange={(e) => setTripName(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <LocationIcon color="primary" />
-                </InputAdornment>
-              ),
+            variant="outlined"
+            sx={{
+              mb: 3,
+              "& .MuiOutlinedInput-root": {
+                borderRadius: 2,
+                "&:hover fieldset": { borderColor: primary },
+                "&.Mui-focused fieldset": { borderColor: primary, borderWidth: 2 },
+              },
             }}
-            sx={{ mb: 3 }}
           />
 
-          {/* Destination */}
+          {/* Countries */}
+          <Typography sx={{ mb: 1.5, fontWeight: 600, color: primary, display: "flex", alignItems: "center", gap: 1 }}>
+            <LocationIcon fontSize="small" />
+            Which countries are you going?
+          </Typography>
           <Autocomplete
-            freeSolo
-            options={["Paris", "London", "New York"]}
-            value={destination}
-            onChange={(_e, newValue) => setDestination(newValue ?? "")}
+            multiple
+            options={COUNTRIES}
+            value={formData.selectedCountries}
+            onChange={handleCountryChange}
+            renderTags={(value, getTagProps) =>
+              value.map((option, index) => (
+                <Chip
+                  label={option}
+                  {...getTagProps({ index })}
+                  sx={{
+                    bgcolor: primary,
+                    color: "#fff",
+                    "& .MuiChip-deleteIcon": { color: "#fff", "&:hover": { color: "#f0f0f0" } },
+                  }}
+                />
+              ))
+            }
             renderInput={(params) => (
               <TextField
                 {...params}
-                label="Destination"
+                placeholder="Select countries.."
+                variant="outlined"
                 InputProps={{
                   ...params.InputProps,
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <LocationIcon color="primary" />
-                    </InputAdornment>
+                  endAdornment: (
+                    <>
+                      {params.InputProps.endAdornment}
+                      <ArrowDropDownIcon sx={{ color: primary, ml: 0.5 }} />
+                    </>
                   ),
+                }}
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 2,
+                    "&:hover fieldset": { borderColor: primary },
+                    "&.Mui-focused fieldset": { borderColor: primary, borderWidth: 2 },
+                  },
                 }}
               />
             )}
@@ -131,148 +229,196 @@ const CreateTripModal: React.FC<CreateTripModalProps> = ({ open, onClose }) => {
           />
 
           {/* Dates */}
-          <Autocomplete
-            multiple
-            freeSolo
-            options={["2025-08-20", "2025-08-21"]}
-            value={selectedDates}
-            onChange={handleDateChange}
-            renderTags={(value, getTagProps) =>
-              value.map((option, index) => (
-                <Chip label={option} {...getTagProps({ index })} color="primary" />
-              ))
-            }
-            renderInput={(params) => (
+          <Grid container alignItems="flex-start" columnGap={2} sx={{ mb: 1 }}>
+            <Grid>
+              <Typography sx={{ mb: 0.5, fontWeight: 600, color: primary, fontSize: 14 }}>Start date</Typography>
               <TextField
-                {...params}
-                label="Dates"
+                placeholder="Start Date"
+                value={formData.startDate}
+                onChange={handleInputChange("startDate")}
+                variant="outlined"
+                size="medium"
                 InputProps={{
-                  ...params.InputProps,
                   startAdornment: (
                     <InputAdornment position="start">
-                      <CalendarIcon color="primary" />
+                      <CalendarIcon sx={{ color: primary }} />
                     </InputAdornment>
                   ),
                 }}
+                sx={{
+                  width: 220,
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 2,
+                    "&:hover fieldset": { borderColor: primary },
+                    "&.Mui-focused fieldset": { borderColor: primary, borderWidth: 2 },
+                  },
+                }}
               />
-            )}
-            sx={{ mb: 3 }}
-          />
-
-          {/* Travel Style */}
-          <Typography variant="subtitle1" sx={{ mb: 1 }}>
-            Travel Style
-          </Typography>
-          <ToggleButtonGroup
-            value={travelStyle}
-            exclusive
-            onChange={handleStyleChange}
-            sx={{ mb: 3 }}
-          >
-            <ToggleButton value="Relaxed">Relaxed</ToggleButton>
-            <ToggleButton value="Adventurous">Adventurous</ToggleButton>
-            <ToggleButton value="Luxury">Luxury</ToggleButton>
-          </ToggleButtonGroup>
-
-          {/* Invite Button */}
-          <Button
-            variant="outlined"
-            startIcon={<GroupAddIcon />}
-            onClick={handleInviteClick}
-            sx={{ borderRadius: "12px", mb: 3 }}
-          >
-            Invite Friends
-          </Button>
-
-          <Divider sx={{ my: 2 }} />
-
-          {/* Action Buttons */}
-          <Grid container justifyContent="flex-end" spacing={2}>
-            <Grid>
-              <Button variant="outlined" onClick={handleClose}>
-                Cancel
-              </Button>
             </Grid>
+
             <Grid>
-              <Button
-                variant="contained"
-                endIcon={<ArrowForwardIcon />}
-                sx={{ borderRadius: "12px" }}
-              >
-                Create Trip
-              </Button>
+              <ArrowForwardIcon sx={{ color: primary, fontSize: 28, mt: 5}} />
+            </Grid>
+
+            <Grid >
+              <Typography sx={{ mb: 0.5, fontWeight: 600, color: primary, fontSize: 14 }}>End date</Typography>
+              <TextField
+                placeholder="End Date"
+                value={formData.endDate}
+                onChange={handleInputChange("endDate")}
+                variant="outlined"
+                size="medium"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <CalendarIcon sx={{ color: primary }} />
+                    </InputAdornment>
+                  ),
+                }}
+                sx={{
+                  width: 240,
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 2,
+                    "&:hover fieldset": { borderColor: primary },
+                    "&.Mui-focused fieldset": { borderColor: primary, borderWidth: 2 },
+                  },
+                }}
+              />
             </Grid>
           </Grid>
-        </Box>
 
-        {/* Right: Invite Section */}
-        <Box
-          sx={{
-            width: "30vw",
-            background: "linear-gradient(135deg, rgba(25, 118, 210, 0.05), rgba(25, 118, 210, 0.1))",
-            p: 4,
-            borderLeft: "1px solid rgba(25, 118, 210, 0.2)",
-            display: "flex",
-            flexDirection: "column",
-            transition: "all 0.5s ease",
-            transform: showInviteSection ? "translateX(0)" : "translateX(100%)",
-            opacity: showInviteSection ? 1 : 0,
-            pointerEvents: showInviteSection ? "auto" : "none",
-            position: "absolute",
-            right: 0,
-            top: 0,
-            height: "100%",
-          }}
-        >
-          <Typography variant="h6" fontWeight="600" mb={2} color="primary">
-            Invite Friends
+          <Typography
+            variant="caption"
+            sx={{ color: "text.secondary", fontStyle: "italic", display: "block", mb: 3, fontSize: 12 }}
+          >
+            Use this date range to set the amount of days of the trip. The exact dates don't matter and won't be visible
+            to your audience.
           </Typography>
 
-          <TextField
-            placeholder="Search by name or email"
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon color="primary" />
-                </InputAdornment>
-              ),
+          {/* Visibility */}
+          <Typography sx={{ mb: 1.5, fontWeight: 600, color: primary, display: "flex", alignItems: "center", gap: 1 }}>
+            <GroupIcon fontSize="small" />
+            Who can view your trip?
+          </Typography>
+          <ToggleButtonGroup
+            value={formData.visibility}
+            exclusive
+            onChange={handleVisibilityChange}
+            sx={{
+              mb: 4,
+              "& .MuiToggleButton-root": {
+                borderColor: "#e0e0e0",
+                color: "#666",
+                borderRadius: 1,
+                px: 3,
+                py: 1,
+                mx: 0.5,
+                textTransform: "none",
+              },
+              "& .Mui-selected": {
+                bgcolor: primary,
+                color: "#fff",
+                "&:hover": { bgcolor: "#1565c0" },
+              },
             }}
-            sx={{ mb: 2 }}
-          />
-
-          <Box sx={{ flex: 1, overflowY: "auto" }}>
-            {["Alice", "Bob", "Charlie"].map((name, idx) => (
-              <Box
-                key={idx}
-                sx={{
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "space-between",
-                  p: 1,
-                  borderRadius: "8px",
-                  "&:hover": { bgcolor: "rgba(25, 118, 210, 0.08)" },
-                }}
-              >
-                <Typography>{name}</Typography>
-                <IconButton color="primary">
-                  <AddIcon />
-                </IconButton>
-              </Box>
-            ))}
-          </Box>
-
-          <Button
-            variant="contained"
-            fullWidth
-            endIcon={<SendIcon />}
-            sx={{ borderRadius: "12px", mt: 2 }}
           >
-            Send Invites
-          </Button>
+            <ToggleButton value="Trip members">Trip members</ToggleButton>
+            <ToggleButton value="My followers">My followers</ToggleButton>
+            <ToggleButton value="Everyone">Everyone</ToggleButton>
+          </ToggleButtonGroup>
+
+          {/* Bottom actions (left invite, right start) */}
+          <Box sx={{ display: "flex", alignItems: "center", justifyContent: "space-between" }}>
+            <Button
+              variant="outlined"
+              startIcon={<AddIcon />}
+              onClick={() => setShowInviteSection((s) => !s)}
+              sx={{
+                borderColor: primary,
+                color: primary,
+                borderRadius: 2,
+                px: 2.5,
+                "&:hover": { borderColor: "#1565c0", backgroundColor: "rgba(25,118,210,0.08)" },
+              }}
+            >
+              Invite friends
+            </Button>
+
+            <Button
+              variant="contained"
+              onClick={handleStartPlanning}
+              disabled={!canStart}
+              sx={{
+                bgcolor: primary,
+                borderRadius: 2,
+                px: 4,
+                py: 1.25,
+                fontWeight: 700,
+                "&:hover": { bgcolor: "#1565c0" },
+              }}
+            >
+              Start planning
+            </Button>
+          </Box>
         </Box>
+
+        {/* Divider between panes when right side visible (subtle like screenshot) */}
+        {showInviteSection && <Divider orientation="vertical" flexItem sx={{ borderColor: "rgba(25,118,210,0.15)" }} />}
+
+        {/* Right panel – invite */}
+        {showInviteSection && (
+          <Box
+            sx={{
+              flex: 1,
+              background: "linear-gradient(135deg, rgba(25,118,210,0.05) 0%, rgba(25,118,210,0.1) 100%)",
+              p: 4,
+              display: "flex",
+              flexDirection: "column",
+              minWidth: "20vw",
+            }}
+          >
+            <Typography
+              variant="h6"
+              sx={{ mb: 2.5, fontWeight: 600, color: primary, textAlign: "left", letterSpacing: 0.2 }}
+            >
+              Invite a friend to your trip
+            </Typography>
+
+            <Box sx={{ display: "flex", gap: 1.5 }}>
+              <TextField
+                placeholder="Enter email address"
+                value={formData.inviteEmail}
+                onChange={handleInputChange("inviteEmail")}
+                size="medium"
+                fullWidth
+                sx={{
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 2,
+                    backgroundColor: "#fff",
+                    "&:hover fieldset": { borderColor: primary },
+                    "&.Mui-focused fieldset": { borderColor: primary, borderWidth: 2 },
+                  },
+                }}
+              />
+              <Button
+                variant="contained"
+                onClick={handleInviteFriend}
+                sx={{ bgcolor: primary, borderRadius: 2, px: 3, "&:hover": { bgcolor: "#1565c0" } }}
+              >
+                Add
+              </Button>
+            </Box>
+
+            <Box sx={{ mt: "auto" }}>
+              <Typography variant="caption" sx={{ color: "text.secondary" }}>
+                You can invite more friends later
+              </Typography>
+            </Box>
+          </Box>
+        )}
       </Box>
     </Modal>
   );
 };
 
-export default CreateTripModal;
+export default TripCreationModal;
