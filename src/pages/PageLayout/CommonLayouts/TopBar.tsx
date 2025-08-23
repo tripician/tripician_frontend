@@ -115,12 +115,12 @@ const TopBar: React.FC<TopBarProps > = ({selectedMenuItem}) => {
             minWidth: "120px", // Fixed minimum width
             height: "36px", // Fixed height
             backgroundColor: '#008bbdff',
-            color: '#f0f0f0ff',
+            color: '#ffffffff',
             fontWeight: 'bold',
             boxShadow: 'none',
             border: '1px solid transparent', // Invisible border to prevent size change
             '&:hover': {
-              backgroundColor: '#ffffff',
+              backgroundColor: '#ffffffff',
               color: '#008bbdff',
               border: '1px solid #008bbdff',
               boxShadow: 'none', // Ensure no shadow changes

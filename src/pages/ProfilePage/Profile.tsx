@@ -158,7 +158,8 @@ const Profile: React.FC = () => {
           name={`${profile.fname ?? ""} ${profile.lname ?? ""}`}
           bio={profile.bio}
           following={12}
-          followers={12}
+          followers={34}
+          countries = {32}
           avatarUrl={profile.profilepicture}
           backgroundUrl={profile.coverpicture}
         />

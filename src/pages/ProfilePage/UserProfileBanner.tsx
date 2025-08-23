@@ -11,6 +11,7 @@ interface UserProfileBannerProps {
   bio?: string;
   following?: number;
   followers?: number;
+  countries?: number;
   avatarUrl?: string;
   backgroundUrl?: string;
   onEditClick?: () => void;
@@ -110,8 +111,9 @@ const LogoutButton = styled(Button)(({ theme }) => ({
 const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
   name = 'Srideep Kar',
   bio = 'Passionate traveler and abstract photographer',
-  following = 12,
-  followers = 45,
+  following = 0,
+  followers = 0,
+  countries = 0,
   avatarUrl = import.meta.env.VITE_NO_PROFILE_PIC_URL,
   backgroundUrl = 'https://images.unsplash.com/photo-1526772662000-3f88f10405ff?auto=format&fit=crop&w=1500&q=80',
   onEditClick
@@ -198,6 +200,15 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
                 </Typography>
                 <Typography variant="body2" sx={{ opacity: 0.8 }}>
                   Followers
+                </Typography>
+              </StatItem>
+
+              <StatItem>
+                <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                  {countries}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                  Countries
                 </Typography>
               </StatItem>
             </StatsContainer>
