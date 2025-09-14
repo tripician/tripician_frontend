@@ -132,9 +132,16 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
             flexDirection: 'column',
             justifyContent: 'space-between',
             p: isCollapsed ? 1 : 2,
-            background: 'linear-gradient(180deg, #00222eff 0%, #000000 100%)',
+            background: theme.palette.mode === 'light' 
+              ? 'linear-gradient(180deg, #4f46e5 0%, #7c3aed 100%)'
+              : 'linear-gradient(180deg, #2d3748 0%, #1a202c 100%)',
             color: 'white',
             overflowX: 'hidden',
+            boxShadow: theme.palette.mode === 'light' 
+              ? '0 4px 20px rgba(102, 126, 234, 0.3)' 
+              : '0 4px 20px rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(10px)',
+            borderRight: `1px solid ${theme.palette.mode === 'light' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)'}`,
             transition: theme.transitions.create('width', {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.enteringScreen,
@@ -154,10 +161,27 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
             }}
           >
             {!isCollapsed && (
-              <div className="common-logo">
+              <div 
+                className="common-logo"
+                style={{
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                }}
+              >
                 <img
                   src={import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_URL}
                   alt="Tripician Logo"
+                  style={{
+                    maxHeight: '40px',
+                    width: 'auto',
+                    filter: 'brightness(1.1)',
+                  }}
                 />
               </div>
             )}
@@ -166,8 +190,15 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
                 onClick={toggleDrawer}
                 sx={{
                   color: 'white',
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: 2,
+                  transition: 'all 0.3s ease',
                   '&:hover': {
-                    backgroundColor: 'rgba(255,255,255,0.1)',
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    transform: 'scale(1.05)',
+                    borderColor: 'rgba(255,255,255,0.3)',
                   },
                 }}
               >
@@ -195,13 +226,26 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
                     mb: 1,
                     minHeight: 48,
                     justifyContent: isCollapsed ? 'center' : 'flex-start',
-                    backgroundColor: selectedItem === item.text ? 'rgba(255,255,255,0.15)' : 'transparent',
+                    backgroundColor: selectedItem === item.text ? 'rgba(255,255,255,0.2)' : 'transparent',
                     '&:hover': {
                       backgroundColor: selectedItem === item.text
-                        ? 'rgba(255,255,255,0.2)'
-                        : 'rgba(255,255,255,0.1)',
+                        ? 'rgba(255,255,255,0.25)'
+                        : 'rgba(255,255,255,0.15)',
+                      transform: 'translateX(4px)',
                     },
-                    transition: 'all 0.2s ease-in-out',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    position: 'relative',
+                    '&::before': selectedItem === item.text ? {
+                      content: '""',
+                      position: 'absolute',
+                      left: 0,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: '4px',
+                      height: '60%',
+                      backgroundColor: 'rgba(255,255,255,0.8)',
+                      borderRadius: '0 2px 2px 0',
+                    } : {},
                   }}
                 >
                   <Box
@@ -249,15 +293,29 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
               py: 1.5,
               mb: 1,
               minHeight: 48,
-              border: '1px solid rgba(255,255,255,0.2)',
+              border: '1px solid rgba(255,255,255,0.3)',
               justifyContent: isCollapsed ? 'center' : 'flex-start',
-              backgroundColor: selectedItem === profileItem.text ? 'rgba(255,255,255,0.15)' : 'transparent',
+              backgroundColor: selectedItem === profileItem.text ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.05)',
               '&:hover': {
                 backgroundColor: selectedItem === profileItem.text
-                  ? 'rgba(255,255,255,0.2)'
-                  : 'rgba(255,255,255,0.1)',
+                  ? 'rgba(255,255,255,0.25)'
+                  : 'rgba(255,255,255,0.15)',
+                transform: 'translateX(4px)',
+                borderColor: 'rgba(255,255,255,0.4)',
               },
-              transition: 'all 0.2s ease-in-out',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+              position: 'relative',
+              '&::before': selectedItem === profileItem.text ? {
+                content: '""',
+                position: 'absolute',
+                left: 0,
+                top: '50%',
+                transform: 'translateY(-50%)',
+                width: '4px',
+                height: '60%',
+                backgroundColor: 'rgba(255,255,255,0.8)',
+                borderRadius: '0 2px 2px 0',
+              } : {},
             }}
           >
             <Box

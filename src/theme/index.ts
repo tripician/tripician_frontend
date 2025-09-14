@@ -189,8 +189,27 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
         styleOverrides: {
           paper: {
             background: mode === 'light' 
-              ? 'linear-gradient(180deg, #f8f8f8 0%, #f0f0f0 100%)'
-              : 'linear-gradient(180deg, #00222eff 0%, #0081b0ff 100%)',
+              ? 'linear-gradient(180deg, #4f46e5 0%, #7c3aed 100%)'
+              : 'linear-gradient(180deg, #2d3748 0%, #1a202c 100%)',
+            color: 'white',
+            '& .MuiListItem-root': {
+              color: 'white',
+              '&:hover': {
+                backgroundColor: 'rgba(255,255,255,0.1)',
+              },
+              '&.Mui-selected': {
+                backgroundColor: 'rgba(255,255,255,0.15)',
+                '&:hover': {
+                  backgroundColor: 'rgba(255,255,255,0.2)',
+                },
+              },
+            },
+            '& .MuiListItemText-primary': {
+              color: 'white',
+            },
+            '& .MuiListItemIcon-root': {
+              color: 'white',
+            },
           },
         },
       },
