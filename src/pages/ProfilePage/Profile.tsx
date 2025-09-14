@@ -161,6 +161,7 @@ const Profile: React.FC = () => {
           countries={32}
           avatarUrl={profile.profilepicture}
           backgroundUrl={profile.coverpicture}
+          tintColor={profile.bannertint}
         />
         {/* Badges */}
         <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 } }}>
