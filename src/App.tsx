@@ -8,6 +8,7 @@ import Home from './pages/HomePage/Home'
 import Community from './pages/CommunityPage/Community'
 import Settings from './pages/SettingsPage/Settings'
 import ProtectedRoute from './services/APIs/Auth/ProtectedRoute'
+import CreateTrip from './pages/CreateTripPage/CreateTrip'
 
 // Import debug utilities for development
 if (process.env.NODE_ENV === 'development') {
@@ -59,6 +60,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Settings />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/create-trip" 
+          element={
+            <ProtectedRoute>
+              <CreateTrip />
             </ProtectedRoute>
           } 
         />

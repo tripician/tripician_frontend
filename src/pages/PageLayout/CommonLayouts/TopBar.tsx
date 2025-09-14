@@ -15,7 +15,12 @@ import type { RootState, AppDispatch } from '../../../store';
 import { clearUser } from '../../../store/userSlice';
 import { useNavigate } from 'react-router-dom';
 
-const TopBar: React.FC = () => {
+interface TopBarProps {
+  showSearch?: boolean;
+  logo?: React.ReactNode; // custom logo element
+}
+
+const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo }) => {
   const { profile } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
@@ -51,6 +56,7 @@ const TopBar: React.FC = () => {
           display: "flex",
           alignItems: "center",
           width: "100%",
+          height: 64,
           position: "sticky",
           top: 0,
           zIndex: 1100,
@@ -63,18 +69,24 @@ const TopBar: React.FC = () => {
         }}
       >        
 
-        {/* Center Section - Search Bar (Flexible width) */}
+        {/* Center Section - Search or Logo */}
         <Box
           sx={{
             flexGrow: 1,
-            display: "flex",
-            justifyContent: "left",
+            display: 'flex',
+            alignItems: 'center',
             px: { xs: 1, md: 3 },
           }}
         >
-          <Box sx={{ maxWidth: "500px", width: "100%" }}>
-            <SearchBar />
-          </Box>
+          {showSearch ? (
+            <Box sx={{ maxWidth: '500px', width: '100%' }}>
+              <SearchBar />
+            </Box>
+          ) : (
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              {logo}
+            </Box>
+          )}
         </Box>
 
         {/* Right Section - Actions */}
