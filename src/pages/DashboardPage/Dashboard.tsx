@@ -46,7 +46,6 @@ const Dashboard: React.FC = () => {
 
   const[plans, setPlans] = useState(allPlans);
   const [tabValue, setTabValue] = useState(0);
-  const [selectedMenuItem, setSelectedMenuItem] = useState('Dashboard');
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -66,14 +65,10 @@ const Dashboard: React.FC = () => {
       setPlans(in_progress_plans);
     }
   };
-  const handleMenuItemChange = (itemName: string) => {
-    setSelectedMenuItem(itemName);
-  };
-  
   return (
-    <NavigationPannel onMenuItemChange={handleMenuItemChange}>
+    <NavigationPannel>
       <Box sx={{ width: "100%", backgroundColor: "background.default", minHeight: "100vh" }}>
-        <TopBar selectedMenuItem = {selectedMenuItem}/>
+        <TopBar />
         
         <Box sx={{ justifyContent: "center" }}>
           <Tabs

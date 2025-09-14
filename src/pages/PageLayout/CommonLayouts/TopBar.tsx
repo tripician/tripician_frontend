@@ -1,24 +1,47 @@
-import React, { useState } from "react";
-import { Box, Typography, IconButton, Button } from "@mui/material";
+import React from "react";
+import { Box, Typography, IconButton, Avatar, Tooltip, Popover, Divider, List, ListItemButton, ListItemText, ListItemIcon, Button } from "@mui/material";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
+import LogoutIcon from '@mui/icons-material/Logout';
+import SettingsIcon from '@mui/icons-material/Settings';
+import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
+import ShieldIcon from '@mui/icons-material/PrivacyTip';
+import GavelIcon from '@mui/icons-material/Gavel';
+import ContactSupportIcon from '@mui/icons-material/ContactSupport';
+import PersonIcon from '@mui/icons-material/Person';
 import SearchBar from "../../../components/CommonComponents/SearchBar";
-import { Add as AddIcon } from '@mui/icons-material';
-import TripCreationModal from '../../../components/CreateTripComponents/TripCreationModal'; // Import the modal component
 import ThemeToggle from '../../../components/CommonComponents/ThemeToggle';
+import { useSelector, useDispatch } from 'react-redux';
+import type { RootState, AppDispatch } from '../../../store';
+import { clearUser } from '../../../store/userSlice';
+import { useNavigate } from 'react-router-dom';
 
-interface TopBarProps {
-  selectedMenuItem: string;
-}
+const TopBar: React.FC = () => {
+  const { profile } = useSelector((state: RootState) => state.user);
+  const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
+  const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
 
-const TopBar: React.FC<TopBarProps> = ({ selectedMenuItem }) => {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+  const open = Boolean(anchorEl);
+  const id = open ? 'profile-popover' : undefined;
 
-  const handleCreateTripClick = () => {
-    setIsModalOpen(true);
+  const handleAvatarClick = (e: React.MouseEvent<HTMLElement>) => {
+    setAnchorEl(e.currentTarget);
   };
+  const handleClose = () => setAnchorEl(null);
 
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
+  const goTo = (path: string) => { navigate(path); handleClose(); };
+  const handleLogout = () => {
+    try {
+      // Remove stored tokens (adjust keys as needed)
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      // Clear redux user state
+      dispatch(clearUser());
+      handleClose();
+      navigate('/signin');
+    } catch (e) {
+      console.error('Logout error', e);
+    }
   };
 
   return (
@@ -54,13 +77,13 @@ const TopBar: React.FC<TopBarProps> = ({ selectedMenuItem }) => {
           </Box>
         </Box>
 
-        {/* Right Section - Actions (Fixed width to prevent shifting) */}
+        {/* Right Section - Actions */}
         <Box 
           sx={{ 
             display: "flex", 
             alignItems: "center", 
             gap: { xs: 1, md: 2 },
-            minWidth: { xs: "120px", md: "180px" },
+            minWidth: { xs: "140px", md: "220px" },
             justifyContent: "flex-end",
             flexShrink: 0,
           }}
@@ -79,42 +102,114 @@ const TopBar: React.FC<TopBarProps> = ({ selectedMenuItem }) => {
 
           {/* Theme Toggle */}
           <ThemeToggle />
-
-          {/* Create Trip Button - Now opens the modal */}
-          <Button
-            variant="contained"
-            startIcon={<AddIcon />}
-            onClick={handleCreateTripClick}
-            sx={{
-              minWidth: "120px",
-              height: "36px",
-              backgroundColor: 'primary.main',
-              color: 'primary.contrastText',
-              fontWeight: 'bold',
-              boxShadow: 'none',
-              border: '1px solid transparent',
-              borderRadius: '8px',
-              '&:hover': {
-                backgroundColor: 'background.paper',
-                color: 'primary.main',
-                border: '1px solid',
-                borderColor: 'primary.main',
-                boxShadow: 2,
-                transform: 'translateY(-1px)',
-              },
-              transition: 'all 0.3s ease',
-            }}
-          >
-            Create trip
-          </Button>
+          {/* Profile Avatar + Name */}
+          <Tooltip title="Account" arrow>
+            <Box
+              aria-describedby={id}
+              onClick={handleAvatarClick}
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                cursor: 'pointer',
+                borderRadius: '50%',
+                lineHeight: 0,
+                // No background, no shadow per request
+                '&:hover': { transform: 'scale(1.04)' },
+                transition: 'transform .18s ease'
+              }}
+            >
+              <Avatar
+                src={profile?.profilepicture || import.meta.env.VITE_NO_PROFILE_PIC_URL}
+                alt={profile ? `${profile.fname || ''} ${profile.lname || ''}` : 'Profile'}
+                sx={{ width: 40, height: 40 }}
+              />
+            </Box>
+          </Tooltip>
         </Box>
       </Box>
 
-      {/* Trip Creation Modal */}
-      <TripCreationModal 
-        open={isModalOpen} 
-        onClose={handleCloseModal} 
-      />
+      <Popover
+        id={id}
+        open={open}
+        anchorEl={anchorEl}
+        onClose={handleClose}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        PaperProps={{
+          sx: {
+            mt: 1,
+            width: 340,
+            borderRadius: 3,
+            boxShadow: 4,
+            overflow: 'hidden'
+          }
+        }}
+      >
+        {/* Account Section */}
+        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+          <Avatar
+            src={profile?.profilepicture || import.meta.env.VITE_NO_PROFILE_PIC_URL}
+            sx={{ width: 56, height: 56 }}
+          />
+          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
+            <Typography variant="subtitle1" sx={{ fontWeight: 700 }} noWrap>
+              {profile ? `${profile.fname ?? ''} ${profile.lname ?? ''}`.trim() || 'Traveler' : 'Traveler'}
+            </Typography>
+            <Typography variant="caption" color="text.secondary" noWrap>{profile?.email}</Typography>
+            <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Followers</Typography>
+                <Typography variant="body2" fontWeight={600}>34</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Following</Typography>
+                <Typography variant="body2" fontWeight={600}>12</Typography>
+              </Box>
+              <Box>
+                <Typography variant="caption" color="text.secondary">Countries</Typography>
+                <Typography variant="body2" fontWeight={600}>32</Typography>
+              </Box>
+            </Box>
+          </Box>
+        </Box>
+        <Divider />
+        {/* Primary Links */}
+        <List dense disablePadding>
+          <ListItemButton onClick={() => goTo('/profile')}>
+            <ListItemIcon sx={{ minWidth: 36 }}><PersonIcon fontSize="small" /></ListItemIcon>
+            <ListItemText primary="My Profile" primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }} />
+          </ListItemButton>
+          <ListItemButton onClick={() => goTo('/settings')}>
+            <ListItemIcon sx={{ minWidth: 36 }}><SettingsIcon fontSize="small" /></ListItemIcon>
+            <ListItemText primary="Settings" primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }} />
+          </ListItemButton>
+        </List>
+        <Divider sx={{ my: 0.5 }} />
+        <List dense disablePadding>
+          <ListItemButton>
+            <ListItemIcon sx={{ minWidth: 36 }}><HelpOutlineIcon fontSize="small" /></ListItemIcon>
+            <ListItemText primary="Get Help" primaryTypographyProps={{ fontSize: 13 }} />
+          </ListItemButton>
+          <ListItemButton>
+            <ListItemIcon sx={{ minWidth: 36 }}><ShieldIcon fontSize="small" /></ListItemIcon>
+            <ListItemText primary="Privacy Policy" primaryTypographyProps={{ fontSize: 13 }} />
+          </ListItemButton>
+          <ListItemButton>
+            <ListItemIcon sx={{ minWidth: 36 }}><GavelIcon fontSize="small" /></ListItemIcon>
+            <ListItemText primary="Terms of Service" primaryTypographyProps={{ fontSize: 13 }} />
+          </ListItemButton>
+          <ListItemButton>
+            <ListItemIcon sx={{ minWidth: 36 }}><ContactSupportIcon fontSize="small" /></ListItemIcon>
+            <ListItemText primary="Contact Us" primaryTypographyProps={{ fontSize: 13 }} />
+          </ListItemButton>
+        </List>
+        <Divider />
+        <Box sx={{ p: 1.5, display: 'flex', justifyContent: 'flex-end' }}>
+          <Button onClick={handleLogout} size="small" color="inherit" startIcon={<LogoutIcon fontSize="small" />} sx={{ textTransform: 'none', fontWeight: 600 }}>
+            Log out
+          </Button>
+        </Box>
+      </Popover>
     </>
   );
 };

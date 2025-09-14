@@ -1,22 +1,23 @@
 import { 
   Box, Typography, Card, CardContent, CircularProgress, 
-  Alert, Button, Container
+  Alert, Button, Container, Stack
 } from "@mui/material";
 import { Refresh, Person } from "@mui/icons-material";
 import UserProfileBanner from "./UserProfileBanner";
 import NavigationPanel from "../PageLayout/CommonLayouts/NavigationPanel";
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import TopBar from "../PageLayout/CommonLayouts/TopBar";
 import ProfileBadges from "./ProfileBadges";
 import ProfileDetailsRightCard from "./ProfileDetailsRightCard";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "../../store";
-import { fetchUserProfile } from "../../store/userSlice";
+import { fetchUserProfile, clearUser } from "../../store/userSlice";
+import { useNavigate } from 'react-router-dom';
 import ProfileDashboard from "../PageLayout/ProfileLayouts/ProfileDashboard";
 
 const Profile: React.FC = () => {
-  const [selectedMenuItem, setSelectedMenuItem] = useState("Profile");
   const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
 
   // ✅ Get user profile from Redux store
   const { profile, loading, error } = useSelector((state: RootState) => state.user);
@@ -25,10 +26,6 @@ const Profile: React.FC = () => {
   useEffect(() => {
     dispatch(fetchUserProfile());
   }, [dispatch]);
-
-  const handleMenuItemChange = (itemName: string) => {
-    setSelectedMenuItem(itemName);
-  };
 
   // NOTE: Removed temporary top-level profile tabs to honor existing internal navigation (RecentPosts / TravelMap / Statistics) inside ProfileDashboard.
 
@@ -39,13 +36,13 @@ const Profile: React.FC = () => {
   // ✅ Loading state
   if (loading) {
     return (
-      <NavigationPanel onMenuItemChange={handleMenuItemChange}>
+      <NavigationPanel>
         <Box sx={{ 
           width: "100%", 
           backgroundColor: "background.default",
           minHeight: "100vh"
         }}>
-          <TopBar selectedMenuItem={selectedMenuItem} />
+          <TopBar />
           <Box 
             sx={{ 
               display: "flex", 
@@ -78,13 +75,13 @@ const Profile: React.FC = () => {
   // ✅ Error state
   if (error) {
     return (
-      <NavigationPanel onMenuItemChange={handleMenuItemChange}>
+      <NavigationPanel>
         <Box sx={{ 
           width: "100%", 
           backgroundColor: "background.default",
           minHeight: "100vh"
         }}>
-          <TopBar selectedMenuItem={selectedMenuItem} />
+          <TopBar />
           <Container maxWidth="lg" sx={{ pt: 3 }}>
             <Alert 
               severity="error"
@@ -119,13 +116,13 @@ const Profile: React.FC = () => {
   // ✅ If no profile (not authenticated)
   if (!profile) {
     return (
-      <NavigationPanel onMenuItemChange={handleMenuItemChange}>
+      <NavigationPanel>
         <Box sx={{ 
           width: "100%", 
           backgroundColor: "background.default",
           minHeight: "100vh"
         }}>
-          <TopBar selectedMenuItem={selectedMenuItem} />
+          <TopBar />
           <Container maxWidth="lg" sx={{ pt: 3 }}>
             <Alert 
               severity="warning"
@@ -147,13 +144,13 @@ const Profile: React.FC = () => {
 
   // ✅ Main UI
   return (
-    <NavigationPanel onMenuItemChange={handleMenuItemChange}>
+    <NavigationPanel>
       <Box sx={{ 
         width: "100%", 
         backgroundColor: "background.default",
         minHeight: "100vh"
       }}>
-        <TopBar selectedMenuItem={selectedMenuItem} />
+        <TopBar />
 
         {/* Banner */}
         <UserProfileBanner
@@ -206,11 +203,7 @@ const Profile: React.FC = () => {
           </Box>
 
           {/* Refresh Button */}
-          <Box sx={{ 
-            display: "flex", 
-            justifyContent: "center", 
-            mt: 4 
-          }}>
+          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center" sx={{ mt: 4 }}>
             <Button 
               variant="outlined" 
               startIcon={<Refresh />}
@@ -225,18 +218,34 @@ const Profile: React.FC = () => {
                 borderColor: "divider",
                 color: "text.primary",
                 backgroundColor: 'background.paper',
-                '&:hover': {
-                  borderColor: 'primary.main',
-                  backgroundColor: 'background.default'
-                },
-                '&:disabled': {
-                  opacity: 0.6
-                }
+                '&:hover': { borderColor: 'primary.main', backgroundColor: 'background.default' },
+                '&:disabled': { opacity: 0.6 }
               }}
             >
               {loading ? "Refreshing..." : "Refresh Profile"}
             </Button>
-          </Box>
+            <Button
+              variant="contained"
+              color="error"
+              onClick={() => {
+                localStorage.removeItem('accessToken');
+                localStorage.removeItem('refreshToken');
+                dispatch(clearUser());
+                navigate('/signin');
+              }}
+              sx={{
+                textTransform: 'none',
+                fontWeight: 600,
+                px: 3,
+                py: 1.5,
+                borderRadius: 2,
+                boxShadow: 'none',
+                '&:hover': { boxShadow: 2 }
+              }}
+            >
+              Log out
+            </Button>
+          </Stack>
           {/* Debug info (dev only) */}
           {process.env.NODE_ENV === 'development' && (
             <Card sx={{ mt: 4, borderRadius: 2, boxShadow: 1, border: 1, borderColor: 'divider', backgroundColor: 'warning.light' }}>
