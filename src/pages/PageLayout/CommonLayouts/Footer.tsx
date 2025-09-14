@@ -8,10 +8,12 @@ const Footer: React.FC = () => {
     <Box
       component="footer"
       sx={{
-        backgroundColor: '#1a1a1a',
-        color: 'white',
+        backgroundColor: 'background.paper',
+        color: 'text.primary',
         py: 3,
         mt: 'auto', // Push footer to bottom of content
+        borderTop: 1,
+        borderColor: 'divider',
         // Removed sidebar margin since footer is now inside main content area
       }}
     >
@@ -37,12 +39,12 @@ const Footer: React.FC = () => {
             <Link
               href="/terms-and-conditions"
               sx={{
-                color: 'white',
+                color: 'text.primary',
                 textDecoration: 'none',
                 fontSize: '0.9rem',
                 '&:hover': {
                   textDecoration: 'underline',
-                  color: '#66a6ff',
+                  color: 'primary.main',
                 },
                 transition: 'color 0.2s ease',
               }}
@@ -53,12 +55,12 @@ const Footer: React.FC = () => {
             <Link
               href="/about-us"
               sx={{
-                color: 'white',
+                color: 'text.primary',
                 textDecoration: 'none',
                 fontSize: '0.9rem',
                 '&:hover': {
                   textDecoration: 'underline',
-                  color: '#66a6ff',
+                  color: 'primary.main',
                 },
                 transition: 'color 0.2s ease',
               }}
@@ -71,7 +73,7 @@ const Footer: React.FC = () => {
           <Typography
             variant="body2"
             sx={{
-              color: 'rgba(255, 255, 255, 0.7)',
+              color: 'text.secondary',
               fontSize: '0.85rem',
               textAlign: { xs: 'center', md: 'right' },
             }}

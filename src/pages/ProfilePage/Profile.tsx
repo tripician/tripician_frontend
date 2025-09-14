@@ -148,7 +148,7 @@ const Profile: React.FC = () => {
     <NavigationPanel onMenuItemChange={handleMenuItemChange}>
       <Box sx={{ 
         width: "100%", 
-        backgroundColor: "#f8fafc",
+        backgroundColor: "background.default",
         minHeight: "100vh"
       }}>
         <TopBar selectedMenuItem={selectedMenuItem} />
