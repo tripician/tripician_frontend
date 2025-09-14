@@ -124,7 +124,7 @@ const LogoutButton = styled(Button)(({ theme }) => ({
   right: 16,
   zIndex: 3,
   backgroundColor: theme.palette.error.main,
-  color: '#fff',
+  color: 'primary.contrastText',
   fontWeight: 600,
   textTransform: 'none',
   boxShadow: '0 4px 12px rgba(0,0,0,0.2)',

@@ -75,7 +75,7 @@ export default function ProfileBadges() {
         size="small"
         onClick={() => scrollBy(-120)}
         sx={{
-          background: '#fff',
+          background: 'background.paper',
           boxShadow: 1,
           mr: 1,
           zIndex: 2,
@@ -121,7 +121,7 @@ export default function ProfileBadges() {
         size="small"
         onClick={() => scrollBy(120)}
         sx={{
-          background: '#fff',
+          background: 'background.paper',
           boxShadow: 1,
           ml: 1,
           zIndex: 2,

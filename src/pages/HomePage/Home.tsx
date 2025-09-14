@@ -52,7 +52,7 @@ const Home: React.FC = () => {
 
   return (
     <NavigationPannel onMenuItemChange={handleMenuItemChange}>
-      <Box sx={{ width: "100%", backgroundColor: "#f5f5f5", minHeight: "calc(100vh - 100px)" }}>
+      <Box sx={{ width: "100%", backgroundColor: "background.default", minHeight: "calc(100vh - 100px)" }}>
         <TopBar selectedMenuItem={selectedMenuItem} />
         
         {/* Hero Section */}
@@ -76,12 +76,12 @@ const Home: React.FC = () => {
             onClick={handleExploreTrips}
             sx={{
               backgroundColor: 'white',
-              color: '#667eea',
+              color: 'primary.main',
               fontWeight: 'bold',
               px: 4,
               py: 1.5,
               '&:hover': {
-                backgroundColor: '#f5f5f5',
+                backgroundColor: 'background.default',
               },
             }}
           >
@@ -131,7 +131,7 @@ const Home: React.FC = () => {
           textAlign: 'center', 
           py: 6, 
           px: 4,
-          backgroundColor: '#ffffff',
+          backgroundColor: 'background.paper',
           borderRadius: 2,
           mx: 4,
           mb: 4,
@@ -148,12 +148,12 @@ const Home: React.FC = () => {
             size="large"
             onClick={handleExploreTrips}
             sx={{
-              backgroundColor: '#008bbdff',
+              backgroundColor: 'secondary.main',
               fontWeight: 'bold',
               px: 4,
               py: 1.5,
               '&:hover': {
-                backgroundColor: '#006d94',
+                backgroundColor: 'secondary.dark',
               },
             }}
           >

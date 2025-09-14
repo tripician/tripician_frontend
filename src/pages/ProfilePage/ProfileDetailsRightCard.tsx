@@ -32,13 +32,13 @@ const getFieldIcon = (label: string) => {
 
 const getFieldColor = (label: string) => {
   switch (label.toLowerCase()) {
-    case "email": return "#3b82f6"; // blue
-    case "phone": return "#10b981"; // green
-    case "country": return "#8b5cf6"; // purple
-    case "date of birth": return "#f59e0b"; // amber
-    case "gender": return "#ec4899"; // pink
-    case "full name": return "#1f2937"; // gray-800
-    default: return "#374151"; // gray-700
+    case "email": return "primary.main"; // blue
+    case "phone": return "success.main"; // green
+    case "country": return "secondary.main"; // purple
+    case "date of birth": return "warning.main"; // amber
+    case "gender": return "error.main"; // pink
+    case "full name": return "text.primary"; // gray-800
+    default: return "text.secondary"; // gray-700
   }
 };
 
@@ -101,8 +101,9 @@ export default function ProfileDetailsRightCard({
         height: "100%",
         boxShadow: "0 2px 6px rgba(0,0,0,0.08)",
         borderRadius: "12px",
-        border: "1px solid #e5e7eb",
-        background: "linear-gradient(to bottom, #ffffff, #f9fafb)",
+        border: 1,
+        borderColor: "divider",
+        background: "linear-gradient(to bottom, background.paper, background.default)",
       }}
     >
       <CardContent sx={{ p: 3 }}>
@@ -112,21 +113,21 @@ export default function ProfileDetailsRightCard({
             mb: 3,
             p: 2,
             borderRadius: "8px",
-            backgroundColor: "#f3f4f6",
+            backgroundColor: "background.default",
           }}
         >
           <Typography
             variant="h6"
             sx={{
               fontWeight: 700,
-              color: "#111827",
+              color: "text.primary",
               fontSize: "1.1rem",
               display: "flex",
               alignItems: "center",
               gap: 1,
             }}
           >
-            <Person sx={{ fontSize: 20, color: "#3b82f6" }} />
+            <Person sx={{ fontSize: 20, color: "primary.main" }} />
             {title}
           </Typography>
         </Box>
@@ -148,7 +149,7 @@ export default function ProfileDetailsRightCard({
                     gap: 2,
                     p: 1.5,
                     borderRadius: "8px",
-                    backgroundColor: "#fff",
+                    backgroundColor: "background.paper",
                     boxShadow: "inset 0 1px 2px rgba(0,0,0,0.05)",
                   }}
                 >
@@ -167,7 +168,7 @@ export default function ProfileDetailsRightCard({
                     <Typography
                       variant="caption"
                       sx={{
-                        color: "#6b7280",
+                        color: "text.secondary",
                         fontWeight: 500,
                         fontSize: "0.7rem",
                         textTransform: "uppercase",
@@ -192,7 +193,7 @@ export default function ProfileDetailsRightCard({
             })}
           </Box>
         ) : (
-          <Box sx={{ textAlign: "center", py: 4, color: "#9ca3af" }}>
+          <Box sx={{ textAlign: "center", py: 4, color: "text.disabled" }}>
             <Person sx={{ fontSize: 42, mb: 1, opacity: 0.5 }} />
             <Typography variant="body2" sx={{ fontStyle: "italic" }}>
               No profile details available
@@ -206,8 +207,9 @@ export default function ProfileDetailsRightCard({
             sx={{
               mt: 4,
               pt: 3,
-              borderTop: "1px solid #e5e7eb",
-              backgroundColor: "#f9fafb",
+              borderTop: 1,
+              borderColor: "divider",
+              backgroundColor: "background.default",
               borderRadius: "8px",
               p: 2,
             }}

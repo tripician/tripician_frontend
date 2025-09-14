@@ -132,7 +132,7 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
             flexDirection: 'column',
             justifyContent: 'space-between',
             p: isCollapsed ? 1 : 2,
-            background: 'linear-gradient(180deg, #00222eff 0%, #0081b0ff 100%)',
+            background: 'linear-gradient(180deg, #00222eff 0%, #000000 100%)',
             color: 'white',
             overflowX: 'hidden',
             transition: theme.transitions.create('width', {
@@ -298,7 +298,7 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
           sx={{
             flexGrow: 1,
             overflowY: 'auto',
-            backgroundColor: '#f5f5f5',
+            backgroundColor: 'background.default',
             display: 'flex',
             flexDirection: 'column',
             transition: theme.transitions.create('margin', {
@@ -311,9 +311,9 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
           <Box
             sx={{
               flexGrow: 1,
-              pl: 4,
-              pr: 4,
-              pt: 2,
+              pl: 0,
+              pr: 0,
+              pt: 0,
               pb: 2,
             }}
           >

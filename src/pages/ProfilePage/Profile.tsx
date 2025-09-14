@@ -40,7 +40,7 @@ const Profile: React.FC = () => {
       <NavigationPanel onMenuItemChange={handleMenuItemChange}>
         <Box sx={{ 
           width: "100%", 
-          backgroundColor: "#f8fafc",
+          backgroundColor: "background.default",
           minHeight: "100vh"
         }}>
           <TopBar selectedMenuItem={selectedMenuItem} />
@@ -56,12 +56,12 @@ const Profile: React.FC = () => {
           >
             <CircularProgress 
               size={48} 
-              sx={{ color: "#3b82f6" }}
+              sx={{ color: "primary.main" }}
             />
             <Typography 
               variant="h6" 
               sx={{ 
-                color: "#374151",
+                color: "text.primary",
                 fontWeight: 500
               }}
             >
@@ -79,7 +79,7 @@ const Profile: React.FC = () => {
       <NavigationPanel onMenuItemChange={handleMenuItemChange}>
         <Box sx={{ 
           width: "100%", 
-          backgroundColor: "#f8fafc",
+          backgroundColor: "background.default",
           minHeight: "100vh"
         }}>
           <TopBar selectedMenuItem={selectedMenuItem} />
@@ -88,7 +88,7 @@ const Profile: React.FC = () => {
               severity="error"
               sx={{
                 borderRadius: 2,
-                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
+                boxShadow: 1
               }}
               action={
                 <Button 
@@ -120,7 +120,7 @@ const Profile: React.FC = () => {
       <NavigationPanel onMenuItemChange={handleMenuItemChange}>
         <Box sx={{ 
           width: "100%", 
-          backgroundColor: "#f8fafc",
+          backgroundColor: "background.default",
           minHeight: "100vh"
         }}>
           <TopBar selectedMenuItem={selectedMenuItem} />
@@ -129,7 +129,7 @@ const Profile: React.FC = () => {
               severity="warning"
               sx={{
                 borderRadius: 2,
-                boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)"
+                boxShadow: 1
               }}
               icon={<Person />}
             >
@@ -232,11 +232,11 @@ const Profile: React.FC = () => {
                 px: 3,
                 py: 1.5,
                 borderRadius: 2,
-                borderColor: "#d1d5db",
-                color: "#374151",
+                borderColor: "divider",
+                color: "text.primary",
                 "&:hover": {
-                  borderColor: "#9ca3af",
-                  backgroundColor: "#f9fafb"
+                  borderColor: "text.secondary",
+                  backgroundColor: "action.hover"
                 },
                 "&:disabled": {
                   opacity: 0.6
@@ -252,16 +252,17 @@ const Profile: React.FC = () => {
             <Card sx={{ 
               mt: 4, 
               borderRadius: 2,
-              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-              border: "1px solid #e5e7eb",
-              backgroundColor: "#fef3c7"
+              boxShadow: 1,
+              border: 1,
+              borderColor: "divider",
+              backgroundColor: "warning.light"
             }}>
               <CardContent sx={{ p: 3 }}>
                 <Typography 
                   variant="h6" 
                   gutterBottom
                   sx={{ 
-                    color: "#92400e",
+                    color: "warning.dark",
                     fontWeight: 600,
                     fontSize: "1.1rem"
                   }}
@@ -273,10 +274,11 @@ const Profile: React.FC = () => {
                   sx={{ 
                     fontSize: "0.8rem", 
                     overflow: "auto",
-                    backgroundColor: "#ffffff",
+                    backgroundColor: "background.paper",
                     p: 2,
                     borderRadius: 1.5,
-                    border: "1px solid #d1d5db",
+                    border: 1,
+                    borderColor: "divider",
                     maxHeight: "400px",
                     fontFamily: "Monaco, 'Cascadia Code', 'Roboto Mono', monospace"
                   }}

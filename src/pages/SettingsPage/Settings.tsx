@@ -20,14 +20,14 @@ const Settings: React.FC = () => {
 
   return (
     <NavigationPannel onMenuItemChange={handleMenuItemChange}>
-      <Box sx={{ width: "100%", backgroundColor: "#f5f5f5", minHeight: "calc(100vh - 100px)" }}>
+      <Box sx={{ width: "100%", backgroundColor: "background.default", minHeight: "calc(100vh - 100px)" }}>
       <TopBar selectedMenuItem={selectedMenuItem} />
 
       {/* background full width */}
       <Box
         sx={{
           width: "100%",
-          backgroundColor: "#e1e0e0ff",
+          backgroundColor: "background.default",
           minHeight: "100vh",
           py: 4,
         }}

@@ -24,7 +24,7 @@ const SettingsTopNav: React.FC<SettingsTopNavProps> = ({
         TabIndicatorProps={{ style: { display: "none" } }} 
         sx={{
           '& .MuiTabs-flexContainer': {
-            backgroundColor: 'rgba(0, 0, 0, 0.04)',
+            backgroundColor: 'action.hover',
             borderRadius: '8px',
             padding: '4px',            
           },
@@ -35,8 +35,8 @@ const SettingsTopNav: React.FC<SettingsTopNavProps> = ({
             textTransform: 'none',
             fontWeight: 500,
             '&.Mui-selected': {
-              backgroundColor: 'white',
-              boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+              backgroundColor: 'background.paper',
+              boxShadow: 1,
             },
           },
         }}

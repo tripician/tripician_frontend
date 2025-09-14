@@ -72,7 +72,7 @@ const Dashboard: React.FC = () => {
   
   return (
     <NavigationPannel onMenuItemChange={handleMenuItemChange}>
-      <Box sx={{ width: "100%", backgroundColor: "#e1e0e0ff", minHeight: "100vh" }}>
+      <Box sx={{ width: "100%", backgroundColor: "background.default", minHeight: "100vh" }}>
         <TopBar selectedMenuItem = {selectedMenuItem}/>
         
         <Box sx={{ justifyContent: "center" }}>
@@ -88,7 +88,7 @@ const Dashboard: React.FC = () => {
               ml: "2%",
               mr: "2%",
               '& .MuiTabs-flexContainer': {
-                backgroundColor: 'rgba(0, 0, 0, 0.04)',
+                backgroundColor: 'action.hover',
                 borderRadius: '8px',
                 padding: '4px',
               },
@@ -99,8 +99,8 @@ const Dashboard: React.FC = () => {
                 textTransform: 'none',
                 fontWeight: 'bold',
                 '&.Mui-selected': {
-                  backgroundColor: 'white',
-                  boxShadow: '0 1px 3px rgba(0, 0, 0, 0.1)',
+                  backgroundColor: 'background.paper',
+                  boxShadow: 1,
                   color: 'primary.main',
                 },
               },

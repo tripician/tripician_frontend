@@ -89,7 +89,7 @@ const NotificationsSettings: React.FC = () => {
             variant="body1" 
             sx={{ 
               fontWeight: 500, 
-              color: "#374151",
+              color: "text.primary",
               mb: 0.5,
               fontSize: "0.95rem"
             }}
@@ -99,7 +99,7 @@ const NotificationsSettings: React.FC = () => {
           <Typography 
             variant="body2" 
             sx={{ 
-              color: "#6b7280",
+              color: "text.secondary",
               fontSize: "0.875rem",
               lineHeight: 1.4
             }}
@@ -112,13 +112,13 @@ const NotificationsSettings: React.FC = () => {
           onChange={() => onToggle(item.id)}
           sx={{
             '& .MuiSwitch-switchBase.Mui-checked': {
-              color: '#3b82f6',
+              color: 'primary.main',
             },
             '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': {
-              backgroundColor: '#3b82f6',
+              backgroundColor: 'primary.main',
             },
             '& .MuiSwitch-track': {
-              backgroundColor: '#d1d5db',
+              backgroundColor: 'action.hover',
             },
           }}
         />
@@ -134,7 +134,8 @@ const NotificationsSettings: React.FC = () => {
           mb: 3,
           borderRadius: 2,
           boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-          border: "1px solid #e5e7eb",
+          border: 1,
+          borderColor: 'divider',
         }}
       >
         <CardContent sx={{ p: 3 }}>
@@ -143,7 +144,7 @@ const NotificationsSettings: React.FC = () => {
             sx={{ 
               fontWeight: 600, 
               mb: 3,
-              color: "#374151",
+              color: "text.primary",
               fontSize: "1.1rem"
             }}
           >
@@ -157,7 +158,7 @@ const NotificationsSettings: React.FC = () => {
                 onToggle={handleEmailToggle}
               />
               {index < emailNotifications.length - 1 && (
-                <Divider sx={{ my: 2.5, borderColor: '#f3f4f6' }} />
+                <Divider sx={{ my: 2.5, borderColor: 'divider' }} />
               )}
             </React.Fragment>
           ))}
@@ -169,7 +170,8 @@ const NotificationsSettings: React.FC = () => {
         sx={{
           borderRadius: 2,
           boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-          border: "1px solid #e5e7eb",
+          border: 1,
+          borderColor: 'divider',
         }}
       >
         <CardContent sx={{ p: 3 }}>
@@ -178,7 +180,7 @@ const NotificationsSettings: React.FC = () => {
             sx={{ 
               fontWeight: 600, 
               mb: 3,
-              color: "#374151",
+              color: "text.primary",
               fontSize: "1.1rem"
             }}
           >
@@ -192,7 +194,7 @@ const NotificationsSettings: React.FC = () => {
                 onToggle={handlePushToggle}
               />
               {index < pushNotifications.length - 1 && (
-                <Divider sx={{ my: 2.5, borderColor: '#f3f4f6' }} />
+                <Divider sx={{ my: 2.5, borderColor: 'divider' }} />
               )}
             </React.Fragment>
           ))}

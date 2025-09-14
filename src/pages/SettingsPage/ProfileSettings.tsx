@@ -25,8 +25,9 @@ const ProfileSettings: React.FC = () => {
         sx={{
           mb: 3,
           borderRadius: 2,
-          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-          border: "1px solid #e5e7eb",
+          boxShadow: 1,
+          border: 1,
+          borderColor: 'divider',
         }}
       >
         <CardContent sx={{ p: 3 }}>
@@ -35,7 +36,7 @@ const ProfileSettings: React.FC = () => {
               variant="h6" 
               sx={{ 
                 fontWeight: 600, 
-                color: "#374151",
+                color: "text.primary",
                 fontSize: "1.1rem"
               }}
             >
@@ -48,8 +49,8 @@ const ProfileSettings: React.FC = () => {
               sx={{ 
                 width: 80, 
                 height: 80, 
-                bgcolor: "#f3f4f6",
-                color: "#6b7280",
+                bgcolor: "background.default",
+                color: "text.secondary",
                 fontSize: "1.5rem",
                 fontWeight: 500
               }}
@@ -89,7 +90,7 @@ const ProfileSettings: React.FC = () => {
           <Typography 
             variant="body2" 
             sx={{ 
-              color: "#6b7280", 
+              color: "text.secondary", 
               mt: 2,
               fontSize: "0.875rem"
             }}
@@ -104,8 +105,9 @@ const ProfileSettings: React.FC = () => {
         sx={{
           mb: 3,
           borderRadius: 2,
-          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-          border: "1px solid #e5e7eb",
+          boxShadow: 1,
+          border: 1,
+          borderColor: 'divider',
         }}
       >
         <CardContent sx={{ p: 3 }}>
@@ -114,7 +116,7 @@ const ProfileSettings: React.FC = () => {
             sx={{ 
               fontWeight: 600, 
               mb: 3,
-              color: "#374151",
+              color: "text.primary",
               fontSize: "1.1rem"
             }}
           >
@@ -170,7 +172,7 @@ const ProfileSettings: React.FC = () => {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <LocationOn sx={{ color: "#6b7280", fontSize: 20 }} />
+                    <LocationOn sx={{ color: "text.secondary", fontSize: 20 }} />
                   </InputAdornment>
                 ),
               }}
@@ -188,7 +190,7 @@ const ProfileSettings: React.FC = () => {
               InputProps={{
                 startAdornment: (
                   <InputAdornment position="start">
-                    <Language sx={{ color: "#6b7280", fontSize: 20 }} />
+                    <Language sx={{ color: "text.secondary", fontSize: 20 }} />
                   </InputAdornment>
                 ),
               }}
@@ -222,8 +224,9 @@ const ProfileSettings: React.FC = () => {
         sx={{
           mb: 3,
           borderRadius: 2,
-          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-          border: "1px solid #e5e7eb",
+          boxShadow: 1,
+          border: 1,
+          borderColor: 'divider',
         }}
       >
         <CardContent sx={{ p: 3 }}>
@@ -232,7 +235,7 @@ const ProfileSettings: React.FC = () => {
             sx={{ 
               fontWeight: 600, 
               mb: 3,
-              color: "#374151",
+              color: "text.primary",
               fontSize: "1.1rem"
             }}
           >
@@ -247,7 +250,7 @@ const ProfileSettings: React.FC = () => {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Email sx={{ color: "#6b7280", fontSize: 20 }} />
+                  <Email sx={{ color: "text.secondary", fontSize: 20 }} />
                 </InputAdornment>
               ),
             }}
@@ -267,7 +270,7 @@ const ProfileSettings: React.FC = () => {
             InputProps={{
               startAdornment: (
                 <InputAdornment position="start">
-                  <Phone sx={{ color: "#6b7280", fontSize: 20 }} />
+                  <Phone sx={{ color: "text.secondary", fontSize: 20 }} />
                 </InputAdornment>
               ),
             }}
@@ -298,8 +301,9 @@ const ProfileSettings: React.FC = () => {
       <Card
         sx={{
           borderRadius: 2,
-          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-          border: "1px solid #e5e7eb",
+          boxShadow: 1,
+          border: 1,
+          borderColor: 'divider',
         }}
       >
         <CardContent sx={{ p: 3 }}>
@@ -308,7 +312,7 @@ const ProfileSettings: React.FC = () => {
             sx={{ 
               fontWeight: 600, 
               mb: 3,
-              color: "#374151",
+              color: "text.primary",
               fontSize: "1.1rem"
             }}
           >
