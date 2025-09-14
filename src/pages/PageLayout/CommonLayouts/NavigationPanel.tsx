@@ -130,8 +130,8 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
             justifyContent: 'space-between',
             p: isCollapsed ? 1 : 2,
             background: theme.palette.mode === 'light' 
-              ? 'linear-gradient(180deg, #4f46e5 0%, #7c3aed 100%)'
-              : 'linear-gradient(180deg, #2d3748 0%, #1a202c 100%)',
+              ? 'linear-gradient(180deg, #132735ff 0%, #006097ff 100%)'
+              : 'linear-gradient(180deg, #1a202c 0%, #2d3748 100%)',
             color: 'white',
             overflowX: 'hidden',
             boxShadow: theme.palette.mode === 'light' 

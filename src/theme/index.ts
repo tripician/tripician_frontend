@@ -6,9 +6,9 @@ const colors = {
   // Light theme colors (based on the image)
   light: {
     primary: {
-      main: '#0052a1',
-      light: '#0052a1',
-      dark: '#007ddcff',
+      main: '#007ddcff',
+      light: '#007ddcff',
+      dark: '#29587aff',
       contrastText: '#ffffff',
     },
     secondary: {

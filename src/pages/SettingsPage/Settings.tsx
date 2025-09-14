@@ -9,19 +9,14 @@ import PrivacySettings from './PrivacySettings';
 import PreferencesSettings from './PreferencesSettings';
 
 const Settings: React.FC = () => {
-  const [selectedMenuItem, setSelectedMenuItem] = useState('Settings');
-
   // 👉 for top nav (Profile, Notifications, Privacy, Preferences)
   const [selectedSettingsMenuItem, setSelectedSettingsMenuItem] = useState('Profile');
-
-  const handleMenuItemChange = (itemName: string) => {
-    setSelectedMenuItem(itemName);
-  };
+  // (removed selectedMenuItem state which is no longer needed by TopBar)
 
   return (
-    <NavigationPannel onMenuItemChange={handleMenuItemChange}>
+  <NavigationPannel>
       <Box sx={{ width: "100%", backgroundColor: "background.default", minHeight: "calc(100vh - 100px)" }}>
-      <TopBar selectedMenuItem={selectedMenuItem} />
+  <TopBar />
 
       {/* background full width */}
       <Box
