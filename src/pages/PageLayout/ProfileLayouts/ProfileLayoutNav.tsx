@@ -1,5 +1,5 @@
 import React from "react";
-import { Tabs, Tab, Box } from "@mui/material";
+import { Tabs, Tab, Box, useTheme } from "@mui/material";
 import { FileText, Map, BarChart3 } from "lucide-react";
 
 interface SettingsTopNavProps {
@@ -11,7 +11,8 @@ const ProfileLayoutNav: React.FC<SettingsTopNavProps> = ({
   selectedSettingsMenuItem,
   onChange,
 }) => {
-  const handleChange = (event: React.SyntheticEvent, newValue: string) => {
+  const theme = useTheme();
+  const handleChange = (_event: React.SyntheticEvent, newValue: string) => {
     onChange(newValue); // already matches the tabs array exactly
   };
 
@@ -23,22 +24,31 @@ const ProfileLayoutNav: React.FC<SettingsTopNavProps> = ({
         variant="fullWidth"
         TabIndicatorProps={{ style: { display: "none" } }}
         sx={{
-          "& .MuiTabs-flexContainer": {
-            backgroundColor: "rgba(0, 0, 0, 0.04)",
-            borderRadius: "8px",
-            padding: "4px",
+          '& .MuiTabs-flexContainer': {
+            backgroundColor: theme.palette.action.hover,
+            borderRadius: '8px',
+            padding: '4px',
           },
-          "& .MuiTab-root": {
-            minHeight: "40px",
-            borderRadius: "6px",
-            margin: "0 2px",
-            textTransform: "none",
-            fontWeight: 500,
-            "&.Mui-selected": {
-              backgroundColor: "white",
-              boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
+          '& .MuiTab-root': {
+            minHeight: '40px',
+            borderRadius: '6px',
+            margin: '0 2px',
+            textTransform: 'none',
+            fontWeight: 600,
+            fontSize: '0.85rem',
+            color: theme.palette.text.secondary,
+            transition: 'all .25s ease',
+            '&:hover': {
+              backgroundColor: theme.palette.mode === 'light' ? 'rgba(255,255,255,0.7)' : 'rgba(255,255,255,0.08)',
+              color: theme.palette.text.primary
+            },
+            '&.Mui-selected': {
+              backgroundColor: theme.palette.background.paper,
+              boxShadow: theme.palette.mode === 'light' ? 1 : '0 1px 4px rgba(0,0,0,0.6)',
+              color: theme.palette.primary.main,
             },
           },
+          '& .MuiTabs-indicator': { display: 'none' },
         }}
       >
         <Tab

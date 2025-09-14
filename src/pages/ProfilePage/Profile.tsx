@@ -30,6 +30,8 @@ const Profile: React.FC = () => {
     setSelectedMenuItem(itemName);
   };
 
+  // NOTE: Removed temporary top-level profile tabs to honor existing internal navigation (RecentPosts / TravelMap / Statistics) inside ProfileDashboard.
+
   const formatDate = (dateString?: string) => {
     return dateString ? new Date(dateString).toLocaleDateString() : undefined;
   };
@@ -154,16 +156,15 @@ const Profile: React.FC = () => {
         <TopBar selectedMenuItem={selectedMenuItem} />
 
         {/* Banner */}
-        <UserProfileBanner 
+        <UserProfileBanner
           name={`${profile.fname ?? ""} ${profile.lname ?? ""}`}
           bio={profile.bio}
           following={12}
-          followers={34}
-          countries = {32}
+            followers={34}
+          countries={32}
           avatarUrl={profile.profilepicture}
           backgroundUrl={profile.coverpicture}
         />
-
         {/* Badges */}
         <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 } }}>
           <Box sx={{ mt: 2, mb: 3 }}>
@@ -174,44 +175,33 @@ const Profile: React.FC = () => {
         <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 }, pb: 4 }}>
           <Box 
             sx={{ 
-              display: "flex", 
+              display: 'flex', 
               gap: 3, 
-              flexDirection: { xs: "column", lg: "row" }, 
-              alignItems: "flex-start" 
+              flexDirection: { xs: 'column', lg: 'row' }, 
+              alignItems: 'flex-start' 
             }}
           >
-            {/* Left: Dashboard */}
-            <Box
-              sx={{
-                flex: 1,
-                minWidth: 0,
-                width: "100%"
-              }}
-            >
+            {/* Left: Dashboard (contains its own nav) */}
+            <Box sx={{ flex: 1, minWidth: 0, width: '100%' }}>
               <ProfileDashboard />
             </Box>
 
             {/* Right: Profile details */}
-            <Box
-              sx={{
-                width: { xs: "100%", lg: "20vw" },
-                flexShrink: 0,
-              }}
-            >
-                  <ProfileDetailsRightCard
-                    title="Profile Details"
-                    rows={[
-                      { label: "Email", value: profile.email },
-                      { label: "Phone", value: profile.phone },
-                      { label: "Country", value: profile.country },
-                      { label: "Gender", value: profile.gender },
-                      { label: "Date of Birth", value: formatDate(profile.dateOfBirth) },
-                      { label: "Facebook", value: profile.facebook },
-                      { label: "Twitter", value: profile.twitter },
-                      { label: "Instagram", value: profile.instagram },
-                      { label: "Website", value: profile.website }
-                    ]}
-                  />
+            <Box sx={{ width: { xs: '100%', lg: '20vw' }, flexShrink: 0 }}>
+              <ProfileDetailsRightCard
+                title="Profile Details"
+                rows={[
+                  { label: 'Email', value: profile.email },
+                  { label: 'Phone', value: profile.phone },
+                  { label: 'Country', value: profile.country },
+                  { label: 'Gender', value: profile.gender },
+                  { label: 'Date of Birth', value: formatDate(profile.dateOfBirth) },
+                  { label: 'Facebook', value: profile.facebook },
+                  { label: 'Twitter', value: profile.twitter },
+                  { label: 'Instagram', value: profile.instagram },
+                  { label: 'Website', value: profile.website }
+                ]}
+              />
             </Box>
           </Box>
 
@@ -234,11 +224,12 @@ const Profile: React.FC = () => {
                 borderRadius: 2,
                 borderColor: "divider",
                 color: "text.primary",
-                "&:hover": {
-                  borderColor: "text.secondary",
-                  backgroundColor: "action.hover"
+                backgroundColor: 'background.paper',
+                '&:hover': {
+                  borderColor: 'primary.main',
+                  backgroundColor: 'background.default'
                 },
-                "&:disabled": {
+                '&:disabled': {
                   opacity: 0.6
                 }
               }}
@@ -246,43 +237,14 @@ const Profile: React.FC = () => {
               {loading ? "Refreshing..." : "Refresh Profile"}
             </Button>
           </Box>
-
           {/* Debug info (dev only) */}
-          {process.env.NODE_ENV === "development" && (
-            <Card sx={{ 
-              mt: 4, 
-              borderRadius: 2,
-              boxShadow: 1,
-              border: 1,
-              borderColor: "divider",
-              backgroundColor: "warning.light"
-            }}>
+          {process.env.NODE_ENV === 'development' && (
+            <Card sx={{ mt: 4, borderRadius: 2, boxShadow: 1, border: 1, borderColor: 'divider', backgroundColor: 'warning.light' }}>
               <CardContent sx={{ p: 3 }}>
-                <Typography 
-                  variant="h6" 
-                  gutterBottom
-                  sx={{ 
-                    color: "warning.dark",
-                    fontWeight: 600,
-                    fontSize: "1.1rem"
-                  }}
-                >
+                <Typography variant="h6" gutterBottom sx={{ color: 'warning.dark', fontWeight: 600, fontSize: '1.1rem' }}>
                   🔧 Debug: Raw Profile Data
                 </Typography>
-                <Box 
-                  component="pre" 
-                  sx={{ 
-                    fontSize: "0.8rem", 
-                    overflow: "auto",
-                    backgroundColor: "background.paper",
-                    p: 2,
-                    borderRadius: 1.5,
-                    border: 1,
-                    borderColor: "divider",
-                    maxHeight: "400px",
-                    fontFamily: "Monaco, 'Cascadia Code', 'Roboto Mono', monospace"
-                  }}
-                >
+                <Box component="pre" sx={{ fontSize: '0.8rem', overflow: 'auto', backgroundColor: 'background.paper', p: 2, borderRadius: 1.5, border: 1, borderColor: 'divider', maxHeight: '400px', fontFamily: "Monaco, 'Cascadia Code', 'Roboto Mono', monospace" }}>
                   {JSON.stringify(profile, null, 2)}
                 </Box>
               </CardContent>
