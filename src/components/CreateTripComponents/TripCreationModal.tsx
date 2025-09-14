@@ -11,13 +11,14 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Grid,
-  InputAdornment,
   Divider,
 } from "@mui/material";
+import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import dayjs, { Dayjs } from 'dayjs';
 import {
   Close as CloseIcon,
   Add as AddIcon,
-  CalendarToday as CalendarIcon,
   ArrowForward as ArrowForwardIcon,
   LocationOn as LocationIcon,
   Group as GroupIcon,
@@ -145,6 +146,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
         }}
       >
         {/* Left panel – main form */}
+        <LocalizationProvider dateAdapter={AdapterDayjs}>
         <Box sx={{ flex: "0 0 40vw", p: 4, overflowY: "auto" }}>
           {/* Header with close */}
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
@@ -232,56 +234,59 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
           <Grid container alignItems="flex-start" columnGap={2} sx={{ mb: 1 }}>
             <Grid>
               <Typography sx={{ mb: 0.5, fontWeight: 600, color: primary, fontSize: 14 }}>Start date</Typography>
-              <TextField
-                placeholder="Start Date"
-                value={formData.startDate}
-                onChange={handleInputChange("startDate")}
-                variant="outlined"
-                size="medium"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <CalendarIcon sx={{ color: primary }} />
-                    </InputAdornment>
-                  ),
+              <DatePicker
+                value={formData.startDate ? dayjs(formData.startDate) : null}
+                onChange={(val: Dayjs | null) => {
+                  setFormData(prev => {
+                    let endDate = prev.endDate;
+                    if (val && endDate && dayjs(endDate).isBefore(val, 'day')) {
+                      endDate = val.toISOString();
+                    }
+                    return { ...prev, startDate: val ? val.toISOString() : '', endDate };
+                  });
                 }}
-                sx={{
-                  width: 220,
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    "&:hover fieldset": { borderColor: primary },
-                    "&.Mui-focused fieldset": { borderColor: primary, borderWidth: 2 },
+                slotProps={{
+                  textField: {
+                    placeholder: 'Start Date',
+                    size: 'medium',
+                    sx: {
+                      width: 220,
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        '&:hover fieldset': { borderColor: primary },
+                        '&.Mui-focused fieldset': { borderColor: primary, borderWidth: 2 }
+                      }
+                    }
                   },
+                  openPickerIcon: { sx: { color: primary } }
                 }}
               />
             </Grid>
-
             <Grid>
-              <ArrowForwardIcon sx={{ color: primary, fontSize: 28, mt: 5}} />
+              <ArrowForwardIcon sx={{ color: primary, fontSize: 28, mt: 5 }} />
             </Grid>
-
-            <Grid >
+            <Grid>
               <Typography sx={{ mb: 0.5, fontWeight: 600, color: primary, fontSize: 14 }}>End date</Typography>
-              <TextField
-                placeholder="End Date"
-                value={formData.endDate}
-                onChange={handleInputChange("endDate")}
-                variant="outlined"
-                size="medium"
-                InputProps={{
-                  startAdornment: (
-                    <InputAdornment position="start">
-                      <CalendarIcon sx={{ color: primary }} />
-                    </InputAdornment>
-                  ),
+              <DatePicker
+                value={formData.endDate ? dayjs(formData.endDate) : null}
+                minDate={formData.startDate ? dayjs(formData.startDate) : undefined}
+                onChange={(val: Dayjs | null) => {
+                  setFormData(prev => ({ ...prev, endDate: val ? val.toISOString() : '' }));
                 }}
-                sx={{
-                  width: 240,
-                  "& .MuiOutlinedInput-root": {
-                    borderRadius: 2,
-                    "&:hover fieldset": { borderColor: primary },
-                    "&.Mui-focused fieldset": { borderColor: primary, borderWidth: 2 },
+                slotProps={{
+                  textField: {
+                    placeholder: 'End Date',
+                    size: 'medium',
+                    sx: {
+                      width: 240,
+                      '& .MuiOutlinedInput-root': {
+                        borderRadius: 2,
+                        '&:hover fieldset': { borderColor: primary },
+                        '&.Mui-focused fieldset': { borderColor: primary, borderWidth: 2 }
+                      }
+                    }
                   },
+                  openPickerIcon: { sx: { color: primary } }
                 }}
               />
             </Grid>
@@ -360,7 +365,8 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
               Start planning
             </Button>
           </Box>
-        </Box>
+  </Box>
+  </LocalizationProvider>
 
         {/* Divider between panes when right side visible (subtle like screenshot) */}
         {showInviteSection && <Divider orientation="vertical" flexItem sx={{ borderColor: "rgba(25,118,210,0.15)" }} />}
