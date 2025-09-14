@@ -6,9 +6,9 @@ const colors = {
   // Light theme colors (based on the image)
   light: {
     primary: {
-      main: '#667eea',
-      light: '#764ba2',
-      dark: '#4c63d2',
+      main: '#0052a1',
+      light: '#0052a1',
+      dark: '#007ddcff',
       contrastText: '#ffffff',
     },
     secondary: {
@@ -56,9 +56,9 @@ const colors = {
   // Dark theme colors
   dark: {
     primary: {
-      main: '#667eea',
-      light: '#764ba2',
-      dark: '#4c63d2',
+      main: '#a8a8a8ff',
+      light: '#a8a8a8ff',
+      dark: '#262626ff',
       contrastText: '#ffffff',
     },
     secondary: {
@@ -189,7 +189,7 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
         styleOverrides: {
           paper: {
             background: mode === 'light' 
-              ? 'linear-gradient(180deg, #4f46e5 0%, #7c3aed 100%)'
+              ? 'linear-gradient(180deg, #000000 0%, #0052a1 100%)'
               : 'linear-gradient(180deg, #2d3748 0%, #1a202c 100%)',
             color: 'white',
             '& .MuiListItem-root': {
