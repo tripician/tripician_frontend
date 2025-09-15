@@ -1,19 +1,17 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Box, Typography } from '@mui/material';
 import NavigationPannel from '../PageLayout/CommonLayouts/NavigationPanel';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
 
 const Community: React.FC = () => {
-  const [selectedMenuItem, setSelectedMenuItem] = useState('Community');
-
-  const handleMenuItemChange = (itemName: string) => {
-    setSelectedMenuItem(itemName);
+  const handleMenuItemChange = (_itemName: string) => {
+    // Navigation panel can still report changes; currently unused here.
   };
 
   return (
     <NavigationPannel onMenuItemChange={handleMenuItemChange}>
       <Box sx={{ width: "100%", backgroundColor: "#f5f5f5", minHeight: "calc(100vh - 100px)" }}>
-        <TopBar selectedMenuItem={selectedMenuItem} />
+  <TopBar />
         
         <Box sx={{ p: 4 }}>
           <Typography variant="h4" fontWeight="bold" gutterBottom>

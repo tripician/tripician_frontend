@@ -3,8 +3,6 @@ import {
   CardContent, 
   Typography, 
   Box, 
-  Divider, 
-  Chip, 
   Avatar 
 } from "@mui/material";
 import { Person, Email, Phone, Public, Cake, Wc } from "@mui/icons-material";

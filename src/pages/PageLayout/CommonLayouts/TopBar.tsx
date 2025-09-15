@@ -64,7 +64,7 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo }) => {
           backdropFilter: 'blur(10px)',
           borderBottom: 1,
           borderColor: 'divider',
-          padding: "20px 24px",
+          padding: "20px 10px",
           boxShadow: 1,
         }}
       >        

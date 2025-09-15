@@ -1,14 +1,11 @@
-import React, { useState } from "react";
+import React from "react";
 import {
   Box,
   Card,
   CardMedia,
   CardContent,
   Typography,
-  Tabs,
-  Tab,
   IconButton,
-  Container,
 } from "@mui/material";
 // IMPORTANT: Use the default Grid import from @mui/material/Grid (classic API)
 import Grid from "@mui/material/Grid";
@@ -56,21 +53,7 @@ const posts: Post[] = [
   },
 ];
 
-type TabPanelProps = { children: React.ReactNode; value: number; index: number };
-
-const TabPanel: React.FC<TabPanelProps> = ({ children, value, index }) => {
-  const isActive = value === index;
-  return (
-    <div
-      role="tabpanel"
-      hidden={!isActive}
-      id={`simple-tabpanel-${index}`}
-      aria-labelledby={`simple-tab-${index}`}
-    >
-      {isActive && <Box sx={{ py: 3 }}>{children}</Box>}
-    </div>
-  );
-};
+// Removed unused TabPanel and related tabs logic
 
 // Styled Components
 const StyledCard = styled(Card)(({ theme }) => ({

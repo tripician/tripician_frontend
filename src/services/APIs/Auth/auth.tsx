@@ -12,16 +12,6 @@ interface SignInData {
   password: string;
 }
 
-interface SyncUserData {
-  Auth0UserId: string;
-  fname: string;
-  lname: string;
-  email: string;
-  dob?: string;
-  gender?: string;
-  country?: string;
-  phone?: string;
-}
 
 interface UserProfile {
   id: string;

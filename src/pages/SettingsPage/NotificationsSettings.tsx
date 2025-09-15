@@ -5,7 +5,6 @@ import {
   CardContent,
   Typography,
   Switch,
-  FormControlLabel,
   Divider,
 } from "@mui/material";
 

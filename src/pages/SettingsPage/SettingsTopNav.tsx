@@ -11,7 +11,7 @@ const SettingsTopNav: React.FC<SettingsTopNavProps> = ({
   selectedSettingsMenuItem,
   onChange,
 }) => {
-  const handleChange = (event: React.SyntheticEvent, newValue: string) => {
+  const handleChange = (_event: React.SyntheticEvent, newValue: string) => {
     onChange(newValue.charAt(0).toUpperCase() + newValue.slice(1));
   };
 
