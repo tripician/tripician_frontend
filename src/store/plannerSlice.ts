@@ -21,11 +21,7 @@ export interface PlannerState {
 }
 
 const initialState: PlannerState = {
-  destinations: [
-    { id: '1', name: 'Shillong Airport', startDate: '2025-09-11', endDate: '2025-09-12', nights: 1, transport: '', budget: 0, lat: 25.7025, lng: 91.9787 },
-    { id: '2', name: 'Shillong', startDate: '2025-09-12', endDate: '2025-09-14', nights: 2, transport: 'Train', budget: 0, lat: 25.5788, lng: 91.8933 },
-    { id: '3', name: 'Meghalaya', startDate: '2025-09-14', endDate: '2025-09-15', nights: 1, transport: '', budget: 0, lat: 25.4670, lng: 91.3662 }
-  ],
+  destinations: [],
   currency: 'EUR',
   targetNights: 8
 };
@@ -53,10 +49,15 @@ const plannerSlice = createSlice({
     setTargetNights(state, action: PayloadAction<number>) {
       state.targetNights = action.payload;
     },
-    addDestination(state, action: PayloadAction<{ name: string }>) {
+    addDestination(state, action: PayloadAction<{ name: string; lat?: number; lng?: number }>) {
+      // Prevent adding if total nights already meets or exceeds target
+      const totalNights = state.destinations.reduce((a,c)=> a + c.nights, 0);
+      if (totalNights >= state.targetNights) return;
       const last = state.destinations[state.destinations.length - 1];
       const startDate = last ? last.endDate : new Date().toISOString().slice(0,10);
       const endDate = new Date(new Date(startDate).getTime() + 24*60*60*1000).toISOString().slice(0,10);
+      // If adding 1 night would exceed target, abort
+      if (totalNights + 1 > state.targetNights) return;
       state.destinations.push({
         id: Date.now().toString(),
         name: action.payload.name,
@@ -64,7 +65,9 @@ const plannerSlice = createSlice({
         endDate,
         nights: 1,
         transport: '',
-        budget: 0
+        budget: 0,
+        lat: action.payload.lat,
+        lng: action.payload.lng
       });
     },
     removeDestination(state, action: PayloadAction<string>) {
@@ -73,7 +76,25 @@ const plannerSlice = createSlice({
     updateDestinationNights(state, action: PayloadAction<{ id: string; delta: number }>) {
       const d = state.destinations.find(x => x.id === action.payload.id);
       if (d) {
-        d.nights = Math.max(1, d.nights + action.payload.delta);
+        const totalNights = state.destinations.reduce((a,c)=> a + c.nights, 0);
+        // If increasing and would exceed target, block
+        if (action.payload.delta > 0 && totalNights >= state.targetNights) return;
+        const proposed = d.nights + action.payload.delta;
+        if (proposed < 1) return; // keep at least 1
+        // If proposed increase pushes overall total beyond target, clamp or block
+        if (action.payload.delta > 0) {
+          const overshoot = (totalNights - d.nights + proposed) - state.targetNights;
+          if (overshoot > 0) {
+            // Reduce proposed by overshoot (could become same as current -> no-op)
+            const adjusted = proposed - overshoot;
+            if (adjusted <= 0) return;
+            d.nights = adjusted;
+          } else {
+            d.nights = proposed;
+          }
+        } else {
+          d.nights = proposed;
+        }
         // adjust endDate relative to startDate
         const s = new Date(d.startDate).getTime();
         d.endDate = new Date(s + d.nights * 24*60*60*1000).toISOString().slice(0,10);
@@ -106,6 +127,35 @@ const plannerSlice = createSlice({
       const item = arr.splice(fromIndex,1)[0];
       arr.splice(toIndex,0,item);
     },
+    reorderChain(state, action: PayloadAction<{ ids: string[] }>) {
+      const { ids } = action.payload;
+      if (!ids.length) return;
+      const map: Record<string, PlannerDestination> = {};
+      state.destinations.forEach(d=> { map[d.id]=d; });
+      const first = state.destinations[0];
+      const newOrder: PlannerDestination[] = [];
+      ids.forEach(id=> { if (map[id]) newOrder.push(map[id]); });
+      // Ensure first remains first
+      if (newOrder[0]?.id !== first.id) {
+        const idx = newOrder.findIndex(d=> d.id===first.id);
+        if (idx>=0) {
+          const [f] = newOrder.splice(idx,1);
+          newOrder.unshift(f);
+        } else {
+          newOrder.unshift(first);
+        }
+      }
+      // Recompute sequential dates chain after first using existing nights
+      for (let i=1;i<newOrder.length;i++) {
+        const prev = newOrder[i-1];
+        const cur = newOrder[i];
+        const start = prev.endDate;
+        cur.startDate = start;
+        const end = new Date(new Date(start).getTime() + cur.nights*24*60*60*1000).toISOString().slice(0,10);
+        cur.endDate = end;
+      }
+      state.destinations = newOrder;
+    },
     loadState(_state, action: PayloadAction<PlannerState>) {
       return { ...action.payload };
     },
@@ -125,6 +175,7 @@ export const {
   setDates,
   setDestinationBudget,
   reorderDestinations,
+  reorderChain,
   loadState,
   markSaved,
   setDestinationCoords

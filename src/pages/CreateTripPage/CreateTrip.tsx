@@ -1,8 +1,8 @@
 import React from 'react';
-import { Box, Tabs, Tab, Typography, Divider, Button, Chip, Menu, MenuItem, Avatar, CircularProgress } from '@mui/material';
+import { Box, Tabs, Tab, Typography, Divider, Button, Chip, Menu, MenuItem, Avatar, CircularProgress, Tooltip, IconButton } from '@mui/material';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
-import { setCurrency as setCurrencyAction, updateDestinationNights, setTransport, addDestination, removeDestination } from '../../store/plannerSlice';
+import { setCurrency as setCurrencyAction, updateDestinationNights, setTransport, addDestination, removeDestination, reorderChain } from '../../store/plannerSlice';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 // Map removed per updated requirements
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
@@ -15,6 +15,7 @@ import ChatAssistant from '../../components/CommonComponents/ChatAssistant';
 import MapPanel from './MapPanel';
 import CloseFullscreenIcon from '@mui/icons-material/CloseFullscreen';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
+import AltRouteIcon from '@mui/icons-material/AltRoute';
 
 // Theme-aware logo: use black variant in light mode, white variant in dark mode, with fallbacks
 const PlannerLogo: React.FC = () => {
@@ -54,6 +55,10 @@ const CreateTrip: React.FC = () => {
 	const planner = useSelector((s: RootState) => s.planner);
 	const currency = planner.currency;
 	const targetNights = planner.targetNights;
+
+	// Route optimization UI state
+	const [optimizingRoute, setOptimizingRoute] = React.useState(false);
+	const geocodedCount = React.useMemo(() => planner.destinations.filter(d=> d.lat!=null && d.lng!=null).length, [planner.destinations]);
 
 	// Map planner destinations to panel shape (format dates nicely)
 	const dateFormatter = React.useCallback((iso: string) => {
@@ -109,11 +114,69 @@ const CreateTrip: React.FC = () => {
 	const handleChangeTransport = (id: string, mode: string) => {
 		dispatch(setTransport({ id, transport: mode }));
 	};
-	const handleAddDestination = (name: string) => {
-		dispatch(addDestination({ name }));
+	const handleAddDestination = (name: string, coords?: { lat: number; lng: number }) => {
+		dispatch(addDestination({ name, lat: coords?.lat, lng: coords?.lng }));
 	};
 	const handleRemoveDestination = (id: string) => {
 		dispatch(removeDestination(id));
+	};
+
+	// Compute shortest route (simple heuristic) keeping first destination fixed
+	const computeShortestRoute = () => {
+		const list = planner.destinations.filter(d=> d.lat!=null && d.lng!=null);
+		if (list.length < 3) return; // need at least start + 2
+		const start = list[0];
+		const others = list.slice(1);
+		const dist = (a: any, b: any) => {
+			const dx = (a.lat - b.lat); const dy = (a.lng - b.lng);
+			return Math.sqrt(dx*dx + dy*dy);
+		};
+		// Nearest neighbor initial path
+		const remaining = [...others];
+		const path: any[] = [start];
+		let current = start;
+		while(remaining.length) {
+			let bestIdx = 0; let bestD = Infinity;
+			for (let i=0;i<remaining.length;i++) {
+				const d = dist(current, remaining[i]);
+				if (d < bestD) { bestD = d; bestIdx = i; }
+			}
+			current = remaining.splice(bestIdx,1)[0];
+			path.push(current);
+		}
+		// 2-opt improvement (limited iterations)
+		const twoOptSwap = (arr: any[], i: number, k: number) => {
+			const res = arr.slice(0,i).concat(arr.slice(i,k+1).reverse()).concat(arr.slice(k+1));
+			return res;
+		};
+		const routeDistance = (arr: any[]) => arr.reduce((acc,_,i)=> i===0?0:acc+dist(arr[i-1],arr[i]),0);
+		let improved = true; let best = path; let bestLen = routeDistance(best);
+		let iterations=0;
+		while(improved && iterations<30) {
+			improved = false; iterations++;
+			for (let i=1;i<best.length-2;i++) { // skip first fixed
+				for (let k=i+1;k<best.length-1;k++) {
+					const swapped = twoOptSwap(best,i,k);
+					const len = routeDistance(swapped);
+					if (len < bestLen - 1e-6) { best=swapped; bestLen=len; improved=true; }
+				}
+			}
+		}
+		const ids = best.map(d=> d.id);
+		dispatch(reorderChain({ ids }));
+		// Emit event for MapPanel to draw polyline (optional) or rely on marker reorder detection
+		window.dispatchEvent(new CustomEvent('tripician:route-updated', { detail: { ids } }));
+	};
+
+	const handleOptimizeRouteClick = () => {
+		if (optimizingRoute) return;
+		if (geocodedCount < 3) return;
+		setOptimizingRoute(true);
+		// Allow spinner to render even though computation is fast
+		requestAnimationFrame(() => {
+			try { computeShortestRoute(); }
+			finally { setTimeout(()=> setOptimizingRoute(false), 60); }
+		});
 	};
 
 	return (
@@ -177,16 +240,34 @@ const CreateTrip: React.FC = () => {
 						))}
 					</Menu>
 					<Divider />
-					{/* Tabs */}
-						<Tabs value={tab} onChange={handleTabChange} variant='scrollable' allowScrollButtonsMobile sx={{ px: 2 }}>
-							<Tab label='Destinations' />
-							<Tab label='Day by day' />
-							<Tab label='Comments' />
-						</Tabs>
+					{/* Tabs row with action button on right */}
+								<Box sx={{ display:'flex', alignItems:'center', px:2 }}>
+									<Tabs value={tab} onChange={handleTabChange} variant='scrollable' allowScrollButtonsMobile sx={{ flex:1 }}>
+										<Tab label='Destinations' />
+										<Tab label='Day by day' />
+										<Tab label='Comments' />
+									</Tabs>
+									<Tooltip
+										arrow
+										placement='top'
+										title={geocodedCount < 3 ? 'Add at least 3 destinations with coordinates to optimize' : optimizingRoute ? 'Optimizing route...' : 'Optimize route (keeps first fixed)'}
+									>
+										<span>
+											<IconButton
+												aria-label='Optimize route'
+												onClick={handleOptimizeRouteClick}
+												disabled={geocodedCount < 3 || optimizingRoute}
+												sx={{ ml:1, bgcolor:'primary.main', color:'primary.contrastText', borderRadius:2, '&:hover':{ bgcolor:'primary.dark' }, '&.Mui-disabled':{ bgcolor:'action.disabledBackground', color:'text.disabled' } }}
+											>
+												{optimizingRoute ? <CircularProgress size={20} color='inherit' thickness={5} /> : <AltRouteIcon fontSize='small' />}
+											</IconButton>
+										</span>
+									</Tooltip>
+								</Box>
 					<Divider />
 					{/* Panel Content */}
 					<Box sx={{ flex: 1, overflowY: 'auto' }}>
-						{tab === 0 && <DestinationsPanel destinations={panelDestinations} onChangeNights={handleChangeNights} onChangeTransport={handleChangeTransport} onAddDestination={handleAddDestination} onRemoveDestination={handleRemoveDestination} />}
+						{tab === 0 && <DestinationsPanel destinations={panelDestinations} maxed={totalNights >= targetNights} onChangeNights={handleChangeNights} onChangeTransport={handleChangeTransport} onAddDestination={handleAddDestination} onRemoveDestination={handleRemoveDestination} />}
 						{tab === 1 && <DayByDayPanel />}
 						{tab === 2 && <TripComments />}
 					</Box>

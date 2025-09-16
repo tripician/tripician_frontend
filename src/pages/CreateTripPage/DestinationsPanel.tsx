@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Tooltip, Button, Menu, MenuItem, ListItemIcon, ListItemText } from '@mui/material';
+import { Box, Typography, Tooltip, Button, Menu, MenuItem, ListItemIcon, ListItemText, Paper } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -32,8 +32,9 @@ interface DestinationsPanelProps {
   destinations: DestinationRow[];
   onChangeNights?: (id: string, delta: number) => void;
   onChangeTransport?: (id: string, mode: string) => void;
-  onAddDestination?: (name: string) => void;
+  onAddDestination?: (name: string, coords?: { lat: number; lng: number }) => void;
   onRemoveDestination?: (id: string) => void;
+  maxed?: boolean; // whether total nights reached target
 }
 
 const rowHover: SxProps<Theme> = (theme) => ({
@@ -54,7 +55,8 @@ const badgeSx: SxProps<Theme> = (theme) => ({
   border: `1px solid ${theme.palette.divider}`,
 });
 
-const numberButtonSx: SxProps<Theme> = (theme) => ({
+// Helper for numeric adjust buttons (used via sx callback, not invoked manually)
+const numberButtonBase = (theme: Theme) => ({
   width: 28,
   height: 28,
   borderRadius: '50%',
@@ -63,6 +65,7 @@ const numberButtonSx: SxProps<Theme> = (theme) => ({
   alignItems: 'center',
   justifyContent: 'center',
   cursor: 'pointer',
+  transition: 'background .15s',
   '&:hover': { backgroundColor: theme.palette.action.hover }
 });
 
@@ -86,11 +89,57 @@ const getTransportIcon = (mode?: string) => {
   return found ? found.icon : <DirectionsBusIcon fontSize='small' color='disabled' />;
 };
 
-const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onChangeNights, onChangeTransport, onAddDestination, onRemoveDestination }) => {
+const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onChangeNights, onChangeTransport, onAddDestination, onRemoveDestination, maxed }) => {
   const [menuAnchor, setMenuAnchor] = React.useState<null | HTMLElement>(null);
   const [activeId, setActiveId] = React.useState<string | null>(null);
   const [adding, setAdding] = React.useState(false);
   const [newName, setNewName] = React.useState('');
+  const [predictions, setPredictions] = React.useState<any[]>([]);
+  const [loadingPred, setLoadingPred] = React.useState(false);
+  const sessionTokenRef = React.useRef<any | null>(null);
+
+  // Helper to get Places Autocomplete service (after maps script loaded)
+  const getAutocompleteService = () => {
+    const g = (window as any).google;
+    if (!g?.maps?.places) return null;
+    if (!sessionTokenRef.current) sessionTokenRef.current = new g.maps.places.AutocompleteSessionToken();
+    if (!(window as any)._tripicianPlaceService) {
+      (window as any)._tripicianPlaceService = new g.maps.places.AutocompleteService();
+    }
+    return (window as any)._tripicianPlaceService as any;
+  };
+
+  // Fetch predictions when typing
+  React.useEffect(() => {
+    if (!adding) { setPredictions([]); return; }
+    if (!newName.trim()) { setPredictions([]); return; }
+    const svc = getAutocompleteService();
+    if (!svc) return; // maps not loaded yet
+    let active = true;
+    setLoadingPred(true);
+    svc.getPlacePredictions({ input: newName, sessionToken: sessionTokenRef.current, types: ['geocode','establishment'] }, (res: any[], status: string) => {
+      if (!active) return;
+      setLoadingPred(false);
+      if (status !== 'OK' || !res) { setPredictions([]); return; }
+      setPredictions(res.slice(0,7));
+    });
+    return () => { active = false; };
+  }, [newName, adding]);
+
+  const selectPrediction = (p: any) => {
+    const g = (window as any).google;
+    if (!g?.maps?.places) return;
+    const placesSvc = new g.maps.places.PlacesService(document.createElement('div'));
+    placesSvc.getDetails({ placeId: p.place_id, fields: ['name','geometry','formatted_address'] }, (place: any, status: string) => {
+      if (status === 'OK' && place) {
+        const name = place.name || p.description;
+        const lat = place.geometry?.location?.lat();
+        const lng = place.geometry?.location?.lng();
+        if (name && lat != null && lng != null) onAddDestination?.(name, { lat, lng });
+        setAdding(false); setNewName(''); setPredictions([]);
+      }
+    });
+  };
 
   const openMenu = (e: React.MouseEvent<HTMLElement>, id: string) => {
     setMenuAnchor(e.currentTarget);
@@ -140,9 +189,13 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
             <Typography variant='caption' color='text.secondary'>{d.start} - {d.end}</Typography>
           </Box>
           <Box sx={{ width:120, display:'flex', alignItems:'center', justifyContent:'center', gap:1 }}>
-            <Box sx={numberButtonSx} onClick={() => onChangeNights?.(d.id, -1)}><RemoveIcon fontSize='small' /></Box>
+            <Box sx={(theme)=> ({ ...numberButtonBase(theme), opacity: d.nights<=1? .4:1, pointerEvents: d.nights<=1? 'none':'auto' })} onClick={() => onChangeNights?.(d.id, -1)}><RemoveIcon fontSize='small' /></Box>
             <Typography fontSize={14} fontWeight={600}>{d.nights}</Typography>
-            <Box sx={numberButtonSx} onClick={() => onChangeNights?.(d.id, 1)}><AddIcon fontSize='small' /></Box>
+            <Tooltip title={maxed ? 'Total nights limit reached' : 'Add night'}>
+              <span>
+                <Box sx={(theme)=> ({ ...numberButtonBase(theme), opacity: maxed? .4:1, pointerEvents: maxed? 'none':'auto' })} onClick={() => onChangeNights?.(d.id, 1)}><AddIcon fontSize='small' /></Box>
+              </span>
+            </Tooltip>
           </Box>
           <Box sx={{ width:110, display:'flex', alignItems:'center', justifyContent:'center' }}>
             <Tooltip title='Sleeping'><HotelIcon fontSize='small' color='disabled' /></Tooltip>
@@ -194,10 +247,10 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
 
       {/* Add destination row */}
       <Box sx={{ px: 3, py: 2, display: 'flex', alignItems: 'center', gap: 2, position: 'relative' }}>
-        {adding ? (
+  {adding ? (
           <>
             <CalendarMonthIcon fontSize='small' color='action' />
-            <Box component='form' onSubmit={(e)=>{ e.preventDefault(); if(newName.trim()){ onAddDestination?.(newName.trim()); setNewName(''); setAdding(false);} }} sx={{ flex:1, display:'flex', alignItems:'center', gap:1 }}>
+            <Box component='form' onSubmit={(e)=>{ e.preventDefault(); if(newName.trim() && !maxed){ onAddDestination?.(newName.trim()); setNewName(''); setAdding(false); setPredictions([]);} }} sx={{ flex:1, display:'flex', alignItems:'center', gap:1, position:'relative' }}>
               <input
                 autoFocus
                 value={newName}
@@ -205,14 +258,25 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
                 placeholder='Enter destination name'
                 style={{ flex:1, padding:'6px 10px', borderRadius:8, border:'1px solid var(--mui-palette-divider)', background:'transparent', color:'inherit', outline:'none', fontSize:14 }}
               />
-              <Button size='small' type='submit' variant='contained' sx={{ textTransform:'none', borderRadius:2 }}>Add</Button>
+              <Button size='small' type='submit' variant='contained' disabled={maxed} sx={{ textTransform:'none', borderRadius:2 }}>{maxed? 'Full' : 'Add'}</Button>
               <Button size='small' variant='text' onClick={()=>{ setAdding(false); setNewName(''); }}>Cancel</Button>
+              {adding && predictions.length>0 && (
+                <Paper elevation={6} sx={{ position:'absolute', top:'100%', left:0, right:0, mt:1, maxHeight:280, overflowY:'auto', borderRadius:2, zIndex:5 }}>
+                  {predictions.map(p => (
+                    <Box key={p.place_id} onClick={()=>selectPrediction(p)} sx={(theme)=>({ px:1.5, py:1, cursor:'pointer', borderBottom:`1px solid ${theme.palette.divider}`, '&:hover':{ background: theme.palette.action.hover }, fontSize:13, display:'flex', flexDirection:'column', gap:.25 })}>
+                      <span style={{ fontWeight:600 }}>{p.structured_formatting?.main_text || p.description}</span>
+                      <span style={{ opacity:.7 }}>{p.structured_formatting?.secondary_text}</span>
+                    </Box>
+                  ))}
+                  {loadingPred && <Box sx={{ px:1.5, py:1, fontSize:12, opacity:.7 }}>Searching...</Box>}
+                </Paper>
+              )}
             </Box>
           </>
         ) : (
           <>
             <CalendarMonthIcon fontSize='small' color='action' />
-            <Typography variant='body2' color='text.secondary' onClick={()=>setAdding(true)} sx={{ cursor:'text', flex:1 }}>Add new destination...</Typography>
+            <Typography variant='body2' color='text.secondary' onClick={()=>{ if(!maxed) setAdding(true); }} sx={{ cursor: maxed? 'not-allowed':'text', flex:1, opacity: maxed? .6:1 }}>{maxed? 'Night limit reached' : 'Add new destination...'}</Typography>
             <Button size='small' variant='outlined' startIcon={<ExploreIcon />} sx={{ textTransform: 'none', borderRadius: 2 }}>Discover</Button>
             <Button size='small' variant='outlined' startIcon={<MapIcon />} sx={{ textTransform: 'none', borderRadius: 2 }}>Collection</Button>
           </>

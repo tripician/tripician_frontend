@@ -46,6 +46,7 @@ const MapPanel: React.FC<MapPanelProps> = ({ widthFraction = 0.40 }) => {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstance = useRef<any | null>(null);
   const markersRef = useRef<Record<string, any>>({});
+  const routeLineRef = useRef<any | null>(null);
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
@@ -136,12 +137,11 @@ const MapPanel: React.FC<MapPanelProps> = ({ widthFraction = 0.40 }) => {
     }
   }, [theme.palette.mode]);
 
-  // Sync markers
+  // Sync markers with numbering
   useEffect(() => {
-  const g = (window as any).google as any | undefined;
+    const g = (window as any).google as any | undefined;
     if (!g || !mapInstance.current) return;
 
-    // Remove markers no longer present
     Object.keys(markersRef.current).forEach(id => {
       if (!destinations.find(d => d.id === id)) {
         markersRef.current[id].setMap(null);
@@ -149,29 +149,65 @@ const MapPanel: React.FC<MapPanelProps> = ({ widthFraction = 0.40 }) => {
       }
     });
 
-    destinations.forEach(d => {
+    destinations.forEach((d, idx) => {
       if (d.lat != null && d.lng != null) {
+        const svg = {
+          path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z',
+          fillColor: theme.palette.primary.main,
+          fillOpacity: 0.95,
+          strokeWeight: 1,
+          strokeColor: theme.palette.mode==='dark'? '#fff':'#222',
+          scale: 1.1,
+          anchor: new g.maps.Point(12,22)
+        } as any;
         if (!markersRef.current[d.id]) {
           markersRef.current[d.id] = new g.maps.Marker({
             position: { lat: d.lat, lng: d.lng },
             map: mapInstance.current!,
             title: d.name,
-            icon: { url: 'https://maps.google.com/mapfiles/ms/icons/red-dot.png' }
+            icon: svg,
+            label: { text: String(idx+1), color: theme.palette.getContrastText(theme.palette.primary.main), fontSize: '12px', fontWeight: '600' }
           });
         } else {
           markersRef.current[d.id].setPosition({ lat: d.lat, lng: d.lng });
+          markersRef.current[d.id].setLabel({ text: String(idx+1), color: theme.palette.getContrastText(theme.palette.primary.main), fontSize: '12px', fontWeight: '600' });
         }
       }
     });
 
-    // Fit bounds if markers exist
     const withCoords = destinations.filter(d => d.lat != null && d.lng != null);
-    if (withCoords.length > 0) {
+    if (withCoords.length > 0 && !routeLineRef.current) {
       const bounds = new g.maps.LatLngBounds();
       withCoords.forEach(d => bounds.extend({ lat: d.lat!, lng: d.lng! }));
       mapInstance.current.fitBounds(bounds);
     }
-  }, [destinations]);
+  }, [destinations, theme.palette.primary.main, theme.palette.mode]);
+
+  // Listen for route updates to draw polyline
+  useEffect(() => {
+    const handler = (e: any) => {
+      const ids: string[] = e.detail?.ids || [];
+      const g = (window as any).google;
+      if (!g || !mapInstance.current) return;
+      const ordered = ids.map(id => destinations.find(d=> d.id===id)).filter(d=> d && d.lat!=null && d.lng!=null) as any[];
+      if (ordered.length < 2) return;
+      const path = ordered.map(d=> ({ lat: d.lat, lng: d.lng }));
+      if (routeLineRef.current) routeLineRef.current.setMap(null);
+      routeLineRef.current = new g.maps.Polyline({
+        path,
+        strokeColor: theme.palette.primary.main,
+        strokeOpacity: 0.85,
+        strokeWeight: 4,
+        geodesic: true
+      });
+      routeLineRef.current.setMap(mapInstance.current);
+      const bounds = new g.maps.LatLngBounds();
+      path.forEach(p=> bounds.extend(p));
+      mapInstance.current.fitBounds(bounds);
+    };
+    window.addEventListener('tripician:route-updated', handler as any);
+    return ()=> window.removeEventListener('tripician:route-updated', handler as any);
+  }, [destinations, theme.palette.primary.main]);
 
   // Add marker by clicking map when in adding mode
   useEffect(() => {
