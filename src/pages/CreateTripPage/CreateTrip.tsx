@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Tabs, Tab, Typography, Divider, Button, Chip, Menu, MenuItem, Avatar, CircularProgress, Tooltip, IconButton } from '@mui/material';
+import { Box, Tabs, Tab, Typography, Divider, Button, Chip, Menu, MenuItem, Avatar, Tooltip, IconButton, CircularProgress } from '@mui/material';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import { setCurrency as setCurrencyAction, updateDestinationNights, setTransport, addDestination, removeDestination, reorderChain } from '../../store/plannerSlice';
@@ -200,7 +200,7 @@ const CreateTrip: React.FC = () => {
 					})}
 				>
 					{/* Header row redesigned */}
-					<Box sx={{ p:3, display:'flex', alignItems:'center', gap:3, flexWrap:'wrap' }}>
+						<Box sx={{ p:2.25, display:'flex', alignItems:'center', gap:2, flexWrap:'wrap', borderBottom:(theme)=>`1px solid ${theme.palette.divider}` }}>
 						<Box sx={{ display:'flex', flexDirection:'column', gap:1 }}>
 							<Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
 								<Typography variant='h6' fontWeight={600} noWrap>Trip Title</Typography>
@@ -208,29 +208,31 @@ const CreateTrip: React.FC = () => {
 							</Box>
 							<Typography variant='body2' color='text.secondary'>11 September - 19 September</Typography>
 						</Box>
-						<Box sx={{ ml:'auto', display:'flex', alignItems:'center', gap:3, flexWrap:'wrap' }}>
-							<Box sx={{ display:'flex', flexDirection:'column' }}>
-								<Typography variant='caption' color='text.secondary'>Budget ({currency})</Typography>
-								<Box sx={{ display:'flex', alignItems:'center', gap:.5 }}>
-									<Typography variant='body2' fontWeight={600}>0.00</Typography>
-									<Button size='small' variant='text' onClick={openCurrency} endIcon={<ExpandMoreIcon fontSize='small' />} sx={{ textTransform:'none', px:1, minWidth:0 }}>{currency}</Button>
-								</Box>
-							</Box>
-							<Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
-								<Box sx={{ position:'relative', width:52, height:52 }}>
-									<CircularProgress variant='determinate' value={Math.min(100, (totalNights/targetNights)*100)} size={52} thickness={4} />
-									<Box sx={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-										<Typography variant='caption' fontWeight={600}>{totalNights}/{targetNights}</Typography>
+							{/* Header metrics (budget + nights) */}
+							<Box sx={{ ml:'auto', display:'flex', alignItems:'center', gap:3, flexWrap:'wrap' }}>
+								<Box sx={{ display:'flex', flexDirection:'column' }}>
+									<Typography variant='caption' color='text.secondary'>Budget ({currency})</Typography>
+									<Box sx={{ display:'flex', alignItems:'center', gap:.5 }}>
+										<Typography variant='body2' fontWeight={600}>0.00</Typography>
+										<Button size='small' variant='text' onClick={openCurrency} endIcon={<ExpandMoreIcon fontSize='small' />} sx={{ textTransform:'none', px:1, minWidth:0 }}>{currency}</Button>
 									</Box>
 								</Box>
-								<Box sx={{ display:'flex', flexDirection:'column' }}>
-									<Typography variant='caption' color='text.secondary'>Nights planned</Typography>
-									<Typography variant='body2' fontWeight={600}>{totalNights} / {targetNights}</Typography>
+								<Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
+									<Box sx={{ position:'relative', width:48, height:48 }}>
+										<CircularProgress
+											variant='determinate'
+											value={targetNights ? Math.min(100, (totalNights/targetNights)*100) : 0}
+											size={48}
+											thickness={4}
+										/>
+										<Box sx={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+											<Typography variant='caption' fontWeight={600}>{totalNights}/{targetNights}</Typography>
+										</Box>
+									</Box>
+									<Typography variant='body2' fontWeight={600}>Nights</Typography>
 								</Box>
 							</Box>
-							<Button size='small' variant='outlined' onClick={()=> setMapCollapsed(c=> !c)} sx={{ minWidth:0, px:1 }} startIcon={mapCollapsed ? <OpenInFullIcon fontSize='small' /> : <CloseFullscreenIcon fontSize='small' />}>{mapCollapsed? 'Show map' : 'Hide map'}</Button>
 						</Box>
-					</Box>
 					<Menu anchorEl={currencyAnchor} open={Boolean(currencyAnchor)} onClose={closeCurrency} elevation={3}>
 						{(['EUR','USD','GBP'] as const).map(c => (
 							<MenuItem key={c} selected={c===currency} onClick={()=>selectCurrency(c)}>
@@ -241,28 +243,33 @@ const CreateTrip: React.FC = () => {
 					</Menu>
 					<Divider />
 					{/* Tabs row with action button on right */}
-								<Box sx={{ display:'flex', alignItems:'center', px:2 }}>
-									<Tabs value={tab} onChange={handleTabChange} variant='scrollable' allowScrollButtonsMobile sx={{ flex:1 }}>
+								<Box sx={{ display:'flex', alignItems:'center', px:2, gap:1, py:1 }}>
+									<Tabs value={tab} onChange={handleTabChange} variant='scrollable' allowScrollButtonsMobile sx={{ flex:1, minHeight:44, '& .MuiTab-root':{ minHeight:44 } }}>
 										<Tab label='Destinations' />
 										<Tab label='Day by day' />
 										<Tab label='Comments' />
 									</Tabs>
-									<Tooltip
-										arrow
-										placement='top'
-										title={geocodedCount < 3 ? 'Add at least 3 destinations with coordinates to optimize' : optimizingRoute ? 'Optimizing route...' : 'Optimize route (keeps first fixed)'}
-									>
-										<span>
-											<IconButton
-												aria-label='Optimize route'
-												onClick={handleOptimizeRouteClick}
-												disabled={geocodedCount < 3 || optimizingRoute}
-												sx={{ ml:1, bgcolor:'primary.main', color:'primary.contrastText', borderRadius:2, '&:hover':{ bgcolor:'primary.dark' }, '&.Mui-disabled':{ bgcolor:'action.disabledBackground', color:'text.disabled' } }}
-											>
-												{optimizingRoute ? <CircularProgress size={20} color='inherit' thickness={5} /> : <AltRouteIcon fontSize='small' />}
-											</IconButton>
-										</span>
+									<Tooltip title={mapCollapsed? 'Show map':'Hide map'}>
+										<IconButton size='small' onClick={()=> setMapCollapsed(c=> !c)} sx={{ bgcolor:'background.paper', border:(theme)=>`1px solid ${theme.palette.divider}`, '&:hover':{ bgcolor:'action.hover' }, mr:.5 }}>
+											{mapCollapsed ? <OpenInFullIcon fontSize='small' /> : <CloseFullscreenIcon fontSize='small' />}
+										</IconButton>
 									</Tooltip>
+									<Tooltip
+											arrow
+											placement='top'
+											title={geocodedCount < 3 ? 'Add at least 3 destinations with coordinates to optimize' : optimizingRoute ? 'Optimizing route...' : 'Optimize route (keeps first fixed)'}
+										>
+											<span>
+												<IconButton
+													aria-label='Optimize route'
+													onClick={handleOptimizeRouteClick}
+													disabled={geocodedCount < 3 || optimizingRoute}
+													sx={{ ml:.5, bgcolor:'primary.main', color:'primary.contrastText', borderRadius:2, '&:hover':{ bgcolor:'primary.dark' }, '&.Mui-disabled':{ bgcolor:'action.disabledBackground', color:'text.disabled' } }}
+												>
+													{optimizingRoute ? <CircularProgress size={18} color='inherit' thickness={5} /> : <AltRouteIcon fontSize='small' />}
+												</IconButton>
+											</span>
+										</Tooltip>
 								</Box>
 					<Divider />
 					{/* Panel Content */}
