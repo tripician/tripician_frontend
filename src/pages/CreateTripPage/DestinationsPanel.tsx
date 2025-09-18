@@ -8,12 +8,11 @@ import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
 import DirectionsRailwayIcon from '@mui/icons-material/DirectionsRailway';
 import DirectionsCarIcon from '@mui/icons-material/DirectionsCar';
 import DirectionsBoatIcon from '@mui/icons-material/DirectionsBoat';
+import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk';
+import DirectionsBikeIcon from '@mui/icons-material/DirectionsBike';
 import BlockIcon from '@mui/icons-material/Block';
-import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import ExploreIcon from '@mui/icons-material/Explore';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import RestaurantIcon from '@mui/icons-material/Restaurant';
-import DescriptionIcon from '@mui/icons-material/Description';
 import MapIcon from '@mui/icons-material/Map';
 import type { SxProps, Theme } from '@mui/material/styles';
 
@@ -80,7 +79,9 @@ const transportOptions: { id: string; label: string; icon: React.ReactNode }[] =
   { id: 'Train', label: 'Train', icon: <DirectionsRailwayIcon fontSize='small' /> },
   { id: 'Bus', label: 'Bus', icon: <DirectionsBusIcon fontSize='small' /> },
   { id: 'Car', label: 'Car', icon: <DirectionsCarIcon fontSize='small' /> },
-  { id: 'Ferry', label: 'Ferry', icon: <DirectionsBoatIcon fontSize='small' /> }
+  { id: 'Ferry', label: 'Ferry', icon: <DirectionsBoatIcon fontSize='small' /> },
+  { id: 'Walk', label: 'Walk', icon: <DirectionsWalkIcon fontSize='small' /> },
+  { id: 'Bike', label: 'Bike', icon: <DirectionsBikeIcon fontSize='small' /> }
 ];
 
 const getTransportIcon = (mode?: string) => {
@@ -91,6 +92,44 @@ const getTransportIcon = (mode?: string) => {
 const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onChangeNights, onChangeTransport, onAddDestination, onRemoveDestination, maxed }) => {
   const [menuAnchor, setMenuAnchor] = React.useState<null | HTMLElement>(null);
   const [activeId, setActiveId] = React.useState<string | null>(null);
+  // Refs for positioning transport pill under "Nights" column
+  const nightsRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
+  const panelRef = React.useRef<HTMLDivElement | null>(null);
+  const [pillCenters, setPillCenters] = React.useState<Record<string, number>>({}); // px from left edge of panel
+
+  React.useLayoutEffect(() => {
+    if (!panelRef.current) return;
+    const panelLeft = panelRef.current.getBoundingClientRect().left;
+    const nextCenters: Record<string, number> = {};
+    destinations.forEach(d => {
+      const el = nightsRefs.current[d.id];
+      if (el) {
+        const rect = el.getBoundingClientRect();
+        nextCenters[d.id] = rect.left + rect.width / 2 - panelLeft; // center relative to panel
+      }
+    });
+    setPillCenters(nextCenters);
+  }, [destinations]);
+
+  React.useEffect(() => {
+    const handler = () => {
+      if (!panelRef.current) return;
+      const panelLeft = panelRef.current.getBoundingClientRect().left;
+      setPillCenters(prev => {
+        const updated: Record<string, number> = { ...prev };
+        destinations.forEach(d => {
+          const el = nightsRefs.current[d.id];
+          if (el) {
+            const rect = el.getBoundingClientRect();
+            updated[d.id] = rect.left + rect.width / 2 - panelLeft;
+          }
+        });
+        return updated;
+      });
+    };
+    window.addEventListener('resize', handler);
+    return () => window.removeEventListener('resize', handler);
+  }, [destinations]);
   const [adding, setAdding] = React.useState(false);
   const [newName, setNewName] = React.useState('');
   const [predictions, setPredictions] = React.useState<any[]>([]);
@@ -152,7 +191,7 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
     closeMenu();
   };
   return (
-    <Box>
+  <Box ref={panelRef}>
       {/* Heading Row */}
       <Box sx={(theme) => ({
         display: 'flex',
@@ -170,74 +209,85 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
         <Box sx={{ width: 36 }} />
         <Box sx={{ flex: 1, minWidth: 0 }}>{headerCell('Destination')}</Box>
         <Box sx={{ width: 120, display:'flex', justifyContent:'center' }}>{headerCell('Nights')}</Box>
-    <Box sx={{ width: 110, textAlign:'center' }}>{headerCell('Discover')}</Box>
-  <Box sx={{ width: 90, textAlign:'center' }}>{headerCell('Foods')}</Box>
-  <Box sx={{ width: 90, textAlign:'center' }}>{headerCell('Docs')}</Box>
-  <Box sx={{ width: 110, textAlign:'center' }}>{headerCell('Transport')}</Box>
+        <Box sx={{ width: 110, textAlign:'center' }}>{headerCell('Discover')}</Box>
+        <Box sx={{ width: 90, textAlign:'center' }}>{headerCell('Foods')}</Box>
+        <Box sx={{ width: 90, textAlign:'center' }}>{headerCell('Docs')}</Box>
       </Box>
 
-      {/* Rows */}
+      {/* Rows + transport connector rows */}
       {destinations.map((d, idx) => (
-        <Box key={d.id} sx={(theme) => ({ display: 'flex', alignItems: 'stretch', px: 3, py: 2, gap: 2, borderBottom: `1px solid ${theme.palette.divider}`, ...rowHover(theme), position:'relative' })}>
-          <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 36 }}>
-            <Box sx={badgeSx}>{idx + 1}</Box>
-          </Box>
-          <Box sx={{ flex: 1, minWidth: 0 }}>
-            <Typography fontWeight={600} fontSize={15} noWrap>{d.name}</Typography>
-            <Typography variant='caption' color='text.secondary'>{d.start} - {d.end}</Typography>
-          </Box>
-          <Box sx={{ width:120, display:'flex', alignItems:'center', justifyContent:'center', gap:1 }}>
-            <Box sx={(theme)=> ({ ...numberButtonBase(theme), opacity: d.nights<=1? .4:1, pointerEvents: d.nights<=1? 'none':'auto' })} onClick={() => onChangeNights?.(d.id, -1)}><RemoveIcon fontSize='small' /></Box>
-            <Typography fontSize={14} fontWeight={600}>{d.nights}</Typography>
-            <Tooltip title={maxed ? 'Total nights limit reached' : 'Add night'}>
-              <span>
-                <Box sx={(theme)=> ({ ...numberButtonBase(theme), opacity: maxed? .4:1, pointerEvents: maxed? 'none':'auto' })} onClick={() => onChangeNights?.(d.id, 1)}><AddIcon fontSize='small' /></Box>
-              </span>
-            </Tooltip>
-          </Box>
-          <Box sx={{ width:110, display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <Tooltip title='Discover'><ExploreIcon fontSize='small' color='disabled' /></Tooltip>
-          </Box>
-          <Box sx={{ width:90, display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <Tooltip title='Foods'><RestaurantIcon fontSize='small' color='disabled' /></Tooltip>
-          </Box>
-          <Box sx={{ width:90, display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <Tooltip title='Docs'><DescriptionIcon fontSize='small' color='disabled' /></Tooltip>
-          </Box>
-          <Box sx={{ width:110, display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <Tooltip title='Transport mode'>
+        <React.Fragment key={d.id}>
+          <Box sx={(theme) => ({ display: 'flex', alignItems: 'stretch', px: 3, py: 2, gap: 2, borderBottom: `1px solid ${theme.palette.divider}`, ...rowHover(theme), position:'relative' })}>
+            <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', width: 36 }}>
+              <Box sx={badgeSx}>{idx + 1}</Box>
+            </Box>
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              <Typography fontWeight={600} fontSize={15} noWrap>{d.name}</Typography>
+              <Typography variant='caption' color='text.secondary'>{d.start} - {d.end}</Typography>
+            </Box>
+            <Box sx={{ width:120, display:'flex', alignItems:'center', justifyContent:'center', gap:1 }} ref={(el: HTMLDivElement | null) => { nightsRefs.current[d.id] = el; }}>
+              <Box sx={(theme)=> ({ ...numberButtonBase(theme), opacity: d.nights<=1? .4:1, pointerEvents: d.nights<=1? 'none':'auto' })} onClick={() => onChangeNights?.(d.id, -1)}><RemoveIcon fontSize='small' /></Box>
+              <Typography fontSize={14} fontWeight={600}>{d.nights}</Typography>
+              <Tooltip title={maxed ? 'Total nights limit reached' : 'Add night'}>
+                <span>
+                  <Box sx={(theme)=> ({ ...numberButtonBase(theme), opacity: maxed? .4:1, pointerEvents: maxed? 'none':'auto' })} onClick={() => onChangeNights?.(d.id, 1)}><AddIcon fontSize='small' /></Box>
+                </span>
+              </Tooltip>
+            </Box>
+            <Box sx={{ width:110, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <Tooltip title='Discover'><ExploreIcon fontSize='small' color='disabled' /></Tooltip>
+            </Box>
+            <Box sx={{ width:90, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <Tooltip title='Foods'><AddIcon fontSize='small' color='disabled' /></Tooltip>
+            </Box>
+            <Box sx={{ width:90, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <Tooltip title='Docs'><AddIcon fontSize='small' color='disabled' /></Tooltip>
+            </Box>
+            {onRemoveDestination && destinations.length > 1 && (
               <Box
-                onClick={(e) => openMenu(e, d.id)}
-                sx={(theme) => ({
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: 4,
-                  px: 1,
-                  py: .5,
-                  borderRadius: 2,
-                  cursor: 'pointer',
-                  border: `1px solid ${theme.palette.divider}`,
-                  minWidth: 48,
-                  justifyContent:'center',
-                  background: theme.palette.mode==='dark'? theme.palette.grey[900] : theme.palette.grey[50],
-                  transition:'background .2s,border-color .2s',
-                  '&:hover': { backgroundColor: theme.palette.action.hover }
-                })}
+                onClick={() => onRemoveDestination(d.id)}
+                sx={(theme)=>({ position:'absolute', right:8, top:8, width:28, height:28, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', background: theme.palette.background.paper, border:`1px solid ${theme.palette.divider}`, opacity:0, transition:'opacity .2s', '.MuiBox-root:hover &':{opacity:1}, '&:hover':{ background: theme.palette.action.hover } })}
               >
-                {getTransportIcon(d.transport)}
-                <KeyboardArrowDownIcon fontSize='small' sx={{ opacity: .5 }} />
+                <DeleteOutlineIcon fontSize='small' />
               </Box>
-            </Tooltip>
+            )}
           </Box>
-          {onRemoveDestination && destinations.length > 1 && (
-            <Box
-              onClick={() => onRemoveDestination(d.id)}
-              sx={(theme)=>({ position:'absolute', right:8, top:8, width:28, height:28, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', background: theme.palette.background.paper, border:`1px solid ${theme.palette.divider}`, opacity:0, transition:'opacity .2s', '.MuiBox-root:hover &':{opacity:1}, '&:hover':{ background: theme.palette.action.hover } })}
-            >
-              <DeleteOutlineIcon fontSize='small' />
+          {idx < destinations.length - 1 && (
+            <Box sx={{ position:'relative', px:3, height:0, background:'transparent' }}>
+              <Box sx={(theme)=>({ position:'absolute', left:0, right:0, top:0, height:1, background: theme.palette.divider, opacity:.3 })} />
+              <Tooltip title='Transport to next destination'>
+                <Box
+                  role='button'
+                  aria-label={`Transport ${d.transport ? d.transport : 'select'} from ${d.name} to next destination`}
+                  onClick={(e) => openMenu(e, d.id)}
+                  sx={(theme) => ({
+                    position:'absolute',
+                    top:0,
+                    left: (pillCenters[d.id] ?? 0),
+                    transform:'translate(-50%, -50%)',
+                    zIndex:1,
+                    display:'flex',
+                    alignItems:'center',
+                    gap:.4,
+                    padding:'2px 8px',
+                    borderRadius:999,
+                    cursor:'pointer',
+                    border:`1px solid ${theme.palette.divider}`,
+                    background: theme.palette.mode==='dark'? theme.palette.background.paper : theme.palette.common.white,
+                    boxShadow: theme.palette.mode==='dark'? '0 0 0 1px rgba(255,255,255,0.05)' : '0 1px 2px rgba(0,0,0,0.08)',
+                    transition:'background .2s,border-color .2s',
+                    '&:hover': { backgroundColor: theme.palette.action.hover }
+                  })}
+                >
+                  {getTransportIcon(d.transport)}
+                  <Typography variant='caption' sx={{ fontWeight:600, fontSize:11, opacity:d.transport?1:.65 }}>
+                    {d.transport || 'None'}
+                  </Typography>
+                </Box>
+              </Tooltip>
             </Box>
           )}
-        </Box>
+        </React.Fragment>
       ))}
 
       {/* Add destination row */}
@@ -272,8 +322,8 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
           <>
             <CalendarMonthIcon fontSize='small' color='action' />
             <Typography variant='body2' color='text.secondary' onClick={()=>{ if(!maxed) setAdding(true); }} sx={{ cursor: maxed? 'not-allowed':'text', flex:1, opacity: maxed? .6:1 }}>{maxed? 'Night limit reached' : 'Add new destination...'}</Typography>
-            <Button size='small' variant='outlined' startIcon={<ExploreIcon />} sx={{ textTransform: 'none', borderRadius: 2 }}>Discover</Button>
-            <Button size='small' variant='outlined' startIcon={<MapIcon />} sx={{ textTransform: 'none', borderRadius: 2 }}>Collection</Button>
+      <Button size='small' variant='outlined' startIcon={<ExploreIcon />} sx={{ textTransform: 'none', borderRadius: 2 }}>Discover</Button>
+      <Button size='small' variant='outlined' startIcon={<MapIcon />} sx={{ textTransform: 'none', borderRadius: 2 }}>Collection</Button>
           </>
         )}
         {/* Lean shadow below input area */}
