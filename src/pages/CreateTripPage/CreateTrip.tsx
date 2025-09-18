@@ -1,296 +1,173 @@
+// Clean rebuilt CreateTrip component after corruption removal.
 import React from 'react';
-import { Box, Tabs, Tab, Typography, Divider, Button, Chip, Menu, MenuItem, Avatar, Tooltip, IconButton, CircularProgress } from '@mui/material';
+import { Box, Tabs, Tab, Typography, Divider, Button, Chip, Menu, MenuItem, Avatar, Tooltip, IconButton, CircularProgress, InputBase } from '@mui/material';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import { setCurrency as setCurrencyAction, updateDestinationNights, setTransport, addDestination, removeDestination, reorderChain } from '../../store/plannerSlice';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
-// Map removed per updated requirements
-import TopBar from '../PageLayout/CommonLayouts/TopBar';
-import { useTheme } from '@mui/material/styles';
 import CreateTripNav from './CreateTripNav';
 import DestinationsPanel, { type DestinationRow } from './DestinationsPanel';
-import DayByDayPanel from './DayByDayPanel';
+import ExpensesPanel from './ExpensesPanel';
+import ImportantNotesEditor from './ImportantNotesEditor';
 import TripComments from './TripComments';
 import ChatAssistant from '../../components/CommonComponents/ChatAssistant';
 import MapPanel from './MapPanel';
 import CloseFullscreenIcon from '@mui/icons-material/CloseFullscreen';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
-
-// Theme-aware logo: use black variant in light mode, white variant in dark mode, with fallbacks
-const PlannerLogo: React.FC = () => {
-    const theme = useTheme();
-    const isDark = theme.palette.mode === 'dark';
-    const whiteLogo = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_URL || import.meta.env.VITE_TRIPICIAN_LOGO_URL;
-    const blackLogo = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_BLACK_URL || whiteLogo;
-    const logoSrc = isDark ? whiteLogo : blackLogo;
-
-    return (
-    	<Box
-    		sx={{
-    			display: 'flex',
-    			alignItems: 'center',
-    			cursor: 'pointer',
-                mt: 0.5,
-    			maxHeight: 48,
-    			'&:hover': { opacity: 0.9 },
-    			transition: 'opacity .25s ease'
-    		}}
-    		onClick={() => window.location.href = '/home'}
-    	>
-    		<img
-    			src={logoSrc}
-    			alt="Tripician Logo"
-    			style={{ height: 40, width: 'auto', display: 'block' }}
-    		/>
-    	</Box>
-    );
-};
+import TopBar from '../PageLayout/CommonLayouts/TopBar';
+import EditIcon from '@mui/icons-material/Edit';
+import CheckIcon from '@mui/icons-material/Check';
 
 const CreateTrip: React.FC = () => {
-	const dispatch = useDispatch<AppDispatch>();
-	const [tab, setTab] = React.useState(0);
-	const [currencyAnchor, setCurrencyAnchor] = React.useState<null | HTMLElement>(null);
+  const dispatch = useDispatch<AppDispatch>();
+  const planner = useSelector((s: RootState) => s.planner);
+  const currency = planner.currency;
+  const targetNights = planner.targetNights;
+  const totalNights = planner.destinations.reduce((a,c)=>a+c.nights,0);
 
-	const planner = useSelector((s: RootState) => s.planner);
-	const currency = planner.currency;
-	const targetNights = planner.targetNights;
+  const [tab, setTab] = React.useState(0);
+  const [isDraft, setIsDraft] = React.useState(true);
+  const [title, setTitle] = React.useState('Untitled Trip');
+  const [editingTitle, setEditingTitle] = React.useState(false);
+  const [currencyAnchor, setCurrencyAnchor] = React.useState<null | HTMLElement>(null);
+  const [privacyAnchor, setPrivacyAnchor] = React.useState<null | HTMLElement>(null);
+  const [privacy, setPrivacy] = React.useState<'Private'|'Trip Members'|'My Followers'|'Everyone'>('Private');
+  const [optimizingRoute, setOptimizingRoute] = React.useState(false);
+  const [mapCollapsed, setMapCollapsed] = React.useState(false);
+  const [mapWidth, setMapWidth] = React.useState(0.40);
+  const containerRef = React.useRef<HTMLDivElement|null>(null);
+  const resizingRef = React.useRef(false);
 
-	// Route optimization UI state
-	const [optimizingRoute, setOptimizingRoute] = React.useState(false);
-	const geocodedCount = React.useMemo(() => planner.destinations.filter(d=> d.lat!=null && d.lng!=null).length, [planner.destinations]);
+  const geocodedCount = React.useMemo(()=> planner.destinations.filter(d=> d.lat!=null && d.lng!=null).length, [planner.destinations]);
 
-	// Map planner destinations to panel shape (format dates nicely)
-	const dateFormatter = React.useCallback((iso: string) => {
-		try {
-			const d = new Date(iso + 'T00:00:00');
-			return d.toLocaleDateString(undefined, { weekday: 'short', day: '2-digit', month: 'short' });
-		} catch { return iso; }
-	}, []);
+  const dateFormatter = React.useCallback((iso: string) => {
+    try { const d = new Date(iso + 'T00:00:00'); return d.toLocaleDateString(undefined, { weekday:'short', day:'2-digit', month:'short' }); } catch { return iso; }
+  }, []);
 
-	const panelDestinations: DestinationRow[] = React.useMemo(() => planner.destinations.map(d => ({
-		id: d.id,
-		name: d.name,
-		start: dateFormatter(d.startDate),
-		end: dateFormatter(d.endDate),
-		nights: d.nights,
-		transport: d.transport || '',
-		todo: ''
-	})), [planner.destinations, dateFormatter]);
+  const panelDestinations: DestinationRow[] = React.useMemo(()=> planner.destinations.map(d=> ({
+    id:d.id, name:d.name, start:dateFormatter(d.startDate), end:dateFormatter(d.endDate), nights:d.nights, transport:d.transport||'', todo:''
+  })), [planner.destinations, dateFormatter]);
 
-	const totalNights = planner.destinations.reduce((a,c)=>a+c.nights,0);
+  const openCurrency = (e: React.MouseEvent<HTMLButtonElement>) => setCurrencyAnchor(e.currentTarget);
+  const closeCurrency = () => setCurrencyAnchor(null);
+  const selectCurrency = (c: 'EUR'|'USD'|'GBP') => { dispatch(setCurrencyAction(c)); closeCurrency(); };
+  const openPrivacy = (e: React.MouseEvent<HTMLButtonElement>) => setPrivacyAnchor(e.currentTarget);
+  const closePrivacy = () => setPrivacyAnchor(null);
+  const selectPrivacy = (p:'Private'|'Trip Members'|'My Followers'|'Everyone') => { setPrivacy(p); closePrivacy(); };
+  const handleTabChange = (_:any,v:number)=> setTab(v);
+  const handleChangeNights = (id:string, delta:number)=> dispatch(updateDestinationNights({ id, delta }));
+  const handleChangeTransport = (id:string, mode:string)=> dispatch(setTransport({ id, transport: mode }));
+  const handleAddDestination = (name:string, coords?:{lat:number; lng:number})=> dispatch(addDestination({ name, lat:coords?.lat, lng:coords?.lng }));
+  const handleRemoveDestination = (id:string)=> dispatch(removeDestination(id));
 
-	// Map panel layout state
-	const [mapCollapsed, setMapCollapsed] = React.useState(false);
-	const [mapWidth, setMapWidth] = React.useState(0.40); // 40% initial fraction
-	const containerRef = React.useRef<HTMLDivElement|null>(null);
-	const resizingRef = React.useRef(false);
-	const startResize = (e: React.MouseEvent) => {
-		if (mapCollapsed) return;
-		resizingRef.current = true;
-		document.body.style.cursor = 'col-resize';
-		e.preventDefault();
-	};
-	React.useEffect(()=>{
-		const handleMove = (e: MouseEvent) => {
-			if(!resizingRef.current || !containerRef.current) return;
-			const rect = containerRef.current.getBoundingClientRect();
-			const leftWidth = e.clientX - rect.left;
-			const ratioLeft = Math.min(0.80, Math.max(0.20, leftWidth / rect.width));
-			setMapWidth(1 - ratioLeft);
-		};
-		const handleUp = () => { if(resizingRef.current){ resizingRef.current=false; document.body.style.cursor=''; }};
-		window.addEventListener('mousemove', handleMove);
-		window.addEventListener('mouseup', handleUp);
-		return ()=>{ window.removeEventListener('mousemove', handleMove); window.removeEventListener('mouseup', handleUp); };
-	}, []);
-	const openCurrency = (e: React.MouseEvent<HTMLButtonElement>) => setCurrencyAnchor(e.currentTarget);
-	const closeCurrency = () => setCurrencyAnchor(null);
-	const selectCurrency = (c: 'EUR'|'USD'|'GBP') => { dispatch(setCurrencyAction(c)); closeCurrency(); };
-	const handleTabChange = (_: any, value: number) => setTab(value);
-	const handleChangeNights = (id: string, delta: number) => {
-		dispatch(updateDestinationNights({ id, delta }));
-	};
-	const handleChangeTransport = (id: string, mode: string) => {
-		dispatch(setTransport({ id, transport: mode }));
-	};
-	const handleAddDestination = (name: string, coords?: { lat: number; lng: number }) => {
-		dispatch(addDestination({ name, lat: coords?.lat, lng: coords?.lng }));
-	};
-	const handleRemoveDestination = (id: string) => {
-		dispatch(removeDestination(id));
-	};
+  const startResize = (e:React.MouseEvent)=> { if(mapCollapsed) return; resizingRef.current=true; document.body.style.cursor='col-resize'; e.preventDefault(); };
+  React.useEffect(()=>{ const move=(e:MouseEvent)=>{ if(!resizingRef.current||!containerRef.current) return; const rect=containerRef.current.getBoundingClientRect(); const left=e.clientX-rect.left; const ratioLeft=Math.min(0.80,Math.max(0.20,left/rect.width)); setMapWidth(1-ratioLeft); }; const up=()=>{ if(resizingRef.current){ resizingRef.current=false; document.body.style.cursor=''; } }; window.addEventListener('mousemove',move); window.addEventListener('mouseup',up); return ()=>{ window.removeEventListener('mousemove',move); window.removeEventListener('mouseup',up); }; }, [mapCollapsed]);
 
-	// Compute shortest route (simple heuristic) keeping first destination fixed
-	const computeShortestRoute = () => {
-		const list = planner.destinations.filter(d=> d.lat!=null && d.lng!=null);
-		if (list.length < 3) return; // need at least start + 2
-		const start = list[0];
-		const others = list.slice(1);
-		const dist = (a: any, b: any) => {
-			const dx = (a.lat - b.lat); const dy = (a.lng - b.lng);
-			return Math.sqrt(dx*dx + dy*dy);
-		};
-		// Nearest neighbor initial path
-		const remaining = [...others];
-		const path: any[] = [start];
-		let current = start;
-		while(remaining.length) {
-			let bestIdx = 0; let bestD = Infinity;
-			for (let i=0;i<remaining.length;i++) {
-				const d = dist(current, remaining[i]);
-				if (d < bestD) { bestD = d; bestIdx = i; }
-			}
-			current = remaining.splice(bestIdx,1)[0];
-			path.push(current);
-		}
-		// 2-opt improvement (limited iterations)
-		const twoOptSwap = (arr: any[], i: number, k: number) => {
-			const res = arr.slice(0,i).concat(arr.slice(i,k+1).reverse()).concat(arr.slice(k+1));
-			return res;
-		};
-		const routeDistance = (arr: any[]) => arr.reduce((acc,_,i)=> i===0?0:acc+dist(arr[i-1],arr[i]),0);
-		let improved = true; let best = path; let bestLen = routeDistance(best);
-		let iterations=0;
-		while(improved && iterations<30) {
-			improved = false; iterations++;
-			for (let i=1;i<best.length-2;i++) { // skip first fixed
-				for (let k=i+1;k<best.length-1;k++) {
-					const swapped = twoOptSwap(best,i,k);
-					const len = routeDistance(swapped);
-					if (len < bestLen - 1e-6) { best=swapped; bestLen=len; improved=true; }
-				}
-			}
-		}
-		const ids = best.map(d=> d.id);
-		dispatch(reorderChain({ ids }));
-		// Emit event for MapPanel to draw polyline (optional) or rely on marker reorder detection
-		window.dispatchEvent(new CustomEvent('tripician:route-updated', { detail: { ids } }));
-	};
+  const computeShortestRoute = () => {
+    const list = planner.destinations.filter(d=> d.lat!=null && d.lng!=null);
+    if(list.length<3) return;
+    const start = list[0]; const others=list.slice(1); const dist=(a:any,b:any)=>{ const dx=a.lat-b.lat; const dy=a.lng-b.lng; return Math.sqrt(dx*dx+dy*dy); }; const remaining=[...others]; const path:any[]=[start]; let curr=start; while(remaining.length){ let bi=0,bd=Infinity; for(let i=0;i<remaining.length;i++){ const dd=dist(curr,remaining[i]); if(dd<bd){bd=dd;bi=i;} } curr=remaining.splice(bi,1)[0]; path.push(curr);} const twoOptSwap=(arr:any[],i:number,k:number)=>arr.slice(0,i).concat(arr.slice(i,k+1).reverse()).concat(arr.slice(k+1)); const routeDistance=(arr:any[])=>arr.reduce((acc:number,_,i)=> i===0?0:acc+dist(arr[i-1],arr[i]),0); let improved=true,best=path,bestLen=routeDistance(best),iter=0; while(improved&&iter<30){ improved=false; iter++; for(let i=1;i<best.length-2;i++){ for(let k=i+1;k<best.length-1;k++){ const swapped=twoOptSwap(best,i,k); const len=routeDistance(swapped); if(len<bestLen-1e-6){ best=swapped; bestLen=len; improved=true; } } } } const ids=best.map(d=>d.id); dispatch(reorderChain({ ids })); window.dispatchEvent(new CustomEvent('tripician:route-updated',{ detail:{ ids }})); };
+  const handleOptimizeRouteClick=()=>{ if(optimizingRoute||geocodedCount<3) return; setOptimizingRoute(true); requestAnimationFrame(()=>{ try{ computeShortestRoute(); } finally { setTimeout(()=> setOptimizingRoute(false),60); } }); };
 
-	const handleOptimizeRouteClick = () => {
-		if (optimizingRoute) return;
-		if (geocodedCount < 3) return;
-		setOptimizingRoute(true);
-		// Allow spinner to render even though computation is fast
-		requestAnimationFrame(() => {
-			try { computeShortestRoute(); }
-			finally { setTimeout(()=> setOptimizingRoute(false), 60); }
-		});
-	};
-
-	return (
-		<Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', overflow: 'hidden' }}>
-			<TopBar showSearch={false} logo={<PlannerLogo />} />
-			<Box ref={containerRef} sx={{ flex: 1, display: 'flex', minHeight: 0, position:'relative' }}>
-				{/* Left vertical nav */}
-				<CreateTripNav />
-				{/* Planning panel (rest width beside map) */}
-				<Box
-					sx={(theme) => ({
-						flexBasis: mapCollapsed ? '100%' : `calc(${(1 - mapWidth)*100}% - 2px)`,
-						maxWidth: mapCollapsed ? '100%' : `calc(${(1 - mapWidth)*100}% - 2px)`,
-						minWidth: 0,
-						flexShrink: 0,
-						display: 'flex',
-						flexDirection: 'column',
-						backgroundColor: theme.palette.background.paper,
-						borderRight: mapCollapsed ? 'none' : { lg: `1px solid ${theme.palette.divider}` },
-						transition: resizingRef.current ? 'none' : 'flex-basis .18s ease'
-					})}
-				>
-					{/* Header row redesigned */}
-						<Box sx={{ p:2.25, display:'flex', alignItems:'center', gap:2, flexWrap:'wrap', borderBottom:(theme)=>`1px solid ${theme.palette.divider}` }}>
-						<Box sx={{ display:'flex', flexDirection:'column', gap:1 }}>
-							<Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
-								<Typography variant='h6' fontWeight={600} noWrap>Trip Title</Typography>
-								<Chip size='small' label='Draft' sx={{ fontSize:11, fontWeight:500 }} />
-							</Box>
-							<Typography variant='body2' color='text.secondary'>11 September - 19 September</Typography>
-						</Box>
-							{/* Header metrics (budget + nights) */}
-							<Box sx={{ ml:'auto', display:'flex', alignItems:'center', gap:3, flexWrap:'wrap' }}>
-								<Box sx={{ display:'flex', flexDirection:'column' }}>
-									<Typography variant='caption' color='text.secondary'>Budget ({currency})</Typography>
-									<Box sx={{ display:'flex', alignItems:'center', gap:.5 }}>
-										<Typography variant='body2' fontWeight={600}>0.00</Typography>
-										<Button size='small' variant='text' onClick={openCurrency} endIcon={<ExpandMoreIcon fontSize='small' />} sx={{ textTransform:'none', px:1, minWidth:0 }}>{currency}</Button>
-									</Box>
-								</Box>
-								<Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
-									<Box sx={{ position:'relative', width:48, height:48 }}>
-										<CircularProgress
-											variant='determinate'
-											value={targetNights ? Math.min(100, (totalNights/targetNights)*100) : 0}
-											size={48}
-											thickness={4}
-										/>
-										<Box sx={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-											<Typography variant='caption' fontWeight={600}>{totalNights}/{targetNights}</Typography>
-										</Box>
-									</Box>
-									<Typography variant='body2' fontWeight={600}>Nights</Typography>
-								</Box>
-							</Box>
-						</Box>
-					<Menu anchorEl={currencyAnchor} open={Boolean(currencyAnchor)} onClose={closeCurrency} elevation={3}>
-						{(['EUR','USD','GBP'] as const).map(c => (
-							<MenuItem key={c} selected={c===currency} onClick={()=>selectCurrency(c)}>
-								<Avatar sx={{ width:20, height:20, mr:1, fontSize:11 }}>{c==='EUR'? '€': c==='USD'? '$':'£'}</Avatar>
-								{c}
-							</MenuItem>
-						))}
-					</Menu>
-					<Divider />
-					{/* Tabs row with action button on right */}
-								<Box sx={{ display:'flex', alignItems:'center', px:2, gap:1, py:1 }}>
-									<Tabs value={tab} onChange={handleTabChange} variant='scrollable' allowScrollButtonsMobile sx={{ flex:1, minHeight:44, '& .MuiTab-root':{ minHeight:44 } }}>
-										<Tab label='Destinations' />
-										<Tab label='Day by day' />
-										<Tab label='Comments' />
-									</Tabs>
-									<Tooltip title={mapCollapsed? 'Show map':'Hide map'}>
-										<IconButton size='small' onClick={()=> setMapCollapsed(c=> !c)} sx={{ bgcolor:'background.paper', border:(theme)=>`1px solid ${theme.palette.divider}`, '&:hover':{ bgcolor:'action.hover' }, mr:.5 }}>
-											{mapCollapsed ? <OpenInFullIcon fontSize='small' /> : <CloseFullscreenIcon fontSize='small' />}
-										</IconButton>
-									</Tooltip>
-									<Tooltip
-											arrow
-											placement='top'
-											title={geocodedCount < 3 ? 'Add at least 3 destinations with coordinates to optimize' : optimizingRoute ? 'Optimizing route...' : 'Optimize route (keeps first fixed)'}
-										>
-											<span>
-												<IconButton
-													aria-label='Optimize route'
-													onClick={handleOptimizeRouteClick}
-													disabled={geocodedCount < 3 || optimizingRoute}
-													sx={{ ml:.5, bgcolor:'primary.main', color:'primary.contrastText', borderRadius:2, '&:hover':{ bgcolor:'primary.dark' }, '&.Mui-disabled':{ bgcolor:'action.disabledBackground', color:'text.disabled' } }}
-												>
-													{optimizingRoute ? <CircularProgress size={18} color='inherit' thickness={5} /> : <AltRouteIcon fontSize='small' />}
-												</IconButton>
-											</span>
-										</Tooltip>
-								</Box>
-					<Divider />
-					{/* Panel Content */}
-					<Box sx={{ flex: 1, overflowY: 'auto' }}>
-						{tab === 0 && <DestinationsPanel destinations={panelDestinations} maxed={totalNights >= targetNights} onChangeNights={handleChangeNights} onChangeTransport={handleChangeTransport} onAddDestination={handleAddDestination} onRemoveDestination={handleRemoveDestination} />}
-						{tab === 1 && <DayByDayPanel />}
-						{tab === 2 && <TripComments />}
-					</Box>
-				</Box>
-				{!mapCollapsed && (
-					<>
-						{/* Resize handle */}
-						<Box onMouseDown={startResize} sx={{ width:4, cursor:'col-resize', background:(theme)=> theme.palette.mode==='dark'? theme.palette.grey[800]: theme.palette.grey[200], '&:hover':{ background:(theme)=> theme.palette.primary.main } }} />
-						<MapPanel widthFraction={mapWidth} />
-					</>
-				)}
-				{mapCollapsed && null}
-				<ChatAssistant />
-			</Box>
-		</Box>
-	);
+  return (
+    <Box sx={{ display:'flex', flexDirection:'row', height:'100vh', overflow:'hidden' }}>
+      <CreateTripNav />
+      <Box sx={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, minHeight:0 }}>
+        <TopBar showSearch={false} centerNode={
+          <Box sx={{ display:'flex', alignItems:'center' }}>
+            {editingTitle ? (
+              <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
+                <InputBase value={title} onChange={e=> setTitle(e.target.value)} autoFocus onBlur={()=> setEditingTitle(false)} sx={{ px:1.2, py:.5, borderRadius:1.5, fontWeight:600, fontSize:18, border:(t)=>`1px solid ${t.palette.divider}`, background:(t)=> t.palette.mode==='dark'? '#1e2936':'#f5f7f9', minWidth:180 }} />
+                <IconButton size='small' onClick={()=> setEditingTitle(false)}><CheckIcon fontSize='small' /></IconButton>
+              </Box>
+            ) : (
+              <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
+                <Typography variant='h6' fontWeight={600} noWrap sx={{ cursor:isDraft?'text':'default' }} onClick={()=> { if(isDraft) setEditingTitle(true); }}>{title}</Typography>
+                {isDraft && <IconButton size='small' onClick={()=> setEditingTitle(true)} sx={{ ml:-.5 }}><EditIcon fontSize='small' /></IconButton>}
+              </Box>
+            )}
+            <Chip size='small' label={isDraft? 'Draft':'Published'} color={isDraft? 'default':'success'} sx={{ fontSize:11, fontWeight:500, ml:1 }} />
+          </Box>
+        } />
+        <Box ref={containerRef} sx={{ flex:1, display:'flex', position:'relative', minHeight:0 }}>
+          <Box sx={(theme)=>({ flexBasis: mapCollapsed?'100%':`calc(${(1-mapWidth)*100}% - 2px)`, maxWidth: mapCollapsed?'100%':`calc(${(1-mapWidth)*100}% - 2px)`, minWidth:0, flexShrink:0, display:'flex', flexDirection:'column', backgroundColor: theme.palette.background.paper, borderRight: mapCollapsed? 'none': { lg:`1px solid ${theme.palette.divider}`}, transition: resizingRef.current?'none':'flex-basis .18s ease' })}>
+            <Box sx={{ px:2, py:1.25, display:'flex', alignItems:'stretch', gap:2, borderBottom:(t)=>`1px solid ${t.palette.divider}` }}>
+              <Box sx={{ flex:1, minWidth:0, display:'flex', alignItems:'center' }}>
+                <ImportantNotesEditor compact />
+              </Box>
+              <Box sx={{ ml:'auto', display:'flex', alignItems:'center', gap:3 }}>
+                <Box sx={{ display:'flex', flexDirection:'column' }}>
+                  <Typography variant='caption' color='text.secondary'>Budget ({currency})</Typography>
+                  <Box sx={{ display:'flex', alignItems:'center', gap:.5 }}>
+                    <Typography variant='body2' fontWeight={600}>0.00</Typography>
+                    <Button size='small' variant='text' onClick={openCurrency} endIcon={<ExpandMoreIcon fontSize='small' />} sx={{ textTransform:'none', px:1, minWidth:0 }}>{currency}</Button>
+                  </Box>
+                </Box>
+                <Box sx={{ display:'flex', flexDirection:'column' }}>
+                  <Typography variant='caption' color='text.secondary'>Privacy</Typography>
+                  <Box sx={{ display:'flex', alignItems:'center', gap:.5 }}>
+                    <Typography variant='body2' fontWeight={600}>{privacy}</Typography>
+                    <Button size='small' variant='text' onClick={openPrivacy} endIcon={<ExpandMoreIcon fontSize='small' />} sx={{ textTransform:'none', px:1, minWidth:0 }} />
+                  </Box>
+                </Box>
+              </Box>
+            </Box>
+            <Divider />
+            <Box sx={{ display:'flex', alignItems:'center', px:2, gap:1, py:1 }}>
+              <Tabs value={tab} onChange={handleTabChange} variant='scrollable' allowScrollButtonsMobile sx={{ flex:1, minHeight:44, '& .MuiTab-root':{ minHeight:44 } }}>
+                <Tab label='Planning' />
+                <Tab label='Expenses' />
+                <Tab label='Comments' />
+              </Tabs>
+              <Box sx={{ display:'flex', alignItems:'center', gap:.75, mr:1 }}>
+                <Box sx={{ position:'relative', width:42, height:42 }}>
+                  <CircularProgress variant='determinate' value={targetNights? Math.min(100,(totalNights/targetNights)*100):0} size={42} thickness={4} />
+                  <Box sx={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                    <Typography variant='caption' fontWeight={600}>{totalNights}/{targetNights}</Typography>
+                  </Box>
+                </Box>
+                <Typography variant='caption' fontWeight={600}>Nights</Typography>
+              </Box>
+              <Tooltip title={mapCollapsed? 'Show map':'Hide map'}>
+                <IconButton size='small' onClick={()=> setMapCollapsed(c=> !c)} sx={{ bgcolor:'background.paper', border:(t)=>`1px solid ${t.palette.divider}`, '&:hover':{ bgcolor:'action.hover' }, mr:.25 }}>
+                  {mapCollapsed ? <OpenInFullIcon fontSize='small' /> : <CloseFullscreenIcon fontSize='small' />}
+                </IconButton>
+              </Tooltip>
+              <Tooltip arrow placement='top' title={geocodedCount < 3 ? 'Add at least 3 destinations with coordinates to optimize' : optimizingRoute ? 'Optimizing route...' : 'Optimize route'}>
+                <span>
+                  <IconButton aria-label='Optimize route' onClick={handleOptimizeRouteClick} disabled={geocodedCount < 3 || optimizingRoute} sx={{ ml:.5, bgcolor:'primary.main', color:'primary.contrastText', borderRadius:2, '&:hover':{ bgcolor:'primary.dark' }, '&.Mui-disabled':{ bgcolor:'action.disabledBackground', color:'text.disabled' } }}>
+                    {optimizingRoute ? <CircularProgress size={18} color='inherit' thickness={5} /> : <AltRouteIcon fontSize='small' />}
+                  </IconButton>
+                </span>
+              </Tooltip>
+            </Box>
+            <Divider />
+            <Box sx={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column' }}>
+              {tab===0 && <Box sx={{ px:0 }}><DestinationsPanel destinations={panelDestinations} maxed={totalNights >= targetNights} onChangeNights={handleChangeNights} onChangeTransport={handleChangeTransport} onAddDestination={handleAddDestination} onRemoveDestination={handleRemoveDestination} /></Box>}
+              {tab===1 && <ExpensesPanel />}
+              {tab===2 && <TripComments />}
+            </Box>
+            <Box sx={(t)=>({ borderTop:`1px solid ${t.palette.divider}`, px:2.5, py:1.5, background:t.palette.background.paper, display:'flex', alignItems:'center', justifyContent:'space-between' })}>
+              <Typography variant='caption' color='text.secondary'>Last saved: just now</Typography>
+              <Box sx={{ display:'flex', gap:1.2 }}>
+                <Button size='small' variant='outlined' onClick={()=> setIsDraft(true)} disabled={isDraft} sx={{ textTransform:'none', borderRadius:2 }}>Save as Draft</Button>
+                <Button size='small' variant='contained' color={isDraft? 'primary':'success'} onClick={()=> setIsDraft(false)} sx={{ textTransform:'none', borderRadius:2 }}>{isDraft? 'Publish':'Published'}</Button>
+              </Box>
+            </Box>
+          </Box>
+          {!mapCollapsed && (<><Box onMouseDown={startResize} sx={{ width:4, cursor:'col-resize', background:(t)=> t.palette.mode==='dark'? t.palette.grey[800]: t.palette.grey[200], '&:hover':{ background:(t)=> t.palette.primary.main } }} /><MapPanel widthFraction={mapWidth} /></>)}
+          <ChatAssistant />
+        </Box>
+        <Menu anchorEl={currencyAnchor} open={Boolean(currencyAnchor)} onClose={closeCurrency} elevation={3}>
+          {(['EUR','USD','GBP'] as const).map(c=> (<MenuItem key={c} selected={c===currency} onClick={()=> selectCurrency(c)}><Avatar sx={{ width:20, height:20, mr:1, fontSize:11 }}>{c==='EUR'?'€': c==='USD'? '$':'£'}</Avatar>{c}</MenuItem>))}
+        </Menu>
+        <Menu anchorEl={privacyAnchor} open={Boolean(privacyAnchor)} onClose={closePrivacy} elevation={3}>
+          {(['Private','Trip Members','My Followers','Everyone'] as const).map(p=> (<MenuItem key={p} selected={p===privacy} onClick={()=> selectPrivacy(p)}>{p}</MenuItem>))}
+        </Menu>
+      </Box>
+    </Box>
+  );
 };
 
 export default CreateTrip;

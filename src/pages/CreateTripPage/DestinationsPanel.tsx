@@ -3,7 +3,6 @@ import { Box, Typography, Tooltip, Button, Menu, MenuItem, ListItemIcon, ListIte
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import HotelIcon from '@mui/icons-material/Hotel';
 import DirectionsBusIcon from '@mui/icons-material/DirectionsBus';
 import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
 import DirectionsRailwayIcon from '@mui/icons-material/DirectionsRailway';
@@ -171,8 +170,7 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
         <Box sx={{ width: 36 }} />
         <Box sx={{ flex: 1, minWidth: 0 }}>{headerCell('Destination')}</Box>
         <Box sx={{ width: 120, display:'flex', justifyContent:'center' }}>{headerCell('Nights')}</Box>
-        <Box sx={{ width: 110, textAlign:'center' }}>{headerCell('Sleeping')}</Box>
-  <Box sx={{ width: 110, textAlign:'center' }}>{headerCell('Discover')}</Box>
+    <Box sx={{ width: 110, textAlign:'center' }}>{headerCell('Discover')}</Box>
   <Box sx={{ width: 90, textAlign:'center' }}>{headerCell('Foods')}</Box>
   <Box sx={{ width: 90, textAlign:'center' }}>{headerCell('Docs')}</Box>
   <Box sx={{ width: 110, textAlign:'center' }}>{headerCell('Transport')}</Box>
@@ -196,9 +194,6 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
                 <Box sx={(theme)=> ({ ...numberButtonBase(theme), opacity: maxed? .4:1, pointerEvents: maxed? 'none':'auto' })} onClick={() => onChangeNights?.(d.id, 1)}><AddIcon fontSize='small' /></Box>
               </span>
             </Tooltip>
-          </Box>
-          <Box sx={{ width:110, display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <Tooltip title='Sleeping'><HotelIcon fontSize='small' color='disabled' /></Tooltip>
           </Box>
           <Box sx={{ width:110, display:'flex', alignItems:'center', justifyContent:'center' }}>
             <Tooltip title='Discover'><ExploreIcon fontSize='small' color='disabled' /></Tooltip>

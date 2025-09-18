@@ -17,10 +17,11 @@ import { useNavigate } from 'react-router-dom';
 
 interface TopBarProps {
   showSearch?: boolean;
-  logo?: React.ReactNode; // custom logo element
+  logo?: React.ReactNode; // custom logo element (left area when no search)
+  centerNode?: React.ReactNode; // absolutely centered content (e.g., trip title + status)
 }
 
-const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo }) => {
+const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) => {
   const { profile } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
@@ -66,8 +67,14 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo }) => {
           borderColor: 'divider',
           padding: "20px 10px",
           boxShadow: 1,
+          positionRelative: 'relative'
         }}
       >        
+        {centerNode && (
+          <Box sx={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%, -50%)', display:'flex', alignItems:'center', gap:1, pointerEvents:'none' }}>
+            {centerNode}
+          </Box>
+        )}
 
         {/* Center Section - Search or Logo */}
         <Box
