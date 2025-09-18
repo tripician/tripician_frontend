@@ -94,28 +94,32 @@ const MapPanel: React.FC<MapPanelProps> = ({ widthFraction = 0.40 }) => {
     { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#45606b' }] }
   ];
 
-  // Initialize map
+  // Initialize map ONCE; then style updates handled in separate effect
   useEffect(() => {
     if (!apiKey) { setLoading(false); return; }
+    let cancelled = false;
     loadGoogleMaps(apiKey).then(g => {
-      if (!mapRef.current) return;
-      mapInstance.current = new g.maps.Map(mapRef.current, {
-        center: DEFAULT_CENTER,
-        zoom: 5,
-        // Remove default UI (including joystick / tilt / rotate)
-        disableDefaultUI: true,
-        clickableIcons: false,
-        styles: theme.palette.mode === 'dark' ? darkStyle : lightStyle,
-        gestureHandling: 'greedy'
-      });
+      if (cancelled || !mapRef.current) return;
+      if (!mapInstance.current) {
+        mapInstance.current = new g.maps.Map(mapRef.current, {
+          center: DEFAULT_CENTER,
+          zoom: 5,
+          disableDefaultUI: true,
+          clickableIcons: false,
+          styles: theme.palette.mode === 'dark' ? darkStyle : lightStyle,
+          gestureHandling: 'greedy'
+        });
+      }
       setLoading(false);
     }).catch((e) => {
+      if (cancelled) return;
       console.error('Google Maps load failure', e);
       setError('Failed to load Google Maps. Check API key and billing.');
       setLoading(false);
     });
+    return () => { cancelled = true; };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [apiKey, theme.palette.mode]);
+  }, [apiKey]);
 
   // When expanding, force a resize so Google Maps canvas recalculates dimensions.
   // Trigger resize / style reapply when width changes (split drag) or theme mode changes
@@ -129,19 +133,40 @@ const MapPanel: React.FC<MapPanelProps> = ({ widthFraction = 0.40 }) => {
     }
   }, [widthFraction]);
 
-  // Reapply styles on theme change
+  // Reapply styles (no full re-init) & refresh marker appearance on theme change
   useEffect(() => {
     const g = (window as any).google;
     if (g && mapInstance.current) {
       mapInstance.current.setOptions({ styles: theme.palette.mode === 'dark' ? darkStyle : lightStyle });
+      // Update existing marker icons / labels contrast
+      Object.values(markersRef.current).forEach((m: any) => {
+        const currentLabel = m.getLabel();
+        m.setIcon(makeMarkerSvg(theme));
+        if (currentLabel?.text) {
+          m.setLabel({ ...currentLabel, color: theme.palette.mode==='dark'? '#fff':'#111' });
+        }
+      });
     }
-  }, [theme.palette.mode]);
+  }, [theme.palette.mode, theme.palette.primary.main]);
 
-  // Sync markers with numbering
+  const makeMarkerSvg = useCallback((th: any) => {
+    return {
+      path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z',
+      fillColor: th.palette.primary.main,
+      fillOpacity: 0.95,
+      strokeWeight: 2,
+      strokeColor: th.palette.mode==='dark'? '#000' : '#fff',
+      scale: 1.15,
+      anchor: new (window as any).google.maps.Point(12,22)
+    } as any;
+  }, []);
+
+  // Sync markers with numbering (independent of theme except for icon function)
   useEffect(() => {
     const g = (window as any).google as any | undefined;
     if (!g || !mapInstance.current) return;
 
+    // Remove markers no longer present
     Object.keys(markersRef.current).forEach(id => {
       if (!destinations.find(d => d.id === id)) {
         markersRef.current[id].setMap(null);
@@ -151,26 +176,20 @@ const MapPanel: React.FC<MapPanelProps> = ({ widthFraction = 0.40 }) => {
 
     destinations.forEach((d, idx) => {
       if (d.lat != null && d.lng != null) {
-        const svg = {
-          path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z',
-          fillColor: theme.palette.primary.main,
-          fillOpacity: 0.95,
-          strokeWeight: 1,
-          strokeColor: theme.palette.mode==='dark'? '#fff':'#222',
-          scale: 1.1,
-          anchor: new g.maps.Point(12,22)
-        } as any;
+        const icon = makeMarkerSvg(theme);
+        const labelColor = theme.palette.mode==='dark'? '#fff':'#111';
         if (!markersRef.current[d.id]) {
           markersRef.current[d.id] = new g.maps.Marker({
             position: { lat: d.lat, lng: d.lng },
             map: mapInstance.current!,
             title: d.name,
-            icon: svg,
-            label: { text: String(idx+1), color: theme.palette.getContrastText(theme.palette.primary.main), fontSize: '12px', fontWeight: '600' }
+            icon,
+            label: { text: String(idx+1), color: labelColor, fontSize: '12px', fontWeight: '600' }
           });
         } else {
           markersRef.current[d.id].setPosition({ lat: d.lat, lng: d.lng });
-          markersRef.current[d.id].setLabel({ text: String(idx+1), color: theme.palette.getContrastText(theme.palette.primary.main), fontSize: '12px', fontWeight: '600' });
+          markersRef.current[d.id].setIcon(icon);
+          markersRef.current[d.id].setLabel({ text: String(idx+1), color: labelColor, fontSize: '12px', fontWeight: '600' });
         }
       }
     });
@@ -181,7 +200,7 @@ const MapPanel: React.FC<MapPanelProps> = ({ widthFraction = 0.40 }) => {
       withCoords.forEach(d => bounds.extend({ lat: d.lat!, lng: d.lng! }));
       mapInstance.current.fitBounds(bounds);
     }
-  }, [destinations, theme.palette.primary.main, theme.palette.mode]);
+  }, [destinations, makeMarkerSvg, theme]);
 
   // Listen for route updates to draw polyline
   useEffect(() => {
