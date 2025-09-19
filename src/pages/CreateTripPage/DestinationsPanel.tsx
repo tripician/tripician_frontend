@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Tooltip, Button, Menu, MenuItem, ListItemIcon, ListItemText, Paper } from '@mui/material';
+import { Box, Typography, Tooltip, Button, Menu, MenuItem, ListItemIcon, ListItemText, Paper, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -14,6 +14,9 @@ import BlockIcon from '@mui/icons-material/Block';
 import ExploreIcon from '@mui/icons-material/Explore';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import MapIcon from '@mui/icons-material/Map';
+import HotelIcon from '@mui/icons-material/Hotel';
+import EditNoteIcon from '@mui/icons-material/EditNote';
+import UploadFileIcon from '@mui/icons-material/UploadFile';
 import type { SxProps, Theme } from '@mui/material/styles';
 
 export interface DestinationRow {
@@ -136,6 +139,42 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
   const [loadingPred, setLoadingPred] = React.useState(false);
   const sessionTokenRef = React.useRef<any | null>(null);
 
+  // Notes state
+  const [notes, setNotes] = React.useState<Record<string,string>>({});
+  const [openNoteId, setOpenNoteId] = React.useState<string | null>(null);
+  const [noteDraft, setNoteDraft] = React.useState('');
+
+  const openNotes = (id: string) => { setOpenNoteId(id); setNoteDraft(notes[id] || ''); };
+  const saveNotes = () => { if (openNoteId) setNotes(n => ({ ...n, [openNoteId!]: noteDraft })); setOpenNoteId(null); };
+  const cancelNotes = () => { setOpenNoteId(null); };
+
+  // Docs upload state
+  interface DocItem { id:string; name:string; url:string; originalName:string; }
+  const [docs, setDocs] = React.useState<Record<string, DocItem[]>>({});
+  const fileInputRefs = React.useRef<Record<string, HTMLInputElement | null>>({});
+  const [openDocsId, setOpenDocsId] = React.useState<string | null>(null);
+
+  const handleUploadClick = (id: string) => {
+    if (!fileInputRefs.current[id]) return;
+    fileInputRefs.current[id]!.click();
+  };
+  const onFilesSelected = (id: string, files: FileList | null) => {
+    if (!files || files.length===0) return;
+    const list: DocItem[] = docs[id]? [...docs[id]]: [];
+    Array.from(files).forEach((f, idx) => {
+      const parts = f.name.split('.');
+      const ext = parts.length>1? '.'+parts.pop():'';
+      const base = parts.join('.') || 'file';
+      const unique = `${base}_${Date.now().toString(36)}_${idx}` + ext;
+      const url = URL.createObjectURL(f);
+      list.push({ id: unique, name: unique, url, originalName: f.name });
+    });
+    setDocs(prev => ({ ...prev, [id]: list }));
+  };
+  React.useEffect(()=>()=>{ // cleanup object URLs on unmount
+    Object.values(docs).flat().forEach(d=> URL.revokeObjectURL(d.url));
+  },[]);
+
   // Helper to get Places Autocomplete service (after maps script loaded)
   const getAutocompleteService = () => {
     const g = (window as any).google;
@@ -207,11 +246,11 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
         boxShadow: `0 2px 4px -2px ${theme.palette.mode==='dark' ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.12)'}`
       })}>
         <Box sx={{ width: 36 }} />
-        <Box sx={{ flex: 1, minWidth: 0 }}>{headerCell('Destination')}</Box>
-        <Box sx={{ width: 120, display:'flex', justifyContent:'center' }}>{headerCell('Nights')}</Box>
-        <Box sx={{ width: 110, textAlign:'center' }}>{headerCell('Discover')}</Box>
-        <Box sx={{ width: 90, textAlign:'center' }}>{headerCell('Foods')}</Box>
-        <Box sx={{ width: 90, textAlign:'center' }}>{headerCell('Docs')}</Box>
+  <Box sx={{ flex: 1, minWidth: 0 }}>{headerCell('Destination')}</Box>
+  <Box sx={{ width: 120, display:'flex', justifyContent:'center' }}>{headerCell('Nights')}</Box>
+  <Box sx={{ width: 110, textAlign:'center' }}>{headerCell('Stay')}</Box>
+  <Box sx={{ width: 110, textAlign:'center' }}>{headerCell('Discover')}</Box>
+  <Box sx={{ width: 110, textAlign:'center' }}>{headerCell('Docs')}</Box>
       </Box>
 
       {/* Rows + transport connector rows */}
@@ -234,14 +273,31 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
                 </span>
               </Tooltip>
             </Box>
+            {/* Stay column */}
+            <Box sx={{ width:110, display:'flex', alignItems:'center', justifyContent:'center' }}>
+              <Tooltip title='Add stay info'>
+                <IconButton size='small' sx={{ opacity:.6 }}><HotelIcon fontSize='small' /></IconButton>
+              </Tooltip>
+            </Box>
+            {/* Discover column */}
             <Box sx={{ width:110, display:'flex', alignItems:'center', justifyContent:'center' }}>
               <Tooltip title='Discover'><ExploreIcon fontSize='small' color='disabled' /></Tooltip>
             </Box>
-            <Box sx={{ width:90, display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <Tooltip title='Foods'><AddIcon fontSize='small' color='disabled' /></Tooltip>
-            </Box>
-            <Box sx={{ width:90, display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <Tooltip title='Docs'><AddIcon fontSize='small' color='disabled' /></Tooltip>
+            {/* Docs column with upload icon + count & dialog trigger */}
+            <Box sx={{ width:110, display:'flex', alignItems:'center', justifyContent:'center', gap:0.5 }}>
+              <input ref={el=>{ fileInputRefs.current[d.id]=el; }} type='file' multiple hidden onChange={(e)=> onFilesSelected(d.id, e.target.files)} />
+              <Tooltip title='Upload documents'>
+                <IconButton size='small' onClick={()=>handleUploadClick(d.id)} sx={{ opacity:.8 }}>
+                  <UploadFileIcon fontSize='small' />
+                </IconButton>
+              </Tooltip>
+              {docs[d.id] && docs[d.id].length>0 && (
+                <Tooltip title='View documents'>
+                  <Typography onClick={()=> setOpenDocsId(d.id)} sx={{ cursor:'pointer', textDecoration:'underline', fontSize:12 }}>
+                    {docs[d.id].length} doc(s)
+                  </Typography>
+                </Tooltip>
+              )}
             </Box>
             {onRemoveDestination && destinations.length > 1 && (
               <Box
@@ -251,6 +307,10 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
                 <DeleteOutlineIcon fontSize='small' />
               </Box>
             )}
+            {/* Notes icon under delete */}
+            <Box sx={(theme)=>({ position:'absolute', right:8, top:42, width:28, height:28, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', background: theme.palette.background.paper, border:`1px solid ${theme.palette.divider}`, opacity:0, transition:'opacity .2s', '.MuiBox-root:hover &':{opacity:1}, '&:hover':{ background: theme.palette.action.hover } })} onClick={()=> openNotes(d.id)}>
+              <EditNoteIcon fontSize='small' />
+            </Box>
           </Box>
           {idx < destinations.length - 1 && (
             <Box sx={{ position:'relative', px:3, height:0, background:'transparent' }}>
@@ -339,6 +399,52 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
           </MenuItem>
         ))}
       </Menu>
+      {/* Notes Dialog */}
+      <Dialog open={Boolean(openNoteId)} onClose={cancelNotes} fullWidth maxWidth='sm'>
+        <DialogTitle>Notes for Destination</DialogTitle>
+        <DialogContent>
+          <TextField value={noteDraft} onChange={e=> setNoteDraft(e.target.value)} autoFocus multiline minRows={6} fullWidth placeholder='Write notes...' />
+        </DialogContent>
+        <DialogActions>
+          <Button onClick={cancelNotes}>Cancel</Button>
+          <Button variant='contained' onClick={saveNotes}>Save</Button>
+        </DialogActions>
+      </Dialog>
+      {/* Docs Dialog */}
+      <Dialog open={Boolean(openDocsId)} onClose={()=> setOpenDocsId(null)} fullWidth maxWidth='sm'>
+        <DialogTitle>Documents</DialogTitle>
+        <DialogContent>
+          {openDocsId && docs[openDocsId] && docs[openDocsId].length>0 ? (
+            <Box sx={{ display:'flex', flexWrap:'wrap', gap:2 }}>
+              {docs[openDocsId].map(doc => {
+                const isImage = /(png|jpe?g|gif|webp|bmp|svg)$/i.test(doc.name);
+                return (
+                  <Box key={doc.id} sx={{ width:'30%', minWidth:120 }}>
+                    <Box onClick={()=>{ const a=document.createElement('a'); a.href=doc.url; a.download=doc.originalName; a.target='_blank'; a.rel='noopener'; a.click(); }} sx={{ cursor:'pointer', border:'1px solid', borderColor:'divider', borderRadius:1, overflow:'hidden', p:0.5, display:'flex', flexDirection:'column', alignItems:'center', gap:0.5 }}>
+                      {isImage ? (
+                        <Box component='img' src={doc.url} alt={doc.name} sx={{ width:'100%', height:70, objectFit:'cover', borderRadius:0.5 }} />
+                      ) : (
+                        <Box sx={{ width:'100%', height:70, display:'flex', alignItems:'center', justifyContent:'center', bgcolor:'action.hover', fontSize:12 }}>
+                          {doc.originalName.split('.').pop()?.toUpperCase() || 'FILE'}
+                        </Box>
+                      )}
+                      <Typography variant='caption' sx={{ textAlign:'center', wordBreak:'break-all' }}>{doc.originalName}</Typography>
+                    </Box>
+                  </Box>
+                );
+              })}
+            </Box>
+          ) : (
+            <Typography variant='body2' sx={{ opacity:.7 }}>No documents uploaded yet.</Typography>
+          )}
+        </DialogContent>
+        <DialogActions>
+          {openDocsId && (
+            <Button onClick={()=> handleUploadClick(openDocsId)} startIcon={<UploadFileIcon fontSize='small' />}>Add More</Button>
+          )}
+          <Button onClick={()=> setOpenDocsId(null)}>Close</Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
