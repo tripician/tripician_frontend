@@ -71,7 +71,8 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
         }}
       >        
         {centerNode && (
-          <Box sx={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%, -50%)', display:'flex', alignItems:'center', gap:1, pointerEvents:'none' }}>
+          <Box sx={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%, -50%)', display:'flex', alignItems:'center', gap:1 }}>
+            {/* pointerEvents previously disabled, preventing editing of trip title */}
             {centerNode}
           </Box>
         )}

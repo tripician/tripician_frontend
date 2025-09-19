@@ -1,26 +1,26 @@
 import React from 'react';
 import { Box, Tooltip } from '@mui/material';
-import ExploreIcon from '@mui/icons-material/Explore';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import Inventory2Icon from '@mui/icons-material/Inventory2';
-import MapIcon from '@mui/icons-material/Map';
-import BookmarkIcon from '@mui/icons-material/Bookmark';
+import SettingsIcon from '@mui/icons-material/Settings';
+import ImportExportIcon from '@mui/icons-material/ImportExport';
+import NewspaperIcon from '@mui/icons-material/Newspaper';
 
 interface NavItem { id: string; label: string; icon: React.ReactNode; }
 
+// Updated navigation: removed Budget, Collection, Discover. Added News.
+// Order chosen: Plan, News, Packing, Docs (can be adjusted later as needed)
 const navItems: NavItem[] = [
   { id: 'plan', label: 'Plan', icon: <CalendarMonthIcon fontSize='small' /> },
-  { id: 'budget', label: 'Budget', icon: <InsertDriveFileIcon fontSize='small' /> },
+  { id: 'news', label: 'News', icon: <NewspaperIcon fontSize='small' /> },
   { id: 'packing', label: 'Packing', icon: <Inventory2Icon fontSize='small' /> },
-  { id: 'collection', label: 'Collection', icon: <BookmarkIcon fontSize='small' /> },
-  { id: 'docs', label: 'Docs', icon: <InsertDriveFileIcon fontSize='small' /> },
-  { id: 'discover', label: 'Discover', icon: <ExploreIcon fontSize='small' /> },
+  { id: 'docs', label: 'Docs', icon: <InsertDriveFileIcon fontSize='small' /> }
 ];
 
-interface CreateTripNavProps { active?: string; onChange?: (id: string) => void; }
+interface CreateTripNavProps { active?: string; onChange?: (id: string) => void; onSettingsClick?:()=>void; onImportExportClick?:()=>void; }
 
-const CreateTripNav: React.FC<CreateTripNavProps> = ({ active = 'plan', onChange }) => {
+const CreateTripNav: React.FC<CreateTripNavProps> = ({ active = 'plan', onChange, onSettingsClick, onImportExportClick }) => {
   return (
     <Box
       sx={(theme) => ({
@@ -85,8 +85,30 @@ const CreateTripNav: React.FC<CreateTripNavProps> = ({ active = 'plan', onChange
         );
       })}
       <Box sx={{ flexGrow: 1 }} />
-      <Tooltip title='Map View' placement='right' arrow>
+      {/* Import/Export and Settings at bottom */}
+      <Tooltip title='Import / Export' placement='right' arrow>
         <Box
+          onClick={onImportExportClick}
+          sx={{
+            cursor: 'pointer',
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'center',
+            width: 48,
+            height: 48,
+            borderRadius: 2,
+            mb: 1,
+            border: '1px solid rgba(255,255,255,0.18)',
+            background: 'rgba(255,255,255,0.08)',
+            '&:hover': { background: 'rgba(255,255,255,0.18)' }
+          }}
+        >
+          <ImportExportIcon fontSize='small' />
+        </Box>
+      </Tooltip>
+      <Tooltip title='Settings' placement='right' arrow>
+        <Box
+          onClick={onSettingsClick}
           sx={{
             cursor: 'pointer',
             display: 'flex',
@@ -100,7 +122,7 @@ const CreateTripNav: React.FC<CreateTripNavProps> = ({ active = 'plan', onChange
             '&:hover': { background: 'rgba(255,255,255,0.18)' }
           }}
         >
-          <MapIcon fontSize='small' />
+          <SettingsIcon fontSize='small' />
         </Box>
       </Tooltip>
     </Box>

@@ -6,6 +6,7 @@ import type { RootState, AppDispatch } from '../../store';
 import { setCurrency as setCurrencyAction, updateDestinationNights, setTransport, addDestination, removeDestination, reorderChain } from '../../store/plannerSlice';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CreateTripNav from './CreateTripNav';
+import TripSettingsDialog from './TripSettingsDialog';
 import DestinationsPanel, { type DestinationRow } from './DestinationsPanel';
 import ExpensesPanel from './ExpensesPanel';
 import ImportantNotesEditor from './ImportantNotesEditor';
@@ -33,6 +34,7 @@ const CreateTrip: React.FC = () => {
   const [currencyAnchor, setCurrencyAnchor] = React.useState<null | HTMLElement>(null);
   const [privacyAnchor, setPrivacyAnchor] = React.useState<null | HTMLElement>(null);
   const [privacy, setPrivacy] = React.useState<'Private'|'Trip Members'|'My Followers'|'Everyone'>('Private');
+  const [settingsOpen, setSettingsOpen] = React.useState(false);
   const [optimizingRoute, setOptimizingRoute] = React.useState(false);
   const [mapCollapsed, setMapCollapsed] = React.useState(false);
   const [mapWidth, setMapWidth] = React.useState(0.40);
@@ -70,9 +72,45 @@ const CreateTrip: React.FC = () => {
     const start = list[0]; const others=list.slice(1); const dist=(a:any,b:any)=>{ const dx=a.lat-b.lat; const dy=a.lng-b.lng; return Math.sqrt(dx*dx+dy*dy); }; const remaining=[...others]; const path:any[]=[start]; let curr=start; while(remaining.length){ let bi=0,bd=Infinity; for(let i=0;i<remaining.length;i++){ const dd=dist(curr,remaining[i]); if(dd<bd){bd=dd;bi=i;} } curr=remaining.splice(bi,1)[0]; path.push(curr);} const twoOptSwap=(arr:any[],i:number,k:number)=>arr.slice(0,i).concat(arr.slice(i,k+1).reverse()).concat(arr.slice(k+1)); const routeDistance=(arr:any[])=>arr.reduce((acc:number,_,i)=> i===0?0:acc+dist(arr[i-1],arr[i]),0); let improved=true,best=path,bestLen=routeDistance(best),iter=0; while(improved&&iter<30){ improved=false; iter++; for(let i=1;i<best.length-2;i++){ for(let k=i+1;k<best.length-1;k++){ const swapped=twoOptSwap(best,i,k); const len=routeDistance(swapped); if(len<bestLen-1e-6){ best=swapped; bestLen=len; improved=true; } } } } const ids=best.map(d=>d.id); dispatch(reorderChain({ ids })); window.dispatchEvent(new CustomEvent('tripician:route-updated',{ detail:{ ids }})); };
   const handleOptimizeRouteClick=()=>{ if(optimizingRoute||geocodedCount<3) return; setOptimizingRoute(true); requestAnimationFrame(()=>{ try{ computeShortestRoute(); } finally { setTimeout(()=> setOptimizingRoute(false),60); } }); };
 
+  // Publish: gather full trip data snapshot & log JSON
+  const handlePublish = () => {
+    type OutputSpot = { id:string; name:string; placeId?:string; photoUrl?:string; description?:string; checked:boolean };
+    type OutputFood = { id:string; name:string; checked:boolean };
+    const tripData = {
+      meta: {
+        title,
+        status: isDraft ? 'Draft' : 'Published',
+        privacy,
+        currency,
+        generatedAt: new Date().toISOString(),
+        totalNights,
+        targetNights,
+        geocodedDestinations: geocodedCount
+      },
+      destinations: planner.destinations.map(d => ({
+        id: d.id,
+        name: d.name,
+        startDate: d.startDate,
+        endDate: d.endDate,
+        nights: d.nights,
+        lat: d.lat,
+        lng: d.lng,
+        transport: d.transport,
+        spots: (d.spots||[]).map<OutputSpot>(s => ({ id:s.id, name:s.name, placeId:s.placeId, photoUrl:s.photoUrl, description:s.description, checked:s.checked })),
+        foods: (d.foods||[]).map<OutputFood>(f => ({ id:f.id, name:f.name, checked:f.checked }))
+      })),
+      extras: {
+        routeOrder: planner.destinations.map(d=> d.id)
+      }
+    };
+    if(isDraft) setIsDraft(false);
+    // eslint-disable-next-line no-console
+    console.log('TRIPICIAN_PUBLISH_JSON =>', tripData, '\nJSON STRING =>', JSON.stringify(tripData, null, 2));
+  };
+
   return (
     <Box sx={{ display:'flex', flexDirection:'row', height:'100vh', overflow:'hidden' }}>
-      <CreateTripNav />
+      <CreateTripNav onSettingsClick={()=> setSettingsOpen(true)} />
       <Box sx={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, minHeight:0 }}>
         <TopBar showSearch={false} centerNode={
           <Box sx={{ display:'flex', alignItems:'center' }}>
@@ -152,7 +190,7 @@ const CreateTrip: React.FC = () => {
               <Typography variant='caption' color='text.secondary'>Last saved: just now</Typography>
               <Box sx={{ display:'flex', gap:1.2 }}>
                 <Button size='small' variant='outlined' onClick={()=> setIsDraft(true)} disabled={isDraft} sx={{ textTransform:'none', borderRadius:2 }}>Save as Draft</Button>
-                <Button size='small' variant='contained' color={isDraft? 'primary':'success'} onClick={()=> setIsDraft(false)} sx={{ textTransform:'none', borderRadius:2 }}>{isDraft? 'Publish':'Published'}</Button>
+                <Button size='small' variant='contained' color={isDraft? 'primary':'success'} onClick={handlePublish} sx={{ textTransform:'none', borderRadius:2 }}>{isDraft? 'Publish':'Published'}</Button>
               </Box>
             </Box>
           </Box>
@@ -166,6 +204,21 @@ const CreateTrip: React.FC = () => {
           {(['Private','Trip Members','My Followers','Everyone'] as const).map(p=> (<MenuItem key={p} selected={p===privacy} onClick={()=> selectPrivacy(p)}>{p}</MenuItem>))}
         </Menu>
       </Box>
+      <TripSettingsDialog
+        open={settingsOpen}
+        onClose={()=> setSettingsOpen(false)}
+        title={title}
+        startDate={planner.destinations[0]?.startDate || new Date().toISOString().slice(0,10)}
+        endDate={planner.destinations[planner.destinations.length-1]?.endDate || new Date().toISOString().slice(0,10)}
+        privacy={privacy}
+        members={[{ id:'me', name: "Rover's Compass", handle:'@username', avatar: undefined, role:'Owner' }]}
+        onChangeTitle={(t)=> setTitle(t)}
+  onChangeStartDate={()=> {/* future: update chain */}}
+  onChangeEndDate={()=> {/* future: update chain */}}
+        onChangePrivacy={(p)=> setPrivacy(p as any)}
+        onDeleteTrip={()=> { /* placeholder delete */ setSettingsOpen(false); }}
+        onInviteEmail={async(email)=> { console.log('Invite email placeholder', email); }}
+      />
     </Box>
   );
 };
