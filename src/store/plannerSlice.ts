@@ -11,6 +11,22 @@ export interface PlannerDestination {
   notes?: string;
   lat?: number; // optional latitude for mapping
   lng?: number; // optional longitude for mapping
+  spots?: PlannerSpot[]; // discover spots
+  foods?: PlannerFood[]; // discover foods
+}
+
+export interface PlannerSpot {
+  id: string;
+  name: string;
+  checked: boolean;
+  mapUrl?: string; // link to Google Maps
+  known: boolean;   // whether we have a map link (available on google)
+}
+
+export interface PlannerFood {
+  id: string;
+  name: string;
+  checked: boolean;
 }
 
 export interface PlannerState {
@@ -120,6 +136,59 @@ const plannerSlice = createSlice({
       const d = state.destinations.find(x => x.id === action.payload.id);
       if (d) { d.lat = action.payload.lat; d.lng = action.payload.lng; }
     },
+    addSpot(state, action: PayloadAction<{ destinationId: string; name: string; mapUrl?: string; known: boolean }>) {
+      const d = state.destinations.find(x=> x.id === action.payload.destinationId);
+      if (!d) return;
+      if (!d.spots) d.spots = [];
+      if (d.spots.some(s=> s.name.toLowerCase()===action.payload.name.toLowerCase())) return;
+      d.spots.push({ id: action.payload.name + Date.now(), name: action.payload.name, mapUrl: action.payload.mapUrl, known: action.payload.known, checked:false });
+    },
+    toggleSpot(state, action: PayloadAction<{ destinationId: string; spotId: string }>) {
+      const d = state.destinations.find(x=> x.id === action.payload.destinationId);
+      if (!d?.spots) return;
+      const s = d.spots.find(x=> x.id === action.payload.spotId);
+      if (s) s.checked = !s.checked;
+    },
+    removeSpot(state, action: PayloadAction<{ destinationId: string; spotId: string }>) {
+      const d = state.destinations.find(x=> x.id === action.payload.destinationId);
+      if (!d?.spots) return;
+      d.spots = d.spots.filter(s=> s.id !== action.payload.spotId);
+    },
+    reorderSpots(state, action: PayloadAction<{ destinationId: string; fromIndex: number; toIndex: number }>) {
+      const d = state.destinations.find(x=> x.id === action.payload.destinationId);
+      if (!d?.spots) return;
+      const { fromIndex, toIndex } = action.payload;
+      if (fromIndex===toIndex) return;
+      const arr = d.spots;
+      const item = arr.splice(fromIndex,1)[0];
+      arr.splice(toIndex,0,item);
+    },
+    addFoodItem(state, action: PayloadAction<{ destinationId: string; name: string }>) {
+      const d = state.destinations.find(x=> x.id === action.payload.destinationId);
+      if (!d) return; if (!d.foods) d.foods = [];
+      if (d.foods.some(f=> f.name.toLowerCase()===action.payload.name.toLowerCase())) return;
+      d.foods.push({ id: action.payload.name + Date.now(), name: action.payload.name, checked:false });
+    },
+    toggleFoodItem(state, action: PayloadAction<{ destinationId: string; foodId: string }>) {
+      const d = state.destinations.find(x=> x.id === action.payload.destinationId);
+      if (!d?.foods) return;
+      const f = d.foods.find(x=> x.id === action.payload.foodId);
+      if (f) f.checked = !f.checked;
+    },
+    removeFoodItem(state, action: PayloadAction<{ destinationId: string; foodId: string }>) {
+      const d = state.destinations.find(x=> x.id === action.payload.destinationId);
+      if (!d?.foods) return;
+      d.foods = d.foods.filter(f=> f.id !== action.payload.foodId);
+    },
+    reorderFoods(state, action: PayloadAction<{ destinationId: string; fromIndex: number; toIndex: number }>) {
+      const d = state.destinations.find(x=> x.id === action.payload.destinationId);
+      if (!d?.foods) return;
+      const { fromIndex, toIndex } = action.payload;
+      if (fromIndex===toIndex) return;
+      const arr = d.foods;
+      const item = arr.splice(fromIndex,1)[0];
+      arr.splice(toIndex,0,item);
+    },
     reorderDestinations(state, action: PayloadAction<{ fromIndex: number; toIndex: number }>) {
       const { fromIndex, toIndex } = action.payload;
       if (fromIndex === toIndex) return;
@@ -179,6 +248,17 @@ export const {
   loadState,
   markSaved,
   setDestinationCoords
+} = plannerSlice.actions;
+
+export const {
+  addSpot,
+  toggleSpot,
+  removeSpot,
+  reorderSpots,
+  addFoodItem,
+  toggleFoodItem,
+  removeFoodItem,
+  reorderFoods
 } = plannerSlice.actions;
 
 export default plannerSlice.reducer;

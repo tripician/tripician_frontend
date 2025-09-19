@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Tooltip, Button, Menu, MenuItem, ListItemIcon, ListItemText, Paper, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField } from '@mui/material';
+import { Box, Typography, Tooltip, Button, Menu, MenuItem, ListItemIcon, ListItemText, Paper, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Chip, LinearProgress, Tabs, Tab } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -12,6 +12,10 @@ import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk';
 import DirectionsBikeIcon from '@mui/icons-material/DirectionsBike';
 import BlockIcon from '@mui/icons-material/Block';
 import ExploreIcon from '@mui/icons-material/Explore';
+import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import { useDispatch, useSelector } from 'react-redux';
+import { addSpot, toggleSpot, removeSpot, addFoodItem, toggleFoodItem, removeFoodItem, reorderSpots, reorderFoods } from '../../store/plannerSlice';
+import SearchIcon from '@mui/icons-material/Search';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import MapIcon from '@mui/icons-material/Map';
 import HotelIcon from '@mui/icons-material/Hotel';
@@ -37,6 +41,7 @@ interface DestinationsPanelProps {
   onRemoveDestination?: (id: string) => void;
   maxed?: boolean; // whether total nights reached target
 }
+
 
 const rowHover: SxProps<Theme> = (theme) => ({
   '&:hover': { backgroundColor: theme.palette.action.hover }
@@ -153,6 +158,74 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
   const [docs, setDocs] = React.useState<Record<string, DocItem[]>>({});
   const fileInputRefs = React.useRef<Record<string, HTMLInputElement | null>>({});
   const [openDocsId, setOpenDocsId] = React.useState<string | null>(null);
+
+  // Discover dialog state (persisted via Redux for data; local only for UI state)
+  const [discoverOpenId, setDiscoverOpenId] = React.useState<string | null>(null);
+  const [discoverTab, setDiscoverTab] = React.useState<'spots'|'foods'>('spots');
+  const [spotSearch, setSpotSearch] = React.useState('');
+  const [spotSearchLoading, setSpotSearchLoading] = React.useState(false);
+  const [spotPredictions, setSpotPredictions] = React.useState<any[]>([]);
+  const [foodInput, setFoodInput] = React.useState('');
+  const placesServiceRef = React.useRef<any>(null);
+  const scriptLoadingRef = React.useRef(false);
+
+  // Simple canned recommendations (would come from API later)
+  const recommendedSpots = ['Central Park','Old Town','Museum of Art','River Walk','Sunset Point'];
+  const recommendedFoods = ['Local BBQ','Seafood Platter','Street Tacos','Traditional Dessert','Coffee Roastery'];
+
+  const openDiscover = (id:string) => { setDiscoverOpenId(id); setDiscoverTab('spots'); };
+  const closeDiscover = () => { setDiscoverOpenId(null); setSpotPredictions([]); setSpotSearch(''); };
+
+  // Redux selectors / dispatch (ES module imports)
+  const dispatch = useDispatch();
+  const plannerDestinations = useSelector((state:any)=> state.planner.destinations);
+
+  // Load Google Places script if needed
+  const ensurePlacesScript = React.useCallback(() => {
+    if (placesServiceRef.current) return true;
+    const w: any = window;
+    if (w.google?.maps?.places) {
+      placesServiceRef.current = new w.google.maps.places.AutocompleteService();
+      return true;
+    }
+    if (scriptLoadingRef.current) return false;
+    const key = import.meta.env.VITE_GOOGLE_MAPS_API_KEY;
+    if (!key) return false;
+    scriptLoadingRef.current = true;
+    const script = document.createElement('script');
+    script.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places`; // load places library
+    script.async = true; script.defer = true; script.dataset.tripicianPlaces = '1';
+    script.onload = () => {
+      scriptLoadingRef.current = false;
+      if (w.google?.maps?.places) {
+        placesServiceRef.current = new w.google.maps.places.AutocompleteService();
+        if (spotSearch) triggerSpotSearch(spotSearch);
+      }
+    };
+    document.head.appendChild(script);
+    return false;
+  }, [spotSearch]);
+
+  const triggerSpotSearch = React.useCallback((query: string) => {
+    if (!query.trim()) { setSpotPredictions([]); return; }
+    const ready = ensurePlacesScript();
+    if (!ready || !placesServiceRef.current) {
+      setSpotSearchLoading(true);
+      // fallback placeholder while script loads
+      const fake = Array.from({length:2}).map((_,i)=> ({ description: query + ' (loading '+(i+1)+')', place_id: query + '_fake_'+i }));
+      setTimeout(()=> { setSpotPredictions(fake); setSpotSearchLoading(false); }, 300);
+      return;
+    }
+    setSpotSearchLoading(true);
+    placesServiceRef.current.getPlacePredictions({ input: query }, (preds: any[]) => {
+      const allow = new Set(['tourist_attraction','point_of_interest','establishment']);
+      const filtered = (preds || []).filter(p => !p.types || p.types.some((t:string)=> allow.has(t)));
+      setSpotPredictions(filtered);
+      setSpotSearchLoading(false);
+    });
+  }, [ensurePlacesScript]);
+
+  React.useEffect(() => { const d = setTimeout(()=> triggerSpotSearch(spotSearch), 450); return ()=> clearTimeout(d); }, [spotSearch, triggerSpotSearch]);
 
   const handleUploadClick = (id: string) => {
     if (!fileInputRefs.current[id]) return;
@@ -273,31 +346,46 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
                 </span>
               </Tooltip>
             </Box>
-            {/* Stay column */}
             <Box sx={{ width:110, display:'flex', alignItems:'center', justifyContent:'center' }}>
               <Tooltip title='Add stay info'>
                 <IconButton size='small' sx={{ opacity:.6 }}><HotelIcon fontSize='small' /></IconButton>
               </Tooltip>
             </Box>
-            {/* Discover column */}
             <Box sx={{ width:110, display:'flex', alignItems:'center', justifyContent:'center' }}>
-              <Tooltip title='Discover'><ExploreIcon fontSize='small' color='disabled' /></Tooltip>
+              {(() => {
+                const pd = plannerDestinations.find((pd:any)=> pd.id===d.id);
+                const spotsArr = pd?.spots || [];
+                const foodsArr = pd?.foods || [];
+                const coveredSpots = spotsArr.filter((s:any)=> s.checked).length;
+                const coveredFoods = foodsArr.filter((f:any)=> f.checked).length;
+                const title = spotsArr.length || foodsArr.length ? `${coveredSpots}/${spotsArr.length} spots | ${coveredFoods}/${foodsArr.length} foods` : 'Discover spots & foods';
+                const total = spotsArr.length + foodsArr.length;
+                return (
+                  <Tooltip title={title}>
+                    <IconButton size='small' onClick={()=> openDiscover(d.id)} sx={{ position:'relative' }}>
+                      <ExploreIcon fontSize='small' color={total>0? 'primary':'disabled'} />
+                      {total>0 && (
+                        <Box sx={(theme)=>({ position:'absolute', top:-4, right:-4, minWidth:18, height:18, px:0.5, borderRadius:9, background: theme.palette.mode==='dark'? theme.palette.primary.light : theme.palette.primary.main, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:600, boxShadow:'0 0 0 2px '+theme.palette.background.paper })}>
+                          {total}
+                        </Box>
+                      )}
+                    </IconButton>
+                  </Tooltip>
+                );
+              })()}
             </Box>
-            {/* Docs column with upload icon + count & dialog trigger */}
-            <Box sx={{ width:110, display:'flex', alignItems:'center', justifyContent:'center', gap:0.5 }}>
+            <Box sx={{ width:110, display:'flex', alignItems:'center', justifyContent:'center' }}>
               <input ref={el=>{ fileInputRefs.current[d.id]=el; }} type='file' multiple hidden onChange={(e)=> onFilesSelected(d.id, e.target.files)} />
-              <Tooltip title='Upload documents'>
-                <IconButton size='small' onClick={()=>handleUploadClick(d.id)} sx={{ opacity:.8 }}>
-                  <UploadFileIcon fontSize='small' />
+              <Tooltip title={docs[d.id]?.length ? `View ${docs[d.id].length} document(s)` : 'Upload documents'}>
+                <IconButton size='small' onClick={()=> { docs[d.id]?.length ? setOpenDocsId(d.id) : handleUploadClick(d.id); }} sx={{ position:'relative' }}>
+                  <UploadFileIcon fontSize='small' color={docs[d.id]?.length ? 'primary' : 'disabled'} />
+                  {docs[d.id]?.length > 0 && (
+                    <Box sx={(theme)=>({ position:'absolute', top:-4, right:-4, minWidth:18, height:18, px:0.5, borderRadius:9, background: theme.palette.mode==='dark'? theme.palette.secondary.light : theme.palette.secondary.main, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:600, boxShadow:'0 0 0 2px '+theme.palette.background.paper })}>
+                      {docs[d.id].length}
+                    </Box>
+                  )}
                 </IconButton>
               </Tooltip>
-              {docs[d.id] && docs[d.id].length>0 && (
-                <Tooltip title='View documents'>
-                  <Typography onClick={()=> setOpenDocsId(d.id)} sx={{ cursor:'pointer', textDecoration:'underline', fontSize:12 }}>
-                    {docs[d.id].length} doc(s)
-                  </Typography>
-                </Tooltip>
-              )}
             </Box>
             {onRemoveDestination && destinations.length > 1 && (
               <Box
@@ -307,7 +395,6 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
                 <DeleteOutlineIcon fontSize='small' />
               </Box>
             )}
-            {/* Notes icon under delete */}
             <Box sx={(theme)=>({ position:'absolute', right:8, top:42, width:28, height:28, borderRadius:'50%', display:'flex', alignItems:'center', justifyContent:'center', cursor:'pointer', background: theme.palette.background.paper, border:`1px solid ${theme.palette.divider}`, opacity:0, transition:'opacity .2s', '.MuiBox-root:hover &':{opacity:1}, '&:hover':{ background: theme.palette.action.hover } })} onClick={()=> openNotes(d.id)}>
               <EditNoteIcon fontSize='small' />
             </Box>
@@ -444,6 +531,142 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
           )}
           <Button onClick={()=> setOpenDocsId(null)}>Close</Button>
         </DialogActions>
+      </Dialog>
+      {/* Discover Dialog (Redesigned) */}
+      <Dialog
+        open={Boolean(discoverOpenId)}
+        onClose={closeDiscover}
+        fullWidth
+        maxWidth={false}
+        PaperProps={{
+          sx: {
+            width: 'min(1200px, 92vw)',
+            height: 'min(760px, 82vh)',
+            display: 'flex',
+            flexDirection: 'column',
+            borderRadius: 4,
+          }
+        }}
+      >
+        {(() => {
+          if (!discoverOpenId) return null;
+          const pd = plannerDestinations.find((p:any)=> p.id===discoverOpenId);
+          return (
+            <>
+              <DialogTitle sx={{ pb:0 }}>
+                <Box sx={{ display:'flex', alignItems:'flex-end', justifyContent:'space-between', flexWrap:'wrap', gap:2 }}>
+                  <Box>
+                    <Typography variant='h6' sx={{ fontWeight:700 }}>{pd?.name || 'Destination'}</Typography>
+                    <Typography variant='caption' sx={{ opacity:.7 }}>Curate your {discoverTab==='spots' ? 'must-see spots' : 'must-try foods'} like a pro.</Typography>
+                  </Box>
+                  {(() => {
+                    const spotsCount = pd?.spots?.length || 0;
+                    const foodsCount = pd?.foods?.length || 0;
+                    const mkLabel = (text:string, count:number, colorVariant:'primary'|'secondary') => (
+                      <Box sx={{ display:'flex', alignItems:'center', gap:.75 }}>
+                        <span>{text.toUpperCase()}</span>
+                        {count>0 && (
+                          <Box sx={(theme)=>({ minWidth:18, height:18, px:0.75, borderRadius:9, background: theme.palette[colorVariant].main, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, lineHeight:1, boxShadow:'0 0 0 2px '+theme.palette.background.paper })}>{count}</Box>
+                        )}
+                      </Box>
+                    );
+                    return (
+                      <Tabs value={discoverTab} onChange={(_,v)=> setDiscoverTab(v)} sx={{ ml:'auto' }} textColor='primary' indicatorColor='primary'>
+                        <Tab value='spots' label={mkLabel('Spots', spotsCount, 'primary')} sx={{ fontWeight:600, py:1 }} />
+                        <Tab value='foods' label={mkLabel('Foods', foodsCount, 'secondary')} sx={{ fontWeight:600, py:1 }} />
+                      </Tabs>
+                    );
+                  })()}
+                </Box>
+              </DialogTitle>
+              <DialogContent dividers sx={{ pt:3, bgcolor:(theme)=> theme.palette.mode==='dark'? '#121212' : '#fafafa', flex:1, overflow:'auto' }}>
+                <Box sx={{ display:'flex', gap:3, alignItems:'flex-start' }}>
+                  {/* Left: List / Checklist */}
+                  <Box sx={{ flex:2, display:'flex', flexDirection:'column', gap:1 }} onDragOver={(e)=> e.preventDefault()}>
+                    <Typography variant='subtitle2' sx={{ fontWeight:700, letterSpacing:.5, textTransform:'uppercase', fontSize:12 }}>
+                      {discoverTab==='spots' ? 'Spot List' : 'Food List'}
+                    </Typography>
+                    <Box sx={{ display:'flex', flexDirection:'column', gap:1, maxHeight:420, overflowY:'auto', pr:1 }}>
+                      {discoverTab==='spots' && plannerDestinations.find((pd:any)=> pd.id===discoverOpenId)?.spots?.map((s:any) => (
+                        <Box key={s.id} draggable onDragStart={(e)=> { e.dataTransfer.setData('text/plain', s.id); }} onDrop={(e)=> { e.preventDefault(); const fromId = e.dataTransfer.getData('text/plain'); const arr = plannerDestinations.find((pd:any)=> pd.id===discoverOpenId)?.spots || []; const fromIndex = arr.findIndex((x:any)=> x.id===fromId); const toIndex = arr.findIndex((x:any)=> x.id===s.id); if (fromIndex>-1 && toIndex>-1 && fromIndex!==toIndex) dispatch(reorderSpots({ destinationId: discoverOpenId, fromIndex, toIndex })); }} sx={(theme)=>({ position:'relative', display:'flex', alignItems:'center', gap:1, fontSize:13, p:1, pl:1.25, border:'1px solid', borderColor:'divider', borderRadius:1.5, background: theme.palette.background.paper, boxShadow: theme.palette.mode==='dark'? '0 0 0 1px rgba(255,255,255,0.04)' : '0 1px 2px rgba(0,0,0,0.06)', transition:'background .2s, border-color .2s', '&:hover':{ background: theme.palette.action.hover } })}>
+                          <DragIndicatorIcon fontSize='small' sx={{ cursor:'grab', opacity:.5 }} />
+                          <input type='checkbox' checked={s.checked} onChange={()=> dispatch(toggleSpot({ destinationId: discoverOpenId, spotId: s.id }))} />
+                          <Typography variant='body2' sx={{ flex:1, fontWeight:500 }}>{s.name}</Typography>
+                          {s.mapUrl && (<IconButton size='small' component='a' href={s.mapUrl} target='_blank' rel='noopener' sx={{ mr:0.5 }}><MapIcon fontSize='inherit' /></IconButton>)}
+                          <IconButton size='small' onClick={()=> dispatch(removeSpot({ destinationId: discoverOpenId, spotId: s.id }))}>
+                            <DeleteOutlineIcon fontSize='inherit' />
+                          </IconButton>
+                        </Box>
+                      ))}
+                      {discoverTab==='spots' && (plannerDestinations.find((pd:any)=> pd.id===discoverOpenId)?.spots?.length===0) && (
+                        <Typography variant='caption' sx={{ opacity:.6, fontStyle:'italic', mt:1 }}>No spots yet. Use recommendations or search to add.</Typography>
+                      )}
+                      {discoverTab==='foods' && plannerDestinations.find((pd:any)=> pd.id===discoverOpenId)?.foods?.map((f:any) => (
+                        <Box key={f.id} draggable onDragStart={(e)=> { e.dataTransfer.setData('text/plain', f.id); }} onDrop={(e)=> { e.preventDefault(); const fromId = e.dataTransfer.getData('text/plain'); const arr = plannerDestinations.find((pd:any)=> pd.id===discoverOpenId)?.foods || []; const fromIndex = arr.findIndex((x:any)=> x.id===fromId); const toIndex = arr.findIndex((x:any)=> x.id===f.id); if (fromIndex>-1 && toIndex>-1 && fromIndex!==toIndex) dispatch(reorderFoods({ destinationId: discoverOpenId, fromIndex, toIndex })); }} sx={(theme)=>({ position:'relative', display:'flex', alignItems:'center', gap:1, fontSize:13, p:1, pl:1.25, border:'1px solid', borderColor:'divider', borderRadius:1.5, background: theme.palette.background.paper, boxShadow: theme.palette.mode==='dark'? '0 0 0 1px rgba(255,255,255,0.04)' : '0 1px 2px rgba(0,0,0,0.06)', transition:'background .2s, border-color .2s', '&:hover':{ background: theme.palette.action.hover } })}>
+                          <DragIndicatorIcon fontSize='small' sx={{ cursor:'grab', opacity:.5 }} />
+                          <input type='checkbox' checked={f.checked} onChange={()=> dispatch(toggleFoodItem({ destinationId: discoverOpenId, foodId: f.id }))} />
+                          <Typography variant='body2' sx={{ flex:1, fontWeight:500 }}>{f.name}</Typography>
+                          <IconButton size='small' onClick={()=> dispatch(removeFoodItem({ destinationId: discoverOpenId, foodId: f.id }))}>
+                            <DeleteOutlineIcon fontSize='inherit' />
+                          </IconButton>
+                        </Box>
+                      ))}
+                      {discoverTab==='foods' && (plannerDestinations.find((pd:any)=> pd.id===discoverOpenId)?.foods?.length===0) && (
+                        <Typography variant='caption' sx={{ opacity:.6, fontStyle:'italic', mt:1 }}>No foods yet. Use recommendations to add.</Typography>
+                      )}
+                    </Box>
+                  </Box>
+                  {/* Right: Recommendation & Search Module */}
+                  <Paper variant='outlined' sx={{ flex:1.2, p:2.25, borderRadius:3, background:(theme)=> theme.palette.mode==='dark'? 'linear-gradient(145deg,#1e1e1e,#161616)' : 'linear-gradient(145deg,#ffffff,#f2f5f9)' }}>
+                    <Typography variant='subtitle2' sx={{ fontWeight:700, mb:1 }}>{discoverTab==='spots' ? `Recommendations in ${pd?.name}` : `Local Foods in ${pd?.name}`}</Typography>
+                    <Box sx={{ display:'flex', flexWrap:'wrap', gap:1, mb: discoverTab==='spots'? 2:2 }}>
+                      {(discoverTab==='spots'? recommendedSpots: recommendedFoods).map(r => (
+                        <Chip key={r} label={r} size='small' color={discoverTab==='spots'?'primary':'secondary'} variant='outlined' onClick={()=> discoverTab==='spots' ? dispatch(addSpot({ destinationId: discoverOpenId, name: r, known:true, mapUrl:`https://maps.google.com/?q=${encodeURIComponent(r+' '+(pd?.name||''))}` })) : dispatch(addFoodItem({ destinationId: discoverOpenId, name: r }))} sx={{ cursor:'pointer' }} />
+                      ))}
+                    </Box>
+                    {discoverTab==='spots' && (
+                      <Box sx={{ mb:2 }}>
+                        <Typography variant='caption' sx={{ fontWeight:600, letterSpacing:.5, textTransform:'uppercase', display:'block', mb:.75 }}>Google Search</Typography>
+                        <Box sx={{ position:'relative' }}>
+                          <TextField value={spotSearch} onChange={e=> setSpotSearch(e.target.value)} placeholder='Search attractions, landmarks...' size='small' fullWidth InputProps={{ startAdornment: <SearchIcon fontSize='small' sx={{ mr:1, opacity:.6 }} /> }} />
+                          {spotSearchLoading && <LinearProgress sx={{ position:'absolute', left:0, right:0, bottom:-2, height:2 }} />}
+                        </Box>
+                        <Box sx={{ mt:1, maxHeight:170, overflowY:'auto', pr:0.5 }}>
+                          {!spotSearchLoading && spotPredictions.map(p => (
+                            <Box key={p.place_id} onClick={()=> { dispatch(addSpot({ destinationId: discoverOpenId, name: p.description, known:true, mapUrl:`https://maps.google.com/?q=${encodeURIComponent(p.description)}` })); setSpotSearch(''); setSpotPredictions([]); }} sx={(theme)=>({ p:0.6, px:1, border:'1px solid', borderColor:'divider', borderRadius:1, mb:0.5, cursor:'pointer', fontSize:12.5, display:'flex', alignItems:'center', gap:.5, background: theme.palette.background.paper, '&:hover':{ background: theme.palette.action.hover } })}>
+                              <SearchIcon sx={{ fontSize:14, opacity:.5 }} /> {p.description}
+                            </Box>
+                          ))}
+                          {(!spotSearchLoading && spotSearch && spotPredictions.length===0) && (
+                            <Typography variant='caption' sx={{ opacity:.6 }}>No results.</Typography>
+                          )}
+                        </Box>
+                      </Box>
+                    )}
+                    {discoverTab==='foods' && (
+                      <Box sx={{ mb:2 }}>
+                        <Typography variant='caption' sx={{ fontWeight:600, letterSpacing:.5, textTransform:'uppercase', display:'block', mb:.75 }}>Add Custom Food</Typography>
+                        <Box component='form' onSubmit={(e)=> { e.preventDefault(); const name = foodInput.trim(); if(!name) return; const pd = plannerDestinations.find((p:any)=> p.id===discoverOpenId); const exists = pd?.foods?.some((f:any)=> f.name.toLowerCase() === name.toLowerCase()); if(exists) { return; } dispatch(addFoodItem({ destinationId: discoverOpenId!, name })); setFoodInput(''); }} sx={{ display:'flex', gap:1 }}>
+                          <TextField value={foodInput} onChange={e=> setFoodInput(e.target.value)} placeholder='e.g. Ramen, Gelato, Tapas...' size='small' fullWidth />
+                          <Button variant='contained' size='small' disabled={!foodInput.trim()} type='submit' sx={{ textTransform:'none' }}>Add</Button>
+                        </Box>
+                        <Typography variant='caption' sx={{ display:'block', mt:.75, opacity:.6 }}>Press Enter or Add. Duplicates (case-insensitive) are ignored.</Typography>
+                      </Box>
+                    )}
+                    {discoverTab==='spots' && (
+                      <Typography variant='caption' sx={{ display:'flex', alignItems:'center', gap:0.5, mt:1.5, opacity:.75 }}>
+                        Powered by <Box component='img' alt='Google' src={import.meta.env.VITE_GOOGLE_LOGO || 'https://developers.google.com/static/maps/documentation/images/google_on_white.png'} sx={{ height:14 }} loading='lazy' />
+                      </Typography>
+                    )}
+                  </Paper>
+                </Box>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={closeDiscover}>Close</Button>
+              </DialogActions>
+            </>
+          );
+        })()}
       </Dialog>
     </Box>
   );
