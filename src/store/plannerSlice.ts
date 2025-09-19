@@ -21,6 +21,9 @@ export interface PlannerSpot {
   checked: boolean;
   mapUrl?: string; // link to Google Maps
   known: boolean;   // whether we have a map link (available on google)
+  placeId?: string; // Google Places ID for fetching details/photos
+  photoUrl?: string; // Cached first photo URL (small)
+  description?: string; // One-line description fetched from Places (editorial summary or formatted address)
 }
 
 export interface PlannerFood {
@@ -136,12 +139,21 @@ const plannerSlice = createSlice({
       const d = state.destinations.find(x => x.id === action.payload.id);
       if (d) { d.lat = action.payload.lat; d.lng = action.payload.lng; }
     },
-    addSpot(state, action: PayloadAction<{ destinationId: string; name: string; mapUrl?: string; known: boolean }>) {
+  addSpot(state, action: PayloadAction<{ destinationId: string; name: string; mapUrl?: string; known: boolean; placeId?: string; photoUrl?: string; description?: string }>) {
       const d = state.destinations.find(x=> x.id === action.payload.destinationId);
       if (!d) return;
       if (!d.spots) d.spots = [];
       if (d.spots.some(s=> s.name.toLowerCase()===action.payload.name.toLowerCase())) return;
-      d.spots.push({ id: action.payload.name + Date.now(), name: action.payload.name, mapUrl: action.payload.mapUrl, known: action.payload.known, checked:false });
+      d.spots.push({
+        id: action.payload.name + Date.now(),
+        name: action.payload.name,
+        mapUrl: action.payload.mapUrl,
+        known: action.payload.known,
+        placeId: action.payload.placeId,
+        photoUrl: action.payload.photoUrl,
+        description: action.payload.description,
+        checked:false
+      });
     },
     toggleSpot(state, action: PayloadAction<{ destinationId: string; spotId: string }>) {
       const d = state.destinations.find(x=> x.id === action.payload.destinationId);

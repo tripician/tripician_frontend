@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, Tooltip, Button, Menu, MenuItem, ListItemIcon, ListItemText, Paper, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Chip, LinearProgress, Tabs, Tab } from '@mui/material';
+import { Box, Typography, Tooltip, Button, Menu, MenuItem, ListItemIcon, ListItemText, Paper, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, Chip, LinearProgress, Tabs, Tab, Checkbox } from '@mui/material';
 import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -15,6 +15,7 @@ import ExploreIcon from '@mui/icons-material/Explore';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { useDispatch, useSelector } from 'react-redux';
 import { addSpot, toggleSpot, removeSpot, addFoodItem, toggleFoodItem, removeFoodItem, reorderSpots, reorderFoods } from '../../store/plannerSlice';
+import ImageIcon from '@mui/icons-material/Image';
 import SearchIcon from '@mui/icons-material/Search';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import MapIcon from '@mui/icons-material/Map';
@@ -165,6 +166,7 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
   const [spotSearch, setSpotSearch] = React.useState('');
   const [spotSearchLoading, setSpotSearchLoading] = React.useState(false);
   const [spotPredictions, setSpotPredictions] = React.useState<any[]>([]);
+  const placeDetailsCache = React.useRef<Record<string,{ photoUrl?: string; mapUrl?: string }>>({});
   const [foodInput, setFoodInput] = React.useState('');
   const placesServiceRef = React.useRef<any>(null);
   const scriptLoadingRef = React.useRef(false);
@@ -227,6 +229,24 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
 
   React.useEffect(() => { const d = setTimeout(()=> triggerSpotSearch(spotSearch), 450); return ()=> clearTimeout(d); }, [spotSearch, triggerSpotSearch]);
 
+  // Restore original destination prediction selection logic (adding a destination from autocomplete)
+  const selectPrediction = (p: any) => {
+    const g = (window as any).google;
+    if (!g?.maps?.places) return;
+    const placesSvc = new g.maps.places.PlacesService(document.createElement('div'));
+    placesSvc.getDetails({ placeId: p.place_id, fields: ['name','geometry','formatted_address'] }, (place: any, status: string) => {
+      if (status === 'OK' && place) {
+        const name = place.name || p.description;
+        const lat = place.geometry?.location?.lat();
+        const lng = place.geometry?.location?.lng();
+        if (name && lat != null && lng != null) {
+          onAddDestination?.(name, { lat, lng });
+          setAdding(false); setNewName(''); setPredictions([]);
+        }
+      }
+    });
+  };
+
   const handleUploadClick = (id: string) => {
     if (!fileInputRefs.current[id]) return;
     fileInputRefs.current[id]!.click();
@@ -276,20 +296,80 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
     return () => { active = false; };
   }, [newName, adding]);
 
-  const selectPrediction = (p: any) => {
-    const g = (window as any).google;
-    if (!g?.maps?.places) return;
-    const placesSvc = new g.maps.places.PlacesService(document.createElement('div'));
-    placesSvc.getDetails({ placeId: p.place_id, fields: ['name','geometry','formatted_address'] }, (place: any, status: string) => {
-      if (status === 'OK' && place) {
-        const name = place.name || p.description;
-        const lat = place.geometry?.location?.lat();
-        const lng = place.geometry?.location?.lng();
-        if (name && lat != null && lng != null) onAddDestination?.(name, { lat, lng });
-        setAdding(false); setNewName(''); setPredictions([]);
-      }
+  // --- Spot card helpers ---
+  const fetchPlacePhoto = React.useCallback((placeId:string): Promise<{ photoUrl?: string; mapUrl?: string; description?: string }> => {
+    if (placeDetailsCache.current[placeId]) return Promise.resolve(placeDetailsCache.current[placeId]);
+    return new Promise(resolve => {
+      const g = (window as any).google;
+      if (!g?.maps?.places) return resolve({});
+      const svc = new g.maps.places.PlacesService(document.createElement('div'));
+      // Request a few lightweight fields for description generation
+      svc.getDetails({ placeId, fields:['photos','url','editorial_summary','formatted_address','types','name'] }, (place:any, status:string) => {
+        if (status !== 'OK' || !place) { resolve({}); return; }
+        let photoUrl: string | undefined;
+        if (place.photos && place.photos.length) {
+          try { photoUrl = place.photos[0].getUrl({ maxWidth: 480, maxHeight: 320 }); } catch { /* ignore */ }
+        }
+        // Derive one-line description preference order: editorial summary, formatted address minus name, first type
+        let description: string | undefined;
+        if (place.editorial_summary?.overview) {
+          description = place.editorial_summary.overview.split(/\n|\.|!/)[0].trim();
+        }
+        if (!description && place.formatted_address) {
+          // remove leading name if repeated
+            const addr = place.formatted_address as string;
+            const nameLower = (place.name||'').toLowerCase();
+            description = addr.toLowerCase().startsWith(nameLower) ? addr.slice(place.name.length).replace(/^,\s*/, '') : addr;
+        }
+        if (!description && Array.isArray(place.types) && place.types.length) {
+          const typeMap: Record<string,string> = { tourist_attraction:'Tourist attraction', point_of_interest:'Point of interest' };
+          description = typeMap[place.types[0]] || place.types[0].replace(/_/g,' ');
+        }
+        const result = { photoUrl, mapUrl: place.url as string | undefined, description };
+        placeDetailsCache.current[placeId] = result;
+        resolve(result);
+      });
     });
-  };
+  }, []);
+
+  const addSpotFromPrediction = React.useCallback(async (p:any) => {
+    const { photoUrl, mapUrl, description } = await fetchPlacePhoto(p.place_id);
+    dispatch(addSpot({ destinationId: discoverOpenId!, name: p.description, known:true, mapUrl: mapUrl || `https://maps.google.com/?q=${encodeURIComponent(p.description)}`, placeId: p.place_id, photoUrl, description }));
+    setSpotSearch(''); setSpotPredictions([]);
+  }, [dispatch, discoverOpenId, fetchPlacePhoto]);
+
+  const renderSpotCards = (spots:any[]) => (
+    <Box sx={{ display:'flex', flexDirection:'column', gap:1, maxHeight:420, overflowY:'auto', pr:1 }}>
+      {spots.map((s:any, index:number) => (
+        <Paper key={s.id} elevation={0} draggable onDragStart={(e)=> { e.dataTransfer.setData('text/plain', s.id); }} onDrop={(e)=> { e.preventDefault(); if(!discoverOpenId) return; const fromId = e.dataTransfer.getData('text/plain'); const arr = spots; const fromIndex = arr.findIndex((x:any)=> x.id===fromId); const toIndex = arr.findIndex((x:any)=> x.id===s.id); if (fromIndex>-1 && toIndex>-1 && fromIndex!==toIndex) dispatch(reorderSpots({ destinationId: discoverOpenId!, fromIndex, toIndex })); }} sx={(theme)=>({ display:'flex', alignItems:'stretch', border:'1px solid', borderColor:'divider', borderRadius:2, overflow:'hidden', position:'relative', background: theme.palette.background.paper, boxShadow:'0 1px 2px rgba(0,0,0,0.06)', transition:'box-shadow .2s, transform .2s', '&:hover':{ boxShadow: theme.palette.mode==='dark'? '0 4px 14px -4px rgba(0,0,0,0.6)':'0 6px 18px -6px rgba(0,0,0,0.15)', transform:'translateY(-2px)' } })}>
+          <Box sx={{ width:110, height:78, flexShrink:0, position:'relative', background: s.photoUrl? 'transparent':'linear-gradient(135deg,#EEF2F6,#E2E8F0)' , display:'flex', alignItems:'center', justifyContent:'center' }}>
+            {s.photoUrl ? <Box component='img' src={s.photoUrl} alt={s.name} loading='lazy' sx={{ width:'100%', height:'100%', objectFit:'cover' }} /> : <ImageIcon sx={{ fontSize:34, opacity:.35 }} />}
+            <Box sx={(theme)=>({ position:'absolute', top:4, left:4, minWidth:20, height:20, px:0.75, borderRadius:10, background: theme.palette.primary.main, color:'#fff', fontSize:11, fontWeight:600, display:'flex', alignItems:'center', justifyContent:'center', boxShadow:'0 0 0 2px '+theme.palette.background.paper })}>{index+1}</Box>
+          </Box>
+          <Box sx={{ flex:1, p:1, display:'flex', flexDirection:'column', gap:.5 }}>
+            <Box sx={{ display:'flex', alignItems:'flex-start', gap:1 }}>
+              <Checkbox size='small' checked={s.checked} onChange={()=> discoverOpenId && dispatch(toggleSpot({ destinationId: discoverOpenId, spotId: s.id }))} sx={{ p:0.25, mt:-0.25 }} />
+              <Box sx={{ flex:1, display:'flex', flexDirection:'column', gap:.25, minWidth:0 }}>
+                <Typography variant='body2' sx={{ fontWeight:500, lineHeight:1.3, whiteSpace:'normal' }}>{s.name}</Typography>
+                {s.description && (
+                  <Typography variant='caption' sx={{ color:'text.secondary', lineHeight:1.2, display:'-webkit-box', WebkitLineClamp:1, WebkitBoxOrient:'vertical', overflow:'hidden', textOverflow:'ellipsis' }}>{s.description}</Typography>
+                )}
+              </Box>
+              {s.mapUrl && (
+                <IconButton size='small' component='a' href={s.mapUrl} target='_blank' rel='noopener'>
+                  <MapIcon fontSize='inherit' />
+                </IconButton>
+              )}
+              <IconButton size='small' onClick={()=> discoverOpenId && dispatch(removeSpot({ destinationId: discoverOpenId, spotId: s.id }))}>
+                <DeleteOutlineIcon fontSize='inherit' />
+              </IconButton>
+              <DragIndicatorIcon fontSize='small' sx={{ cursor:'grab', opacity:.5, mt:0.25 }} />
+            </Box>
+          </Box>
+        </Paper>
+      ))}
+    </Box>
+  );
 
   const openMenu = (e: React.MouseEvent<HTMLElement>, id: string) => {
     setMenuAnchor(e.currentTarget);
@@ -455,7 +535,7 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
               {adding && predictions.length>0 && (
                 <Paper elevation={6} sx={{ position:'absolute', top:'100%', left:0, right:0, mt:1, maxHeight:280, overflowY:'auto', borderRadius:2, zIndex:5 }}>
                   {predictions.map(p => (
-                    <Box key={p.place_id} onClick={()=>selectPrediction(p)} sx={(theme)=>({ px:1.5, py:1, cursor:'pointer', borderBottom:`1px solid ${theme.palette.divider}`, '&:hover':{ background: theme.palette.action.hover }, fontSize:13, display:'flex', flexDirection:'column', gap:.25 })}>
+                    <Box key={p.place_id} onClick={()=> selectPrediction(p)} sx={(theme)=>({ px:1.5, py:1, cursor:'pointer', borderBottom:`1px solid ${theme.palette.divider}`, '&:hover':{ background: theme.palette.action.hover }, fontSize:13, display:'flex', flexDirection:'column', gap:.25 })}>
                       <span style={{ fontWeight:600 }}>{p.structured_formatting?.main_text || p.description}</span>
                       <span style={{ opacity:.7 }}>{p.structured_formatting?.secondary_text}</span>
                     </Box>
@@ -538,19 +618,20 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
         onClose={closeDiscover}
         fullWidth
         maxWidth={false}
-        PaperProps={{
-          sx: {
-            width: 'min(1200px, 92vw)',
-            height: 'min(760px, 82vh)',
-            display: 'flex',
-            flexDirection: 'column',
-            borderRadius: 4,
-          }
-        }}
+        PaperProps={{ sx:{ width:'min(1200px, 92vw)', height:'min(760px, 82vh)', display:'flex', flexDirection:'column', borderRadius:4 } }}
       >
-        {(() => {
-          if (!discoverOpenId) return null;
+        {discoverOpenId && (()=>{
           const pd = plannerDestinations.find((p:any)=> p.id===discoverOpenId);
+          const spotsCount = pd?.spots?.length || 0;
+          const foodsCount = pd?.foods?.length || 0;
+          const mkLabel = (text:string, count:number, colorVariant:'primary'|'secondary') => (
+            <Box sx={{ display:'flex', alignItems:'center', gap:.75 }}>
+              <span>{text.toUpperCase()}</span>
+              {count>0 && (
+                <Box sx={(theme)=>({ minWidth:18, height:18, px:0.75, borderRadius:9, background: theme.palette[colorVariant].main, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, lineHeight:1, boxShadow:'0 0 0 2px '+theme.palette.background.paper })}>{count}</Box>
+              )}
+            </Box>
+          );
           return (
             <>
               <DialogTitle sx={{ pb:0 }}>
@@ -559,69 +640,41 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
                     <Typography variant='h6' sx={{ fontWeight:700 }}>{pd?.name || 'Destination'}</Typography>
                     <Typography variant='caption' sx={{ opacity:.7 }}>Curate your {discoverTab==='spots' ? 'must-see spots' : 'must-try foods'} like a pro.</Typography>
                   </Box>
-                  {(() => {
-                    const spotsCount = pd?.spots?.length || 0;
-                    const foodsCount = pd?.foods?.length || 0;
-                    const mkLabel = (text:string, count:number, colorVariant:'primary'|'secondary') => (
-                      <Box sx={{ display:'flex', alignItems:'center', gap:.75 }}>
-                        <span>{text.toUpperCase()}</span>
-                        {count>0 && (
-                          <Box sx={(theme)=>({ minWidth:18, height:18, px:0.75, borderRadius:9, background: theme.palette[colorVariant].main, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:700, lineHeight:1, boxShadow:'0 0 0 2px '+theme.palette.background.paper })}>{count}</Box>
-                        )}
-                      </Box>
-                    );
-                    return (
-                      <Tabs value={discoverTab} onChange={(_,v)=> setDiscoverTab(v)} sx={{ ml:'auto' }} textColor='primary' indicatorColor='primary'>
-                        <Tab value='spots' label={mkLabel('Spots', spotsCount, 'primary')} sx={{ fontWeight:600, py:1 }} />
-                        <Tab value='foods' label={mkLabel('Foods', foodsCount, 'secondary')} sx={{ fontWeight:600, py:1 }} />
-                      </Tabs>
-                    );
-                  })()}
+                  <Tabs value={discoverTab} onChange={(_,v)=> setDiscoverTab(v)} sx={{ ml:'auto' }} textColor='primary' indicatorColor='primary'>
+                    <Tab value='spots' label={mkLabel('Spots', spotsCount, 'primary')} sx={{ fontWeight:600, py:1 }} />
+                    <Tab value='foods' label={mkLabel('Foods', foodsCount, 'secondary')} sx={{ fontWeight:600, py:1 }} />
+                  </Tabs>
                 </Box>
               </DialogTitle>
               <DialogContent dividers sx={{ pt:3, bgcolor:(theme)=> theme.palette.mode==='dark'? '#121212' : '#fafafa', flex:1, overflow:'auto' }}>
                 <Box sx={{ display:'flex', gap:3, alignItems:'flex-start' }}>
-                  {/* Left: List / Checklist */}
                   <Box sx={{ flex:2, display:'flex', flexDirection:'column', gap:1 }} onDragOver={(e)=> e.preventDefault()}>
                     <Typography variant='subtitle2' sx={{ fontWeight:700, letterSpacing:.5, textTransform:'uppercase', fontSize:12 }}>
                       {discoverTab==='spots' ? 'Spot List' : 'Food List'}
                     </Typography>
-                    <Box sx={{ display:'flex', flexDirection:'column', gap:1, maxHeight:420, overflowY:'auto', pr:1 }}>
-                      {discoverTab==='spots' && plannerDestinations.find((pd:any)=> pd.id===discoverOpenId)?.spots?.map((s:any) => (
-                        <Box key={s.id} draggable onDragStart={(e)=> { e.dataTransfer.setData('text/plain', s.id); }} onDrop={(e)=> { e.preventDefault(); const fromId = e.dataTransfer.getData('text/plain'); const arr = plannerDestinations.find((pd:any)=> pd.id===discoverOpenId)?.spots || []; const fromIndex = arr.findIndex((x:any)=> x.id===fromId); const toIndex = arr.findIndex((x:any)=> x.id===s.id); if (fromIndex>-1 && toIndex>-1 && fromIndex!==toIndex) dispatch(reorderSpots({ destinationId: discoverOpenId, fromIndex, toIndex })); }} sx={(theme)=>({ position:'relative', display:'flex', alignItems:'center', gap:1, fontSize:13, p:1, pl:1.25, border:'1px solid', borderColor:'divider', borderRadius:1.5, background: theme.palette.background.paper, boxShadow: theme.palette.mode==='dark'? '0 0 0 1px rgba(255,255,255,0.04)' : '0 1px 2px rgba(0,0,0,0.06)', transition:'background .2s, border-color .2s', '&:hover':{ background: theme.palette.action.hover } })}>
-                          <DragIndicatorIcon fontSize='small' sx={{ cursor:'grab', opacity:.5 }} />
-                          <input type='checkbox' checked={s.checked} onChange={()=> dispatch(toggleSpot({ destinationId: discoverOpenId, spotId: s.id }))} />
-                          <Typography variant='body2' sx={{ flex:1, fontWeight:500 }}>{s.name}</Typography>
-                          {s.mapUrl && (<IconButton size='small' component='a' href={s.mapUrl} target='_blank' rel='noopener' sx={{ mr:0.5 }}><MapIcon fontSize='inherit' /></IconButton>)}
-                          <IconButton size='small' onClick={()=> dispatch(removeSpot({ destinationId: discoverOpenId, spotId: s.id }))}>
-                            <DeleteOutlineIcon fontSize='inherit' />
-                          </IconButton>
-                        </Box>
-                      ))}
-                      {discoverTab==='spots' && (plannerDestinations.find((pd:any)=> pd.id===discoverOpenId)?.spots?.length===0) && (
-                        <Typography variant='caption' sx={{ opacity:.6, fontStyle:'italic', mt:1 }}>No spots yet. Use recommendations or search to add.</Typography>
-                      )}
-                      {discoverTab==='foods' && plannerDestinations.find((pd:any)=> pd.id===discoverOpenId)?.foods?.map((f:any) => (
-                        <Box key={f.id} draggable onDragStart={(e)=> { e.dataTransfer.setData('text/plain', f.id); }} onDrop={(e)=> { e.preventDefault(); const fromId = e.dataTransfer.getData('text/plain'); const arr = plannerDestinations.find((pd:any)=> pd.id===discoverOpenId)?.foods || []; const fromIndex = arr.findIndex((x:any)=> x.id===fromId); const toIndex = arr.findIndex((x:any)=> x.id===f.id); if (fromIndex>-1 && toIndex>-1 && fromIndex!==toIndex) dispatch(reorderFoods({ destinationId: discoverOpenId, fromIndex, toIndex })); }} sx={(theme)=>({ position:'relative', display:'flex', alignItems:'center', gap:1, fontSize:13, p:1, pl:1.25, border:'1px solid', borderColor:'divider', borderRadius:1.5, background: theme.palette.background.paper, boxShadow: theme.palette.mode==='dark'? '0 0 0 1px rgba(255,255,255,0.04)' : '0 1px 2px rgba(0,0,0,0.06)', transition:'background .2s, border-color .2s', '&:hover':{ background: theme.palette.action.hover } })}>
-                          <DragIndicatorIcon fontSize='small' sx={{ cursor:'grab', opacity:.5 }} />
-                          <input type='checkbox' checked={f.checked} onChange={()=> dispatch(toggleFoodItem({ destinationId: discoverOpenId, foodId: f.id }))} />
-                          <Typography variant='body2' sx={{ flex:1, fontWeight:500 }}>{f.name}</Typography>
-                          <IconButton size='small' onClick={()=> dispatch(removeFoodItem({ destinationId: discoverOpenId, foodId: f.id }))}>
-                            <DeleteOutlineIcon fontSize='inherit' />
-                          </IconButton>
-                        </Box>
-                      ))}
-                      {discoverTab==='foods' && (plannerDestinations.find((pd:any)=> pd.id===discoverOpenId)?.foods?.length===0) && (
-                        <Typography variant='caption' sx={{ opacity:.6, fontStyle:'italic', mt:1 }}>No foods yet. Use recommendations to add.</Typography>
-                      )}
-                    </Box>
+                    {discoverTab==='spots' && renderSpotCards(pd?.spots || [])}
+                    {discoverTab==='spots' && (pd?.spots?.length===0) && (
+                      <Typography variant='caption' sx={{ opacity:.6, fontStyle:'italic', mt:1 }}>No spots yet. Use recommendations or search to add.</Typography>
+                    )}
+                    {discoverTab==='foods' && pd?.foods?.map((f:any) => (
+                      <Box key={f.id} draggable onDragStart={(e)=> { e.dataTransfer.setData('text/plain', f.id); }} onDrop={(e)=> { e.preventDefault(); if(!discoverOpenId) return; const fromId = e.dataTransfer.getData('text/plain'); const arr = pd?.foods || []; const fromIndex = arr.findIndex((x:any)=> x.id===fromId); const toIndex = arr.findIndex((x:any)=> x.id===f.id); if (fromIndex>-1 && toIndex>-1 && fromIndex!==toIndex) dispatch(reorderFoods({ destinationId: discoverOpenId!, fromIndex, toIndex })); }} sx={(theme)=>({ position:'relative', display:'flex', alignItems:'center', gap:1, fontSize:13, p:1, pl:1.25, border:'1px solid', borderColor:'divider', borderRadius:1.5, background: theme.palette.background.paper, boxShadow: theme.palette.mode==='dark'? '0 0 0 1px rgba(255,255,255,0.04)' : '0 1px 2px rgba(0,0,0,0.06)', transition:'background .2s, border-color .2s', '&:hover':{ background: theme.palette.action.hover } })}>
+                        <DragIndicatorIcon fontSize='small' sx={{ cursor:'grab', opacity:.5 }} />
+                        <input type='checkbox' checked={f.checked} onChange={()=> discoverOpenId && dispatch(toggleFoodItem({ destinationId: discoverOpenId, foodId: f.id }))} />
+                        <Typography variant='body2' sx={{ flex:1, fontWeight:500 }}>{f.name}</Typography>
+                        <IconButton size='small' onClick={()=> discoverOpenId && dispatch(removeFoodItem({ destinationId: discoverOpenId, foodId: f.id }))}>
+                          <DeleteOutlineIcon fontSize='inherit' />
+                        </IconButton>
+                      </Box>
+                    ))}
+                    {discoverTab==='foods' && (pd?.foods?.length===0) && (
+                      <Typography variant='caption' sx={{ opacity:.6, fontStyle:'italic', mt:1 }}>No foods yet. Use recommendations to add.</Typography>
+                    )}
                   </Box>
-                  {/* Right: Recommendation & Search Module */}
                   <Paper variant='outlined' sx={{ flex:1.2, p:2.25, borderRadius:3, background:(theme)=> theme.palette.mode==='dark'? 'linear-gradient(145deg,#1e1e1e,#161616)' : 'linear-gradient(145deg,#ffffff,#f2f5f9)' }}>
                     <Typography variant='subtitle2' sx={{ fontWeight:700, mb:1 }}>{discoverTab==='spots' ? `Recommendations in ${pd?.name}` : `Local Foods in ${pd?.name}`}</Typography>
                     <Box sx={{ display:'flex', flexWrap:'wrap', gap:1, mb: discoverTab==='spots'? 2:2 }}>
                       {(discoverTab==='spots'? recommendedSpots: recommendedFoods).map(r => (
-                        <Chip key={r} label={r} size='small' color={discoverTab==='spots'?'primary':'secondary'} variant='outlined' onClick={()=> discoverTab==='spots' ? dispatch(addSpot({ destinationId: discoverOpenId, name: r, known:true, mapUrl:`https://maps.google.com/?q=${encodeURIComponent(r+' '+(pd?.name||''))}` })) : dispatch(addFoodItem({ destinationId: discoverOpenId, name: r }))} sx={{ cursor:'pointer' }} />
+                        <Chip key={r} label={r} size='small' color={discoverTab==='spots'?'primary':'secondary'} variant='outlined' onClick={()=> discoverTab==='spots' ? (discoverOpenId && dispatch(addSpot({ destinationId: discoverOpenId!, name: r, known:true, mapUrl:`https://maps.google.com/?q=${encodeURIComponent(r+' '+(pd?.name||''))}` }))) : (discoverOpenId && dispatch(addFoodItem({ destinationId: discoverOpenId!, name: r })))} sx={{ cursor:'pointer' }} />
                       ))}
                     </Box>
                     {discoverTab==='spots' && (
@@ -633,7 +686,7 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
                         </Box>
                         <Box sx={{ mt:1, maxHeight:170, overflowY:'auto', pr:0.5 }}>
                           {!spotSearchLoading && spotPredictions.map(p => (
-                            <Box key={p.place_id} onClick={()=> { dispatch(addSpot({ destinationId: discoverOpenId, name: p.description, known:true, mapUrl:`https://maps.google.com/?q=${encodeURIComponent(p.description)}` })); setSpotSearch(''); setSpotPredictions([]); }} sx={(theme)=>({ p:0.6, px:1, border:'1px solid', borderColor:'divider', borderRadius:1, mb:0.5, cursor:'pointer', fontSize:12.5, display:'flex', alignItems:'center', gap:.5, background: theme.palette.background.paper, '&:hover':{ background: theme.palette.action.hover } })}>
+                            <Box key={p.place_id} onClick={()=> addSpotFromPrediction(p)} sx={(theme)=>({ p:0.6, px:1, border:'1px solid', borderColor:'divider', borderRadius:1, mb:0.5, cursor:'pointer', fontSize:12.5, display:'flex', alignItems:'center', gap:.5, background: theme.palette.background.paper, '&:hover':{ background: theme.palette.action.hover } })}>
                               <SearchIcon sx={{ fontSize:14, opacity:.5 }} /> {p.description}
                             </Box>
                           ))}
@@ -646,7 +699,7 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
                     {discoverTab==='foods' && (
                       <Box sx={{ mb:2 }}>
                         <Typography variant='caption' sx={{ fontWeight:600, letterSpacing:.5, textTransform:'uppercase', display:'block', mb:.75 }}>Add Custom Food</Typography>
-                        <Box component='form' onSubmit={(e)=> { e.preventDefault(); const name = foodInput.trim(); if(!name) return; const pd = plannerDestinations.find((p:any)=> p.id===discoverOpenId); const exists = pd?.foods?.some((f:any)=> f.name.toLowerCase() === name.toLowerCase()); if(exists) { return; } dispatch(addFoodItem({ destinationId: discoverOpenId!, name })); setFoodInput(''); }} sx={{ display:'flex', gap:1 }}>
+                        <Box component='form' onSubmit={(e)=> { e.preventDefault(); const name = foodInput.trim(); if(!name || !discoverOpenId) return; const exists = pd?.foods?.some((f:any)=> f.name.toLowerCase() === name.toLowerCase()); if(exists) { return; } dispatch(addFoodItem({ destinationId: discoverOpenId!, name })); setFoodInput(''); }} sx={{ display:'flex', gap:1 }}>
                           <TextField value={foodInput} onChange={e=> setFoodInput(e.target.value)} placeholder='e.g. Ramen, Gelato, Tapas...' size='small' fullWidth />
                           <Button variant='contained' size='small' disabled={!foodInput.trim()} type='submit' sx={{ textTransform:'none' }}>Add</Button>
                         </Box>
