@@ -1,5 +1,6 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 
+
 export interface PlannerDestination {
   id: string;
   name: string;
@@ -9,10 +10,25 @@ export interface PlannerDestination {
   transport?: string;
   budget?: number; // per-destination budget amount in selected currency
   notes?: string;
+  /** Google Places placeId when destination added via autocomplete */
+  placeId?: string;
+  /** Cached primary photo URL (small/medium) for decorative card background */
+  photoUrl?: string;
+  /** Optional structured stay (accommodation) info */
+  stay?: {
+    name?: string;
+    reference?: string;
+    notes?: string;
+  };
   lat?: number; // optional latitude for mapping
   lng?: number; // optional longitude for mapping
   spots?: PlannerSpot[]; // discover spots
   foods?: PlannerFood[]; // discover foods
+  docs?: PlannerDoc[]; // uploaded documents
+  /** High-level semantic category used for color coding & filtering in card layout */
+  category?: 'general' | 'must_visit' | 'skippable' | 'tentative' | 'decide_later';
+  /** Marked when user considers planning for this destination complete */
+  completed?: boolean;
 }
 
 export interface PlannerSpot {
@@ -30,6 +46,13 @@ export interface PlannerFood {
   id: string;
   name: string;
   checked: boolean;
+}
+
+export interface PlannerDoc {
+  id: string;
+  originalName: string;
+  mimeType: string;
+  url: string; // object URL (runtime) or persisted reference
 }
 
 export interface PlannerState {
@@ -68,7 +91,7 @@ const plannerSlice = createSlice({
     setTargetNights(state, action: PayloadAction<number>) {
       state.targetNights = action.payload;
     },
-    addDestination(state, action: PayloadAction<{ name: string; lat?: number; lng?: number }>) {
+    addDestination(state, action: PayloadAction<{ name: string; lat?: number; lng?: number; placeId?: string; photoUrl?: string }>) {
       // Prevent adding if total nights already meets or exceeds target
       const totalNights = state.destinations.reduce((a,c)=> a + c.nights, 0);
       if (totalNights >= state.targetNights) return;
@@ -86,7 +109,11 @@ const plannerSlice = createSlice({
         transport: '',
         budget: 0,
         lat: action.payload.lat,
-        lng: action.payload.lng
+        lng: action.payload.lng,
+        placeId: action.payload.placeId,
+        photoUrl: action.payload.photoUrl,
+        category: 'general',
+        completed: false
       });
     },
     removeDestination(state, action: PayloadAction<string>) {
@@ -138,6 +165,54 @@ const plannerSlice = createSlice({
     setDestinationCoords(state, action: PayloadAction<{ id: string; lat: number; lng: number }>) {
       const d = state.destinations.find(x => x.id === action.payload.id);
       if (d) { d.lat = action.payload.lat; d.lng = action.payload.lng; }
+    },
+    setDestinationNotes(state, action: PayloadAction<{ id: string; notes: string }>) {
+      const d = state.destinations.find(x => x.id === action.payload.id);
+      if (d) d.notes = action.payload.notes;
+    },
+    setDestinationStay(state, action: PayloadAction<{ id: string; stay: { name?: string; reference?: string; notes?: string } }>) {
+      const d = state.destinations.find(x => x.id === action.payload.id);
+      if (d) d.stay = { ...d.stay, ...action.payload.stay };
+    },
+    renameDestination(state, action: PayloadAction<{ id: string; name: string }>) {
+      const d = state.destinations.find(x => x.id === action.payload.id);
+      if (d) d.name = action.payload.name;
+    },
+    setDestinationCategory(state, action: PayloadAction<{ id: string; category: PlannerDestination['category'] }>) {
+      const d = state.destinations.find(x => x.id === action.payload.id);
+      if (d) d.category = action.payload.category || 'general';
+    },
+    toggleDestinationCompleted(state, action: PayloadAction<{ id: string }>) {
+      const d = state.destinations.find(x => x.id === action.payload.id);
+      if (d) d.completed = !d.completed;
+    },
+    duplicateDestination(state, action: PayloadAction<{ id: string }>) {
+      const idx = state.destinations.findIndex(d=> d.id===action.payload.id);
+      if (idx === -1) return;
+      const source = state.destinations[idx];
+      const totalNights = state.destinations.reduce((a,c)=> a + c.nights, 0);
+      if (totalNights + source.nights > state.targetNights) return; // avoid exceeding target
+      const clone: PlannerDestination = {
+        ...source,
+        id: Date.now().toString() + '_' + Math.random().toString(36).slice(2),
+        name: source.name + ' Copy',
+        spots: source.spots ? source.spots.map(s=> ({ ...s, id: s.name + Date.now() + Math.random().toString(36).slice(2), checked:false })) : [],
+        foods: source.foods ? source.foods.map(f=> ({ ...f, id: f.name + Date.now() + Math.random().toString(36).slice(2), checked:false })) : [],
+        docs: source.docs ? source.docs.map(doc => ({ ...doc, id: doc.id + '_copy_' + Math.random().toString(36).slice(2) })) : [],
+        completed: false
+      };
+      // Insert after original
+      state.destinations.splice(idx+1, 0, clone);
+    },
+    addDestinationDoc(state, action: PayloadAction<{ destinationId: string; doc: { id: string; originalName: string; mimeType: string; url: string } }>) {
+      const d = state.destinations.find(x=> x.id === action.payload.destinationId);
+      if(!d) return; if(!d.docs) d.docs = [];
+      d.docs.push(action.payload.doc);
+    },
+    removeDestinationDoc(state, action: PayloadAction<{ destinationId: string; docId: string }>) {
+      const d = state.destinations.find(x=> x.id === action.payload.destinationId);
+      if(!d?.docs) return;
+      d.docs = d.docs.filter(doc=> doc.id !== action.payload.docId);
     },
   addSpot(state, action: PayloadAction<{ destinationId: string; name: string; mapUrl?: string; known: boolean; placeId?: string; photoUrl?: string; description?: string }>) {
       const d = state.destinations.find(x=> x.id === action.payload.destinationId);
@@ -259,7 +334,15 @@ export const {
   reorderChain,
   loadState,
   markSaved,
-  setDestinationCoords
+  setDestinationCoords,
+  setDestinationNotes,
+  setDestinationStay,
+  renameDestination,
+  setDestinationCategory,
+  toggleDestinationCompleted,
+  duplicateDestination,
+  addDestinationDoc,
+  removeDestinationDoc
 } = plannerSlice.actions;
 
 export const {
@@ -272,5 +355,7 @@ export const {
   removeFoodItem,
   reorderFoods
 } = plannerSlice.actions;
+
+// Doc actions already re-exported above
 
 export default plannerSlice.reducer;

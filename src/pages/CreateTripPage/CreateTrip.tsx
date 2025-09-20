@@ -1,6 +1,6 @@
 // Clean rebuilt CreateTrip component after corruption removal.
 import React from 'react';
-import { Box, Tabs, Tab, Typography, Divider, Button, Chip, Menu, MenuItem, Avatar, Tooltip, IconButton, CircularProgress, InputBase } from '@mui/material';
+import { Box, Tabs, Tab, Typography, Divider, Button, Chip, Menu, MenuItem, Avatar, Tooltip, IconButton, InputBase, CircularProgress } from '@mui/material';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import { setCurrency as setCurrencyAction, updateDestinationNights, setTransport, addDestination, removeDestination, reorderChain } from '../../store/plannerSlice';
@@ -8,6 +8,7 @@ import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CreateTripNav from './CreateTripNav';
 import TripSettingsDialog from './TripSettingsDialog';
 import DestinationsPanel, { type DestinationRow } from './DestinationsPanel';
+import DestinationCardsPanel from './DestinationCardsPanel';
 import ExpensesPanel from './ExpensesPanel';
 import ImportantNotesEditor from './ImportantNotesEditor';
 import TripComments from './TripComments';
@@ -50,6 +51,9 @@ const CreateTrip: React.FC = () => {
   const panelDestinations: DestinationRow[] = React.useMemo(()=> planner.destinations.map(d=> ({
     id:d.id, name:d.name, start:dateFormatter(d.startDate), end:dateFormatter(d.endDate), nights:d.nights, transport:d.transport||'', todo:''
   })), [planner.destinations, dateFormatter]);
+
+  // Temporary flag to compare new card layout vs legacy table
+  const ENABLE_CARD_LAYOUT = true; // card layout re-enabled
 
   const openCurrency = (e: React.MouseEvent<HTMLButtonElement>) => setCurrencyAnchor(e.currentTarget);
   const closeCurrency = () => setCurrencyAnchor(null);
@@ -96,6 +100,8 @@ const CreateTrip: React.FC = () => {
         lat: d.lat,
         lng: d.lng,
         transport: d.transport,
+        category: d.category || 'general',
+        completed: !!d.completed,
         spots: (d.spots||[]).map<OutputSpot>(s => ({ id:s.id, name:s.name, placeId:s.placeId, photoUrl:s.photoUrl, description:s.description, checked:s.checked })),
         foods: (d.foods||[]).map<OutputFood>(f => ({ id:f.id, name:f.name, checked:f.checked }))
       })),
@@ -159,10 +165,32 @@ const CreateTrip: React.FC = () => {
                 <Tab label='Comments' />
               </Tabs>
               <Box sx={{ display:'flex', alignItems:'center', gap:.75, mr:1 }}>
-                <Box sx={{ position:'relative', width:42, height:42 }}>
-                  <CircularProgress variant='determinate' value={targetNights? Math.min(100,(totalNights/targetNights)*100):0} size={42} thickness={4} />
+                <Box sx={{ position:'relative', width:46, height:46 }}>
+                  {/* Base gray track */}
+                  <CircularProgress
+                    variant='determinate'
+                    value={100}
+                    size={46}
+                    thickness={4.2}
+                    sx={(t)=>({ color: t.palette.mode==='dark'? t.palette.grey[800] : t.palette.grey[300] })}
+                  />
+                  {/* Progress arc */}
+                  <CircularProgress
+                    variant='determinate'
+                    value={targetNights? Math.min(100,(totalNights/targetNights)*100):0}
+                    size={46}
+                    thickness={4.2}
+                    sx={(t)=>({
+                      position:'absolute',
+                      left:0,
+                      top:0,
+                      color: t.palette.primary.main,
+                      transition:'color .3s'
+                    })}
+                  />
+                  {/* Center label */}
                   <Box sx={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-                    <Typography variant='caption' fontWeight={600}>{totalNights}/{targetNights}</Typography>
+                    <Typography variant='caption' fontWeight={700} sx={{ fontSize:11 }}>{totalNights}/{targetNights}</Typography>
                   </Box>
                 </Box>
                 <Typography variant='caption' fontWeight={600}>Nights</Typography>
@@ -174,15 +202,34 @@ const CreateTrip: React.FC = () => {
               </Tooltip>
               <Tooltip arrow placement='top' title={geocodedCount < 3 ? 'Add at least 3 destinations with coordinates to optimize' : optimizingRoute ? 'Optimizing route...' : 'Optimize route'}>
                 <span>
-                  <IconButton aria-label='Optimize route' onClick={handleOptimizeRouteClick} disabled={geocodedCount < 3 || optimizingRoute} sx={{ ml:.5, bgcolor:'primary.main', color:'primary.contrastText', borderRadius:2, '&:hover':{ bgcolor:'primary.dark' }, '&.Mui-disabled':{ bgcolor:'action.disabledBackground', color:'text.disabled' } }}>
-                    {optimizingRoute ? <CircularProgress size={18} color='inherit' thickness={5} /> : <AltRouteIcon fontSize='small' />}
+                  <IconButton aria-label='Optimize route' onClick={handleOptimizeRouteClick} disabled={geocodedCount < 3 || optimizingRoute} sx={{ ml:.5, bgcolor:'primary.main', color:'primary.contrastText', borderRadius:2, position:'relative', '&:hover':{ bgcolor:'primary.dark' }, '&.Mui-disabled':{ bgcolor:'action.disabledBackground', color:'text.disabled' } }}>
+                    {optimizingRoute ? (
+                      <Box sx={{ width:16, height:16, border:'2px solid rgba(255,255,255,0.4)', borderTopColor:'#fff', borderRadius:'50%', animation:'spin 0.8s linear infinite', '@keyframes spin':{ to:{ transform:'rotate(360deg)' } } }} />
+                    ) : (
+                      <AltRouteIcon fontSize='small' />
+                    )}
                   </IconButton>
                 </span>
               </Tooltip>
             </Box>
             <Divider />
             <Box sx={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column' }}>
-              {tab===0 && <Box sx={{ px:0 }}><DestinationsPanel destinations={panelDestinations} maxed={totalNights >= targetNights} onChangeNights={handleChangeNights} onChangeTransport={handleChangeTransport} onAddDestination={handleAddDestination} onRemoveDestination={handleRemoveDestination} /></Box>}
+              {tab===0 && (
+                <Box sx={{ px:0 }}>
+                  {ENABLE_CARD_LAYOUT ? (
+                    <DestinationCardsPanel maxed={totalNights >= targetNights} />
+                  ) : (
+                    <DestinationsPanel
+                      destinations={panelDestinations}
+                      maxed={totalNights >= targetNights}
+                      onChangeNights={handleChangeNights}
+                      onChangeTransport={handleChangeTransport}
+                      onAddDestination={handleAddDestination}
+                      onRemoveDestination={handleRemoveDestination}
+                    />
+                  )}
+                </Box>
+              )}
               {tab===1 && <ExpensesPanel />}
               {tab===2 && <TripComments />}
             </Box>

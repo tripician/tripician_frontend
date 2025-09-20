@@ -565,10 +565,10 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
         onClick={()=>{
           // Placeholder for future AI generation logic
           // eslint-disable-next-line no-console
-          console.log('[AI] Generative AI button clicked');
+          console.log('[AI] AI Suggest button clicked');
         }}
       >
-        Generative AI
+  AI Suggest
       </AiActionButton>
           </>
         )}
@@ -735,10 +735,10 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
                         startIcon={<SmartToyIcon />}
                         onClick={()=>{
                           // eslint-disable-next-line no-console
-                          console.log('[AI] Generative AI (discover dialog corner) clicked');
+                            console.log('[AI] AI Suggest (discover dialog corner) clicked');
                         }}
                       >
-                        Generative AI
+                        AI Suggest
                       </AiActionButton>
                     </Box>
                   </Paper>

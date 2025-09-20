@@ -115,30 +115,23 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
     },
     typography: {
       fontFamily: '"system-ui", "Avenir", "Helvetica", "Arial", sans-serif',
-      h1: {
-        fontWeight: 700,
-        fontSize: '2.5rem',
-      },
-      h2: {
-        fontWeight: 700,
-        fontSize: '2rem',
-      },
-      h3: {
-        fontWeight: 600,
-        fontSize: '1.75rem',
-      },
-      h4: {
-        fontWeight: 600,
-        fontSize: '1.5rem',
-      },
-      h5: {
-        fontWeight: 600,
-        fontSize: '1.25rem',
-      },
-      h6: {
-        fontWeight: 600,
-        fontSize: '1rem',
-      },
+      // Display / Page Titles
+      h1: { fontWeight: 700, fontSize: '2.75rem', lineHeight: 1.15 },
+      h2: { fontWeight: 700, fontSize: '2.125rem', lineHeight: 1.2 },
+      h3: { fontWeight: 600, fontSize: '1.75rem', lineHeight: 1.25 },
+      h4: { fontWeight: 600, fontSize: '1.5rem', lineHeight: 1.3 },
+      // Card / Section titles
+      h5: { fontWeight: 600, fontSize: '1.125rem', lineHeight: 1.35 }, // 18px
+      h6: { fontWeight: 600, fontSize: '1rem', lineHeight: 1.4 },      // 16px
+      // Subtitles (meta / secondary headings)
+      subtitle1: { fontWeight: 500, fontSize: '0.9375rem', lineHeight: 1.4 }, // 15px
+      subtitle2: { fontWeight: 600, fontSize: '0.75rem', lineHeight: 1.4, letterSpacing: '.06em', textTransform: 'uppercase' }, // 12px label style
+      // Body text
+      body1: { fontSize: '0.9375rem', lineHeight: 1.55 }, // 15px
+      body2: { fontSize: '0.8125rem', lineHeight: 1.5 },  // 13px compact
+      button: { fontWeight: 600, textTransform: 'none' },
+      caption: { fontSize: '0.6875rem', fontWeight: 500, letterSpacing: '.05em' }, // 11px
+      overline: { fontSize: '0.625rem', fontWeight: 600, letterSpacing: '.08em', textTransform: 'uppercase' }
     },
     shape: {
       borderRadius: 8,

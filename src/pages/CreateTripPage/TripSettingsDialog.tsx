@@ -100,8 +100,8 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
             sx={{ '& .MuiInputBase-root':{ fontWeight:600 } }}
           />
           <Box sx={{ mt:2, display:'flex', gap:2, flexWrap:'wrap' }}>
-            <TextField label='Start date' type='date' value={startDate} onChange={e=> onChangeStartDate?.(e.target.value)} InputLabelProps={{ shrink:true }} size='small' sx={{ flex:1, minWidth:160 }} />
-            <TextField label='End date' type='date' value={endDate} onChange={e=> onChangeEndDate?.(e.target.value)} InputLabelProps={{ shrink:true }} size='small' sx={{ flex:1, minWidth:160 }} />
+            <TextField label='Start date' type='date' value={startDate} onChange={e=> onChangeStartDate?.(e.target.value)} InputLabelProps={{ shrink:true }} size='small' sx={{ flex:1, minWidth:160, '& .MuiInputBase-input':{ cursor:'default' } }} InputProps={{ readOnly:true }} />
+            <TextField label='End date' type='date' value={endDate} onChange={e=> onChangeEndDate?.(e.target.value)} InputLabelProps={{ shrink:true }} size='small' sx={{ flex:1, minWidth:160, '& .MuiInputBase-input':{ cursor:'default' } }} InputProps={{ readOnly:true }} />
           </Box>
         </Box>
 

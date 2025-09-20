@@ -3,12 +3,19 @@ import { Button } from '@mui/material';
 import type { ButtonProps } from '@mui/material';
 import { styled, keyframes } from '@mui/material/styles';
 
-// Reusable sheen + subtle pulse for all AI buttons
+// Reusable sheen + subtle pulse for all AI buttons (enhanced)
 const sheen = keyframes`
-  0% { transform: translateX(-120%) skewX(-20deg); opacity: 0; }
-  45% { opacity: .55; }
-  60% { opacity: .55; }
-  100% { transform: translateX(220%) skewX(-20deg); opacity: 0; }
+  0% { transform: translateX(-130%) skewX(-20deg); opacity: 0; }
+  40% { opacity: .65; }
+  55% { opacity: .65; }
+  100% { transform: translateX(240%) skewX(-20deg); opacity: 0; }
+`;
+
+const sheen2 = keyframes`
+  0% { transform: translateX(-150%) skewX(-25deg); opacity: 0; }
+  45% { opacity: .35; }
+  55% { opacity: .35; }
+  100% { transform: translateX(250%) skewX(-25deg); opacity: 0; }
 `;
 
 const pulse = keyframes`
@@ -42,10 +49,25 @@ const StyledBtn = styled(Button)(({ theme }) => ({
     transform: 'translateX(-120%) skewX(-20deg)',
     animation: `${sheen} 4.2s linear infinite`,
     pointerEvents: 'none',
+    mixBlendMode: 'overlay'
   },
+  '&:after': {
+    content: '""',
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    width: '26%',
+    height: '100%',
+    background: 'linear-gradient(95deg, rgba(255,255,255,0) 0%, rgba(255,255,255,.55) 55%, rgba(255,255,255,0) 100%)',
+    transform: 'translateX(-150%) skewX(-25deg)',
+    animation: `${sheen2} 5.2s linear infinite`,
+    pointerEvents: 'none',
+    mixBlendMode: 'screen'
+  },
+  boxShadow: '0 0 0 0 rgba(150,120,255,0.0), 0 2px 6px -2px rgba(0,0,0,0.35)',
   '&:hover': {
     transform: 'translateY(-3px)',
-    boxShadow: '0 10px 26px -6px rgba(40,10,120,.48)',
+    boxShadow: '0 0 0 0 rgba(150,120,255,0.0), 0 10px 26px -6px rgba(40,10,120,.48)'
   },
   '&:active': {
     transform: 'translateY(-1px) scale(.97)',
@@ -53,6 +75,15 @@ const StyledBtn = styled(Button)(({ theme }) => ({
   }
 }));
 
-export const AiActionButton: React.FC<ButtonProps> = (props) => <StyledBtn {...props} />;
+export const AiActionButton: React.FC<ButtonProps> = (props) => {
+  return (
+    <StyledBtn {...props}>
+      <span style={{ position:'absolute', top:2, left:6, fontSize:9, fontWeight:700, letterSpacing:.8, padding:'2px 6px', borderRadius:12, background:'linear-gradient(135deg,#fcd34d,#f59e0b 45%,#d97706)', color:'#1e1b04', boxShadow:'0 0 0 1px rgba(255,255,255,0.3), 0 2px 4px -1px rgba(0,0,0,0.4)', textShadow:'0 1px 0 rgba(255,255,255,0.4)', fontFamily:'inherit', pointerEvents:'none' }}>PRO</span>
+      <span style={{ display:'inline-flex', alignItems:'center', gap:6, paddingLeft:20 }}>
+        {props.children}
+      </span>
+    </StyledBtn>
+  );
+};
 
 export default AiActionButton;
