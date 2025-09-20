@@ -12,6 +12,9 @@ import DirectionsWalkIcon from '@mui/icons-material/DirectionsWalk';
 import DirectionsBikeIcon from '@mui/icons-material/DirectionsBike';
 import BlockIcon from '@mui/icons-material/Block';
 import ExploreIcon from '@mui/icons-material/Explore';
+import PlaceIcon from '@mui/icons-material/Place';
+import NightsStayIcon from '@mui/icons-material/NightsStay';
+import DescriptionIcon from '@mui/icons-material/Description';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { useDispatch, useSelector } from 'react-redux';
 import { addSpot, toggleSpot, removeSpot, addFoodItem, toggleFoodItem, removeFoodItem, reorderSpots, reorderFoods } from '../../store/plannerSlice';
@@ -22,6 +25,8 @@ import MapIcon from '@mui/icons-material/Map';
 import HotelIcon from '@mui/icons-material/Hotel';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
+import SmartToyIcon from '@mui/icons-material/SmartToy';
+import AiActionButton from '../../components/CommonComponents/AiActionButton';
 import type { SxProps, Theme } from '@mui/material/styles';
 
 export interface DestinationRow {
@@ -76,10 +81,11 @@ const numberButtonBase = (theme: Theme) => ({
   '&:hover': { backgroundColor: theme.palette.action.hover }
 });
 
-const headerCell = (label: string) => (
-  <Typography variant='caption' sx={{ fontWeight: 600, textTransform: 'uppercase', fontSize: 11, letterSpacing: .5 }} color='text.secondary'>
-    {label}
-  </Typography>
+const headerCell = (label: string, icon: React.ReactNode) => (
+  <Box sx={{ display:'flex', alignItems:'center', gap:.65, fontWeight:700, textTransform:'uppercase', fontSize:11, letterSpacing:.6, color:'text.secondary' }}>
+    <Box sx={{ display:'flex', alignItems:'center', justifyContent:'center', width:18, height:18, color:'primary.main' }}>{icon}</Box>
+    <Typography component='span' variant='caption' sx={{ fontWeight:700, fontSize:11 }}>{label}</Typography>
+  </Box>
 );
 
 const transportOptions: { id: string; label: string; icon: React.ReactNode }[] = [
@@ -390,20 +396,25 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
         alignItems: 'center',
         gap: 2,
         px: 3,
-        py: 1.5,
+        py: 1.2,
         position: 'sticky',
         top: 0,
         zIndex: 2,
-        backgroundColor: theme.palette.background.paper,
+        background: theme.palette.mode==='dark'
+          ? 'linear-gradient(90deg, rgba(255,255,255,0.04), rgba(255,255,255,0.02))'
+          : 'linear-gradient(90deg,#ffffff,#f5f8fb)',
         borderBottom: `1px solid ${theme.palette.divider}`,
-        boxShadow: `0 2px 4px -2px ${theme.palette.mode==='dark' ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.12)'}`
+        boxShadow: theme.palette.mode==='dark'
+          ? '0 2px 6px -2px rgba(0,0,0,0.6)'
+          : '0 4px 12px -4px rgba(0,0,0,0.08)',
+        backdropFilter: 'blur(6px)'
       })}>
         <Box sx={{ width: 36 }} />
-  <Box sx={{ flex: 1, minWidth: 0 }}>{headerCell('Destination')}</Box>
-  <Box sx={{ width: 120, display:'flex', justifyContent:'center' }}>{headerCell('Nights')}</Box>
-  <Box sx={{ width: 110, textAlign:'center' }}>{headerCell('Stay')}</Box>
-  <Box sx={{ width: 110, textAlign:'center' }}>{headerCell('Discover')}</Box>
-  <Box sx={{ width: 110, textAlign:'center' }}>{headerCell('Docs')}</Box>
+        <Box sx={{ flex: 1, minWidth: 0 }}>{headerCell('Destination', <PlaceIcon sx={{ fontSize:16 }} />)}</Box>
+        <Box sx={{ width: 120, display:'flex', justifyContent:'center' }}>{headerCell('Nights', <NightsStayIcon sx={{ fontSize:16 }} />)}</Box>
+        <Box sx={{ width: 110, display:'flex', justifyContent:'center' }}>{headerCell('Stay', <HotelIcon sx={{ fontSize:16 }} />)}</Box>
+        <Box sx={{ width: 110, display:'flex', justifyContent:'center' }}>{headerCell('Discover', <ExploreIcon sx={{ fontSize:16 }} />)}</Box>
+        <Box sx={{ width: 110, display:'flex', justifyContent:'center' }}>{headerCell('Docs', <DescriptionIcon sx={{ fontSize:16 }} />)}</Box>
       </Box>
 
       {/* Rows + transport connector rows */}
@@ -549,8 +560,16 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
           <>
             <CalendarMonthIcon fontSize='small' color='action' />
             <Typography variant='body2' color='text.secondary' onClick={()=>{ if(!maxed) setAdding(true); }} sx={{ cursor: maxed? 'not-allowed':'text', flex:1, opacity: maxed? .6:1 }}>{maxed? 'Night limit reached' : 'Add new destination...'}</Typography>
-      <Button size='small' variant='outlined' startIcon={<ExploreIcon />} sx={{ textTransform: 'none', borderRadius: 2 }}>Discover</Button>
-      <Button size='small' variant='outlined' startIcon={<MapIcon />} sx={{ textTransform: 'none', borderRadius: 2 }}>Collection</Button>
+      <AiActionButton
+        startIcon={<SmartToyIcon />}
+        onClick={()=>{
+          // Placeholder for future AI generation logic
+          // eslint-disable-next-line no-console
+          console.log('[AI] Generative AI button clicked');
+        }}
+      >
+        Generative AI
+      </AiActionButton>
           </>
         )}
         {/* Lean shadow below input area */}
@@ -670,7 +689,7 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
                       <Typography variant='caption' sx={{ opacity:.6, fontStyle:'italic', mt:1 }}>No foods yet. Use recommendations to add.</Typography>
                     )}
                   </Box>
-                  <Paper variant='outlined' sx={{ flex:1.2, p:2.25, borderRadius:3, background:(theme)=> theme.palette.mode==='dark'? 'linear-gradient(145deg,#1e1e1e,#161616)' : 'linear-gradient(145deg,#ffffff,#f2f5f9)' }}>
+                  <Paper variant='outlined' sx={{ flex:1.2, p:2.25, pb:7, position:'relative', borderRadius:3, background:(theme)=> theme.palette.mode==='dark'? 'linear-gradient(145deg,#1e1e1e,#161616)' : 'linear-gradient(145deg,#ffffff,#f2f5f9)' }}>
                     <Typography variant='subtitle2' sx={{ fontWeight:700, mb:1 }}>{discoverTab==='spots' ? `Recommendations in ${pd?.name}` : `Local Foods in ${pd?.name}`}</Typography>
                     <Box sx={{ display:'flex', flexWrap:'wrap', gap:1, mb: discoverTab==='spots'? 2:2 }}>
                       {(discoverTab==='spots'? recommendedSpots: recommendedFoods).map(r => (
@@ -711,6 +730,17 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
                         Powered by <Box component='img' alt='Google' src={import.meta.env.VITE_GOOGLE_LOGO || 'https://developers.google.com/static/maps/documentation/images/google_on_white.png'} sx={{ height:14 }} loading='lazy' />
                       </Typography>
                     )}
+                    <Box sx={{ position:'absolute', bottom:12, right:12 }}>
+                      <AiActionButton
+                        startIcon={<SmartToyIcon />}
+                        onClick={()=>{
+                          // eslint-disable-next-line no-console
+                          console.log('[AI] Generative AI (discover dialog corner) clicked');
+                        }}
+                      >
+                        Generative AI
+                      </AiActionButton>
+                    </Box>
                   </Paper>
                 </Box>
               </DialogContent>
