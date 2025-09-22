@@ -154,19 +154,19 @@ const CreateTrip: React.FC = () => {
         <Box ref={containerRef} sx={{ flex:1, display:'flex', position:'relative', minHeight:0 }}>
           <Box sx={(theme)=>({ flexBasis: mapCollapsed?'100%':`calc(${(1-mapWidth)*100}% - 2px)`, maxWidth: mapCollapsed?'100%':`calc(${(1-mapWidth)*100}% - 2px)`, minWidth:0, flexShrink:0, display:'flex', flexDirection:'column', backgroundColor: theme.palette.background.paper, borderRight: mapCollapsed? 'none': { lg:`1px solid ${theme.palette.divider}`}, transition: resizingRef.current?'none':'flex-basis .18s ease' })}>
             <Box sx={{ px:2, py:1.25, display:'flex', alignItems:'stretch', gap:2, borderBottom:(t)=>`1px solid ${t.palette.divider}` }}>
-              <Box sx={{ flex:1.4, minWidth:320, display:'flex', alignItems:'stretch' }}>
+              <Box sx={{ flex:1.4, minWidth:360, display:'flex', alignItems:'stretch' }}>
                 <ImportantNotesEditor compact />
               </Box>
-              <Box sx={{ ml:'auto', display:'flex', alignItems:'flex-start', gap:3, minWidth:360 }}>
+              <Box sx={{ ml:'auto', display:'flex', alignItems:'flex-start', gap:3, minWidth:300 }}>
                 {/* Budget + Visa column */}
-                <Box sx={{ display:'flex', flexDirection:'column', minWidth:160 }}>
+                <Box sx={{ display:'flex', flexDirection:'column', maxWidth:140 }}>
                   <Typography variant='caption' color='text.secondary'>Budget ({currency})</Typography>
                   <Box sx={{ display:'flex', alignItems:'center', gap:.5 }}>
                     <Typography variant='body2' fontWeight={600}>0.00</Typography>
                     <Button size='small' variant='text' onClick={openCurrency} endIcon={<ExpandMoreIcon fontSize='small' />} sx={{ textTransform:'none', px:1, minWidth:0 }}>{currency}</Button>
                   </Box>
                   {/* Visa block directly under Budget */}
-                  <Paper role='button' onClick={()=> setVisaOpen(true)} sx={(t)=>({ mt:1.25, cursor:'pointer', width:170, px:1.2, py:1, borderRadius:2, display:'flex', flexDirection:'row', gap:.75, alignItems:'center', border:`1px dashed ${t.palette.divider}`, background: t.palette.mode==='dark'? '#13202b':'#f5fbff', '&:hover':{ borderColor:t.palette.primary.main } })}>
+                  <Paper role='button' onClick={()=> setVisaOpen(true)} sx={(t)=>({ mt:1.25, cursor:'pointer', width:140, px:1.2, py:1, borderRadius:1, display:'flex', flexDirection:'row', gap:.75, alignItems:'center', border:`1px dashed ${t.palette.divider}`, background: t.palette.mode==='dark'? '#13202b':'#f5fbff', '&:hover':{ borderColor:t.palette.primary.main } })}>
                     <Box component='img' src={passportIconUrl} alt='Visa docs' loading='lazy' style={{ width:30, height:30, objectFit:'contain', filter:'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }} />
                     <Box sx={{ display:'flex', flexDirection:'column', minWidth:0 }}>
                       <Typography variant='caption' sx={{ fontWeight:700, letterSpacing:.4 }}>Visa(s)</Typography>
@@ -175,14 +175,14 @@ const CreateTrip: React.FC = () => {
                   </Paper>
                 </Box>
                 {/* Privacy + Pinned Docs column */}
-                <Box sx={{ display:'flex', flexDirection:'column', minWidth:160 }}>
+                <Box sx={{ display:'flex', flexDirection:'column', maxWidth:140 }}>
                   <Typography variant='caption' color='text.secondary'>Privacy</Typography>
                   <Box sx={{ display:'flex', alignItems:'center', gap:.5 }}>
                     <Typography variant='body2' fontWeight={600}>{privacy}</Typography>
                     <Button size='small' variant='text' onClick={openPrivacy} endIcon={<ExpandMoreIcon fontSize='small' />} sx={{ textTransform:'none', px:1, minWidth:0 }} />
                   </Box>
                   {/* Pinned Docs block directly under Privacy */}
-                  <Paper role='button' onClick={()=> setPinnedOpen(true)} sx={(t)=>({ mt:1.25, cursor:'pointer', width:170, px:1.2, py:1, borderRadius:2, display:'flex', flexDirection:'row', gap:.75, alignItems:'center', border:`1px dashed ${t.palette.divider}`, background: t.palette.mode==='dark'? '#181c24':'#f7f7fa', '&:hover':{ borderColor:t.palette.primary.main } })}>
+                  <Paper role='button' onClick={()=> setPinnedOpen(true)} sx={(t)=>({ mt:1.8, cursor:'pointer', width:140, px:1.2, py:1, borderRadius:1, display:'flex', flexDirection:'row', gap:.75, alignItems:'center', border:`1px dashed ${t.palette.divider}`, background: t.palette.mode==='dark'? '#181c24':'#f7f7fa', '&:hover':{ borderColor:t.palette.primary.main } })}>
                     <Box component='img' src={pinnedIconUrl} alt='Pinned docs' loading='lazy' style={{ width:30, height:30, objectFit:'contain', filter:'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }} />
                     <Box sx={{ display:'flex', flexDirection:'column', minWidth:0 }}>
                       <Typography variant='caption' sx={{ fontWeight:700, letterSpacing:.4 }}>Pinned Doc(s)</Typography>
