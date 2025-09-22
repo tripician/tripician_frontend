@@ -138,8 +138,8 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
   <CardContent sx={{ pl:2, pr:1.5, py:1.5, flex:1, display:'flex', flexDirection:'column', gap:1.5, minHeight:120, pb:6 }}> {/* increased minHeight & extra bottom padding */}
         {/* Top row: Destination name (left) then meta chips then actions (right) */}
         <Box sx={{ display:'flex', alignItems:'center', width:'100%' }}>
-          {/* Name */}
-          <Box sx={{ pr:2, display:'flex', alignItems:'center' }}>
+          {/* Name (constrained to max 35% width) */}
+          <Box sx={{ pr:2, display:'flex', alignItems:'center', flex:'0 0 35%', maxWidth:'35%', minWidth:0, overflow:'hidden' }}>
             {editing ? (
               <InputBase
                 value={localName}
@@ -147,6 +147,8 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
                 onChange={e=> setLocalName(e.target.value)}
                 onBlur={commitName}
                 onKeyDown={handleKey}
+                multiline
+                maxRows={3}
                 sx={{
                   fontSize:20,
                   fontWeight:700,
@@ -156,7 +158,9 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
                   borderRadius:1,
                   border:(t)=>`1px solid ${t.palette.divider}`,
                   background:(t)=> t.palette.background.paper,
-                  boxShadow:'none'
+                  boxShadow:'none',
+                  width:'100%',
+                  overflow:'hidden'
                 }}
               />
             ) : (
@@ -170,7 +174,12 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
                   cursor:'text',
                   userSelect:'text',
                   textDecoration: completed? 'line-through':'none',
-                  color: completed? 'text.secondary':'text.primary'
+                  color: completed? 'text.secondary':'text.primary',
+                  display:'-webkit-box',
+                  WebkitLineClamp:3,
+                  WebkitBoxOrient:'vertical',
+                  overflow:'hidden',
+                  wordBreak:'break-word'
                 }}
               >
                 {name}
@@ -178,7 +187,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
             )}
           </Box>
           {/* Meta chips */}
-          <Box sx={{ display:'flex', alignItems:'center', gap:0.75, flexWrap:'nowrap', flexShrink:0 }}>
+          <Box sx={{ display:'flex', alignItems:'center', gap:0.75, flexWrap:'wrap', flexShrink:1, minWidth:0, maxWidth:'38%' }}>
             <Chip
               size='small'
               onClick={(e)=> { e.stopPropagation(); }}

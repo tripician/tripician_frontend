@@ -225,12 +225,20 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
       return;
     }
     setSpotSearchLoading(true);
-    placesServiceRef.current.getPlacePredictions({ input: query }, (preds: any[]) => {
-      const allow = new Set(['tourist_attraction','point_of_interest','establishment']);
-      const filtered = (preds || []).filter(p => !p.types || p.types.some((t:string)=> allow.has(t)));
-      setSpotPredictions(filtered);
+    try {
+      placesServiceRef.current.getPlacePredictions({ input: query }, (preds: any[] | null, status: string) => {
+        const allow = new Set(['tourist_attraction','point_of_interest','establishment']);
+        if(status !== 'OK' || !Array.isArray(preds)) { setSpotPredictions([]); setSpotSearchLoading(false); return; }
+        const filtered = (preds || []).filter(p => !p.types || p.types.some((t:string)=> allow.has(t)));
+        setSpotPredictions(filtered);
+        setSpotSearchLoading(false);
+      });
+    } catch(err){
+      // eslint-disable-next-line no-console
+      console.warn('[Places] triggerSpotSearch error', err);
       setSpotSearchLoading(false);
-    });
+      setSpotPredictions([]);
+    }
   }, [ensurePlacesScript]);
 
   React.useEffect(() => { const d = setTimeout(()=> triggerSpotSearch(spotSearch), 450); return ()=> clearTimeout(d); }, [spotSearch, triggerSpotSearch]);
@@ -293,12 +301,19 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
     if (!svc) return; // maps not loaded yet
     let active = true;
     setLoadingPred(true);
-    svc.getPlacePredictions({ input: newName, sessionToken: sessionTokenRef.current, types: ['geocode','establishment'] }, (res: any[], status: string) => {
-      if (!active) return;
+    try {
+      svc.getPlacePredictions({ input: newName, sessionToken: sessionTokenRef.current, types: ['geocode','establishment'] }, (res: any[] | null, status: string) => {
+        if (!active) return;
+        setLoadingPred(false);
+        if (status !== 'OK' || !Array.isArray(res)) { setPredictions([]); return; }
+        setPredictions(res.slice(0,7));
+      });
+    } catch(err){
+      // eslint-disable-next-line no-console
+      console.warn('[Places] add destination predictions error', err);
       setLoadingPred(false);
-      if (status !== 'OK' || !res) { setPredictions([]); return; }
-      setPredictions(res.slice(0,7));
-    });
+      setPredictions([]);
+    }
     return () => { active = false; };
   }, [newName, adding]);
 

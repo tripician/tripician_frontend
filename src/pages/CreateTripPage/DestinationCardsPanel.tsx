@@ -97,12 +97,22 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed }) 
     if(!svc) return; // script maybe not loaded yet
     let active = true;
     setLoadingPred(true);
-    svc.getPlacePredictions({ input: searchValue, sessionToken: sessionTokenRef.current, types:['geocode','establishment'] }, (res: any[], status: string) => {
-      if(!active) return;
+    try {
+      svc.getPlacePredictions(
+        { input: searchValue, sessionToken: sessionTokenRef.current, types:['geocode','establishment'] },
+        (res: any[] | null, status: string) => {
+          if(!active) return;
+          setLoadingPred(false);
+          if(status !== 'OK' || !Array.isArray(res)) { setPredictions([]); return; }
+          setPredictions(res.slice(0,6));
+        }
+      );
+    } catch(err){
+      // eslint-disable-next-line no-console
+      console.warn('[Places] getPlacePredictions threw', err);
       setLoadingPred(false);
-      if(status !== 'OK' || !res) { setPredictions([]); return; }
-      setPredictions(res.slice(0,6));
-    });
+      setPredictions([]);
+    }
     return ()=> { active=false; };
   }, [searchValue]);
   const selectPrediction = (p:any) => {
@@ -333,12 +343,22 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed }) 
       return;
     }
     setSpotSearchLoading(true);
-    placesServiceRef.current.getPlacePredictions({ input: query }, (preds: any[]) => {
-      const allow = new Set(['tourist_attraction','point_of_interest','establishment']);
-      const filtered = (preds || []).filter(p => !p.types || p.types.some((t:string)=> allow.has(t)));
-      setSpotPredictions(filtered);
+    try {
+      placesServiceRef.current.getPlacePredictions({ input: query }, (preds: any[] | null, status: string) => {
+        const allow = new Set(['tourist_attraction','point_of_interest','establishment']);
+        if(status !== 'OK' || !Array.isArray(preds)) {
+          setSpotPredictions([]); setSpotSearchLoading(false); return;
+        }
+        const filtered = (preds || []).filter(p => !p.types || p.types.some((t:string)=> allow.has(t)));
+        setSpotPredictions(filtered);
+        setSpotSearchLoading(false);
+      });
+    } catch(err){
+      // eslint-disable-next-line no-console
+      console.warn('[Places] spot search getPlacePredictions threw', err);
       setSpotSearchLoading(false);
-    });
+      setSpotPredictions([]);
+    }
   }, [ensurePlacesScript]);
   React.useEffect(()=> { const d = setTimeout(()=> triggerSpotSearch(spotSearch), 450); return ()=> clearTimeout(d); }, [spotSearch, triggerSpotSearch]);
 

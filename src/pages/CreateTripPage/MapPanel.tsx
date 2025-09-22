@@ -257,8 +257,8 @@ const MapPanel: React.FC<MapPanelProps> = ({ widthFraction = 0.40 }) => {
   }, [tempPos, newName, destinations, dispatch]);
 
   return (
-    <Box sx={{ width: `${Math.round(widthFraction*100)}%`, position: 'relative', transition: 'width .25s ease', borderLeft: 1, borderColor: 'divider', display: 'flex', flexDirection: 'column', p: 1 }}>
-      <Box sx={{ flex: 1, position: 'relative', borderRadius: 2, overflow: 'hidden', boxShadow: theme.palette.mode==='dark' ? '0 0 0 1px rgba(255,255,255,0.06),0 4px 18px -4px rgba(0,0,0,0.8)' : '0 0 0 1px rgba(0,0,0,0.05),0 4px 14px -4px rgba(0,0,0,0.25)', background: theme.palette.mode==='dark' ? '#121416' : '#f2f5f8' }}>
+    <Box sx={{ width: `${Math.round(widthFraction*100)}%`, position: 'relative', transition: 'width .25s ease', borderLeft: 1, borderColor: 'divider', display: 'flex', flexDirection: 'column', p: 0 }}>
+      <Box sx={{ flex: 1, position: 'relative', borderRadius: 0, overflow: 'hidden', /* removed shadow & rounded corners for flush layout */ boxShadow: 'none', background: theme.palette.mode==='dark' ? '#121416' : '#f2f5f8' }}>
         <Box ref={mapRef} sx={{ position: 'absolute', inset: 0 }} />
         {loading && (
           <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default' }}>
