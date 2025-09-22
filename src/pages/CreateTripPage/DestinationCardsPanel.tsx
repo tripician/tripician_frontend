@@ -411,24 +411,16 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed }) 
         <Box sx={{ display:'flex', alignItems:{ xs:'flex-start', sm:'center' }, justifyContent:'space-between', flexWrap:'wrap', gap:1.5, pr:1 }}>
           <Box sx={{ display:'flex', alignItems:'center', gap:1.25, flexWrap:'wrap' }}>
             <Typography variant='h6' sx={{ fontWeight:700, letterSpacing:.3, display:'flex', alignItems:'center', gap:1 }}>
-              Destinations
-              <Box component='span' sx={(t)=>({ fontSize:12, fontWeight:600, background: t.palette.mode==='dark'? t.palette.background.paper : t.palette.grey[100], color: t.palette.text.secondary, px:1, py:0.25, borderRadius:10, lineHeight:1, border:'1px solid '+t.palette.divider })}>{destinations.length}</Box>
+              Timeline
+              <Box sx={(t)=>({ display:'flex', alignItems:'center', gap:.55, fontSize:11, background: t.palette.mode==='dark'? t.palette.background.paper : t.palette.common.white, border:'1px solid '+t.palette.divider, px:1, py:0.5, borderRadius:20, boxShadow: t.palette.mode==='dark'? '0 1px 2px rgba(0,0,0,0.6)':'0 1px 2px rgba(0,0,0,0.04)' })}>
+                <Box sx={(t)=>({ width:6, height:6, borderRadius:'50%', background: t.palette.primary.main })} />
+                <span style={{ fontWeight:600 }}>{destinations.length} destination{destinations.length!==1?'s':''}</span>
+              </Box>
+              <Box sx={(t)=>({ display:'flex', alignItems:'center', gap:.55, fontSize:11, background: t.palette.mode==='dark'? t.palette.background.paper : t.palette.common.white, border:'1px solid '+t.palette.divider, px:1, py:0.5, borderRadius:20 })}>
+                <Box sx={(t)=>({ width:6, height:6, borderRadius:'50%', background: t.palette.secondary.main })} />
+                <span style={{ fontWeight:600 }}>{completedCount} done</span>
+              </Box>
             </Typography>
-            <Typography variant='caption' sx={{ opacity:.7 }}>
-              Plan each stop, discover spots & manage stays.
-            </Typography>
-          </Box>
-          <Box sx={{ display:'flex', alignItems:'center', gap:1, flexWrap:'wrap' }}>
-            <Box sx={(t)=>({ display:'flex', alignItems:'center', gap:.55, fontSize:11, background: t.palette.mode==='dark'? t.palette.background.paper : t.palette.common.white, border:'1px solid '+t.palette.divider, px:1, py:0.5, borderRadius:20, boxShadow: t.palette.mode==='dark'? '0 1px 2px rgba(0,0,0,0.6)':'0 1px 2px rgba(0,0,0,0.04)' })}>
-              <Box sx={(t)=>({ width:6, height:6, borderRadius:'50%', background: t.palette.primary.main })} />
-              <span style={{ fontWeight:600 }}>{destinations.length} stop{destinations.length!==1?'s':''}</span>
-            </Box>
-            {/* Removed nights pill as requested */}
-            <Box sx={(t)=>({ display:'flex', alignItems:'center', gap:.55, fontSize:11, background: t.palette.mode==='dark'? t.palette.background.paper : t.palette.common.white, border:'1px solid '+t.palette.divider, px:1, py:0.5, borderRadius:20 })}>
-              <Box sx={(t)=>({ width:6, height:6, borderRadius:'50%', background: t.palette.secondary.main })} />
-              <span style={{ fontWeight:600 }}>{completedCount} done</span>
-            </Box>
-            {/* Nights progress bar removed as requested */}
           </Box>
         </Box>
         {/* Timeline rail + cards */}
@@ -534,9 +526,9 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed }) 
           )}
         </Menu>
 
-        <Box sx={{ position:'relative', mt:3, maxWidth:640 }}>
-          <Typography variant='caption' sx={{ fontWeight:600, letterSpacing:.5, mb:.75, display:'block', opacity:.75 }}>Add Destination</Typography>
-          <Paper elevation={0} sx={(t)=>({ position:'relative', display:'flex', alignItems:'center', gap:1, px:1.25, py:0.75, pr:1, borderRadius:999, border:'1px solid '+t.palette.divider, background: t.palette.mode==='dark'? 'rgba(255,255,255,0.04)':'#fff', boxShadow: t.palette.mode==='dark'? '0 2px 8px -2px rgba(0,0,0,0.7)':'0 3px 10px -4px rgba(0,0,0,0.15)', transition:'box-shadow .25s, border-color .25s', '&:focus-within':{ borderColor: t.palette.primary.main, boxShadow: t.palette.mode==='dark'? '0 0 0 3px rgba(59,130,246,0.25)':'0 0 0 3px rgba(59,130,246,0.15)' }, opacity:maxed? .55:1 })}>
+        <Box sx={{ position:'relative', mt:3, maxWidth:1000 }}>
+          
+          <Paper elevation={0} sx={(t)=>({ position:'relative', display:'flex', alignItems:'center', gap:1, px:1.25, py:0.75, pr:1, borderRadius: 2, border:'1px solid '+t.palette.divider, background: t.palette.mode==='dark'? 'rgba(255,255,255,0.04)':'#fff', boxShadow: t.palette.mode==='dark'? '0 2px 8px -2px rgba(0,0,0,0.7)':'0 3px 10px -4px rgba(0,0,0,0.15)', transition:'box-shadow .25s, border-color .25s', '&:focus-within':{ borderColor: t.palette.primary.main, boxShadow: t.palette.mode==='dark'? '0 0 0 3px rgba(59,130,246,0.25)':'0 0 0 3px rgba(59,130,246,0.15)' }, opacity:maxed? .55:1 })}>
             <SearchIcon sx={{ fontSize:19, opacity:.65 }} />
             <InputBase
               disabled={maxed}
