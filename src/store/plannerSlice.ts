@@ -55,6 +55,22 @@ export interface PlannerDoc {
   url: string; // object URL (runtime) or persisted reference
 }
 
+export interface PlannerExpense {
+  id: string;
+  label: string;
+  category?: string; // e.g. Flights, Stay, Food, Transport, Activity, Misc
+  amount: number; // stored in trip currency
+  note?: string;
+  date: string; // ISO date of expense occurrence
+  createdAt: string; // ISO datetime when user added it
+  /** User id of who paid (for now can be placeholder like 'me') */
+  paidByUserId?: string;
+  /** How the expense is split among members */
+  splitStrategy?: 'none' | 'equal' | 'custom';
+  /** Custom share fractions or amounts when splitStrategy==='custom' */
+  shares?: { userId: string; amount: number }[];
+}
+
 export interface PlannerState {
   destinations: PlannerDestination[];
   currency: 'EUR' | 'USD' | 'GBP';
@@ -66,6 +82,27 @@ export interface PlannerState {
   visaDocs?: PlannerDoc[];
   /** Set of pinned doc ids (could refer to any of the above or destination docs). */
   pinnedDocIds?: string[];
+  /** Optional overall trip budget in selected currency */
+  tripBudget?: number;
+  /** Flat list of expenses across the trip */
+  expenses?: PlannerExpense[];
+  /** When true we attempt to simplify (settle) group expenses at end of trip */
+  simplifyGroupExpenses?: boolean;
+  /** Additional email addresses allowed to view expenses (besides group members) */
+  expenseVisibilityEmails?: string[];
+  /** Chat-style comments associated with the trip */
+  comments?: TripComment[];
+}
+
+export interface TripComment {
+  id: string;
+  userId: string; // 'me' or member id
+  displayName: string; // cached name for quick render
+  avatarUrl?: string;
+  text: string;
+  createdAt: string; // ISO timestamp
+  editedAt?: string; // ISO timestamp if edited
+  pending?: boolean; // optimistic flag
 }
 
 const initialState: PlannerState = {
@@ -74,7 +111,12 @@ const initialState: PlannerState = {
   targetNights: 8,
   globalDocs: [],
   visaDocs: [],
-  pinnedDocIds: []
+  pinnedDocIds: [],
+  tripBudget: undefined,
+  expenses: [],
+  simplifyGroupExpenses: false,
+  expenseVisibilityEmails: []
+  ,comments: []
 };
 
 // Utility to recompute nights based on start/end date (exclusive of end)
@@ -248,6 +290,80 @@ const plannerSlice = createSlice({
       if(!state.pinnedDocIds) return;
       state.pinnedDocIds = state.pinnedDocIds.filter(id=> id !== action.payload.docId);
     },
+    setTripBudget(state, action: PayloadAction<{ amount: number }>) {
+      state.tripBudget = action.payload.amount >= 0 ? action.payload.amount : 0;
+    },
+    addExpense(state, action: PayloadAction<{ expense: Omit<PlannerExpense,'id'|'createdAt'> & { id?: string } }>) {
+      if(!state.expenses) state.expenses = [];
+      const id = action.payload.expense.id || 'exp_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      state.expenses.push({
+        id,
+        label: action.payload.expense.label,
+        category: action.payload.expense.category,
+        amount: Math.max(0, action.payload.expense.amount),
+        note: action.payload.expense.note,
+        date: action.payload.expense.date,
+        createdAt: new Date().toISOString(),
+        paidByUserId: action.payload.expense.paidByUserId || 'me',
+        splitStrategy: action.payload.expense.splitStrategy || 'none',
+        shares: action.payload.expense.shares
+      });
+    },
+    updateExpense(state, action: PayloadAction<{ id: string; patch: Partial<Omit<PlannerExpense,'id'|'createdAt'>> }>) {
+      const e = state.expenses?.find(x=> x.id === action.payload.id);
+      if(e){
+        if(action.payload.patch.label!==undefined) e.label = action.payload.patch.label;
+        if(action.payload.patch.category!==undefined) e.category = action.payload.patch.category;
+        if(action.payload.patch.amount!==undefined) e.amount = Math.max(0, action.payload.patch.amount);
+        if(action.payload.patch.note!==undefined) e.note = action.payload.patch.note;
+        if(action.payload.patch.date!==undefined) e.date = action.payload.patch.date;
+        if(action.payload.patch.paidByUserId!==undefined) e.paidByUserId = action.payload.patch.paidByUserId;
+        if(action.payload.patch.splitStrategy!==undefined) e.splitStrategy = action.payload.patch.splitStrategy as any;
+        if(action.payload.patch.shares!==undefined) e.shares = action.payload.patch.shares as any;
+      }
+    },
+    removeExpense(state, action: PayloadAction<{ id: string }>) {
+      if(!state.expenses) return; state.expenses = state.expenses.filter(e=> e.id !== action.payload.id);
+    },
+    clearExpenses(state) {
+      state.expenses = [];
+    },
+    setSimplifyGroupExpenses(state, action: PayloadAction<{ value: boolean }>) {
+      state.simplifyGroupExpenses = action.payload.value;
+    },
+    addExpenseVisibilityEmail(state, action: PayloadAction<{ email: string }>) {
+      const email = action.payload.email.trim().toLowerCase();
+      if(!email) return;
+      if(!state.expenseVisibilityEmails) state.expenseVisibilityEmails = [];
+      if(!state.expenseVisibilityEmails.includes(email)) state.expenseVisibilityEmails.push(email);
+    },
+    removeExpenseVisibilityEmail(state, action: PayloadAction<{ email: string }>) {
+      const email = action.payload.email.trim().toLowerCase();
+      if(!state.expenseVisibilityEmails) return;
+      state.expenseVisibilityEmails = state.expenseVisibilityEmails.filter(e=> e !== email);
+    },
+    clearExpenseVisibilityEmails(state) {
+      state.expenseVisibilityEmails = [];
+    },
+    addComment(state, action: PayloadAction<{ userId: string; displayName: string; avatarUrl?: string; text: string; id?: string }>) {
+      if(!state.comments) state.comments = [];
+      const id = action.payload.id || 'c_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      state.comments.push({
+        id,
+        userId: action.payload.userId,
+        displayName: action.payload.displayName,
+        avatarUrl: action.payload.avatarUrl,
+        text: action.payload.text,
+        createdAt: new Date().toISOString()
+      });
+    },
+    updateComment(state, action: PayloadAction<{ id: string; text: string }>) {
+      const c = state.comments?.find(x=> x.id === action.payload.id);
+      if(c){ c.text = action.payload.text; c.editedAt = new Date().toISOString(); }
+    },
+    removeComment(state, action: PayloadAction<{ id: string }>) {
+      if(!state.comments) return; state.comments = state.comments.filter(c=> c.id !== action.payload.id);
+    },
   addSpot(state, action: PayloadAction<{ destinationId: string; name: string; mapUrl?: string; known: boolean; placeId?: string; photoUrl?: string; description?: string }>) {
       const d = state.destinations.find(x=> x.id === action.payload.destinationId);
       if (!d) return;
@@ -398,6 +514,20 @@ export const {
   pinDoc,
   unpinDoc
 } = plannerSlice.actions;
+
+export const {
+  setTripBudget,
+  addExpense,
+  updateExpense,
+  removeExpense,
+  clearExpenses,
+  setSimplifyGroupExpenses,
+  addExpenseVisibilityEmail,
+  removeExpenseVisibilityEmail,
+  clearExpenseVisibilityEmails
+} = plannerSlice.actions;
+
+export const { addComment, updateComment, removeComment } = plannerSlice.actions;
 
 // Doc actions already re-exported above
 

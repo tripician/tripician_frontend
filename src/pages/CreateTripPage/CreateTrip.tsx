@@ -162,7 +162,9 @@ const CreateTrip: React.FC = () => {
                 <Box sx={{ display:'flex', flexDirection:'column', maxWidth:140 }}>
                   <Typography variant='caption' color='text.secondary'>Budget ({currency})</Typography>
                   <Box sx={{ display:'flex', alignItems:'center', gap:.5 }}>
-                    <Typography variant='body2' fontWeight={600}>0.00</Typography>
+                    <Typography variant='body2' fontWeight={600}>
+                      {(planner.tripBudget!=null ? planner.tripBudget : 0).toFixed(2)}
+                    </Typography>
                     <Button size='small' variant='text' onClick={openCurrency} endIcon={<ExpandMoreIcon fontSize='small' />} sx={{ textTransform:'none', px:1, minWidth:0 }}>{currency}</Button>
                   </Box>
                   {/* Visa block directly under Budget */}
