@@ -11,14 +11,13 @@ import {
   ToggleButton,
   ToggleButtonGroup,
   Grid,
+  InputAdornment,
   Divider,
 } from "@mui/material";
-import { LocalizationProvider, DatePicker } from '@mui/x-date-pickers';
-import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
-import dayjs, { Dayjs } from 'dayjs';
 import {
   Close as CloseIcon,
   Add as AddIcon,
+  CalendarToday as CalendarIcon,
   ArrowForward as ArrowForwardIcon,
   LocationOn as LocationIcon,
   Group as GroupIcon,
@@ -62,8 +61,7 @@ const COUNTRIES = [
   "Barbados",
 ];
 
-// Use theme palette primary dynamically; fallback to constant for non-themed contexts
-const primaryFallback = "#1976d2";
+const primary = "#1976d2";
 
 const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) => {
   const [formData, setFormData] = useState<FormData>({
@@ -135,35 +133,29 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
       sx={{ display: "flex", alignItems: "center", justifyContent: "center", p: 2 }}
     >
       <Box
-        sx={(theme) => ({
+        sx={{
           width: showInviteSection ? "70vw" : "40vw",
           maxWidth: "92vw",
           height: 620,
-          bgcolor: 'background.paper',
+          bgcolor: "background.paper",
           borderRadius: 3,
-          boxShadow: theme.palette.mode === 'dark'
-            ? '0 18px 42px -6px rgba(0,0,0,0.7), 0 4px 12px -2px rgba(0,0,0,0.5)'
-            : '0 24px 48px rgba(25,118,210,0.18)',
-            // Consider subtle border in dark mode for edge separation
-          border: theme.palette.mode === 'dark' ? `1px solid ${theme.palette.divider}` : 'none',
-          overflow: 'hidden',
-          display: 'flex',
-          backdropFilter: theme.palette.mode === 'dark' ? 'blur(6px)' : 'none',
-        })}
+          boxShadow: "0 24px 48px rgba(25,118,210,0.18)",
+          overflow: "hidden",
+          display: "flex",
+        }}
       >
         {/* Left panel – main form */}
-        <LocalizationProvider dateAdapter={AdapterDayjs}>
         <Box sx={{ flex: "0 0 40vw", p: 4, overflowY: "auto" }}>
           {/* Header with close */}
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
-            <Typography sx={(theme) => ({ fontWeight: 600, color: theme.palette.mode === 'dark' ? theme.palette.text.primary : (theme.palette.primary?.main || primaryFallback), display: 'flex', alignItems: 'center', gap: 1 })}>
+            <Typography sx={{ fontWeight: 600, color: primary, display: "flex", alignItems: "center", gap: 1 }}>
               <LocationIcon fontSize="small" />
               Trip name
             </Typography>
             <IconButton
               onClick={handleClose}
               sx={{
-                color: (theme) => theme.palette.primary?.main || primaryFallback,
+                color: primary,
                 "&:hover": { backgroundColor: "rgba(25,118,210,0.08)" },
               }}
             >
@@ -177,18 +169,18 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
             onChange={handleInputChange("tripName")}
             fullWidth
             variant="outlined"
-            sx={(theme) => ({
+            sx={{
               mb: 3,
-              '& .MuiOutlinedInput-root': {
+              "& .MuiOutlinedInput-root": {
                 borderRadius: 2,
-                '&:hover fieldset': { borderColor: theme.palette.primary?.main || primaryFallback },
-                '&.Mui-focused fieldset': { borderColor: theme.palette.primary?.main || primaryFallback, borderWidth: 2 },
+                "&:hover fieldset": { borderColor: primary },
+                "&.Mui-focused fieldset": { borderColor: primary, borderWidth: 2 },
               },
-            })}
+            }}
           />
 
           {/* Countries */}
-          <Typography sx={(theme) => ({ mb: 1.5, fontWeight: 600, color: theme.palette.mode === 'dark' ? theme.palette.text.primary : (theme.palette.primary?.main || primaryFallback), display: 'flex', alignItems: 'center', gap: 1 })}>
+          <Typography sx={{ mb: 1.5, fontWeight: 600, color: primary, display: "flex", alignItems: "center", gap: 1 }}>
             <LocationIcon fontSize="small" />
             Which countries are you going?
           </Typography>
@@ -198,21 +190,17 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
             value={formData.selectedCountries}
             onChange={handleCountryChange}
             renderTags={(value, getTagProps) =>
-              value.map((option, index) => {
-                const { key, ...chipProps } = getTagProps({ index });
-                return (
-                  <Chip
-                    key={key}
-                    label={option}
-                    {...chipProps}
-                    sx={(theme) => ({
-                      bgcolor: theme.palette.primary?.main || primaryFallback,
-                      color: '#fff',
-                      '& .MuiChip-deleteIcon': { color: '#fff', '&:hover': { color: '#f0f0f0' } },
-                    })}
-                  />
-                );
-              })
+              value.map((option, index) => (
+                <Chip
+                  label={option}
+                  {...getTagProps({ index })}
+                  sx={{
+                    bgcolor: primary,
+                    color: "#fff",
+                    "& .MuiChip-deleteIcon": { color: "#fff", "&:hover": { color: "#f0f0f0" } },
+                  }}
+                />
+              ))
             }
             renderInput={(params) => (
               <TextField
@@ -224,17 +212,17 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
                   endAdornment: (
                     <>
                       {params.InputProps.endAdornment}
-                      <ArrowDropDownIcon sx={(theme) => ({ color: theme.palette.primary?.main || primaryFallback, ml: 0.5 })} />
+                      <ArrowDropDownIcon sx={{ color: primary, ml: 0.5 }} />
                     </>
                   ),
                 }}
-                sx={(theme) => ({
-                  '& .MuiOutlinedInput-root': {
+                sx={{
+                  "& .MuiOutlinedInput-root": {
                     borderRadius: 2,
-                    '&:hover fieldset': { borderColor: theme.palette.primary?.main || primaryFallback },
-                    '&.Mui-focused fieldset': { borderColor: theme.palette.primary?.main || primaryFallback, borderWidth: 2 },
+                    "&:hover fieldset": { borderColor: primary },
+                    "&.Mui-focused fieldset": { borderColor: primary, borderWidth: 2 },
                   },
-                })}
+                }}
               />
             )}
             sx={{ mb: 3 }}
@@ -243,60 +231,57 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
           {/* Dates */}
           <Grid container alignItems="flex-start" columnGap={2} sx={{ mb: 1 }}>
             <Grid>
-              <Typography sx={(theme) => ({ mb: 0.5, fontWeight: 600, color: theme.palette.mode === 'dark' ? theme.palette.text.primary : (theme.palette.primary?.main || primaryFallback), fontSize: 14 })}>Start date</Typography>
-              <DatePicker
-                value={formData.startDate ? dayjs(formData.startDate) : null}
-                onChange={(val: Dayjs | null) => {
-                  setFormData(prev => {
-                    let endDate = prev.endDate;
-                    if (val && endDate && dayjs(endDate).isBefore(val, 'day')) {
-                      endDate = val.toISOString();
-                    }
-                    return { ...prev, startDate: val ? val.toISOString() : '', endDate };
-                  });
+              <Typography sx={{ mb: 0.5, fontWeight: 600, color: primary, fontSize: 14 }}>Start date</Typography>
+              <TextField
+                placeholder="Start Date"
+                value={formData.startDate}
+                onChange={handleInputChange("startDate")}
+                variant="outlined"
+                size="medium"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <CalendarIcon sx={{ color: primary }} />
+                    </InputAdornment>
+                  ),
                 }}
-                slotProps={{
-                  textField: {
-                    placeholder: 'Start Date',
-                    size: 'medium',
-                    sx: {
-                      width: 220,
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        '&:hover fieldset': { borderColor: (theme) => theme.palette.primary?.main || primaryFallback },
-                        '&.Mui-focused fieldset': { borderColor: (theme) => theme.palette.primary?.main || primaryFallback, borderWidth: 2 }
-                      }
-                    }
+                sx={{
+                  width: 220,
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 2,
+                    "&:hover fieldset": { borderColor: primary },
+                    "&.Mui-focused fieldset": { borderColor: primary, borderWidth: 2 },
                   },
-                  openPickerIcon: { sx: (theme: any) => ({ color: theme.palette.primary?.main || primaryFallback }) }
                 }}
               />
             </Grid>
+
             <Grid>
-              <ArrowForwardIcon sx={(theme) => ({ color: theme.palette.primary?.main || primaryFallback, fontSize: 28, mt: 5 })} />
+              <ArrowForwardIcon sx={{ color: primary, fontSize: 28, mt: 5}} />
             </Grid>
-            <Grid>
-              <Typography sx={(theme) => ({ mb: 0.5, fontWeight: 600, color: theme.palette.mode === 'dark' ? theme.palette.text.primary : (theme.palette.primary?.main || primaryFallback), fontSize: 14 })}>End date</Typography>
-              <DatePicker
-                value={formData.endDate ? dayjs(formData.endDate) : null}
-                minDate={formData.startDate ? dayjs(formData.startDate) : undefined}
-                onChange={(val: Dayjs | null) => {
-                  setFormData(prev => ({ ...prev, endDate: val ? val.toISOString() : '' }));
+
+            <Grid >
+              <Typography sx={{ mb: 0.5, fontWeight: 600, color: primary, fontSize: 14 }}>End date</Typography>
+              <TextField
+                placeholder="End Date"
+                value={formData.endDate}
+                onChange={handleInputChange("endDate")}
+                variant="outlined"
+                size="medium"
+                InputProps={{
+                  startAdornment: (
+                    <InputAdornment position="start">
+                      <CalendarIcon sx={{ color: primary }} />
+                    </InputAdornment>
+                  ),
                 }}
-                slotProps={{
-                  textField: {
-                    placeholder: 'End Date',
-                    size: 'medium',
-                    sx: {
-                      width: 240,
-                      '& .MuiOutlinedInput-root': {
-                        borderRadius: 2,
-                        '&:hover fieldset': { borderColor: (theme) => theme.palette.primary?.main || primaryFallback },
-                        '&.Mui-focused fieldset': { borderColor: (theme) => theme.palette.primary?.main || primaryFallback, borderWidth: 2 }
-                      }
-                    }
+                sx={{
+                  width: 240,
+                  "& .MuiOutlinedInput-root": {
+                    borderRadius: 2,
+                    "&:hover fieldset": { borderColor: primary },
+                    "&.Mui-focused fieldset": { borderColor: primary, borderWidth: 2 },
                   },
-                  openPickerIcon: { sx: (theme: any) => ({ color: theme.palette.primary?.main || primaryFallback }) }
                 }}
               />
             </Grid>
@@ -311,7 +296,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
           </Typography>
 
           {/* Visibility */}
-          <Typography sx={(theme) => ({ mb: 1.5, fontWeight: 600, color: theme.palette.mode === 'dark' ? theme.palette.text.primary : (theme.palette.primary?.main || primaryFallback), display: 'flex', alignItems: 'center', gap: 1 })}>
+          <Typography sx={{ mb: 1.5, fontWeight: 600, color: primary, display: "flex", alignItems: "center", gap: 1 }}>
             <GroupIcon fontSize="small" />
             Who can view your trip?
           </Typography>
@@ -319,23 +304,23 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
             value={formData.visibility}
             exclusive
             onChange={handleVisibilityChange}
-            sx={(theme) => ({
+            sx={{
               mb: 4,
-              '& .MuiToggleButton-root': {
-                borderColor: theme.palette.mode === 'dark' ? theme.palette.divider : '#e0e0e0',
-                color: theme.palette.mode === 'dark' ? theme.palette.text.secondary : '#666',
+              "& .MuiToggleButton-root": {
+                borderColor: "#e0e0e0",
+                color: "#666",
                 borderRadius: 1,
                 px: 3,
                 py: 1,
                 mx: 0.5,
-                textTransform: 'none',
+                textTransform: "none",
               },
-              '& .Mui-selected': {
-                bgcolor: theme.palette.primary?.main || primaryFallback,
-                color: '#fff',
-                '&:hover': { bgcolor: theme.palette.primary?.dark || '#1565c0' },
+              "& .Mui-selected": {
+                bgcolor: primary,
+                color: "#fff",
+                "&:hover": { bgcolor: "#1565c0" },
               },
-            })}
+            }}
           >
             <ToggleButton value="Trip members">Trip members</ToggleButton>
             <ToggleButton value="My followers">My followers</ToggleButton>
@@ -349,11 +334,11 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
               startIcon={<AddIcon />}
               onClick={() => setShowInviteSection((s) => !s)}
               sx={{
-                borderColor: (theme) => theme.palette.primary?.main || primaryFallback,
-                color: (theme) => theme.palette.mode === 'dark' ? theme.palette.text.primary : (theme.palette.primary?.main || primaryFallback),
+                borderColor: primary,
+                color: primary,
                 borderRadius: 2,
                 px: 2.5,
-                '&:hover': (theme) => ({ borderColor: theme.palette.primary?.dark || '#1565c0', backgroundColor: theme.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(25,118,210,0.08)' }),
+                "&:hover": { borderColor: "#1565c0", backgroundColor: "rgba(25,118,210,0.08)" },
               }}
             >
               Invite friends
@@ -363,20 +348,19 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
               variant="contained"
               onClick={handleStartPlanning}
               disabled={!canStart}
-              sx={(theme) => ({
-                bgcolor: theme.palette.primary?.main || primaryFallback,
+              sx={{
+                bgcolor: primary,
                 borderRadius: 2,
                 px: 4,
                 py: 1.25,
                 fontWeight: 700,
-                '&:hover': { bgcolor: theme.palette.primary?.dark || '#1565c0' },
-              })}
+                "&:hover": { bgcolor: "#1565c0" },
+              }}
             >
               Start planning
             </Button>
           </Box>
-  </Box>
-  </LocalizationProvider>
+        </Box>
 
         {/* Divider between panes when right side visible (subtle like screenshot) */}
         {showInviteSection && <Divider orientation="vertical" flexItem sx={{ borderColor: "rgba(25,118,210,0.15)" }} />}
@@ -395,7 +379,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
           >
             <Typography
               variant="h6"
-              sx={(theme) => ({ mb: 2.5, fontWeight: 600, color: theme.palette.mode === 'dark' ? theme.palette.text.primary : (theme.palette.primary?.main || primaryFallback), textAlign: 'left', letterSpacing: 0.2 })}
+              sx={{ mb: 2.5, fontWeight: 600, color: primary, textAlign: "left", letterSpacing: 0.2 }}
             >
               Invite a friend to your trip
             </Typography>
@@ -410,16 +394,16 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
                 sx={{
                   "& .MuiOutlinedInput-root": {
                     borderRadius: 2,
-                    backgroundColor: (theme) => theme.palette.mode === 'dark' ? theme.palette.background.default : '#fff',
-                    '&:hover fieldset': { borderColor: (theme) => theme.palette.primary?.main || primaryFallback },
-                    '&.Mui-focused fieldset': { borderColor: (theme) => theme.palette.primary?.main || primaryFallback, borderWidth: 2 },
+                    backgroundColor: "#fff",
+                    "&:hover fieldset": { borderColor: primary },
+                    "&.Mui-focused fieldset": { borderColor: primary, borderWidth: 2 },
                   },
                 }}
               />
               <Button
                 variant="contained"
                 onClick={handleInviteFriend}
-                sx={(theme) => ({ bgcolor: theme.palette.primary?.main || primaryFallback, borderRadius: 2, px: 3, '&:hover': { bgcolor: theme.palette.primary?.dark || '#1565c0' } })}
+                sx={{ bgcolor: primary, borderRadius: 2, px: 3, "&:hover": { bgcolor: "#1565c0" } }}
               >
                 Add
               </Button>

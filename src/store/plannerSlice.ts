@@ -60,12 +60,21 @@ export interface PlannerState {
   currency: 'EUR' | 'USD' | 'GBP';
   targetNights: number;
   lastSaved?: string;
+  /** Trip-level supporting documents (not tied to a destination) */
+  globalDocs?: PlannerDoc[];
+  /** Visa specific documents (scans, letters, confirmations) */
+  visaDocs?: PlannerDoc[];
+  /** Set of pinned doc ids (could refer to any of the above or destination docs). */
+  pinnedDocIds?: string[];
 }
 
 const initialState: PlannerState = {
   destinations: [],
   currency: 'EUR',
-  targetNights: 8
+  targetNights: 8,
+  globalDocs: [],
+  visaDocs: [],
+  pinnedDocIds: []
 };
 
 // Utility to recompute nights based on start/end date (exclusive of end)
@@ -214,6 +223,31 @@ const plannerSlice = createSlice({
       if(!d?.docs) return;
       d.docs = d.docs.filter(doc=> doc.id !== action.payload.docId);
     },
+    addGlobalDoc(state, action: PayloadAction<{ doc: PlannerDoc }>) {
+      if(!state.globalDocs) state.globalDocs = [];
+      state.globalDocs.push(action.payload.doc);
+    },
+    removeGlobalDoc(state, action: PayloadAction<{ docId: string }>) {
+      if(!state.globalDocs) return; state.globalDocs = state.globalDocs.filter(d=> d.id !== action.payload.docId);
+      // also unpin if pinned
+      if(state.pinnedDocIds) state.pinnedDocIds = state.pinnedDocIds.filter(id=> id !== action.payload.docId);
+    },
+    addVisaDoc(state, action: PayloadAction<{ doc: PlannerDoc }>) {
+      if(!state.visaDocs) state.visaDocs = [];
+      state.visaDocs.push(action.payload.doc);
+    },
+    removeVisaDoc(state, action: PayloadAction<{ docId: string }>) {
+      if(!state.visaDocs) return; state.visaDocs = state.visaDocs.filter(d=> d.id !== action.payload.docId);
+      if(state.pinnedDocIds) state.pinnedDocIds = state.pinnedDocIds.filter(id=> id !== action.payload.docId);
+    },
+    pinDoc(state, action: PayloadAction<{ docId: string }>) {
+      if(!state.pinnedDocIds) state.pinnedDocIds = [];
+      if(!state.pinnedDocIds.includes(action.payload.docId)) state.pinnedDocIds.push(action.payload.docId);
+    },
+    unpinDoc(state, action: PayloadAction<{ docId: string }>) {
+      if(!state.pinnedDocIds) return;
+      state.pinnedDocIds = state.pinnedDocIds.filter(id=> id !== action.payload.docId);
+    },
   addSpot(state, action: PayloadAction<{ destinationId: string; name: string; mapUrl?: string; known: boolean; placeId?: string; photoUrl?: string; description?: string }>) {
       const d = state.destinations.find(x=> x.id === action.payload.destinationId);
       if (!d) return;
@@ -354,6 +388,15 @@ export const {
   toggleFoodItem,
   removeFoodItem,
   reorderFoods
+} = plannerSlice.actions;
+
+export const {
+  addGlobalDoc,
+  removeGlobalDoc,
+  addVisaDoc,
+  removeVisaDoc,
+  pinDoc,
+  unpinDoc
 } = plannerSlice.actions;
 
 // Doc actions already re-exported above

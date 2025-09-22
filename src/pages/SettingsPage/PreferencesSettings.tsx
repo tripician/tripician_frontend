@@ -58,25 +58,19 @@ const PreferencesSettings: React.FC = () => {
     setBudgetRange("30-50");
   };
 
-  // Shared dark/light aware Select styling
-  const selectBaseSx = (theme: any) => ({
+  const selectStyles = {
     borderRadius: 1.5,
-    backgroundColor: theme.palette.mode === 'dark' ? theme.palette.background.default : '#f9fafb',
-    '& .MuiSelect-select': {
-      py: 1.1,
-    },
+    backgroundColor: "#f9fafb",
     '& .MuiOutlinedInput-notchedOutline': {
-      borderColor: theme.palette.mode === 'dark' ? theme.palette.divider : '#d1d5db',
+      borderColor: '#d1d5db',
     },
     '&:hover .MuiOutlinedInput-notchedOutline': {
-      borderColor: theme.palette.mode === 'dark' ? theme.palette.text.secondary : '#9ca3af',
+      borderColor: '#9ca3af',
     },
     '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-      borderColor: theme.palette.primary.main,
-      borderWidth: 1.5,
+      borderColor: '#3b82f6',
     },
-    transition: 'background-color .25s ease, border-color .25s ease'
-  });
+  };
 
   const SelectField = ({ 
     label, 
@@ -94,9 +88,9 @@ const PreferencesSettings: React.FC = () => {
         variant="body1" 
         sx={{ 
           fontWeight: 500, 
-          color: 'text.primary',
+          color: "#374151",
           mb: 1.5,
-          fontSize: '0.95rem'
+          fontSize: "0.95rem"
         }}
       >
         {label}
@@ -106,32 +100,7 @@ const PreferencesSettings: React.FC = () => {
           value={value}
           onChange={onChange}
           IconComponent={KeyboardArrowDown}
-          MenuProps={{
-            PaperProps: {
-              sx: (theme) => ({
-                backgroundColor: theme.palette.mode === 'dark' ? theme.palette.background.paper : '#fff',
-                borderRadius: 2,
-                mt: 1,
-                boxShadow: theme.palette.mode === 'dark'
-                  ? '0 4px 18px -2px rgba(0,0,0,0.6)'
-                  : '0 6px 20px -2px rgba(0,0,0,0.15)',
-                '& .MuiMenuItem-root': {
-                  fontSize: '0.85rem',
-                  '&.Mui-selected': {
-                    backgroundColor: (theme.palette.mode === 'dark'
-                      ? theme.palette.primary.dark
-                      : theme.palette.primary.light) + '22',
-                  },
-                  '&:hover': {
-                    backgroundColor: (theme.palette.mode === 'dark'
-                      ? theme.palette.primary.dark
-                      : theme.palette.primary.light) + '33',
-                  }
-                }
-              })
-            }
-          }}
-          sx={(theme) => selectBaseSx(theme)}
+          sx={selectStyles}
         >
           {options.map((option) => (
             <MenuItem key={option.value} value={option.value}>
@@ -160,8 +129,8 @@ const PreferencesSettings: React.FC = () => {
             sx={{ 
               fontWeight: 600, 
               mb: 3,
-              color: 'text.primary',
-              fontSize: '1.1rem'
+              color: "#374151",
+              fontSize: "1.1rem"
             }}
           >
             Language & Region
@@ -227,8 +196,8 @@ const PreferencesSettings: React.FC = () => {
             sx={{ 
               fontWeight: 600, 
               mb: 3,
-              color: 'text.primary',
-              fontSize: '1.1rem'
+              color: "#374151",
+              fontSize: "1.1rem"
             }}
           >
             Travel Preferences
@@ -294,7 +263,7 @@ const PreferencesSettings: React.FC = () => {
             px: 3,
             py: 1.5,
             borderRadius: 1.5,
-            color: 'text.secondary',
+            color: "#6b7280",
             "&:hover": {
               backgroundColor: "#f3f4f6",
             },

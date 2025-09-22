@@ -1,9 +1,9 @@
 // Clean rebuilt CreateTrip component after corruption removal.
 import React from 'react';
-import { Box, Tabs, Tab, Typography, Divider, Button, Chip, Menu, MenuItem, Avatar, Tooltip, IconButton, InputBase, CircularProgress } from '@mui/material';
+import { Box, Tabs, Tab, Typography, Divider, Button, Chip, Menu, MenuItem, Avatar, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper } from '@mui/material';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
-import { setCurrency as setCurrencyAction, updateDestinationNights, setTransport, addDestination, removeDestination, reorderChain } from '../../store/plannerSlice';
+import { setCurrency as setCurrencyAction, updateDestinationNights, setTransport, addDestination, removeDestination, reorderChain, addVisaDoc, removeVisaDoc, addGlobalDoc, removeGlobalDoc, pinDoc, unpinDoc } from '../../store/plannerSlice';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CreateTripNav from './CreateTripNav';
 import TripSettingsDialog from './TripSettingsDialog';
@@ -41,6 +41,23 @@ const CreateTrip: React.FC = () => {
   const [mapWidth, setMapWidth] = React.useState(0.40);
   const containerRef = React.useRef<HTMLDivElement|null>(null);
   const resizingRef = React.useRef(false);
+  const visaInputRef = React.useRef<HTMLInputElement|null>(null);
+  const globalInputRef = React.useRef<HTMLInputElement|null>(null);
+
+  const [visaOpen, setVisaOpen] = React.useState(false);
+  const [pinnedOpen, setPinnedOpen] = React.useState(false);
+
+  // Environment-specific icons (dev vs prod) with graceful fallback
+  const passportIconUrl = React.useMemo(() => {
+    return import.meta.env.MODE === 'production'
+      ? (import.meta.env.VITE_PASSPORT_ICON_URL_PROD || import.meta.env.VITE_PASSPORT_ICON_URL)
+      : (import.meta.env.VITE_PASSPORT_ICON_URL_DEV || import.meta.env.VITE_PASSPORT_ICON_URL);
+  }, []);
+  const pinnedIconUrl = React.useMemo(() => {
+    return import.meta.env.MODE === 'production'
+      ? (import.meta.env.VITE_PINNEDDOCS_ICON_URL_PROD || import.meta.env.VITE_PINNEDDOCS_ICON_URL)
+      : (import.meta.env.VITE_PINNEDDOCS_ICON_URL_DEV || import.meta.env.VITE_PINNEDDOCS_ICON_URL);
+  }, []);
 
   const geocodedCount = React.useMemo(()=> planner.destinations.filter(d=> d.lat!=null && d.lng!=null).length, [planner.destinations]);
 
@@ -137,23 +154,41 @@ const CreateTrip: React.FC = () => {
         <Box ref={containerRef} sx={{ flex:1, display:'flex', position:'relative', minHeight:0 }}>
           <Box sx={(theme)=>({ flexBasis: mapCollapsed?'100%':`calc(${(1-mapWidth)*100}% - 2px)`, maxWidth: mapCollapsed?'100%':`calc(${(1-mapWidth)*100}% - 2px)`, minWidth:0, flexShrink:0, display:'flex', flexDirection:'column', backgroundColor: theme.palette.background.paper, borderRight: mapCollapsed? 'none': { lg:`1px solid ${theme.palette.divider}`}, transition: resizingRef.current?'none':'flex-basis .18s ease' })}>
             <Box sx={{ px:2, py:1.25, display:'flex', alignItems:'stretch', gap:2, borderBottom:(t)=>`1px solid ${t.palette.divider}` }}>
-              <Box sx={{ flex:1, minWidth:0, display:'flex', alignItems:'center' }}>
+              <Box sx={{ flex:1.4, minWidth:320, display:'flex', alignItems:'stretch' }}>
                 <ImportantNotesEditor compact />
               </Box>
-              <Box sx={{ ml:'auto', display:'flex', alignItems:'center', gap:3 }}>
-                <Box sx={{ display:'flex', flexDirection:'column' }}>
+              <Box sx={{ ml:'auto', display:'flex', alignItems:'flex-start', gap:3, minWidth:360 }}>
+                {/* Budget + Visa column */}
+                <Box sx={{ display:'flex', flexDirection:'column', minWidth:160 }}>
                   <Typography variant='caption' color='text.secondary'>Budget ({currency})</Typography>
                   <Box sx={{ display:'flex', alignItems:'center', gap:.5 }}>
                     <Typography variant='body2' fontWeight={600}>0.00</Typography>
                     <Button size='small' variant='text' onClick={openCurrency} endIcon={<ExpandMoreIcon fontSize='small' />} sx={{ textTransform:'none', px:1, minWidth:0 }}>{currency}</Button>
                   </Box>
+                  {/* Visa block directly under Budget */}
+                  <Paper role='button' onClick={()=> setVisaOpen(true)} sx={(t)=>({ mt:1.25, cursor:'pointer', width:170, px:1.2, py:1, borderRadius:2, display:'flex', flexDirection:'row', gap:.75, alignItems:'center', border:`1px dashed ${t.palette.divider}`, background: t.palette.mode==='dark'? '#13202b':'#f5fbff', '&:hover':{ borderColor:t.palette.primary.main } })}>
+                    <Box component='img' src={passportIconUrl} alt='Visa docs' loading='lazy' style={{ width:30, height:30, objectFit:'contain', filter:'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }} />
+                    <Box sx={{ display:'flex', flexDirection:'column', minWidth:0 }}>
+                      <Typography variant='caption' sx={{ fontWeight:700, letterSpacing:.4 }}>Visa(s)</Typography>
+                      <Typography variant='caption' sx={{ opacity:.6, lineHeight:1 }}>{planner.visaDocs?.length||0} file(s)</Typography>
+                    </Box>
+                  </Paper>
                 </Box>
-                <Box sx={{ display:'flex', flexDirection:'column' }}>
+                {/* Privacy + Pinned Docs column */}
+                <Box sx={{ display:'flex', flexDirection:'column', minWidth:160 }}>
                   <Typography variant='caption' color='text.secondary'>Privacy</Typography>
                   <Box sx={{ display:'flex', alignItems:'center', gap:.5 }}>
                     <Typography variant='body2' fontWeight={600}>{privacy}</Typography>
                     <Button size='small' variant='text' onClick={openPrivacy} endIcon={<ExpandMoreIcon fontSize='small' />} sx={{ textTransform:'none', px:1, minWidth:0 }} />
                   </Box>
+                  {/* Pinned Docs block directly under Privacy */}
+                  <Paper role='button' onClick={()=> setPinnedOpen(true)} sx={(t)=>({ mt:1.25, cursor:'pointer', width:170, px:1.2, py:1, borderRadius:2, display:'flex', flexDirection:'row', gap:.75, alignItems:'center', border:`1px dashed ${t.palette.divider}`, background: t.palette.mode==='dark'? '#181c24':'#f7f7fa', '&:hover':{ borderColor:t.palette.primary.main } })}>
+                    <Box component='img' src={pinnedIconUrl} alt='Pinned docs' loading='lazy' style={{ width:30, height:30, objectFit:'contain', filter:'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }} />
+                    <Box sx={{ display:'flex', flexDirection:'column', minWidth:0 }}>
+                      <Typography variant='caption' sx={{ fontWeight:700, letterSpacing:.4 }}>Pinned Doc(s)</Typography>
+                      <Typography variant='caption' sx={{ opacity:.6, lineHeight:1 }}>{planner.pinnedDocIds?.length||0} pinned</Typography>
+                    </Box>
+                  </Paper>
                 </Box>
               </Box>
             </Box>
@@ -250,6 +285,76 @@ const CreateTrip: React.FC = () => {
         <Menu anchorEl={privacyAnchor} open={Boolean(privacyAnchor)} onClose={closePrivacy} elevation={3}>
           {(['Private','Trip Members','My Followers','Everyone'] as const).map(p=> (<MenuItem key={p} selected={p===privacy} onClick={()=> selectPrivacy(p)}>{p}</MenuItem>))}
         </Menu>
+        {/* Visa Dialog */}
+        <Dialog open={visaOpen} onClose={()=> setVisaOpen(false)} fullWidth maxWidth='sm'>
+          <DialogTitle>Visa Documents</DialogTitle>
+          <DialogContent dividers>
+            <input ref={visaInputRef} type='file' multiple hidden onChange={(e)=> { const files = Array.from(e.target.files||[]); files.forEach(f=> { const url = URL.createObjectURL(f); dispatch(addVisaDoc({ doc:{ id: 'visa_'+Date.now()+'_'+Math.random().toString(36).slice(2), originalName:f.name, mimeType:f.type, url } })); }); e.target.value=''; }} />
+            <Button variant='outlined' size='small' onClick={()=> visaInputRef.current?.click()} sx={{ textTransform:'none', mb:2 }}>Upload File(s)</Button>
+            {planner.visaDocs && planner.visaDocs.length>0 ? (
+              <Box sx={{ display:'flex', flexWrap:'wrap', gap:1.5 }}>
+                {planner.visaDocs.map(doc => {
+                  const isImage = /(png|jpe?g|gif|webp|bmp|svg)$/i.test(doc.originalName);
+                  const pinned = planner.pinnedDocIds?.includes(doc.id);
+                  return (
+                    <Paper key={doc.id} sx={{ width:160, position:'relative', p:0.5, border:'1px solid', borderColor:'divider', borderRadius:1.5, display:'flex', flexDirection:'column', gap:.5 }}>
+                      <Box sx={{ width:'100%', height:80, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', background:'linear-gradient(135deg,#eef2f6,#e2e8f0)' }}>
+                        {isImage ? <Box component='img' src={doc.url} alt={doc.originalName} sx={{ width:'100%', height:'100%', objectFit:'cover' }} /> : <Typography variant='caption' sx={{ fontWeight:600 }}>{doc.originalName.split('.').pop()?.toUpperCase()}</Typography>}
+                      </Box>
+                      <Typography variant='caption' sx={{ lineHeight:1.2, wordBreak:'break-all' }}>{doc.originalName}</Typography>
+                      <Box sx={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                        <Button size='small' onClick={()=> { if(pinned){ dispatch(unpinDoc({ docId: doc.id })); } else { dispatch(pinDoc({ docId: doc.id })); } }} sx={{ textTransform:'none', fontSize:11, px:1 }} variant={pinned? 'contained':'outlined'}>{pinned? 'Pinned':'Pin'}</Button>
+                        <Button size='small' color='error' onClick={()=> dispatch(removeVisaDoc({ docId: doc.id }))} sx={{ textTransform:'none', fontSize:11, px:1 }}>Del</Button>
+                      </Box>
+                    </Paper>
+                  );
+                })}
+              </Box>
+            ) : (
+              <Typography variant='body2' sx={{ opacity:.6 }}>No visa documents uploaded.</Typography>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={()=> setVisaOpen(false)}>Close</Button>
+          </DialogActions>
+        </Dialog>
+        {/* Pinned Docs Dialog */}
+        <Dialog open={pinnedOpen} onClose={()=> setPinnedOpen(false)} fullWidth maxWidth='md'>
+          <DialogTitle>Pinned Documents</DialogTitle>
+          <DialogContent dividers>
+            <input ref={globalInputRef} type='file' multiple hidden onChange={(e)=> { const files = Array.from(e.target.files||[]); files.forEach(f=> { const url = URL.createObjectURL(f); const id = 'glob_'+Date.now()+'_'+Math.random().toString(36).slice(2); dispatch(addGlobalDoc({ doc:{ id, originalName:f.name, mimeType:f.type, url } })); }); e.target.value=''; }} />
+            <Button variant='outlined' size='small' onClick={()=> globalInputRef.current?.click()} sx={{ textTransform:'none', mb:2 }}>Upload General Doc(s)</Button>
+            <Typography variant='caption' sx={{ display:'block', mb:1, opacity:.7 }}>Pin from any section using the Pin button.</Typography>
+            <Box sx={{ display:'flex', flexWrap:'wrap', gap:1.5 }}>
+              {['visaDocs','globalDocs','destinations'].flatMap(src => {
+                if(src==='destinations') {
+                  return planner.destinations.flatMap(d=> (d.docs||[]));
+                }
+                return (planner as any)[src] || [];
+              }).filter((doc:any)=> planner.pinnedDocIds?.includes(doc.id)).map((doc:any)=> {
+                const isImage = /(png|jpe?g|gif|webp|bmp|svg)$/i.test(doc.originalName);
+                return (
+                  <Paper key={doc.id} sx={{ width:150, position:'relative', p:0.5, border:'2px solid', borderColor:'primary.main', borderRadius:2, display:'flex', flexDirection:'column', gap:.5 }}>
+                    <Box sx={{ width:'100%', height:90, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', background:'linear-gradient(135deg,#eef2f6,#e2e8f0)' }}>
+                      {isImage ? <Box component='img' src={doc.url} alt={doc.originalName} sx={{ width:'100%', height:'100%', objectFit:'cover' }} /> : <Typography variant='caption' sx={{ fontWeight:600 }}>{doc.originalName.split('.').pop()?.toUpperCase()}</Typography>}
+                    </Box>
+                    <Typography variant='caption' sx={{ lineHeight:1.2, wordBreak:'break-all' }}>{doc.originalName}</Typography>
+                    <Box sx={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
+                      <Button size='small' onClick={()=> dispatch(unpinDoc({ docId: doc.id }))} sx={{ textTransform:'none', fontSize:11, px:1 }} variant='contained' color='warning'>Unpin</Button>
+                      <Button size='small' color='error' onClick={()=> { dispatch(unpinDoc({ docId: doc.id })); dispatch(removeGlobalDoc({ docId: doc.id })); }} sx={{ textTransform:'none', fontSize:11, px:1 }}>Del</Button>
+                    </Box>
+                  </Paper>
+                );
+              })}
+            </Box>
+            {(!planner.pinnedDocIds || planner.pinnedDocIds.length===0) && (
+              <Typography variant='body2' sx={{ opacity:.6 }}>No pinned documents yet.</Typography>
+            )}
+          </DialogContent>
+          <DialogActions>
+            <Button onClick={()=> setPinnedOpen(false)}>Close</Button>
+          </DialogActions>
+        </Dialog>
       </Box>
       <TripSettingsDialog
         open={settingsOpen}
