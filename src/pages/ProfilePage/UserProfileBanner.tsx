@@ -191,7 +191,7 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
     setIsLoggingOut(true);
     try {
       await logout();
-      navigate('/login');
+  navigate('/signin');
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {

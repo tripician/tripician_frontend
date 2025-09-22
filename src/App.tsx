@@ -9,7 +9,6 @@ import Community from './pages/CommunityPage/Community'
 import Settings from './pages/SettingsPage/Settings'
 import ProtectedRoute from './services/APIs/Auth/ProtectedRoute'
 import CreateTrip from './pages/CreateTripPage/CreateTrip'
-import FloatingDock from './components/FloatingDock'
 
 // Import debug utilities for development
 if (process.env.NODE_ENV === 'development') {
@@ -79,7 +78,6 @@ function App() {
         {/* Catch all - redirect to signin */}
         <Route path="*" element={<Navigate to="/signin" replace />} />
       </Routes>
-      <FloatingDock />
     </div>
   )
 }
