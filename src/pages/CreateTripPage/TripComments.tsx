@@ -141,35 +141,35 @@ const TripComments: React.FC = () => {
                     </Box>
                     {replies.length>0 && (
                       <Collapse in={expanded} timeout='auto' unmountOnExit>
-                        <Box sx={{ mt:1.5, display:'flex', flexDirection:'column', gap:2, borderLeft:'2px solid', borderColor:'divider', pl:2 }}>
+                        <Box sx={{ mt:1.25, display:'flex', flexDirection:'column', gap:1, borderLeft:'2px solid', borderColor:'divider', pl:2 }}>
                           {replies.map(r=> { const mineR = r.userId===CURRENT_USER.id; const upCountR = r.upvoterIds?.length||0; return (
-                            <Box key={r.id} sx={{ display:'flex', gap:1.2 }}>
-                              <Avatar src={r.avatarUrl} sx={{ width:30, height:30, fontSize:13 }}>{r.displayName.charAt(0)}</Avatar>
-                              <Box sx={{ flex:1 }}>
-                                <Box sx={{ display:'flex', alignItems:'baseline', gap:.75, flexWrap:'wrap' }}>
-                                  <Typography variant='subtitle2' sx={{ fontWeight:600, fontSize:13 }}>{mineR? 'You': r.displayName}</Typography>
+                            <Box key={r.id} sx={{ position:'relative', display:'flex', gap:1, px:1, py:0.75, pr:1.5, borderRadius:1, '&:hover':{ background:(t)=> t.palette.mode==='dark'? 'rgba(255,255,255,0.03)':'#f7f9fa' }, '&:before':{ content:'""', position:'absolute', left:-10, top:18, width:6, height:6, borderRadius:'50%', background:(t)=> t.palette.mode==='dark'? '#2e3c49':'#d0d7dd' } }}>
+                              <Avatar src={r.avatarUrl} sx={{ width:28, height:28, fontSize:12 }}>{r.displayName.charAt(0)}</Avatar>
+                              <Box sx={{ flex:1, minWidth:0 }}>
+                                <Box sx={{ display:'flex', alignItems:'baseline', gap:.6, flexWrap:'wrap' }}>
+                                  <Typography variant='subtitle2' sx={{ fontWeight:600, fontSize:12.5 }}>{mineR? 'You': r.displayName}</Typography>
                                   <Typography variant='caption' color='text.secondary' sx={{ fontSize:10 }}>{new Date(r.createdAt).toLocaleTimeString([], { hour:'2-digit', minute:'2-digit' })}{r.editedAt? ' · edited':''}</Typography>
                                 </Box>
-                                <Typography variant='body2' sx={{ mt:.25, fontSize:13.25, lineHeight:1.5, '& a':{ color:'primary.main', textDecoration:'none', '&:hover':{ textDecoration:'underline' } }, '& code.tc-code':{ background:(t)=> t.palette.mode==='dark'? '#1e2932':'#eceff1', padding:'2px 4px', borderRadius:4 } }}>{renderMarkdown(r.text)}</Typography>
-                                <Box sx={{ display:'flex', gap:1, mt:.5 }}>
-                                  <Button size='small' disabled={!canPost} onClick={()=> dispatch(toggleUpvote({ id: r.id, userId: CURRENT_USER.id }))} startIcon={<ThumbUpAltOutlinedIcon sx={{ fontSize:12, transform: r.upvoterIds?.includes(CURRENT_USER.id)?'scale(1.2)':'scale(1)', transition:'transform .15s' }} />} variant='text' sx={{ textTransform:'none', fontSize:11, px:0.4, minWidth:34, color: (r.upvoterIds?.includes(CURRENT_USER.id)? 'primary.main':'text.secondary'), '&:hover':{ color:'primary.main', background:'transparent' } }}>{upCountR? upCountR:'Upvote'}</Button>
+                                <Typography variant='body2' sx={{ mt:.15, fontSize:12.75, lineHeight:1.45, '& a':{ color:'primary.main', textDecoration:'none', '&:hover':{ textDecoration:'underline' } }, '& code.tc-code':{ background:(t)=> t.palette.mode==='dark'? '#1e2932':'#eceff1', padding:'1px 4px', borderRadius:4, fontSize:12 } }}>{renderMarkdown(r.text)}</Typography>
+                                <Box sx={{ display:'flex', gap:1, mt:.35 }}>
+                                  <Button size='small' disabled={!canPost} onClick={()=> dispatch(toggleUpvote({ id: r.id, userId: CURRENT_USER.id }))} startIcon={<ThumbUpAltOutlinedIcon sx={{ fontSize:11, transform: r.upvoterIds?.includes(CURRENT_USER.id)?'scale(1.15)':'scale(1)', transition:'transform .15s' }} />} variant='text' sx={{ textTransform:'none', fontSize:10.5, px:0.4, minWidth:32, color: (r.upvoterIds?.includes(CURRENT_USER.id)? 'primary.main':'text.secondary'), '&:hover':{ color:'primary.main', background:'transparent' } }}>{upCountR? upCountR:'Upvote'}</Button>
                                   {mineR && <>
-                                    <Button size='small' variant='text' onClick={()=> startEdit(r.id, r.text)} sx={{ textTransform:'none', fontSize:11, px:0.4, minWidth:32, color:'text.secondary', '&:hover':{ color:'text.primary', background:'transparent' } }}>Edit</Button>
-                                    <Button size='small' variant='text' onClick={()=> dispatch(removeComment({ id: r.id }))} sx={{ textTransform:'none', fontSize:11, px:0.4, minWidth:40, color:'text.secondary', '&:hover':{ color:'error.main', background:'transparent' } }}>Delete</Button>
+                                    <Button size='small' variant='text' onClick={()=> startEdit(r.id, r.text)} sx={{ textTransform:'none', fontSize:10.5, px:0.4, minWidth:30, color:'text.secondary', '&:hover':{ color:'text.primary', background:'transparent' } }}>Edit</Button>
+                                    <Button size='small' variant='text' onClick={()=> dispatch(removeComment({ id: r.id }))} sx={{ textTransform:'none', fontSize:10.5, px:0.4, minWidth:38, color:'text.secondary', '&:hover':{ color:'error.main', background:'transparent' } }}>Delete</Button>
                                   </>}
                                 </Box>
                               </Box>
                             </Box>
                           ); })}
                           {activeReplyParentId === c.id && (
-                            <Box sx={{ display:'flex', gap:1, mt:1 }}>
-                              <Avatar sx={{ width:30, height:30, fontSize:13 }}>{CURRENT_USER.name.charAt(0)}</Avatar>
-                              <Box component='form' onSubmit={(e)=> { e.preventDefault(); sendReply(c.id); }} sx={{ flex:1, display:'flex', alignItems:'center', gap:1, background:(t)=> t.palette.mode==='dark'? '#0d151c':'#f7f7f7', border:'1px solid', borderColor:'divider', borderRadius:6, px:1, py:0.5 }}>
-                                <TextField value={replyDraft} onChange={e=> setReplyDraft(e.target.value.slice(0, MAX_COMMENT_CHARS))} placeholder='Reply...' multiline minRows={1} maxRows={4} fullWidth variant='standard' InputProps={{ disableUnderline:true, sx:{ fontSize:13 } }} />
-                                <IconButton disabled={!replyDraft.trim() || floodBlocked || !canPost} type='submit' sx={{ bgcolor:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? 'action.disabledBackground': t.palette.primary.main, color:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? t.palette.text.disabled: t.palette.primary.contrastText, width:34, height:34, borderRadius:2, '&:hover':{ bgcolor:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? 'action.disabledBackground': t.palette.primary.dark } }}>
+                            <Box sx={{ display:'flex', gap:1, px:1, py:0.6, pr:1.5, mt:0.5, borderRadius:1, background:(t)=> t.palette.mode==='dark'? 'rgba(255,255,255,0.02)':'#fafbfc' }}>
+                              <Avatar sx={{ width:28, height:28, fontSize:12 }}>{CURRENT_USER.name.charAt(0)}</Avatar>
+                              <Box component='form' onSubmit={(e)=> { e.preventDefault(); sendReply(c.id); }} sx={{ flex:1, display:'flex', alignItems:'center', gap:1 }}>
+                                <TextField value={replyDraft} onChange={e=> setReplyDraft(e.target.value.slice(0, MAX_COMMENT_CHARS))} placeholder='Reply...' multiline minRows={1} maxRows={4} fullWidth variant='standard' InputProps={{ disableUnderline:true, sx:{ fontSize:13, lineHeight:1.4 } }} />
+                                <IconButton disabled={!replyDraft.trim() || floodBlocked || !canPost} type='submit' sx={{ bgcolor:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? 'action.disabledBackground': t.palette.primary.main, color:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? t.palette.text.disabled: t.palette.primary.contrastText, width:32, height:32, borderRadius:2, '&:hover':{ bgcolor:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? 'action.disabledBackground': t.palette.primary.dark } }}>
                                   <SendRoundedIcon sx={{ fontSize:18 }} />
                                 </IconButton>
-                                <Button onClick={cancelReply} size='small' variant='text' sx={{ textTransform:'none', fontSize:11 }}>Cancel</Button>
+                                <Button onClick={cancelReply} size='small' variant='text' sx={{ textTransform:'none', fontSize:10.5, minWidth:38 }}>Cancel</Button>
                               </Box>
                             </Box>
                           )}
@@ -177,15 +177,15 @@ const TripComments: React.FC = () => {
                       </Collapse>
                     )}
                     {replies.length===0 && activeReplyParentId === c.id && (
-                      <Box sx={{ mt:1.25, borderLeft:'2px solid', borderColor:'divider', pl:2 }}>
-                        <Box sx={{ display:'flex', gap:1 }}>
-                          <Avatar sx={{ width:30, height:30, fontSize:13 }}>{CURRENT_USER.name.charAt(0)}</Avatar>
-                          <Box component='form' onSubmit={(e)=> { e.preventDefault(); sendReply(c.id); }} sx={{ flex:1, display:'flex', alignItems:'center', gap:1, background:(t)=> t.palette.mode==='dark'? '#0d151c':'#f7f7f7', border:'1px solid', borderColor:'divider', borderRadius:6, px:1, py:0.5 }}>
-                            <TextField value={replyDraft} onChange={e=> setReplyDraft(e.target.value.slice(0, MAX_COMMENT_CHARS))} placeholder='Reply...' multiline minRows={1} maxRows={4} fullWidth variant='standard' InputProps={{ disableUnderline:true, sx:{ fontSize:13 } }} />
-                            <IconButton disabled={!replyDraft.trim() || floodBlocked || !canPost} type='submit' sx={{ bgcolor:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? 'action.disabledBackground': t.palette.primary.main, color:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? t.palette.text.disabled: t.palette.primary.contrastText, width:34, height:34, borderRadius:2, '&:hover':{ bgcolor:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? 'action.disabledBackground': t.palette.primary.dark } }}>
+                      <Box sx={{ mt:1, borderLeft:'2px solid', borderColor:'divider', pl:2 }}>
+                        <Box sx={{ display:'flex', gap:1, px:1, py:0.6, pr:1.5, borderRadius:1, background:(t)=> t.palette.mode==='dark'? 'rgba(255,255,255,0.02)':'#fafbfc' }}>
+                          <Avatar sx={{ width:28, height:28, fontSize:12 }}>{CURRENT_USER.name.charAt(0)}</Avatar>
+                          <Box component='form' onSubmit={(e)=> { e.preventDefault(); sendReply(c.id); }} sx={{ flex:1, display:'flex', alignItems:'center', gap:1 }}>
+                            <TextField value={replyDraft} onChange={e=> setReplyDraft(e.target.value.slice(0, MAX_COMMENT_CHARS))} placeholder='Reply...' multiline minRows={1} maxRows={4} fullWidth variant='standard' InputProps={{ disableUnderline:true, sx:{ fontSize:13, lineHeight:1.4 } }} />
+                            <IconButton disabled={!replyDraft.trim() || floodBlocked || !canPost} type='submit' sx={{ bgcolor:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? 'action.disabledBackground': t.palette.primary.main, color:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? t.palette.text.disabled: t.palette.primary.contrastText, width:32, height:32, borderRadius:2, '&:hover':{ bgcolor:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? 'action.disabledBackground': t.palette.primary.dark } }}>
                               <SendRoundedIcon sx={{ fontSize:18 }} />
                             </IconButton>
-                            <Button onClick={cancelReply} size='small' variant='text' sx={{ textTransform:'none', fontSize:11 }}>Cancel</Button>
+                            <Button onClick={cancelReply} size='small' variant='text' sx={{ textTransform:'none', fontSize:10.5, minWidth:38 }}>Cancel</Button>
                           </Box>
                         </Box>
                       </Box>
