@@ -103,6 +103,9 @@ export interface TripComment {
   createdAt: string; // ISO timestamp
   editedAt?: string; // ISO timestamp if edited
   pending?: boolean; // optimistic flag
+  parentId?: string; // for threaded replies (undefined => root)
+  upvoterIds?: string[]; // list of userIds who upvoted
+  replyCount?: number; // denormalized count of direct replies
 }
 
 const initialState: PlannerState = {
@@ -354,8 +357,27 @@ const plannerSlice = createSlice({
         displayName: action.payload.displayName,
         avatarUrl: action.payload.avatarUrl,
         text: action.payload.text,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        upvoterIds: [],
+        replyCount: 0
       });
+    },
+    addReply(state, action: PayloadAction<{ parentId: string; userId: string; displayName: string; text: string; avatarUrl?: string; id?: string }>) {
+      if(!state.comments) state.comments = [];
+      const parent = state.comments.find(c=> c.id === action.payload.parentId);
+      const id = action.payload.id || 'c_'+Date.now()+'_'+Math.random().toString(36).slice(2);
+      state.comments.push({
+        id,
+        userId: action.payload.userId,
+        displayName: action.payload.displayName,
+        avatarUrl: action.payload.avatarUrl,
+        text: action.payload.text,
+        createdAt: new Date().toISOString(),
+        parentId: action.payload.parentId,
+        upvoterIds: [],
+        replyCount: 0
+      });
+      if(parent){ parent.replyCount = (parent.replyCount || 0) + 1; }
     },
     updateComment(state, action: PayloadAction<{ id: string; text: string }>) {
       const c = state.comments?.find(x=> x.id === action.payload.id);
@@ -363,6 +385,13 @@ const plannerSlice = createSlice({
     },
     removeComment(state, action: PayloadAction<{ id: string }>) {
       if(!state.comments) return; state.comments = state.comments.filter(c=> c.id !== action.payload.id);
+    },
+    toggleUpvote(state, action: PayloadAction<{ id: string; userId: string }>) {
+      const c = state.comments?.find(x=> x.id === action.payload.id);
+      if(!c) return;
+      if(!c.upvoterIds) c.upvoterIds = [];
+      const idx = c.upvoterIds.indexOf(action.payload.userId);
+      if(idx>=0) c.upvoterIds.splice(idx,1); else c.upvoterIds.push(action.payload.userId);
     },
   addSpot(state, action: PayloadAction<{ destinationId: string; name: string; mapUrl?: string; known: boolean; placeId?: string; photoUrl?: string; description?: string }>) {
       const d = state.destinations.find(x=> x.id === action.payload.destinationId);
@@ -527,7 +556,7 @@ export const {
   clearExpenseVisibilityEmails
 } = plannerSlice.actions;
 
-export const { addComment, updateComment, removeComment } = plannerSlice.actions;
+export const { addComment, addReply, updateComment, removeComment, toggleUpvote } = plannerSlice.actions;
 
 // Doc actions already re-exported above
 
