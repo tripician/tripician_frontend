@@ -53,7 +53,12 @@ const CreateTripNav: React.FC<CreateTripNavProps> = ({ active = 'plan', onChange
         return (
           <Tooltip key={item.id} title={item.label} placement='right' arrow>
             <Box
+              role='button'
+              tabIndex={0}
+              aria-pressed={selected}
+              data-nav-id={item.id}
               onClick={() => onChange?.(item.id)}
+              onKeyDown={(e)=> { if(e.key==='Enter' || e.key===' ') { e.preventDefault(); onChange?.(item.id); } }}
               sx={{
                 cursor: 'pointer',
                 width: 48,
@@ -67,6 +72,11 @@ const CreateTripNav: React.FC<CreateTripNavProps> = ({ active = 'plan', onChange
                 border: selected ? '1px solid rgba(255,255,255,0.40)' : '1px solid rgba(255,255,255,0.18)',
                 color: '#fff',
                 transition: 'all .25s ease',
+                userSelect: 'none',
+                outline: 'none',
+                '&:focus-visible': {
+                  boxShadow: '0 0 0 2px rgba(255,255,255,0.9)'
+                },
                 '&:hover': {
                   background: selected ? 'rgba(255,255,255,0.30)' : 'rgba(255,255,255,0.18)',
                   transform: 'translateY(-2px)'

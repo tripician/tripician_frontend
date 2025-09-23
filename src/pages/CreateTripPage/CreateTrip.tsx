@@ -6,6 +6,7 @@ import type { RootState, AppDispatch } from '../../store';
 import { setCurrency as setCurrencyAction, updateDestinationNights, setTransport, addDestination, removeDestination, reorderChain, addVisaDoc, removeVisaDoc, addGlobalDoc, removeGlobalDoc, pinDoc, unpinDoc } from '../../store/plannerSlice';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CreateTripNav from './CreateTripNav';
+import NewsPanel from './NewsPanel';
 import TripSettingsDialog from './TripSettingsDialog';
 import DestinationsPanel, { type DestinationRow } from './DestinationsPanel';
 import DestinationCardsPanel from './DestinationCardsPanel';
@@ -29,6 +30,12 @@ const CreateTrip: React.FC = () => {
   const totalNights = planner.destinations.reduce((a,c)=>a+c.nights,0);
 
   const [tab, setTab] = React.useState(0);
+  const [section, setSection] = React.useState<'plan'|'news'|'packing'|'docs'>('plan');
+  const setSectionDebug = (next: 'plan'|'news'|'packing'|'docs') => {
+    // eslint-disable-next-line no-console
+    console.log('[CreateTrip] section change:', section, '=>', next);
+    setSection(next);
+  };
   const [isDraft, setIsDraft] = React.useState(true);
   const [title, setTitle] = React.useState('Untitled Trip');
   const [editingTitle, setEditingTitle] = React.useState(false);
@@ -133,7 +140,7 @@ const CreateTrip: React.FC = () => {
 
   return (
     <Box sx={{ display:'flex', flexDirection:'row', height:'100vh', overflow:'hidden' }}>
-      <CreateTripNav onSettingsClick={()=> setSettingsOpen(true)} />
+  <CreateTripNav active={section} onChange={(id)=> setSectionDebug(id as any)} onSettingsClick={()=> setSettingsOpen(true)} />
       <Box sx={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, minHeight:0 }}>
         <TopBar showSearch={false} centerNode={
           <Box sx={{ display:'flex', alignItems:'center' }}>
@@ -152,6 +159,11 @@ const CreateTrip: React.FC = () => {
           </Box>
         } />
         <Box ref={containerRef} sx={{ flex:1, display:'flex', position:'relative', minHeight:0 }}>
+          {section==='news' ? (
+            <Box sx={{ flex:1, overflowY:'auto', overflowX:'hidden', display:'flex', flexDirection:'column' }}>
+              <NewsPanel />
+            </Box>
+          ) : (
           <Box sx={(theme)=>({ flexBasis: mapCollapsed?'100%':`calc(${(1-mapWidth)*100}% - 2px)`, maxWidth: mapCollapsed?'100%':`calc(${(1-mapWidth)*100}% - 2px)`, minWidth:0, flexShrink:0, display:'flex', flexDirection:'column', backgroundColor: theme.palette.background.paper, borderRight: mapCollapsed? 'none': { lg:`1px solid ${theme.palette.divider}`}, transition: resizingRef.current?'none':'flex-basis .18s ease' })}>
             <Box sx={{ px:2, py:1.25, display:'flex', alignItems:'stretch', gap:2, borderBottom:(t)=>`1px solid ${t.palette.divider}` }}>
               <Box sx={{ flex:1.4, minWidth:360, display:'flex', alignItems:'stretch' }}>
@@ -278,7 +290,8 @@ const CreateTrip: React.FC = () => {
               </Box>
             </Box>
           </Box>
-          {!mapCollapsed && (<><Box onMouseDown={startResize} sx={{ width:4, cursor:'col-resize', background:(t)=> t.palette.mode==='dark'? t.palette.grey[800]: t.palette.grey[200], '&:hover':{ background:(t)=> t.palette.primary.main } }} /><MapPanel widthFraction={mapWidth} /></>)}
+          )}
+          {section==='plan' && !mapCollapsed && (<><Box onMouseDown={startResize} sx={{ width:4, cursor:'col-resize', background:(t)=> t.palette.mode==='dark'? t.palette.grey[800]: t.palette.grey[200], '&:hover':{ background:(t)=> t.palette.primary.main } }} /><MapPanel widthFraction={mapWidth} /></>)}
           <ChatAssistant />
         </Box>
         <Menu anchorEl={currencyAnchor} open={Boolean(currencyAnchor)} onClose={closeCurrency} elevation={3}>
