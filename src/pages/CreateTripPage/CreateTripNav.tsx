@@ -2,19 +2,36 @@ import React from 'react';
 import { Box, Tooltip } from '@mui/material';
 import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import Inventory2Icon from '@mui/icons-material/Inventory2';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ImportExportIcon from '@mui/icons-material/ImportExport';
 import NewspaperIcon from '@mui/icons-material/Newspaper';
 
+// Custom lightweight T-shirt icon (since Material baseline set lacks a direct Tshirt glyph)
+const TshirtIcon: React.FC<{ fontSize?: 'small' | 'medium' | 'large' }> = ({ fontSize = 'small' }) => {
+  const size = fontSize === 'small' ? 20 : fontSize === 'large' ? 32 : 24;
+  return (
+    <Box
+      component='svg'
+      viewBox='0 0 24 24'
+      sx={{ width: size, height: size, display: 'block' }}
+      focusable={false}
+      aria-hidden='true'
+    >
+      <path
+        fill='currentColor'
+        d='M16 3l-2 2h-4L8 3 3 5.5l1.5 3.5L7 8v11c0 .55.45 1 1 1h8c.55 0 1-.45 1-1V8l2.5 1 1.5-3.5L16 3z'
+      />
+    </Box>
+  );
+};
+
 interface NavItem { id: string; label: string; icon: React.ReactNode; }
 
-// Updated navigation: removed Budget, Collection, Discover. Added News.
-// Order chosen: Plan, News, Packing, Docs (can be adjusted later as needed)
+// Updated navigation: Plan, News, Packing, Docs
 const navItems: NavItem[] = [
   { id: 'plan', label: 'Plan', icon: <CalendarMonthIcon fontSize='small' /> },
   { id: 'news', label: 'News', icon: <NewspaperIcon fontSize='small' /> },
-  { id: 'packing', label: 'Packing', icon: <Inventory2Icon fontSize='small' /> },
+  { id: 'packing', label: 'Packing', icon: <TshirtIcon fontSize='small' /> },
   { id: 'docs', label: 'Docs', icon: <InsertDriveFileIcon fontSize='small' /> }
 ];
 
@@ -68,8 +85,8 @@ const CreateTripNav: React.FC<CreateTripNavProps> = ({ active = 'plan', onChange
                 justifyContent: 'center',
                 height: 48,
                 borderRadius: 2,
-                background: selected ? 'rgba(255,255,255,0.22)' : 'rgba(255,255,255,0.07)',
-                border: selected ? '1px solid rgba(255,255,255,0.40)' : '1px solid rgba(255,255,255,0.18)',
+                background: selected ? 'rgba(255,255,255,0.22)' : 'transparent',
+                border: selected ? '1px solid rgba(255,255,255,0.40)' : 'none',
                 color: '#fff',
                 transition: 'all .25s ease',
                 userSelect: 'none',
@@ -78,8 +95,8 @@ const CreateTripNav: React.FC<CreateTripNavProps> = ({ active = 'plan', onChange
                   boxShadow: '0 0 0 2px rgba(255,255,255,0.9)'
                 },
                 '&:hover': {
-                  background: selected ? 'rgba(255,255,255,0.30)' : 'rgba(255,255,255,0.18)',
-                  transform: 'translateY(-2px)'
+                  transform: 'translateY(-2px)',
+                  filter: 'brightness(1.05)'
                 },
                 position: 'relative'
               }}

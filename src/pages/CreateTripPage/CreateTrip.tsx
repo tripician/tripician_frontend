@@ -4,6 +4,7 @@ import { Box, Tabs, Tab, Typography, Divider, Button, Chip, Menu, MenuItem, Avat
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import { setCurrency as setCurrencyAction, updateDestinationNights, setTransport, addDestination, removeDestination, reorderChain, addVisaDoc, removeVisaDoc, addGlobalDoc, removeGlobalDoc, pinDoc, unpinDoc } from '../../store/plannerSlice';
+import { validateFiles, DEFAULT_DOC_RULE } from '../../utils/fileValidation';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CreateTripNav from './CreateTripNav';
 import NewsPanel from './NewsPanel';
@@ -13,6 +14,7 @@ import DestinationCardsPanel from './DestinationCardsPanel';
 import ExpensesPanel from './ExpensesPanel';
 import ImportantNotesEditor from './ImportantNotesEditor';
 import TripComments from './TripComments';
+import PackingPanel from './PackingPanel';
 import ChatAssistant from '../../components/CommonComponents/ChatAssistant';
 import MapPanel from './MapPanel';
 import CloseFullscreenIcon from '@mui/icons-material/CloseFullscreen';
@@ -21,6 +23,8 @@ import AltRouteIcon from '@mui/icons-material/AltRoute';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import EditIcon from '@mui/icons-material/Edit';
 import CheckIcon from '@mui/icons-material/Check';
+// Docs explorer (previously standalone) now embedded when section === 'docs'
+import Docs from '../DocsPage/Docs';
 
 const CreateTrip: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -29,7 +33,7 @@ const CreateTrip: React.FC = () => {
   const targetNights = planner.targetNights;
   const totalNights = planner.destinations.reduce((a,c)=>a+c.nights,0);
 
-  const [tab, setTab] = React.useState(0);
+  const [tab, setTab] = React.useState(0); // Only used for Planning / Expenses / Comments within Plan section
   const [section, setSection] = React.useState<'plan'|'news'|'packing'|'docs'>('plan');
   const setSectionDebug = (next: 'plan'|'news'|'packing'|'docs') => {
     // eslint-disable-next-line no-console
@@ -50,6 +54,8 @@ const CreateTrip: React.FC = () => {
   const resizingRef = React.useRef(false);
   const visaInputRef = React.useRef<HTMLInputElement|null>(null);
   const globalInputRef = React.useRef<HTMLInputElement|null>(null);
+  const [visaErrors, setVisaErrors] = React.useState<string[]>([]);
+  const [globalDocErrors, setGlobalDocErrors] = React.useState<string[]>([]);
 
   const [visaOpen, setVisaOpen] = React.useState(false);
   const [pinnedOpen, setPinnedOpen] = React.useState(false);
@@ -163,6 +169,15 @@ const CreateTrip: React.FC = () => {
             <Box sx={{ flex:1, overflowY:'auto', overflowX:'hidden', display:'flex', flexDirection:'column' }}>
               <NewsPanel />
             </Box>
+          ) : section==='docs' ? (
+            <Box sx={{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }}>
+              {/* Embedded Docs explorer */}
+              <Docs />
+            </Box>
+          ) : section==='packing' ? (
+            <Box sx={{ flex:1, overflowY:'auto', overflowX:'hidden', display:'flex', flexDirection:'column', p:3 }}>
+              <PackingPanel />
+            </Box>
           ) : (
           <Box sx={(theme)=>({ flexBasis: mapCollapsed?'100%':`calc(${(1-mapWidth)*100}% - 2px)`, maxWidth: mapCollapsed?'100%':`calc(${(1-mapWidth)*100}% - 2px)`, minWidth:0, flexShrink:0, display:'flex', flexDirection:'column', backgroundColor: theme.palette.background.paper, borderRight: mapCollapsed? 'none': { lg:`1px solid ${theme.palette.divider}`}, transition: resizingRef.current?'none':'flex-basis .18s ease' })}>
             <Box sx={{ px:2, py:1.25, display:'flex', alignItems:'stretch', gap:2, borderBottom:(t)=>`1px solid ${t.palette.divider}` }}>
@@ -207,6 +222,7 @@ const CreateTrip: React.FC = () => {
               </Box>
             </Box>
             <Divider />
+            {section==='plan' && (
             <Box sx={{ display:'flex', alignItems:'center', px:2, gap:1, py:1 }}>
               <Tabs value={tab} onChange={handleTabChange} variant='scrollable' allowScrollButtonsMobile sx={{ flex:1, minHeight:44, '& .MuiTab-root':{ minHeight:44 } }}>
                 <Tab label='Planning' />
@@ -261,9 +277,10 @@ const CreateTrip: React.FC = () => {
                 </span>
               </Tooltip>
             </Box>
+            )}
             <Divider />
             <Box sx={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column' }}>
-              {tab===0 && (
+              {section==='plan' && tab===0 && (
                 <Box sx={{ px:0 }}>
                   {ENABLE_CARD_LAYOUT ? (
                     <DestinationCardsPanel maxed={totalNights >= targetNights} />
@@ -279,8 +296,8 @@ const CreateTrip: React.FC = () => {
                   )}
                 </Box>
               )}
-              {tab===1 && <ExpensesPanel />}
-              {tab===2 && <TripComments />}
+              {section==='plan' && tab===1 && <ExpensesPanel />}
+              {section==='plan' && tab===2 && <TripComments />}
             </Box>
             <Box sx={(t)=>({ borderTop:`1px solid ${t.palette.divider}`, px:2.5, py:1.5, background:t.palette.background.paper, display:'flex', alignItems:'center', justifyContent:'space-between' })}>
               <Typography variant='caption' color='text.secondary'>Last saved: just now</Typography>
@@ -304,8 +321,14 @@ const CreateTrip: React.FC = () => {
         <Dialog open={visaOpen} onClose={()=> setVisaOpen(false)} fullWidth maxWidth='sm'>
           <DialogTitle>Visa Documents</DialogTitle>
           <DialogContent dividers>
-            <input ref={visaInputRef} type='file' multiple hidden onChange={(e)=> { const files = Array.from(e.target.files||[]); files.forEach(f=> { const url = URL.createObjectURL(f); dispatch(addVisaDoc({ doc:{ id: 'visa_'+Date.now()+'_'+Math.random().toString(36).slice(2), originalName:f.name, mimeType:f.type, url } })); }); e.target.value=''; }} />
+            <input ref={visaInputRef} type='file' multiple hidden onChange={(e)=> { const files = e.target.files; setVisaErrors([]); if(files){ const { accepted, rejected } = validateFiles(files, DEFAULT_DOC_RULE); if(rejected.length) setVisaErrors(rejected.flatMap(r=> r.errors)); accepted.forEach(f=> { const url = URL.createObjectURL(f); dispatch(addVisaDoc({ doc:{ id: 'visa_'+Date.now()+'_'+Math.random().toString(36).slice(2), originalName:f.name, mimeType:f.type, url } })); }); } if(e.target) e.target.value=''; }} />
             <Button variant='outlined' size='small' onClick={()=> visaInputRef.current?.click()} sx={{ textTransform:'none', mb:2 }}>Upload File(s)</Button>
+            {visaErrors.length>0 && (
+              <Box sx={{ mb:2, border:'1px solid', borderColor:'error.light', background:(t)=> t.palette.mode==='dark'? '#2a1818':'#fff5f5', p:1, borderRadius:1.5 }}>
+                <Typography variant='caption' sx={{ fontWeight:700, color:'error.main', display:'flex', gap:.5 }}>Upload issues:</Typography>
+                {visaErrors.map((er,i)=>(<Typography key={i} variant='caption' sx={{ display:'block', color:'error.main' }}>• {er}</Typography>))}
+              </Box>
+            )}
             {planner.visaDocs && planner.visaDocs.length>0 ? (
               <Box sx={{ display:'flex', flexWrap:'wrap', gap:1.5 }}>
                 {planner.visaDocs.map(doc => {
@@ -337,8 +360,14 @@ const CreateTrip: React.FC = () => {
         <Dialog open={pinnedOpen} onClose={()=> setPinnedOpen(false)} fullWidth maxWidth='md'>
           <DialogTitle>Pinned Documents</DialogTitle>
           <DialogContent dividers>
-            <input ref={globalInputRef} type='file' multiple hidden onChange={(e)=> { const files = Array.from(e.target.files||[]); files.forEach(f=> { const url = URL.createObjectURL(f); const id = 'glob_'+Date.now()+'_'+Math.random().toString(36).slice(2); dispatch(addGlobalDoc({ doc:{ id, originalName:f.name, mimeType:f.type, url } })); }); e.target.value=''; }} />
+            <input ref={globalInputRef} type='file' multiple hidden onChange={(e)=> { const files = e.target.files; setGlobalDocErrors([]); if(files){ const { accepted, rejected } = validateFiles(files, DEFAULT_DOC_RULE); if(rejected.length) setGlobalDocErrors(rejected.flatMap(r=> r.errors)); accepted.forEach(f=> { const url = URL.createObjectURL(f); const id = 'glob_'+Date.now()+'_'+Math.random().toString(36).slice(2); dispatch(addGlobalDoc({ doc:{ id, originalName:f.name, mimeType:f.type, url } })); }); } if(e.target) e.target.value=''; }} />
             <Button variant='outlined' size='small' onClick={()=> globalInputRef.current?.click()} sx={{ textTransform:'none', mb:2 }}>Upload General Doc(s)</Button>
+            {globalDocErrors.length>0 && (
+              <Box sx={{ mb:2, border:'1px solid', borderColor:'error.light', background:(t)=> t.palette.mode==='dark'? '#2a1818':'#fff5f5', p:1, borderRadius:1.5 }}>
+                <Typography variant='caption' sx={{ fontWeight:700, color:'error.main', display:'flex', gap:.5 }}>Upload issues:</Typography>
+                {globalDocErrors.map((er,i)=>(<Typography key={i} variant='caption' sx={{ display:'block', color:'error.main' }}>• {er}</Typography>))}
+              </Box>
+            )}
             <Typography variant='caption' sx={{ display:'block', mb:1, opacity:.7 }}>Pin from any section using the Pin button.</Typography>
             <Box sx={{ display:'flex', flexWrap:'wrap', gap:1.5 }}>
               {['visaDocs','globalDocs','destinations'].flatMap(src => {

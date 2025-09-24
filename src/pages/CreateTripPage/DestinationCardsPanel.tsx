@@ -17,6 +17,7 @@ import DestinationCard from './DestinationCard';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import { addDestination, removeDestination, duplicateDestination, toggleDestinationCompleted, setDestinationCategory, renameDestination, addSpot, toggleSpot, removeSpot, reorderSpots, addFoodItem, toggleFoodItem, removeFoodItem, reorderFoods, setDestinationNotes, setDestinationStay, addDestinationDoc, removeDestinationDoc, updateDestinationNights } from '../../store/plannerSlice';
+import { validateFiles, DEFAULT_DOC_RULE } from '../../utils/fileValidation';
 import AiActionButton from '../../components/CommonComponents/AiActionButton';
 
 // Temporary flag enabling card layout; can be toggled via env or replaced with user setting later.
@@ -297,9 +298,13 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed }) 
   const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const openDocs = (id:string) => { setDocsFor(id); };
   const closeDocs = () => { setDocsFor(null); };
+  const [docsErrors, setDocsErrors] = React.useState<string[]>([]);
   const onSelectDocs = (files: FileList | null) => {
     if(!docsFor || !files) return;
-    Array.from(files).forEach((f,idx) => {
+    setDocsErrors([]);
+    const { accepted, rejected } = validateFiles(files, DEFAULT_DOC_RULE);
+    if(rejected.length) setDocsErrors(rejected.flatMap(r=> r.errors));
+    accepted.forEach((f,idx) => {
       const id = f.name + '_' + Date.now().toString(36) + '_' + idx;
       const url = URL.createObjectURL(f);
       dispatch(addDestinationDoc({ destinationId: docsFor, doc: { id, originalName: f.name, mimeType: f.type, url } }));
@@ -755,7 +760,13 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed }) 
         <Dialog open={Boolean(docsFor)} onClose={closeDocs} fullWidth maxWidth='sm'>
           <DialogTitle>Documents</DialogTitle>
             <DialogContent>
-              <input ref={fileInputRef} type='file' multiple hidden onChange={(e)=> onSelectDocs(e.target.files)} />
+              <input ref={fileInputRef} type='file' multiple hidden onChange={(e)=> { onSelectDocs(e.target.files); if(e.target) e.target.value=''; }} />
+              {docsErrors.length>0 && (
+                <Box sx={{ mb:2, border:'1px solid', borderColor:'error.light', background:(t)=> t.palette.mode==='dark'? '#2a1818':'#fff5f5', p:1, borderRadius:1.5 }}>
+                  <Typography variant='caption' sx={{ fontWeight:700, color:'error.main', display:'flex', gap:.5 }}>Upload issues:</Typography>
+                  {docsErrors.map((er,i)=>(<Typography key={i} variant='caption' sx={{ display:'block', color:'error.main' }}>• {er}</Typography>))}
+                </Box>
+              )}
               {docsFor && (plannerDestinations.find(d=> d.id===docsFor)?.docs?.length ? (
                 <Box sx={{ display:'flex', flexWrap:'wrap', gap:2 }}>
                   {plannerDestinations.find(d=> d.id===docsFor)!.docs!.map(doc => {
