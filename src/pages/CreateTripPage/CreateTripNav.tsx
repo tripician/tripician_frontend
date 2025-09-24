@@ -35,9 +35,9 @@ const navItems: NavItem[] = [
   { id: 'docs', label: 'Docs', icon: <InsertDriveFileIcon fontSize='small' /> }
 ];
 
-interface CreateTripNavProps { active?: string; onChange?: (id: string) => void; onSettingsClick?:()=>void; onImportExportClick?:()=>void; }
+interface CreateTripNavProps { active?: string; onChange?: (id: string) => void; onSettingsClick?:()=>void; }
 
-const CreateTripNav: React.FC<CreateTripNavProps> = ({ active = 'plan', onChange, onSettingsClick, onImportExportClick }) => {
+const CreateTripNav: React.FC<CreateTripNavProps> = ({ active = 'plan', onChange, onSettingsClick }) => {
   return (
     <Box
       sx={(theme) => ({
@@ -113,11 +113,12 @@ const CreateTripNav: React.FC<CreateTripNavProps> = ({ active = 'plan', onChange
       })}
       <Box sx={{ flexGrow: 1 }} />
       {/* Import/Export and Settings at bottom */}
-      <Tooltip title='Import / Export' placement='right' arrow>
+      <Tooltip title='Import / Export (Coming Soon)' placement='right' arrow>
         <Box
-          onClick={onImportExportClick}
+          aria-disabled
           sx={{
-            cursor: 'pointer',
+            position: 'relative',
+            cursor: 'not-allowed',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -125,12 +126,14 @@ const CreateTripNav: React.FC<CreateTripNavProps> = ({ active = 'plan', onChange
             height: 48,
             borderRadius: 2,
             mb: 1,
-            border: '1px solid rgba(255,255,255,0.18)',
-            background: 'rgba(255,255,255,0.08)',
-            '&:hover': { background: 'rgba(255,255,255,0.18)' }
+            border: '1px solid rgba(255,255,255,0.10)',
+            background: 'rgba(255,255,255,0.05)',
+            opacity: .55,
+            userSelect: 'none'
           }}
         >
           <ImportExportIcon fontSize='small' />
+          <Box sx={{ position: 'absolute', bottom: 4, right: 4, bgcolor: 'rgba(255,255,255,0.85)', color:'#0b2942', fontSize:8, fontWeight:700, px:.5, py:.15, borderRadius:.5, letterSpacing:.5 }}>Soon</Box>
         </Box>
       </Tooltip>
       <Tooltip title='Settings' placement='right' arrow>
