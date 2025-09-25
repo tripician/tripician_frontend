@@ -2,12 +2,15 @@ import React, { useRef } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import { addDocument, removeDocument, selectDocument, togglePin, updateSearch, renameDocument, reorderDocuments } from '../../store/docsSlice';
+import { useDispatch as useReduxDispatch } from 'react-redux';
+import { pinDoc, unpinDoc, addGlobalDoc, removeVisaDoc, removeGlobalDoc } from '../../store/plannerSlice';
 import { Box, Button, Typography, TextField, IconButton, Tooltip, Divider, Chip } from '@mui/material';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import CheckIcon from '@mui/icons-material/Check';
 import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
 import { DEFAULT_DOC_RULE, validateFiles } from '../../utils/fileValidation';
 import DescriptionIcon from '@mui/icons-material/Description';
+import DownloadIcon from '@mui/icons-material/Download';
 import PushPinIcon from '@mui/icons-material/PushPin';
 import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -22,11 +25,43 @@ const humanSize = (bytes:number) => {
 
 const Docs: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
+  const plannerDispatch = useReduxDispatch();
+  const plannerState = useSelector((s:RootState)=> s.planner);
+  const isGlobalDocExisting = (id:string) => !!plannerState.globalDocs?.some(g=> g.id===id);
+  const isPinned = (id:string) => !!plannerState.pinnedDocIds?.includes(id);
   const fileInputRef = useRef<HTMLInputElement|null>(null);
-  const { docs, selectedId, search } = useSelector((s:RootState)=> s.docs);
+  const { docs: sliceDocs, selectedId, search } = useSelector((s:RootState)=> s.docs);
   const [renaming, setRenaming] = React.useState(false);
   const [renameValue, setRenameValue] = React.useState('');
   const [errors, setErrors] = React.useState<string[]>([]);
+  // Build unified docs list: existing docs slice + planner visa/global docs (avoiding id collisions by prefixing)
+  const plannerVisa = (plannerState.visaDocs||[]).map(d=> ({
+    id: 'visa::'+d.id,
+    originalId: d.id,
+    name: d.originalName,
+    type: d.mimeType||'application/octet-stream',
+    size: 0,
+    content: d.url,
+    pinned: plannerState.pinnedDocIds?.includes(d.id) || false,
+    source: 'visa' as const
+  }));
+  const plannerGlobal = (plannerState.globalDocs||[]).map(d=> ({
+    id: 'glob::'+d.id,
+    originalId: d.id,
+    name: d.originalName,
+    type: d.mimeType||'application/octet-stream',
+    size: 0,
+    content: d.url,
+    pinned: plannerState.pinnedDocIds?.includes(d.id) || false,
+    source: 'global' as const
+  }));
+  const docs = React.useMemo(()=> {
+    // Avoid duplicating if sliceDocs already contains a doc with same base id (rare after bridging) – prefer sliceDoc entry
+    const baseIds = new Set(sliceDocs.map(d=> d.id));
+    const plannerConverted = [...plannerVisa, ...plannerGlobal].filter(d=> !baseIds.has(d.originalId || ''));
+    return [...sliceDocs, ...plannerConverted];
+  }, [sliceDocs, plannerVisa.length, plannerGlobal.length, plannerState.pinnedDocIds]);
+
   const selected = docs.find(d=> d.id===selectedId);
   const filtered = docs.filter(d=> !search || d.name.toLowerCase().includes(search.toLowerCase()));
   const pinned = filtered.filter(d=> d.pinned);
@@ -34,12 +69,21 @@ const Docs: React.FC = () => {
 
   const handleFiles = (files: FileList | null) => {
     if(!files) return;
-    setErrors([]);
+    const duplicateNames = new Set<string>();
+    const existingNames = new Set<string>([
+      ...sliceDocs.map(d=> d.name.toLowerCase()),
+      ...plannerVisa.map(d=> d.name.toLowerCase()),
+      ...plannerGlobal.map(d=> d.name.toLowerCase())
+    ]);
+    const newErrors: string[] = [];
     const { accepted, rejected } = validateFiles(files, DEFAULT_DOC_RULE);
-    if(rejected.length) {
-      setErrors(rejected.flatMap(r=> r.errors));
-    }
+    if(rejected.length) newErrors.push(...rejected.flatMap(r=> r.errors));
     accepted.forEach(file => {
+      const lower = file.name.toLowerCase();
+      if(existingNames.has(lower)) {
+        duplicateNames.add(file.name);
+        return;
+      }
       const reader = new FileReader();
       reader.onload = () => {
         const result = reader.result;
@@ -49,6 +93,8 @@ const Docs: React.FC = () => {
       };
       reader.readAsDataURL(file);
     });
+    if(duplicateNames.size) newErrors.push(...Array.from(duplicateNames).map(n=> `Duplicate file skipped: ${n}`));
+    setErrors(newErrors);
   };
 
   const triggerUpload = () => fileInputRef.current?.click();
@@ -72,6 +118,23 @@ const Docs: React.FC = () => {
     const mid = bounding.top + bounding.height/2;
     const before = e.clientY < mid;
     dispatch(reorderDocuments({ sourceId, targetId, before }));
+  };
+
+  const downloadDoc = (doc: typeof docs[number], select = true) => {
+    try {
+      if(select) dispatch(selectDocument(doc.id));
+      const fileName = doc.name || 'document';
+      const content = doc.content;
+      if (/^https?:\/\//i.test(content) || /^data:/i.test(content)) {
+        const a = document.createElement('a'); a.href = content; a.target='_blank'; a.download=fileName; document.body.appendChild(a); a.click(); a.remove(); return;
+      }
+      // basic fallback: treat as plain text
+      const blob = new Blob([content], { type: doc.type || 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href=url; a.download=fileName; a.target='_blank'; document.body.appendChild(a); a.click(); a.remove(); setTimeout(()=> URL.revokeObjectURL(url), 4000);
+    } catch (err) {
+      console.error('Download failed', err);
+    }
   };
 
   return (
@@ -98,13 +161,25 @@ const Docs: React.FC = () => {
               <Typography variant='caption' sx={{ fontWeight:600, opacity:.7, ml:.5, display:'flex', alignItems:'center', gap:.5 }}><PushPinIcon fontSize='inherit' />Pinned</Typography>
               <Box sx={{ mt:.5 }}>
                 {pinned.map(d=> (
-                  <Box key={d.id} draggable onDragStart={e=> onDragStart(e,d.id)} onDragOver={onDragOver} onDrop={e=> onDrop(e,d.id)} onClick={()=> dispatch(selectDocument(d.id))} sx={(t)=>({ cursor:'pointer', p:1, borderRadius:1.5, display:'flex', alignItems:'center', gap:.9, background: d.id===selectedId? t.palette.action.selected:'transparent', '&:hover':{ background: t.palette.action.hover }, border:'1px solid transparent', '&:dragover':{ borderColor:t.palette.primary.main } })}>
+                  <Box key={d.id}
+                       draggable
+                       onDragStart={e=> onDragStart(e,d.id)}
+                       onDragOver={onDragOver}
+                       onDrop={e=> onDrop(e,d.id)}
+                       onClick={() => dispatch(selectDocument(d.id))}
+                       sx={(t)=>({ cursor:'pointer', p:1, borderRadius:1.5, display:'flex', alignItems:'center', gap:.9, background: d.id===selectedId? t.palette.action.selected:'transparent', '&:hover':{ background: t.palette.action.hover }, border:'1px solid transparent', '&:dragover':{ borderColor:t.palette.primary.main } })}>
                     <DescriptionIcon color='primary' fontSize='small' />
                     <Box sx={{ flex:1, minWidth:0 }}>
                       <Typography variant='body2' noWrap fontWeight={500}>{d.name}</Typography>
                       <Typography variant='caption' sx={{ opacity:.65 }}>{humanSize(d.size)}</Typography>
                     </Box>
-                    <IconButton size='small' onClick={(e)=> { e.stopPropagation(); dispatch(togglePin(d.id)); }}><PushPinIcon fontSize='inherit' /></IconButton>
+                    <Tooltip title='Download'>
+                      <IconButton size='small' onClick={(e)=> { e.stopPropagation(); downloadDoc(d); }} sx={{ color:'text.secondary', transition:'color .2s', '&:hover':{ color:'primary.main' } }}><DownloadIcon fontSize='inherit' /></IconButton>
+                    </Tooltip>
+                    <IconButton size='small' onClick={(e)=> { e.stopPropagation(); dispatch(togglePin(d.id)); if(!d.pinned){
+                      if(!isGlobalDocExisting(d.id)) plannerDispatch(addGlobalDoc({ doc:{ id:d.id, originalName:d.name, mimeType:d.type, url:d.content } }));
+                      if(!isPinned(d.id)) plannerDispatch(pinDoc({ docId: d.id }));
+                    } else { if(isPinned(d.id)) plannerDispatch(unpinDoc({ docId: d.id })); } }} sx={{ color: d.pinned? 'primary.main':'text.secondary', transition:'color .2s', '&:hover':{ color: d.pinned? 'warning.main':'primary.main' } }}><PushPinIcon fontSize='inherit' /></IconButton>
                   </Box>
                 ))}
               </Box>
@@ -114,15 +189,29 @@ const Docs: React.FC = () => {
           <Typography variant='caption' sx={{ fontWeight:600, opacity:.7, ml:.5 }}>All Documents</Typography>
           <Box sx={{ mt:.5 }}>
             {others.map(d=> (
-              <Box key={d.id} draggable onDragStart={e=> onDragStart(e,d.id)} onDragOver={onDragOver} onDrop={e=> onDrop(e,d.id)} onClick={()=> dispatch(selectDocument(d.id))} sx={(t)=>({ cursor:'pointer', p:1, borderRadius:1.5, display:'flex', alignItems:'center', gap:.9, background: d.id===selectedId? t.palette.action.selected:'transparent', '&:hover':{ background: t.palette.action.hover } })}>
+              <Box key={d.id}
+                   draggable
+                   onDragStart={e=> onDragStart(e,d.id)}
+                   onDragOver={onDragOver}
+                   onDrop={e=> onDrop(e,d.id)}
+                   onClick={() => dispatch(selectDocument(d.id))}
+                   sx={(t)=>({ cursor:'pointer', p:1, borderRadius:1.5, display:'flex', alignItems:'center', gap:.9, background: d.id===selectedId? t.palette.action.selected:'transparent', '&:hover':{ background: t.palette.action.hover } })}>
                 <DescriptionIcon color='action' fontSize='small' />
                 <Box sx={{ flex:1, minWidth:0 }}>
                   <Typography variant='body2' noWrap fontWeight={500}>{d.name}</Typography>
                   <Typography variant='caption' sx={{ opacity:.65 }}>{humanSize(d.size)}</Typography>
                 </Box>
+                <Tooltip title='Download'>
+                  <IconButton size='small' onClick={(e)=> { e.stopPropagation(); downloadDoc(d); }} sx={{ color:'text.secondary', transition:'color .2s', '&:hover':{ color:'primary.main' } }}>
+                    <DownloadIcon fontSize='inherit' />
+                  </IconButton>
+                </Tooltip>
                 <Tooltip title='Pin'>
-                  <IconButton size='small' onClick={(e)=> { e.stopPropagation(); dispatch(togglePin(d.id)); }}>
-                    <PushPinOutlinedIcon fontSize='inherit' />
+                  <IconButton size='small' onClick={(e)=> { e.stopPropagation(); dispatch(togglePin(d.id)); if(!d.pinned){
+                    if(!isGlobalDocExisting(d.id)) plannerDispatch(addGlobalDoc({ doc:{ id:d.id, originalName:d.name, mimeType:d.type, url:d.content } }));
+                    if(!isPinned(d.id)) plannerDispatch(pinDoc({ docId: d.id }));
+                  } else { if(isPinned(d.id)) plannerDispatch(unpinDoc({ docId: d.id })); } }} sx={{ color: d.pinned? 'primary.main':'text.secondary', transition:'color .2s', '&:hover':{ color: d.pinned? 'warning.main':'primary.main' } }}>
+                    {d.pinned? <PushPinIcon fontSize='inherit' /> : <PushPinOutlinedIcon fontSize='inherit' />}
                   </IconButton>
                 </Tooltip>
               </Box>
@@ -169,8 +258,28 @@ const Docs: React.FC = () => {
                 </Box>
               </Box>
               <Box sx={{ display:'flex', gap:1 }}>
-                <Tooltip title={selected.pinned? 'Unpin':'Pin'}><IconButton onClick={()=> dispatch(togglePin(selected.id))}>{selected.pinned? <PushPinIcon />:<PushPinOutlinedIcon />}</IconButton></Tooltip>
-                <Tooltip title='Delete'><IconButton color='error' onClick={()=> dispatch(removeDocument(selected.id))}><DeleteOutlineIcon /></IconButton></Tooltip>
+                <Tooltip title={selected.pinned? 'Unpin':'Pin'}><IconButton onClick={()=> { dispatch(togglePin(selected.id)); if(!selected.pinned){
+                  if(!isGlobalDocExisting(selected.id)) plannerDispatch(addGlobalDoc({ doc:{ id:selected.id, originalName:selected.name, mimeType:selected.type, url:selected.content } }));
+                  if(!isPinned(selected.id)) plannerDispatch(pinDoc({ docId: selected.id }));
+                } else { if(isPinned(selected.id)) plannerDispatch(unpinDoc({ docId: selected.id })); } }}>{selected.pinned? <PushPinIcon />:<PushPinOutlinedIcon />}</IconButton></Tooltip>
+                <Tooltip title='Delete'><IconButton color='error' onClick={()=> {
+                  // Bridge deletion for planner-sourced docs (visa/global) or plain library docs
+                  if(selected.id.startsWith('visa::')) {
+                    const baseId = selected.id.replace('visa::','');
+                    plannerDispatch(removeVisaDoc({ docId: baseId }));
+                    // Clear selection if it was only planner sourced
+                    if(sliceDocs.length) dispatch(selectDocument(sliceDocs[0].id));
+                  } else if(selected.id.startsWith('glob::')) {
+                    const baseId = selected.id.replace('glob::','');
+                    plannerDispatch(removeGlobalDoc({ docId: baseId }));
+                    if(sliceDocs.length) dispatch(selectDocument(sliceDocs[0].id));
+                  } else {
+                    // Normal docs slice doc. Also remove from planner global/visa if mirrored there.
+                    dispatch(removeDocument(selected.id));
+                    if(plannerState.globalDocs?.some(g=> g.id===selected.id)) plannerDispatch(removeGlobalDoc({ docId: selected.id }));
+                    if(plannerState.visaDocs?.some(v=> v.id===selected.id)) plannerDispatch(removeVisaDoc({ docId: selected.id }));
+                  }
+                }}><DeleteOutlineIcon /></IconButton></Tooltip>
               </Box>
             </Box>
             <Divider />

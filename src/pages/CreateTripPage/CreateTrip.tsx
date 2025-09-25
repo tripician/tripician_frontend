@@ -1,9 +1,14 @@
 // Clean rebuilt CreateTrip component after corruption removal.
 import React from 'react';
 import { Box, Tabs, Tab, Typography, Divider, Button, Chip, Menu, MenuItem, Avatar, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper } from '@mui/material';
+import DownloadIcon from '@mui/icons-material/Download';
+import PushPinIcon from '@mui/icons-material/PushPin';
+import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
+import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
-import { setCurrency as setCurrencyAction, updateDestinationNights, setTransport, addDestination, removeDestination, reorderChain, addVisaDoc, removeVisaDoc, addGlobalDoc, removeGlobalDoc, pinDoc, unpinDoc } from '../../store/plannerSlice';
+import { setCurrency as setCurrencyAction, updateDestinationNights, setTransport, addDestination, removeDestination, reorderChain, addVisaDoc, removeVisaDoc, removeGlobalDoc, pinDoc, unpinDoc } from '../../store/plannerSlice';
+import { togglePin as togglePinDocSlice, removeDocument as removeDocsSliceDocument } from '../../store/docsSlice';
 import { validateFiles, DEFAULT_DOC_RULE } from '../../utils/fileValidation';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CreateTripNav from './CreateTripNav';
@@ -29,6 +34,7 @@ import Docs from '../DocsPage/Docs';
 const CreateTrip: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const planner = useSelector((s: RootState) => s.planner);
+  const docsState = useSelector((s: RootState) => s.docs);
   const currency = planner.currency;
   const targetNights = planner.targetNights;
   const totalNights = planner.destinations.reduce((a,c)=>a+c.nights,0);
@@ -53,9 +59,7 @@ const CreateTrip: React.FC = () => {
   const containerRef = React.useRef<HTMLDivElement|null>(null);
   const resizingRef = React.useRef(false);
   const visaInputRef = React.useRef<HTMLInputElement|null>(null);
-  const globalInputRef = React.useRef<HTMLInputElement|null>(null);
   const [visaErrors, setVisaErrors] = React.useState<string[]>([]);
-  const [globalDocErrors, setGlobalDocErrors] = React.useState<string[]>([]);
 
   const [visaOpen, setVisaOpen] = React.useState(false);
   const [pinnedOpen, setPinnedOpen] = React.useState(false);
@@ -71,6 +75,42 @@ const CreateTrip: React.FC = () => {
       ? (import.meta.env.VITE_PINNEDDOCS_ICON_URL_PROD || import.meta.env.VITE_PINNEDDOCS_ICON_URL)
       : (import.meta.env.VITE_PINNEDDOCS_ICON_URL_DEV || import.meta.env.VITE_PINNEDDOCS_ICON_URL);
   }, []);
+  // Build unified pinned docs list (planner + external docs slice)
+  const combinedPinnedDocs = React.useMemo(() => {
+    const plannerPinned = ['visaDocs','globalDocs','destinations'].flatMap(src => {
+      if(src==='destinations') return planner.destinations.flatMap(d=> (d.docs||[]));
+      return (planner as any)[src] || [];
+    }).filter((doc:any)=> planner.pinnedDocIds?.includes(doc.id)).map((doc:any)=> ({
+      unifiedId: 'planner:'+doc.id,
+      source: 'planner' as const,
+      id: doc.id,
+      originalName: doc.originalName,
+      mimeType: doc.mimeType,
+      url: doc.url
+    }));
+    const externalPinned = docsState.docs.filter(d=> d.pinned).map(d=> ({
+      unifiedId: 'external:'+d.id,
+      source: 'external' as const,
+      id: d.id,
+      originalName: d.name,
+      mimeType: d.type,
+      url: d.content
+    }));
+    const combined = [...plannerPinned, ...externalPinned];
+    // Dedupe by original id preference: if planner + external share id, keep planner version once
+    const seen = new Set<string>();
+    const deduped: typeof combined = [];
+    for(const doc of combined){
+      if(seen.has(doc.id)) continue;
+      seen.add(doc.id);
+      deduped.push(doc);
+    }
+    const finalList = deduped;
+    // Debug log for visibility issue
+    // eslint-disable-next-line no-console
+    console.log('[CreateTrip] combinedPinnedDocs recalculated', { plannerPinnedCount: plannerPinned.length, externalPinnedCount: externalPinned.length, combinedCount: combined.length, dedupedCount: finalList.length, plannerPinnedIds: plannerPinned.map(p=>p.id), externalPinnedIds: externalPinned.map(p=>p.id) });
+    return finalList;
+  }, [planner.destinations, planner.globalDocs, planner.visaDocs, planner.pinnedDocIds, docsState.docs]);
 
   const geocodedCount = React.useMemo(()=> planner.destinations.filter(d=> d.lat!=null && d.lng!=null).length, [planner.destinations]);
 
@@ -144,6 +184,8 @@ const CreateTrip: React.FC = () => {
     console.log('TRIPICIAN_PUBLISH_JSON =>', tripData, '\nJSON STRING =>', JSON.stringify(tripData, null, 2));
   };
 
+  // Removed previous sync effect to prevent double addition; now planner pins are created explicitly in Docs component.
+
   return (
     <Box sx={{ display:'flex', flexDirection:'row', height:'100vh', overflow:'hidden' }}>
   <CreateTripNav active={section} onChange={(id)=> setSectionDebug(id as any)} onSettingsClick={()=> setSettingsOpen(true)} />
@@ -215,7 +257,7 @@ const CreateTrip: React.FC = () => {
                     <Box component='img' src={pinnedIconUrl} alt='Pinned docs' loading='lazy' style={{ width:30, height:30, objectFit:'contain', filter:'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }} />
                     <Box sx={{ display:'flex', flexDirection:'column', minWidth:0 }}>
                       <Typography variant='caption' sx={{ fontWeight:700, letterSpacing:.4 }}>Pinned Doc(s)</Typography>
-                      <Typography variant='caption' sx={{ opacity:.6, lineHeight:1 }}>{planner.pinnedDocIds?.length||0} pinned</Typography>
+                      <Typography variant='caption' sx={{ opacity:.6, lineHeight:1 }}>{combinedPinnedDocs.length} pinned</Typography>
                     </Box>
                   </Paper>
                 </Box>
@@ -340,9 +382,17 @@ const CreateTrip: React.FC = () => {
                         {isImage ? <Box component='img' src={doc.url} alt={doc.originalName} sx={{ width:'100%', height:'100%', objectFit:'cover' }} /> : <Typography variant='caption' sx={{ fontWeight:600 }}>{doc.originalName.split('.').pop()?.toUpperCase()}</Typography>}
                       </Box>
                       <Typography variant='caption' sx={{ lineHeight:1.2, wordBreak:'break-all' }}>{doc.originalName}</Typography>
-                      <Box sx={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                        <Button size='small' onClick={()=> { if(pinned){ dispatch(unpinDoc({ docId: doc.id })); } else { dispatch(pinDoc({ docId: doc.id })); } }} sx={{ textTransform:'none', fontSize:11, px:1 }} variant={pinned? 'contained':'outlined'}>{pinned? 'Pinned':'Pin'}</Button>
-                        <Button size='small' color='error' onClick={()=> dispatch(removeVisaDoc({ docId: doc.id }))} sx={{ textTransform:'none', fontSize:11, px:1 }}>Del</Button>
+                      <Box sx={{ display:'flex', justifyContent:'flex-end', alignItems:'center', gap:.5 }}>
+                        <Tooltip title={pinned? 'Unpin':'Pin'}>
+                          <IconButton size='small' onClick={()=> { if(pinned){ dispatch(unpinDoc({ docId: doc.id })); } else { dispatch(pinDoc({ docId: doc.id })); } }} sx={{ color: pinned? 'primary.main':'text.secondary', transition:'color .2s', '&:hover':{ color: pinned? 'warning.main':'primary.main' } }}>
+                            {pinned? <PushPinIcon fontSize='small' /> : <PushPinOutlinedIcon fontSize='small' />}
+                          </IconButton>
+                        </Tooltip>
+                        <Tooltip title='Delete'>
+                          <IconButton size='small' onClick={()=> dispatch(removeVisaDoc({ docId: doc.id }))} sx={{ color:'text.secondary', transition:'color .2s', '&:hover':{ color:'error.main' } }}>
+                            <DeleteForeverIcon fontSize='small' />
+                          </IconButton>
+                        </Tooltip>
                       </Box>
                     </Paper>
                   );
@@ -356,44 +406,73 @@ const CreateTrip: React.FC = () => {
             <Button onClick={()=> setVisaOpen(false)}>Close</Button>
           </DialogActions>
         </Dialog>
-        {/* Pinned Docs Dialog */}
+        {/* Pinned Docs Dialog (upload removed per request) */}
         <Dialog open={pinnedOpen} onClose={()=> setPinnedOpen(false)} fullWidth maxWidth='md'>
           <DialogTitle>Pinned Documents</DialogTitle>
           <DialogContent dividers>
-            <input ref={globalInputRef} type='file' multiple hidden onChange={(e)=> { const files = e.target.files; setGlobalDocErrors([]); if(files){ const { accepted, rejected } = validateFiles(files, DEFAULT_DOC_RULE); if(rejected.length) setGlobalDocErrors(rejected.flatMap(r=> r.errors)); accepted.forEach(f=> { const url = URL.createObjectURL(f); const id = 'glob_'+Date.now()+'_'+Math.random().toString(36).slice(2); dispatch(addGlobalDoc({ doc:{ id, originalName:f.name, mimeType:f.type, url } })); }); } if(e.target) e.target.value=''; }} />
-            <Button variant='outlined' size='small' onClick={()=> globalInputRef.current?.click()} sx={{ textTransform:'none', mb:2 }}>Upload General Doc(s)</Button>
-            {globalDocErrors.length>0 && (
-              <Box sx={{ mb:2, border:'1px solid', borderColor:'error.light', background:(t)=> t.palette.mode==='dark'? '#2a1818':'#fff5f5', p:1, borderRadius:1.5 }}>
-                <Typography variant='caption' sx={{ fontWeight:700, color:'error.main', display:'flex', gap:.5 }}>Upload issues:</Typography>
-                {globalDocErrors.map((er,i)=>(<Typography key={i} variant='caption' sx={{ display:'block', color:'error.main' }}>• {er}</Typography>))}
-              </Box>
-            )}
-            <Typography variant='caption' sx={{ display:'block', mb:1, opacity:.7 }}>Pin from any section using the Pin button.</Typography>
+            <Typography variant='caption' sx={{ display:'block', mb:1, opacity:.7 }}>Pin documents from other sections (Docs, Visa, etc.).</Typography>
             <Box sx={{ display:'flex', flexWrap:'wrap', gap:1.5 }}>
-              {['visaDocs','globalDocs','destinations'].flatMap(src => {
-                if(src==='destinations') {
-                  return planner.destinations.flatMap(d=> (d.docs||[]));
-                }
-                return (planner as any)[src] || [];
-              }).filter((doc:any)=> planner.pinnedDocIds?.includes(doc.id)).map((doc:any)=> {
+              {combinedPinnedDocs.length===0 && (
+                <Typography variant='body2' sx={{ opacity:.6 }}>No pinned documents yet.</Typography>
+              )}
+              {combinedPinnedDocs.map(doc => {
                 const isImage = /(png|jpe?g|gif|webp|bmp|svg)$/i.test(doc.originalName);
                 return (
-                  <Paper key={doc.id} sx={{ width:150, position:'relative', p:0.5, border:'2px solid', borderColor:'primary.main', borderRadius:2, display:'flex', flexDirection:'column', gap:.5 }}>
+                  <Paper key={doc.unifiedId} sx={{ width:150, position:'relative', p:0.5, border:'2px solid', borderColor:'primary.main', borderRadius:2, display:'flex', flexDirection:'column', gap:.5 }}>
                     <Box sx={{ width:'100%', height:90, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', background:'linear-gradient(135deg,#eef2f6,#e2e8f0)' }}>
                       {isImage ? <Box component='img' src={doc.url} alt={doc.originalName} sx={{ width:'100%', height:'100%', objectFit:'cover' }} /> : <Typography variant='caption' sx={{ fontWeight:600 }}>{doc.originalName.split('.').pop()?.toUpperCase()}</Typography>}
                     </Box>
                     <Typography variant='caption' sx={{ lineHeight:1.2, wordBreak:'break-all' }}>{doc.originalName}</Typography>
-                    <Box sx={{ display:'flex', justifyContent:'space-between', alignItems:'center' }}>
-                      <Button size='small' onClick={()=> dispatch(unpinDoc({ docId: doc.id }))} sx={{ textTransform:'none', fontSize:11, px:1 }} variant='contained' color='warning'>Unpin</Button>
-                      <Button size='small' color='error' onClick={()=> { dispatch(unpinDoc({ docId: doc.id })); dispatch(removeGlobalDoc({ docId: doc.id })); }} sx={{ textTransform:'none', fontSize:11, px:1 }}>Del</Button>
+                    <Box sx={{ display:'flex', justifyContent:'flex-end', alignItems:'center', gap:.25 }}>
+                      <Tooltip title='Unpin'>
+                        <IconButton size='small' onClick={()=> {
+                          if(doc.source==='planner') {
+                            dispatch(unpinDoc({ docId: doc.id }));
+                          } else {
+                            dispatch(togglePinDocSlice(doc.id));
+                          }
+                        }} sx={{ color:'text.secondary', transition:'color .2s', '&:hover':{ color:'warning.main' } }}>
+                          <PushPinIcon fontSize='inherit' />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title='Delete'>
+                        <IconButton size='small' onClick={()=> {
+                          if(doc.source==='planner') {
+                            const inGlobal = planner.globalDocs?.some(g=> g.id===doc.id);
+                            const inVisa = planner.visaDocs?.some(v=> v.id===doc.id);
+                            if(inGlobal) dispatch(removeGlobalDoc({ docId: doc.id }));
+                            else if(inVisa) dispatch(removeVisaDoc({ docId: doc.id }));
+                            else dispatch(unpinDoc({ docId: doc.id }));
+                            dispatch(unpinDoc({ docId: doc.id }));
+                          } else {
+                            dispatch(togglePinDocSlice(doc.id));
+                            dispatch(removeDocsSliceDocument(doc.id));
+                          }
+                        }} sx={{ color:'text.secondary', transition:'color .2s', '&:hover':{ color:'error.main' } }}>
+                          <DeleteForeverIcon fontSize='inherit' />
+                        </IconButton>
+                      </Tooltip>
+                      <Tooltip title='Download'>
+                        <IconButton size='small' onClick={()=> {
+                          try {
+                            const fileName = doc.originalName || 'document';
+                            const url = doc.url;
+                            if(/^https?:\/\//i.test(url) || /^data:/i.test(url)) {
+                              const a = document.createElement('a'); a.href=url; a.download=fileName; a.target='_blank'; document.body.appendChild(a); a.click(); a.remove(); return; }
+                            const a = document.createElement('a'); a.href=url; a.download=fileName; a.target='_blank'; document.body.appendChild(a); a.click(); a.remove();
+                          } catch(err) { console.error('Download failed', err); }
+                        }} sx={{ color:'text.secondary', transition:'color .2s', '&:hover':{ color:'primary.main' } }}>
+                          <DownloadIcon fontSize='inherit' />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                    <Box sx={{ position:'absolute', top:4, left:4, bgcolor:'primary.main', color:'primary.contrastText', borderRadius:1, px:.5, py:.2, fontSize:9, fontWeight:600, letterSpacing:.4 }}>
+                      {doc.source==='planner' ? 'Trip' : 'Library'}
                     </Box>
                   </Paper>
                 );
               })}
             </Box>
-            {(!planner.pinnedDocIds || planner.pinnedDocIds.length===0) && (
-              <Typography variant='body2' sx={{ opacity:.6 }}>No pinned documents yet.</Typography>
-            )}
           </DialogContent>
           <DialogActions>
             <Button onClick={()=> setPinnedOpen(false)}>Close</Button>
