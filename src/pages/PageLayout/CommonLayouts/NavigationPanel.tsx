@@ -11,7 +11,6 @@ import {
   List,
   ListItemText,
   ListItem,
-  IconButton,
   useTheme,
   useMediaQuery,
   Tooltip
@@ -22,7 +21,6 @@ import {
   People as CommunityIcon,
   Dashboard as DasboardIcon,
   Settings as SettingsIcon,
-  Menu as MenuIcon,
   Add as AddIcon
 } from '@mui/icons-material';
 import TripCreationModal from '../../../components/CreateTripComponents/TripCreationModal';
@@ -51,6 +49,7 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  // Collapsed state is now responsive-only (no manual toggle)
   const [isCollapsed, setIsCollapsed] = useState(false);
   // Initialize selected item from current route to avoid initial flicker defaulting to Home
   const [selectedItem, setSelectedItem] = useState(() => {
@@ -96,9 +95,7 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
     setIsCollapsed(isMobile);
   }, [isMobile]);
 
-  const toggleDrawer = () => {
-    setIsCollapsed(!isCollapsed);
-  };
+  // Manual toggle removed per requirement; collapse purely follows breakpoint
 
   const handleMenuItemClick = (itemText: string) => {
     // Only navigate, don't update state here to prevent race conditions
@@ -159,40 +156,17 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
             sx={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: isCollapsed ? 'center' : 'space-between',
+              justifyContent: 'center',
               mb: 2,
-              px: isCollapsed ? 0 : 1,
+              px: 0,
+              minHeight: 48,
             }}
           >
-            {!isCollapsed && (
-              <Box
-                sx={{
-                  fontSize: '1.1rem',
-                  fontWeight: 700,
-                  letterSpacing: '.5px',
-                  color: 'rgba(255,255,255,0.95)',
-                  textTransform: 'uppercase',
-                }}
-              >
-                Tripician
-              </Box>
-            )}
-            <IconButton
-              onClick={toggleDrawer}
-              sx={{
-                color: 'white',
-                border: '1px solid rgba(255,255,255,0.2)',
-                borderRadius: 2,
-                transition: 'all 0.3s ease',
-                '&:hover': {
-                  backgroundColor: 'rgba(255,255,255,0.15)',
-                  transform: 'scale(1.05)',
-                  borderColor: 'rgba(255,255,255,0.3)',
-                },
-              }}
-            >
-              <MenuIcon />
-            </IconButton>
+            <img
+              src={isCollapsed ? import.meta.env.VITE_TRIPICIAN_LOGO_ICON_URL : import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_URL}
+              alt="Tripician"
+              style={{ height: isCollapsed ? 34 : 46, width: 'auto', display: 'block', maxWidth: '100%' }}
+            />
           </Box>
 
           {/* Menu Items */}

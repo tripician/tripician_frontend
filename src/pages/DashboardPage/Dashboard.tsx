@@ -1,5 +1,4 @@
 import React from 'react';
-import NavigationPannel from '../PageLayout/CommonLayouts/NavigationPanel';
 import TripCard from './TripCard';
 import '../../assets/css/Dashboard.css';
 import santorini from '../../assets/santorini.png';
@@ -66,7 +65,6 @@ const Dashboard: React.FC = () => {
     }
   };
   return (
-    <NavigationPannel>
       <Box sx={{ width: "100%", backgroundColor: "background.default", minHeight: "100vh" }}>
         <TopBar />
         
@@ -125,7 +123,6 @@ const Dashboard: React.FC = () => {
           </div>
         </Box>
       </Box>
-    </NavigationPannel>
   );
 };
 export default Dashboard;

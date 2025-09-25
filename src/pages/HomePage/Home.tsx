@@ -1,6 +1,5 @@
 import React from 'react';
 import { Box, Typography, Card, CardContent, CardMedia, Button } from '@mui/material';
-import NavigationPannel from '../PageLayout/CommonLayouts/NavigationPanel';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import { useNavigate } from 'react-router-dom';
 
@@ -47,7 +46,6 @@ const Home: React.FC = () => {
   };
 
   return (
-    <NavigationPannel>
       <Box sx={{ width: "100%", backgroundColor: "background.default", minHeight: "calc(100vh - 100px)" }}>
         <TopBar />
 
@@ -123,7 +121,6 @@ const Home: React.FC = () => {
           </Button>
         </Box>
       </Box>
-    </NavigationPannel>
   );
 };
 

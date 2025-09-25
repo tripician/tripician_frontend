@@ -1,15 +1,10 @@
 import React from 'react';
 import { Box, Typography, Button, alpha } from '@mui/material';
-import NavigationPannel from '../PageLayout/CommonLayouts/NavigationPanel';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
 
 const Community: React.FC = () => {
-  const handleMenuItemChange = (_itemName: string) => {
-    // Navigation panel can still report changes; currently unused here.
-  };
 
   return (
-    <NavigationPannel onMenuItemChange={handleMenuItemChange}>
       <Box sx={{ width: '100%', minHeight:'100vh', display:'flex', flexDirection:'column', background:(t)=> t.palette.mode==='dark'? '#0f141a':'#f4f7fa' }}>
         <TopBar />
         <Box sx={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', p:3 }}>
@@ -47,7 +42,6 @@ const Community: React.FC = () => {
           </Box>
         </Box>
       </Box>
-    </NavigationPannel>
   );
 };
 

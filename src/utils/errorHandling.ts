@@ -1,4 +1,4 @@
-import { NavigateFunction } from 'react-router-dom';
+import type { NavigateFunction } from 'react-router-dom';
 
 // Basic logger – could be replaced with remote logging (Sentry, etc.)
 export function logError(context: string, error: unknown, extra?: Record<string, any>) {

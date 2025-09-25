@@ -9,6 +9,7 @@ import Community from './pages/CommunityPage/Community'
 import Settings from './pages/SettingsPage/Settings'
 import ProtectedRoute from './services/APIs/Auth/ProtectedRoute'
 import CreateTrip from './pages/CreateTripPage/CreateTrip'
+import AuthenticatedLayout from './pages/PageLayout/AuthenticatedLayout';
 import { NotFound404, InternalError500, UnauthorizedAccess, UnderConstruction, SomethingWentWrong, DynamicErrorPage } from './pages/ErrorPages/ErrorPages';
 
 // Import debug utilities for development
@@ -23,55 +24,15 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/signin" element={<Signin />} />
         
-        {/* Protected Routes */}
-        <Route 
-          path="/home" 
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/dashboard" 
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/profile" 
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/community" 
-          element={
-            <ProtectedRoute>
-              <Community />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/settings" 
-          element={
-            <ProtectedRoute>
-              <Settings />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/create-trip" 
-          element={
-            <ProtectedRoute>
-              <CreateTrip />
-            </ProtectedRoute>
-          } 
-        />
+        {/* Protected Routes grouped under persistent layout */}
+        <Route element={<ProtectedRoute><AuthenticatedLayout /></ProtectedRoute>}>
+          <Route path="/home" element={<Home />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/community" element={<Community />} />
+          <Route path="/settings" element={<Settings />} />
+          <Route path="/create-trip" element={<CreateTrip />} />
+        </Route>
         {/* Error & status pages */}
         <Route path="/error/404" element={<NotFound404 />} />
         <Route path="/error/500" element={<InternalError500 />} />

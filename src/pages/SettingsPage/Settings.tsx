@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Box } from '@mui/material';
-import NavigationPannel from '../PageLayout/CommonLayouts/NavigationPanel';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import ProfileSettings from './ProfileSettings';
 import SettingsTopNav from './SettingsTopNav';
@@ -14,8 +13,7 @@ const Settings: React.FC = () => {
   // (removed selectedMenuItem state which is no longer needed by TopBar)
 
   return (
-  <NavigationPannel>
-      <Box sx={{ width: "100%", backgroundColor: "background.default", minHeight: "calc(100vh - 100px)" }}>
+    <Box sx={{ width: "100%", backgroundColor: "background.default", minHeight: "calc(100vh - 100px)" }}>
   <TopBar />
 
       {/* background full width */}
@@ -52,8 +50,6 @@ const Settings: React.FC = () => {
         </Box>
       </Box>
     </Box>
-
-    </NavigationPannel>
   );
 };
 
