@@ -41,3 +41,23 @@ export const DEFAULT_DOC_RULE: FileValidationRule = {
   maxSizeBytes: 8 * 1024 * 1024, // 8MB
   allowedTypePrefixes: ['image/','text/','application/pdf']
 };
+
+// Context-specific variants
+// Visa documents: allow images & pdf only, slightly larger size (12MB) for scanned passports
+export const VISA_DOC_RULE: FileValidationRule = {
+  maxSizeBytes: 12 * 1024 * 1024,
+  allowedTypePrefixes: ['image/','application/pdf']
+};
+
+// Destination-specific docs: smaller size to encourage concise attachments
+export const DEST_DOC_RULE: FileValidationRule = {
+  maxSizeBytes: 6 * 1024 * 1024,
+  allowedTypePrefixes: ['image/','text/','application/pdf']
+};
+
+// Global trip docs: default size but include common office MIME types explicitly
+export const GLOBAL_DOC_RULE: FileValidationRule = {
+  maxSizeBytes: 8 * 1024 * 1024,
+  allowedTypes: ['application/pdf','application/vnd.openxmlformats-officedocument.wordprocessingml.document','application/msword'],
+  allowedTypePrefixes: ['image/','text/']
+};

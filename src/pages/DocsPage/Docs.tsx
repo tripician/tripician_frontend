@@ -80,18 +80,20 @@ const Docs: React.FC = () => {
     if(rejected.length) newErrors.push(...rejected.flatMap(r=> r.errors));
     accepted.forEach(file => {
       const lower = file.name.toLowerCase();
-      if(existingNames.has(lower)) {
-        duplicateNames.add(file.name);
-        return;
-      }
-      const reader = new FileReader();
-      reader.onload = () => {
-        const result = reader.result;
-        if(typeof result === 'string') {
-          dispatch(addDocument({ name:file.name, type:file.type || 'application/octet-stream', size:file.size, content: result }));
-        }
-      };
-      reader.readAsDataURL(file);
+      if(existingNames.has(lower)) { duplicateNames.add(file.name); return; }
+      try {
+        const reader = new FileReader();
+        reader.onload = () => {
+          try {
+            const result = reader.result;
+            if(typeof result === 'string') {
+              dispatch(addDocument({ name:file.name, type:file.type || 'application/octet-stream', size:file.size, content: result }));
+            }
+          } catch(err){ console.error('[Docs] reader onload failed', err); }
+        };
+        reader.onerror = (e) => { console.error('[Docs] FileReader error', e); };
+        reader.readAsDataURL(file);
+      } catch(err){ console.error('[Docs] failed to read file', err); }
     });
     if(duplicateNames.size) newErrors.push(...Array.from(duplicateNames).map(n=> `Duplicate file skipped: ${n}`));
     setErrors(newErrors);

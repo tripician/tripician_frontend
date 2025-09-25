@@ -9,6 +9,7 @@ import Community from './pages/CommunityPage/Community'
 import Settings from './pages/SettingsPage/Settings'
 import ProtectedRoute from './services/APIs/Auth/ProtectedRoute'
 import CreateTrip from './pages/CreateTripPage/CreateTrip'
+import { NotFound404, InternalError500, UnauthorizedAccess, UnderConstruction, SomethingWentWrong, DynamicErrorPage } from './pages/ErrorPages/ErrorPages';
 
 // Import debug utilities for development
 if (process.env.NODE_ENV === 'development') {
@@ -71,12 +72,19 @@ function App() {
             </ProtectedRoute>
           } 
         />
+        {/* Error & status pages */}
+        <Route path="/error/404" element={<NotFound404 />} />
+        <Route path="/error/500" element={<InternalError500 />} />
+        <Route path="/error/unauthorized" element={<UnauthorizedAccess />} />
+        <Route path="/under-construction" element={<UnderConstruction />} />
+        <Route path="/error" element={<SomethingWentWrong />} />
+        <Route path="/error/:code" element={<DynamicErrorPage />} />
         
         {/* Default redirect */}
         <Route path="/" element={<Navigate to="/home" replace />} />
         
-        {/* Catch all - redirect to signin */}
-        <Route path="*" element={<Navigate to="/signin" replace />} />
+  {/* Final catch-all -> 404 page */}
+  <Route path="*" element={<NotFound404 />} />
       </Routes>
     </div>
   )

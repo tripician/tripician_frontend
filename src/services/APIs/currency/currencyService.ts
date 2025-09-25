@@ -27,6 +27,7 @@ export async function fetchCurrency(countryCode: string): Promise<CurrencyData> 
   if(cached && cached.expires > now) {
     return cached.data;
   }
+  try {
   const symbols = Array.from(new Set([base, ...MAJORS])).join(',');
   const url = `https://api.exchangerate.host/latest?base=${base}&symbols=${symbols}`;
   const res = await fetch(url);
@@ -35,4 +36,7 @@ export async function fetchCurrency(countryCode: string): Promise<CurrencyData> 
   const data: CurrencyData = { base, rates: json.rates || {}, fetched: new Date().toISOString() };
   CACHE[base] = { data, expires: now + TTL_MS };
   return data;
+  } catch(err){
+    return { base, rates:{}, fetched: new Date().toISOString() };
+  }
 }
