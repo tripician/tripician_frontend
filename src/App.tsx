@@ -31,8 +31,9 @@ function App() {
           <Route path="/profile" element={<Profile />} />
           <Route path="/community" element={<Community />} />
           <Route path="/settings" element={<Settings />} />
-          <Route path="/create-trip" element={<CreateTrip />} />
         </Route>
+        {/* Create Trip uses its own custom navigation, so exclude from AuthenticatedLayout */}
+        <Route path="/create-trip" element={<ProtectedRoute><CreateTrip /></ProtectedRoute>} />
         {/* Error & status pages */}
         <Route path="/error/404" element={<NotFound404 />} />
         <Route path="/error/500" element={<InternalError500 />} />
