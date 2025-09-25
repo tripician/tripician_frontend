@@ -11,8 +11,11 @@ interface UserProfileBannerProps {
   bio?: string;
   following?: number;
   followers?: number;
+  countries?: number;
   avatarUrl?: string;
   backgroundUrl?: string;
+  // Custom per-user tint color (hex or rgba). If provided, applies a colorized overlay.
+  tintColor?: string;
   onEditClick?: () => void;
   onLogoutClick?: () => void;
 }
@@ -34,11 +37,44 @@ const ProfileContainer = styled(Box)(({ theme }) => ({
   backgroundRepeat: 'no-repeat',
 }));
 
-const Overlay = styled(Box)(() => ({
+// Theme-aware overlay: dark mode gets a stronger dark gradient; light mode a softer veil
+const Overlay = styled(Box)(({ theme }) => ({
   position: 'absolute',
   inset: 0,
-  background: 'linear-gradient(to bottom right, rgba(0,0,0,0.4), rgba(0,0,0,0.6))',
+  background: theme.palette.mode === 'dark'
+    ? 'linear-gradient(135deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.85) 100%)'
+    : 'linear-gradient(135deg, rgba(0,0,0,0.20) 0%, rgba(0,0,0,0.55) 100%)',
+  // Subtle color tint using primary color at very low alpha to blend brand hue (more visible in light mode)
+  boxShadow: theme.palette.mode === 'light'
+    ? `inset 0 0 0 1000px rgba( ${parseInt(theme.palette.primary.main.slice(1,3),16)}, ${parseInt(theme.palette.primary.main.slice(3,5),16)}, ${parseInt(theme.palette.primary.main.slice(5,7),16)}, 0.05)`
+    : 'none',
   zIndex: 1,
+  pointerEvents: 'none'
+}));
+
+// Helper to convert a hex (#RRGGBB or #RGB) to rgba string with alpha.
+const hexToRgba = (hex: string, alpha: number) => {
+  if (!hex) return `rgba(0,0,0,${alpha})`;
+  if (hex.startsWith('rgba')) return hex; // already rgba
+  let h = hex.replace('#', '');
+  if (h.length === 3) {
+    h = h.split('').map(c => c + c).join('');
+  }
+  if (h.length !== 6) return `rgba(0,0,0,${alpha})`;
+  const r = parseInt(h.substring(0,2), 16);
+  const g = parseInt(h.substring(2,4), 16);
+  const b = parseInt(h.substring(4,6), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+};
+
+// Color tint layer that sits above the base overlay when a custom tintColor is provided.
+const TintLayer = styled(Box)<{ tintcolor: string }>(({ tintcolor }) => ({
+  position: 'absolute',
+  inset: 0,
+  background: `linear-gradient(140deg, ${hexToRgba(tintcolor, 0.45)} 0%, ${hexToRgba(tintcolor, 0.70)} 100%)`,
+  mixBlendMode: 'overlay',
+  zIndex: 2,
+  pointerEvents: 'none'
 }));
 
 const ProfileContent = styled(Box)(({ theme }) => ({
@@ -46,7 +82,7 @@ const ProfileContent = styled(Box)(({ theme }) => ({
   alignItems: 'flex-start',
   gap: theme.spacing(3),
   position: 'relative',
-  zIndex: 2,
+  zIndex: 3,
   flexWrap: 'wrap',
 }));
 
@@ -55,6 +91,32 @@ const ProfileAvatar = styled(Avatar)(() => ({
   height: 120,
   border: '4px solid rgba(255, 255, 255, 0.9)',
   boxShadow: '0 8px 32px rgba(0, 0, 0, 0.3)',
+}));
+
+
+const ProfileAvatarWrapper = styled(Box)(() => ({
+  position: "relative",
+  display: "inline-block",
+  "&:hover .avatar-edit-overlay": {
+    opacity: 1,
+    visibility: "visible",
+  },
+}));
+
+const AvatarEditOverlay = styled(IconButton)(() => ({
+  position: "absolute",
+  bottom: 8,
+  right: 8,
+  backgroundColor: "rgba(0,0,0,0.6)",
+  color: "white",
+  padding: 6,
+  borderRadius: "50%",
+  opacity: 0,
+  visibility: "hidden",
+  transition: "opacity 0.3s ease, visibility 0.3s ease",
+  "&:hover": {
+    backgroundColor: "rgba(0,0,0,0.8)",
+  },
 }));
 
 const StatsContainer = styled(Box)(({ theme }) => ({
@@ -80,14 +142,17 @@ const EditButton = styled(IconButton)(() => ({
   },
 }));
 
-const BottomFade = styled(Box)(() => ({
+// Theme-aware bottom fade to smoothly blend banner into the page background
+const BottomFade = styled(Box)(({ theme }) => ({
   position: 'absolute',
   bottom: 0,
   left: 0,
   right: 0,
-  height: '20vh', // controls fade height
-  background: 'linear-gradient(to top, rgba(225, 225, 225, 1), transparent)',
-  zIndex: 2, // above background but below content
+  height: '20vh',
+  background: theme.palette.mode === 'dark'
+    ? `linear-gradient(to top, ${theme.palette.background.default} 0%, rgba(0,0,0,0.35) 35%, rgba(0,0,0,0.15) 60%, transparent 100%)`
+    : `linear-gradient(to top, ${theme.palette.background.default} 0%, rgba(255,255,255,0.65) 35%, rgba(255,255,255,0.35) 60%, transparent 100%)`,
+  zIndex: 2,
   pointerEvents: 'none',
 }));
 
@@ -97,7 +162,7 @@ const LogoutButton = styled(Button)(({ theme }) => ({
   right: 16,
   zIndex: 3,
   backgroundColor: theme.palette.error.main,
-  color: '#fff',
+  color: 'primary.contrastText',
   fontWeight: 600,
   textTransform: 'none',
   boxShadow: '0 4px 12px rgba(0,0,0,0.2)',
@@ -110,10 +175,12 @@ const LogoutButton = styled(Button)(({ theme }) => ({
 const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
   name = 'Srideep Kar',
   bio = 'Passionate traveler and abstract photographer',
-  following = 12,
-  followers = 45,
+  following = 0,
+  followers = 0,
+  countries = 0,
   avatarUrl = import.meta.env.VITE_NO_PROFILE_PIC_URL,
   backgroundUrl = 'https://images.unsplash.com/photo-1526772662000-3f88f10405ff?auto=format&fit=crop&w=1500&q=80',
+  tintColor,
   onEditClick
 }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
@@ -124,7 +191,7 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
     setIsLoggingOut(true);
     try {
       await logout();
-      navigate('/login');
+  navigate('/signin');
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {
@@ -135,8 +202,9 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
   return (
     <Box sx={{ maxWidth: '100%', p: 0, m: 0 }}>
       <ProfileContainer sx={{ backgroundImage: `url(${backgroundUrl})` }}>
-        <BottomFade />
-        <Overlay />
+  <BottomFade />
+  <Overlay />
+  {tintColor && <TintLayer tintcolor={tintColor} />}
 
         {/* Action Buttons - Kept in same position */}
         <EditButton onClick={onEditClick}>
@@ -154,8 +222,17 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
         </LogoutButton>
 
         {/* Profile Details */}
-        <ProfileContent>
-          <ProfileAvatar src={avatarUrl} alt={`${name}'s profile`} />
+  <ProfileContent>
+          <ProfileAvatarWrapper>
+            <ProfileAvatar src={avatarUrl} alt={`${name}'s profile`} />
+            <AvatarEditOverlay
+              className="avatar-edit-overlay"
+              size="small"
+              onClick={onEditClick}
+            >
+              <EditIcon fontSize="small" />
+            </AvatarEditOverlay>
+          </ProfileAvatarWrapper>
 
           <Box sx={{ flex: 1 }}>
             <Typography
@@ -198,6 +275,15 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
                 </Typography>
                 <Typography variant="body2" sx={{ opacity: 0.8 }}>
                   Followers
+                </Typography>
+              </StatItem>
+
+              <StatItem>
+                <Typography variant="h5" sx={{ fontWeight: 700 }}>
+                  {countries}
+                </Typography>
+                <Typography variant="body2" sx={{ opacity: 0.8 }}>
+                  Countries
                 </Typography>
               </StatItem>
             </StatsContainer>

@@ -105,11 +105,11 @@ const SearchBar: React.FC<SearchBarProps> = ({
   const getIcon = (type: SearchResult['type']) => {
     switch (type) {
       case 'trip':
-        return <TripIcon sx={{ color: '#1976d2' }} />;
+        return <TripIcon sx={{ color: 'primary.main' }} />;
       case 'location':
-        return <LocationIcon sx={{ color: '#4caf50' }} />;
+        return <LocationIcon sx={{ color: 'success.main' }} />;
       case 'user':
-        return <PersonIcon sx={{ color: '#ff9800' }} />;
+        return <PersonIcon sx={{ color: 'warning.main' }} />;
       default:
         return <SearchIcon />;
     }
@@ -153,7 +153,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
-              <SearchIcon sx={{ color: 'rgba(0, 0, 0, 0.54)' }} />
+              <SearchIcon sx={{ color: 'text.secondary' }} />
             </InputAdornment>
           ),
           endAdornment: query && (
@@ -162,7 +162,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 onClick={handleClear}
                 edge="end"
                 size="small"
-                sx={{ '&:hover': { backgroundColor: 'rgba(0, 0, 0, 0.04)' } }}
+                sx={{ '&:hover': { backgroundColor: 'action.hover' } }}
               >
                 <ClearIcon fontSize="small" />
               </IconButton>
@@ -173,16 +173,16 @@ const SearchBar: React.FC<SearchBarProps> = ({
           '& .MuiOutlinedInput-root': {
             height: '40px', // Reduced height
             borderRadius: 20, // More rounded ends
-            backgroundColor: 'white',
+            backgroundColor: 'background.paper',
             fontSize: '0.9rem', // Slightly smaller font
             '& input': {
               padding: '8px 14px', // Adjust padding for smaller height
             },
             '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: '#1976d2',
+              borderColor: 'primary.main',
             },
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: '#1976d2',
+              borderColor: 'primary.main',
               borderWidth: 2,
             },
           },
@@ -201,7 +201,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
             mt: 1,
             maxHeight: 300,
             overflow: 'auto',
-            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+            boxShadow: 3,
             borderRadius: 2,
           }}
         >
@@ -213,9 +213,10 @@ const SearchBar: React.FC<SearchBarProps> = ({
                 sx={{
                   cursor: 'pointer',
                   py: 1.5,
-                  borderBottom: index < filteredSuggestions.length - 1 ? '1px solid #f0f0f0' : 'none',
+                  borderBottom: index < filteredSuggestions.length - 1 ? '1px solid' : 'none',
+                  borderBottomColor: 'divider',
                   '&:hover': {
-                    backgroundColor: 'rgba(25, 118, 210, 0.04)',
+                    backgroundColor: 'action.hover',
                   },
                 }}
               >
@@ -231,8 +232,8 @@ const SearchBar: React.FC<SearchBarProps> = ({
                       <Typography
                         variant="caption"
                         sx={{
-                          color: 'rgba(0, 0, 0, 0.6)',
-                          backgroundColor: '#f5f5f5',
+                          color: 'text.secondary',
+                          backgroundColor: 'background.default',
                           px: 1,
                           py: 0.25,
                           borderRadius: 1,
@@ -261,12 +262,12 @@ const SearchBar: React.FC<SearchBarProps> = ({
             right: 0,
             zIndex: 1000,
             mt: 1,
-            boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+            boxShadow: 3,
             borderRadius: 2,
           }}
         >
           <Box sx={{ p: 3, textAlign: 'center' }}>
-            <SearchIcon sx={{ fontSize: 48, color: 'rgba(0, 0, 0, 0.3)', mb: 1 }} />
+            <SearchIcon sx={{ fontSize: 48, color: 'text.disabled', mb: 1 }} />
             <Typography variant="body2" color="textSecondary">
               No results found for "{query}"
             </Typography>

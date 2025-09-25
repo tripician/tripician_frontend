@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Box, Typography, Card, CardContent, CardMedia, Button } from '@mui/material';
 import NavigationPannel from '../PageLayout/CommonLayouts/NavigationPanel';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
@@ -11,12 +11,8 @@ import paris from '../../assets/paris.png';
 import dubai from '../../assets/dubai.png';
 
 const Home: React.FC = () => {
-  const [selectedMenuItem, setSelectedMenuItem] = useState('Home');
   const navigate = useNavigate();
-
-  const handleMenuItemChange = (itemName: string) => {
-    setSelectedMenuItem(itemName);
-  };
+  // NavigationPanel will internally manage selected item and TopBar no longer needs a prop.
 
   // Featured destinations data
   const featuredDestinations = [
@@ -51,46 +47,12 @@ const Home: React.FC = () => {
   };
 
   return (
-    <NavigationPannel onMenuItemChange={handleMenuItemChange}>
-      <Box sx={{ width: "100%", backgroundColor: "#f5f5f5", minHeight: "calc(100vh - 100px)" }}>
-        <TopBar selectedMenuItem={selectedMenuItem} />
-        
-        {/* Hero Section */}
-        <Box sx={{ 
-          textAlign: 'center', 
-          py: 6, 
-          px: 4,
-          background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-          color: 'white',
-          mb: 4
-        }}>
-          <Typography variant="h2" fontWeight="bold" gutterBottom>
-            Welcome to Tripician
-          </Typography>
-          <Typography variant="h5" sx={{ mb: 4, opacity: 0.9 }}>
-            Plan your perfect trip with friends and family
-          </Typography>
-          <Button
-            variant="contained"
-            size="large"
-            onClick={handleExploreTrips}
-            sx={{
-              backgroundColor: 'white',
-              color: '#667eea',
-              fontWeight: 'bold',
-              px: 4,
-              py: 1.5,
-              '&:hover': {
-                backgroundColor: '#f5f5f5',
-              },
-            }}
-          >
-            Explore Trips
-          </Button>
-        </Box>
+    <NavigationPannel>
+      <Box sx={{ width: "100%", backgroundColor: "background.default", minHeight: "calc(100vh - 100px)" }}>
+        <TopBar />
 
         {/* Featured Destinations */}
-        <Box sx={{ px: 4, pb: 6 }}>
+        <Box sx={{ px: 4, pb: 6, mt: 3 }}>
           <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ mb: 4 }}>
             Featured Destinations
           </Typography>
@@ -131,7 +93,7 @@ const Home: React.FC = () => {
           textAlign: 'center', 
           py: 6, 
           px: 4,
-          backgroundColor: '#ffffff',
+          backgroundColor: 'background.paper',
           borderRadius: 2,
           mx: 4,
           mb: 4,
@@ -148,12 +110,12 @@ const Home: React.FC = () => {
             size="large"
             onClick={handleExploreTrips}
             sx={{
-              backgroundColor: '#008bbdff',
+              backgroundColor: 'secondary.main',
               fontWeight: 'bold',
               px: 4,
               py: 1.5,
               '&:hover': {
-                backgroundColor: '#006d94',
+                backgroundColor: 'secondary.dark',
               },
             }}
           >

@@ -1,44 +1,58 @@
 import React, { useState } from 'react';
-import { Box, Typography } from '@mui/material';
+import { Box } from '@mui/material';
 import NavigationPannel from '../PageLayout/CommonLayouts/NavigationPanel';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
+import ProfileSettings from './ProfileSettings';
+import SettingsTopNav from './SettingsTopNav';
+import NotificationsSettings from './NotificationsSettings';
+import PrivacySettings from './PrivacySettings';
+import PreferencesSettings from './PreferencesSettings';
 
 const Settings: React.FC = () => {
-  const [selectedMenuItem, setSelectedMenuItem] = useState('Settings');
-
-  const handleMenuItemChange = (itemName: string) => {
-    setSelectedMenuItem(itemName);
-  };
+  // 👉 for top nav (Profile, Notifications, Privacy, Preferences)
+  const [selectedSettingsMenuItem, setSelectedSettingsMenuItem] = useState('Profile');
+  // (removed selectedMenuItem state which is no longer needed by TopBar)
 
   return (
-    <NavigationPannel onMenuItemChange={handleMenuItemChange}>
-      <Box sx={{ width: "100%", backgroundColor: "#f5f5f5", minHeight: "calc(100vh - 100px)" }}>
-        <TopBar selectedMenuItem={selectedMenuItem} />
-        
-        <Box sx={{ p: 4 }}>
-          <Typography variant="h4" fontWeight="bold" gutterBottom>
-            Settings
-          </Typography>
-          <Typography variant="body1" color="text.secondary" sx={{ mb: 4 }}>
-            Manage your account preferences and application settings. This feature is coming soon!
-          </Typography>
-          
-          {/* Add some placeholder content */}
-          <Box sx={{ mt: 4 }}>
-            <Typography variant="h6" gutterBottom>
-              Settings Categories:
-            </Typography>
-            <Box sx={{ pl: 2 }}>
-              <Typography variant="body1" sx={{ mb: 2 }}>• Account & Profile Settings</Typography>
-              <Typography variant="body1" sx={{ mb: 2 }}>• Privacy & Security</Typography>
-              <Typography variant="body1" sx={{ mb: 2 }}>• Notification Preferences</Typography>
-              <Typography variant="body1" sx={{ mb: 2 }}>• Language & Region</Typography>
-              <Typography variant="body1" sx={{ mb: 2 }}>• Data & Storage</Typography>
-              <Typography variant="body1" sx={{ mb: 2 }}>• Help & Support</Typography>
-            </Box>
-          </Box>
+  <NavigationPannel>
+      <Box sx={{ width: "100%", backgroundColor: "background.default", minHeight: "calc(100vh - 100px)" }}>
+  <TopBar />
+
+      {/* background full width */}
+      <Box
+        sx={{
+          width: "100%",
+          backgroundColor: "background.default",
+          minHeight: "100vh",
+          py: 4,
+        }}
+      >
+        {/* content container (same width as forms/cards) */}
+        <Box
+          sx={{
+            maxWidth: "100%", // keeps consistent width
+            mx: "auto", // centers horizontally
+            display: "flex",
+            flexDirection: "column",
+            gap: 3,
+            px: { xs: 2, md: 4 },
+          }}
+        >
+          {/* Top nav bar */}
+          <SettingsTopNav
+            selectedSettingsMenuItem={selectedSettingsMenuItem}
+            onChange={setSelectedSettingsMenuItem}
+          />
+
+          {/* Conditional rendering */}
+          {selectedSettingsMenuItem === "Profile" && <ProfileSettings />}
+          {selectedSettingsMenuItem === "Notifications" && <NotificationsSettings/>}
+          {selectedSettingsMenuItem === "Privacy" && <PrivacySettings/>}
+          {selectedSettingsMenuItem === "Preferences" && <PreferencesSettings/>}
         </Box>
       </Box>
+    </Box>
+
     </NavigationPannel>
   );
 };

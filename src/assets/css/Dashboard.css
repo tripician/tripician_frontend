@@ -32,7 +32,7 @@
   background: transparent;
   border-radius: 0;
   box-shadow: none;
-  width: 100%;
+  max-width: 98%;
   box-sizing: border-box;
 }
 
@@ -92,52 +92,7 @@
   color: #fff;
 }
 
-/* Trip cards container - aligned with right card design */
-.trip-cards-container {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 24px;
-  padding: 20px;
-  margin-top: 20px;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
-  width: 100%;
-  box-sizing: border-box;
-}
 
-/* Remove scrollbars inside container */
-.trip-cards-container::-webkit-scrollbar {
-  display: none;
-}
-.trip-cards-container {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-
-/* Responsive adjustments */
-@media (max-width: 768px) {
-  .trip-cards-container {
-    grid-template-columns: 1fr;
-    gap: 16px;
-    padding: 15px;
-  }
-}
-
-@media (min-width: 769px) and (max-width: 1200px) {
-  .trip-cards-container {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
-  }
-}
-
-@media (min-width: 1201px) {
-  .trip-cards-container {
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 24px;
-  }
-}
 .tabs {
   display: flex;
   gap: 1rem;
@@ -165,15 +120,13 @@
 /* Trip cards container - aligned with right card design */
 .trip-cards-container {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-  gap: 24px;
-  padding: 20px;
-  margin-top: 20px;
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0px 4px 10px rgba(0, 0, 0, 0.1);
+  grid-template-columns: repeat(auto-fill, minmax(20%, 1fr)); /* ~280px -> 20% */
+  gap: 2%;
+  padding-left: 2%;
+  padding-bottom: 5%;
+  margin-top: 2%;
+  background: transparent;
   width: 100%;
-  box-sizing: border-box;
 }
 
 /* Remove scrollbars inside container */
@@ -186,29 +139,29 @@
 }
 
 .trip-card {
-  flex: 1 1 300px; /* grow, shrink, basis */
-  max-width: 100%; /* allow full responsive width */
+  flex: 1 1 25%; /* ~300px -> 25% basis */
+  max-width: 100%;
 }
 
 /* Responsive adjustments */
 @media (max-width: 768px) {
   .trip-cards-container {
-    grid-template-columns: 1fr;
-    gap: 16px;
-    padding: 15px;
+    grid-template-columns: 100%; /* single column */
+    gap: 4%;
+    padding: 4%;
   }
 }
 
 @media (min-width: 769px) and (max-width: 1200px) {
   .trip-cards-container {
-    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-    gap: 20px;
+    grid-template-columns: repeat(auto-fill, minmax(22%, 1fr)); /* ~280px -> 22% */
+    gap: 3%;
   }
 }
 
 @media (min-width: 1201px) {
   .trip-cards-container {
-    grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-    gap: 24px;
+    grid-template-columns: repeat(auto-fill, minmax(25%, 1fr)); /* ~320px -> 25% */
+    gap: 2%;
   }
 }

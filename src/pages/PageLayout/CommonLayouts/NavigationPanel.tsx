@@ -14,17 +14,19 @@ import {
   IconButton,
   useTheme,
   useMediaQuery,
-  Tooltip,
-  Avatar
+  Tooltip
 } from '@mui/material';
 
 import {
   Home as HomeIcon,
   People as CommunityIcon,
-  Person as ProfileIcon,
+  Dashboard as DasboardIcon,
   Settings as SettingsIcon,
   Menu as MenuIcon,
+  Add as AddIcon
 } from '@mui/icons-material';
+import TripCreationModal from '../../../components/CreateTripComponents/TripCreationModal';
+import ChatAssistant from '../../../components/CommonComponents/ChatAssistant';
 
 interface Props {
   children: React.ReactNode;
@@ -39,6 +41,7 @@ const collapsedDrawerWidth = 64;
 
 const menuItems = [
   { text: 'Home', icon: <HomeIcon />, path: '/home' },
+  { text: 'Dashboard', icon: <DasboardIcon />, path: '/dashboard' },
   { text: 'Community', icon: <CommunityIcon />, path: '/community' },
   { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
 ];
@@ -50,11 +53,12 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
   const [isCollapsed, setIsCollapsed] = useState(false);
   const [selectedItem, setSelectedItem] = useState('Home');
+  const [createTripOpen, setCreateTripOpen] = useState(false);
 
   const dispatch = useDispatch<AppDispatch>();
 
   // ✅ Get user profile from Redux store
-  const { profile, loading, error } = useSelector((state: RootState) => state.user);
+  const { profile } = useSelector((state: RootState) => state.user);
 
   // Fetch profile once when component mounts
   useEffect(() => {
@@ -63,12 +67,7 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
     }
   }, [dispatch, profile]);
 
-  const profilename = loading
-  ? "Loading..."
-  : error
-    ? "Profile"
-    : `${profile?.fname ?? ""} ${profile?.lname ?? ""}`;
-  const profileItem = { text: profilename, icon: <ProfileIcon />, path: '/profile' };
+  // profile button removed; profile access via TopBar avatar. (profilename no longer needed)
 
   // Update selected item based on current route
   useEffect(() => {
@@ -130,9 +129,16 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
             flexDirection: 'column',
             justifyContent: 'space-between',
             p: isCollapsed ? 1 : 2,
-            background: 'linear-gradient(180deg, #00222eff 0%, #0081b0ff 100%)',
+            background: theme.palette.mode === 'light' 
+              ? 'linear-gradient(180deg, #132735ff 0%, #006097ff 100%)'
+              : 'linear-gradient(180deg, #1a202c 0%, #2d3748 100%)',
             color: 'white',
             overflowX: 'hidden',
+            boxShadow: theme.palette.mode === 'light' 
+              ? '0 4px 20px rgba(102, 126, 234, 0.3)' 
+              : '0 4px 20px rgba(0, 0, 0, 0.5)',
+            backdropFilter: 'blur(10px)',
+            borderRight: `1px solid ${theme.palette.mode === 'light' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)'}`,
             transition: theme.transitions.create('width', {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.enteringScreen,
@@ -152,10 +158,27 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
             }}
           >
             {!isCollapsed && (
-              <div className="common-logo">
+              <div 
+                className="common-logo"
+                style={{
+                  transition: 'all 0.3s ease',
+                  cursor: 'pointer',
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.transform = 'scale(1.05)';
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.transform = 'scale(1)';
+                }}
+              >
                 <img
                   src={import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_URL}
                   alt="Tripician Logo"
+                  style={{
+                    maxHeight: '40px',
+                    width: 'auto',
+                    filter: 'brightness(1.1)',
+                  }}
                 />
               </div>
             )}
@@ -164,8 +187,15 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
                 onClick={toggleDrawer}
                 sx={{
                   color: 'white',
+                  backgroundColor: 'rgba(255,255,255,0.1)',
+                  backdropFilter: 'blur(10px)',
+                  border: '1px solid rgba(255,255,255,0.2)',
+                  borderRadius: 2,
+                  transition: 'all 0.3s ease',
                   '&:hover': {
-                    backgroundColor: 'rgba(255,255,255,0.1)',
+                    backgroundColor: 'rgba(255,255,255,0.2)',
+                    transform: 'scale(1.05)',
+                    borderColor: 'rgba(255,255,255,0.3)',
                   },
                 }}
               >
@@ -193,13 +223,26 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
                     mb: 1,
                     minHeight: 48,
                     justifyContent: isCollapsed ? 'center' : 'flex-start',
-                    backgroundColor: selectedItem === item.text ? 'rgba(255,255,255,0.15)' : 'transparent',
+                    backgroundColor: selectedItem === item.text ? 'rgba(255,255,255,0.2)' : 'transparent',
                     '&:hover': {
                       backgroundColor: selectedItem === item.text
-                        ? 'rgba(255,255,255,0.2)'
-                        : 'rgba(255,255,255,0.1)',
+                        ? 'rgba(255,255,255,0.25)'
+                        : 'rgba(255,255,255,0.15)',
+                      transform: 'translateX(4px)',
                     },
-                    transition: 'all 0.2s ease-in-out',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    position: 'relative',
+                    '&::before': selectedItem === item.text ? {
+                      content: '""',
+                      position: 'absolute',
+                      left: 0,
+                      top: '50%',
+                      transform: 'translateY(-50%)',
+                      width: '4px',
+                      height: '60%',
+                      backgroundColor: 'rgba(255,255,255,0.8)',
+                      borderRadius: '0 2px 2px 0',
+                    } : {},
                   }}
                 >
                   <Box
@@ -231,53 +274,50 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
           </List>
         </Box>
 
-        {/* Profile Button */}
+        {/* Create Trip Button now placed at end */}
         <Tooltip
-          key={profileItem.text}
-          title={isCollapsed ? profileItem.text : ''}
+          key="CreateTrip"
+          title={isCollapsed ? 'Create Trip' : ''}
           placement="right"
           arrow
         >
           <ListItem
             component="button"
-            onClick={() => handleMenuItemClick("Profile")}
+            onClick={() => setCreateTripOpen(true)}
             sx={{
               borderRadius: 1,
               px: isCollapsed ? 1 : 2,
               py: 1.5,
               mb: 1,
               minHeight: 48,
-              border: '1px solid rgba(255,255,255,0.2)',
+              border: '1px solid rgba(255,255,255,0.3)',
               justifyContent: isCollapsed ? 'center' : 'flex-start',
-              backgroundColor: selectedItem === profileItem.text ? 'rgba(255,255,255,0.15)' : 'transparent',
+              backgroundColor: 'rgba(255,255,255,0.08)',
               '&:hover': {
-                backgroundColor: selectedItem === profileItem.text
-                  ? 'rgba(255,255,255,0.2)'
-                  : 'rgba(255,255,255,0.1)',
+                backgroundColor: 'rgba(255,255,255,0.18)',
+                transform: 'translateX(4px)',
+                borderColor: 'rgba(255,255,255,0.4)',
               },
-              transition: 'all 0.2s ease-in-out',
+              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
             }}
           >
             <Box
               sx={{
-                color: selectedItem === profileItem.text ? '#fff' : 'rgba(255,255,255,0.8)',
+                color: '#fff',
                 display: 'flex',
                 alignItems: 'center',
                 minWidth: 24,
                 mr: isCollapsed ? 0 : 2,
               }}
             >
-              <Avatar
-                src={profile?.profilepicture || import.meta.env.VITE_NO_PROFILE_PIC_URL}
-                sx={{ width: 36, height: 36, cursor: "pointer" }}
-              />
+              <AddIcon />
             </Box>
             {!isCollapsed && (
               <ListItemText
-                primary={profileItem.text}
+                primary={'Create Trip'}
                 sx={{
-                  color: selectedItem === profileItem.text ? '#fff' : 'rgba(255,255,255,0.8)',
-                  fontWeight: selectedItem === profileItem.text ? 600 : 400,
+                  color: '#fff',
+                  fontWeight: 600,
                   '& .MuiListItemText-primary': {
                     fontSize: '0.95rem',
                   },
@@ -289,14 +329,14 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
       </Drawer>
 
       {/* Right Side: Main Content + Footer */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1, width: `calc(100vw - ${currentDrawerWidth}px)`, height: '100vh', overflow: 'visible' }}>
+  <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1, width: `calc(100vw - ${currentDrawerWidth}px)`, height: '100vh', overflow: 'visible', position: 'relative' }}>
         {/* Main Content Area with Footer inside scrollable area */}
         <Box
           component="main"
           sx={{
             flexGrow: 1,
             overflowY: 'auto',
-            backgroundColor: '#f5f5f5',
+            backgroundColor: 'background.default',
             display: 'flex',
             flexDirection: 'column',
             transition: theme.transitions.create('margin', {
@@ -309,10 +349,10 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
           <Box
             sx={{
               flexGrow: 1,
-              pl: 4,
-              pr: 4,
-              pt: 2,
-              pb: 2, // Add bottom padding
+              pl: 0,
+              pr: 0,
+              pt: 0,
+              pb: 2,
             }}
           >
             {children}
@@ -321,6 +361,8 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
           {/* Footer - now inside scrollable area */}
           <Footer />
         </Box>
+        <TripCreationModal open={createTripOpen} onClose={() => setCreateTripOpen(false)} />
+        <ChatAssistant />
       </Box>
     </Box>
   );

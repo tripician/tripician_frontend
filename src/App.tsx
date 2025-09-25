@@ -2,12 +2,13 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
 import Signin from './pages/AuthPage/Signin'
 import Signup from './pages/AuthPage/Signup'
-import Dashboard from './pages/PageLayout/DashboardLayout/Dashboard'
+import Dashboard from './pages/DashboardPage/Dashboard'
 import Profile from './pages/ProfilePage/Profile'
 import Home from './pages/HomePage/Home'
 import Community from './pages/CommunityPage/Community'
 import Settings from './pages/SettingsPage/Settings'
 import ProtectedRoute from './services/APIs/Auth/ProtectedRoute'
+import CreateTrip from './pages/CreateTripPage/CreateTrip'
 
 // Import debug utilities for development
 if (process.env.NODE_ENV === 'development') {
@@ -27,6 +28,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Home />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <Dashboard />
             </ProtectedRoute>
           } 
         />
@@ -51,6 +60,14 @@ function App() {
           element={
             <ProtectedRoute>
               <Settings />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/create-trip" 
+          element={
+            <ProtectedRoute>
+              <CreateTrip />
             </ProtectedRoute>
           } 
         />

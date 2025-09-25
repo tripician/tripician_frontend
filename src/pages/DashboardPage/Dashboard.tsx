@@ -1,14 +1,16 @@
 import React from 'react';
+import NavigationPannel from '../PageLayout/CommonLayouts/NavigationPanel';
 import TripCard from './TripCard';
-import '../../../assets/css/Dashboard.css';
-import santorini from '../../../assets/santorini.png';
-import kyoto from '../../../assets/kyoto.png';
-import paris from '../../../assets/paris.png';
-import dubai from '../../../assets/dubai.png';
-import astana from '../../../assets/astana.png';
-import khiva from '../../../assets/khiva.png';
-import sapa from '../../../assets/sapa.png';
-import { Tabs, Tab } from '@mui/material';
+import '../../assets/css/Dashboard.css';
+import santorini from '../../assets/santorini.png';
+import kyoto from '../../assets/kyoto.png';
+import paris from '../../assets/paris.png';
+import dubai from '../../assets/dubai.png';
+import astana from '../../assets/astana.png';
+import khiva from '../../assets/khiva.png';
+import sapa from '../../assets/sapa.png';
+import TopBar from '../PageLayout/CommonLayouts/TopBar';
+import { Tabs, Tab, Box } from '@mui/material';
 import { useState } from 'react';
 
 
@@ -44,7 +46,6 @@ const Dashboard: React.FC = () => {
 
   const[plans, setPlans] = useState(allPlans);
   const [tabValue, setTabValue] = useState(0);
-  const [selectedMenuItem, setSelectedMenuItem] = useState('Dashboard');
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
@@ -64,46 +65,67 @@ const Dashboard: React.FC = () => {
       setPlans(in_progress_plans);
     }
   };
-  const handleMenuItemChange = (itemName: string) => {
-    setSelectedMenuItem(itemName);
-  };
-  
   return (
-    // <NavigationPannel onMenuItemChange={handleMenuItemChange}>
-    // <TopBar selectedMenuItem = {selectedMenuItem}/>
-    <>
-      <Tabs
-        value={tabValue}
-        className="mb-3"
-        onChange={handleTabChange}
-        textColor="primary"
-        indicatorColor="primary"
-        aria-label="trip tabs"
-        sx={{ pl: 0}}
-      >
-        <Tab label="All Plans"  sx={{ textTransform: "none", fontWeight: "bold"}}/>
-        <Tab label="Private"  sx={{ textTransform: "none", fontWeight: "bold" }}/>
-        <Tab label="Group"  sx={{ textTransform: "none", fontWeight: "bold" }}/>
-        <Tab label="Completed"  sx={{ textTransform: "none", fontWeight: "bold" }}/>
-        <Tab label="In Progress"  sx={{ textTransform: "none", fontWeight: "bold" }}/>
-      </Tabs>
-      
-      <div className="trip-cards-container mb-5">
-
+    <NavigationPannel>
+      <Box sx={{ width: "100%", backgroundColor: "background.default", minHeight: "100vh" }}>
+        <TopBar />
+        
+        <Box sx={{ justifyContent: "center" }}>
+          <Tabs
+            value={tabValue}
+            className="mb-1 mt-3"
+            onChange={handleTabChange}
+            variant="fullWidth"
+            aria-label="trip tabs"
+            sx={{
+              pl: 0,
+              mt: "1%",
+              ml: "2%",
+              mr: "2%",
+              '& .MuiTabs-flexContainer': {
+                backgroundColor: 'action.hover',
+                borderRadius: '8px',
+                padding: '4px',
+              },
+              '& .MuiTab-root': {
+                minHeight: '40px',
+                borderRadius: '6px',
+                margin: '0 2px',
+                textTransform: 'none',
+                fontWeight: 'bold',
+                '&.Mui-selected': {
+                  backgroundColor: 'background.paper',
+                  boxShadow: 1,
+                  color: 'primary.main',
+                },
+              },
+              '& .MuiTabs-indicator': {
+                display: 'none', // Hide the default indicator since we're using background color
+              },
+            }}
+          >
+            <Tab label="All Plans" />
+            <Tab label="Private" />
+            <Tab label="Group" />
+            <Tab label="Completed" />
+            <Tab label="In Progress" />
+          </Tabs>
+          <div className="trip-cards-container mb-5">
             {plans.map((plan, index) => (
-                <TripCard
+              <TripCard
                 key={index}
                 title={plan.title}
                 location={plan.location}
-                image= {plan.image}
+                image={plan.image}
                 progress={plan.progress}
                 edited={plan.edited}
                 members={plan.members}
-                />
+              />
             ))}
-      </div>
-      </>
-    // </NavigationPannel>
+          </div>
+        </Box>
+      </Box>
+    </NavigationPannel>
   );
 };
 export default Dashboard;

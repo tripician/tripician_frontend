@@ -14,6 +14,8 @@ interface UserProfile {
   bio?: string;
   coverpicture?: string;
   profilepicture?: string;
+  // Optional hex color (e.g. #FF7F50) used to tint the banner overlay
+  bannertint?: string;
   facebook?: string;
   twitter?: string;
   instagram?: string;
