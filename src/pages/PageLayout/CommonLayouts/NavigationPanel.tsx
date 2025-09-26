@@ -170,6 +170,7 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
           </Box>
 
           {/* Menu Items */}
+
           <List sx={{ px: 0 }}>
             {menuItems.map(item => {
               const disabled = (item as any).disabled;
@@ -305,7 +306,7 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
       </Drawer>
 
       {/* Right Side: Main Content + Footer */}
-  <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1, width: `calc(100vw - ${currentDrawerWidth}px)`, height: '100vh', overflow: 'visible', position: 'relative' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1, width: `calc(100vw - ${currentDrawerWidth}px)`, height: '100vh', overflow: 'visible', position: 'relative' }}>
         {/* Main Content Area with Footer inside scrollable area */}
         <Box
           component="main"
