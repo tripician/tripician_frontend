@@ -8,7 +8,7 @@ import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
-import { setCurrency as setCurrencyAction, updateDestinationNights, setTransport, addDestination, removeDestination, reorderChain, addVisaDoc, removeVisaDoc, removeGlobalDoc, pinDoc, unpinDoc } from '../../store/plannerSlice';
+import { setCurrency as setCurrencyAction, updateDestinationNights, setTransport, addDestination, removeDestination, reorderChain, addVisaDoc, removeVisaDoc, removeGlobalDoc, pinDoc, unpinDoc, loadState } from '../../store/plannerSlice';
 import { togglePin as togglePinDocSlice, removeDocument as removeDocsSliceDocument } from '../../store/docsSlice';
 import { validateFiles, DEFAULT_DOC_RULE } from '../../utils/fileValidation';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
@@ -46,15 +46,86 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip }) => {
 
 	const [tab, setTab] = React.useState(0);
 
+	// Hydrate planner state from initialTrip if provided
 	React.useEffect(()=> {
-		if(initialTrip) {
-			// eslint-disable-next-line no-console
-			console.log('[TripPlanner] Initial trip prop hydration', tripId, initialTrip);
-		} else {
-			// Future: fetch trip by id if not provided
-			console.log('[TripPlanner] No initialTrip prop; TODO: fetch trip', tripId);
+		if(!initialTrip) {
+			console.log('[TripPlanner] No initialTrip provided; (future) fetch by id', tripId);
+			return;
 		}
-	}, [tripId, initialTrip]);
+		// Only hydrate if planner currently empty to avoid overwriting user edits after navigation
+		if(planner.destinations.length>0) {
+			console.log('[TripPlanner] Skipping hydration; destinations already present');
+			return;
+		}
+		try {
+			// Expect backend trip shape: { id, name, countries, startDate, endDate, visibility, destinations?, docs? }
+			const trip:any = initialTrip;
+			// Derive destinations array if backend provides day-by-day or countries list
+			let dests: any[] = [];
+			if(Array.isArray(trip.destinations) && trip.destinations.length) {
+				dests = trip.destinations.map((d:any)=> ({
+					id: d.id || 'dest_'+Math.random().toString(36).slice(2),
+					name: d.name || d.country || 'Destination',
+					startDate: d.startDate || trip.startDate || new Date().toISOString().slice(0,10),
+					endDate: d.endDate || d.startDate || trip.startDate || new Date().toISOString().slice(0,10),
+					nights: d.nights || 1,
+					transport: d.transport || '',
+					budget: 0,
+					lat: d.lat,
+					lng: d.lng,
+					placeId: d.placeId,
+					photoUrl: d.photoUrl,
+					spots: [],
+					foods: [],
+					docs: [],
+					category: 'general',
+					completed: false
+				}));
+			} else if(Array.isArray(trip.countries) && trip.countries.length) {
+				// Fallback: create sequential 1-night destinations from countries list
+				const start = trip.startDate || new Date().toISOString().slice(0,10);
+				const startDateObj = new Date(start);
+				dests = trip.countries.map((c:string, idx:number)=> {
+					const s = new Date(startDateObj.getTime() + idx*24*60*60*1000).toISOString().slice(0,10);
+					const e = new Date(startDateObj.getTime() + (idx+1)*24*60*60*1000).toISOString().slice(0,10);
+					return {
+						id: 'country_'+idx+'_'+Math.random().toString(36).slice(2),
+						name: c,
+						startDate: s,
+						endDate: e,
+						nights: 1,
+						transport: '',
+						budget: 0,
+						spots: [],
+						foods: [],
+						docs: [],
+						category: 'general',
+						completed: false
+					};
+				});
+			}
+			// Estimate target nights = sum of nights or fallback to 8
+			const targetNights = dests.reduce((a,c)=> a + (c.nights||1), 0) || 8;
+			const plannerState = {
+				destinations: dests,
+				currency: 'EUR' as 'EUR',
+				targetNights,
+				globalDocs: [],
+				visaDocs: [],
+				pinnedDocIds: [],
+				tripBudget: undefined,
+				expenses: [],
+				simplifyGroupExpenses: false,
+				expenseVisibilityEmails: [],
+				comments: []
+			};
+			dispatch(loadState(plannerState));
+			console.log('[TripPlanner] Hydrated planner slice from initialTrip', { tripId, destinations: dests.length });
+		} catch(err) {
+			console.error('[TripPlanner] Failed to hydrate from initialTrip', err);
+		}
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [initialTrip, tripId]);
 	const [section, setSection] = React.useState<'plan'|'news'|'packing'|'docs'>('plan');
 	const setSectionDebug = (next: 'plan'|'news'|'packing'|'docs') => {
 		// eslint-disable-next-line no-console
