@@ -1,7 +1,7 @@
 // TripPlanner main page component (formerly CreateTrip)
 import React from 'react';
 import { Box, Tabs, Tab, Typography, Divider, Button, Chip, Menu, MenuItem, Avatar, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper } from '@mui/material';
-import { useLocation } from 'react-router-dom';
+// Props-based TripPlanner; tripId + optional initialTrip provided by route wrapper
 import DownloadIcon from '@mui/icons-material/Download';
 import PushPinIcon from '@mui/icons-material/PushPin';
 import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
@@ -31,9 +31,13 @@ import EditIcon from '@mui/icons-material/Edit';
 import CheckIcon from '@mui/icons-material/Check';
 import Docs from '../DocsPage/Docs';
 
-const TripPlanner: React.FC = () => {
+export interface TripPlannerProps {
+  tripId: string;
+  initialTrip?: any; // TODO: Replace with Trip type when available
+}
+
+const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip }) => {
 	const dispatch = useDispatch<AppDispatch>();
-	const location = useLocation();
 	const planner = useSelector((s: RootState) => s.planner);
 	const docsState = useSelector((s: RootState) => s.docs);
 	const currency = planner.currency;
@@ -43,13 +47,14 @@ const TripPlanner: React.FC = () => {
 	const [tab, setTab] = React.useState(0);
 
 	React.useEffect(()=> {
-		const navState: any = (location as any).state;
-		if(navState?.trip && navState?.tripId) {
+		if(initialTrip) {
 			// eslint-disable-next-line no-console
-			console.log('[TripPlanner] Hydration payload from navigation state', navState.tripId, navState.trip);
+			console.log('[TripPlanner] Initial trip prop hydration', tripId, initialTrip);
+		} else {
+			// Future: fetch trip by id if not provided
+			console.log('[TripPlanner] No initialTrip prop; TODO: fetch trip', tripId);
 		}
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, []);
+	}, [tripId, initialTrip]);
 	const [section, setSection] = React.useState<'plan'|'news'|'packing'|'docs'>('plan');
 	const setSectionDebug = (next: 'plan'|'news'|'packing'|'docs') => {
 		// eslint-disable-next-line no-console

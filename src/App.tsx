@@ -8,7 +8,7 @@ import Home from './pages/HomePage/Home'
 import Community from './pages/CommunityPage/Community'
 import Settings from './pages/SettingsPage/Settings'
 import ProtectedRoute from './services/APIs/Auth/ProtectedRoute'
-import TripPlanner from './pages/CreateTripPage/TripPlanner'
+import TripPlannerRoute from './pages/CreateTripPage/TripPlannerRoute.tsx'
 import AuthenticatedLayout from './pages/PageLayout/AuthenticatedLayout';
 import { NotFound404, InternalError500, UnauthorizedAccess, UnderConstruction, SomethingWentWrong, DynamicErrorPage } from './pages/ErrorPages/ErrorPages';
 
@@ -32,10 +32,11 @@ function App() {
           <Route path="/community" element={<Community />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
-  {/* Trip Planner (formerly create-trip) uses its own custom navigation */}
-  <Route path="/tripplanner" element={<ProtectedRoute><TripPlanner /></ProtectedRoute>} />
+  {/* Trip Planner now requires a tripId param; direct /tripplanner without id goes 404 */}
+  <Route path="/tripplanner" element={<Navigate to="/error/404" replace />} />
+  <Route path="/tripplanner/:tripId" element={<ProtectedRoute><TripPlannerRoute /></ProtectedRoute>} />
   {/* Legacy path redirect */}
-  <Route path="/create-trip" element={<Navigate to="/tripplanner" replace />} />
+  <Route path="/create-trip" element={<Navigate to="/error/404" replace />} />
         {/* Error & status pages */}
         <Route path="/error/404" element={<NotFound404 />} />
         <Route path="/error/500" element={<InternalError500 />} />

@@ -168,8 +168,8 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
       const tripData = tripResp.data;
       // Close modal before navigation
       handleClose();
-      // Navigate with state for hydration
-  navigate('/tripplanner', { state: { tripId: createdId, trip: tripData } });
+    // Navigate to parameterized planner route with state for hydration fallback
+    navigate(`/tripplanner/${createdId}`, { state: { tripId: createdId, trip: tripData } });
     } catch(err: any) {
       console.error('[CreateTripModal] createTrip failed', err);
       if(err?.code === 'ERR_NETWORK') {
