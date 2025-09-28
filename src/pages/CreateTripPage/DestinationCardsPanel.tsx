@@ -17,7 +17,8 @@ import DestinationCard from './DestinationCard';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import { addDestination, removeDestination, duplicateDestination, toggleDestinationCompleted, setDestinationCategory, renameDestination, addSpot, toggleSpot, removeSpot, reorderSpots, addFoodItem, toggleFoodItem, removeFoodItem, reorderFoods, setDestinationNotes, setDestinationStay, addDestinationDoc, removeDestinationDoc, updateDestinationNights } from '../../store/plannerSlice';
-import { validateFiles, DEFAULT_DOC_RULE } from '../../utils/fileValidation';
+import { DEFAULT_DOC_RULE } from '../../utils/fileValidation';
+import ValidatedFileInput from '../../components/CommonComponents/ValidatedFileInput';
 import AiActionButton from '../../components/CommonComponents/AiActionButton';
 
 // Temporary flag enabling card layout; can be toggled via env or replaced with user setting later.
@@ -295,19 +296,19 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed }) 
 
   // Docs Dialog
   const [docsFor, setDocsFor] = React.useState<string | null>(null);
-  const fileInputRef = React.useRef<HTMLInputElement | null>(null);
   const openDocs = (id:string) => { setDocsFor(id); };
   const closeDocs = () => { setDocsFor(null); };
-  const [docsErrors, setDocsErrors] = React.useState<string[]>([]);
-  const onSelectDocs = (files: FileList | null) => {
-    if(!docsFor || !files) return;
-    setDocsErrors([]);
-    const { accepted, rejected } = validateFiles(files, DEFAULT_DOC_RULE);
-    if(rejected.length) setDocsErrors(rejected.flatMap(r=> r.errors));
-    accepted.forEach((f,idx) => {
+  const onAcceptDocs = (files: File[]) => {
+    if(!docsFor) return;
+    files.forEach((f,idx) => {
       const id = f.name + '_' + Date.now().toString(36) + '_' + idx;
-      const url = URL.createObjectURL(f);
-      dispatch(addDestinationDoc({ destinationId: docsFor, doc: { id, originalName: f.name, mimeType: f.type, url } }));
+      try {
+        const url = URL.createObjectURL(f);
+        dispatch(addDestinationDoc({ destinationId: docsFor, doc: { id, originalName: f.name, mimeType: f.type, url } }));
+      } catch(err){
+        // eslint-disable-next-line no-console
+        console.error('[DestinationCardsPanel] object URL failed', err);
+      }
     });
   };
   const removeDoc = (docId:string) => { if(!docsFor) return; dispatch(removeDestinationDoc({ destinationId: docsFor, docId })); };
@@ -760,15 +761,15 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed }) 
         <Dialog open={Boolean(docsFor)} onClose={closeDocs} fullWidth maxWidth='sm'>
           <DialogTitle>Documents</DialogTitle>
             <DialogContent>
-              <input ref={fileInputRef} type='file' multiple hidden onChange={(e)=> { onSelectDocs(e.target.files); if(e.target) e.target.value=''; }} />
-              {docsErrors.length>0 && (
-                <Box sx={{ mb:2, border:'1px solid', borderColor:'error.light', background:(t)=> t.palette.mode==='dark'? '#2a1818':'#fff5f5', p:1, borderRadius:1.5 }}>
-                  <Typography variant='caption' sx={{ fontWeight:700, color:'error.main', display:'flex', gap:.5 }}>Upload issues:</Typography>
-                  {docsErrors.map((er,i)=>(<Typography key={i} variant='caption' sx={{ display:'block', color:'error.main' }}>• {er}</Typography>))}
-                </Box>
-              )}
+              <ValidatedFileInput
+                buttonLabel='Add Files'
+                startIcon={<UploadFileIcon />}
+                onAccept={onAcceptDocs}
+                rule={DEFAULT_DOC_RULE}
+                multiple
+              />
               {docsFor && (plannerDestinations.find(d=> d.id===docsFor)?.docs?.length ? (
-                <Box sx={{ display:'flex', flexWrap:'wrap', gap:2 }}>
+                <Box sx={{ mt:2, display:'flex', flexWrap:'wrap', gap:2 }}>
                   {plannerDestinations.find(d=> d.id===docsFor)!.docs!.map(doc => {
                     const isImage = /(png|jpe?g|gif|webp|bmp|svg)$/i.test(doc.originalName);
                     return (
@@ -791,11 +792,10 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed }) 
                   })}
                 </Box>
               ) : (
-                <Typography variant='body2' sx={{ opacity:.7 }}>No documents yet.</Typography>
+                <Typography variant='body2' sx={{ opacity:.7, mt:2 }}>No documents yet.</Typography>
               ))}
             </DialogContent>
             <DialogActions>
-              <Button onClick={()=> fileInputRef.current?.click()} startIcon={<UploadFileIcon />}>Add Files</Button>
               <Button onClick={closeDocs}>Close</Button>
             </DialogActions>
         </Dialog>

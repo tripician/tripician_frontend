@@ -8,7 +8,7 @@ import Home from './pages/HomePage/Home'
 import Community from './pages/CommunityPage/Community'
 import Settings from './pages/SettingsPage/Settings'
 import ProtectedRoute from './services/APIs/Auth/ProtectedRoute'
-import CreateTrip from './pages/CreateTripPage/CreateTrip'
+import TripPlanner from './pages/CreateTripPage/TripPlanner'
 import AuthenticatedLayout from './pages/PageLayout/AuthenticatedLayout';
 import { NotFound404, InternalError500, UnauthorizedAccess, UnderConstruction, SomethingWentWrong, DynamicErrorPage } from './pages/ErrorPages/ErrorPages';
 
@@ -32,8 +32,10 @@ function App() {
           <Route path="/community" element={<Community />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
-        {/* Create Trip uses its own custom navigation, so exclude from AuthenticatedLayout */}
-        <Route path="/create-trip" element={<ProtectedRoute><CreateTrip /></ProtectedRoute>} />
+  {/* Trip Planner (formerly create-trip) uses its own custom navigation */}
+  <Route path="/tripplanner" element={<ProtectedRoute><TripPlanner /></ProtectedRoute>} />
+  {/* Legacy path redirect */}
+  <Route path="/create-trip" element={<Navigate to="/tripplanner" replace />} />
         {/* Error & status pages */}
         <Route path="/error/404" element={<NotFound404 />} />
         <Route path="/error/500" element={<InternalError500 />} />

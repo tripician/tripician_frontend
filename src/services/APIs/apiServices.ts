@@ -53,9 +53,39 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  // Add other endpoints as needed
-  getTrips: (token: string) => 
-    apiClient.get('/trips', {
+  // Trip endpoints (updated to match new TripController)
+  // GET /trips/dashboard - user dashboard trips
+  getDashboardTrips: (token: string) => 
+    apiClient.get('/trips/dashboard', {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // GET /trips/public - public trips (no auth required but we allow optional token)
+  getPublicTrips: (token?: string) => 
+    apiClient.get('/trips/public', {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined
+    }),
+
+  // POST /trips - create trip
+  createTrip: (token: string, data: {
+    name: string;
+    countries: string[];
+    startDate?: string | null;
+    endDate?: string | null;
+    visibility: 'TRIP_MEMBERS' | 'FOLLOWERS' | 'EVERYONE';
+    invites?: string[];
+  }) => apiClient.post('/trips', data, {
+    headers: { Authorization: `Bearer ${token}` }
+  }),
+
+  // GET /trips/{tripId}
+  getTripById: (token: string, tripId: string) => apiClient.get(`/trips/${tripId}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  }),
+
+  // PATCH /trips/{tripId}/visibility
+  changeTripVisibility: (token: string, tripId: string, data: { visibility: 'TRIP_MEMBERS' | 'FOLLOWERS' | 'EVERYONE' }) =>
+    apiClient.patch(`/trips/${tripId}/visibility`, data, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 };

@@ -1,7 +1,8 @@
-import React from 'react';
-import { Box, Typography, Card, CardContent, CardMedia, Button } from '@mui/material';
+import React, { useEffect, useState } from 'react';
+import { Box, Typography, Card, CardContent, CardMedia, Button, CircularProgress, Alert } from '@mui/material';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import { useNavigate } from 'react-router-dom';
+import { apiServices } from '../../services/APIs/apiServices';
 
 // Import destination images
 import santorini from '../../assets/santorini.png';
@@ -40,6 +41,33 @@ const Home: React.FC = () => {
       image: dubai,
     },
   ];
+
+  const [publicTrips, setPublicTrips] = useState<any[]>([]);
+  const [loadingPublic, setLoadingPublic] = useState(false);
+  const [publicError, setPublicError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let active = true;
+    const fetchPublic = async () => {
+      setLoadingPublic(true);
+      setPublicError(null);
+      try {
+        const resp = await apiServices.getPublicTrips();
+        if(active){
+          setPublicTrips(resp.data || []);
+        }
+      } catch(err: any){
+        if(active){
+          console.error('[Home] fetch public trips failed', err);
+          setPublicError(err?.response?.data?.message || 'Failed to load public trips');
+        }
+      } finally {
+        if(active) setLoadingPublic(false);
+      }
+    };
+    fetchPublic();
+    return () => { active = false; };
+  }, []);
 
   const handleExploreTrips = () => {
     navigate('/profile');
@@ -84,6 +112,38 @@ const Home: React.FC = () => {
               </Card>
             ))}
         </Box>
+        </Box>
+
+        {/* Public Trips */}
+        <Box sx={{ px:4, mt:2 }}>
+          <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ mb: 3 }}>
+            Public Trips
+          </Typography>
+          {loadingPublic && (
+            <Box sx={{ display:'flex', justifyContent:'center', py:4 }}>
+              <CircularProgress size={32} />
+            </Box>
+          )}
+          {publicError && !loadingPublic && (
+            <Alert severity='error' sx={{ mb:2 }}>{publicError}</Alert>
+          )}
+          {!loadingPublic && !publicError && publicTrips.length === 0 && (
+            <Typography variant='body2' sx={{ color:'text.secondary', mb:4 }}>No public trips yet.</Typography>
+          )}
+          {!loadingPublic && !publicError && (
+            <Box sx={{ display:'flex', flexWrap:'wrap', gap:3, mb:4 }}>
+              {publicTrips.map(t => (
+                <Card key={t.id || t.Id} sx={{ width: { xs: '100%', sm: 'calc(50% - 12px)', md: 'calc(25% - 18px)' } }}>
+                  <CardContent>
+                    <Typography variant='h6' fontWeight='bold' gutterBottom>{t.name || t.title || 'Untitled trip'}</Typography>
+                    <Typography variant='body2' color='text.secondary'>
+                      {(t.countries && t.countries.join(', ')) || 'No countries specified'}
+                    </Typography>
+                  </CardContent>
+                </Card>
+              ))}
+            </Box>
+          )}
         </Box>
 
         {/* Call to Action */}

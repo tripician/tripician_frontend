@@ -35,9 +35,9 @@ const navItems: NavItem[] = [
   { id: 'docs', label: 'Docs', icon: <InsertDriveFileIcon fontSize='small' /> }
 ];
 
-interface CreateTripNavProps { active?: string; onChange?: (id: string) => void; onSettingsClick?:()=>void; }
+interface TripPlannerNavProps { active?: string; onChange?: (id: string) => void; onSettingsClick?:()=>void; }
 
-const CreateTripNav: React.FC<CreateTripNavProps> = ({ active = 'plan', onChange, onSettingsClick }) => {
+const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChange, onSettingsClick }) => {
   return (
     <Box
       sx={(theme) => ({
@@ -159,4 +159,4 @@ const CreateTripNav: React.FC<CreateTripNavProps> = ({ active = 'plan', onChange
   );
 };
 
-export default CreateTripNav;
+export default TripPlannerNav;

@@ -16,6 +16,9 @@ import {
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { Dayjs } from 'dayjs';
+import { apiServices } from '../../services/APIs/apiServices';
+import { useAuthToken } from '../../hooks/useAuth0Token';
+import { useNavigate } from 'react-router-dom';
 import {
   Close as CloseIcon,
   Add as AddIcon,
@@ -24,6 +27,7 @@ import {
   Group as GroupIcon,
   ArrowDropDown as ArrowDropDownIcon,
 } from "@mui/icons-material";
+import Alert from '@mui/material/Alert';
 
 interface TripCreationModalProps {
   open: boolean;
@@ -36,7 +40,8 @@ interface FormData {
   startDate: Dayjs | null;
   endDate: Dayjs | null;
   visibility: "Trip members" | "My followers" | "Everyone";
-  inviteEmail: string;
+  inviteEmail: string; // current typed email
+  inviteEmails: string[]; // collected valid emails
 }
 
 const COUNTRIES = [
@@ -65,6 +70,7 @@ const COUNTRIES = [
 const primary = "#1976d2";
 
 const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) => {
+  const apiBase = import.meta.env.VITE_API_BASE_URL || 'https://localhost:44338';
   const [formData, setFormData] = useState<FormData>({
     tripName: "",
     selectedCountries: [],
@@ -72,9 +78,15 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
     endDate: null,
     visibility: "My followers",
     inviteEmail: "",
+    inviteEmails: [],
   });
 
   const [showInviteSection, setShowInviteSection] = useState(true);
+  const [submitting, setSubmitting] = useState(false);
+  const [errorMsg, setErrorMsg] = useState<string | null>(null);
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; countries?: string; dates?: string }>({});
+  const { token } = useAuthToken();
+  const navigate = useNavigate();
 
   const handleInputChange =
     (field: keyof FormData) =>
@@ -96,16 +108,81 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
   };
 
   const handleInviteFriend = () => {
-    if (formData.inviteEmail.trim()) {
-      // integrate invite flow
-      console.log("Inviting:", formData.inviteEmail);
-      setFormData((p) => ({ ...p, inviteEmail: "" }));
+    const raw = formData.inviteEmail.trim();
+    if(!raw) return;
+    // Basic email regex
+    const isValid = /.+@.+\..+/.test(raw);
+    if(!isValid){
+      setErrorMsg('Invalid email format');
+      return;
     }
+    setFormData(p=> ({ ...p, inviteEmails: p.inviteEmails.includes(raw)? p.inviteEmails : [...p.inviteEmails, raw], inviteEmail: '' }));
   };
 
-  const handleStartPlanning = () => {
-    console.log("Trip data:", formData);
-    handleClose();
+  const handleRemoveInvite = (email: string) => {
+    setFormData(p=> ({ ...p, inviteEmails: p.inviteEmails.filter(e=> e!==email) }));
+  };
+
+  const validate = () => {
+    const errs: { name?: string; countries?: string; dates?: string } = {};
+    if(!formData.tripName.trim()) errs.name = 'Trip name is required';
+    if(formData.selectedCountries.length === 0) errs.countries = 'Select at least one country';
+    if(formData.startDate && formData.endDate && formData.endDate.isBefore(formData.startDate,'day')) errs.dates = 'End date must be after start date';
+    setFieldErrors(errs);
+    return Object.keys(errs).length===0;
+  };
+
+  const handleStartPlanning = async () => {
+    if(!token) {
+      setErrorMsg('You must be signed in.');
+      return;
+    }
+    if(!validate()) return;
+    setSubmitting(true);
+    setErrorMsg(null);
+    try {
+      const visibility: 'TRIP_MEMBERS' | 'FOLLOWERS' | 'EVERYONE' =
+        formData.visibility === 'Trip members'
+          ? 'TRIP_MEMBERS'
+          : formData.visibility === 'My followers'
+            ? 'FOLLOWERS'
+            : 'EVERYONE';
+      const payload = {
+        name: formData.tripName.trim(),
+        countries: formData.selectedCountries,
+        startDate: formData.startDate ? formData.startDate.format('YYYY-MM-DD') : null,
+        endDate: formData.endDate ? formData.endDate.format('YYYY-MM-DD') : null,
+        visibility,
+        invites: formData.inviteEmails,
+      };
+      console.log('[CreateTripModal] Creating trip with payload', payload);
+      // Create trip
+  const createResp = await apiServices.createTrip(token, payload);
+  // Backend may return id as id, Id, or tripId depending on DTO serialization
+  const createdId: string | undefined = createResp?.data?.id || createResp?.data?.Id || createResp?.data?.tripId;
+      if(!createdId){
+        throw new Error('Trip created but no id returned');
+      }
+      // Fetch full trip details
+      const tripResp = await apiServices.getTripById(token, createdId);
+      const tripData = tripResp.data;
+      // Close modal before navigation
+      handleClose();
+      // Navigate with state for hydration
+  navigate('/tripplanner', { state: { tripId: createdId, trip: tripData } });
+    } catch(err: any) {
+      console.error('[CreateTripModal] createTrip failed', err);
+      if(err?.code === 'ERR_NETWORK') {
+        setErrorMsg(`Cannot reach server at ${apiBase}. Make sure the backend is running and accessible (network / certificate).`);
+      } else if(err?.response) {
+        const msg = err.response.data?.message || `Server error (${err.response.status}). Please try again.`;
+        setErrorMsg(msg);
+      } else {
+        setErrorMsg('Failed to create trip. Please try again.');
+      }
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const resetForm = () => {
@@ -116,6 +193,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
     endDate: null,
       visibility: "My followers",
       inviteEmail: "",
+      inviteEmails: [],
     });
     setShowInviteSection(true);
   };
@@ -125,7 +203,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
     onClose();
   };
 
-  const canStart = formData.tripName.trim().length > 0 && formData.selectedCountries.length > 0;
+  const canStart = formData.tripName.trim().length>0 && formData.selectedCountries.length>0 && !(formData.startDate && formData.endDate && formData.endDate.isBefore(formData.startDate,'day'));
 
   return (
     <Modal
@@ -144,10 +222,25 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
           boxShadow: "0 24px 48px rgba(25,118,210,0.18)",
           overflow: "hidden",
           display: "flex",
+          position: 'relative'
         }}
       >
+        {submitting && (
+          <Box sx={{ position:'absolute', inset:0, zIndex:10, backdropFilter:'blur(2px)', background:'rgba(0,0,0,0.35)', display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:2 }}>
+            <Typography variant='body2' sx={{ color:'#fff', fontWeight:600 }}>Creating trip...</Typography>
+            <Box sx={{ width:48, height:48, position:'relative' }}>
+              <Box sx={{ position:'absolute', inset:0, borderRadius:'50%', border:'4px solid rgba(255,255,255,0.3)' }} />
+              <Box sx={{ position:'absolute', inset:0, borderRadius:'50%', border:'4px solid transparent', borderTopColor:'#fff', animation:'rotate 0.9s linear infinite', '@keyframes rotate': { to: { transform:'rotate(360deg)' } } }} />
+            </Box>
+          </Box>
+        )}
         {/* Left panel – main form */}
         <Box sx={{ flex: "0 0 40vw", p: 4, overflowY: "auto" }}>
+          {errorMsg && (
+            <Alert severity="error" onClose={()=> setErrorMsg(null)} sx={{ mb:2 }} variant='filled'>
+              {errorMsg}
+            </Alert>
+          )}
           {/* Header with close */}
           <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "center", mb: 1 }}>
             <Typography sx={{ fontWeight: 600, color: 'text.primary', display: "flex", alignItems: "center", gap: 1 }}>
@@ -171,6 +264,8 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
             onChange={handleInputChange("tripName")}
             fullWidth
             variant="outlined"
+            error={!!fieldErrors.name}
+            helperText={fieldErrors.name}
             sx={{
               mb: 3,
               "& .MuiOutlinedInput-root": {
@@ -192,23 +287,30 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
             value={formData.selectedCountries}
             onChange={handleCountryChange}
             renderTags={(value, getTagProps) =>
-              value.map((option, index) => (
-                <Chip
-                  label={option}
-                  {...getTagProps({ index })}
-                  sx={{
-                    bgcolor: primary,
-                    color: "#fff",
-                    "& .MuiChip-deleteIcon": { color: "#fff", "&:hover": { color: "#f0f0f0" } },
-                  }}
-                />
-              ))
+              value.map((option, index) => {
+                // React 19 warns if "key" is provided via spread; extract it explicitly.
+                const { key, ...tagProps } = getTagProps({ index });
+                return (
+                  <Chip
+                    key={key}
+                    label={option}
+                    {...tagProps}
+                    sx={{
+                      bgcolor: primary,
+                      color: "#fff",
+                      "& .MuiChip-deleteIcon": { color: "#fff", "&:hover": { color: "#f0f0f0" } },
+                    }}
+                  />
+                );
+              })
             }
             renderInput={(params) => (
               <TextField
                 {...params}
                 placeholder="Select countries.."
                 variant="outlined"
+                error={!!fieldErrors.countries}
+                helperText={fieldErrors.countries}
                 InputProps={{
                   ...params.InputProps,
                   endAdornment: (
@@ -277,6 +379,9 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
               />
             </Grid>
           </Grid>
+          {fieldErrors.dates && (
+            <Typography variant='caption' sx={{ color:'error.main', mb:2, display:'block' }}>{fieldErrors.dates}</Typography>
+          )}
 
           <Typography
             variant="caption"
@@ -338,7 +443,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
             <Button
               variant="contained"
               onClick={handleStartPlanning}
-              disabled={!canStart}
+              disabled={!canStart || submitting}
               sx={{
                 bgcolor: primary,
                 borderRadius: 2,
@@ -348,7 +453,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
                 "&:hover": { bgcolor: "#1565c0" },
               }}
             >
-              Start planning
+              {submitting ? 'Creating...' : 'Start planning'}
             </Button>
           </Box>
         </Box>
@@ -380,6 +485,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
                 placeholder="Enter email address"
                 value={formData.inviteEmail}
                 onChange={handleInputChange("inviteEmail")}
+                onKeyDown={(e)=> { if(e.key==='Enter'){ e.preventDefault(); handleInviteFriend(); } }}
                 size="medium"
                 fullWidth
                 sx={{
@@ -399,6 +505,13 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
                 Add
               </Button>
             </Box>
+            {formData.inviteEmails.length>0 && (
+              <Box sx={{ mt:2, display:'flex', flexWrap:'wrap', gap:1 }}>
+                {formData.inviteEmails.map(email=> (
+                  <Chip key={email} label={email} onDelete={()=> handleRemoveInvite(email)} size='small' sx={{ bgcolor:'primary.main', color:'primary.contrastText' }} />
+                ))}
+              </Box>
+            )}
 
             <Box sx={{ mt: "auto" }}>
               <Typography variant="caption" sx={{ color: 'text.secondary' }}>
