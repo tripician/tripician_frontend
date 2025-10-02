@@ -10,11 +10,11 @@ import docsReducer, { persistDocs } from "./docsSlice";
 export const store = configureStore({
   reducer: {
     user: userReducer,
-  theme: themeReducer,
-  planner: plannerReducer,
-  news: newsReducer,
-  packing: packingReducer,
-  docs: docsReducer,
+    theme: themeReducer,
+    planner: plannerReducer,
+    news: newsReducer,
+    packing: packingReducer,
+    docs: docsReducer,
   },
 });
 

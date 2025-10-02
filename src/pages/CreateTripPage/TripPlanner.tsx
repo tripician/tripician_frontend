@@ -46,70 +46,54 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip }) => {
 
 	const [tab, setTab] = React.useState(0);
 
+    console.log('[TripPlanner] Initial trip data', initialTrip);
+
 	// Hydrate planner state from initialTrip if provided
 	React.useEffect(()=> {
 		if(!initialTrip) {
 			console.log('[TripPlanner] No initialTrip provided; (future) fetch by id', tripId);
 			return;
 		}
-		// Only hydrate if planner currently empty to avoid overwriting user edits after navigation
-		if(planner.destinations.length>0) {
-			console.log('[TripPlanner] Skipping hydration; destinations already present');
-			return;
+		const trip = initialTrip as any;
+		// Title (only if user hasn't edited)
+		if(title === 'Untitled Trip' && !editingTitle && typeof trip.name === 'string') {
+			setTitle(trip.name);
 		}
+		// Privacy mapping from backend visibility (Followers -> My Followers)
+		if(privacy === 'Private' && typeof trip.visibility === 'string') {
+			const vis = trip.visibility.toLowerCase();
+			if(vis.startsWith('follow')) setPrivacy('My Followers');
+			else if(vis.startsWith('every')) setPrivacy('Everyone');
+			else if(vis.startsWith('trip')) setPrivacy('Trip Members');
+			else setPrivacy('Private');
+		}
+		// Dates (meta only). Backend returns full ISO with T00:00:00
+		const rawStart: string | undefined = trip.startDate;
+		const rawEnd: string | undefined = trip.endDate;
+		const toDateOnly = (v?:string) => v? v.split('T')[0] : undefined;
+		const s = toDateOnly(rawStart);
+		const e = toDateOnly(rawEnd);
+		if(s && !tripStartDate) setTripStartDate(s);
+		if(e && !tripEndDate) setTripEndDate(e);
+		// Compute target nights from date range (difference in days). If invalid, fallback to 1.
+		let targetFromRange = 1;
 		try {
-			// Expect backend trip shape: { id, name, countries, startDate, endDate, visibility, destinations?, docs? }
-			const trip:any = initialTrip;
-			// Derive destinations array if backend provides day-by-day or countries list
-			let dests: any[] = [];
-			if(Array.isArray(trip.destinations) && trip.destinations.length) {
-				dests = trip.destinations.map((d:any)=> ({
-					id: d.id || 'dest_'+Math.random().toString(36).slice(2),
-					name: d.name || d.country || 'Destination',
-					startDate: d.startDate || trip.startDate || new Date().toISOString().slice(0,10),
-					endDate: d.endDate || d.startDate || trip.startDate || new Date().toISOString().slice(0,10),
-					nights: d.nights || 1,
-					transport: d.transport || '',
-					budget: 0,
-					lat: d.lat,
-					lng: d.lng,
-					placeId: d.placeId,
-					photoUrl: d.photoUrl,
-					spots: [],
-					foods: [],
-					docs: [],
-					category: 'general',
-					completed: false
-				}));
-			} else if(Array.isArray(trip.countries) && trip.countries.length) {
-				// Fallback: create sequential 1-night destinations from countries list
-				const start = trip.startDate || new Date().toISOString().slice(0,10);
-				const startDateObj = new Date(start);
-				dests = trip.countries.map((c:string, idx:number)=> {
-					const s = new Date(startDateObj.getTime() + idx*24*60*60*1000).toISOString().slice(0,10);
-					const e = new Date(startDateObj.getTime() + (idx+1)*24*60*60*1000).toISOString().slice(0,10);
-					return {
-						id: 'country_'+idx+'_'+Math.random().toString(36).slice(2),
-						name: c,
-						startDate: s,
-						endDate: e,
-						nights: 1,
-						transport: '',
-						budget: 0,
-						spots: [],
-						foods: [],
-						docs: [],
-						category: 'general',
-						completed: false
-					};
-				});
+			if(s && e) {
+				const ms = new Date(e).getTime() - new Date(s).getTime();
+				const days = Math.round(ms / (1000*60*60*24));
+				// Nights between start and end; ensure >=1
+				targetFromRange = Math.max(1, days);
 			}
-			// Estimate target nights = sum of nights or fallback to 8
-			const targetNights = dests.reduce((a,c)=> a + (c.nights||1), 0) || 8;
-			const plannerState = {
-				destinations: dests,
-				currency: 'EUR' as 'EUR',
-				targetNights,
+		} catch { /* ignore */ }
+		// Only initialize planner slice once (when empty). Do NOT fabricate destinations from countries.
+		if(planner.destinations.length===0) {
+			const currencyCode: string | undefined = trip.currencyCode;
+			const allowedCurrencies = ['EUR','USD','GBP'] as const;
+			const normalizedCurrency = allowedCurrencies.includes(currencyCode as any) ? currencyCode as typeof allowedCurrencies[number] : 'EUR';
+			const initialState = {
+				destinations: [] as any[],
+				currency: normalizedCurrency,
+				targetNights: targetFromRange,
 				globalDocs: [],
 				visaDocs: [],
 				pinnedDocIds: [],
@@ -119,10 +103,11 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip }) => {
 				expenseVisibilityEmails: [],
 				comments: []
 			};
-			dispatch(loadState(plannerState));
-			console.log('[TripPlanner] Hydrated planner slice from initialTrip', { tripId, destinations: dests.length });
-		} catch(err) {
-			console.error('[TripPlanner] Failed to hydrate from initialTrip', err);
+			dispatch(loadState(initialState));
+			console.log('[TripPlanner] Initialized planner from initialTrip meta', { tripId, targetNights: targetFromRange, currency: normalizedCurrency });
+		} else {
+			// Planner already has destinations; we only updated meta states
+			console.log('[TripPlanner] Skipped planner loadState; destinations already present');
 		}
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [initialTrip, tripId]);
@@ -135,13 +120,16 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip }) => {
 	const [isDraft, setIsDraft] = React.useState(true);
 	const [title, setTitle] = React.useState('Untitled Trip');
 	const [editingTitle, setEditingTitle] = React.useState(false);
+	// Meta date range sourced from backend trip (independent of destination ordering)
+	const [tripStartDate, setTripStartDate] = React.useState<string | null>(null);
+	const [tripEndDate, setTripEndDate] = React.useState<string | null>(null);
 	const [currencyAnchor, setCurrencyAnchor] = React.useState<null | HTMLElement>(null);
 	const [privacyAnchor, setPrivacyAnchor] = React.useState<null | HTMLElement>(null);
 	const [privacy, setPrivacy] = React.useState<'Private'|'Trip Members'|'My Followers'|'Everyone'>('Private');
 	const [settingsOpen, setSettingsOpen] = React.useState(false);
 	const [optimizingRoute, setOptimizingRoute] = React.useState(false);
 	const [mapCollapsed, setMapCollapsed] = React.useState(false);
-	const [mapWidth, setMapWidth] = React.useState(0.40);
+	const [mapWidth, setMapWidth] = React.useState(0.30); // default map takes 30% width now
 	const containerRef = React.useRef<HTMLDivElement|null>(null);
 	const resizingRef = React.useRef(false);
 	const visaInputRef = React.useRef<HTMLInputElement|null>(null);
@@ -149,6 +137,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip }) => {
 
 	const [visaOpen, setVisaOpen] = React.useState(false);
 	const [pinnedOpen, setPinnedOpen] = React.useState(false);
+
+	// (Removed secondary meta extraction effect; consolidated into primary hydration effect)
 
 	const passportIconUrl = React.useMemo(() => {
 		return import.meta.env.MODE === 'production'
@@ -547,8 +537,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip }) => {
 				open={settingsOpen}
 				onClose={()=> setSettingsOpen(false)}
 				title={title}
-				startDate={planner.destinations[0]?.startDate || new Date().toISOString().slice(0,10)}
-				endDate={planner.destinations[planner.destinations.length-1]?.endDate || new Date().toISOString().slice(0,10)}
+				startDate={tripStartDate || planner.destinations[0]?.startDate || new Date().toISOString().slice(0,10)}
+				endDate={tripEndDate || planner.destinations[planner.destinations.length-1]?.endDate || tripStartDate || new Date().toISOString().slice(0,10)}
 				privacy={privacy}
 				members={[{ id:'me', name: "Rover's Compass", handle:'@username', avatar: undefined, role:'Owner' }]}
 				onChangeTitle={(t)=> setTitle(t)}

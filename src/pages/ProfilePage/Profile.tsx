@@ -4,7 +4,6 @@ import {
 } from "@mui/material";
 import { Refresh, Person } from "@mui/icons-material";
 import UserProfileBanner from "./UserProfileBanner";
-import NavigationPanel from "../PageLayout/CommonLayouts/NavigationPanel";
 import { useEffect } from "react";
 import TopBar from "../PageLayout/CommonLayouts/TopBar";
 import ProfileBadges from "./ProfileBadges";
@@ -36,121 +35,113 @@ const Profile: React.FC = () => {
   // ✅ Loading state
   if (loading) {
     return (
-      <NavigationPanel>
-        <Box sx={{ 
-          width: "100%", 
-          backgroundColor: "background.default",
-          minHeight: "100vh"
-        }}>
-          <TopBar />
-          <Box 
-            sx={{ 
-              display: "flex", 
-              flexDirection: "column",
-              justifyContent: "center", 
-              alignItems: "center", 
-              minHeight: "60vh",
-              gap: 2
-            }}
-          >
-            <CircularProgress 
-              size={48} 
-              sx={{ color: "primary.main" }}
-            />
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                color: "text.primary",
-                fontWeight: 500
-              }}
-            >
-              Loading profile...
-            </Typography>
-          </Box>
-        </Box>
-      </NavigationPanel>
-    );
-  }
-
-  // ✅ Error state
-  if (error) {
-    return (
-      <NavigationPanel>
-        <Box sx={{ 
-          width: "100%", 
-          backgroundColor: "background.default",
-          minHeight: "100vh"
-        }}>
-          <TopBar />
-          <Container maxWidth="lg" sx={{ pt: 3 }}>
-            <Alert 
-              severity="error"
-              sx={{
-                borderRadius: 2,
-                boxShadow: 1
-              }}
-              action={
-                <Button 
-                  color="inherit" 
-                  size="small" 
-                  onClick={() => dispatch(fetchUserProfile())}
-                  sx={{ fontWeight: 500 }}
-                >
-                  Retry
-                </Button>
-              }
-            >
-              <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                Error loading profile:
-              </Typography>
-              <Typography variant="body2">
-                {error}
-              </Typography>
-            </Alert>
-          </Container>
-        </Box>
-      </NavigationPanel>
-    );
-  }
-
-  // ✅ If no profile (not authenticated)
-  if (!profile) {
-    return (
-      <NavigationPanel>
-        <Box sx={{ 
-          width: "100%", 
-          backgroundColor: "background.default",
-          minHeight: "100vh"
-        }}>
-          <TopBar />
-          <Container maxWidth="lg" sx={{ pt: 3 }}>
-            <Alert 
-              severity="warning"
-              sx={{
-                borderRadius: 2,
-                boxShadow: 1
-              }}
-              icon={<Person />}
-            >
-              <Typography variant="body1" sx={{ fontWeight: 500 }}>
-                Please log in to view your profile.
-              </Typography>
-            </Alert>
-          </Container>
-        </Box>
-      </NavigationPanel>
-    );
-  }
-
-  // ✅ Main UI
-  return (
-    <NavigationPanel>
       <Box sx={{ 
         width: "100%", 
         backgroundColor: "background.default",
         minHeight: "100vh"
       }}>
         <TopBar />
+        <Box 
+          sx={{ 
+            display: "flex", 
+            flexDirection: "column",
+            justifyContent: "center", 
+            alignItems: "center", 
+            minHeight: "60vh",
+            gap: 2
+          }}
+        >
+          <CircularProgress 
+            size={48} 
+            sx={{ color: "primary.main" }}
+          />
+          <Typography 
+            variant="h6" 
+            sx={{ 
+              color: "text.primary",
+              fontWeight: 500
+            }}
+          >
+            Loading profile...
+          </Typography>
+        </Box>
+      </Box>
+    );
+  }
+
+  // ✅ Error state
+  if (error) {
+    return (
+      <Box sx={{ 
+        width: "100%", 
+        backgroundColor: "background.default",
+        minHeight: "100vh"
+      }}>
+        <TopBar />
+        <Container maxWidth="lg" sx={{ pt: 3 }}>
+          <Alert 
+            severity="error"
+            sx={{
+              borderRadius: 2,
+              boxShadow: 1
+            }}
+            action={
+              <Button 
+                color="inherit" 
+                size="small" 
+                onClick={() => dispatch(fetchUserProfile())}
+                sx={{ fontWeight: 500 }}
+              >
+                Retry
+              </Button>
+            }
+          >
+            <Typography variant="body1" sx={{ fontWeight: 500 }}>
+              Error loading profile:
+            </Typography>
+            <Typography variant="body2">
+              {error}
+            </Typography>
+          </Alert>
+        </Container>
+      </Box>
+    );
+  }
+
+  // ✅ If no profile (not authenticated)
+  if (!profile) {
+    return (
+      <Box sx={{ 
+        width: "100%", 
+        backgroundColor: "background.default",
+        minHeight: "100vh"
+      }}>
+        <TopBar />
+        <Container maxWidth="lg" sx={{ pt: 3 }}>
+          <Alert 
+            severity="warning"
+            sx={{
+              borderRadius: 2,
+              boxShadow: 1
+            }}
+            icon={<Person />}
+          >
+            <Typography variant="body1" sx={{ fontWeight: 500 }}>
+              Please log in to view your profile.
+            </Typography>
+          </Alert>
+        </Container>
+      </Box>
+    );
+  }
+
+  // ✅ Main UI
+  return (
+    <Box sx={{
+      width: "100%", 
+      backgroundColor: "background.default",
+    }}>
+      <TopBar />
 
         {/* Banner */}
         <UserProfileBanner
@@ -261,8 +252,7 @@ const Profile: React.FC = () => {
             </Card>
           )}
         </Container>
-      </Box>
-    </NavigationPanel>
+    </Box>
   );
 };
 
