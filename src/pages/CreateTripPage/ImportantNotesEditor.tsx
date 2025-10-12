@@ -13,12 +13,13 @@ interface ImportantNotesEditorProps {
   value?: string;           // If provided => controlled mode
   onChange?: (html: string) => void; // Fired on every content change
   compact?: boolean; // compact header inline mode
+  readOnly?: boolean; // when true, suppress editing
 }
 
 const MAX_CHARS = 1000;
 
 const ImportantNotesEditor: React.FC<ImportantNotesEditorProps> = (props) => {
-  const { value, onChange, compact } = props;
+  const { value, onChange, compact, readOnly=false } = props;
   const isControlled = value !== undefined; // uncontrolled if prop omitted
   const initial = (value ?? '');
   const ref = React.useRef<HTMLDivElement | null>(null);
@@ -126,8 +127,8 @@ const ImportantNotesEditor: React.FC<ImportantNotesEditorProps> = (props) => {
 
   if (compact) {
     return (
-      <Box
-  onClick={()=> { if(!editing){ setEditing(true); if(ref.current && ref.current.innerHTML !== internal){ ref.current.innerHTML = internal; } setTimeout(()=> { ref.current?.focus(); placeCursorAtEnd(ref.current!); }, 0); } }}
+  <Box
+	  onClick={()=> { if(readOnly) return; if(!editing){ setEditing(true); if(ref.current && ref.current.innerHTML !== internal){ ref.current.innerHTML = internal; } setTimeout(()=> { ref.current?.focus(); placeCursorAtEnd(ref.current!); }, 0); } }}
         sx={(theme)=>({
           flex:1,
             minWidth:0,
@@ -145,39 +146,40 @@ const ImportantNotesEditor: React.FC<ImportantNotesEditorProps> = (props) => {
       >
         {/* Toolbar (shows only while editing) */}
         <Box sx={(theme)=>({
-          height: editing? 36:0,
-          opacity: editing? 1:0,
-          pointerEvents: editing? 'auto':'none',
+          height: editing && !readOnly? 36:0,
+          opacity: editing && !readOnly? 1:0,
+          pointerEvents: editing && !readOnly? 'auto':'none',
           display:'flex', alignItems:'center', gap:.5,
           px:1, py:.5,
           borderBottom: editing? `1px solid ${theme.palette.divider}`:'none',
           background: theme.palette.action.hover,
           transition:'all .2s ease'
         })} onMouseDown={(e)=> e.stopPropagation()}>
-          <Tooltip title='Bold'><span><IconButton size='small' onClick={()=> exec('bold')}><FormatBoldIcon fontSize='small' /></IconButton></span></Tooltip>
-          <Tooltip title='Italic'><span><IconButton size='small' onClick={()=> exec('italic')}><FormatItalicIcon fontSize='small' /></IconButton></span></Tooltip>
-          <Tooltip title='Highlight'><span><IconButton size='small' onClick={(e)=> { e.stopPropagation(); highlight(); }}><HighlightIcon fontSize='small' /></IconButton></span></Tooltip>
-          <Tooltip title='Bullet list'><span><IconButton size='small' onClick={(e)=> { e.stopPropagation(); exec('insertUnorderedList'); }}><FormatListBulletedIcon fontSize='small' /></IconButton></span></Tooltip>
-          <Tooltip title='Numbered list'><span><IconButton size='small' onClick={(e)=> { e.stopPropagation(); exec('insertOrderedList'); }}><FormatListNumberedIcon fontSize='small' /></IconButton></span></Tooltip>
-          <Tooltip title='Insert link'><span><IconButton size='small' onClick={(e)=> { e.stopPropagation(); const url = prompt('Enter URL'); if(url){ let u=url.trim(); if(!/^https?:\/\//i.test(u)) u='https://'+u; exec('createLink', u); } }}><LinkIcon fontSize='small' /></IconButton></span></Tooltip>
-          <Tooltip title='Increase font size'><span><IconButton size='small' onClick={(e)=> { e.stopPropagation(); changeFontSize(2); }}><TextIncreaseIcon fontSize='small' /></IconButton></span></Tooltip>
-          <Tooltip title='Decrease font size'><span><IconButton size='small' onClick={(e)=> { e.stopPropagation(); changeFontSize(-2); }}><TextDecreaseIcon fontSize='small' /></IconButton></span></Tooltip>
+          {!readOnly && <Tooltip title='Bold'><span><IconButton size='small' onClick={()=> exec('bold')}><FormatBoldIcon fontSize='small' /></IconButton></span></Tooltip>}
+          {!readOnly && <Tooltip title='Italic'><span><IconButton size='small' onClick={()=> exec('italic')}><FormatItalicIcon fontSize='small' /></IconButton></span></Tooltip>}
+          {!readOnly && <Tooltip title='Highlight'><span><IconButton size='small' onClick={(e)=> { e.stopPropagation(); highlight(); }}><HighlightIcon fontSize='small' /></IconButton></span></Tooltip>}
+          {!readOnly && <Tooltip title='Bullet list'><span><IconButton size='small' onClick={(e)=> { e.stopPropagation(); exec('insertUnorderedList'); }}><FormatListBulletedIcon fontSize='small' /></IconButton></span></Tooltip>}
+          {!readOnly && <Tooltip title='Numbered list'><span><IconButton size='small' onClick={(e)=> { e.stopPropagation(); exec('insertOrderedList'); }}><FormatListNumberedIcon fontSize='small' /></IconButton></span></Tooltip>}
+          {!readOnly && <Tooltip title='Insert link'><span><IconButton size='small' onClick={(e)=> { e.stopPropagation(); const url = prompt('Enter URL'); if(url){ let u=url.trim(); if(!/^https?:\/\//i.test(u)) u='https://'+u; exec('createLink', u); } }}><LinkIcon fontSize='small' /></IconButton></span></Tooltip>}
+          {!readOnly && <Tooltip title='Increase font size'><span><IconButton size='small' onClick={(e)=> { e.stopPropagation(); changeFontSize(2); }}><TextIncreaseIcon fontSize='small' /></IconButton></span></Tooltip>}
+          {!readOnly && <Tooltip title='Decrease font size'><span><IconButton size='small' onClick={(e)=> { e.stopPropagation(); changeFontSize(-2); }}><TextDecreaseIcon fontSize='small' /></IconButton></span></Tooltip>}
           <Box sx={{ flexGrow:1 }} />
-          <Tooltip title='Cancel (Esc)'><span><IconButton size='small' onClick={(e)=> { e.stopPropagation(); setInternal(saved); if(ref.current) ref.current.innerHTML = saved; setEditing(false); }}>✕</IconButton></span></Tooltip>
-          <Tooltip title='Save (Enter)'><span><IconButton color='primary' size='small' onClick={(e)=> { e.stopPropagation(); setSaved(internal); if(isControlled){ prevValueRef.current = internal; } setEditing(false); }}>✓</IconButton></span></Tooltip>
+          {!readOnly && <Tooltip title='Cancel (Esc)'><span><IconButton size='small' onClick={(e)=> { e.stopPropagation(); setInternal(saved); if(ref.current) ref.current.innerHTML = saved; setEditing(false); }}>✕</IconButton></span></Tooltip>}
+          {!readOnly && <Tooltip title='Save (Enter)'><span><IconButton color='primary' size='small' onClick={(e)=> { e.stopPropagation(); setSaved(internal); if(isControlled){ prevValueRef.current = internal; } setEditing(false); }}>✓</IconButton></span></Tooltip>}
         </Box>
         {/* Content area */}
         <Box
           ref={ref}
           dir='ltr'
-          contentEditable={editing}
+          contentEditable={editing && !readOnly}
           suppressContentEditableWarning
-          onInput={handleInput}
+          onInput={readOnly? undefined : handleInput}
           onKeyDown={(e)=> {
+            if(readOnly) { e.preventDefault(); return; }
             if(editing && e.key==='Escape'){ e.preventDefault(); setInternal(saved); if(ref.current) ref.current.innerHTML=saved; setEditing(false); }
             if(editing && e.key==='Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); setSaved(internal); if(isControlled){ prevValueRef.current = internal; } setEditing(false); }
           }}
-          sx={{ flex:1, px:1.25, py:.6, outline:'none', fontSize:13, lineHeight:1.5, overflow:'hidden', whiteSpace:'pre-wrap', wordBreak:'break-word', userSelect: editing? 'text':'none', '&:empty:before':{ content: 'attr(data-placeholder)', color:'text.secondary', opacity:.7, fontStyle:'italic' }, ...(editing? { overflowY:'auto', maxHeight:140 } : { display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical' }) }}
+          sx={{ flex:1, px:1.25, py:.6, outline:'none', fontSize:13, lineHeight:1.5, overflow:'hidden', whiteSpace:'pre-wrap', wordBreak:'break-word', userSelect: editing? 'text':'none', opacity: readOnly? .75:1, '&:empty:before':{ content: 'attr(data-placeholder)', color:'text.secondary', opacity:.7, fontStyle:'italic' }, ...(editing? { overflowY:'auto', maxHeight:140 } : { display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical' }) }}
           data-placeholder='Pin your important notes here'
         />
         <Box sx={{ position:'absolute', bottom:4, right:8, fontSize:11, color:'text.secondary', background:'rgba(0,0,0,0.04)', px:.75, py:.25, borderRadius:10 }}>
@@ -221,7 +223,7 @@ const ImportantNotesEditor: React.FC<ImportantNotesEditorProps> = (props) => {
         {...{ dangerouslySetInnerHTML: { __html: internal } }}
       />
       <Box sx={{ display:'flex', justifyContent:'flex-end', px:1.25, pb:.5 }}>
-        <Typography variant='caption' sx={{ opacity:.7 }}>{charCount} / {MAX_CHARS}</Typography>
+  <Typography variant='caption' sx={{ opacity:.7 }}>{charCount} / {MAX_CHARS}</Typography>
       </Box>
     </Box>
   );

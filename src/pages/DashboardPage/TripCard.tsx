@@ -7,13 +7,20 @@ interface TripCardProps {
   image: string;
   progress?: number;
   edited?: string;
-  members?: { name: string; profilePic: string }[];
+  members?: { name: string; profilePic: string; id?: string }[];
+  onClick?: () => void;
 }
 
-const TripCard: React.FC<TripCardProps> = ({ title, location, image, progress, edited, members }) => {
+const TripCard: React.FC<TripCardProps> = ({ title, location, image, progress, edited, members, onClick }) => {
   const fallbackProfile = import.meta.env.VITE_NO_PROFILE_PIC_URL || '';
   return (
-    <div className="trip-card card border-0" style={{ width: '100%', height: '40vh' }}>
+    <div
+      className="trip-card card border-0"
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={onClick}
+      onKeyDown={(e)=> { if(onClick && (e.key==='Enter' || e.key===' ')){ e.preventDefault(); onClick(); } }}
+      style={{ width: '100%', height: '40vh', cursor: onClick ? 'pointer' : 'default' }}>
       <div className="trip-image-wrapper">
         <img src={image} className="card-img-top" alt={title} />
       </div>

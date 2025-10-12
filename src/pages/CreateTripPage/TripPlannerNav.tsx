@@ -35,9 +35,9 @@ const navItems: NavItem[] = [
   { id: 'docs', label: 'Docs', icon: <InsertDriveFileIcon fontSize='small' /> }
 ];
 
-interface TripPlannerNavProps { active?: string; onChange?: (id: string) => void; onSettingsClick?:()=>void; }
+interface TripPlannerNavProps { active?: string; onChange?: (id: string) => void; onSettingsClick?:()=>void; hideSections?: string[]; }
 
-const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChange, onSettingsClick }) => {
+const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChange, onSettingsClick, hideSections=[] }) => {
   return (
     <Box
       sx={(theme) => ({
@@ -65,7 +65,7 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
           style={{ height: 38, width: 38, borderRadius: 12, objectFit: 'contain', filter: 'brightness(1.05)' }}
         />
       </Box>
-      {navItems.map(item => {
+  {navItems.filter(i=> !hideSections.includes(i.id)).map(item => {
         const selected = item.id === active;
         return (
           <Tooltip key={item.id} title={item.label} placement='right' arrow>

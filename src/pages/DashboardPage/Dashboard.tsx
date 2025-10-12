@@ -4,12 +4,14 @@ import '../../assets/css/Dashboard.css';
 import santorini from '../../assets/santorini.png'; // fallback placeholder image
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import { Tabs, Tab, Box, CircularProgress, Typography, Alert } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 
 
 const Dashboard: React.FC = () => {
   const { token } = useAuthToken();
+  const navigate = useNavigate();
   const [allPlans, setAllPlans] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
   const [tabValue, setTabValue] = useState(0);
@@ -135,6 +137,7 @@ const Dashboard: React.FC = () => {
                 progress={plan.progress}
                 edited={plan.edited}
                 members={plan.members}
+                onClick={()=> navigate(`/trip/${plan.id}`, { state: { trip: { id: plan.id, name: plan.title, visibility: plan.visibility, ownerId: plan.ownerId, memberIds: (plan.members||[]).map((m:any)=> m.id).filter(Boolean) } } })}
               />
             ))}
           </div>

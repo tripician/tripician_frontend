@@ -10,7 +10,8 @@ import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import { setCurrency as setCurrencyAction, updateDestinationNights, setTransport, addDestination, removeDestination, reorderChain, addVisaDoc, removeVisaDoc, removeGlobalDoc, pinDoc, unpinDoc, loadState } from '../../store/plannerSlice';
 import { togglePin as togglePinDocSlice, removeDocument as removeDocsSliceDocument } from '../../store/docsSlice';
-import { validateFiles, DEFAULT_DOC_RULE } from '../../utils/fileValidation';
+import { DEFAULT_DOC_RULE } from '../../utils/fileValidation'; // legacy use (validateFiles removed after refactor)
+import ValidatedFileInput from '../../components/CommonComponents/ValidatedFileInput';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CreateTripNav from './TripPlannerNav';
 import NewsPanel from './NewsPanel';
@@ -32,17 +33,26 @@ import CheckIcon from '@mui/icons-material/Check';
 import Docs from '../DocsPage/Docs';
 
 export interface TripPlannerProps {
-  tripId: string;
-  initialTrip?: any; // TODO: Replace with Trip type when available
+	tripId: string;
+	initialTrip?: any; // TODO: Replace with Trip type when available
+	readOnly?: boolean; // external view mode
+	hideSections?: string[];
+	isOwnerExternal?: boolean; // provided by TripView to control publish visibility
+	onRequestEdit?: ()=>void; // TripView can trigger enabling edit mode
 }
 
-const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip }) => {
+const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly=false, hideSections=[], isOwnerExternal=true, onRequestEdit }) => {
 	const dispatch = useDispatch<AppDispatch>();
 	const planner = useSelector((s: RootState) => s.planner);
 	const docsState = useSelector((s: RootState) => s.docs);
 	const currency = planner.currency;
 	const targetNights = planner.targetNights;
 	const totalNights = planner.destinations.reduce((a,c)=>a+c.nights,0);
+
+	// External non-owner viewer (not allowed to see / edit sensitive sections)
+	// External (view-only) mode distinction: if readOnly, ALL editing of privacy, expenses, budget etc is disabled.
+	// Previous logic only disabled for non-owners; requirement: privacy should be read only in ANY view-only context.
+	const isExternalNonOwner = readOnly && !isOwnerExternal; // kept for existing gating of other owner-specific UI
 
 	const [tab, setTab] = React.useState(0);
 
@@ -132,7 +142,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip }) => {
 	const [mapWidth, setMapWidth] = React.useState(0.30); // default map takes 30% width now
 	const containerRef = React.useRef<HTMLDivElement|null>(null);
 	const resizingRef = React.useRef(false);
-	const visaInputRef = React.useRef<HTMLInputElement|null>(null);
 	const [visaErrors, setVisaErrors] = React.useState<string[]>([]);
 
 	const [visaOpen, setVisaOpen] = React.useState(false);
@@ -252,19 +261,19 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip }) => {
 
 	return (
 		<Box sx={{ display:'flex', flexDirection:'row', height:'100vh', overflow:'hidden' }}>
-	<CreateTripNav active={section} onChange={(id)=> setSectionDebug(id as any)} onSettingsClick={()=> setSettingsOpen(true)} />
+	<CreateTripNav active={section} onChange={(id)=> setSectionDebug(id as any)} onSettingsClick={()=> setSettingsOpen(true)} hideSections={hideSections} />
 			<Box sx={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, minHeight:0 }}>
 				<TopBar showSearch={false} centerNode={
 					<Box sx={{ display:'flex', alignItems:'center' }}>
 						{editingTitle ? (
 							<Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
-								<InputBase value={title} onChange={e=> setTitle(e.target.value)} autoFocus onBlur={()=> setEditingTitle(false)} sx={{ px:1.2, py:.5, borderRadius:1.5, fontWeight:600, fontSize:18, border:(t)=>`1px solid ${t.palette.divider}`, background:(t)=> t.palette.mode==='dark'? '#1e2936':'#f5f7f9', minWidth:180 }} />
-								<IconButton size='small' onClick={()=> setEditingTitle(false)}><CheckIcon fontSize='small' /></IconButton>
+								<InputBase value={title} onChange={e=> setTitle(e.target.value)} autoFocus onBlur={()=> setEditingTitle(false)} disabled={isExternalNonOwner} sx={{ px:1.2, py:.5, borderRadius:1.5, fontWeight:600, fontSize:18, border:(t)=>`1px solid ${t.palette.divider}`, background:(t)=> t.palette.mode==='dark'? '#1e2936':'#f5f7f9', minWidth:180, opacity:isExternalNonOwner? .6:1 }} />
+								{!isExternalNonOwner && <IconButton size='small' onClick={()=> setEditingTitle(false)}><CheckIcon fontSize='small' /></IconButton>}
 							</Box>
 						) : (
 							<Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
-								<Typography variant='h6' fontWeight={600} noWrap sx={{ cursor:isDraft?'text':'default' }} onClick={()=> { if(isDraft) setEditingTitle(true); }}>{title}</Typography>
-								{isDraft && <IconButton size='small' onClick={()=> setEditingTitle(true)} sx={{ ml:-.5 }}><EditIcon fontSize='small' /></IconButton>}
+								<Typography variant='h6' fontWeight={600} noWrap sx={{ cursor:isDraft && !isExternalNonOwner ? 'text':'default' }} onClick={()=> { if(isDraft && !isExternalNonOwner) setEditingTitle(true); }}>{title}</Typography>
+								{isDraft && !isExternalNonOwner && <IconButton size='small' onClick={()=> setEditingTitle(true)} sx={{ ml:-.5 }}><EditIcon fontSize='small' /></IconButton>}
 							</Box>
 						)}
 						<Chip size='small' label={isDraft? 'Draft':'Published'} color={isDraft? 'default':'success'} sx={{ fontSize:11, fontWeight:500, ml:1 }} />
@@ -287,7 +296,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip }) => {
 					<Box sx={(theme)=>({ flexBasis: mapCollapsed?'100%':`calc(${(1-mapWidth)*100}% - 2px)`, maxWidth: mapCollapsed?'100%':`calc(${(1-mapWidth)*100}% - 2px)`, minWidth:0, flexShrink:0, display:'flex', flexDirection:'column', backgroundColor: theme.palette.background.paper, borderRight: mapCollapsed? 'none': { lg:`1px solid ${theme.palette.divider}`}, transition: resizingRef.current?'none':'flex-basis .18s ease' })}>
 						<Box sx={{ px:2, py:1.25, display:'flex', alignItems:'stretch', gap:2, borderBottom:(t)=>`1px solid ${t.palette.divider}` }}>
 							<Box sx={{ flex:1.4, minWidth:360, display:'flex', alignItems:'stretch' }}>
-								<ImportantNotesEditor compact />
+								<ImportantNotesEditor compact readOnly={isExternalNonOwner} />
 							</Box>
 							<Box sx={{ ml:'auto', display:'flex', alignItems:'flex-start', gap:3, minWidth:300 }}>
 								<Box sx={{ display:'flex', flexDirection:'column', maxWidth:140 }}>
@@ -296,8 +305,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip }) => {
 										<Typography variant='body2' fontWeight={600}>
 											{(planner.tripBudget!=null ? planner.tripBudget : 0).toFixed(2)}
 										</Typography>
-										<Button size='small' variant='text' onClick={openCurrency} endIcon={<ExpandMoreIcon fontSize='small' />} sx={{ textTransform:'none', px:1, minWidth:0 }}>{currency}</Button>
+										<Button size='small' variant='text' onClick={readOnly? undefined : openCurrency} disabled={readOnly} endIcon={<ExpandMoreIcon fontSize='small' />} sx={{ textTransform:'none', px:1, minWidth:0 }}>{currency}</Button>
 									</Box>
+									{!isExternalNonOwner && (
 									<Paper role='button' onClick={()=> setVisaOpen(true)} sx={(t)=>({ mt:1.25, cursor:'pointer', width:140, px:1.2, py:1, borderRadius:1, display:'flex', flexDirection:'row', gap:.75, alignItems:'center', border:`1px dashed ${t.palette.divider}`, background: t.palette.mode==='dark'? '#13202b':'#f5fbff', '&:hover':{ borderColor:t.palette.primary.main } })}>
 										<Box component='img' src={passportIconUrl} alt='Visa docs' loading='lazy' style={{ width:30, height:30, objectFit:'contain', filter:'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }} />
 										<Box sx={{ display:'flex', flexDirection:'column', minWidth:0 }}>
@@ -305,13 +315,15 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip }) => {
 											<Typography variant='caption' sx={{ opacity:.6, lineHeight:1 }}>{planner.visaDocs?.length||0} file(s)</Typography>
 										</Box>
 									</Paper>
+									)}
 								</Box>
 								<Box sx={{ display:'flex', flexDirection:'column', maxWidth:140 }}>
 									<Typography variant='caption' color='text.secondary'>Privacy</Typography>
 									<Box sx={{ display:'flex', alignItems:'center', gap:.5 }}>
 										<Typography variant='body2' fontWeight={600}>{privacy}</Typography>
-										<Button size='small' variant='text' onClick={openPrivacy} endIcon={<ExpandMoreIcon fontSize='small' />} sx={{ textTransform:'none', px:1, minWidth:0 }} />
+										<Button size='small' variant='text' onClick={readOnly? undefined: openPrivacy} disabled={readOnly} endIcon={<ExpandMoreIcon fontSize='small' />} sx={{ textTransform:'none', px:1, minWidth:0 }} />
 									</Box>
+									{!isExternalNonOwner && (
 									<Paper role='button' onClick={()=> setPinnedOpen(true)} sx={(t)=>({ mt:1.8, cursor:'pointer', width:140, px:1.2, py:1, borderRadius:1, display:'flex', flexDirection:'row', gap:.75, alignItems:'center', border:`1px dashed ${t.palette.divider}`, background: t.palette.mode==='dark'? '#181c24':'#f7f7fa', '&:hover':{ borderColor:t.palette.primary.main } })}>
 										<Box component='img' src={pinnedIconUrl} alt='Pinned docs' loading='lazy' style={{ width:30, height:30, objectFit:'contain', filter:'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }} />
 										<Box sx={{ display:'flex', flexDirection:'column', minWidth:0 }}>
@@ -319,6 +331,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip }) => {
 											<Typography variant='caption' sx={{ opacity:.6, lineHeight:1 }}>{combinedPinnedDocs.length} pinned</Typography>
 										</Box>
 									</Paper>
+									)}
 								</Box>
 							</Box>
 						</Box>
@@ -363,6 +376,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip }) => {
 									{mapCollapsed ? <OpenInFullIcon fontSize='small' /> : <CloseFullscreenIcon fontSize='small' />}
 								</IconButton>
 							</Tooltip>
+							{!isExternalNonOwner && (
 							<Tooltip arrow placement='top' title={geocodedCount < 3 ? 'Add at least 3 destinations with coordinates to optimize' : optimizingRoute ? 'Optimizing route...' : 'Optimize route'}>
 								<span>
 									<IconButton aria-label='Optimize route' onClick={handleOptimizeRouteClick} disabled={geocodedCount < 3 || optimizingRoute} sx={{ ml:.5, bgcolor:'primary.main', color:'primary.contrastText', borderRadius:2, position:'relative', '&:hover':{ bgcolor:'primary.dark' }, '&.Mui-disabled':{ bgcolor:'action.disabledBackground', color:'text.disabled' } }}>
@@ -374,6 +388,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip }) => {
 									</IconButton>
 								</span>
 							</Tooltip>
+							)}
 						</Box>
 						)}
 						<Divider />
@@ -381,7 +396,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip }) => {
 							{section==='plan' && tab===0 && (
 								<Box sx={{ px:0 }}>
 									{ENABLE_CARD_LAYOUT ? (
-										<DestinationCardsPanel maxed={totalNights >= targetNights} />
+										<DestinationCardsPanel maxed={totalNights >= targetNights} readOnly={readOnly} />
 									) : (
 										<DestinationsPanel
 											destinations={panelDestinations}
@@ -394,14 +409,19 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip }) => {
 									)}
 								</Box>
 							)}
-							{section==='plan' && tab===1 && <ExpensesPanel />}
+							{section==='plan' && tab===1 && <ExpensesPanel readOnly={readOnly} />}
 							{section==='plan' && tab===2 && <TripComments />}
 						</Box>
 						<Box sx={(t)=>({ borderTop:`1px solid ${t.palette.divider}`, px:2.5, py:1.5, background:t.palette.background.paper, display:'flex', alignItems:'center', justifyContent:'space-between' })}>
 							<Typography variant='caption' color='text.secondary'>Last saved: just now</Typography>
 							<Box sx={{ display:'flex', gap:1.2 }}>
-								<Button size='small' variant='outlined' onClick={()=> setIsDraft(true)} disabled={isDraft} sx={{ textTransform:'none', borderRadius:2 }}>Save as Draft</Button>
-								<Button size='small' variant='contained' color={isDraft? 'primary':'success'} onClick={handlePublish} sx={{ textTransform:'none', borderRadius:2 }}>{isDraft? 'Publish':'Published'}</Button>
+								<Button size='small' variant='outlined' onClick={()=> setIsDraft(true)} disabled={isDraft || !isOwnerExternal} sx={{ textTransform:'none', borderRadius:2 }}>{isDraft? 'Draft':'Save as Draft'}</Button>
+								{!isOwnerExternal && readOnly && (
+									<Button size='small' variant='contained' color='primary' onClick={()=> { onRequestEdit?.(); }} sx={{ textTransform:'none', borderRadius:2 }}>Edit</Button>
+								)}
+								{isOwnerExternal && (
+									<Button size='small' variant='contained' color={isDraft? 'primary':'success'} onClick={handlePublish} sx={{ textTransform:'none', borderRadius:2 }}>{isDraft? 'Publish':'Published'}</Button>
+								)}
 							</Box>
 						</Box>
 					</Box>
@@ -409,17 +429,37 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip }) => {
 					{section==='plan' && !mapCollapsed && (<><Box onMouseDown={startResize} sx={{ width:4, cursor:'col-resize', background:(t)=> t.palette.mode==='dark'? t.palette.grey[800]: t.palette.grey[200], '&:hover':{ background:(t)=> t.palette.primary.main } }} /><MapPanel widthFraction={mapWidth} /></>)}
 					<ChatAssistant />
 				</Box>
+				{!readOnly && (
 				<Menu anchorEl={currencyAnchor} open={Boolean(currencyAnchor)} onClose={closeCurrency} elevation={3}>
 					{(['EUR','USD','GBP'] as const).map(c=> (<MenuItem key={c} selected={c===currency} onClick={()=> selectCurrency(c)}><Avatar sx={{ width:20, height:20, mr:1, fontSize:11 }}>{c==='EUR'?'€': c==='USD'? '$':'£'}</Avatar>{c}</MenuItem>))}
 				</Menu>
+				)}
+				{!readOnly && (
 				<Menu anchorEl={privacyAnchor} open={Boolean(privacyAnchor)} onClose={closePrivacy} elevation={3}>
 					{(['Private','Trip Members','My Followers','Everyone'] as const).map(p=> (<MenuItem key={p} selected={p===privacy} onClick={()=> selectPrivacy(p)}>{p}</MenuItem>))}
 				</Menu>
+				)}
+				{!isExternalNonOwner && (
 				<Dialog open={visaOpen} onClose={()=> setVisaOpen(false)} fullWidth maxWidth='sm'>
 					<DialogTitle>Visa Documents</DialogTitle>
 					<DialogContent dividers>
-						<input ref={visaInputRef} type='file' multiple hidden onChange={(e)=> { const files = e.target.files; setVisaErrors([]); try { if(files){ const { accepted, rejected } = validateFiles(files, DEFAULT_DOC_RULE); if(rejected.length) setVisaErrors(rejected.flatMap(r=> r.errors)); accepted.forEach(f=> { try { const url = URL.createObjectURL(f); dispatch(addVisaDoc({ doc:{ id: 'visa_'+Date.now()+'_'+Math.random().toString(36).slice(2), originalName:f.name, mimeType:f.type, url } })); } catch(err){ console.error('[VisaUpload] object URL failed', err); } }); } } catch(err){ console.error('[VisaUpload] upload failed', err); setVisaErrors(prev=> [...prev, 'Unexpected error while processing files.']); } finally { if(e.target) e.target.value=''; } }} />
-						<Button variant='outlined' size='small' onClick={()=> visaInputRef.current?.click()} sx={{ textTransform:'none', mb:2 }}>Upload File(s)</Button>
+						<ValidatedFileInput
+						  buttonLabel='Upload File(s)'
+						  onAccept={(accepted)=> {
+							setVisaErrors([]);
+							accepted.forEach(f=> {
+							  try {
+								const url = URL.createObjectURL(f);
+								dispatch(addVisaDoc({ doc:{ id: 'visa_'+Date.now()+'_'+Math.random().toString(36).slice(2), originalName:f.name, mimeType:f.type, url } }));
+							  } catch(err){ console.error('[VisaUpload] object URL failed', err); }
+							});
+						  }}
+						  rule={DEFAULT_DOC_RULE}
+						  multiple
+						  hideErrors
+						  sx={{ mb:2 }}
+						/>
+						{/* Display aggregated errors captured via state for backwards compatibility */}
 						{visaErrors.length>0 && (
 							<Box sx={{ mb:2, border:'1px solid', borderColor:'error.light', background:(t)=> t.palette.mode==='dark'? '#2a1818':'#fff5f5', p:1, borderRadius:1.5 }}>
 								<Typography variant='caption' sx={{ fontWeight:700, color:'error.main', display:'flex', gap:.5 }}>Upload issues:</Typography>
@@ -461,6 +501,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip }) => {
 						<Button onClick={()=> setVisaOpen(false)}>Close</Button>
 					</DialogActions>
 				</Dialog>
+				)}
+				{!isExternalNonOwner && (
 				<Dialog open={pinnedOpen} onClose={()=> setPinnedOpen(false)} fullWidth maxWidth='md'>
 					<DialogTitle>Pinned Documents</DialogTitle>
 					<DialogContent dividers>
@@ -532,6 +574,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip }) => {
 						<Button onClick={()=> setPinnedOpen(false)}>Close</Button>
 					</DialogActions>
 				</Dialog>
+				)}
 			</Box>
 			<TripSettingsDialog
 				open={settingsOpen}

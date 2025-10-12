@@ -404,7 +404,7 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
     closeMenu();
   };
   return (
-  <Box ref={panelRef}>
+  <Box ref={panelRef} sx={{ maxWidth: 1100, mx: 'auto' }}>
       {/* Heading Row */}
       <Box sx={(theme) => ({
         display: 'flex',
@@ -583,7 +583,7 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
           console.log('[AI] AI Suggest button clicked');
         }}
       >
-  AI Suggest
+        AI Suggest
       </AiActionButton>
           </>
         )}

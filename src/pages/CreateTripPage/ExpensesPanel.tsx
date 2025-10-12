@@ -18,7 +18,8 @@ type SortMode = 'newest'|'oldest'|'amount_desc'|'amount_asc';
 
 const currencySymbol = (c: string) => c==='EUR' ? '€' : c==='USD' ? '$' : '£';
 
-const ExpensesPanel: React.FC = () => {
+interface ExpensesPanelProps { readOnly?: boolean }
+const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ readOnly=false }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { currency, expenses = [], tripBudget } = useSelector((s:RootState)=> s.planner);
   const [sort, setSort] = React.useState<SortMode>('newest');
@@ -82,7 +83,7 @@ const ExpensesPanel: React.FC = () => {
     <Box sx={{ p:2.25, display:'flex', flexDirection:'column', gap:2 }}>
       <Box sx={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:1 }}>
         <Typography variant='h6' fontWeight={700} sx={{ letterSpacing:.3 }}>Budgeting</Typography>
-        <Button startIcon={<AddIcon />} variant='contained' size='small' onClick={openNewExpense} sx={{ textTransform:'none', borderRadius:2 }}>Add expense</Button>
+  {!readOnly && <Button startIcon={<AddIcon />} variant='contained' size='small' onClick={openNewExpense} sx={{ textTransform:'none', borderRadius:2 }}>Add expense</Button>}
       </Box>
       <Paper variant='outlined' sx={(t)=>({ p:2.25, borderRadius:3, display:'flex', flexDirection:'column', gap:2, background: t.palette.mode==='dark'? 'linear-gradient(145deg,#111a22,#0e1318)': 'linear-gradient(145deg,#f7f9fb,#edf1f5)' })}>
         <Box sx={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:2 }}>
@@ -95,10 +96,10 @@ const ExpensesPanel: React.FC = () => {
             </Typography>
           </Box>
           <Box sx={{ display:'flex', gap:1.25, alignItems:'center', flexWrap:'wrap' }}>
-            <Button size='small' variant='contained' color='secondary' startIcon={<EditIcon />} onClick={()=> setSetBudgetOpen(true)} sx={{ borderRadius:2, textTransform:'none' }}>Set budget</Button>
-            <Button size='small' variant='outlined' startIcon={<GroupIcon />} sx={{ borderRadius:2, textTransform:'none' }}>Group balances</Button>
-            <Button size='small' variant='outlined' startIcon={<ReceiptLongIcon />} sx={{ borderRadius:2, textTransform:'none' }}>View breakdown</Button>
-            <Button size='small' variant='text' startIcon={<SettingsIcon />} sx={{ borderRadius:2, textTransform:'none' }} onClick={()=> setSettingsOpen(true)}>Settings</Button>
+            {!readOnly && <Button size='small' variant='contained' color='secondary' startIcon={<EditIcon />} onClick={()=> setSetBudgetOpen(true)} sx={{ borderRadius:2, textTransform:'none' }}>Set budget</Button>}
+            {!readOnly && <Button size='small' variant='outlined' startIcon={<GroupIcon />} sx={{ borderRadius:2, textTransform:'none' }}>Group balances</Button>}
+            <Button size='small' variant='outlined' startIcon={<ReceiptLongIcon />} sx={{ borderRadius:2, textTransform:'none' }} disabled>View breakdown</Button>
+            {!readOnly && <Button size='small' variant='text' startIcon={<SettingsIcon />} sx={{ borderRadius:2, textTransform:'none' }} onClick={()=> setSettingsOpen(true)}>Settings</Button>}
           </Box>
         </Box>
         <Divider />
@@ -148,12 +149,16 @@ const ExpensesPanel: React.FC = () => {
                   </Box>
                 </Box>
                 <Typography variant='body2' fontWeight={700}>{cur}{e.amount.toFixed(2)}</Typography>
-                <Tooltip title='Edit'>
-                  <IconButton size='small' onClick={()=> openEditExpense(e.id)}><EditIcon fontSize='small' /></IconButton>
-                </Tooltip>
-                <Tooltip title='Delete'>
-                  <IconButton size='small' onClick={()=> handleDeleteExpense(e.id)}><DeleteIcon fontSize='small' /></IconButton>
-                </Tooltip>
+                {!readOnly && (
+                  <>
+                    <Tooltip title='Edit'>
+                      <IconButton size='small' onClick={()=> openEditExpense(e.id)}><EditIcon fontSize='small' /></IconButton>
+                    </Tooltip>
+                    <Tooltip title='Delete'>
+                      <IconButton size='small' onClick={()=> handleDeleteExpense(e.id)}><DeleteIcon fontSize='small' /></IconButton>
+                    </Tooltip>
+                  </>
+                )}
               </Box>
             );
           })}
@@ -161,6 +166,7 @@ const ExpensesPanel: React.FC = () => {
       </Paper>
 
       {/* Set Budget Dialog */}
+      {!readOnly && (
       <Dialog open={setBudgetOpen} onClose={()=> setSetBudgetOpen(false)} maxWidth='xs' fullWidth>
         <DialogTitle>Set Trip Budget</DialogTitle>
         <DialogContent sx={{ display:'flex', flexDirection:'column', gap:2, pt:1 }}>
@@ -178,9 +184,11 @@ const ExpensesPanel: React.FC = () => {
           <Button onClick={()=> setSetBudgetOpen(false)}>Cancel</Button>
           <Button onClick={handleSaveBudget} variant='contained' disabled={!budgetInput || isNaN(parseFloat(budgetInput))}>Save</Button>
         </DialogActions>
-      </Dialog>
+  </Dialog>
+  )}
 
       {/* Add / Edit Expense Dialog (redesigned) */}
+      {!readOnly && (
       <Dialog open={expenseOpen} onClose={()=> { setExpenseOpen(false); setItemExpanded(false); setDateExpanded(false); }} maxWidth='sm' fullWidth>
         <DialogTitle sx={{ fontWeight:700 }}>{editingId? 'Edit expense':'Add expense'}</DialogTitle>
         <DialogContent sx={{ display:'flex', flexDirection:'column', gap:2.25, pt:1 }}>
@@ -254,9 +262,10 @@ const ExpensesPanel: React.FC = () => {
             {editingId? 'Save':'Save'}
           </Button>
         </DialogActions>
-      </Dialog>
+  </Dialog>
+  )}
       {/* Settings Dialog */}
-      <SettingsDialog open={settingsOpen} onClose={()=> setSettingsOpen(false)} />
+      {!readOnly && <SettingsDialog open={settingsOpen} onClose={()=> setSettingsOpen(false)} />}
     </Box>
   );
 };
