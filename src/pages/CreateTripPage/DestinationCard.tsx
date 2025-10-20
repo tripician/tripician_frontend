@@ -61,7 +61,7 @@ export interface DestinationCardProps {
 }
 
 const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled, onRename, onChangeCategory, onToggleComplete, onDuplicate, onRemove, onOpenNotes, onOpenDiscover, onOpenDocs, onOpenStay, onChangeNights }) => {
-  const { id, name, startDate, endDate, nights, category='general', completed, notes, spots, foods, stay, docs, photoUrl } = destination;
+  const { id, name, startDate, endDate, nights, category='general', completed, notes, spots, foods, stay, stays, docs, photoUrl } = destination as any;
   const [editing, setEditing] = React.useState(false);
   const [menuAnchor, setMenuAnchor] = React.useState<HTMLElement | null>(null);
   const [catAnchor, setCatAnchor] = React.useState<HTMLElement | null>(null);
@@ -77,7 +77,8 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
   const commitName = () => { if(localName.trim() && localName !== name) onRename?.(id, localName.trim()); setEditing(false); };
   const handleKey: React.KeyboardEventHandler<HTMLInputElement> = (e) => { if(e.key==='Enter') { commitName(); } else if(e.key==='Escape'){ setLocalName(name); setEditing(false);} };
 
-  const catInfo = CATEGORY_COLORS[category];
+  const catKey = (category || 'general') as NonNullable<PlannerDestination['category']>;
+  const catInfo = CATEGORY_COLORS[catKey];
   const dateFmt = (iso?: string) => { if(!iso) return ''; try { const d = new Date(iso + 'T00:00:00'); return d.toLocaleDateString(undefined, { month:'short', day:'2-digit' }); } catch { return iso || ''; } };
 
   return (
@@ -242,13 +243,13 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
               )}
             </Box>
           </Tooltip>
-          {/* Stay chip shows count of filled fields */}
+          {/* Stay chip shows count of properties (multi stays) or legacy field usage */}
           <Tooltip title='Stay / accommodation info'>
             <Box sx={{ position:'relative' }}>
-              <Chip onClick={()=> onOpenStay?.(id)} icon={<HotelIcon color={(stay?.name||stay?.reference||stay?.notes)? 'primary':'inherit'} />} label='Stay' size='small' sx={(t)=>({ cursor:'pointer', fontWeight:600, bgcolor:(stay?.name||stay?.reference||stay?.notes)? (t.palette.mode==='dark'? t.palette.primary.main+'22': t.palette.primary.light+'33'):(t.palette.mode==='dark'? t.palette.grey[800]: t.palette.grey[100]), color:(stay?.name||stay?.reference||stay?.notes)? t.palette.primary.main: t.palette.text.secondary })} />
-              {((stay?.name?1:0)+(stay?.reference?1:0)+(stay?.notes?1:0))>0 && (
-                <Box sx={(t)=>({ position:'absolute', top:-4, right:-4, background:t.palette.primary.main, color:t.palette.primary.contrastText, minWidth:18, height:18, px:0.5, borderRadius:9, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, boxShadow:'0 0 0 2px '+t.palette.background.paper })}>{(stay?.name?1:0)+(stay?.reference?1:0)+(stay?.notes?1:0)}</Box>
-              )}
+              <Chip onClick={()=> onOpenStay?.(id)} icon={<HotelIcon color={((Array.isArray(stays)&&stays.length>0) || (stay?.name||stay?.reference||stay?.notes))? 'primary':'inherit'} />} label='Stay' size='small' sx={(t)=>({ cursor:'pointer', fontWeight:600, bgcolor: ((Array.isArray(stays)&&stays.length>0) || (stay?.name||stay?.reference||stay?.notes))? (t.palette.mode==='dark'? t.palette.primary.main+'22': t.palette.primary.light+'33'):(t.palette.mode==='dark'? t.palette.grey[800]: t.palette.grey[100]), color: ((Array.isArray(stays)&&stays.length>0) || (stay?.name||stay?.reference||stay?.notes))? t.palette.primary.main: t.palette.text.secondary })} />
+              {(()=> { const count = Array.isArray(stays)? stays.length : ((stay?.name||stay?.reference||stay?.notes)? 1:0); return count>0 ? (
+                <Box sx={(t)=>({ position:'absolute', top:-4, right:-4, background:t.palette.primary.main, color:t.palette.primary.contrastText, minWidth:18, height:18, px:0.5, borderRadius:9, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, boxShadow:'0 0 0 2px '+t.palette.background.paper })}>{count}</Box>
+              ): null; })()}
             </Box>
           </Tooltip>
           {/* Docs chip with doc count */}

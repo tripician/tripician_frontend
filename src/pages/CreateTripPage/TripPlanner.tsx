@@ -1,6 +1,6 @@
 // TripPlanner main page component (formerly CreateTrip)
 import React from 'react';
-import { Box, Tabs, Tab, Typography, Divider, Button, Chip, Menu, MenuItem, Avatar, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper } from '@mui/material';
+import { Box, Tabs, Tab, Typography, Divider, Button, Chip, Menu, MenuItem, Avatar, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Snackbar, Alert } from '@mui/material';
 // Props-based TripPlanner; tripId + optional initialTrip provided by route wrapper
 import DownloadIcon from '@mui/icons-material/Download';
 import PushPinIcon from '@mui/icons-material/PushPin';
@@ -8,7 +8,7 @@ import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
-import { setCurrency as setCurrencyAction, updateDestinationNights, setTransport, addDestination, removeDestination, reorderChain, addVisaDoc, removeVisaDoc, removeGlobalDoc, pinDoc, unpinDoc, loadState } from '../../store/plannerSlice';
+import { setCurrency as setCurrencyAction, updateDestinationNights, setTransport, addDestination, removeDestination, reorderChainExact, addVisaDoc, removeVisaDoc, removeGlobalDoc, pinDoc, unpinDoc, loadState } from '../../store/plannerSlice';
 import { togglePin as togglePinDocSlice, removeDocument as removeDocsSliceDocument } from '../../store/docsSlice';
 import { DEFAULT_DOC_RULE } from '../../utils/fileValidation'; // legacy use (validateFiles removed after refactor)
 import ValidatedFileInput from '../../components/CommonComponents/ValidatedFileInput';
@@ -31,6 +31,13 @@ import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import EditIcon from '@mui/icons-material/Edit';
 import CheckIcon from '@mui/icons-material/Check';
 import Docs from '../DocsPage/Docs';
+import { apiServices } from '../../services/APIs/apiServices';
+import { useAuthToken } from '../../hooks/useAuth0Token';
+
+// Feature gating flags (non-destructive). Set to true to re-enable tabs.
+// Underlying components (ExpensesPanel, TripComments) remain fully implemented.
+const ENABLE_EXPENSES = false;
+const ENABLE_COMMENTS = false;
 
 export interface TripPlannerProps {
 	tripId: string;
@@ -42,6 +49,7 @@ export interface TripPlannerProps {
 }
 
 const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly=false, hideSections=[], isOwnerExternal=true, onRequestEdit }) => {
+	const { token: authToken } = useAuthToken();
 	const dispatch = useDispatch<AppDispatch>();
 	const planner = useSelector((s: RootState) => s.planner);
 	const docsState = useSelector((s: RootState) => s.docs);
@@ -100,8 +108,41 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly
 			const currencyCode: string | undefined = trip.currencyCode;
 			const allowedCurrencies = ['EUR','USD','GBP'] as const;
 			const normalizedCurrency = allowedCurrencies.includes(currencyCode as any) ? currencyCode as typeof allowedCurrencies[number] : 'EUR';
+			// Prefer backend-provided itinerary array if present
+			let hydratedDestinations: any[] = [];
+			const rawItinerary: any[] | undefined = Array.isArray((trip as any).itinerary) ? (trip as any).itinerary : undefined;
+			if(rawItinerary && rawItinerary.length){
+				hydratedDestinations = rawItinerary.map((item, idx) => {
+					const startDate = (item.startDate || s) ?? new Date().toISOString().slice(0,10);
+					const endDate = (item.endDate || startDate) ?? startDate;
+					// Nights fallback based on date diff
+					let nights = 1;
+					try { const ms = new Date(endDate).getTime() - new Date(startDate).getTime(); nights = Math.max(1, Math.round(ms / (1000*60*60*24))); } catch {}
+					return {
+						id: item.id || ('dest_'+idx+'_'+Date.now()),
+						name: item.name || item.title || 'Destination '+(idx+1),
+						startDate,
+						endDate,
+						nights,
+						transport: item.transport || '',
+						budget: item.budget ?? 0,
+						lat: item.lat ?? item.latitude ?? undefined,
+						lng: item.lng ?? item.longitude ?? undefined,
+						placeId: item.placeId || undefined,
+						photoUrl: item.photoUrl || undefined,
+						category: item.category || 'general',
+						completed: !!item.completed,
+						spots: Array.isArray(item.spots)? item.spots.map((sp:any)=> ({ id: sp.id || sp.name || ('spot_'+Math.random().toString(36).slice(2)), name: sp.name || 'Spot', checked: !!sp.checked, placeId: sp.placeId, photoUrl: sp.photoUrl, description: sp.description })) : [],
+						foods: Array.isArray(item.foods)? item.foods.map((fd:any)=> ({ id: fd.id || fd.name || ('food_'+Math.random().toString(36).slice(2)), name: fd.name || 'Food', checked: !!fd.checked })) : [],
+						docs: Array.isArray(item.docs)? item.docs.map((d:any)=> ({ id: d.id || ('doc_'+Math.random().toString(36).slice(2)), originalName: d.originalName || d.name || 'document', mimeType: d.mimeType || d.type || 'application/octet-stream', url: d.url || d.href || '' })) : [],
+						notes: item.notes || undefined,
+						stay: item.stay || undefined
+					};
+				});
+				console.log('[TripPlanner] Hydrated destinations from initialTrip.itinerary', hydratedDestinations.length);
+			}
 			const initialState = {
-				destinations: [] as any[],
+				destinations: hydratedDestinations,
 				currency: normalizedCurrency,
 				targetNights: targetFromRange,
 				globalDocs: [],
@@ -114,9 +155,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly
 				comments: []
 			};
 			dispatch(loadState(initialState));
-			console.log('[TripPlanner] Initialized planner from initialTrip meta', { tripId, targetNights: targetFromRange, currency: normalizedCurrency });
+			console.log('[TripPlanner] Initialized planner from initialTrip meta', { tripId, targetNights: targetFromRange, currency: normalizedCurrency, destinations: hydratedDestinations.length });
 		} else {
-			// Planner already has destinations; we only updated meta states
 			console.log('[TripPlanner] Skipped planner loadState; destinations already present');
 		}
 	// eslint-disable-next-line react-hooks/exhaustive-deps
@@ -130,14 +170,42 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly
 	const [isDraft, setIsDraft] = React.useState(true);
 	const [title, setTitle] = React.useState('Untitled Trip');
 	const [editingTitle, setEditingTitle] = React.useState(false);
+	const [privacy, setPrivacy] = React.useState<'Private'|'Trip Members'|'My Followers'|'Everyone'>('Private');
+	// Track a hash of the last committed state to decide if buttons should enable
+	const lastCommittedRef = React.useRef<string>('');
+	const computeSignature = React.useCallback(()=> {
+		// Include transport, nights plus lightweight discover + stay markers
+		const destSig = (planner.destinations||[]).map(d=> {
+			const singleStayMarker = d.stay && (d.stay.name||d.stay.reference||d.stay.notes) ? 'S' : 'N';
+			const multiStayCount = Array.isArray((d as any).stays)? (d as any).stays.length : 0;
+			const stayNotesMarker = (d as any).stayNotes && (d as any).stayNotes.trim() ? 'SN' : '0';
+			const spotCount = Array.isArray(d.spots)? d.spots.length : 0;
+			const foodCount = Array.isArray(d.foods)? d.foods.length : 0;
+			return d.id+':'+d.nights+':'+d.transport+':'+singleStayMarker+':M'+multiStayCount+':'+stayNotesMarker+':'+spotCount+':'+foodCount;
+		}).join('|');
+		const expSig = (planner.expenses||[]).map(e=> e.id+':'+e.amount).join('|');
+		return [title, privacy, currency, isDraft?'draft':'pub', destSig, expSig, planner.tripBudget ?? 'none'].join('#');
+	}, [title, privacy, currency, isDraft, planner.destinations, planner.expenses, planner.tripBudget]);
+	const signature = computeSignature();
+	const isDirty = lastCommittedRef.current !== signature;
+	React.useEffect(()=> { if(!lastCommittedRef.current) lastCommittedRef.current = signature; }, [signature]);
+	const commitSnapshot = React.useCallback((nextDraftState: boolean) => {
+		setIsDraft(nextDraftState);
+		requestAnimationFrame(()=> { lastCommittedRef.current = computeSignature(); });
+	}, [computeSignature]);
 	// Meta date range sourced from backend trip (independent of destination ordering)
 	const [tripStartDate, setTripStartDate] = React.useState<string | null>(null);
 	const [tripEndDate, setTripEndDate] = React.useState<string | null>(null);
 	const [currencyAnchor, setCurrencyAnchor] = React.useState<null | HTMLElement>(null);
 	const [privacyAnchor, setPrivacyAnchor] = React.useState<null | HTMLElement>(null);
-	const [privacy, setPrivacy] = React.useState<'Private'|'Trip Members'|'My Followers'|'Everyone'>('Private');
 	const [settingsOpen, setSettingsOpen] = React.useState(false);
 	const [optimizingRoute, setOptimizingRoute] = React.useState(false);
+	const [saving, setSaving] = React.useState(false);
+	const [lastSaveTs, setLastSaveTs] = React.useState<number>(0);
+	const [lastSavedDisplay, setLastSavedDisplay] = React.useState<string>('Never');
+	const [toast, setToast] = React.useState<{ open:boolean; type:'success'|'error'|'info'; msg:string }>({ open:false, type:'success', msg:'' });
+	const openToast = (type:'success'|'error'|'info', msg:string)=> setToast({ open:true, type, msg });
+	const closeToast = ()=> setToast(t=> ({ ...t, open:false }));
 	const [mapCollapsed, setMapCollapsed] = React.useState(false);
 	const [mapWidth, setMapWidth] = React.useState(0.30); // default map takes 30% width now
 	const containerRef = React.useRef<HTMLDivElement|null>(null);
@@ -217,49 +285,201 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly
 	React.useEffect(()=>{ const move=(e:MouseEvent)=>{ if(!resizingRef.current||!containerRef.current) return; const rect=containerRef.current.getBoundingClientRect(); const left=e.clientX-rect.left; const ratioLeft=Math.min(0.80,Math.max(0.20,left/rect.width)); setMapWidth(1-ratioLeft); }; const up=()=>{ if(resizingRef.current){ resizingRef.current=false; document.body.style.cursor=''; } }; window.addEventListener('mousemove',move); window.addEventListener('mouseup',up); return ()=>{ window.removeEventListener('mousemove',move); window.removeEventListener('mouseup',up); }; }, [mapCollapsed]);
 
 	const computeShortestRoute = () => {
-		const list = planner.destinations.filter(d=> d.lat!=null && d.lng!=null);
-		if(list.length<3) return;
-		const start = list[0]; const others=list.slice(1); const dist=(a:any,b:any)=>{ const dx=a.lat-b.lat; const dy=a.lng-b.lng; return Math.sqrt(dx*dx+dy*dy); }; const remaining=[...others]; const path:any[]=[start]; let curr=start; while(remaining.length){ let bi=0,bd=Infinity; for(let i=0;i<remaining.length;i++){ const dd=dist(curr,remaining[i]); if(dd<bd){bd=dd;bi=i;} } curr=remaining.splice(bi,1)[0]; path.push(curr);} const twoOptSwap=(arr:any[],i:number,k:number)=>arr.slice(0,i).concat(arr.slice(i,k+1).reverse()).concat(arr.slice(k+1)); const routeDistance=(arr:any[])=>arr.reduce((acc:number,_,i)=> i===0?0:acc+dist(arr[i-1],arr[i]),0); let improved=true,best=path,bestLen=routeDistance(best),iter=0; while(improved&&iter<30){ improved=false; iter++; for(let i=1;i<best.length-2;i++){ for(let k=i+1;k<best.length-1;k++){ const swapped=twoOptSwap(best,i,k); const len=routeDistance(swapped); if(len<bestLen-1e-6){ best=swapped; bestLen=len; improved=true; } } } } const ids=best.map(d=>d.id); dispatch(reorderChain({ ids })); window.dispatchEvent(new CustomEvent('tripician:route-updated',{ detail:{ ids }})); };
-	const handleOptimizeRouteClick=()=>{ if(optimizingRoute||geocodedCount<3) return; setOptimizingRoute(true); requestAnimationFrame(()=>{ try{ computeShortestRoute(); } finally { setTimeout(()=> setOptimizingRoute(false),60); } }); };
+		const pts = planner.destinations.filter(d=> d.lat!=null && d.lng!=null);
+		if(pts.length < 3){
+			if(import.meta.env.DEV){ console.warn('[RouteOptimize] Need at least 3 geocoded destinations. Found:', pts.length); }
+			return;
+		}
+		// Haversine distance for better geographic accuracy
+		const R = 6371; // km
+		const hav = (a:any,b:any)=> {
+			const toRad = (deg:number)=> deg*Math.PI/180;
+			const dLat = toRad(b.lat - a.lat);
+			const dLon = toRad(b.lng - a.lng);
+			const lat1 = toRad(a.lat); const lat2 = toRad(b.lat);
+			const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;
+			return 2*R*Math.asin(Math.min(1, Math.sqrt(h)));
+		};
+		const routeDistance = (arr:any[]) => arr.reduce((acc:number,_,i)=> i===0?0:acc + hav(arr[i-1],arr[i]),0);
+		// Multi-start nearest neighbor (try each point as start) then refine with 2-opt
+		const twoOptSwap=(arr:any[],i:number,k:number)=> arr.slice(0,i).concat(arr.slice(i,k+1).reverse()).concat(arr.slice(k+1));
+		let bestOrder:any[] = []; let bestLen = Infinity;
+		for(let sIdx=0; sIdx<pts.length; sIdx++){
+			const start = pts[sIdx];
+			const remaining = pts.filter((_,i)=> i!==sIdx);
+			const path=[start]; let curr=start;
+			while(remaining.length){
+				let bestI=0, bestD=Infinity;
+				for(let i=0;i<remaining.length;i++){ const dVal=hav(curr,remaining[i]); if(dVal<bestD){ bestD=dVal; bestI=i; } }
+				curr = remaining.splice(bestI,1)[0]; path.push(curr);
+			}
+			// 2-opt improvement on this path
+			let improved=true; let localBest = path; let localLen = routeDistance(localBest); let iter=0;
+			while(improved && iter<60){
+				improved=false; iter++;
+				for(let i=1;i<localBest.length-2;i++){
+					for(let k=i+1;k<localBest.length-1;k++){
+						const swapped = twoOptSwap(localBest,i,k); const len = routeDistance(swapped);
+						if(len < localLen - 1e-9){ localBest = swapped; localLen = len; improved=true; }
+					}
+				}
+			}
+			if(localLen < bestLen - 1e-9){ bestLen = localLen; bestOrder = localBest; }
+		}
+		const optimizedIds = bestOrder.map(d=> d.id);
+		if(import.meta.env.DEV){
+			console.log('[RouteOptimize] Optimized order IDs:', optimizedIds, 'distanceKm=', bestLen.toFixed(2));
+		}
+		// Use exact reorder allowing first to move
+		dispatch(reorderChainExact({ ids: optimizedIds }));
+		window.dispatchEvent(new CustomEvent('tripician:route-updated',{ detail:{ ids: optimizedIds }}));
+	};
+	const handleOptimizeRouteClick=()=>{ if(optimizingRoute||geocodedCount<3) return; setOptimizingRoute(true); requestAnimationFrame(()=>{ try { computeShortestRoute(); } finally { setTimeout(()=> setOptimizingRoute(false),120); } }); };
 
-	const handlePublish = () => {
-		type OutputSpot = { id:string; name:string; placeId?:string; photoUrl?:string; description?:string; checked:boolean };
-		type OutputFood = { id:string; name:string; checked:boolean };
-		const tripData = {
-			meta: {
-				title,
-				status: isDraft ? 'Draft' : 'Published',
+	// Build backend-ready persistence payload (draft or publish)
+	const buildPersistPayload = React.useCallback((draft:boolean) => {
+		// ------------------------------------------------------------------
+		// Leg transport semantics
+		// Each destination.transport represents the mode used to DEPART that
+		// destination toward the next one. Legs are built pairwise using the
+		// 'from' destination's transport as leg.mode. This is minimal,
+		// efficient to render, and unambiguous for consumers.
+		// ------------------------------------------------------------------
+		// Distance helpers (Haversine)
+		const R = 6371; const toRad=(deg:number)=> deg*Math.PI/180;
+		const havDist = (a:{lat?:number; lng?:number}, b:{lat?:number; lng?:number}) => {
+			if(a.lat==null||a.lng==null||b.lat==null||b.lng==null) return null;
+			const dLat = toRad(b.lat - a.lat); const dLon = toRad(b.lng - a.lng);
+			const lat1 = toRad(a.lat); const lat2 = toRad(b.lat);
+			const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;
+			return 2*R*Math.asin(Math.min(1, Math.sqrt(h)));
+		};
+		interface PersistLeg { fromId:string; toId:string; mode:string; distanceKm:number|null; from:{lat?:number; lng?:number}; to:{lat?:number; lng?:number}; }
+		const legs: PersistLeg[] = [];
+		for(let i=1;i<planner.destinations.length;i++){
+			const from = planner.destinations[i-1]; const to = planner.destinations[i];
+			const distanceKm = havDist(from, to);
+			const mode = (from.transport || 'car');
+			legs.push({
+				fromId: from.id,
+				toId: to.id,
+				mode,
+				distanceKm: distanceKm!=null? Number(distanceKm.toFixed(2)) : null,
+				from: { lat: from.lat, lng: from.lng },
+				to: { lat: to.lat, lng: to.lng }
+			});
+		}
+		const routeDistanceKm = legs.reduce((a,l)=> l.distanceKm!=null? a + l.distanceKm : a, 0);
+		const destinationDocsCount = planner.destinations.reduce((a,d)=> a + (d.docs?.length||0), 0);
+		// Itinerary (extended fields) – omit empty large text fields
+		const itinerary = planner.destinations.map(d=> {
+			const notesVal: unknown = (d as any).notes;
+			const notesClean = (typeof notesVal === 'string' && notesVal.trim().length>0) ? notesVal : undefined;
+			// Structured stay: include only fields with non-empty trimmed values; omit entirely if all empty
+			const stayRaw: any = (d as any).stay || {};
+			const stayName = typeof stayRaw.name === 'string' && stayRaw.name.trim() ? stayRaw.name.trim() : undefined;
+			const stayRef = typeof stayRaw.reference === 'string' && stayRaw.reference.trim() ? stayRaw.reference.trim() : undefined;
+			const stayNotes = typeof stayRaw.notes === 'string' && stayRaw.notes.trim() ? stayRaw.notes.trim() : undefined;
+			const stay = (stayName||stayRef||stayNotes) ? { name: stayName, reference: stayRef, notes: stayNotes } : undefined;
+			// Multi stays (new model)
+			const multiStays = Array.isArray((d as any).stays) ? (d as any).stays.filter((s:any)=> (s.name && s.name.trim()) || (s.reference && s.reference.trim())).map((s:any)=> ({ id:s.id, name:s.name?.trim(), reference:s.reference?.trim() })) : undefined;
+			const stayNotesUnified = typeof (d as any).stayNotes === 'string' && (d as any).stayNotes.trim().length>0 ? (d as any).stayNotes.trim() : undefined;
+			return {
+				id:d.id,
+				name:d.name,
+				startDate:d.startDate,
+				endDate:d.endDate,
+				nights:d.nights,
+				lat:d.lat,
+				lng:d.lng,
+				placeId:d.placeId,
+				transport:d.transport,
+				budget: d.budget ?? 0,
+				category: d.category || 'general',
+				completed: !!d.completed,
+				photoUrl: d.photoUrl,
+				notes: notesClean,
+				stay, // deprecated single stay (retained for backward compatibility)
+				stays: multiStays,
+				stayNotes: stayNotesUnified,
+				spots:(d.spots||[]).map(s=> ({ id:s.id, name:s.name, placeId:s.placeId, checked:s.checked, photoUrl:s.photoUrl, description:s.description, mapUrl:s.mapUrl, known: !!s.known })),
+				foods:(d.foods||[]).map(f=> ({ id:f.id, name:f.name, checked:f.checked, known: !!(f as any).known })),
+				docs:(d.docs||[]).map(doc=> ({ id:doc.id, originalName:doc.originalName, mimeType:doc.mimeType, url:doc.url }))
+			};
+		});
+		return {
+			trip: {
+				id: tripId,
+				name: title,
+				status: draft? 'DRAFT':'PUBLISHED',
 				privacy,
 				currency,
 				generatedAt: new Date().toISOString(),
-				totalNights,
 				targetNights,
-				geocodedDestinations: geocodedCount
+				totalNights,
+				geocodedDestinations: geocodedCount,
+				legCount: legs.length,
+				routeDistanceKm: Number(routeDistanceKm.toFixed(2))
 			},
-			destinations: planner.destinations.map(d => ({
-				id: d.id,
-				name: d.name,
-				startDate: d.startDate,
-				endDate: d.endDate,
-				nights: d.nights,
-				lat: d.lat,
-				lng: d.lng,
-				transport: d.transport,
-				category: d.category || 'general',
-				completed: !!d.completed,
-				spots: (d.spots||[]).map<OutputSpot>(s => ({ id:s.id, name:s.name, placeId:s.placeId, photoUrl:s.photoUrl, description:s.description, checked:s.checked })),
-				foods: (d.foods||[]).map<OutputFood>(f => ({ id:f.id, name:f.name, checked:f.checked }))
-			})),
-			extras: {
-				routeOrder: planner.destinations.map(d=> d.id)
-			}
+			itinerary,
+			legs,
+			expenses: planner.expenses || [],
+			budget: planner.tripBudget ?? null,
+			comments: planner.comments || [],
+			pinnedDocIds: planner.pinnedDocIds || [],
+			globalDocs: (planner.globalDocs||[]).map(d=> ({ id:d.id, originalName:d.originalName, mimeType:d.mimeType, url:d.url })),
+			visaDocs: (planner.visaDocs||[]).map(d=> ({ id:d.id, originalName:d.originalName, mimeType:d.mimeType, url:d.url })),
+			destinationDocsCount,
+			version: 1
 		};
-		if(isDraft) setIsDraft(false);
-		// eslint-disable-next-line no-console
-		console.log('TRIPICIAN_PUBLISH_JSON =>', tripData, '\nJSON STRING =>', JSON.stringify(tripData, null, 2));
+	}, [planner, tripId, title, privacy, currency, targetNights, totalNights, geocodedCount]);
+
+	// Ref storing latest prepared payload for backend
+	const persistedPayloadRef = React.useRef<any>(null);
+	const persistToBackend = async (payload:any) => {
+		if(!authToken){ console.warn('[TripPlanner] Cannot persist – no auth token'); openToast('error','Not signed in'); return; }
+		const now = Date.now();
+		if(saving || (now - lastSaveTs) < 1200){
+			console.warn('[TripPlanner] Save ignored (debounced or already saving)');
+			return;
+		}
+		setSaving(true);
+		setLastSaveTs(now);
+		try {
+			await apiServices.updateTrip(authToken, tripId, payload);
+			console.log('[TripPlanner] Persisted trip successfully (PUT /trips)', { tripId, status: payload.trip.status });
+			setLastSavedDisplay(new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' }));
+			openToast('success', payload.trip.status==='DRAFT'? 'Draft saved':'Trip updated');
+		} catch(err:any){
+			console.error('[TripPlanner] Backend persistence failed', err?.response?.status, err?.message);
+			openToast('error','Save failed');
+		} finally {
+			setSaving(false);
+		}
+	};
+
+	const handlePublish = () => {
+		if(!isOwnerExternal) return; // safety
+		if(isDraft){
+			// Build enriched published payload (draft=false)
+			const payload = buildPersistPayload(false);
+			// Console preview
+			// eslint-disable-next-line no-console
+			console.log('TRIPICIAN_PUBLISH_PAYLOAD =>', payload, '\nJSON STRING =>', JSON.stringify(payload, null, 2));
+			persistedPayloadRef.current = payload;
+			// Persist first, then commit snapshot to update dirty signature
+			persistToBackend(payload);
+			commitSnapshot(false);
+		} else {
+			// Unpublish -> revert to draft
+			commitSnapshot(true);
+			console.log('[TripPlanner] Unpublish -> back to draft');
+			openToast('info','Trip reverted to draft');
+		}
 	};
 
 	return (
+		<React.Fragment>
 		<Box sx={{ display:'flex', flexDirection:'row', height:'100vh', overflow:'hidden' }}>
 	<CreateTripNav active={section} onChange={(id)=> setSectionDebug(id as any)} onSettingsClick={()=> setSettingsOpen(true)} hideSections={hideSections} />
 			<Box sx={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, minHeight:0 }}>
@@ -338,10 +558,24 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly
 						<Divider />
 						{section==='plan' && (
 						<Box sx={{ display:'flex', alignItems:'center', px:2, gap:1, py:1 }}>
-							<Tabs value={tab} onChange={handleTabChange} variant='scrollable' allowScrollButtonsMobile sx={{ flex:1, minHeight:44, '& .MuiTab-root':{ minHeight:44 } }}>
+							<Tabs value={tab} onChange={(e,v)=> {
+								// Block navigation into disabled features
+								if((v===1 && !ENABLE_EXPENSES) || (v===2 && !ENABLE_COMMENTS)) return;
+								handleTabChange(e,v);
+							}} variant='scrollable' allowScrollButtonsMobile sx={{ flex:1, minHeight:44, '& .MuiTab-root':{ minHeight:44 } }}>
 								<Tab label='Planning' />
-								<Tab label='Expenses' />
-								<Tab label='Comments' />
+								<Tab label={
+									<Box sx={{ display:'flex', alignItems:'center', gap:.75 }}>
+										<span>Expenses</span>
+										{!ENABLE_EXPENSES && <Chip label='Soon' size='small' color='default' sx={{ height:18, fontSize:10 }} />}
+									</Box>
+								} disabled={!ENABLE_EXPENSES} />
+								<Tab label={
+									<Box sx={{ display:'flex', alignItems:'center', gap:.75 }}>
+										<span>Comments</span>
+										{!ENABLE_COMMENTS && <Chip label='Soon' size='small' color='default' sx={{ height:18, fontSize:10 }} />}
+									</Box>
+								} disabled={!ENABLE_COMMENTS} />
 							</Tabs>
 							<Box sx={{ display:'flex', alignItems:'center', gap:.75, mr:1 }}>
 								<Box sx={{ position:'relative', width:46, height:46 }}>
@@ -409,18 +643,65 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly
 									)}
 								</Box>
 							)}
-							{section==='plan' && tab===1 && <ExpensesPanel readOnly={readOnly} />}
-							{section==='plan' && tab===2 && <TripComments />}
+								{section==='plan' && tab===1 && ENABLE_EXPENSES && <ExpensesPanel readOnly={readOnly} />}
+								{section==='plan' && tab===2 && ENABLE_COMMENTS && <TripComments />}
 						</Box>
 						<Box sx={(t)=>({ borderTop:`1px solid ${t.palette.divider}`, px:2.5, py:1.5, background:t.palette.background.paper, display:'flex', alignItems:'center', justifyContent:'space-between' })}>
-							<Typography variant='caption' color='text.secondary'>Last saved: just now</Typography>
+							<Typography variant='caption' color='text.secondary'>Last saved: {lastSavedDisplay}</Typography>
 							<Box sx={{ display:'flex', gap:1.2 }}>
-								<Button size='small' variant='outlined' onClick={()=> setIsDraft(true)} disabled={isDraft || !isOwnerExternal} sx={{ textTransform:'none', borderRadius:2 }}>{isDraft? 'Draft':'Save as Draft'}</Button>
+								{/* Primary draft/update button */}
+								<Button
+									size='small'
+									variant='outlined'
+									onClick={()=> {
+										if(!isOwnerExternal) return; // safety
+										if(!isDraft){
+											const payload = buildPersistPayload(false);
+											// Console preview before sending
+											// eslint-disable-next-line no-console
+											console.log('TRIPICIAN_SAVE_PAYLOAD =>', payload, '\nJSON STRING =>', JSON.stringify(payload, null, 2));
+											persistedPayloadRef.current = payload;
+											persistToBackend(payload);
+											commitSnapshot(false); // remain published state after update
+										} else {
+											const payload = buildPersistPayload(true);
+											// eslint-disable-next-line no-console
+											console.log('TRIPICIAN_SAVE_PAYLOAD =>', payload, '\nJSON STRING =>', JSON.stringify(payload, null, 2));
+											persistedPayloadRef.current = payload;
+											persistToBackend(payload);
+											commitSnapshot(true); // commit draft snapshot after persist
+										}
+									}}
+									disabled={!isOwnerExternal || !isDirty || saving}
+									sx={{ textTransform:'none', borderRadius:2 }}
+								>
+									{isDraft ? 'Save as Draft' : 'Update'}{saving && <CircularProgress size={16} thickness={5} sx={{ ml:1 }} />}
+								</Button>
 								{!isOwnerExternal && readOnly && (
 									<Button size='small' variant='contained' color='primary' onClick={()=> { onRequestEdit?.(); }} sx={{ textTransform:'none', borderRadius:2 }}>Edit</Button>
 								)}
 								{isOwnerExternal && (
-									<Button size='small' variant='contained' color={isDraft? 'primary':'success'} onClick={handlePublish} sx={{ textTransform:'none', borderRadius:2 }}>{isDraft? 'Publish':'Published'}</Button>
+									<Button
+										size='small'
+										variant='contained'
+										color={isDraft? 'primary':'warning'}
+										onClick={()=> {
+											if(isDraft){
+												// Publish commit
+												handlePublish(); // sets isDraft false already
+												requestAnimationFrame(()=> { lastCommittedRef.current = computeSignature(); });
+											} else {
+												// Unpublish -> return to draft
+												commitSnapshot(true);
+												console.log('[TripPlanner] Unpublish -> back to draft');
+												openToast('info','Trip reverted to draft');
+											}
+										}}
+										sx={{ textTransform:'none', borderRadius:2, opacity: isDraft? 1 : 0.7 }}
+										disabled={!isOwnerExternal || !isDirty || saving}
+									>
+										{isDraft? 'Publish' : 'Unpublish'}{saving && <CircularProgress size={16} thickness={5} sx={{ ml:1 }} />}
+									</Button>
 								)}
 							</Box>
 						</Box>
@@ -592,6 +873,12 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly
 				onInviteEmail={async(email)=> { console.log('Invite email placeholder', email); }}
 			/>
 		</Box>
+		<Snackbar open={toast.open} autoHideDuration={3000} onClose={closeToast} anchorOrigin={{ vertical:'bottom', horizontal:'right' }}>
+			<Alert onClose={closeToast} severity={toast.type} variant='filled' sx={{ boxShadow:2 }}>
+				{toast.msg}
+			</Alert>
+		</Snackbar>
+		</React.Fragment>
 	);
 };
 

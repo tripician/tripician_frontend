@@ -20,6 +20,14 @@ export interface PlannerDestination {
     reference?: string;
     notes?: string;
   };
+  /** Multiple accommodation entries (new richer model). Each minimal object contains name & reference */
+  stays?: Array<{
+    id: string;
+    name?: string;
+    reference?: string;
+  }>;
+  /** General notes about accommodation (check-in instructions etc.) */
+  stayNotes?: string;
   lat?: number; // optional latitude for mapping
   lng?: number; // optional longitude for mapping
   spots?: PlannerSpot[]; // discover spots
@@ -198,6 +206,15 @@ const plannerSlice = createSlice({
         // adjust endDate relative to startDate
         const s = new Date(d.startDate).getTime();
         d.endDate = new Date(s + d.nights * 24*60*60*1000).toISOString().slice(0,10);
+        // Cascade recalculation of subsequent destination start/end dates to maintain a contiguous chain
+        const idx = state.destinations.findIndex(x => x.id === d.id);
+        for(let i = idx + 1; i < state.destinations.length; i++) {
+          const prev = state.destinations[i - 1];
+          const cur = state.destinations[i];
+          cur.startDate = prev.endDate;
+          const startMs = new Date(cur.startDate).getTime();
+          cur.endDate = new Date(startMs + cur.nights * 24*60*60*1000).toISOString().slice(0,10);
+        }
       }
     },
     setTransport(state, action: PayloadAction<{ id: string; transport: string }>) {
@@ -227,6 +244,26 @@ const plannerSlice = createSlice({
     setDestinationStay(state, action: PayloadAction<{ id: string; stay: { name?: string; reference?: string; notes?: string } }>) {
       const d = state.destinations.find(x => x.id === action.payload.id);
       if (d) d.stay = { ...d.stay, ...action.payload.stay };
+    },
+    // --- Multi accommodation CRUD ---
+    addStayEntry(state, action: PayloadAction<{ destinationId: string; name?: string; reference?: string }>) {
+      const d = state.destinations.find(x=> x.id === action.payload.destinationId);
+      if(!d) return; if(!d.stays) d.stays = [];
+      d.stays.push({ id: 'stay_'+Date.now()+'_'+Math.random().toString(36).slice(2), name: action.payload.name?.trim(), reference: action.payload.reference?.trim() });
+    },
+    updateStayEntry(state, action: PayloadAction<{ destinationId: string; stayId: string; patch: { name?: string; reference?: string } }>) {
+      const d = state.destinations.find(x=> x.id === action.payload.destinationId);
+      if(!d?.stays) return; const s = d.stays.find(x=> x.id === action.payload.stayId); if(!s) return;
+      if(action.payload.patch.name!==undefined) s.name = action.payload.patch.name.trim();
+      if(action.payload.patch.reference!==undefined) s.reference = action.payload.patch.reference.trim();
+    },
+    removeStayEntry(state, action: PayloadAction<{ destinationId: string; stayId: string }>) {
+      const d = state.destinations.find(x=> x.id === action.payload.destinationId);
+      if(!d?.stays) return; d.stays = d.stays.filter(s=> s.id !== action.payload.stayId);
+    },
+    setStayNotes(state, action: PayloadAction<{ destinationId: string; notes: string }>) {
+      const d = state.destinations.find(x=> x.id === action.payload.destinationId);
+      if(!d) return; d.stayNotes = action.payload.notes;
     },
     renameDestination(state, action: PayloadAction<{ id: string; name: string }>) {
       const d = state.destinations.find(x => x.id === action.payload.id);
@@ -491,6 +528,24 @@ const plannerSlice = createSlice({
       }
       state.destinations = newOrder;
     },
+    // Exact reorder (allow first to move). Dates recomputed starting from original first startDate.
+    reorderChainExact(state, action: PayloadAction<{ ids: string[] }>) {
+      const { ids } = action.payload; if(!ids.length) return;
+      const map: Record<string, PlannerDestination> = {}; state.destinations.forEach(d=> { map[d.id]=d; });
+      const newOrder: PlannerDestination[] = []; ids.forEach(id=> { if(map[id]) newOrder.push(map[id]); });
+      if(newOrder.length !== state.destinations.length) return; // safety
+      // Preserve original trip start date from earliest current start (first element before reorder)
+      const originalStart = state.destinations[0]?.startDate || new Date().toISOString().slice(0,10);
+      let cursorStart = originalStart;
+      for(let i=0;i<newOrder.length;i++) {
+        const d = newOrder[i];
+        d.startDate = cursorStart;
+        const end = new Date(new Date(cursorStart).getTime() + d.nights*24*60*60*1000).toISOString().slice(0,10);
+        d.endDate = end;
+        cursorStart = end; // next start
+      }
+      state.destinations = newOrder;
+    },
     loadState(_state, action: PayloadAction<PlannerState>) {
       return { ...action.payload };
     },
@@ -511,11 +566,16 @@ export const {
   setDestinationBudget,
   reorderDestinations,
   reorderChain,
+  reorderChainExact,
   loadState,
   markSaved,
   setDestinationCoords,
   setDestinationNotes,
   setDestinationStay,
+  addStayEntry,
+  updateStayEntry,
+  removeStayEntry,
+  setStayNotes,
   renameDestination,
   setDestinationCategory,
   toggleDestinationCompleted,

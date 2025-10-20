@@ -46,7 +46,10 @@ const MapPanel: React.FC<MapPanelProps> = ({ widthFraction = 0.40 }) => {
   const mapRef = useRef<HTMLDivElement | null>(null);
   const mapInstance = useRef<any | null>(null);
   const markersRef = useRef<Record<string, any>>({});
-  const routeLineRef = useRef<any | null>(null);
+  // Store individual leg polylines keyed by fromId->toId
+  const legPolylinesRef = useRef<Record<string, any>>({});
+  const directionsCacheRef = useRef<Record<string, any>>({});
+  const pendingLegsRef = useRef<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
@@ -55,9 +58,16 @@ const MapPanel: React.FC<MapPanelProps> = ({ widthFraction = 0.40 }) => {
 
   // Map style definitions (light & dark) – minimal, non-branded customization
   const lightStyle = [
-    { featureType: 'poi', elementType: 'labels', stylers: [{ visibility: 'off' }] },
+    { featureType: 'poi.attraction', stylers: [{ visibility: 'on' }] },
+    { featureType: 'poi.park', stylers: [{ visibility: 'on' }] },
+    { featureType: 'poi.business', stylers: [{ visibility: 'simplified' }] },
+    { featureType: 'poi.medical', stylers: [{ visibility: 'off' }] },
+    { featureType: 'poi.school', stylers: [{ visibility: 'off' }] },
     { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-    { featureType: 'road', elementType: 'geometry', stylers: [{ lightness: 20 }] },
+    { featureType: 'road', elementType: 'geometry', stylers: [{ lightness: 30 }] },
+    { featureType: 'road.highway', elementType: 'geometry', stylers: [{ lightness: 10 }, { color: '#d1d7dc' }] },
+    { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#e7ebef' }] },
+    { featureType: 'road.local', elementType: 'geometry', stylers: [{ color: '#ffffff' }] },
     { featureType: 'water', elementType: 'geometry.fill', stylers: [{ color: '#c7e5fb' }] },
     { featureType: 'landscape', elementType: 'geometry.fill', stylers: [{ color: '#f5f7f9' }] }
   ];
@@ -65,31 +75,23 @@ const MapPanel: React.FC<MapPanelProps> = ({ widthFraction = 0.40 }) => {
   const darkStyle = [
     { elementType: 'geometry', stylers: [{ color: '#111518' }] },
     { elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-    // Strong stroke for text readability then bright(ish) fill
     { elementType: 'labels.text.stroke', stylers: [{ color: '#0d0f11' }, { weight: 3 }] },
     { elementType: 'labels.text.fill', stylers: [{ color: '#f1f3f5' }] },
-    // Administrative boundaries subtle
     { featureType: 'administrative', elementType: 'geometry.stroke', stylers: [{ color: '#2a3035' }] },
     { featureType: 'administrative.locality', elementType: 'labels.text.fill', stylers: [{ color: '#e0e3e6' }] },
     { featureType: 'administrative.neighborhood', stylers: [{ visibility: 'off' }] },
-    // Hide POIs to declutter
-    { featureType: 'poi', stylers: [{ visibility: 'off' }] },
+    { featureType: 'poi.attraction', stylers: [{ visibility: 'on' }] },
     { featureType: 'poi.park', stylers: [{ visibility: 'on' }] },
-    { featureType: 'poi.park', elementType: 'geometry.fill', stylers: [{ color: '#15271b' }] },
-    // Roads hierarchy: minor roads dim, highways clearer
+    { featureType: 'poi.business', stylers: [{ visibility: 'simplified' }] },
+    { featureType: 'poi.medical', stylers: [{ visibility: 'off' }] },
+    { featureType: 'poi.school', stylers: [{ visibility: 'off' }] },
     { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#242b30' }] },
     { featureType: 'road', elementType: 'geometry.stroke', stylers: [{ color: '#343c42' }] },
-    { featureType: 'road.local', elementType: 'geometry', stylers: [{ color: '#1d2327' }, { lightness: -5 }] },
+    { featureType: 'road.local', elementType: 'geometry', stylers: [{ color: '#1d2327' }] },
     { featureType: 'road.arterial', elementType: 'geometry', stylers: [{ color: '#2d3439' }] },
     { featureType: 'road.highway', elementType: 'geometry', stylers: [{ color: '#465158' }] },
     { featureType: 'road.highway', elementType: 'geometry.stroke', stylers: [{ color: '#5d6970' }] },
-    // Hide shields (route labels) for cleanliness
-    { featureType: 'road.highway', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-    { featureType: 'road.arterial', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-    { featureType: 'road.local', elementType: 'labels.icon', stylers: [{ visibility: 'off' }] },
-    // Transit hidden
     { featureType: 'transit', stylers: [{ visibility: 'off' }] },
-    // Water distinct
     { featureType: 'water', elementType: 'geometry.fill', stylers: [{ color: '#0d2531' }] },
     { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#45606b' }] }
   ];
@@ -151,15 +153,27 @@ const MapPanel: React.FC<MapPanelProps> = ({ widthFraction = 0.40 }) => {
 
   const makeMarkerSvg = useCallback((th: any) => {
     return {
-      path: 'M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7z',
+      path: 'M12 2C8.1 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.1-7-7-7z',
       fillColor: th.palette.primary.main,
-      fillOpacity: 0.95,
+      fillOpacity: 0.98,
       strokeWeight: 2,
-      strokeColor: th.palette.mode==='dark'? '#000' : '#fff',
-      scale: 1.15,
-      anchor: new (window as any).google.maps.Point(12,22)
+      strokeColor: th.palette.mode==='dark'? '#06080A' : '#ffffff',
+      scale: 1.2,
+      labelOrigin: new (window as any).google.maps.Point(12,10),
+      anchor: new (window as any).google.maps.Point(12,24)
     } as any;
   }, []);
+
+  const polylineStyleForMode = (mode:string, baseColor:string) => {
+    switch(mode){
+      case 'walk': return { strokeColor: baseColor, strokeWeight: 4, strokeOpacity: 0.9, icons:[{ icon:{ path:'M 0,-1 0,1', strokeOpacity:1, scale:2 }, offset:'0', repeat:'10px'}] };
+      case 'bike': return { strokeColor: '#16a34a', strokeWeight: 5, strokeOpacity: 0.85, icons:[{ icon:{ path:'M 0,-1 0,1', strokeOpacity:1, scale:2 }, offset:'25px', repeat:'22px'}] };
+      case 'bus': return { strokeColor: '#db7c00', strokeWeight: 5, strokeOpacity: 0.85 };
+      case 'train': return { strokeColor: '#4f46e5', strokeWeight: 5, strokeOpacity: 0.85 };
+      case 'flight': return { strokeColor: '#0ea5e9', strokeWeight: 4, strokeOpacity: 0.75, geodesic:true, icons:[{ icon:{ path:'M 0,-1 0,1', strokeOpacity:1, scale:2 }, offset:'0', repeat:'16px'}] };
+      default: return { strokeColor: baseColor, strokeWeight: 6, strokeOpacity: 0.9 }; // car
+    }
+  };
 
   // Sync markers with numbering (independent of theme except for icon function)
   useEffect(() => {
@@ -195,38 +209,119 @@ const MapPanel: React.FC<MapPanelProps> = ({ widthFraction = 0.40 }) => {
     });
 
     const withCoords = destinations.filter(d => d.lat != null && d.lng != null);
-    if (withCoords.length > 0 && !routeLineRef.current) {
+    if (withCoords.length > 0) {
       const bounds = new g.maps.LatLngBounds();
       withCoords.forEach(d => bounds.extend({ lat: d.lat!, lng: d.lng! }));
       mapInstance.current.fitBounds(bounds);
     }
   }, [destinations, makeMarkerSvg, theme]);
-
-  // Listen for route updates to draw polyline
+  // Build transport-based leg routes using Directions API with caching & fallback.
   useEffect(() => {
-    const handler = (e: any) => {
-      const ids: string[] = e.detail?.ids || [];
-      const g = (window as any).google;
-      if (!g || !mapInstance.current) return;
-      const ordered = ids.map(id => destinations.find(d=> d.id===id)).filter(d=> d && d.lat!=null && d.lng!=null) as any[];
-      if (ordered.length < 2) return;
-      const path = ordered.map(d=> ({ lat: d.lat, lng: d.lng }));
-      if (routeLineRef.current) routeLineRef.current.setMap(null);
-      routeLineRef.current = new g.maps.Polyline({
-        path,
-        strokeColor: theme.palette.primary.main,
-        strokeOpacity: 0.85,
-        strokeWeight: 4,
-        geodesic: true
+    const g = (window as any).google;
+    if (!g || !mapInstance.current) return;
+    const svc = new g.maps.DirectionsService();
+    const map = mapInstance.current;
+    // Remove obsolete polylines (sequence change)
+    Object.keys(legPolylinesRef.current).forEach(key => {
+      const [fromId,toId] = key.split('->');
+      const fromIdx = destinations.findIndex(d=> d.id===fromId);
+      const toIdx = destinations.findIndex(d=> d.id===toId);
+      if (fromIdx === -1 || toIdx !== fromIdx + 1) {
+        legPolylinesRef.current[key].setMap(null);
+        delete legPolylinesRef.current[key];
+      }
+    });
+    const legs: Array<{ from:any; to:any; mode:string; key:string }> = [];
+    for (let i=1;i<destinations.length;i++) {
+      const from = destinations[i-1]; const to = destinations[i];
+      if(from.lat!=null && from.lng!=null && to.lat!=null && to.lng!=null) {
+        const mode = to.transport || 'car';
+        legs.push({ from, to, mode, key: from.id+'->'+to.id+'@'+mode });
+      }
+    }
+    if(!legs.length) return;
+    const bounds = new g.maps.LatLngBounds();
+    let anyPath = false;
+    const baseColor = theme.palette.primary.main;
+    const fetchLeg = async (leg:{ from:any; to:any; mode:string; key:string }) => {
+      const polyKey = leg.from.id+'->'+leg.to.id; // polyline store key independent of mode
+      const cacheKey = leg.key;
+      // Cache hit
+      if(directionsCacheRef.current[cacheKey]) {
+        const path = directionsCacheRef.current[cacheKey];
+        if(legPolylinesRef.current[polyKey]) { legPolylinesRef.current[polyKey].setMap(null); delete legPolylinesRef.current[polyKey]; }
+        const style = polylineStyleForMode(leg.mode, baseColor);
+        const poly = new g.maps.Polyline({ ...style, path });
+        poly.setMap(map); legPolylinesRef.current[polyKey] = poly; path.forEach((p:any)=> bounds.extend(p)); anyPath = true; return;
+      }
+      // Custom flight rendering: skip Directions API, draw geodesic great-circle path
+      if(leg.mode === 'flight') {
+        // Minimal great-circle approximation using only endpoints is acceptable (Google renders geodesic arc)
+        // For longer distances we can interpolate for smoother dashed pattern.
+        const interpolateGreatCircle = (a:{lat:number; lng:number}, b:{lat:number; lng:number}, steps=32) => {
+          const toRad = (deg:number)=> deg*Math.PI/180; const toDeg=(rad:number)=> rad*180/Math.PI;
+          const lat1=toRad(a.lat), lon1=toRad(a.lng); const lat2=toRad(b.lat), lon2=toRad(b.lng);
+          const d = 2*Math.asin(Math.sqrt(Math.sin((lat2-lat1)/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin((lon2-lon1)/2)**2));
+          if(d===0) return [a,b];
+          const sinD = Math.sin(d);
+          const path: {lat:number; lng:number}[] = [];
+          for(let i=0;i<=steps;i++){
+            const f = i/steps;
+            const A = Math.sin((1-f)*d)/sinD; const B = Math.sin(f*d)/sinD;
+            const x = A*Math.cos(lat1)*Math.cos(lon1) + B*Math.cos(lat2)*Math.cos(lon2);
+            const y = A*Math.cos(lat1)*Math.sin(lon1) + B*Math.cos(lat2)*Math.sin(lon2);
+            const z = A*Math.sin(lat1) + B*Math.sin(lat2);
+            const lat = Math.atan2(z, Math.sqrt(x*x + y*y));
+            const lon = Math.atan2(y, x);
+            path.push({ lat: toDeg(lat), lng: toDeg(lon) });
+          }
+          return path;
+        };
+        const path = interpolateGreatCircle({ lat:leg.from.lat, lng:leg.from.lng }, { lat:leg.to.lat, lng:leg.to.lng });
+        directionsCacheRef.current[cacheKey] = path; // cache custom path
+        if(legPolylinesRef.current[polyKey]) { legPolylinesRef.current[polyKey].setMap(null); delete legPolylinesRef.current[polyKey]; }
+        const style = polylineStyleForMode(leg.mode, baseColor);
+        const poly = new g.maps.Polyline({ ...style, path, geodesic:true });
+        poly.setMap(map); legPolylinesRef.current[polyKey] = poly; path.forEach(p=> bounds.extend(p)); anyPath = true; return;
+      }
+      if(pendingLegsRef.current.has(cacheKey)) return; // already fetching
+      pendingLegsRef.current.add(cacheKey);
+  const travelMode = leg.mode==='walk' ? 'WALKING' : leg.mode==='car' ? 'DRIVING' : leg.mode==='bike' ? 'BICYCLING' : (leg.mode==='bus' || leg.mode==='train') ? 'TRANSIT' : 'DRIVING';
+      const request:any = { origin:{ lat:leg.from.lat, lng:leg.from.lng }, destination:{ lat:leg.to.lat, lng:leg.to.lng }, travelMode };
+      if(travelMode==='TRANSIT') request.transitOptions = { modes: leg.mode==='bus'? ['BUS'] : ['TRAIN'] };
+      await new Promise<void>((resolve)=> {
+        svc.route(request, (res:any, status:string) => {
+          pendingLegsRef.current.delete(cacheKey);
+          let path: any[] | null = null;
+          if(status==='OK' && res?.routes?.length) {
+            path = res.routes[0].overview_path.map((p:any)=> ({ lat:p.lat(), lng:p.lng() }));
+            directionsCacheRef.current[cacheKey] = path;
+          }
+          if(!path) { path = [ { lat:leg.from.lat, lng:leg.from.lng }, { lat:leg.to.lat, lng:leg.to.lng } ]; }
+          if(legPolylinesRef.current[polyKey]) { legPolylinesRef.current[polyKey].setMap(null); delete legPolylinesRef.current[polyKey]; }
+          const style = polylineStyleForMode(leg.mode, baseColor);
+          const poly = new g.maps.Polyline({ ...style, path });
+          poly.setMap(map); legPolylinesRef.current[polyKey] = poly; path.forEach(p=> bounds.extend(p)); anyPath = true; resolve();
+        });
       });
-      routeLineRef.current.setMap(mapInstance.current);
-      const bounds = new g.maps.LatLngBounds();
-      path.forEach(p=> bounds.extend(p));
-      mapInstance.current.fitBounds(bounds);
+    };
+    (async () => { for(const leg of legs) await fetchLeg(leg); if(anyPath) map.fitBounds(bounds); })();
+  }, [destinations, theme.palette.primary.main]);
+
+  // Clear polylines when route ordering explicitly optimized; they will regenerate next effect.
+  useEffect(() => {
+    const handler = () => {
+      // Clear existing leg polylines fully so next destinations change regenerates them
+      Object.values(legPolylinesRef.current).forEach(p=> p.setMap(null));
+      legPolylinesRef.current = {}; // FIX: previously mistakenly assigned to .current property
+      if(import.meta.env.DEV){
+        // eslint-disable-next-line no-console
+        console.log('[MapPanel] Cleared cached leg polylines after route-updated event');
+      }
     };
     window.addEventListener('tripician:route-updated', handler as any);
-    return ()=> window.removeEventListener('tripician:route-updated', handler as any);
-  }, [destinations, theme.palette.primary.main]);
+    return () => window.removeEventListener('tripician:route-updated', handler as any);
+  }, []);
 
   // Add marker by clicking map when in adding mode
   useEffect(() => {

@@ -1,3 +1,5 @@
+// ExpensesPanel - authoritative implementation. Feature visibility is gated at the parent tab.
+// To temporarily hide this feature, disable/hide its tab in the parent component – do NOT edit or strip this file.
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Box, Typography, Paper, Button, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Divider, Chip, Tooltip, InputAdornment, ToggleButtonGroup, ToggleButton, Collapse } from '@mui/material';
@@ -11,12 +13,9 @@ import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import { type RootState, type AppDispatch } from '../../store';
 import { setTripBudget, addExpense, updateExpense, removeExpense, setSimplifyGroupExpenses, addExpenseVisibilityEmail, removeExpenseVisibilityEmail, clearExpenseVisibilityEmails } from '../../store/plannerSlice';
 
-// Categories could eventually be user-configurable; keep a simple constant for now
 const EXPENSE_CATEGORIES = ['Flights','Stay','Food','Transport','Activity','Misc'];
-
 type SortMode = 'newest'|'oldest'|'amount_desc'|'amount_asc';
-
-const currencySymbol = (c: string) => c==='EUR' ? '€' : c==='USD' ? '$' : '£';
+const currencySymbol = (c: string) => c==='EUR' ? '€' : c==='USD' ? '$' : c==='GBP' ? '£' : '$';
 
 interface ExpensesPanelProps { readOnly?: boolean }
 const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ readOnly=false }) => {
@@ -83,7 +82,7 @@ const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ readOnly=false }) => {
     <Box sx={{ p:2.25, display:'flex', flexDirection:'column', gap:2 }}>
       <Box sx={{ display:'flex', alignItems:'center', justifyContent:'space-between', flexWrap:'wrap', gap:1 }}>
         <Typography variant='h6' fontWeight={700} sx={{ letterSpacing:.3 }}>Budgeting</Typography>
-  {!readOnly && <Button startIcon={<AddIcon />} variant='contained' size='small' onClick={openNewExpense} sx={{ textTransform:'none', borderRadius:2 }}>Add expense</Button>}
+        {!readOnly && <Button startIcon={<AddIcon />} variant='contained' size='small' onClick={openNewExpense} sx={{ textTransform:'none', borderRadius:2 }}>Add expense</Button>}
       </Box>
       <Paper variant='outlined' sx={(t)=>({ p:2.25, borderRadius:3, display:'flex', flexDirection:'column', gap:2, background: t.palette.mode==='dark'? 'linear-gradient(145deg,#111a22,#0e1318)': 'linear-gradient(145deg,#f7f9fb,#edf1f5)' })}>
         <Box sx={{ display:'flex', alignItems:'flex-start', justifyContent:'space-between', flexWrap:'wrap', gap:2 }}>
@@ -184,15 +183,14 @@ const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ readOnly=false }) => {
           <Button onClick={()=> setSetBudgetOpen(false)}>Cancel</Button>
           <Button onClick={handleSaveBudget} variant='contained' disabled={!budgetInput || isNaN(parseFloat(budgetInput))}>Save</Button>
         </DialogActions>
-  </Dialog>
-  )}
+      </Dialog>
+      )}
 
-      {/* Add / Edit Expense Dialog (redesigned) */}
+      {/* Add / Edit Expense Dialog */}
       {!readOnly && (
       <Dialog open={expenseOpen} onClose={()=> { setExpenseOpen(false); setItemExpanded(false); setDateExpanded(false); }} maxWidth='sm' fullWidth>
         <DialogTitle sx={{ fontWeight:700 }}>{editingId? 'Edit expense':'Add expense'}</DialogTitle>
         <DialogContent sx={{ display:'flex', flexDirection:'column', gap:2.25, pt:1 }}>
-          {/* Amount */}
           <TextField
             placeholder='0'
             value={expenseForm.amount}
@@ -209,7 +207,6 @@ const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ readOnly=false }) => {
             sx={{ '& input':{ fontSize:22, fontWeight:600 } }}
             fullWidth
           />
-          {/* Item selector */}
           <Box>
             <Paper variant='outlined' onClick={()=> setItemExpanded(o=> !o)} sx={{ cursor:'pointer', px:1.5, py:1.25, borderRadius:2, display:'flex', alignItems:'center', justifyContent:'space-between', '&:hover':{ borderColor:'primary.main' } }}>
               <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
@@ -227,7 +224,6 @@ const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ readOnly=false }) => {
               </Box>
             </Collapse>
           </Box>
-          {/* Paid by */}
           <Paper variant='outlined' sx={{ px:1.5, py:1, borderRadius:2, display:'flex', flexDirection:'column', gap:.25 }}>
             <Typography variant='caption' sx={{ fontWeight:600, textTransform:'uppercase', letterSpacing:.5, opacity:.65 }}>Paid by</Typography>
             <TextField
@@ -239,16 +235,14 @@ const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ readOnly=false }) => {
               <MenuItem value='me'>You (Rover's Compass)</MenuItem>
             </TextField>
           </Paper>
-          {/* Split strategy */}
-            <Paper variant='outlined' sx={{ px:1.5, py:1, borderRadius:2, display:'flex', flexDirection:'column', gap:.25 }}>
-              <Typography variant='caption' sx={{ fontWeight:600, textTransform:'uppercase', letterSpacing:.5, opacity:.65 }}>Split</Typography>
-              <TextField select size='small' value={expenseForm.splitStrategy} onChange={e=> setExpenseForm(f=> ({ ...f, splitStrategy: e.target.value as any }))}>
-                <MenuItem value='none'>Don't split</MenuItem>
-                <MenuItem value='equal'>Split equally</MenuItem>
-                <MenuItem value='custom' disabled>Custom (soon)</MenuItem>
-              </TextField>
-            </Paper>
-          {/* Date optional */}
+          <Paper variant='outlined' sx={{ px:1.5, py:1, borderRadius:2, display:'flex', flexDirection:'column', gap:.25 }}>
+            <Typography variant='caption' sx={{ fontWeight:600, textTransform:'uppercase', letterSpacing:.5, opacity:.65 }}>Split</Typography>
+            <TextField select size='small' value={expenseForm.splitStrategy} onChange={e=> setExpenseForm(f=> ({ ...f, splitStrategy: e.target.value as any }))}>
+              <MenuItem value='none'>Don't split</MenuItem>
+              <MenuItem value='equal'>Split equally</MenuItem>
+              <MenuItem value='custom' disabled>Custom (soon)</MenuItem>
+            </TextField>
+          </Paper>
           <Box>
             <Button onClick={()=> setDateExpanded(o=> !o)} size='small' variant='text' sx={{ textTransform:'none', px:0 }}>{dateExpanded? 'Hide date':'Date: Optional'}</Button>
             <Collapse in={dateExpanded} unmountOnExit>
@@ -262,8 +256,8 @@ const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ readOnly=false }) => {
             {editingId? 'Save':'Save'}
           </Button>
         </DialogActions>
-  </Dialog>
-  )}
+      </Dialog>
+      )}
       {/* Settings Dialog */}
       {!readOnly && <SettingsDialog open={settingsOpen} onClose={()=> setSettingsOpen(false)} />}
     </Box>
@@ -304,8 +298,8 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onClose }) => {
       <DialogContent sx={{ display:'flex', flexDirection:'column', gap:3, pt:1 }}>
         <Box>
           <Typography variant='subtitle2'>Simplify group expenses</Typography>
-            <Typography variant='body2' color='text.secondary' sx={{ mb:1 }}>We'll do the math for you. Settle group expenses with fewer transactions at the end of your trip.</Typography>
-            <Button variant={simplify? 'contained':'outlined'} size='small' onClick={()=> dispatch(setSimplifyGroupExpenses({ value: !simplify }))} sx={{ textTransform:'none', borderRadius:2 }}>{simplify? 'Enabled':'Enable'}</Button>
+          <Typography variant='body2' color='text.secondary' sx={{ mb:1 }}>We'll do the math for you. Settle group expenses with fewer transactions at the end of your trip.</Typography>
+          <Button variant={simplify? 'contained':'outlined'} size='small' onClick={()=> dispatch(setSimplifyGroupExpenses({ value: !simplify }))} sx={{ textTransform:'none', borderRadius:2 }}>{simplify? 'Enabled':'Enable'}</Button>
         </Box>
         <Divider />
         <Box>
@@ -328,9 +322,7 @@ const SettingsDialog: React.FC<SettingsDialogProps> = ({ open, onClose }) => {
           <Button variant='outlined' startIcon={<ReceiptLongIcon />} disabled={!expenses.length} onClick={exportCsv} sx={{ textTransform:'none', borderRadius:2 }}>Export</Button>
         </Box>
       </DialogContent>
-      <DialogActions>
-        <Button onClick={onClose}>Close</Button>
-      </DialogActions>
+      <DialogActions><Button onClick={onClose}>Close</Button></DialogActions>
     </Dialog>
   );
 };

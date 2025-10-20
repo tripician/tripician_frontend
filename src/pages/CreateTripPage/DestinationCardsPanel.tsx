@@ -19,6 +19,7 @@ import FlightTakeoffRoundedIcon from '@mui/icons-material/FlightTakeoffRounded';
 import TrainRoundedIcon from '@mui/icons-material/TrainRounded';
 import DirectionsBusFilledRoundedIcon from '@mui/icons-material/DirectionsBusFilledRounded';
 import DirectionsWalkRoundedIcon from '@mui/icons-material/DirectionsWalkRounded';
+import DirectionsBikeRoundedIcon from '@mui/icons-material/DirectionsBikeRounded';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import DestinationCard from './DestinationCard';
@@ -26,15 +27,17 @@ import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import {
   addDestination, removeDestination, duplicateDestination, toggleDestinationCompleted, setDestinationCategory, renameDestination,
-  setDestinationNotes, setDestinationStay, addDestinationDoc, removeDestinationDoc,
-  addSpot, toggleSpot, removeSpot, addFoodItem, toggleFoodItem, removeFoodItem
+  setDestinationNotes, addDestinationDoc, removeDestinationDoc,
+  addSpot, toggleSpot, removeSpot, addFoodItem, toggleFoodItem, removeFoodItem,
+  updateDestinationNights, setTransport,
+  addStayEntry, updateStayEntry, removeStayEntry, setStayNotes
 } from '../../store/plannerSlice';
 import ValidatedFileInput from '../../components/CommonComponents/ValidatedFileInput';
 import { DEFAULT_DOC_RULE } from '../../utils/fileValidation';
 import AiActionButton from '../../components/CommonComponents/AiActionButton';
 
 interface DestinationCardsPanelProps { maxed: boolean; readOnly?: boolean }
-type TransportMode = 'car' | 'flight' | 'train' | 'bus' | 'walk';
+type TransportMode = 'car' | 'flight' | 'train' | 'bus' | 'walk' | 'bike';
 interface TransportLegDetail { provider?: string; distanceText?: string; durationText?: string; loading?: boolean; error?: string }
 
 const transportIcon = (mode:TransportMode, size=16) => {
@@ -43,7 +46,8 @@ const transportIcon = (mode:TransportMode, size=16) => {
     case 'flight': return <FlightTakeoffRoundedIcon {...props} />;
     case 'train': return <TrainRoundedIcon {...props} />;
     case 'bus': return <DirectionsBusFilledRoundedIcon {...props} />;
-    case 'walk': return <DirectionsWalkRoundedIcon {...props} />;
+  case 'walk': return <DirectionsWalkRoundedIcon {...props} />;
+  case 'bike': return <DirectionsBikeRoundedIcon {...props} />;
     default: return <DirectionsCarRoundedIcon {...props} />;
   }
 };
@@ -150,10 +154,24 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
   const [notesDraft, setNotesDraft] = React.useState('');
   const openNotes = (id:string) => { setNotesFor(id); const d=destinations.find(p=> p.id===id); setNotesDraft(d?.notes||''); };
   const saveNotes = () => { if(notesFor) dispatch(setDestinationNotes({ id: notesFor, notes: notesDraft })); setNotesFor(null); };
+  // Multi Stay panel
   const [stayFor, setStayFor] = React.useState<string | null>(null);
-  const [stayDraft, setStayDraft] = React.useState<{ name?: string; reference?: string; notes?: string }>({});
-  const openStay = (id:string) => { setStayFor(id); const d=destinations.find(p=> p.id===id); setStayDraft(d?.stay||{}); };
-  const saveStay = () => { if(stayFor) dispatch(setDestinationStay({ id: stayFor, stay: stayDraft })); setStayFor(null); };
+  const openStay = (id:string) => { setStayFor(id); };
+  const closeStayPanel = () => setStayFor(null);
+  const destinationStays = React.useMemo(()=> {
+    if(!stayFor) return [] as Array<{ id:string; name?:string; reference?:string }>;
+    const d = destinations.find(p=> p.id===stayFor);
+    return d?.stays || [];
+  }, [stayFor, destinations]);
+  const stayNotesVal = React.useMemo(()=> {
+    if(!stayFor) return '';
+    const d = destinations.find(p=> p.id===stayFor);
+    return d?.stayNotes || '';
+  }, [stayFor, destinations]);
+  const addProperty = () => { if(!stayFor) return; dispatch(addStayEntry({ destinationId: stayFor })); };
+  const updatePropertyField = (stayId:string, patch: { name?:string; reference?:string }) => { if(!stayFor) return; dispatch(updateStayEntry({ destinationId: stayFor, stayId, patch })); };
+  const deleteProperty = (stayId:string) => { if(!stayFor) return; dispatch(removeStayEntry({ destinationId: stayFor, stayId })); };
+  const saveStayNotes = (notes:string) => { if(!stayFor) return; dispatch(setStayNotes({ destinationId: stayFor, notes })); };
   const [docsFor, setDocsFor] = React.useState<string | null>(null);
   const openDocs = (id:string) => setDocsFor(id);
   const onAcceptDocs = (files: File[]) => { if(!docsFor) return; files.forEach((f,idx)=>{ const id=f.name+'_'+Date.now().toString(36)+'_'+idx; const url=URL.createObjectURL(f); dispatch(addDestinationDoc({ destinationId: docsFor, doc:{ id, originalName:f.name, mimeType:f.type, url } })); }); };
@@ -162,11 +180,28 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
   /* ------------------------------ Transport legs ------------------------------ */
   const [transportModes, setTransportModes] = React.useState<TransportMode[]>([]);
   const [transportDetails] = React.useState<TransportLegDetail[]>([]);
-  React.useEffect(()=>{ const need=Math.max(0,destinations.length-1); setTransportModes(m=> { const c=[...m]; while(c.length<need) c.push('car'); return c.slice(0,need); }); }, [destinations.length]);
+  // Sync local leg transport modes with arrival destination.transport (destinations[i+1])
+  React.useEffect(()=> {
+    const need = Math.max(0, destinations.length - 1);
+    const arr: TransportMode[] = [];
+    for(let i=0;i<need;i++){
+      const arrival = destinations[i+1];
+      const t = (arrival?.transport as TransportMode) || 'car';
+      arr.push(t);
+    }
+    setTransportModes(arr);
+  }, [destinations]);
   const [transportAnchor, setTransportAnchor] = React.useState<{ index:number; el:HTMLElement } | null>(null);
   const openTransportMenu = (i:number, el:HTMLElement) => { if(readOnly) return; setTransportAnchor({ index:i, el }); };
   const closeTransportMenu = () => setTransportAnchor(null);
-  const updateTransportMode = (i:number, mode:TransportMode) => { setTransportModes(m=> m.map((v,idx)=> idx===i? mode: v)); };
+  const updateTransportMode = (i:number, mode:TransportMode) => {
+    setTransportModes(m=> m.map((v,idx)=> idx===i? mode: v));
+    // Persist transport to arrival destination for leg i (between i and i+1)
+    const arrival = destinations[i+1];
+    if(arrival){
+      dispatch(setTransport({ id: arrival.id, transport: mode }));
+    }
+  };
 
   /* --------------------------- Timeline rail geometry -------------------------- */
   const cardRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
@@ -187,7 +222,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
       <Box sx={{ px:2.5, py:2, display:'flex', flexDirection:'column', gap:2, position:'relative' }}>
         <Box sx={{ display:'flex', alignItems:'center', gap:1.25, flexWrap:'wrap' }}>
           <Typography variant='h6' sx={{ fontWeight:700 }}>Timeline</Typography>
-          <Chip size='small' label={`${destinations.length} dest`} />
+          <Chip size='small' label={`${destinations.length} destination(s)`} />
           <Chip size='small' color='primary' label={`${completedCount} done`} />
         </Box>
 
@@ -252,6 +287,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
                   onOpenDocs={readOnly? undefined : ()=> openDocs(d.id)}
                   onOpenStay={readOnly? undefined : ()=> openStay(d.id)}
                   onOpenDiscover={readOnly? undefined : ()=> { setDiscoverFor(d.id); setDiscoverTab('spots'); }}
+                  onChangeNights={readOnly? undefined : (id,delta)=> dispatch(updateDestinationNights({ id, delta }))}
                 />
               </Box>
             ))}
@@ -259,7 +295,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
         </Box>
 
         <Menu open={!!transportAnchor} anchorEl={transportAnchor?.el} onClose={closeTransportMenu} disablePortal>
-          {(['car','flight','train','bus','walk'] as TransportMode[]).map(m=> (
+          {(['car','flight','train','bus','walk','bike'] as TransportMode[]).map(m=> (
             <MenuItem key={m} disabled={readOnly} onClick={()=> { if(transportAnchor) updateTransportMode(transportAnchor.index, m); closeTransportMenu(); }}>
               {transportIcon(m,18)}<Box sx={{ ml:1 }}>{m.charAt(0).toUpperCase()+m.slice(1)}</Box>
             </MenuItem>
@@ -357,18 +393,67 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
           </DialogActions>
         </Dialog>
 
-        {/* Stay Dialog */}
-        <Dialog open={!!stayFor} onClose={()=> setStayFor(null)} fullWidth maxWidth='sm'>
-          <DialogTitle>Stay / Accommodation</DialogTitle>
-          <DialogContent sx={{ display:'flex', flexDirection:'column', gap:2 }}>
-            <InputBase disabled={readOnly} value={stayDraft.name||''} onChange={e=> setStayDraft(s=> ({ ...s, name: e.target.value }))} placeholder='Property name' sx={{ border:'1px solid', borderColor:'divider', borderRadius:1.5, px:1, py:.6 }} />
-            <InputBase disabled={readOnly} value={stayDraft.reference||''} onChange={e=> setStayDraft(s=> ({ ...s, reference: e.target.value }))} placeholder='Booking reference' sx={{ border:'1px solid', borderColor:'divider', borderRadius:1.5, px:1, py:.6 }} />
-            <InputBase disabled={readOnly} value={stayDraft.notes||''} onChange={e=> setStayDraft(s=> ({ ...s, notes: e.target.value }))} placeholder='Notes' multiline minRows={4} sx={{ border:'1px solid', borderColor:'divider', borderRadius:1.5, px:1, py:.6 }} />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={()=> setStayFor(null)}>Close</Button>
-            {!readOnly && <Button variant='contained' onClick={saveStay}>Save</Button>}
-          </DialogActions>
+        {/* Stay Dialog (discover-style) */}
+        <Dialog open={!!stayFor} onClose={closeStayPanel} fullWidth maxWidth='lg' PaperProps={{ sx:{ height:'80vh' } }}>
+          {stayFor && (()=> { const d = destinations.find(p=> p.id===stayFor); return (
+            <>
+              <DialogTitle sx={{ pb:0 }}>
+                <Box sx={{ display:'flex', justifyContent:'space-between', flexWrap:'wrap', gap:2 }}>
+                  <Box>
+                    <Typography variant='h6' sx={{ fontWeight:700 }}>{d?.name || 'Destination'} – Accommodation</Typography>
+                    <Typography variant='caption' sx={{ opacity:.65 }}>Manage one or multiple properties & general stay notes.</Typography>
+                  </Box>
+                  {!readOnly && <Button size='small' variant='outlined' onClick={addProperty} sx={{ textTransform:'none', borderRadius:2 }}>Add Property</Button>}
+                </Box>
+              </DialogTitle>
+              <DialogContent dividers sx={{ display:'flex', gap:3, alignItems:'flex-start' }}>
+                {/* Properties list */}
+                <Box sx={{ flex:1.4, display:'flex', flexDirection:'column', gap:1 }}>
+                  {destinationStays.map(prop => (
+                    <Paper key={prop.id} elevation={0} sx={{ p:1.2, border:'1px solid', borderColor:'divider', borderRadius:2, display:'flex', flexDirection:'column', gap:1 }}>
+                      <Box sx={{ display:'flex', flexDirection:{ xs:'column', sm:'row' }, gap:1 }}>
+                        <InputBase
+                          disabled={readOnly}
+                          value={prop.name||''}
+                          onChange={e=> updatePropertyField(prop.id,{ name: e.target.value })}
+                          placeholder='Property name'
+                          sx={{ flex:1, border:'1px solid', borderColor:'divider', borderRadius:1.5, px:1, py:.55, fontSize:13 }}
+                        />
+                        <InputBase
+                          disabled={readOnly}
+                          value={prop.reference||''}
+                          onChange={e=> updatePropertyField(prop.id,{ reference: e.target.value })}
+                          placeholder='Booking reference'
+                          sx={{ flex:1, border:'1px solid', borderColor:'divider', borderRadius:1.5, px:1, py:.55, fontSize:13 }}
+                        />
+                        {!readOnly && <IconButton size='small' onClick={()=> deleteProperty(prop.id)} sx={{ alignSelf:{ xs:'flex-end', sm:'flex-start' }, mt:{ xs:0, sm:.2 } }}><DeleteOutlineIcon fontSize='small' /></IconButton>}
+                      </Box>
+                    </Paper>
+                  ))}
+                  {destinationStays.length===0 && (
+                    <Typography variant='caption' sx={{ opacity:.6 }}>No properties yet. Click "Add Property".</Typography>
+                  )}
+                </Box>
+                {/* Notes section */}
+                <Paper elevation={0} variant='outlined' sx={{ flex:1, p:2.25, borderRadius:3, position:'relative', display:'flex', flexDirection:'column', gap:1.25 }}>
+                  <Typography variant='subtitle2' sx={{ fontWeight:700 }}>General Notes</Typography>
+                  <InputBase
+                    disabled={readOnly}
+                    multiline
+                    minRows={10}
+                    value={stayNotesVal}
+                    onChange={e=> saveStayNotes(e.target.value)}
+                    placeholder='Check‑in at 2 PM, parking details, key pickup instructions...'
+                    sx={{ border:'1px solid', borderColor:'divider', borderRadius:2, px:1.2, py:.8, fontSize:13 }}
+                  />
+                  <Typography variant='caption' sx={{ opacity:.65 }}>Only non-empty fields are saved in payload.</Typography>
+                </Paper>
+              </DialogContent>
+              <DialogActions>
+                <Button onClick={closeStayPanel}>Close</Button>
+              </DialogActions>
+            </>
+          ); })()}
         </Dialog>
 
         {/* Docs Dialog */}

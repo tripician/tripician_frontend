@@ -83,6 +83,48 @@ export const apiServices = {
     headers: { Authorization: `Bearer ${token}` }
   }),
 
+  // PUT /trips/{tripId} - update trip core + itinerary + docs/meta
+  // TripUpdateDto should match backend expected shape; we map from front-end payload built in TripPlanner (buildPersistPayload)
+  updateTrip: (token: string, tripId: string, data: {
+    trip: {
+      id: string;
+      name: string;
+      status: 'DRAFT' | 'PUBLISHED';
+      privacy: string; // backend enum e.g. TRIP_MEMBERS | FOLLOWERS | EVERYONE | PRIVATE mapped server-side
+      currency: string;
+      generatedAt: string;
+      targetNights: number;
+      totalNights: number;
+      geocodedDestinations: number;
+      legCount: number;
+      routeDistanceKm: number;
+    };
+    itinerary: Array<{
+      id: string;
+      name: string;
+      startDate: string;
+      endDate: string;
+      nights: number;
+      lat?: number;
+      lng?: number;
+      transport?: string;
+      spots: Array<{ id:string; name:string; placeId?:string; checked:boolean }>;
+      foods: Array<{ id:string; name:string; checked:boolean }>;
+      docs: Array<{ id:string; originalName:string; mimeType:string }>;
+    }>;
+    legs: Array<{ fromId:string; toId:string; mode:string; distanceKm:number|null; from:{lat?:number; lng?:number}; to:{lat?:number; lng?:number} }>;
+    expenses: any[]; // refine when expense DTO known
+    budget: number | null | undefined;
+    comments: any[]; // refine when comment DTO known
+    pinnedDocIds: string[];
+    globalDocs: Array<{ id:string; originalName:string; mimeType:string }>;
+    visaDocs: Array<{ id:string; originalName:string; mimeType:string }>;
+    destinationDocsCount: number;
+    version: number;
+  }) => apiClient.put(`/trips/${tripId}`, data, {
+    headers: { Authorization: `Bearer ${token}` }
+  }),
+
   // PATCH /trips/{tripId}/visibility
   changeTripVisibility: (token: string, tripId: string, data: { visibility: 'TRIP_MEMBERS' | 'FOLLOWERS' | 'EVERYONE' }) =>
     apiClient.patch(`/trips/${tripId}/visibility`, data, {
