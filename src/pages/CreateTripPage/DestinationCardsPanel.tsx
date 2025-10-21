@@ -36,7 +36,7 @@ import ValidatedFileInput from '../../components/CommonComponents/ValidatedFileI
 import { DEFAULT_DOC_RULE } from '../../utils/fileValidation';
 import AiActionButton from '../../components/CommonComponents/AiActionButton';
 
-interface DestinationCardsPanelProps { maxed: boolean; readOnly?: boolean }
+interface DestinationCardsPanelProps { maxed: boolean; readOnly?: boolean; canAccessDocs?: boolean; canEdit?: boolean }
 type TransportMode = 'car' | 'flight' | 'train' | 'bus' | 'walk' | 'bike';
 interface TransportLegDetail { provider?: string; distanceText?: string; durationText?: string; loading?: boolean; error?: string }
 
@@ -53,7 +53,7 @@ const transportIcon = (mode:TransportMode, size=16) => {
 };
 const defaultProviderForMode = (m:TransportMode) => m==='flight'?'Flight': m==='train'?'Train': m==='bus'?'Bus': m==='walk'?'Walk':'Car';
 
-const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, readOnly=false }) => {
+const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, readOnly=false, canAccessDocs=false, canEdit=false }) => {
   const dispatch = useDispatch<AppDispatch>();
   const destinations = useSelector((s:RootState)=> s.planner.destinations);
   const completedCount = React.useMemo(()=> destinations.filter(d=> d.completed).length, [destinations]);
@@ -284,7 +284,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
                   onDuplicate={readOnly? undefined : (id)=> dispatch(duplicateDestination({ id }))}
                   onRemove={readOnly? undefined : (id)=> dispatch(removeDestination(id))}
                   onOpenNotes={readOnly? undefined : ()=> openNotes(d.id)}
-                  onOpenDocs={readOnly? undefined : ()=> openDocs(d.id)}
+                  onOpenDocs={(!canAccessDocs)? undefined : ()=> openDocs(d.id)}
                   onOpenStay={readOnly? undefined : ()=> openStay(d.id)}
                   onOpenDiscover={readOnly? undefined : ()=> { setDiscoverFor(d.id); setDiscoverTab('spots'); }}
                   onChangeNights={readOnly? undefined : (id,delta)=> dispatch(updateDestinationNights({ id, delta }))}
@@ -460,7 +460,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
         <Dialog open={!!docsFor} onClose={()=> setDocsFor(null)} fullWidth maxWidth='sm'>
           <DialogTitle>Documents</DialogTitle>
           <DialogContent>
-            {!readOnly && <ValidatedFileInput buttonLabel='Add Files' startIcon={<UploadFileIcon />} onAccept={onAcceptDocs} rule={DEFAULT_DOC_RULE} multiple />}
+            {canEdit && <ValidatedFileInput buttonLabel='Add Files' startIcon={<UploadFileIcon />} onAccept={onAcceptDocs} rule={DEFAULT_DOC_RULE} multiple />}
             {docsFor && (destinations.find(d=> d.id===docsFor)?.docs?.length ? (
               <Box sx={{ mt:2, display:'flex', flexWrap:'wrap', gap:2 }}>
                 {destinations.find(d=> d.id===docsFor)!.docs!.map(doc => { const isImage=/(png|jpe?g|gif|webp|bmp|svg)$/i.test(doc.originalName); return (
@@ -468,7 +468,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
                     <Box onClick={()=> { const a=document.createElement('a'); a.href=doc.url; a.download=doc.originalName; a.target='_blank'; a.rel='noopener'; a.click(); }} sx={{ cursor:'pointer', border:'1px solid', borderColor:'divider', borderRadius:1, overflow:'hidden', p:0.5, display:'flex', flexDirection:'column', alignItems:'center', gap:0.5, position:'relative' }}>
                       {isImage ? <Box component='img' src={doc.url} alt={doc.originalName} sx={{ width:'100%', height:70, objectFit:'cover', borderRadius:0.5 }} /> : <Box sx={{ width:'100%', height:70, display:'flex', alignItems:'center', justifyContent:'center', bgcolor:'action.hover', fontSize:12 }}>{doc.originalName.split('.').pop()?.toUpperCase()}</Box>}
                       <Typography variant='caption' sx={{ textAlign:'center', wordBreak:'break-all' }}>{doc.originalName}</Typography>
-                      {!readOnly && <IconButton size='small' sx={{ position:'absolute', top:2, right:2, bgcolor:'background.paper' }} onClick={(e)=> { e.stopPropagation(); removeDoc(doc.id); }}><DeleteOutlineIcon fontSize='inherit' /></IconButton>}
+                      {canEdit && <IconButton size='small' sx={{ position:'absolute', top:2, right:2, bgcolor:'background.paper' }} onClick={(e)=> { e.stopPropagation(); removeDoc(doc.id); }}><DeleteOutlineIcon fontSize='inherit' /></IconButton>}
                     </Box>
                   </Box>
                 ); })}

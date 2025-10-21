@@ -28,6 +28,7 @@ import CloseFullscreenIcon from '@mui/icons-material/CloseFullscreen';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
+// Removed useLocation to allow TripPlanner usage outside Router context.
 import EditIcon from '@mui/icons-material/Edit';
 import CheckIcon from '@mui/icons-material/Check';
 import Docs from '../DocsPage/Docs';
@@ -45,10 +46,21 @@ export interface TripPlannerProps {
 	readOnly?: boolean; // external view mode
 	hideSections?: string[];
 	isOwnerExternal?: boolean; // provided by TripView to control publish visibility
+	canEdit?: boolean; // user has edit rights
+	canViewDocs?: boolean; // user can view docs (member)
 	onRequestEdit?: ()=>void; // TripView can trigger enabling edit mode
 }
 
-const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly=false, hideSections=[], isOwnerExternal=true, onRequestEdit }) => {
+const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly=false, hideSections=[], isOwnerExternal=true, canEdit, canViewDocs, onRequestEdit }) => {
+	// Route-based UI mode detection using window.location (works even if not inside Router)
+	const pathname = typeof window !== 'undefined' ? window.location.pathname : '';
+	// Detect /tripplanner (planner editing environment) - allow optional trailing slash and id segment
+	const isTripPlannerRoute = /^\/tripplanner(\/|$)/i.test(pathname);
+	// Detect /trip (view-only route) ensuring we don't treat /tripplanner as /trip
+	const isTripViewRoute = !isTripPlannerRoute && /^\/trip(\/|$)/i.test(pathname);
+	// Action visibility flags
+	const showPlannerActions = isTripPlannerRoute;
+	const showViewEditAction = isTripViewRoute;
 	const { token: authToken } = useAuthToken();
 	const dispatch = useDispatch<AppDispatch>();
 	const planner = useSelector((s: RootState) => s.planner);
@@ -57,10 +69,12 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly
 	const targetNights = planner.targetNights;
 	const totalNights = planner.destinations.reduce((a,c)=>a+c.nights,0);
 
-	// External non-owner viewer (not allowed to see / edit sensitive sections)
-	// External (view-only) mode distinction: if readOnly, ALL editing of privacy, expenses, budget etc is disabled.
-	// Previous logic only disabled for non-owners; requirement: privacy should be read only in ANY view-only context.
-	const isExternalNonOwner = readOnly && !isOwnerExternal; // kept for existing gating of other owner-specific UI
+	// Resolve access flags (Option B semantics)
+	const effectiveCanEdit = !!canEdit && !readOnly ? true : (!!canEdit ? canEdit : (!readOnly && isOwnerExternal));
+	const effectiveCanViewDocs = canViewDocs ?? isOwnerExternal ?? false;
+	const canAccessDocs = effectiveCanEdit || effectiveCanViewDocs; // view visa/pinned even if readOnly
+	// Legacy flag for title inline editing (non-owner viewers readOnly)
+	const isExternalNonOwner = readOnly && !effectiveCanEdit;
 
 	const [tab, setTab] = React.useState(0);
 
@@ -72,8 +86,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly
 			console.log('[TripPlanner] No initialTrip provided; (future) fetch by id', tripId);
 			return;
 		}
-		const trip = initialTrip as any;
+		const trip = "Trip" in initialTrip ? initialTrip.Trip : initialTrip;
 		// Title (only if user hasn't edited)
+		console.log('[TripPlanner] Hydrating from initialTrip', trip);
 		if(title === 'Untitled Trip' && !editingTitle && typeof trip.name === 'string') {
 			setTitle(trip.name);
 		}
@@ -160,7 +175,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly
 			console.log('[TripPlanner] Skipped planner loadState; destinations already present');
 		}
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [initialTrip, tripId]);
+	}, ["Trip" in initialTrip ? initialTrip.Trip : initialTrip, tripId]);
 	const [section, setSection] = React.useState<'plan'|'news'|'packing'|'docs'>('plan');
 	const setSectionDebug = (next: 'plan'|'news'|'packing'|'docs') => {
 		// eslint-disable-next-line no-console
@@ -170,7 +185,21 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly
 	const [isDraft, setIsDraft] = React.useState(true);
 	const [title, setTitle] = React.useState('Untitled Trip');
 	const [editingTitle, setEditingTitle] = React.useState(false);
-	const [privacy, setPrivacy] = React.useState<'Private'|'Trip Members'|'My Followers'|'Everyone'>('Private');
+	// Derive initial privacy directly from initialTrip.Trip.visibility (if provided)
+	const initialPrivacy: 'Private'|'Trip Members'|'My Followers'|'Everyone' = (() => {
+		try {
+			const visRaw: unknown = "Trip" in initialTrip ? initialTrip.Trip.visibility : initialTrip.visibility;
+			if (typeof visRaw === 'string') {
+				const vis = visRaw.toLowerCase().trim();
+				if (vis.startsWith('my')) return 'My Followers';
+				if (vis.startsWith('every')) return 'Everyone';
+				if (vis.startsWith('trip')) return 'Trip Members';
+				return 'Private';
+			}
+		} catch { /* fallback to Private */ }
+		return 'Private';
+	})();
+	const [privacy, setPrivacy] = React.useState<'Private'|'Trip Members'|'My Followers'|'Everyone'>(initialPrivacy);
 	// Track a hash of the last committed state to decide if buttons should enable
 	const lastCommittedRef = React.useRef<string>('');
 	const computeSignature = React.useCallback(()=> {
@@ -481,7 +510,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly
 	return (
 		<React.Fragment>
 		<Box sx={{ display:'flex', flexDirection:'row', height:'100vh', overflow:'hidden' }}>
-	<CreateTripNav active={section} onChange={(id)=> setSectionDebug(id as any)} onSettingsClick={()=> setSettingsOpen(true)} hideSections={hideSections} />
+	<CreateTripNav active={section} onChange={(id)=> setSectionDebug(id as any)} onSettingsClick={()=> setSettingsOpen(true)} hideSections={hideSections} canAccessDocs={canAccessDocs} />
 			<Box sx={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, minHeight:0 }}>
 				<TopBar showSearch={false} centerNode={
 					<Box sx={{ display:'flex', alignItems:'center' }}>
@@ -527,7 +556,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly
 										</Typography>
 										<Button size='small' variant='text' onClick={readOnly? undefined : openCurrency} disabled={readOnly} endIcon={<ExpandMoreIcon fontSize='small' />} sx={{ textTransform:'none', px:1, minWidth:0 }}>{currency}</Button>
 									</Box>
-									{!isExternalNonOwner && (
+									{canAccessDocs && (
 									<Paper role='button' onClick={()=> setVisaOpen(true)} sx={(t)=>({ mt:1.25, cursor:'pointer', width:140, px:1.2, py:1, borderRadius:1, display:'flex', flexDirection:'row', gap:.75, alignItems:'center', border:`1px dashed ${t.palette.divider}`, background: t.palette.mode==='dark'? '#13202b':'#f5fbff', '&:hover':{ borderColor:t.palette.primary.main } })}>
 										<Box component='img' src={passportIconUrl} alt='Visa docs' loading='lazy' style={{ width:30, height:30, objectFit:'contain', filter:'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }} />
 										<Box sx={{ display:'flex', flexDirection:'column', minWidth:0 }}>
@@ -543,7 +572,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly
 										<Typography variant='body2' fontWeight={600}>{privacy}</Typography>
 										<Button size='small' variant='text' onClick={readOnly? undefined: openPrivacy} disabled={readOnly} endIcon={<ExpandMoreIcon fontSize='small' />} sx={{ textTransform:'none', px:1, minWidth:0 }} />
 									</Box>
-									{!isExternalNonOwner && (
+									{canAccessDocs && (
 									<Paper role='button' onClick={()=> setPinnedOpen(true)} sx={(t)=>({ mt:1.8, cursor:'pointer', width:140, px:1.2, py:1, borderRadius:1, display:'flex', flexDirection:'row', gap:.75, alignItems:'center', border:`1px dashed ${t.palette.divider}`, background: t.palette.mode==='dark'? '#181c24':'#f7f7fa', '&:hover':{ borderColor:t.palette.primary.main } })}>
 										<Box component='img' src={pinnedIconUrl} alt='Pinned docs' loading='lazy' style={{ width:30, height:30, objectFit:'contain', filter:'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }} />
 										<Box sx={{ display:'flex', flexDirection:'column', minWidth:0 }}>
@@ -630,7 +659,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly
 							{section==='plan' && tab===0 && (
 								<Box sx={{ px:0 }}>
 									{ENABLE_CARD_LAYOUT ? (
-										<DestinationCardsPanel maxed={totalNights >= targetNights} readOnly={readOnly} />
+										<DestinationCardsPanel maxed={totalNights >= targetNights} readOnly={readOnly || !effectiveCanEdit} canAccessDocs={canAccessDocs} canEdit={effectiveCanEdit} />
 									) : (
 										<DestinationsPanel
 											destinations={panelDestinations}
@@ -649,58 +678,69 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly
 						<Box sx={(t)=>({ borderTop:`1px solid ${t.palette.divider}`, px:2.5, py:1.5, background:t.palette.background.paper, display:'flex', alignItems:'center', justifyContent:'space-between' })}>
 							<Typography variant='caption' color='text.secondary'>Last saved: {lastSavedDisplay}</Typography>
 							<Box sx={{ display:'flex', gap:1.2 }}>
-								{/* Primary draft/update button */}
-								<Button
-									size='small'
-									variant='outlined'
-									onClick={()=> {
-										if(!isOwnerExternal) return; // safety
-										if(!isDraft){
-											const payload = buildPersistPayload(false);
-											// Console preview before sending
-											// eslint-disable-next-line no-console
-											console.log('TRIPICIAN_SAVE_PAYLOAD =>', payload, '\nJSON STRING =>', JSON.stringify(payload, null, 2));
-											persistedPayloadRef.current = payload;
-											persistToBackend(payload);
-											commitSnapshot(false); // remain published state after update
-										} else {
-											const payload = buildPersistPayload(true);
-											// eslint-disable-next-line no-console
-											console.log('TRIPICIAN_SAVE_PAYLOAD =>', payload, '\nJSON STRING =>', JSON.stringify(payload, null, 2));
-											persistedPayloadRef.current = payload;
-											persistToBackend(payload);
-											commitSnapshot(true); // commit draft snapshot after persist
-										}
-									}}
-									disabled={!isOwnerExternal || !isDirty || saving}
-									sx={{ textTransform:'none', borderRadius:2 }}
-								>
-									{isDraft ? 'Save as Draft' : 'Update'}{saving && <CircularProgress size={16} thickness={5} sx={{ ml:1 }} />}
-								</Button>
-								{!isOwnerExternal && readOnly && (
-									<Button size='small' variant='contained' color='primary' onClick={()=> { onRequestEdit?.(); }} sx={{ textTransform:'none', borderRadius:2 }}>Edit</Button>
+								{showPlannerActions && (
+									<>
+										{/* Primary draft/update button (only in planner mode) */}
+										<Button
+											size='small'
+											variant='outlined'
+											onClick={()=> {
+												if(!isOwnerExternal) return; // safety
+												if(!isDraft){
+													const payload = buildPersistPayload(false);
+													// eslint-disable-next-line no-console
+													console.log('TRIPICIAN_SAVE_PAYLOAD =>', payload, '\nJSON STRING =>', JSON.stringify(payload, null, 2));
+													persistedPayloadRef.current = payload;
+													persistToBackend(payload);
+													commitSnapshot(false);
+												} else {
+													const payload = buildPersistPayload(true);
+													// eslint-disable-next-line no-console
+													console.log('TRIPICIAN_SAVE_PAYLOAD =>', payload, '\nJSON STRING =>', JSON.stringify(payload, null, 2));
+													persistedPayloadRef.current = payload;
+													persistToBackend(payload);
+													commitSnapshot(true);
+												}
+											}}
+											disabled={!isOwnerExternal || !isDirty || saving}
+											sx={{ textTransform:'none', borderRadius:2 }}
+										>
+											{isDraft ? 'Save as Draft' : 'Update'}{saving && <CircularProgress size={16} thickness={5} sx={{ ml:1 }} />}
+										</Button>
+										{isOwnerExternal && (
+											<Button
+												size='small'
+												variant='contained'
+												color={isDraft? 'primary':'warning'}
+												onClick={()=> {
+													if(isDraft){
+														// Publish commit
+														handlePublish();
+														requestAnimationFrame(()=> { lastCommittedRef.current = computeSignature(); });
+													} else {
+														// Unpublish -> return to draft
+														commitSnapshot(true);
+														console.log('[TripPlanner] Unpublish -> back to draft');
+														openToast('info','Trip reverted to draft');
+													}
+												}}
+												sx={{ textTransform:'none', borderRadius:2, opacity: isDraft? 1 : 0.7 }}
+												disabled={!isOwnerExternal || !isDirty || saving}
+											>
+												{isDraft? 'Publish' : 'Unpublish'}{saving && <CircularProgress size={16} thickness={5} sx={{ ml:1 }} />}
+											</Button>
+										)}
+									</>
 								)}
-								{isOwnerExternal && (
+								{showViewEditAction && (
 									<Button
 										size='small'
 										variant='contained'
-										color={isDraft? 'primary':'warning'}
-										onClick={()=> {
-											if(isDraft){
-												// Publish commit
-												handlePublish(); // sets isDraft false already
-												requestAnimationFrame(()=> { lastCommittedRef.current = computeSignature(); });
-											} else {
-												// Unpublish -> return to draft
-												commitSnapshot(true);
-												console.log('[TripPlanner] Unpublish -> back to draft');
-												openToast('info','Trip reverted to draft');
-											}
-										}}
-										sx={{ textTransform:'none', borderRadius:2, opacity: isDraft? 1 : 0.7 }}
-										disabled={!isOwnerExternal || !isDirty || saving}
+										color='primary'
+										onClick={()=> { onRequestEdit?.(); }}
+										sx={{ textTransform:'none', borderRadius:2 }}
 									>
-										{isDraft? 'Publish' : 'Unpublish'}{saving && <CircularProgress size={16} thickness={5} sx={{ ml:1 }} />}
+										Edit
 									</Button>
 								)}
 							</Box>
@@ -710,36 +750,38 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly
 					{section==='plan' && !mapCollapsed && (<><Box onMouseDown={startResize} sx={{ width:4, cursor:'col-resize', background:(t)=> t.palette.mode==='dark'? t.palette.grey[800]: t.palette.grey[200], '&:hover':{ background:(t)=> t.palette.primary.main } }} /><MapPanel widthFraction={mapWidth} /></>)}
 					<ChatAssistant />
 				</Box>
-				{!readOnly && (
+				{effectiveCanEdit && (
 				<Menu anchorEl={currencyAnchor} open={Boolean(currencyAnchor)} onClose={closeCurrency} elevation={3}>
 					{(['EUR','USD','GBP'] as const).map(c=> (<MenuItem key={c} selected={c===currency} onClick={()=> selectCurrency(c)}><Avatar sx={{ width:20, height:20, mr:1, fontSize:11 }}>{c==='EUR'?'€': c==='USD'? '$':'£'}</Avatar>{c}</MenuItem>))}
 				</Menu>
 				)}
-				{!readOnly && (
+				{effectiveCanEdit && (
 				<Menu anchorEl={privacyAnchor} open={Boolean(privacyAnchor)} onClose={closePrivacy} elevation={3}>
 					{(['Private','Trip Members','My Followers','Everyone'] as const).map(p=> (<MenuItem key={p} selected={p===privacy} onClick={()=> selectPrivacy(p)}>{p}</MenuItem>))}
 				</Menu>
 				)}
-				{!isExternalNonOwner && (
+				{canAccessDocs && (
 				<Dialog open={visaOpen} onClose={()=> setVisaOpen(false)} fullWidth maxWidth='sm'>
 					<DialogTitle>Visa Documents</DialogTitle>
 					<DialogContent dividers>
-						<ValidatedFileInput
-						  buttonLabel='Upload File(s)'
-						  onAccept={(accepted)=> {
-							setVisaErrors([]);
-							accepted.forEach(f=> {
-							  try {
-								const url = URL.createObjectURL(f);
-								dispatch(addVisaDoc({ doc:{ id: 'visa_'+Date.now()+'_'+Math.random().toString(36).slice(2), originalName:f.name, mimeType:f.type, url } }));
-							  } catch(err){ console.error('[VisaUpload] object URL failed', err); }
-							});
-						  }}
-						  rule={DEFAULT_DOC_RULE}
-						  multiple
-						  hideErrors
-						  sx={{ mb:2 }}
-						/>
+						{effectiveCanEdit && (
+							<ValidatedFileInput
+							  buttonLabel='Upload File(s)'
+							  onAccept={(accepted)=> {
+								setVisaErrors([]);
+								accepted.forEach(f=> {
+								  try {
+									const url = URL.createObjectURL(f);
+									dispatch(addVisaDoc({ doc:{ id: 'visa_'+Date.now()+'_'+Math.random().toString(36).slice(2), originalName:f.name, mimeType:f.type, url } }));
+								  } catch(err){ console.error('[VisaUpload] object URL failed', err); }
+								});
+							  }}
+							  rule={DEFAULT_DOC_RULE}
+							  multiple
+							  hideErrors
+							  sx={{ mb:2 }}
+							/>
+						)}
 						{/* Display aggregated errors captured via state for backwards compatibility */}
 						{visaErrors.length>0 && (
 							<Box sx={{ mb:2, border:'1px solid', borderColor:'error.light', background:(t)=> t.palette.mode==='dark'? '#2a1818':'#fff5f5', p:1, borderRadius:1.5 }}>
@@ -759,16 +801,20 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly
 											</Box>
 											<Typography variant='caption' sx={{ lineHeight:1.2, wordBreak:'break-all' }}>{doc.originalName}</Typography>
 											<Box sx={{ display:'flex', justifyContent:'flex-end', alignItems:'center', gap:.5 }}>
-												<Tooltip title={pinned? 'Unpin':'Pin'}>
-													<IconButton size='small' onClick={()=> { if(pinned){ dispatch(unpinDoc({ docId: doc.id })); } else { dispatch(pinDoc({ docId: doc.id })); } }} sx={{ color: pinned? 'primary.main':'text.secondary', transition:'color .2s', '&:hover':{ color: pinned? 'warning.main':'primary.main' } }}>
-														{pinned? <PushPinIcon fontSize='small' /> : <PushPinOutlinedIcon fontSize='small' />}
-													</IconButton>
-												</Tooltip>
-												<Tooltip title='Delete'>
-													<IconButton size='small' onClick={()=> dispatch(removeVisaDoc({ docId: doc.id }))} sx={{ color:'text.secondary', transition:'color .2s', '&:hover':{ color:'error.main' } }}>
-														<DeleteForeverIcon fontSize='small' />
-													</IconButton>
-												</Tooltip>
+												{effectiveCanEdit && (
+													<>
+													<Tooltip title={pinned? 'Unpin':'Pin'}>
+														<IconButton size='small' onClick={()=> { if(pinned){ dispatch(unpinDoc({ docId: doc.id })); } else { dispatch(pinDoc({ docId: doc.id })); } }} sx={{ color: pinned? 'primary.main':'text.secondary', transition:'color .2s', '&:hover':{ color: pinned? 'warning.main':'primary.main' } }}>
+															{pinned? <PushPinIcon fontSize='small' /> : <PushPinOutlinedIcon fontSize='small' />}
+														</IconButton>
+													</Tooltip>
+													<Tooltip title='Delete'>
+														<IconButton size='small' onClick={()=> dispatch(removeVisaDoc({ docId: doc.id }))} sx={{ color:'text.secondary', transition:'color .2s', '&:hover':{ color:'error.main' } }}>
+															<DeleteForeverIcon fontSize='small' />
+														</IconButton>
+													</Tooltip>
+													</>
+												)}
 											</Box>
 										</Paper>
 									);
@@ -783,11 +829,11 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly
 					</DialogActions>
 				</Dialog>
 				)}
-				{!isExternalNonOwner && (
+				{canAccessDocs && (
 				<Dialog open={pinnedOpen} onClose={()=> setPinnedOpen(false)} fullWidth maxWidth='md'>
 					<DialogTitle>Pinned Documents</DialogTitle>
 					<DialogContent dividers>
-						<Typography variant='caption' sx={{ display:'block', mb:1, opacity:.7 }}>Pin documents from other sections (Docs, Visa, etc.).</Typography>
+						<Typography variant='caption' sx={{ display:'block', mb:1, opacity:.7 }}>Pin documents from other sections (Docs, Visa, etc.). { !effectiveCanEdit && '(view only)' }</Typography>
 						<Box sx={{ display:'flex', flexWrap:'wrap', gap:1.5 }}>
 							{combinedPinnedDocs.length===0 && (
 								<Typography variant='body2' sx={{ opacity:.6 }}>No pinned documents yet.</Typography>
@@ -801,34 +847,38 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly
 										</Box>
 										<Typography variant='caption' sx={{ lineHeight:1.2, wordBreak:'break-all' }}>{doc.originalName}</Typography>
 										<Box sx={{ display:'flex', justifyContent:'flex-end', alignItems:'center', gap:.25 }}>
-											<Tooltip title='Unpin'>
-												<IconButton size='small' onClick={()=> {
-													if(doc.source==='planner') {
-														dispatch(unpinDoc({ docId: doc.id }));
-													} else {
-														dispatch(togglePinDocSlice(doc.id));
-													}
-												}} sx={{ color:'text.secondary', transition:'color .2s', '&:hover':{ color:'warning.main' } }}>
-													<PushPinIcon fontSize='inherit' />
-												</IconButton>
-											</Tooltip>
-											<Tooltip title='Delete'>
-												<IconButton size='small' onClick={()=> {
-													if(doc.source==='planner') {
-														const inGlobal = planner.globalDocs?.some(g=> g.id===doc.id);
-														const inVisa = planner.visaDocs?.some(v=> v.id===doc.id);
-														if(inGlobal) dispatch(removeGlobalDoc({ docId: doc.id }));
-														else if(inVisa) dispatch(removeVisaDoc({ docId: doc.id }));
-														else dispatch(unpinDoc({ docId: doc.id }));
-														dispatch(unpinDoc({ docId: doc.id }));
-													} else {
-														dispatch(togglePinDocSlice(doc.id));
-														dispatch(removeDocsSliceDocument(doc.id));
-													}
-												}} sx={{ color:'text.secondary', transition:'color .2s', '&:hover':{ color:'error.main' } }}>
-													<DeleteForeverIcon fontSize='inherit' />
-												</IconButton>
-											</Tooltip>
+											{effectiveCanEdit && (
+												<>
+												<Tooltip title='Unpin'>
+													<IconButton size='small' onClick={()=> {
+														if(doc.source==='planner') {
+															dispatch(unpinDoc({ docId: doc.id }));
+														} else {
+															dispatch(togglePinDocSlice(doc.id));
+														}
+													}} sx={{ color:'text.secondary', transition:'color .2s', '&:hover':{ color:'warning.main' } }}>
+														<PushPinIcon fontSize='inherit' />
+													</IconButton>
+												</Tooltip>
+												<Tooltip title='Delete'>
+													<IconButton size='small' onClick={()=> {
+														if(doc.source==='planner') {
+															const inGlobal = planner.globalDocs?.some(g=> g.id===doc.id);
+															const inVisa = planner.visaDocs?.some(v=> v.id===doc.id);
+															if(inGlobal) dispatch(removeGlobalDoc({ docId: doc.id }));
+															else if(inVisa) dispatch(removeVisaDoc({ docId: doc.id }));
+															else dispatch(unpinDoc({ docId: doc.id }));
+															dispatch(unpinDoc({ docId: doc.id }));
+														} else {
+															dispatch(togglePinDocSlice(doc.id));
+															dispatch(removeDocsSliceDocument(doc.id));
+														}
+													}} sx={{ color:'text.secondary', transition:'color .2s', '&:hover':{ color:'error.main' } }}>
+														<DeleteForeverIcon fontSize='inherit' />
+													</IconButton>
+												</Tooltip>
+												</>
+											)}
 											<Tooltip title='Download'>
 												<IconButton size='small' onClick={()=> {
 													try {
@@ -861,6 +911,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({ tripId, initialTrip, readOnly
 				open={settingsOpen}
 				onClose={()=> setSettingsOpen(false)}
 				title={title}
+				tripId={tripId}
 				startDate={tripStartDate || planner.destinations[0]?.startDate || new Date().toISOString().slice(0,10)}
 				endDate={tripEndDate || planner.destinations[planner.destinations.length-1]?.endDate || tripStartDate || new Date().toISOString().slice(0,10)}
 				privacy={privacy}

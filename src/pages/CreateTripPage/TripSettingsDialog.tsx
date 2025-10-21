@@ -13,6 +13,7 @@ interface TripSettingsDialogProps {
   open: boolean;
   onClose: ()=>void;
   title: string;
+  tripId?: string; // new: use for stable share URL
   startDate: string;
   endDate: string;
   privacy: string;
@@ -27,9 +28,14 @@ interface TripSettingsDialogProps {
 
 const PRIVACY_OPTIONS = ['Trip members','My followers','Everyone'];
 
-const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, title, startDate, endDate, privacy, members = [], onChangeTitle, onChangeStartDate, onChangeEndDate, onChangePrivacy, onDeleteTrip, onInviteEmail }) => {
+const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, title, tripId, startDate, endDate, privacy, members = [], onChangeTitle, onChangeStartDate, onChangeEndDate, onChangePrivacy, onDeleteTrip, onInviteEmail }) => {
   const [copyMain, setCopyMain] = React.useState(false);
-  const shareUrl = `stippi.io/username/trip/${encodeURIComponent(title||'trip')}`; // placeholder
+  // Derive username from first owner/editor member handle (strip leading @) or 'user'
+  // Share URL now based solely on tripId; member handle retrieval removed.
+  const baseDomain = import.meta.env.MODE === 'production' ? 'https://www.tripician.com' : 'http://localhost:5173';
+  // Use tripId for canonical share link if available; fallback to title slug
+  const tripSlug = tripId ? encodeURIComponent(tripId) : encodeURIComponent(title||'trip');
+  const shareUrl = `${baseDomain}/trip/${tripSlug}`; // stable share URL using tripId
   const [view, setView] = React.useState<'main'|'invite'>('main');
   const [inviteEmail, setInviteEmail] = React.useState('');
   const [inviting, setInviting] = React.useState(false);

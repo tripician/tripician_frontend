@@ -6,7 +6,9 @@ import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../CreateTripPage/../../store';
 import TripPlannerNav from '../CreateTripPage/TripPlannerNav';
+import { useAuthToken } from '../../hooks/useAuth0Token';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
+import { apiServices } from '../../services/APIs/apiServices';
 
 // Basic shape of trip meta we expect (extend later when backend schema finalized)
 interface TripDTO { id: string; name?: string; visibility?: string; ownerId?: string; memberIds?: string[]; }
@@ -15,6 +17,8 @@ interface LocationState { trip?: TripDTO; }
 
 const TripView: React.FC = () => {
   const { tripId = '' } = useParams();
+  // Pull token + loading so we can defer trip fetch until auth finished resolving
+  const { token } = useAuthToken();
   const location = useLocation();
   const navigate = useNavigate();
   const state = (location.state || {}) as LocationState;
@@ -23,24 +27,55 @@ const TripView: React.FC = () => {
   const currentUserId = userProfile?.id; // real user id (may be undefined until loaded)
   const [loading, setLoading] = React.useState(!initialTrip);
   const [trip, setTrip] = React.useState<TripDTO | undefined>(initialTrip);
+  const [hasFetched, setHasFetched] = React.useState(false);
   const [fetchError, setFetchError] = React.useState<string | null>(null);
 
   // Fallback fetch if trip not passed in state (placeholder; integrate real API when available)
   React.useEffect(()=> {
     let active = true;
-    if(trip || !tripId) { setLoading(false); return; }
+    const rawLocalStorageToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+    // Treat undefined authLoading defensively as true until we know
+    const effectiveToken = token == null ? rawLocalStorageToken : token;
+    console.log('[TripView] State Snapshot', {
+      initialTrip,
+      tripId,
+      tripPresent: !!trip,
+      hookToken: token,
+      rawLocalStorageToken,
+      effectiveToken,
+    });
+    console.log('[TripView] Stage 2');
+    console.log(tripId);
+    if(!tripId) { console.log('[TripView] Skip fetch: missing tripId'); setLoading(false); return; }
+    if(trip && hasFetched) { console.log('[TripView] Skip fetch: already loaded'); setLoading(false); return; }
+    console.log('[TripView] Stage 3');
+    if(!effectiveToken) { console.log('[TripView] Skip fetch: effectiveToken null after auth resolved'); setLoading(false); return; }
     (async()=> {
       setLoading(true);
       try {
-        // TODO integrate real API: const resp = await apiServices.getTripById(token, tripId);
-        // Simulate minimal public stub (remove when backend ready)
-        const stub: TripDTO = { id: tripId, name: 'Trip', visibility: 'everyone', ownerId: 'unknown', memberIds: [] };
-        if(active){ setTrip(stub); }
+        console.log('[TripView] Fetching trip', { tripId, effectiveTokenExists: !!effectiveToken });
+        const resp = await apiServices.getTripById(effectiveToken, tripId);
+        console.log('TripView: fetched trip data', resp);
+        const data = resp?.data;
+        if (data) {
+          // Minimal meta normalization with defaults
+          const meta: TripDTO = {
+            id: data.trip?.id || data.id || tripId,
+            name: data.trip?.name || data.trip?.title || data.name || 'Untitled Trip',
+            visibility: data.trip?.privacy || data.trip?.visibility || data.visibility || 'PRIVATE',
+            ownerId: data.trip?.ownerId || data.ownerId,
+            memberIds: Array.isArray(data.trip?.memberIds) ? data.trip.memberIds : Array.isArray(data.memberIds)? data.memberIds : [],
+          };
+          setTrip(meta);
+          setHasFetched(true);
+        } else {
+          setFetchError('Trip not found');
+        }
       } catch(err:any){ if(active){ setFetchError('Failed to load trip'); } }
       finally { if(active) setLoading(false); }
     })();
     return ()=> { active=false; };
-  }, [trip, tripId]);
+  }, [tripId, token, hasFetched]);
 
   const ownerId = trip?.ownerId;
   const memberIds = trip?.memberIds || [];
@@ -49,7 +84,7 @@ const TripView: React.FC = () => {
   const isMember = isOwner || (currentUserId !== undefined && memberIds.includes(currentUserId));
 
   const isPrivate = visibility.startsWith('priv');
-  const readable = trip ? (!isPrivate || isMember) : false;
+  const readable = trip ? (isOwner || !isPrivate || isMember) : false;
 
   if(loading){
     return (
@@ -92,10 +127,12 @@ const TripView: React.FC = () => {
     <Box sx={{ display:'flex', flexDirection:'column', height:'100vh' }}>
       <TripPlanner
         tripId={tripId}
-        initialTrip={trip}
+        initialTrip= {trip}
         readOnly={!isOwner}
         hideSections={(!isOwner && !isMember) || isPrivate ? ['docs','packing'] : []}
         isOwnerExternal={!!isOwner}
+        canEdit={isOwner}
+        canViewDocs={isMember || isOwner}
         onRequestEdit={handleEdit}
       />
     </Box>

@@ -9,6 +9,7 @@ import Community from './pages/CommunityPage/Community'
 import Settings from './pages/SettingsPage/Settings'
 import ProtectedRoute from './services/APIs/Auth/ProtectedRoute'
 import TripPlannerRoute from './pages/CreateTripPage/TripPlannerRoute.tsx'
+import TripPlannerEntry from './pages/CreateTripPage/TripPlannerEntry.tsx'
 import TripView from './pages/TripViewPage/TripView';
 import AuthenticatedLayout from './pages/PageLayout/AuthenticatedLayout';
 import { NotFound404, InternalError500, UnauthorizedAccess, UnderConstruction, SomethingWentWrong, DynamicErrorPage } from './pages/ErrorPages/ErrorPages';
@@ -33,8 +34,8 @@ function App() {
           <Route path="/community" element={<Community />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
-  {/* Trip Planner now requires a tripId param; direct /tripplanner without id goes 404 */}
-  <Route path="/tripplanner" element={<Navigate to="/error/404" replace />} />
+  {/* Trip Planner entry: redirect /tripplanner -> /tripplanner/:generatedId (reusing last draft if available) */}
+  <Route path="/tripplanner" element={<ProtectedRoute><TripPlannerEntry /></ProtectedRoute>} />
   <Route path="/tripplanner/:tripId" element={<ProtectedRoute><TripPlannerRoute /></ProtectedRoute>} />
   {/* Read-only trip view route */}
   <Route path="/trip/:tripId" element={<ProtectedRoute><TripView /></ProtectedRoute>} />

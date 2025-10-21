@@ -129,6 +129,7 @@ const Dashboard: React.FC = () => {
               </Typography>
             )}
             {!loading && !error && plans.map((plan) => (
+              console.log('Rendering plan:', plan),
               <TripCard
                 key={plan.id || plan.title}
                 title={plan.title}

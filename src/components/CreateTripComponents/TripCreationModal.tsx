@@ -386,6 +386,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
       console.log('[CreateTripModal] Creating trip with payload', payload);
       // Create trip
   const createResp = await apiServices.createTrip(token, payload);
+  console.log('[CreateTripModal] Trip created response', createResp);
   // Backend may return id as id, Id, or tripId depending on DTO serialization
   const createdId: string | undefined = createResp?.data?.id || createResp?.data?.Id || createResp?.data?.tripId;
       if(!createdId){
