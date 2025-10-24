@@ -155,7 +155,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	React.useEffect(() => {
 		if (!unifiedTrip) return;
 		const { meta, itinerary } = unifiedTrip;
-		if (hydratedRef.current === meta.id && planner.destinations.length > 0) return;
+		if (hydratedRef.current === meta.id && planner.destinations.length > 0) {
+			console.log('[TripPlanner] Hydration skip (already hydrated)', { tripId: meta.id, destinations: planner.destinations.length });
+			return;
+		}
 		console.log('[TripPlanner] Hydrating planner', { tripId: meta.id, itinerary: itinerary.length });
 		// Title
 		if (title === 'Untitled Trip' && !editingTitle) setTitle(meta.name);
@@ -373,6 +376,21 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const handleOptimizeRouteClick=()=>{ if(optimizingRoute||geocodedCount<3) return; setOptimizingRoute(true); requestAnimationFrame(()=>{ try { computeShortestRoute(); } finally { setTimeout(()=> setOptimizingRoute(false),120); } }); };
 
 	// Build backend-ready persistence payload (draft or publish)
+	// Mapping Notes (TripPlanImportDto tentative):
+	//  - Backend currently expects PUT /trips/{tripId} with a DTO that likely includes
+	//    trip-level metadata plus itinerary collection. We retain a `trip` wrapper
+	//    for meta to avoid a breaking change while backend stabilizes. If the server
+	//    later requires a flattened shape, we can unwrap easily by sending:
+	//       { id, name, startDate, endDate, status, privacy, currency, itinerary:[...] }
+	//  - Added startDate/endDate fields to trip meta (derived from explicit state or
+	//    first/last destination) so backend can compute duration without relying on
+	//    itinerary scan.
+	//  - Privacy string currently uses UI values (Private, Trip Members, My Followers, Everyone).
+	//    Server may map these to enum values (PRIVATE, TRIP_MEMBERS, FOLLOWERS, EVERYONE).
+	//    Adjust mapping here if a strict enum is later required.
+	//  - Legs, docs, expenses, comments are included for forward compatibility; backend
+	//    can ignore unknown properties safely.
+	//  - version field reserved for future optimistic concurrency or schema evolution.
 	const buildPersistPayload = React.useCallback((draft:boolean) => {
 		// ------------------------------------------------------------------
 		// Leg transport semantics
@@ -443,6 +461,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				docs:(d.docs||[]).map(doc=> ({ id:doc.id, originalName:doc.originalName, mimeType:doc.mimeType, url:doc.url }))
 			};
 		});
+		// Determine trip-level start/end dates (prefer explicit state, fallback to first/last destination)
+		const derivedStart = tripStartDate || planner.destinations[0]?.startDate || new Date().toISOString().slice(0,10);
+		const derivedEnd = tripEndDate || planner.destinations[planner.destinations.length-1]?.endDate || derivedStart;
 		return {
 			trip: {
 				id: tripId,
@@ -450,6 +471,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				status: draft? 'DRAFT':'PUBLISHED',
 				privacy,
 				currency,
+				startDate: derivedStart,
+				endDate: derivedEnd,
 				generatedAt: new Date().toISOString(),
 				targetNights,
 				totalNights,

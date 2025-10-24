@@ -2,6 +2,11 @@
 import axios from 'axios';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:44338';
+// Debug log once (safe in dev; minimal noise in prod)
+if (typeof window !== 'undefined') {
+  // eslint-disable-next-line no-console
+  console.log('[apiServices] Using API_BASE_URL =>', API_BASE_URL);
+}
 
 // Create axios instance
 const apiClient = axios.create({
@@ -14,18 +19,34 @@ const apiClient = axios.create({
 // Add response interceptor to handle 401 errors globally
 apiClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    // 401 handling (auth expiry)
     if (error.response?.status === 401) {
-      // Token is expired or invalid - trigger logout
-      // Clear local storage immediately
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
-      
-      // Dispatch custom event for logout
-      window.dispatchEvent(new CustomEvent('auth:logout', { 
-        detail: { reason: 'token_expired' }
-      }));
+      window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: 'token_expired' } }));
     }
+
+    // Protocol fallback: If HTTPS localhost refuses connection, retry once over HTTP.
+    // Guards: only for ERR_NETWORK / connection refused, only localhost, only once.
+    const originalConfig = error.config;
+    const isNetworkRefused = !error.response && (error.code === 'ERR_NETWORK' || /ECONNREFUSED|ENOTFOUND|ERR_CONNECTION_REFUSED/i.test(error.message || ''));
+    const isLocalHttps = typeof originalConfig?.baseURL === 'string' && /^https:\/\/localhost[:\d]*/i.test(originalConfig.baseURL || '');
+    const alreadyRetried = originalConfig?._protocolRetry;
+    if (isNetworkRefused && isLocalHttps && !alreadyRetried) {
+      try {
+        const httpBase = originalConfig.baseURL.replace(/^https:/, 'http:');
+        originalConfig.baseURL = httpBase;
+        (originalConfig as any)._protocolRetry = true;
+        // eslint-disable-next-line no-console
+        console.warn('[apiServices] HTTPS connection refused – retrying via HTTP', { httpBase });
+        return apiClient.request(originalConfig);
+      } catch (retryErr) {
+        // eslint-disable-next-line no-console
+        console.error('[apiServices] Protocol fallback failed', retryErr);
+      }
+    }
+
     return Promise.reject(error);
   }
 );
@@ -66,6 +87,9 @@ export const apiServices = {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined
     }),
 
+  // Simple connectivity ping (GET public trips) to help diagnose local server reachability (no auth required).
+  pingPublicTrips: () => apiClient.get('/trips/public').then(r => ({ ok: true, status: r.status })).catch(e => ({ ok: false, error: e.message })),
+
   // POST /trips - create trip
   createTrip: (token: string, data: {
     name: string;
@@ -92,6 +116,8 @@ export const apiServices = {
       status: 'DRAFT' | 'PUBLISHED';
       privacy: string; // backend enum e.g. TRIP_MEMBERS | FOLLOWERS | EVERYONE | PRIVATE mapped server-side
       currency: string;
+      startDate: string; // added to align with TripPlanImportDto expectations
+      endDate: string;   // added to align with TripPlanImportDto expectations
       generatedAt: string;
       targetNights: number;
       totalNights: number;
