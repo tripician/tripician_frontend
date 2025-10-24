@@ -11,7 +11,16 @@ import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import { apiServices } from '../../services/APIs/apiServices';
 
 // Basic shape of trip meta we expect (extend later when backend schema finalized)
-interface TripDTO { id: string; name?: string; visibility?: string; ownerId?: string; memberIds?: string[]; }
+interface TripDTO { 
+  id: string; 
+  name?: string; 
+  visibility?: string; 
+  ownerId?: string; 
+  memberIds?: string[]; 
+  targetNights?: number; 
+  startDate?: string;
+  endDate?: string;
+}
 
 interface LocationState { trip?: TripDTO; }
 
@@ -24,6 +33,7 @@ const TripView: React.FC = () => {
   const state = (location.state || {}) as LocationState;
   const initialTrip = state.trip && state.trip.id === tripId ? state.trip : undefined;
   const userProfile = useSelector((s:RootState)=> s.user.profile);
+  const userLoading = useSelector((s:RootState)=> s.user.loading);
   const currentUserId = userProfile?.id; // real user id (may be undefined until loaded)
   const [loading, setLoading] = React.useState(!initialTrip);
   const [trip, setTrip] = React.useState<TripDTO | undefined>(initialTrip);
@@ -57,16 +67,19 @@ const TripView: React.FC = () => {
         const resp = await apiServices.getTripById(effectiveToken, tripId);
         console.log('TripView: fetched trip data', resp);
         const data = resp?.data;
+        debugger;
         if (data) {
           // Minimal meta normalization with defaults
-          const meta: TripDTO = {
-            id: data.trip?.id || data.id || tripId,
-            name: data.trip?.name || data.trip?.title || data.name || 'Untitled Trip',
-            visibility: data.trip?.privacy || data.trip?.visibility || data.visibility || 'PRIVATE',
-            ownerId: data.trip?.ownerId || data.ownerId,
-            memberIds: Array.isArray(data.trip?.memberIds) ? data.trip.memberIds : Array.isArray(data.memberIds)? data.memberIds : [],
-          };
-          setTrip(meta);
+          // const meta: TripDTO = {
+          //   id: data.trip?.id || data.id || tripId,
+          //   name: data.trip?.name || data.trip?.title || data.name || 'Untitled Trip',
+          //   visibility: data.trip?.privacy || data.trip?.visibility || data.visibility || 'PRIVATE',
+          //   endDate: data.trip?.endDate, 
+          //   startDate: data.trip?.startDate,
+          //   ownerId: data.trip?.ownerId || data.ownerId,
+          //   memberIds: Array.isArray(data.trip?.memberIds) ? data.trip.memberIds : Array.isArray(data.memberIds)? data.memberIds : [],
+          // };
+          setTrip(data);
           setHasFetched(true);
         } else {
           setFetchError('Trip not found');
@@ -77,14 +90,28 @@ const TripView: React.FC = () => {
     return ()=> { active=false; };
   }, [tripId, token, hasFetched]);
 
-  const ownerId = trip?.ownerId;
-  const memberIds = trip?.memberIds || [];
-  const visibility = (trip?.visibility || 'private').toLowerCase();
-  const isOwner = ownerId === currentUserId;
-  const isMember = isOwner || (currentUserId !== undefined && memberIds.includes(currentUserId));
-
+  // Robust meta extraction: backend may nest under trip.trip or use alternative keys
+  const rawTrip: any = trip as any;
+  const nested = rawTrip && typeof rawTrip === 'object' && rawTrip.trip && typeof rawTrip.trip === 'object' ? rawTrip.trip : rawTrip;
+  const tripRoot: any = nested;
+  const ownerId = tripRoot?.ownerId || tripRoot?.ownerID || tripRoot?.owner_id || rawTrip?.ownerId;
+  const memberIds: string[] = Array.isArray(tripRoot?.memberIds) ? tripRoot.memberIds
+    : Array.isArray(tripRoot?.members) ? tripRoot.members.map((m:any)=> typeof m==='string'? m : (m?.id || m?.userId)).filter(Boolean)
+    : Array.isArray(rawTrip?.memberIds) ? rawTrip.memberIds
+    : [];
+  const visibilityRaw = tripRoot?.visibility || tripRoot?.privacy || rawTrip?.visibility || rawTrip?.privacy || 'private';
+  const visibility = (visibilityRaw || 'private').toLowerCase();
   const isPrivate = visibility.startsWith('priv');
-  const readable = trip ? (isOwner || !isPrivate || isMember) : false;
+  const profileResolved = !userLoading; // profile fetch finished (success or fail)
+  const isOwner = ownerId != null && currentUserId != null && ownerId === currentUserId;
+  const isMember = isOwner || (currentUserId != null && memberIds.includes(currentUserId));
+  // Only decide readability after profile resolved if private
+  const readable = trip ? (
+    isPrivate ? (profileResolved && (isOwner || isMember)) : true
+  ) : false;
+
+  // While trip is loaded but profile still loading and trip is private, keep loading spinner instead of premature denial
+  const waitingForProfile = !loading && trip && isPrivate && !profileResolved;
 
   if(loading){
     return (
@@ -97,6 +124,20 @@ const TripView: React.FC = () => {
           </Box>
         </Box>
   {/* Footer removed for TripView loading state */}
+      </Box>
+    );
+  }
+
+  if (waitingForProfile) {
+    return (
+      <Box sx={{ display:'flex', flexDirection:'column', height:'100vh' }}>
+        <TopBar showSearch={false} />
+        <Box sx={{ display:'flex', flex:1 }}>
+          <TripPlannerNav active='plan' hideSections={['docs']} />
+          <Box sx={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}>
+            <CircularProgress />
+          </Box>
+        </Box>
       </Box>
     );
   }
@@ -120,20 +161,24 @@ const TripView: React.FC = () => {
 
   const handleEdit = () => {
     // Navigate to full planner for editing (reuse planner route)
-    navigate(`/tripplanner/${tripId}`, { state: { tripId, trip: initialTrip } });
+    // Pass current `trip` meta under `trip` key for planner hydration.
+    navigate(`/tripplanner/${tripId}`, { state: { tripId, trip } });
   };
 
   return (
     <Box sx={{ display:'flex', flexDirection:'column', height:'100vh' }}>
       <TripPlanner
         tripId={tripId}
-        initialTrip= {trip}
+        initialTrip={trip}
         readOnly={!isOwner}
         hideSections={(!isOwner && !isMember) || isPrivate ? ['docs','packing'] : []}
         isOwnerExternal={!!isOwner}
-        canEdit={isOwner}
-        canViewDocs={isMember || isOwner}
+        effectiveCanEdit={isOwner}
+        canAccessDocs={isMember || isOwner}
         onRequestEdit={handleEdit}
+        showPlannerActions={isOwner}
+        showViewEditAction={!isOwner}
+        isExternalNonOwner={!isOwner}
       />
     </Box>
   );

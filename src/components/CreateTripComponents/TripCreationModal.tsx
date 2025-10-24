@@ -395,10 +395,12 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
       // Fetch full trip details
       const tripResp = await apiServices.getTripById(token, createdId);
       const tripData = tripResp.data;
+      debugger;
       // Close modal before navigation
       handleClose();
     // Navigate to parameterized planner route with state for hydration fallback
-    navigate(`/tripplanner/${createdId}`, { state: { tripId: createdId, trip: tripData } });
+  // Pass trip meta under `trip` key (planner route expects `state.trip`)
+  navigate(`/tripplanner/${createdId}`, { state: { tripId: createdId, trip: tripData } });
     } catch(err: any) {
       console.error('[CreateTripModal] createTrip failed', err);
       if(err?.code === 'ERR_NETWORK') {
@@ -418,8 +420,8 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
     setFormData({
       tripName: "",
       selectedCountries: [],
-    startDate: null,
-    endDate: null,
+      startDate: null,
+      endDate: null,
       visibility: "My followers",
       inviteEmail: "",
       inviteEmails: [],

@@ -4,7 +4,8 @@ import TripPlanner from './TripPlanner';
 
 interface TripPlannerRouteLocationState {
   tripId?: string;
-  trip?: any; // TODO: type with backend Trip DTO interface
+  trip?: any; // preferred key carrying trip meta
+  initialTrip?: any; // legacy key for backwards navigation compatibility
 }
 
 const TripPlannerRoute: React.FC = () => {
@@ -16,7 +17,9 @@ const TripPlannerRoute: React.FC = () => {
     return <Navigate to="/error/404" replace />;
   }
 
-  return <TripPlanner tripId={tripId} initialTrip={state.tripId === tripId ? state.trip : undefined} />;
+  // Prefer `state.trip`; fall back to `state.initialTrip` if provided and matching id
+  const passedTrip = state.tripId === tripId ? (state.trip || state.initialTrip) : undefined;
+  return <TripPlanner tripId={tripId} initialTrip={passedTrip} />;
 };
 
 export default TripPlannerRoute;
