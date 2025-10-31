@@ -8,7 +8,7 @@ import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
-import { setCurrency as setCurrencyAction, updateDestinationNights, setTransport, addDestination, removeDestination, reorderChainExact, addVisaDoc, removeVisaDoc, removeGlobalDoc, pinDoc, unpinDoc, loadState } from '../../store/plannerSlice';
+import { setCurrency as setCurrencyAction, updateDestinationNights, setTransport, addDestination, removeDestination, reorderChainExact, addVisaDoc, removeVisaDoc, removeGlobalDoc, pinDoc, unpinDoc, loadState, resetPlanner } from '../../store/plannerSlice';
 import { togglePin as togglePinDocSlice, removeDocument as removeDocsSliceDocument } from '../../store/docsSlice';
 import { DEFAULT_DOC_RULE } from '../../utils/fileValidation'; // legacy use (validateFiles removed after refactor)
 import ValidatedFileInput from '../../components/CommonComponents/ValidatedFileInput';
@@ -36,6 +36,29 @@ import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { differenceInDays } from 'date-fns';
 import { normalizeTrip, type NormalizedTrip } from '../../utils/normalizeTrip';
+
+// Helper: ensure date string conforms to YYYY-MM-DD for HTML date inputs & backend consistency.
+// Accepts ISO strings like 2025-10-26T00:00:00Z or with milliseconds; returns date portion.
+const sanitizeDateString = (v: string | null | undefined): string | null => {
+	if (!v) return null;
+	// Fast path already correct
+	if (/^\d{4}-\d{2}-\d{2}$/.test(v)) return v;
+	// Extract first 10 chars if starts with ISO pattern
+	if (v.length >= 10 && /\d{4}-\d{2}-\d{2}T/.test(v)) {
+		const base = v.slice(0,10);
+		if (/^\d{4}-\d{2}-\d{2}$/.test(base)) return base;
+	}
+	// Fallback: try Date parse then rebuild YYYY-MM-DD
+	try {
+		const d = new Date(v);
+		if (!isNaN(d.getTime())) {
+			const m = (d.getMonth()+1).toString().padStart(2,'0');
+			const day = d.getDate().toString().padStart(2,'0');
+			return `${d.getFullYear()}-${m}-${day}`;
+		}
+	} catch {}
+	return v.length >= 10 ? v.slice(0,10) : v; // last resort
+};
 
 // Props interface (lightweight; align with TripPlannerRoute expectations)
 interface TripPlannerProps {
@@ -88,6 +111,14 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const normalizedFetched = React.useMemo<NormalizedTrip | null>(() => normalizeTrip(fetchedTrip), [fetchedTrip]);
 	const unifiedTrip = normalizedFromProps || normalizedFetched; // prefer props
 	const hydratedRef = React.useRef<string | null>(null);
+	// Hard tripId change watcher: ensures planner slice and hydration ref are cleared BEFORE any new hydration logic runs.
+	React.useEffect(() => {
+		// If component remounted with a different tripId than stored in hydratedRef, clear hydration marker.
+		if (hydratedRef.current && hydratedRef.current !== tripId) {
+			console.log('[TripPlanner] tripId changed, clearing hydration marker', { from: hydratedRef.current, to: tripId });
+			hydratedRef.current = null;
+		}
+	}, [tripId]);
 	const initialPrivacy: 'Private'|'Trip Members'|'My Followers'|'Everyone' = React.useMemo(() => {
 		const visRaw = unifiedTrip?.meta.visibility;
 		if (typeof visRaw === 'string') {
@@ -151,12 +182,23 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		return () => { active = false; };
 	}, [normalizedFromProps, fetchedTrip, tripId, authToken]);
 
-	// One-time hydration per trip id
+	// Trip switch reset using planner slice tripId tracking.
+	React.useEffect(() => {
+		if (!tripId) return;
+		const currentSliceTripId = (planner as any).tripId;
+		if (currentSliceTripId && currentSliceTripId !== tripId) {
+			console.log('[TripPlanner] Trip switch detected (slice tripId mismatch). Resetting planner.', { from: currentSliceTripId, to: tripId });
+			dispatch(resetPlanner({ tripId }));
+			hydratedRef.current = null;
+		}
+	}, [tripId, planner, dispatch]);
+
+	// Controlled hydration per trip id. Rehydrates only if marker cleared.
 	React.useEffect(() => {
 		if (!unifiedTrip) return;
 		const { meta, itinerary } = unifiedTrip;
-		if (hydratedRef.current === meta.id && planner.destinations.length > 0) {
-			console.log('[TripPlanner] Hydration skip (already hydrated)', { tripId: meta.id, destinations: planner.destinations.length });
+		if (hydratedRef.current === meta.id) {
+			console.log('[TripPlanner] Hydration skip (marker matches)', { tripId: meta.id, destinations: planner.destinations.length });
 			return;
 		}
 		console.log('[TripPlanner] Hydrating planner', { tripId: meta.id, itinerary: itinerary.length });
@@ -170,9 +212,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			else if (vis.startsWith('trip')) setPrivacy('Trip Members');
 			else setPrivacy('Private');
 		}
-		// Dates
-		setTripStartDate(meta.startDate || null);
-		setTripEndDate(meta.endDate || null);
+		// Dates (sanitize to YYYY-MM-DD)
+		setTripStartDate(sanitizeDateString(meta.startDate) || null);
+		setTripEndDate(sanitizeDateString(meta.endDate) || null);
 		let targetFromRange = planner.targetNights || 1;
 		if (meta.startDate && meta.endDate) {
 			try {
@@ -185,12 +227,16 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			} catch {}
 		}
 		if (planner.destinations.length === 0) {
+			// Stamp slice with current tripId before loading
+			dispatch(resetPlanner({ tripId: meta.id }));
 			const allowedCurrencies = ['EUR','USD','GBP'] as const;
 			const currencyCode = meta.currencyCode;
 			const normalizedCurrency = allowedCurrencies.includes(currencyCode as any) ? currencyCode as typeof allowedCurrencies[number] : 'EUR';
 			const hydratedDestinations = itinerary.map((item:any, idx:number) => {
-				const startDate = (item.startDate || meta.startDate) ?? new Date().toISOString().slice(0,10);
-				const endDate = (item.endDate || meta.endDate) ?? startDate;
+				const rawStart = (item.startDate || meta.startDate) ?? new Date().toISOString().slice(0,10);
+				const rawEnd = (item.endDate || meta.endDate) ?? rawStart;
+				const startDate = sanitizeDateString(rawStart) || new Date().toISOString().slice(0,10);
+				const endDate = sanitizeDateString(rawEnd) || startDate;
 				let nights = 1;
 				try { const ms = new Date(endDate).getTime() - new Date(startDate).getTime(); nights = Math.max(1, Math.round(ms / 86400000)); } catch {}
 				return {
@@ -230,7 +276,55 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			dispatch(loadState(initialState));
 			console.log('[TripPlanner] Initialized planner state', { destinations: hydratedDestinations.length, targetNights: targetFromRange });
 		} else {
-			console.log('[TripPlanner] Destinations already loaded – skip init');
+			// If destinations exist but marker differs (e.g., tripId switch), wipe & reload to avoid bleed.
+			console.log('[TripPlanner] Existing destinations but new trip detected – resetting before init', { prevTripId: hydratedRef.current, newTripId: meta.id });
+			dispatch(resetPlanner({ tripId: meta.id }));
+			const allowedCurrencies = ['EUR','USD','GBP'] as const;
+			const currencyCode = meta.currencyCode;
+			const normalizedCurrency = allowedCurrencies.includes(currencyCode as any) ? currencyCode as typeof allowedCurrencies[number] : 'EUR';
+			const hydratedDestinations = itinerary.map((item:any, idx:number) => {
+				const rawStart = (item.startDate || meta.startDate) ?? new Date().toISOString().slice(0,10);
+				const rawEnd = (item.endDate || meta.endDate) ?? rawStart;
+				const startDate = sanitizeDateString(rawStart) || new Date().toISOString().slice(0,10);
+				const endDate = sanitizeDateString(rawEnd) || startDate;
+				let nights = 1;
+				try { const ms = new Date(endDate).getTime() - new Date(startDate).getTime(); nights = Math.max(1, Math.round(ms / 86400000)); } catch {}
+				return {
+					id: item.id || ('dest_'+idx+'_'+Date.now()),
+					name: item.name || item.title || 'Destination '+(idx+1),
+					startDate,
+					endDate,
+					nights,
+					transport: item.transport || '',
+					budget: item.budget ?? 0,
+					lat: item.lat ?? item.latitude ?? undefined,
+					lng: item.lng ?? item.longitude ?? undefined,
+					placeId: item.placeId || undefined,
+					photoUrl: item.photoUrl || undefined,
+					category: item.category || 'general',
+					completed: !!item.completed,
+					spots: Array.isArray(item.spots)? item.spots.map((sp:any)=> ({ id: sp.id || sp.name || ('spot_'+Math.random().toString(36).slice(2)), name: sp.name || 'Spot', checked: !!sp.checked, placeId: sp.placeId, photoUrl: sp.photoUrl, description: sp.description })) : [],
+					foods: Array.isArray(item.foods)? item.foods.map((fd:any)=> ({ id: fd.id || fd.name || ('food_'+Math.random().toString(36).slice(2)), name: fd.name || 'Food', checked: !!fd.checked })) : [],
+					docs: Array.isArray(item.docs)? item.docs.map((d:any)=> ({ id: d.id || ('doc_'+Math.random().toString(36).slice(2)), originalName: d.originalName || d.name || 'document', mimeType: d.mimeType || d.type || 'application/octet-stream', url: d.url || d.href || '' })) : [],
+					notes: item.notes || undefined,
+					stay: item.stay || undefined
+				};
+			});
+			const initialState = {
+				destinations: hydratedDestinations,
+				currency: normalizedCurrency,
+				targetNights: targetFromRange,
+				globalDocs: [],
+				visaDocs: [],
+				pinnedDocIds: [],
+				tripBudget: undefined,
+				expenses: [],
+				simplifyGroupExpenses: false,
+				expenseVisibilityEmails: [],
+				comments: []
+			};
+			dispatch(loadState(initialState));
+			console.log('[TripPlanner] Reinitialized planner state after trip switch', { destinations: hydratedDestinations.length, targetNights: targetFromRange });
 		}
 		hydratedRef.current = meta.id;
 	}, [unifiedTrip, planner.destinations.length, title, editingTitle, privacy, dispatch]);
@@ -462,8 +556,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			};
 		});
 		// Determine trip-level start/end dates (prefer explicit state, fallback to first/last destination)
-		const derivedStart = tripStartDate || planner.destinations[0]?.startDate || new Date().toISOString().slice(0,10);
-		const derivedEnd = tripEndDate || planner.destinations[planner.destinations.length-1]?.endDate || derivedStart;
+		const derivedStart = sanitizeDateString(tripStartDate) || sanitizeDateString(planner.destinations[0]?.startDate) || new Date().toISOString().slice(0,10);
+		const derivedEnd = sanitizeDateString(tripEndDate) || sanitizeDateString(planner.destinations[planner.destinations.length-1]?.endDate) || derivedStart;
 		return {
 			trip: {
 				id: tripId,

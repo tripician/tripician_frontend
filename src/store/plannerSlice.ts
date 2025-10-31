@@ -84,6 +84,8 @@ export interface PlannerState {
   currency: 'EUR' | 'USD' | 'GBP';
   targetNights: number;
   lastSaved?: string;
+  /** Currently hydrated trip id (used to detect cross-trip state reuse) */
+  tripId?: string;
   /** Trip-level supporting documents (not tied to a destination) */
   globalDocs?: PlannerDoc[];
   /** Visa specific documents (scans, letters, confirmations) */
@@ -126,8 +128,9 @@ const initialState: PlannerState = {
   tripBudget: undefined,
   expenses: [],
   simplifyGroupExpenses: false,
-  expenseVisibilityEmails: []
-  ,comments: []
+  expenseVisibilityEmails: [],
+  comments: [],
+  tripId: undefined
 };
 
 // Utility to recompute nights based on start/end date (exclusive of end)
@@ -549,6 +552,15 @@ const plannerSlice = createSlice({
     loadState(_state, action: PayloadAction<PlannerState>) {
       return { ...action.payload };
     },
+    resetPlanner(state, action: PayloadAction<{ tripId?: string }>) {
+      // Preserve currency preference; reset rest.
+      const preservedCurrency = state.currency;
+      return {
+        ...initialState,
+        currency: preservedCurrency,
+        tripId: action.payload.tripId
+      };
+    },
     markSaved(state) {
       state.lastSaved = new Date().toISOString();
     }
@@ -617,6 +629,7 @@ export const {
 } = plannerSlice.actions;
 
 export const { addComment, addReply, updateComment, removeComment, toggleUpvote } = plannerSlice.actions;
+export const { resetPlanner } = plannerSlice.actions;
 
 // Doc actions already re-exported above
 

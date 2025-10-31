@@ -129,7 +129,6 @@ const Dashboard: React.FC = () => {
               </Typography>
             )}
             {!loading && !error && plans.map((plan) => (
-              console.log('Rendering plan:', plan),
               <TripCard
                 key={plan.id || plan.title}
                 title={plan.title}
@@ -138,7 +137,24 @@ const Dashboard: React.FC = () => {
                 progress={plan.progress}
                 edited={plan.edited}
                 members={plan.members}
-                onClick={()=> navigate(`/trip/${plan.id}`, { state: { trip: { id: plan.id, name: plan.title, visibility: plan.visibility, ownerId: plan.ownerId, memberIds: (plan.members||[]).map((m:any)=> m.id).filter(Boolean) } } })}
+                onClick={()=> {
+                  // Force planner slice reset BEFORE route transition to avoid itinerary bleed.
+                  // We prefer passing trip meta under state.trip so TripPlanner can hydrate once.
+                  // Adding a unique navigation key ensures React Router remount even if same path reused quickly.
+                  navigate(`/trip/${plan.id}`, {
+                    state: {
+                      trip: {
+                        id: plan.id,
+                        name: plan.title,
+                        visibility: plan.visibility,
+                        ownerId: plan.ownerId,
+                        memberIds: (plan.members||[]).map((m:any)=> m.id).filter(Boolean)
+                      },
+                      tripId: plan.id,
+                      __ts: Date.now() // debug timestamp to help differentiate rapid clicks
+                    }
+                  });
+                }}
               />
             ))}
           </div>
