@@ -32,10 +32,12 @@ import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import EditIcon from '@mui/icons-material/Edit';
 import CheckIcon from '@mui/icons-material/Check';
 import Docs from '../DocsPage/Docs';
+import SoonTag from '../../components/CommonComponents/SoonTag';
+import { FEATURE_FLAGS } from '../../config/featureFlags';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
-import { differenceInDays } from 'date-fns';
 import { normalizeTrip, type NormalizedTrip } from '../../utils/normalizeTrip';
+import { differenceInDays } from 'date-fns';
 
 // Helper: ensure date string conforms to YYYY-MM-DD for HTML date inputs & backend consistency.
 // Accepts ISO strings like 2025-10-26T00:00:00Z or with milliseconds; returns date portion.
@@ -78,7 +80,7 @@ interface TripPlannerProps {
 const TripPlanner: React.FC<TripPlannerProps> = ({
 	tripId,
 	initialTrip,
-  readOnly = false,
+	readOnly = false,
 	hideSections = [],
 	canAccessDocs = true,
 	effectiveCanEdit = true,
@@ -86,248 +88,226 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	showViewEditAction = false,
 	onRequestEdit,
 	isExternalNonOwner = false,
-	isOwnerExternal = true
+	isOwnerExternal = true,
 }) => {
+	// ---------------------------------------------------------------------------
+	// Selectors & dispatch
+	// ---------------------------------------------------------------------------
 	const dispatch = useDispatch<AppDispatch>();
 	const planner = useSelector((s:RootState)=> s.planner);
 	const docsState = useSelector((s:RootState)=> s.docs);
-  const { token: authToken } = useAuthToken();
-	const currency = planner.currency || 'EUR';
-	const totalNights = React.useMemo(()=> planner.destinations.reduce((a,d)=> a + (d.nights||0),0), [planner.destinations]);
-	const targetNights = planner.targetNights || totalNights || 0;
+		const auth = useAuthToken();
+		const authToken = auth.token; // string | null
 
-	// Feature gating flags (non-destructive)
-	const ENABLE_EXPENSES = true;
-	const ENABLE_COMMENTS = true;
-
-	// Draft/publish state & meta BEFORE hydration effect so effect can mutate them
-	const [isDraft, setIsDraft] = React.useState(true);
-	const [title, setTitle] = React.useState('Untitled Trip');
-	const [editingTitle, setEditingTitle] = React.useState(false);
-	const [tripStartDate, setTripStartDate] = React.useState<string | null>(null);
-	const [tripEndDate, setTripEndDate] = React.useState<string | null>(null);
-	const normalizedFromProps = React.useMemo<NormalizedTrip | null>(() => normalizeTrip(initialTrip), [initialTrip]);
-	const [fetchedTrip, setFetchedTrip] = React.useState<any>(null);
-	const normalizedFetched = React.useMemo<NormalizedTrip | null>(() => normalizeTrip(fetchedTrip), [fetchedTrip]);
-	const unifiedTrip = normalizedFromProps || normalizedFetched; // prefer props
+	// Normalize initial trip (stable backend shape: { trip, itinerary })
+		const normalizedInitial = React.useMemo<NormalizedTrip | null>(() => initialTrip ? normalizeTrip(initialTrip) : null, [initialTrip]);
+		// Early raw meta extraction (before hydration) to prevent save race overwriting dates with 'today'
+		const earlyRawTrip = React.useMemo<any>(() => {
+			if(!initialTrip) return null;
+			const root = initialTrip.trip && typeof initialTrip.trip === 'object' ? initialTrip.trip : initialTrip;
+			return root;
+		}, [initialTrip]);
+	// Support direct page reload without location.state by performing a fallback fetch.
+	const [remoteTrip, setRemoteTrip] = React.useState<any|null>(null);
+	const unifiedTrip = React.useMemo(()=> {
+		return normalizedInitial || (remoteTrip ? normalizeTrip(remoteTrip) : null);
+	}, [normalizedInitial, remoteTrip]); // naming retained for downstream references
 	const hydratedRef = React.useRef<string | null>(null);
-	// Hard tripId change watcher: ensures planner slice and hydration ref are cleared BEFORE any new hydration logic runs.
-	React.useEffect(() => {
-		// If component remounted with a different tripId than stored in hydratedRef, clear hydration marker.
-		if (hydratedRef.current && hydratedRef.current !== tripId) {
-			console.log('[TripPlanner] tripId changed, clearing hydration marker', { from: hydratedRef.current, to: tripId });
-			hydratedRef.current = null;
+	// Preserve original creation start/end dates (first hydration) so itinerary edits don't implicitly adjust them.
+	const originalDatesRef = React.useRef<{ start:string|null; end:string|null }|null>(null);
+	// Seed originalDatesRef from earlyRawTrip if available and not yet set (pre-hydration reload safeguard)
+	if(!originalDatesRef.current && earlyRawTrip) {
+		const rawStart = sanitizeDateString(earlyRawTrip.startDate) || null;
+		const rawEnd = sanitizeDateString(earlyRawTrip.endDate) || null;
+		if(rawStart || rawEnd) {
+			originalDatesRef.current = { start: rawStart, end: rawEnd };
 		}
-	}, [tripId]);
-	const initialPrivacy: 'Private'|'Trip Members'|'My Followers'|'Everyone' = React.useMemo(() => {
-		const visRaw = unifiedTrip?.meta.visibility;
-		if (typeof visRaw === 'string') {
-			const vis = visRaw.toLowerCase().trim();
-			if (vis.startsWith('my')) return 'My Followers';
-			if (vis.startsWith('every')) return 'Everyone';
-			if (vis.startsWith('trip')) return 'Trip Members';
-		}
-		return 'Private';
-	}, [unifiedTrip]);
-	const [privacy, setPrivacy] = React.useState<'Private'|'Trip Members'|'My Followers'|'Everyone'>(initialPrivacy);
-	// Track a hash of last committed state for dirty detection
-	const lastCommittedRef = React.useRef<string>('');
-	const computeSignature = React.useCallback(()=> {
-		const startSig = tripStartDate || '';
-		const endSig = tripEndDate || '';
-		const destSig = (planner.destinations||[]).map(d=> {
-			const singleStayMarker = d.stay && (d.stay.name||d.stay.reference||d.stay.notes) ? 'S' : 'N';
-			const multiStayCount = Array.isArray((d as any).stays)? (d as any).stays.length : 0;
-			const stayNotesMarker = (d as any).stayNotes && (d as any).stayNotes.trim() ? 'SN' : '0';
-			const spotCount = Array.isArray(d.spots)? d.spots.length : 0;
-			const foodCount = Array.isArray(d.foods)? d.foods.length : 0;
-			return d.id+':'+d.nights+':'+d.transport+':'+singleStayMarker+':M'+multiStayCount+':'+stayNotesMarker+':'+spotCount+':'+foodCount;
-		}).join('|');
-		const expSig = (planner.expenses||[]).map(e=> e.id+':'+e.amount).join('|');
-		return [title, privacy, currency, startSig, endSig, isDraft?'draft':'pub', destSig, expSig, planner.tripBudget ?? 'none'].join('#');
-	}, [title, privacy, currency, tripStartDate, tripEndDate, isDraft, planner.destinations, planner.expenses, planner.tripBudget]);
-	const signature = computeSignature();
-	const isDirty = lastCommittedRef.current !== signature;
-	React.useEffect(()=> { if(!lastCommittedRef.current) lastCommittedRef.current = signature; }, [signature]);
-	const commitSnapshot = React.useCallback((nextDraftState: boolean) => {
-		setIsDraft(nextDraftState);
-		requestAnimationFrame(()=> { lastCommittedRef.current = computeSignature(); });
-	}, [computeSignature]);
+	}
 
-	// Section / UI state below
-	const [section, setSection] = React.useState<'plan'|'news'|'packing'|'docs'>('plan');
-	const setSectionDebug = (next: 'plan'|'news'|'packing'|'docs') => { console.log('[TripPlanner] section change:', section, '=>', next); setSection(next); };
+	// Core meta state
+	const [title, setTitle] = React.useState<string>(normalizedInitial?.meta.name || 'Untitled Trip');
+	const [editingTitle, setEditingTitle] = React.useState(false);
+	const [privacy, setPrivacy] = React.useState<'Private'|'Trip Members'|'My Followers'|'Everyone'>('Private');
+	const [tripStartDate, setTripStartDate] = React.useState<string|null>(normalizedInitial?.meta.startDate ? sanitizeDateString(normalizedInitial.meta.startDate) : null);
+	const [tripEndDate, setTripEndDate] = React.useState<string|null>(normalizedInitial?.meta.endDate ? sanitizeDateString(normalizedInitial.meta.endDate) : null);
+		// Draft flag: derive from raw initialTrip.trip.status if provided; fallback to true
+		const initialStatus = (initialTrip && initialTrip.trip && typeof initialTrip.trip.status === 'string') ? String(initialTrip.trip.status).toUpperCase() : undefined;
+		const [isDraft, setIsDraft] = React.useState<boolean>(initialStatus ? initialStatus !== 'PUBLISHED' : true);
 
-// Feature gating flags (non-destructive). Set to true to re-enable tabs.
-// Underlying components (ExpensesPanel, TripComments) remain fully implemented.
+	// Section + tab UI state
+	const [section, setSection] = React.useState<'plan'|'news'|'docs'|'packing'>('plan');
+	const setSectionDebug = (s:any)=> setSection(s); // preserve prop expectation
 	const [tab, setTab] = React.useState(0);
 
-	// Normalization & fallback fetch setup
-	// (moved above)
+	// Derived counts
+	const totalNights = React.useMemo(()=> planner.destinations.reduce((a,d)=> a + (d.nights||0), 0), [planner.destinations]);
+	const targetNights = planner.targetNights || totalNights || 1;
+	const currency = planner.currency || 'EUR';
 
-	// Fallback fetch for deep-link (no initialTrip state passed)
-	React.useEffect(() => {
-		if (normalizedFromProps || fetchedTrip || !tripId || !authToken) return;
+	// Dirty tracking (signature of key planning fields)
+	const lastCommittedRef = React.useRef<string>('');
+	const persistedPayloadRef = React.useRef<any|null>(null);
+	const computeSignature = React.useCallback(()=> {
+		return JSON.stringify({
+			t:title,
+			p:privacy,
+			s:tripStartDate,
+			e:tripEndDate,
+			d:planner.destinations.map(d=> ({ id:d.id, n:d.name, sd:d.startDate, ed:d.endDate, nts:d.nights, lat:d.lat, lng:d.lng, tr:d.transport })),
+			c:currency,
+			dr:isDraft
+		});
+	}, [title, privacy, tripStartDate, tripEndDate, planner.destinations, currency, isDraft]);
+	const commitSnapshot = React.useCallback((draft:boolean)=> { setIsDraft(draft); lastCommittedRef.current = computeSignature(); }, [computeSignature]);
+	React.useEffect(()=> { if(!lastCommittedRef.current) lastCommittedRef.current = computeSignature(); }, [computeSignature]);
+	const isDirty = computeSignature() !== lastCommittedRef.current;
+	// Hydration status flag
+	const isHydrated = Boolean(hydratedRef.current);
+
+
+	// Fallback remote fetch when initialTrip absent (direct reload of planner route)
+	React.useEffect(()=> {
+		if(initialTrip || remoteTrip || !tripId) return;
+		if(!authToken) return; // wait for token
 		let active = true;
-		(async () => {
+		(async()=> {
 			try {
 				const resp = await apiServices.getTripById(authToken, tripId);
-				if (!active) return;
-				setFetchedTrip(resp?.data);
-				console.log('[TripPlanner] Fallback fetch success');
-			} catch (err) {
-				console.warn('[TripPlanner] Fallback fetch failed', err);
+				if(!active) return;
+				if(resp?.data) setRemoteTrip(resp.data);
+			} catch(err) {
+				// silent fail; user can retry later
 			}
 		})();
-		return () => { active = false; };
-	}, [normalizedFromProps, fetchedTrip, tripId, authToken]);
+		return ()=> { active=false; };
+	}, [initialTrip, remoteTrip, tripId, authToken]);
 
-	// Trip switch reset using planner slice tripId tracking.
-	React.useEffect(() => {
-		if (!tripId) return;
-		const currentSliceTripId = (planner as any).tripId;
-		if (currentSliceTripId && currentSliceTripId !== tripId) {
-			console.log('[TripPlanner] Trip switch detected (slice tripId mismatch). Resetting planner.', { from: currentSliceTripId, to: tripId });
-			dispatch(resetPlanner({ tripId }));
-			hydratedRef.current = null;
-		}
-	}, [tripId, planner, dispatch]);
-
-	// Controlled hydration per trip id. Rehydrates only if marker cleared.
+	// Hydration effect (simplified for stable backend shape)
 	React.useEffect(() => {
 		if (!unifiedTrip) return;
 		const { meta, itinerary } = unifiedTrip;
-		if (hydratedRef.current === meta.id) {
-			console.log('[TripPlanner] Hydration skip (marker matches)', { tripId: meta.id, destinations: planner.destinations.length });
-			return;
-		}
-		console.log('[TripPlanner] Hydrating planner', { tripId: meta.id, itinerary: itinerary.length });
-		// Title
+		if (hydratedRef.current === meta.id) return;
 		if (title === 'Untitled Trip' && !editingTitle) setTitle(meta.name);
-		// Privacy mapping
-		if (privacy === 'Private' && typeof meta.visibility === 'string') {
-			const vis = meta.visibility.toLowerCase();
-			if (vis.startsWith('follow')) setPrivacy('My Followers');
-			else if (vis.startsWith('every')) setPrivacy('Everyone');
-			else if (vis.startsWith('trip')) setPrivacy('Trip Members');
-			else setPrivacy('Private');
+		setPrivacy((() => {
+			const v = (meta.visibility||'').toLowerCase();
+			if (v.startsWith('every')) return 'Everyone';
+			if (v.startsWith('trip')) return 'Trip Members';
+			if (v.startsWith('my')) return 'My Followers';
+			return 'Private';
+		})());
+		const metaStart = sanitizeDateString(meta.startDate) || null;
+		const metaEnd = sanitizeDateString(meta.endDate) || null;
+		setTripStartDate(metaStart);
+		setTripEndDate(metaEnd);
+		if(!originalDatesRef.current) {
+			originalDatesRef.current = { start: metaStart, end: metaEnd };
 		}
-		// Dates (sanitize to YYYY-MM-DD)
-		setTripStartDate(sanitizeDateString(meta.startDate) || null);
-		setTripEndDate(sanitizeDateString(meta.endDate) || null);
-		let targetFromRange = planner.targetNights || 1;
-		if (meta.startDate && meta.endDate) {
+		const allowedCurrencies = ['EUR','USD','GBP'] as const;
+		const currencyCode = meta.currencyCode;
+		const normalizedCurrency = allowedCurrencies.includes(currencyCode as any) ? currencyCode as typeof allowedCurrencies[number] : 'EUR';
+		const hydratedDestinations = itinerary.map((it:any, idx:number) => {
+			const startDateRaw = sanitizeDateString(it.startDate) || new Date().toISOString().slice(0,10);
+			const endDateRaw = sanitizeDateString(it.endDate) || sanitizeDateString(it.startDate) || startDateRaw;
+			// Recalculate nights from date range if backend value missing or clearly wrong (e.g., always 1 despite multi-day span)
+			const rawNightsVal = (it as any).nights;
+			let nightsRaw = Number(rawNightsVal);
+			if(!isFinite(nightsRaw)) nightsRaw = NaN;
+			let diffDays = 0;
 			try {
-				const sd = new Date(meta.startDate);
-				const ed = new Date(meta.endDate);
-				if (!isNaN(sd.getTime()) && !isNaN(ed.getTime())) {
-					const diff = differenceInDays(ed, sd);
-					if (Number.isFinite(diff) && diff > 0) targetFromRange = diff;
+				if(startDateRaw && endDateRaw) {
+					diffDays = differenceInDays(new Date(endDateRaw + 'T00:00:00'), new Date(startDateRaw + 'T00:00:00'));
+					if(diffDays < 0) diffDays = 0; // guard inverted range
 				}
-			} catch {}
-		}
-		if (planner.destinations.length === 0) {
-			// Stamp slice with current tripId before loading
-			dispatch(resetPlanner({ tripId: meta.id }));
-			const allowedCurrencies = ['EUR','USD','GBP'] as const;
-			const currencyCode = meta.currencyCode;
-			const normalizedCurrency = allowedCurrencies.includes(currencyCode as any) ? currencyCode as typeof allowedCurrencies[number] : 'EUR';
-			const hydratedDestinations = itinerary.map((item:any, idx:number) => {
-				const rawStart = (item.startDate || meta.startDate) ?? new Date().toISOString().slice(0,10);
-				const rawEnd = (item.endDate || meta.endDate) ?? rawStart;
-				const startDate = sanitizeDateString(rawStart) || new Date().toISOString().slice(0,10);
-				const endDate = sanitizeDateString(rawEnd) || startDate;
-				let nights = 1;
-				try { const ms = new Date(endDate).getTime() - new Date(startDate).getTime(); nights = Math.max(1, Math.round(ms / 86400000)); } catch {}
-				return {
-					id: item.id || ('dest_'+idx+'_'+Date.now()),
-					name: item.name || item.title || 'Destination '+(idx+1),
-					startDate,
-					endDate,
-					nights,
-					transport: item.transport || '',
-					budget: item.budget ?? 0,
-					lat: item.lat ?? item.latitude ?? undefined,
-					lng: item.lng ?? item.longitude ?? undefined,
-					placeId: item.placeId || undefined,
-					photoUrl: item.photoUrl || undefined,
-					category: item.category || 'general',
-					completed: !!item.completed,
-					spots: Array.isArray(item.spots)? item.spots.map((sp:any)=> ({ id: sp.id || sp.name || ('spot_'+Math.random().toString(36).slice(2)), name: sp.name || 'Spot', checked: !!sp.checked, placeId: sp.placeId, photoUrl: sp.photoUrl, description: sp.description })) : [],
-					foods: Array.isArray(item.foods)? item.foods.map((fd:any)=> ({ id: fd.id || fd.name || ('food_'+Math.random().toString(36).slice(2)), name: fd.name || 'Food', checked: !!fd.checked })) : [],
-					docs: Array.isArray(item.docs)? item.docs.map((d:any)=> ({ id: d.id || ('doc_'+Math.random().toString(36).slice(2)), originalName: d.originalName || d.name || 'document', mimeType: d.mimeType || d.type || 'application/octet-stream', url: d.url || d.href || '' })) : [],
-					notes: item.notes || undefined,
-					stay: item.stay || undefined
-				};
-			});
-			const initialState = {
-				destinations: hydratedDestinations,
-				currency: normalizedCurrency,
-				targetNights: targetFromRange,
-				globalDocs: [],
-				visaDocs: [],
-				pinnedDocIds: [],
-				tripBudget: undefined,
-				expenses: [],
-				simplifyGroupExpenses: false,
-				expenseVisibilityEmails: [],
-				comments: []
+			} catch { diffDays = 0; }
+			// Nights semantic: number of overnights; if endDate is checkout day, diffDays already matches nights.
+			// Decide final nights:
+			//  - If backend gave a valid >=0 number and (diffDays <=1 || nightsRaw > 1), keep it.
+			//  - If backend gave 0 or 1 but diffDays > 1, override with diffDays (likely placeholder value).
+			//  - If backend missing/invalid (NaN/negative), use diffDays (may be 0 for same-day).
+			let nights: number;
+			if(isNaN(nightsRaw) || nightsRaw < 0) {
+				nights = diffDays; // derive
+			} else if(diffDays > 1 && nightsRaw <= 1) {
+				nights = diffDays; // override inaccurate placeholder
+			} else {
+				nights = nightsRaw; // trust backend value
+			}
+			// Ensure non-negative
+			if(nights < 0) nights = 0;
+			return {
+				id: it.id || ('dest_'+idx),
+				name: it.name || 'Destination '+(idx+1),
+				startDate: startDateRaw,
+				endDate: endDateRaw,
+				nights,
+				transport: it.transport || '',
+				budget: it.budget ?? 0,
+				lat: typeof it.lat === 'number'? it.lat : undefined,
+				lng: typeof it.lng === 'number'? it.lng : undefined,
+				placeId: it.placeId || undefined,
+				photoUrl: it.photoUrl || undefined,
+				category: it.category || 'general',
+				completed: !!it.completed,
+				spots: Array.isArray(it.spots)? it.spots: [],
+				foods: Array.isArray(it.foods)? it.foods: [],
+				docs: Array.isArray(it.docs)? it.docs: [],
+				notes: it.notes,
+				stay: it.stay || undefined
 			};
-			dispatch(loadState(initialState));
-			console.log('[TripPlanner] Initialized planner state', { destinations: hydratedDestinations.length, targetNights: targetFromRange });
+		});
+		// Backend target nights preference
+		const metaTarget = (meta as any).targetNights;
+		const computedTotal = hydratedDestinations.reduce((a,d)=> a + (d.nights||0),0);
+		// Derive span nights from trip-level dates if itinerary empty
+		let spanDiff = 0;
+		try {
+			const startMeta = sanitizeDateString(meta.startDate);
+			const endMeta = sanitizeDateString(meta.endDate);
+			if(startMeta && endMeta) {
+				spanDiff = differenceInDays(new Date(endMeta + 'T00:00:00'), new Date(startMeta + 'T00:00:00'));
+				if(spanDiff < 0) spanDiff = 0;
+			}
+		} catch { spanDiff = 0; }
+		let effectiveTarget: number; let lockTarget = false;
+		if(typeof metaTarget === 'number' && metaTarget > 0) {
+			// Explicit backend target overrides everything.
+			effectiveTarget = metaTarget; lockTarget = true;
+		} else if(spanDiff > 0) {
+			// User-defined trip date range: keep target fixed to span regardless of current itinerary fill state.
+			effectiveTarget = spanDiff; lockTarget = true;
+		} else if(computedTotal > 0) {
+			// Fall back to itinerary sum only if no explicit dates / span available.
+			effectiveTarget = computedTotal; lockTarget = false;
 		} else {
-			// If destinations exist but marker differs (e.g., tripId switch), wipe & reload to avoid bleed.
-			console.log('[TripPlanner] Existing destinations but new trip detected – resetting before init', { prevTripId: hydratedRef.current, newTripId: meta.id });
-			dispatch(resetPlanner({ tripId: meta.id }));
-			const allowedCurrencies = ['EUR','USD','GBP'] as const;
-			const currencyCode = meta.currencyCode;
-			const normalizedCurrency = allowedCurrencies.includes(currencyCode as any) ? currencyCode as typeof allowedCurrencies[number] : 'EUR';
-			const hydratedDestinations = itinerary.map((item:any, idx:number) => {
-				const rawStart = (item.startDate || meta.startDate) ?? new Date().toISOString().slice(0,10);
-				const rawEnd = (item.endDate || meta.endDate) ?? rawStart;
-				const startDate = sanitizeDateString(rawStart) || new Date().toISOString().slice(0,10);
-				const endDate = sanitizeDateString(rawEnd) || startDate;
-				let nights = 1;
-				try { const ms = new Date(endDate).getTime() - new Date(startDate).getTime(); nights = Math.max(1, Math.round(ms / 86400000)); } catch {}
-				return {
-					id: item.id || ('dest_'+idx+'_'+Date.now()),
-					name: item.name || item.title || 'Destination '+(idx+1),
-					startDate,
-					endDate,
-					nights,
-					transport: item.transport || '',
-					budget: item.budget ?? 0,
-					lat: item.lat ?? item.latitude ?? undefined,
-					lng: item.lng ?? item.longitude ?? undefined,
-					placeId: item.placeId || undefined,
-					photoUrl: item.photoUrl || undefined,
-					category: item.category || 'general',
-					completed: !!item.completed,
-					spots: Array.isArray(item.spots)? item.spots.map((sp:any)=> ({ id: sp.id || sp.name || ('spot_'+Math.random().toString(36).slice(2)), name: sp.name || 'Spot', checked: !!sp.checked, placeId: sp.placeId, photoUrl: sp.photoUrl, description: sp.description })) : [],
-					foods: Array.isArray(item.foods)? item.foods.map((fd:any)=> ({ id: fd.id || fd.name || ('food_'+Math.random().toString(36).slice(2)), name: fd.name || 'Food', checked: !!fd.checked })) : [],
-					docs: Array.isArray(item.docs)? item.docs.map((d:any)=> ({ id: d.id || ('doc_'+Math.random().toString(36).slice(2)), originalName: d.originalName || d.name || 'document', mimeType: d.mimeType || d.type || 'application/octet-stream', url: d.url || d.href || '' })) : [],
-					notes: item.notes || undefined,
-					stay: item.stay || undefined
-				};
-			});
-			const initialState = {
-				destinations: hydratedDestinations,
-				currency: normalizedCurrency,
-				targetNights: targetFromRange,
-				globalDocs: [],
-				visaDocs: [],
-				pinnedDocIds: [],
-				tripBudget: undefined,
-				expenses: [],
-				simplifyGroupExpenses: false,
-				expenseVisibilityEmails: [],
-				comments: []
-			};
-			dispatch(loadState(initialState));
-			console.log('[TripPlanner] Reinitialized planner state after trip switch', { destinations: hydratedDestinations.length, targetNights: targetFromRange });
+			// Ultimate fallback.
+			effectiveTarget = (planner.targetNights || 1); lockTarget = false;
 		}
+		dispatch(resetPlanner({ tripId: meta.id }));
+		dispatch(loadState({
+			destinations: hydratedDestinations,
+			currency: normalizedCurrency,
+			targetNights: effectiveTarget,
+			targetLocked: lockTarget,
+						tripStartDate: metaStart || undefined,
+						tripEndDate: metaEnd || undefined,
+			globalDocs: [],
+			visaDocs: [],
+			pinnedDocIds: [],
+			tripBudget: undefined,
+			expenses: [],
+			simplifyGroupExpenses: false,
+			expenseVisibilityEmails: [],
+			comments: []
+		}));
 		hydratedRef.current = meta.id;
-	}, [unifiedTrip, planner.destinations.length, title, editingTitle, privacy, dispatch]);
+		// Commit initial snapshot after first hydration
+		requestAnimationFrame(()=> { lastCommittedRef.current = computeSignature(); });
+	}, [unifiedTrip, title, editingTitle, dispatch, planner.targetNights, computeSignature]);
+
+	// Centralized feature flags
+	const ENABLE_EXPENSES = FEATURE_FLAGS.expenses;
+	const ENABLE_COMMENTS = FEATURE_FLAGS.comments;
+	const ENABLE_DOC_UPLOAD = FEATURE_FLAGS.docsUpload;
 	// (moved earlier)
 	const [currencyAnchor, setCurrencyAnchor] = React.useState<null | HTMLElement>(null);
 	const [privacyAnchor, setPrivacyAnchor] = React.useState<null | HTMLElement>(null);
@@ -347,6 +327,14 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 
 	const [visaOpen, setVisaOpen] = React.useState(false);
 	const [pinnedOpen, setPinnedOpen] = React.useState(false);
+
+	// Auto-close doc-related dialogs when feature disabled to prevent stray popups
+	React.useEffect(()=> {
+		if(!ENABLE_DOC_UPLOAD){
+			if(visaOpen) setVisaOpen(false);
+			if(pinnedOpen) setPinnedOpen(false);
+		}
+	}, [ENABLE_DOC_UPLOAD, visaOpen, pinnedOpen]);
 
 	// (Removed secondary meta extraction effect; consolidated into primary hydration effect)
 
@@ -389,8 +377,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			deduped.push(doc);
 		}
 		const finalList = deduped;
-		// eslint-disable-next-line no-console
-		console.log('[TripPlanner] combinedPinnedDocs recalculated', { plannerPinnedCount: plannerPinned.length, externalPinnedCount: externalPinned.length, combinedCount: combined.length, dedupedCount: finalList.length, plannerPinnedIds: plannerPinned.map(p=>p.id), externalPinnedIds: externalPinned.map(p=>p.id) });
+		// diagnostics removed
 		return finalList;
 	}, [planner.destinations, planner.globalDocs, planner.visaDocs, planner.pinnedDocIds, docsState.docs]);
 
@@ -460,9 +447,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			if(localLen < bestLen - 1e-9){ bestLen = localLen; bestOrder = localBest; }
 		}
 		const optimizedIds = bestOrder.map(d=> d.id);
-		if(import.meta.env.DEV){
-			console.log('[RouteOptimize] Optimized order IDs:', optimizedIds, 'distanceKm=', bestLen.toFixed(2));
-		}
+		// route optimization diagnostics removed
 		// Use exact reorder allowing first to move
 		dispatch(reorderChainExact({ ids: optimizedIds }));
 		window.dispatchEvent(new CustomEvent('tripician:route-updated',{ detail:{ ids: optimizedIds }}));
@@ -518,7 +503,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			});
 		}
 		const routeDistanceKm = legs.reduce((a,l)=> l.distanceKm!=null? a + l.distanceKm : a, 0);
-		const destinationDocsCount = planner.destinations.reduce((a,d)=> a + (d.docs?.length||0), 0);
 		// Itinerary (extended fields) – omit empty large text fields
 		const itinerary = planner.destinations.map(d=> {
 			const notesVal: unknown = (d as any).notes;
@@ -555,18 +539,46 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				docs:(d.docs||[]).map(doc=> ({ id:doc.id, originalName:doc.originalName, mimeType:doc.mimeType, url:doc.url }))
 			};
 		});
-		// Determine trip-level start/end dates (prefer explicit state, fallback to first/last destination)
-		const derivedStart = sanitizeDateString(tripStartDate) || sanitizeDateString(planner.destinations[0]?.startDate) || new Date().toISOString().slice(0,10);
-		const derivedEnd = sanitizeDateString(tripEndDate) || sanitizeDateString(planner.destinations[planner.destinations.length-1]?.endDate) || derivedStart;
+		// ------------------------------------------------------------------
+		// Trip-level start/end persistence strategy
+		// ------------------------------------------------------------------
+		// Hard rule: Never auto-shift trip start/end to "today" just because they
+		// are missing at save time. Preserve the originally hydrated values unless
+		// the user has explicitly edited them. This prevents silent date drift.
+		const originalStart = originalDatesRef.current?.start || null;
+		const originalEnd = originalDatesRef.current?.end || null;
+		const sanitizedStart = sanitizeDateString(tripStartDate) || null;
+		const sanitizedEnd = sanitizeDateString(tripEndDate) || null;
+		// Detect user edits: a value different from original (and non-null) counts as an edit.
+		const userEditedStart = sanitizedStart && originalStart && sanitizedStart !== originalStart ? sanitizedStart : (sanitizedStart && !originalStart ? sanitizedStart : null);
+		const userEditedEnd = sanitizedEnd && originalEnd && sanitizedEnd !== originalEnd ? sanitizedEnd : (sanitizedEnd && !originalEnd ? sanitizedEnd : null);
+		// Final selection prioritizes user edits, then original, then (last resort) sanitized state.
+		// We deliberately DO NOT introduce a current-date fallback.
+		let finalStart = userEditedStart || originalStart || sanitizedStart || null;
+		let finalEnd = userEditedEnd || originalEnd || sanitizedEnd || null;
+		// If start exists but end is missing, keep end equal to start (single-day trip invariant)
+		if(finalStart && !finalEnd) finalEnd = finalStart;
+		// Dev diagnostic: surface any scenario where dates are still null post-hydration
+		if(import.meta.env.DEV && isHydrated) {
+			if(!finalStart || !finalEnd) {
+				console.warn('[TripPersist] Missing trip dates at save. start=', finalStart, 'end=', finalEnd, 'originalRef=', originalDatesRef.current);
+			}
+			if(finalStart !== originalStart) {
+				console.info('[TripPersist] Start date differs from original. original=', originalStart, 'persisting=', finalStart);
+			}
+			if(finalEnd !== originalEnd) {
+				console.info('[TripPersist] End date differs from original. original=', originalEnd, 'persisting=', finalEnd);
+			}
+		}
 		return {
 			trip: {
 				id: tripId,
 				name: title,
-				status: draft? 'DRAFT':'PUBLISHED',
+				status: draft ? 'DRAFT' : 'PUBLISHED',
 				privacy,
 				currency,
-				startDate: derivedStart,
-				endDate: derivedEnd,
+				startDate: finalStart,
+				endDate: finalEnd,
 				generatedAt: new Date().toISOString(),
 				targetNights,
 				totalNights,
@@ -576,49 +588,36 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			},
 			itinerary,
 			legs,
-			expenses: planner.expenses || [],
-			budget: planner.tripBudget ?? null,
-			comments: planner.comments || [],
-			pinnedDocIds: planner.pinnedDocIds || [],
-			globalDocs: (planner.globalDocs||[]).map(d=> ({ id:d.id, originalName:d.originalName, mimeType:d.mimeType, url:d.url })),
-			visaDocs: (planner.visaDocs||[]).map(d=> ({ id:d.id, originalName:d.originalName, mimeType:d.mimeType, url:d.url })),
-			destinationDocsCount,
+			expenses: [],
+			docs: [],
+			comments: [],
 			version: 1
 		};
-	}, [planner, tripId, title, privacy, currency, targetNights, totalNights, geocodedCount]);
+	}, [planner.destinations, tripId, title, privacy, currency, tripStartDate, tripEndDate, targetNights, totalNights, geocodedCount]);
 
-	// Ref storing latest prepared payload for backend
-	const persistedPayloadRef = React.useRef<any>(null);
-	const persistToBackend = async (payload:any) => {
-		if(!authToken){ console.warn('[TripPlanner] Cannot persist – no auth token'); openToast('error','Not signed in'); return; }
+	// Persist helper (debounced save)
+	const persistToBackend = React.useCallback(async (payload:any) => {
+		if(!authToken){ openToast('error','Not signed in'); return; }
 		const now = Date.now();
-		if(saving || (now - lastSaveTs) < 1200){
-			console.warn('[TripPlanner] Save ignored (debounced or already saving)');
-			return;
-		}
+		if(saving || (now - lastSaveTs) < 1200) return;
 		setSaving(true);
 		setLastSaveTs(now);
 		try {
 			await apiServices.updateTrip(authToken, tripId, payload);
-			console.log('[TripPlanner] Persisted trip successfully (PUT /trips)', { tripId, status: payload.trip.status });
 			setLastSavedDisplay(new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' }));
 			openToast('success', payload.trip.status==='DRAFT'? 'Draft saved':'Trip updated');
 		} catch(err:any){
-			console.error('[TripPlanner] Backend persistence failed', err?.response?.status, err?.message);
 			openToast('error','Save failed');
 		} finally {
 			setSaving(false);
 		}
-	};
+	}, [authToken, saving, lastSaveTs, tripId, openToast]);
 
 	const handlePublish = () => {
 		if(!isOwnerExternal) return; // safety
 		if(isDraft){
 			// Build enriched published payload (draft=false)
 			const payload = buildPersistPayload(false);
-			// Console preview
-			// eslint-disable-next-line no-console
-			console.log('TRIPICIAN_PUBLISH_PAYLOAD =>', payload, '\nJSON STRING =>', JSON.stringify(payload, null, 2));
 			persistedPayloadRef.current = payload;
 			// Persist first, then commit snapshot to update dirty signature
 			persistToBackend(payload);
@@ -626,7 +625,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		} else {
 			// Unpublish -> revert to draft
 			commitSnapshot(true);
-			console.log('[TripPlanner] Unpublish -> back to draft');
 			openToast('info','Trip reverted to draft');
 		}
 	};
@@ -635,7 +633,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	return (
 		<React.Fragment>
 		<Box sx={{ display:'flex', flexDirection:'row', height:'100vh', overflow:'hidden' }}>
-	<CreateTripNav active={section} onChange={(id)=> setSectionDebug(id as any)} onSettingsClick={()=> setSettingsOpen(true)} hideSections={hideSectionsArr} canAccessDocs={canAccessDocs} />
+	<CreateTripNav active={section} onChange={(id)=> setSectionDebug(id as any)} onSettingsClick={()=> setSettingsOpen(true)} hideSections={hideSectionsArr} canAccessDocs={canAccessDocs} docsEnabled={ENABLE_DOC_UPLOAD} />
 			<Box sx={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, minHeight:0 }}>
 				<TopBar showSearch={false} centerNode={
 					<Box sx={{ display:'flex', alignItems:'center' }}>
@@ -682,11 +680,20 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 										<Button size='small' variant='text' onClick={readOnly? undefined : openCurrency} disabled={readOnly} endIcon={<ExpandMoreIcon fontSize='small' />} sx={{ textTransform:'none', px:1, minWidth:0 }}>{currency}</Button>
 									</Box>
 									{canAccessDocs && (
-									<Paper role='button' onClick={()=> setVisaOpen(true)} sx={(t)=>({ mt:1.25, cursor:'pointer', width:140, px:1.2, py:1, borderRadius:1, display:'flex', flexDirection:'row', gap:.75, alignItems:'center', border:`1px dashed ${t.palette.divider}`, background: t.palette.mode==='dark'? '#13202b':'#f5fbff', '&:hover':{ borderColor:t.palette.primary.main } })}>
+									<Paper
+									  role={ENABLE_DOC_UPLOAD? 'button': undefined}
+									  aria-disabled={!ENABLE_DOC_UPLOAD}
+									  onClick={()=> { if(!ENABLE_DOC_UPLOAD) return; setVisaOpen(true); }}
+									  sx={(t)=>({ mt:1.25, cursor: ENABLE_DOC_UPLOAD? 'pointer':'not-allowed', width:140, px:1.2, py:1, borderRadius:1, display:'flex', flexDirection:'row', gap:.75, alignItems:'center', border:`1px dashed ${t.palette.divider}`, background: t.palette.mode==='dark'? '#13202b':'#f5fbff', '&:hover': ENABLE_DOC_UPLOAD? { borderColor:t.palette.primary.main } : undefined, opacity: ENABLE_DOC_UPLOAD? 1: .65 })}
+									>
 										<Box component='img' src={passportIconUrl} alt='Visa docs' loading='lazy' style={{ width:30, height:30, objectFit:'contain', filter:'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }} />
 										<Box sx={{ display:'flex', flexDirection:'column', minWidth:0 }}>
-											<Typography variant='caption' sx={{ fontWeight:700, letterSpacing:.4 }}>Visa(s)</Typography>
-											<Typography variant='caption' sx={{ opacity:.6, lineHeight:1 }}>{planner.visaDocs?.length||0} file(s)</Typography>
+											<Typography variant='caption' sx={{ fontWeight:700, letterSpacing:.4, opacity: ENABLE_DOC_UPLOAD?1:.5 }}>Visa(s)</Typography>
+											{ENABLE_DOC_UPLOAD ? (
+												<Typography variant='caption' sx={{ opacity:.6, lineHeight:1 }}>{planner.visaDocs?.length||0} file(s)</Typography>
+											) : (
+												<SoonTag sx={{ mt:.3 }} />
+											)}
 										</Box>
 									</Paper>
 									)}
@@ -698,11 +705,20 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 										<Button size='small' variant='text' onClick={readOnly? undefined: openPrivacy} disabled={readOnly} endIcon={<ExpandMoreIcon fontSize='small' />} sx={{ textTransform:'none', px:1, minWidth:0 }} />
 									</Box>
 									{canAccessDocs && (
-									<Paper role='button' onClick={()=> setPinnedOpen(true)} sx={(t)=>({ mt:1.8, cursor:'pointer', width:140, px:1.2, py:1, borderRadius:1, display:'flex', flexDirection:'row', gap:.75, alignItems:'center', border:`1px dashed ${t.palette.divider}`, background: t.palette.mode==='dark'? '#181c24':'#f7f7fa', '&:hover':{ borderColor:t.palette.primary.main } })}>
+									<Paper
+									  role={ENABLE_DOC_UPLOAD? 'button': undefined}
+									  aria-disabled={!ENABLE_DOC_UPLOAD}
+									  onClick={()=> { if(!ENABLE_DOC_UPLOAD) return; setPinnedOpen(true); }}
+									  sx={(t)=>({ mt:1.8, cursor: ENABLE_DOC_UPLOAD? 'pointer':'not-allowed', width:140, px:1.2, py:1, borderRadius:1, display:'flex', flexDirection:'row', gap:.75, alignItems:'center', border:`1px dashed ${t.palette.divider}`, background: t.palette.mode==='dark'? '#181c24':'#f7f7fa', '&:hover': ENABLE_DOC_UPLOAD? { borderColor:t.palette.primary.main } : undefined, opacity: ENABLE_DOC_UPLOAD? 1: .65 })}
+									>
 										<Box component='img' src={pinnedIconUrl} alt='Pinned docs' loading='lazy' style={{ width:30, height:30, objectFit:'contain', filter:'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }} />
 										<Box sx={{ display:'flex', flexDirection:'column', minWidth:0 }}>
-											<Typography variant='caption' sx={{ fontWeight:700, letterSpacing:.4 }}>Pinned</Typography>
-											<Typography variant='caption' sx={{ opacity:.6, lineHeight:1 }}>{combinedPinnedDocs.length} pinned</Typography>
+											<Typography variant='caption' sx={{ fontWeight:700, letterSpacing:.4, opacity: ENABLE_DOC_UPLOAD?1:.55 }}>Pinned</Typography>
+											{ENABLE_DOC_UPLOAD ? (
+												<Typography variant='caption' sx={{ opacity:.6, lineHeight:1 }}>{combinedPinnedDocs.length} pinned</Typography>
+											) : (
+												<SoonTag sx={{ mt:.3 }} />
+											)}
 										</Box>
 									</Paper>
 									)}
@@ -721,13 +737,13 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 								<Tab label={
 									<Box sx={{ display:'flex', alignItems:'center', gap:.75 }}>
 										<span>Expenses</span>
-										{!ENABLE_EXPENSES && <Chip label='Soon' size='small' color='default' sx={{ height:18, fontSize:10 }} />}
+										{!ENABLE_EXPENSES && <SoonTag />}
 									</Box>
 								} disabled={!ENABLE_EXPENSES} />
 								<Tab label={
 									<Box sx={{ display:'flex', alignItems:'center', gap:.75 }}>
 										<span>Comments</span>
-										{!ENABLE_COMMENTS && <Chip label='Soon' size='small' color='default' sx={{ height:18, fontSize:10 }} />}
+										{!ENABLE_COMMENTS && <SoonTag />}
 									</Box>
 								} disabled={!ENABLE_COMMENTS} />
 							</Tabs>
@@ -811,23 +827,23 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 											variant='outlined'
 											onClick={()=> {
 												if(!isOwnerExternal) return; // safety
+																									if(!isHydrated){ openToast('error','Trip data still loading'); return; }
+																									// Dev logging removed (pre-save)
 												if(!isDraft){
 													const payload = buildPersistPayload(false);
-													// eslint-disable-next-line no-console
-													console.log('TRIPICIAN_SAVE_PAYLOAD =>', payload, '\nJSON STRING =>', JSON.stringify(payload, null, 2));
 													persistedPayloadRef.current = payload;
 													persistToBackend(payload);
 													commitSnapshot(false);
+																				// Dev logging removed (post-save update)
 												} else {
 													const payload = buildPersistPayload(true);
-													// eslint-disable-next-line no-console
-													console.log('TRIPICIAN_SAVE_PAYLOAD =>', payload, '\nJSON STRING =>', JSON.stringify(payload, null, 2));
 													persistedPayloadRef.current = payload;
 													persistToBackend(payload);
 													commitSnapshot(true);
+																				// Dev logging removed (post-save draft)
 												}
 											}}
-											disabled={!isOwnerExternal || !isDirty || saving}
+																		disabled={!isOwnerExternal || !isDirty || saving || !isHydrated}
 											sx={{ textTransform:'none', borderRadius:2 }}
 										>
 											{isDraft ? 'Save as Draft' : 'Update'}{saving && <CircularProgress size={16} thickness={5} sx={{ ml:1 }} />}
@@ -838,19 +854,22 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 												variant='contained'
 												color={isDraft? 'primary':'warning'}
 												onClick={()=> {
+																if(!isHydrated){ openToast('error','Trip data still loading'); return; }
+																// Dev logging removed (publish pre-save)
 													if(isDraft){
 														// Publish commit
 														handlePublish();
 														requestAnimationFrame(()=> { lastCommittedRef.current = computeSignature(); });
+																	// Dev logging removed (post-publish)
 													} else {
 														// Unpublish -> return to draft
 														commitSnapshot(true);
-														console.log('[TripPlanner] Unpublish -> back to draft');
 														openToast('info','Trip reverted to draft');
+																	// Dev logging removed (reverted to draft)
 													}
 												}}
-												sx={{ textTransform:'none', borderRadius:2, opacity: isDraft? 1 : 0.7 }}
-												disabled={!isOwnerExternal || !isDirty || saving}
+														sx={{ textTransform:'none', borderRadius:2, opacity: isDraft? 1 : 0.7 }}
+														disabled={!isOwnerExternal || !isDirty || saving || !isHydrated}
 											>
 												{isDraft? 'Publish' : 'Unpublish'}{saving && <CircularProgress size={16} thickness={5} sx={{ ml:1 }} />}
 											</Button>
@@ -885,11 +904,11 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					{(['Private','Trip Members','My Followers','Everyone'] as const).map(p=> (<MenuItem key={p} selected={p===privacy} onClick={()=> selectPrivacy(p)}>{p}</MenuItem>))}
 				</Menu>
 				)}
-				{canAccessDocs && (
+				{canAccessDocs && ENABLE_DOC_UPLOAD && (
 				<Dialog open={visaOpen} onClose={()=> setVisaOpen(false)} fullWidth maxWidth='sm'>
 					<DialogTitle>Visa Documents</DialogTitle>
 					<DialogContent dividers>
-						{effectiveCanEdit && (
+						{effectiveCanEdit && ENABLE_DOC_UPLOAD && (
 							<ValidatedFileInput
 							  buttonLabel='Upload File(s)'
 							  onAccept={(accepted)=> {
@@ -907,6 +926,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 							  sx={{ mb:2 }}
 							/>
 						)}
+						{!ENABLE_DOC_UPLOAD && <SoonTag sx={{ mb:2 }} />}
 						{/* Display aggregated errors captured via state for backwards compatibility */}
 						{visaErrors.length>0 && (
 							<Box sx={{ mb:2, border:'1px solid', borderColor:'error.light', background:(t)=> t.palette.mode==='dark'? '#2a1818':'#fff5f5', p:1, borderRadius:1.5 }}>
@@ -926,7 +946,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 											</Box>
 											<Typography variant='caption' sx={{ lineHeight:1.2, wordBreak:'break-all' }}>{doc.originalName}</Typography>
 											<Box sx={{ display:'flex', justifyContent:'flex-end', alignItems:'center', gap:.5 }}>
-												{effectiveCanEdit && (
+												{effectiveCanEdit && ENABLE_DOC_UPLOAD && (
 													<>
 													<Tooltip title={pinned? 'Unpin':'Pin'}>
 														<IconButton size='small' onClick={()=> { if(pinned){ dispatch(unpinDoc({ docId: doc.id })); } else { dispatch(pinDoc({ docId: doc.id })); } }} sx={{ color: pinned? 'primary.main':'text.secondary', transition:'color .2s', '&:hover':{ color: pinned? 'warning.main':'primary.main' } }}>
@@ -954,7 +974,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					</DialogActions>
 				</Dialog>
 				)}
-				{canAccessDocs && (
+				{canAccessDocs && ENABLE_DOC_UPLOAD && (
 				<Dialog open={pinnedOpen} onClose={()=> setPinnedOpen(false)} fullWidth maxWidth='md'>
 					<DialogTitle>Pinned Documents</DialogTitle>
 					<DialogContent dividers>
@@ -972,7 +992,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 										</Box>
 										<Typography variant='caption' sx={{ lineHeight:1.2, wordBreak:'break-all' }}>{doc.originalName}</Typography>
 										<Box sx={{ display:'flex', justifyContent:'flex-end', alignItems:'center', gap:.25 }}>
-											{effectiveCanEdit && (
+											{effectiveCanEdit && ENABLE_DOC_UPLOAD && (
 												<>
 												<Tooltip title='Unpin'>
 													<IconButton size='small' onClick={()=> {
@@ -1046,7 +1066,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	onChangeEndDate={()=> {/* future: update chain */}}
 				onChangePrivacy={(p)=> setPrivacy(p as any)}
 				onDeleteTrip={()=> { setSettingsOpen(false); }}
-				onInviteEmail={async(email)=> { console.log('Invite email placeholder', email); }}
+					onInviteEmail={async(_)=> { /* invite email placeholder */ }}
 			/>
 		</Box>
 		<Snackbar open={toast.open} autoHideDuration={3000} onClose={closeToast} anchorOrigin={{ vertical:'bottom', horizontal:'right' }}>

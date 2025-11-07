@@ -33,6 +33,8 @@ import {
   addStayEntry, updateStayEntry, removeStayEntry, setStayNotes
 } from '../../store/plannerSlice';
 import ValidatedFileInput from '../../components/CommonComponents/ValidatedFileInput';
+import SoonTag from '../../components/CommonComponents/SoonTag';
+import { FEATURE_FLAGS } from '../../config/featureFlags';
 import { DEFAULT_DOC_RULE } from '../../utils/fileValidation';
 import AiActionButton from '../../components/CommonComponents/AiActionButton';
 
@@ -57,6 +59,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
   const dispatch = useDispatch<AppDispatch>();
   const destinations = useSelector((s:RootState)=> s.planner.destinations);
   const completedCount = React.useMemo(()=> destinations.filter(d=> d.completed).length, [destinations]);
+  const ENABLE_DOC_UPLOAD = FEATURE_FLAGS.docsUpload;
 
   /* ----------------------------- Autocomplete ----------------------------- */
   const [searchValue, setSearchValue] = React.useState('');
@@ -173,7 +176,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
   const deleteProperty = (stayId:string) => { if(!stayFor) return; dispatch(removeStayEntry({ destinationId: stayFor, stayId })); };
   const saveStayNotes = (notes:string) => { if(!stayFor) return; dispatch(setStayNotes({ destinationId: stayFor, notes })); };
   const [docsFor, setDocsFor] = React.useState<string | null>(null);
-  const openDocs = (id:string) => setDocsFor(id);
+  // Docs feature disabled (Coming Soon); openDocs intentionally unused
   const onAcceptDocs = (files: File[]) => { if(!docsFor) return; files.forEach((f,idx)=>{ const id=f.name+'_'+Date.now().toString(36)+'_'+idx; const url=URL.createObjectURL(f); dispatch(addDestinationDoc({ destinationId: docsFor, doc:{ id, originalName:f.name, mimeType:f.type, url } })); }); };
   const removeDoc = (docId:string) => { if(!docsFor) return; dispatch(removeDestinationDoc({ destinationId: docsFor, docId })); };
 
@@ -284,7 +287,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
                   onDuplicate={readOnly? undefined : (id)=> dispatch(duplicateDestination({ id }))}
                   onRemove={readOnly? undefined : (id)=> dispatch(removeDestination(id))}
                   onOpenNotes={readOnly? undefined : ()=> openNotes(d.id)}
-                  onOpenDocs={(!canAccessDocs)? undefined : ()=> openDocs(d.id)}
+                  onOpenDocs={(!canAccessDocs /* docs globally inaccessible */)? undefined : undefined /* disabled docs feature (Coming Soon) */}
                   onOpenStay={readOnly? undefined : ()=> openStay(d.id)}
                   onOpenDiscover={readOnly? undefined : ()=> { setDiscoverFor(d.id); setDiscoverTab('spots'); }}
                   onChangeNights={readOnly? undefined : (id,delta)=> dispatch(updateDestinationNights({ id, delta }))}
@@ -460,7 +463,16 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
         <Dialog open={!!docsFor} onClose={()=> setDocsFor(null)} fullWidth maxWidth='sm'>
           <DialogTitle>Documents</DialogTitle>
           <DialogContent>
-            {canEdit && <ValidatedFileInput buttonLabel='Add Files' startIcon={<UploadFileIcon />} onAccept={onAcceptDocs} rule={DEFAULT_DOC_RULE} multiple />}
+            {canEdit && ENABLE_DOC_UPLOAD && (
+              <ValidatedFileInput
+                buttonLabel='Add Files'
+                startIcon={<UploadFileIcon />}
+                onAccept={onAcceptDocs}
+                rule={DEFAULT_DOC_RULE}
+                multiple
+              />
+            )}
+            {!ENABLE_DOC_UPLOAD && (<SoonTag sx={{ mb:2 }} />)}
             {docsFor && (destinations.find(d=> d.id===docsFor)?.docs?.length ? (
               <Box sx={{ mt:2, display:'flex', flexWrap:'wrap', gap:2 }}>
                 {destinations.find(d=> d.id===docsFor)!.docs!.map(doc => { const isImage=/(png|jpe?g|gif|webp|bmp|svg)$/i.test(doc.originalName); return (
@@ -468,7 +480,15 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
                     <Box onClick={()=> { const a=document.createElement('a'); a.href=doc.url; a.download=doc.originalName; a.target='_blank'; a.rel='noopener'; a.click(); }} sx={{ cursor:'pointer', border:'1px solid', borderColor:'divider', borderRadius:1, overflow:'hidden', p:0.5, display:'flex', flexDirection:'column', alignItems:'center', gap:0.5, position:'relative' }}>
                       {isImage ? <Box component='img' src={doc.url} alt={doc.originalName} sx={{ width:'100%', height:70, objectFit:'cover', borderRadius:0.5 }} /> : <Box sx={{ width:'100%', height:70, display:'flex', alignItems:'center', justifyContent:'center', bgcolor:'action.hover', fontSize:12 }}>{doc.originalName.split('.').pop()?.toUpperCase()}</Box>}
                       <Typography variant='caption' sx={{ textAlign:'center', wordBreak:'break-all' }}>{doc.originalName}</Typography>
-                      {canEdit && <IconButton size='small' sx={{ position:'absolute', top:2, right:2, bgcolor:'background.paper' }} onClick={(e)=> { e.stopPropagation(); removeDoc(doc.id); }}><DeleteOutlineIcon fontSize='inherit' /></IconButton>}
+                      {canEdit && ENABLE_DOC_UPLOAD && (
+                        <IconButton
+                          size='small'
+                          sx={{ position:'absolute', top:2, right:2, bgcolor:'background.paper' }}
+                          onClick={(e)=> { e.stopPropagation(); removeDoc(doc.id); }}
+                        >
+                          <DeleteOutlineIcon fontSize='inherit' />
+                        </IconButton>
+                      )}
                     </Box>
                   </Box>
                 ); })}

@@ -60,19 +60,18 @@ export interface DestinationCardProps {
   onDragEnd?: () => void;
 }
 
-const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled, onRename, onChangeCategory, onToggleComplete, onDuplicate, onRemove, onOpenNotes, onOpenDiscover, onOpenDocs, onOpenStay, onChangeNights }) => {
+const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled, onRename, /* onChangeCategory removed */ onToggleComplete, onDuplicate, onRemove, onOpenNotes, onOpenDiscover, onOpenDocs, onOpenStay, onChangeNights }) => {
   const { id, name, startDate, endDate, nights, category='general', completed, notes, spots, foods, stay, stays, docs, photoUrl } = destination as any;
   const [editing, setEditing] = React.useState(false);
   const [menuAnchor, setMenuAnchor] = React.useState<HTMLElement | null>(null);
-  const [catAnchor, setCatAnchor] = React.useState<HTMLElement | null>(null);
+  // Category selection removed per request; retain background color only.
   const [localName, setLocalName] = React.useState(name);
 
   React.useEffect(()=> setLocalName(name), [name]);
 
   const openMenu = (e: React.MouseEvent<HTMLElement>) => setMenuAnchor(e.currentTarget);
   const closeMenu = () => setMenuAnchor(null);
-  const openCategory = (e: React.MouseEvent<HTMLElement>) => setCatAnchor(e.currentTarget);
-  const closeCategory = () => setCatAnchor(null);
+  // Removed category open/close handlers.
 
   const commitName = () => { if(localName.trim() && localName !== name) onRename?.(id, localName.trim()); setEditing(false); };
   const handleKey: React.KeyboardEventHandler<HTMLInputElement> = (e) => { if(e.key==='Enter') { commitName(); } else if(e.key==='Escape'){ setLocalName(name); setEditing(false);} };
@@ -188,7 +187,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
             )}
           </Box>
           {/* Meta chips */}
-          <Box sx={{ display:'flex', alignItems:'center', gap:0.75, flexWrap:'wrap', flexShrink:1, minWidth:0, maxWidth:'38%' }}>
+          <Box sx={{ display:'flex', alignItems:'center', gap:0.75, flexWrap:'wrap', flexShrink:1, minWidth:0, maxWidth:'38%', ml:1.5 }}>
             <Chip
               size='small'
               onClick={(e)=> { e.stopPropagation(); }}
@@ -202,7 +201,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
               sx={{ fontSize:11, height:22, fontWeight:600 }}
             />
             <Chip size='small' label={`${dateFmt(startDate)} – ${dateFmt(endDate)}`} variant='outlined' sx={{ fontSize:11, height:22, fontWeight:600 }} />
-            <Chip size='small' onClick={openCategory} label={catInfo.label} sx={{ fontSize:11, height:22, bgcolor:catInfo.bg, color:catInfo.fg, '&:hover':{ bgcolor:catInfo.bg } }} icon={<Box component='span' sx={{ display:'flex', alignItems:'center', fontSize:16, color:catInfo.fg }}>{catInfo.icon}</Box>} />
+            {/* Category chip removed */}
             {completed && <Chip size='small' label='Completed' color='success' sx={{ fontSize:11, height:22 }} />}
           </Box>
           {/* Spacer */}
@@ -279,15 +278,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
         <MenuItem onClick={()=> { closeMenu(); onToggleComplete?.(id); }}>{completed? 'Mark Incomplete':'Mark Complete'}</MenuItem>
         <MenuItem onClick={()=> { closeMenu(); onRemove?.(id); }} sx={{ color:'error.main' }}>Delete</MenuItem>
       </Menu>
-      {/* Category Menu */}
-      <Menu anchorEl={catAnchor} open={Boolean(catAnchor)} onClose={closeCategory} elevation={3}>
-        {(Object.keys(CATEGORY_COLORS) as Array<keyof typeof CATEGORY_COLORS>).map(key => (
-          <MenuItem key={key} selected={category===key} onClick={()=> { closeCategory(); onChangeCategory?.(id, key); }}>
-            <Box sx={{ width:14, height:14, borderRadius:.5, bgcolor:CATEGORY_COLORS[key].bg, mr:1 }} />
-            <Typography variant='body2'>{CATEGORY_COLORS[key].label}</Typography>
-          </MenuItem>
-        ))}
-      </Menu>
+      {/* Category menu removed */}
     </Card>
   );
 };

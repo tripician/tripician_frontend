@@ -1,4 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+// Removed differenceInDays dependency after simplifying chain recalculation (nights no longer auto-stretched)
 
 
 export interface PlannerDestination {
@@ -83,9 +84,15 @@ export interface PlannerState {
   destinations: PlannerDestination[];
   currency: 'EUR' | 'USD' | 'GBP';
   targetNights: number;
+  /** When true, targetNights was explicitly provided (backend or user) and should not auto-resync to sum of destination nights */
+  targetLocked?: boolean;
   lastSaved?: string;
   /** Currently hydrated trip id (used to detect cross-trip state reuse) */
   tripId?: string;
+  /** Trip-level start date (chain anchor) */
+  tripStartDate?: string;
+  /** Trip-level end date (chain terminus) */
+  tripEndDate?: string;
   /** Trip-level supporting documents (not tied to a destination) */
   globalDocs?: PlannerDoc[];
   /** Visa specific documents (scans, letters, confirmations) */
@@ -122,6 +129,7 @@ const initialState: PlannerState = {
   destinations: [],
   currency: 'EUR',
   targetNights: 8,
+  targetLocked: false,
   globalDocs: [],
   visaDocs: [],
   pinnedDocIds: [],
@@ -130,7 +138,9 @@ const initialState: PlannerState = {
   simplifyGroupExpenses: false,
   expenseVisibilityEmails: [],
   comments: [],
-  tripId: undefined
+  tripId: undefined,
+  tripStartDate: undefined,
+  tripEndDate: undefined
 };
 
 // Utility to recompute nights based on start/end date (exclusive of end)
@@ -150,27 +160,61 @@ const plannerSlice = createSlice({
   name: 'planner',
   initialState,
   reducers: {
+    /** Recalculate contiguous chain dates based on tripStartDate + each destination's own nights.
+     *  Rules:
+     *   - First destination start forced to tripStartDate (if provided) else keep existing.
+     *   - Subsequent destinations start at previous end.
+     *   - No automatic expansion/clamping of nights to fill overall span.
+     *   - tripEndDate becomes the last destination's end (max itinerary end); never forces night changes.
+     */
+    _recalcChain(state) {
+      if(!state.destinations.length) return;
+      const anchorStart = state.tripStartDate || state.destinations[0].startDate || new Date().toISOString().slice(0,10);
+      state.destinations[0].startDate = anchorStart;
+      state.destinations[0].endDate = new Date(new Date(anchorStart).getTime() + state.destinations[0].nights*24*60*60*1000).toISOString().slice(0,10);
+      for(let i=1;i<state.destinations.length;i++) {
+        const prev = state.destinations[i-1];
+        const cur = state.destinations[i];
+        cur.startDate = prev.endDate;
+        cur.endDate = new Date(new Date(cur.startDate).getTime() + cur.nights*24*60*60*1000).toISOString().slice(0,10);
+      }
+      // Derive tripEndDate from last destination end (max itinerary date)
+      const lastEnd = state.destinations[state.destinations.length-1].endDate;
+      if(lastEnd) state.tripEndDate = lastEnd;
+      // If target not locked, sync target to total nights
+      if(!state.targetLocked) {
+        const total = state.destinations.reduce((a,c)=> a + c.nights, 0);
+        state.targetNights = total || state.targetNights;
+      }
+    },
     setCurrency(state, action: PayloadAction<'EUR' | 'USD' | 'GBP'>) {
       state.currency = action.payload;
     },
     setTargetNights(state, action: PayloadAction<number>) {
       state.targetNights = action.payload;
+      state.targetLocked = true; // manual override locks target
     },
-    addDestination(state, action: PayloadAction<{ name: string; lat?: number; lng?: number; placeId?: string; photoUrl?: string }>) {
-      // Prevent adding if total nights already meets or exceeds target
+    setTripDates(state, action: PayloadAction<{ startDate?: string; endDate?: string }>) {
+      if(action.payload.startDate) state.tripStartDate = action.payload.startDate;
+      if(action.payload.endDate) state.tripEndDate = action.payload.endDate;
+      plannerSlice.caseReducers._recalcChain(state);
+    },
+    addDestination(state, action: PayloadAction<{ name: string; nights?: number; lat?: number; lng?: number; placeId?: string; photoUrl?: string }>) {
+      // Multi-day creation support: allow specifying nights upfront (default 1). Clamp to remaining nights.
+      const requested = Math.max(1, Math.round(action.payload.nights || 1));
       const totalNights = state.destinations.reduce((a,c)=> a + c.nights, 0);
-      if (totalNights >= state.targetNights) return;
+      const remaining = state.targetNights - totalNights;
+      if (remaining <= 0) return;
+      const useNights = Math.min(requested, remaining);
       const last = state.destinations[state.destinations.length - 1];
-      const startDate = last ? last.endDate : new Date().toISOString().slice(0,10);
-      const endDate = new Date(new Date(startDate).getTime() + 24*60*60*1000).toISOString().slice(0,10);
-      // If adding 1 night would exceed target, abort
-      if (totalNights + 1 > state.targetNights) return;
+      const startDate = last ? last.endDate : (state.tripStartDate || new Date().toISOString().slice(0,10));
+      const endDate = new Date(new Date(startDate).getTime() + useNights * 24*60*60*1000).toISOString().slice(0,10);
       state.destinations.push({
         id: Date.now().toString(),
         name: action.payload.name,
         startDate,
         endDate,
-        nights: 1,
+        nights: useNights,
         transport: '',
         budget: 0,
         lat: action.payload.lat,
@@ -180,6 +224,11 @@ const plannerSlice = createSlice({
         category: 'general',
         completed: false
       });
+      // If target not locked, resync target to new total so progress ring denominator stays meaningful
+      if(!state.targetLocked) {
+        const newTotal = state.destinations.reduce((a,c)=> a + c.nights, 0);
+        state.targetNights = newTotal;
+      }
     },
     removeDestination(state, action: PayloadAction<string>) {
       state.destinations = state.destinations.filter(d => d.id !== action.payload);
@@ -218,6 +267,8 @@ const plannerSlice = createSlice({
           const startMs = new Date(cur.startDate).getTime();
           cur.endDate = new Date(startMs + cur.nights * 24*60*60*1000).toISOString().slice(0,10);
         }
+        // Recompute contiguous chain + derived tripEndDate (no auto night expansion)
+        plannerSlice.caseReducers._recalcChain(state);
       }
     },
     setTransport(state, action: PayloadAction<{ id: string; transport: string }>) {
@@ -530,6 +581,7 @@ const plannerSlice = createSlice({
         cur.endDate = end;
       }
       state.destinations = newOrder;
+      plannerSlice.caseReducers._recalcChain(state);
     },
     // Exact reorder (allow first to move). Dates recomputed starting from original first startDate.
     reorderChainExact(state, action: PayloadAction<{ ids: string[] }>) {
@@ -548,9 +600,10 @@ const plannerSlice = createSlice({
         cursorStart = end; // next start
       }
       state.destinations = newOrder;
+      plannerSlice.caseReducers._recalcChain(state);
     },
     loadState(_state, action: PayloadAction<PlannerState>) {
-      return { ...action.payload };
+      return { ...action.payload, targetLocked: action.payload.targetLocked };
     },
     resetPlanner(state, action: PayloadAction<{ tripId?: string }>) {
       // Preserve currency preference; reset rest.

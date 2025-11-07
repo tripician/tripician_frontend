@@ -51,6 +51,7 @@ const MapPanel: React.FC<MapPanelProps> = ({ widthFraction = 0.40 }) => {
   const directionsCacheRef = useRef<Record<string, any>>({});
   const pendingLegsRef = useRef<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [mapReady, setMapReady] = useState(false); // becomes true once mapInstance created
   const [adding, setAdding] = useState(false);
   const [newName, setNewName] = useState('');
   const [tempPos, setTempPos] = useState<any | null>(null);
@@ -111,6 +112,7 @@ const MapPanel: React.FC<MapPanelProps> = ({ widthFraction = 0.40 }) => {
           styles: theme.palette.mode === 'dark' ? darkStyle : lightStyle,
           gestureHandling: 'greedy'
         });
+        setMapReady(true);
       }
       setLoading(false);
     }).catch((e) => {
@@ -178,7 +180,7 @@ const MapPanel: React.FC<MapPanelProps> = ({ widthFraction = 0.40 }) => {
   // Sync markers with numbering (independent of theme except for icon function)
   useEffect(() => {
     const g = (window as any).google as any | undefined;
-    if (!g || !mapInstance.current) return;
+    if (!g || !mapInstance.current || !mapReady) return;
 
     // Remove markers no longer present
     Object.keys(markersRef.current).forEach(id => {
@@ -214,11 +216,40 @@ const MapPanel: React.FC<MapPanelProps> = ({ widthFraction = 0.40 }) => {
       withCoords.forEach(d => bounds.extend({ lat: d.lat!, lng: d.lng! }));
       mapInstance.current.fitBounds(bounds);
     }
-  }, [destinations, makeMarkerSvg, theme]);
+  }, [destinations, makeMarkerSvg, theme, mapReady]);
+
+  // Geocode fallback: if a destination has a Google placeId but missing lat/lng, resolve via PlacesService
+  useEffect(() => {
+    const g = (window as any).google as any | undefined;
+    if (!g || !mapInstance.current || !mapReady) return;
+    const unresolved = destinations.filter(d => !!d.placeId && (d.lat == null || d.lng == null));
+    if (!unresolved.length) return;
+    const svc = new g.maps.places.PlacesService(mapInstance.current.getDiv());
+    unresolved.forEach(d => {
+      try {
+        svc.getDetails({ placeId: d.placeId, fields: ['geometry', 'name'] }, (res:any, status:string) => {
+          if (status === 'OK' && res?.geometry?.location) {
+            const lat = res.geometry.location.lat();
+            const lng = res.geometry.location.lng();
+            dispatch(setDestinationCoords({ id: d.id, lat, lng }));
+            if(import.meta.env.DEV){
+              console.log('[MapPanel] Geocoded via placeId', { id: d.id, name: d.name, placeId: d.placeId, lat, lng });
+            }
+          } else {
+            if(import.meta.env.DEV){
+              console.warn('[MapPanel] Failed to geocode placeId', d.placeId, status);
+            }
+          }
+        });
+      } catch(err){
+        console.error('[MapPanel] PlacesService getDetails error', err);
+      }
+    });
+  }, [destinations, dispatch, mapReady]);
   // Build transport-based leg routes using Directions API with caching & fallback.
   useEffect(() => {
     const g = (window as any).google;
-    if (!g || !mapInstance.current) return;
+    if (!g || !mapInstance.current || !mapReady) return;
     const svc = new g.maps.DirectionsService();
     const map = mapInstance.current;
     // Remove obsolete polylines (sequence change)
@@ -306,7 +337,13 @@ const MapPanel: React.FC<MapPanelProps> = ({ widthFraction = 0.40 }) => {
       });
     };
     (async () => { for(const leg of legs) await fetchLeg(leg); if(anyPath) map.fitBounds(bounds); })();
-  }, [destinations, theme.palette.primary.main]);
+  }, [destinations, theme.palette.primary.main, mapReady]);
+
+  // Safety: when map becomes ready after destinations already loaded, trigger one explicit marker sync by toggling a no-op state
+  useEffect(() => {
+    if (!mapReady) return;
+    // Re-run marker effect implicitly because mapReady is in deps; nothing else needed.
+  }, [mapReady]);
 
   // Clear polylines when route ordering explicitly optimized; they will regenerate next effect.
   useEffect(() => {

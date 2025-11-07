@@ -4,6 +4,8 @@ import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ImportExportIcon from '@mui/icons-material/ImportExport';
+import SoonTag from '../../components/CommonComponents/SoonTag';
+import { FEATURE_FLAGS } from '../../config/featureFlags';
 import NewspaperIcon from '@mui/icons-material/Newspaper';
 
 // Custom lightweight T-shirt icon (since Material baseline set lacks a direct Tshirt glyph)
@@ -35,9 +37,10 @@ const navItems: NavItem[] = [
   { id: 'docs', label: 'Docs', icon: <InsertDriveFileIcon fontSize='small' /> }
 ];
 
-interface TripPlannerNavProps { active?: string; onChange?: (id: string) => void; onSettingsClick?:()=>void; hideSections?: string[]; canAccessDocs?: boolean }
+interface TripPlannerNavProps { active?: string; onChange?: (id: string) => void; onSettingsClick?:()=>void; hideSections?: string[]; canAccessDocs?: boolean; docsEnabled?: boolean }
 
-const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChange, onSettingsClick, hideSections=[], canAccessDocs=true }) => {
+const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChange, onSettingsClick, hideSections=[], canAccessDocs=true, docsEnabled=true }) => {
+  const { importExport, docsSection } = FEATURE_FLAGS;
   return (
     <Box
       sx={(theme) => ({
@@ -65,19 +68,21 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
           style={{ height: 38, width: 38, borderRadius: 12, objectFit: 'contain', filter: 'brightness(1.05)' }}
         />
       </Box>
-  {navItems.filter(i=> !hideSections.includes(i.id) && (i.id!=='docs' || canAccessDocs)).map(item => {
+  {navItems.filter(i=> !hideSections.includes(i.id) && (i.id!=='docs' || (canAccessDocs && docsSection))).map(item => {
         const selected = item.id === active;
+        const isDocs = item.id==='docs';
+  const disabledDocs = isDocs && !docsEnabled;
         return (
-          <Tooltip key={item.id} title={item.label} placement='right' arrow>
+          <Tooltip key={item.id} title={disabledDocs? 'Docs (Coming Soon)': item.label} placement='right' arrow>
             <Box
               role='button'
               tabIndex={0}
               aria-pressed={selected}
               data-nav-id={item.id}
-              onClick={() => onChange?.(item.id)}
-              onKeyDown={(e)=> { if(e.key==='Enter' || e.key===' ') { e.preventDefault(); onChange?.(item.id); } }}
+              onClick={() => { if(disabledDocs) return; onChange?.(item.id); }}
+              onKeyDown={(e)=> { if(disabledDocs) return; if(e.key==='Enter' || e.key===' ') { e.preventDefault(); onChange?.(item.id); } }}
               sx={{
-                cursor: 'pointer',
+                cursor: disabledDocs? 'not-allowed':'pointer',
                 width: 48,
                 mx: 0,
                 display: 'flex',
@@ -85,18 +90,23 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
                 justifyContent: 'center',
                 height: 48,
                 borderRadius: 2,
-                background: selected ? 'rgba(255,255,255,0.22)' : 'transparent',
-                border: selected ? '1px solid rgba(255,255,255,0.40)' : 'none',
+                background: selected
+                  ? 'rgba(255,255,255,0.22)'
+                  : (disabledDocs ? 'rgba(255,255,255,0.05)' : 'transparent'),
+                border: selected
+                  ? '1px solid rgba(255,255,255,0.40)'
+                  : (disabledDocs ? '1px solid rgba(255,255,255,0.15)' : 'none'),
+                opacity: disabledDocs ? 0.6 : 1,
                 color: '#fff',
-                transition: 'all .25s ease',
+                transition: 'background .25s ease, transform .25s ease',
                 userSelect: 'none',
                 outline: 'none',
                 '&:focus-visible': {
                   boxShadow: '0 0 0 2px rgba(255,255,255,0.9)'
                 },
-                '&:hover': {
+                '&:hover': disabledDocs? { background:'rgba(255,255,255,0.05)' } : {
                   transform: 'translateY(-2px)',
-                  filter: 'brightness(1.05)'
+                  background: 'rgba(255,255,255,0.12)'
                 },
                 position: 'relative'
               }}
@@ -107,18 +117,20 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
               {selected && (
                 <Box sx={{ position: 'absolute', left: -2, top: '50%', transform: 'translateY(-50%)', width: 4, height: '55%', bgcolor: 'rgba(255,255,255,0.85)', borderRadius: '0 2px 2px 0' }} />
               )}
+              {disabledDocs && (<SoonTag sx={{ position:'absolute', bottom:6, right:6 }} />)}
             </Box>
           </Tooltip>
         );
       })}
       <Box sx={{ flexGrow: 1 }} />
       {/* Import/Export and Settings at bottom */}
-      <Tooltip title='Import / Export (Coming Soon)' placement='right' arrow>
+      <Tooltip title={importExport? 'Import / Export':'Import / Export (Coming Soon)'} placement='right' arrow>
         <Box
-          aria-disabled
+          aria-disabled={!importExport}
+          onClick={()=> { if(!importExport) return; /* future: open import/export */ }}
           sx={{
             position: 'relative',
-            cursor: 'not-allowed',
+            cursor: importExport? 'pointer':'not-allowed',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -126,14 +138,14 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
             height: 48,
             borderRadius: 2,
             mb: 1,
-            border: '1px solid rgba(255,255,255,0.10)',
-            background: 'rgba(255,255,255,0.05)',
-            opacity: .55,
+            border: '1px solid rgba(255,255,255,0.15)',
+            background: importExport? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.05)',
+            opacity: importExport? 1:.6,
             userSelect: 'none'
           }}
         >
           <ImportExportIcon fontSize='small' />
-          <Box sx={{ position: 'absolute', bottom: 4, right: 4, bgcolor: 'rgba(255,255,255,0.85)', color:'#0b2942', fontSize:8, fontWeight:700, px:.5, py:.15, borderRadius:.5, letterSpacing:.5 }}>Soon</Box>
+          {!importExport && <SoonTag sx={{ position:'absolute', bottom:6, right:6 }} />}
         </Box>
       </Tooltip>
       <Tooltip title='Settings' placement='right' arrow>

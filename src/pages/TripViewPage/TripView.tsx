@@ -54,12 +54,10 @@ const TripView: React.FC = () => {
       rawLocalStorageToken,
       effectiveToken,
     });
-    console.log('[TripView] Stage 2');
-    console.log(tripId);
-    if(!tripId) { console.log('[TripView] Skip fetch: missing tripId'); setLoading(false); return; }
-    if(trip && hasFetched) { console.log('[TripView] Skip fetch: already loaded'); setLoading(false); return; }
-    console.log('[TripView] Stage 3');
-    if(!effectiveToken) { console.log('[TripView] Skip fetch: effectiveToken null after auth resolved'); setLoading(false); return; }
+
+    if(!tripId) { setLoading(false); return; }
+    if(trip && hasFetched) { setLoading(false); return; }
+    if(!effectiveToken) { setLoading(false); return; }
     (async()=> {
       setLoading(true);
       try {
