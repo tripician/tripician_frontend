@@ -138,8 +138,8 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
   <CardContent sx={{ pl:2, pr:1.5, py:1.5, flex:1, display:'flex', flexDirection:'column', gap:1.5, minHeight:120, pb:6 }}> {/* increased minHeight & extra bottom padding */}
         {/* Top row: Destination name (left) then meta chips then actions (right) */}
         <Box sx={{ display:'flex', alignItems:'center', width:'100%' }}>
-          {/* Name (constrained to max 35% width) */}
-          <Box sx={{ pr:2, display:'flex', alignItems:'center', flex:'0 0 35%', maxWidth:'35%', minWidth:0, overflow:'hidden' }}>
+          {/* Name column: allow responsive growth/shrink instead of rigid 35% so unused space can be reallocated */}
+          <Box sx={{ pr:2, display:'flex', alignItems:'center', flex:'1 1 280px', minWidth:180, maxWidth:'42%', overflow:'hidden' }}>
             {editing ? (
               <InputBase
                 value={localName}
@@ -186,8 +186,9 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
               </Typography>
             )}
           </Box>
-          {/* Meta chips */}
-          <Box sx={{ display:'flex', alignItems:'center', gap:0.75, flexWrap:'wrap', flexShrink:1, minWidth:0, maxWidth:'38%', ml:1.5 }}>
+          {/* Meta chips: no premature wrap; can use leftover width. Wrap only on narrower screens. */}
+          <Box sx={(t)=>({ display:'flex', alignItems:'center', gap:0.75, flexWrap:'nowrap', flex:'0 1 auto', minWidth:0, ml:2, overflow:'hidden', maxWidth:'50%',
+            [t.breakpoints.down('md')]: { flexWrap:'wrap', rowGap:0.5 } })}>
             <Chip
               size='small'
               onClick={(e)=> { e.stopPropagation(); }}
