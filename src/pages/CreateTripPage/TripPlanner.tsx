@@ -1,6 +1,6 @@
 // TripPlanner main page component (formerly CreateTrip)
 import React from 'react';
-import { Box, Tabs, Tab, Typography, Divider, Button, Chip, Menu, MenuItem, Avatar, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Snackbar, Alert } from '@mui/material';
+import { Box, Tabs, Tab, Typography, Divider, Button, Chip, Menu, MenuItem, Avatar, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Snackbar, Alert, TextareaAutosize } from '@mui/material';
 // Props-based TripPlanner; tripId + optional initialTrip provided by route wrapper
 import DownloadIcon from '@mui/icons-material/Download';
 import PushPinIcon from '@mui/icons-material/PushPin';
@@ -19,7 +19,7 @@ import TripSettingsDialog from './TripSettingsDialog';
 import DestinationsPanel, { type DestinationRow } from './DestinationsPanel';
 import DestinationCardsPanel from './DestinationCardsPanel';
 import ExpensesPanel from './ExpensesPanel';
-import ImportantNotesEditor from './ImportantNotesEditor';
+import ImportantNotesEditor from './ImportantNotesEditor'; // legacy rich editor (temporarily disabled)
 import TripComments from './TripComments';
 import PackingPanel from './PackingPanel';
 import ChatAssistant from '../../components/CommonComponents/ChatAssistant';
@@ -127,6 +127,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	// Core meta state
 	const [title, setTitle] = React.useState<string>(normalizedInitial?.meta.name || 'Untitled Trip');
 	const [editingTitle, setEditingTitle] = React.useState(false);
+	// Notes field (plain text, auto-grow)
+	const [importantNotes, setImportantNotes] = React.useState<string>('');
+	const notesRef = React.useRef<HTMLTextAreaElement | null>(null);
 	const [privacy, setPrivacy] = React.useState<'Private'|'Trip Members'|'My Followers'|'Everyone'>('Private');
 	const [tripStartDate, setTripStartDate] = React.useState<string|null>(normalizedInitial?.meta.startDate ? sanitizeDateString(normalizedInitial.meta.startDate) : null);
 	const [tripEndDate, setTripEndDate] = React.useState<string|null>(normalizedInitial?.meta.endDate ? sanitizeDateString(normalizedInitial.meta.endDate) : null);
@@ -155,9 +158,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			e:tripEndDate,
 			d:planner.destinations.map(d=> ({ id:d.id, n:d.name, sd:d.startDate, ed:d.endDate, nts:d.nights, lat:d.lat, lng:d.lng, tr:d.transport })),
 			c:currency,
-			dr:isDraft
+			dr:isDraft,
+			in:importantNotes.trim()
 		});
-	}, [title, privacy, tripStartDate, tripEndDate, planner.destinations, currency, isDraft]);
+	}, [title, privacy, tripStartDate, tripEndDate, planner.destinations, currency, isDraft, importantNotes]);
 	const commitSnapshot = React.useCallback((draft:boolean)=> { setIsDraft(draft); lastCommittedRef.current = computeSignature(); }, [computeSignature]);
 	React.useEffect(()=> { if(!lastCommittedRef.current) lastCommittedRef.current = computeSignature(); }, [computeSignature]);
 	const isDirty = computeSignature() !== lastCommittedRef.current;
@@ -188,6 +192,11 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		const { meta, itinerary } = unifiedTrip;
 		if (hydratedRef.current === meta.id) return;
 		if (title === 'Untitled Trip' && !editingTitle) setTitle(meta.name);
+		// hydrate notes (fallback to meta.importantNotes or meta.notes if present)
+		try {
+			const candidate = (meta as any).importantNotes || (meta as any).notes;
+			if (typeof candidate === 'string' && candidate.trim().length) setImportantNotes(candidate);
+		} catch {}
 		setPrivacy((() => {
 			const v = (meta.visibility||'').toLowerCase();
 			if (v.startsWith('every')) return 'Everyone';
@@ -584,7 +593,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				totalNights,
 				geocodedDestinations: geocodedCount,
 				legCount: legs.length,
-				routeDistanceKm: Number(routeDistanceKm.toFixed(2))
+				routeDistanceKm: Number(routeDistanceKm.toFixed(2)),
+				importantNotes: importantNotes.trim() || undefined
 			},
 			itinerary,
 			legs,
@@ -593,7 +603,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			comments: [],
 			version: 1
 		};
-	}, [planner.destinations, tripId, title, privacy, currency, tripStartDate, tripEndDate, targetNights, totalNights, geocodedCount]);
+	}, [planner.destinations, tripId, title, privacy, currency, tripStartDate, tripEndDate, targetNights, totalNights, geocodedCount, importantNotes]);
 
 	// Persist helper (debounced save)
 	const persistToBackend = React.useCallback(async (payload:any) => {
@@ -668,7 +678,31 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					<Box sx={(theme)=>({ flexBasis: mapCollapsed?'100%':`calc(${(1-mapWidth)*100}% - 2px)`, maxWidth: mapCollapsed?'100%':`calc(${(1-mapWidth)*100}% - 2px)`, minWidth:0, flexShrink:0, display:'flex', flexDirection:'column', backgroundColor: theme.palette.background.paper, borderRight: mapCollapsed? 'none': { lg:`1px solid ${theme.palette.divider}`}, transition: resizingRef.current?'none':'flex-basis .18s ease' })}>
 						<Box sx={{ px:2, py:1.25, display:'flex', alignItems:'stretch', gap:2, borderBottom:(t)=>`1px solid ${t.palette.divider}` }}>
 							<Box sx={{ flex:1.4, minWidth:360, display:'flex', alignItems:'stretch' }}>
-								<ImportantNotesEditor compact readOnly={isExternalNonOwner} />
+								{/* Legacy rich editor commented out */}
+								<Box sx={{ width:'100%', display:'flex', flexDirection:'column', gap:.75 }}>
+									<Paper elevation={0} sx={(t)=>({ p:.75, border:`1px solid ${t.palette.divider}`, borderRadius:1.25, background:t.palette.mode==='dark'? '#1e2933':'#f8fafc' })}>
+										<TextareaAutosize
+											ref={notesRef}
+											value={importantNotes}
+											onChange={(e)=> setImportantNotes(e.target.value)}
+											minRows={4}
+											placeholder={isExternalNonOwner? 'Notes (read only)':'Add trip notes...'}
+											readOnly={isExternalNonOwner}
+											style={{
+												width:'100%',
+												fontSize:'13px',
+												lineHeight:'1.4',
+												padding:'0.6rem 0.7rem',
+												borderRadius:6,
+												border:'1px solid var(--mui-palette-divider, #ccc)',
+												background:'inherit',
+												resize:'vertical',
+												outline:'none'
+											}}
+										/>
+										<Typography variant='caption' sx={{ opacity:.55, mt:.25 }}>Saved with draft/update.</Typography>
+									</Paper>
+								</Box>
 							</Box>
 							<Box sx={{ ml:'auto', display:'flex', alignItems:'flex-start', gap:3, minWidth:300 }}>
 								<Box sx={{ display:'flex', flexDirection:'column', maxWidth:140 }}>
