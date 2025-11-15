@@ -346,6 +346,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const [pinnedOpen, setPinnedOpen] = React.useState(false);
 	const [exitConfirmOpen, setExitConfirmOpen] = React.useState(false);
 	const [exiting, setExiting] = React.useState(false);
+	const [deletingTrip, setDeletingTrip] = React.useState(false);
+	const [confirmDeleteOpen, setConfirmDeleteOpen] = React.useState(false);
 
 	// Auto-close doc-related dialogs when feature disabled to prevent stray popups
 	React.useEffect(()=> {
@@ -676,6 +678,39 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	};
 
 	const hideSectionsArr: string[] = Array.isArray(hideSections) ? hideSections : [];
+
+	// Build dynamic trip members list (owner + any backend-provided members if structure exists)
+	const userProfile = useSelector((s:RootState)=> s.user.profile);
+	const tripMembers = React.useMemo(()=> {
+		const list: { id:string; name:string; handle:string; avatar?:string; role:'Owner'|'Editor'|'Viewer' }[] = [];
+		// Backend may include members in initialTrip.trip.members or initialTrip.members
+		const rawMembers: any[] = Array.isArray((initialTrip?.trip as any)?.members) ? (initialTrip!.trip as any).members
+			: Array.isArray((initialTrip as any)?.members) ? (initialTrip as any).members : [];
+		for(const m of rawMembers){
+			try {
+				const id = String(m.id || m.userId || Math.random().toString(36).slice(2));
+				const nameParts = [m.name, m.fullName, m.fname, m.lname].filter(v=> typeof v==='string' && v.trim());
+				let name = nameParts.join(' ').trim();
+				if(!name) name = (typeof m.username==='string' && m.username) || 'Member';
+				const handle = typeof m.username==='string' && m.username ? '@'+m.username : (typeof m.handle==='string' ? m.handle : '@member');
+				const avatar = (m.avatar || m.profilepicture || m.photoUrl) as string | undefined;
+				// Role heuristic: if object marks owner/self, else Editor if canEdit flag, else Viewer
+				let role: 'Owner'|'Editor'|'Viewer' = 'Viewer';
+				if(m.role==='Owner' || m.isOwner) role='Owner'; else if(m.role==='Editor' || m.canEdit) role='Editor';
+				list.push({ id, name, handle, avatar, role });
+			} catch {}
+		}
+		// Always include current user as Owner (or Viewer if external non-owner) at top if not already present
+		if(userProfile){
+			const currentId = String(userProfile.id || 'me');
+			if(!list.some(m=> m.id===currentId)){
+				const name = [userProfile.fname, userProfile.lname].filter(Boolean).join(' ') || userProfile.email || 'You';
+				const handle = userProfile.email ? '' : '';
+				list.unshift({ id: currentId, name, handle, avatar: userProfile.profilepicture, role: isOwnerExternal? 'Owner':'Viewer' });
+			}
+		}
+		return list;
+	}, [initialTrip, userProfile, isOwnerExternal]);
 	return (
 		<React.Fragment>
 		<Box sx={{ display:'flex', flexDirection:'row', height:'100vh', overflow:'hidden' }}>
@@ -1147,12 +1182,12 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				startDate={tripStartDate || planner.destinations[0]?.startDate || new Date().toISOString().slice(0,10)}
 				endDate={tripEndDate || planner.destinations[planner.destinations.length-1]?.endDate || tripStartDate || new Date().toISOString().slice(0,10)}
 				privacy={privacy}
-				members={[{ id:'me', name: "Rover's Compass", handle:'@username', avatar: undefined, role:'Owner' }]}
+				members={tripMembers}
 				onChangeTitle={(t)=> setTitle(t)}
-	onChangeStartDate={()=> {/* future: update chain */}}
-	onChangeEndDate={()=> {/* future: update chain */}}
+		onChangeStartDate={()=> {/* future: update chain */}}
+		onChangeEndDate={()=> {/* future: update chain */}}
 				onChangePrivacy={(p)=> setPrivacy(p as any)}
-				onDeleteTrip={()=> { setSettingsOpen(false); }}
+				onDeleteTrip={()=> { setConfirmDeleteOpen(true); }}
 					onInviteEmail={async(_)=> { /* invite email placeholder */ }}
 			/>
 			<Dialog open={exitConfirmOpen} onClose={()=> setExitConfirmOpen(false)} maxWidth='xs' fullWidth>
@@ -1166,6 +1201,37 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						<Button variant='outlined' onClick={()=> { setExitConfirmOpen(false); performSaveDraftAndExit(); }} disabled={exiting}>{exiting? 'Saving...' : 'Save Draft & Exit'}</Button>
 						<Button variant='contained' color='error' onClick={()=> { setExitConfirmOpen(false); redirectHome(); }} disabled={exiting}>Discard & Exit</Button>
 					</Box>
+				</DialogActions>
+			</Dialog>
+			{/* Confirm delete trip dialog */}
+			<Dialog open={confirmDeleteOpen} onClose={()=> !deletingTrip && setConfirmDeleteOpen(false)} maxWidth='xs' fullWidth>
+				<DialogTitle>Delete Trip Plan?</DialogTitle>
+				<DialogContent dividers>
+					<Typography variant='body2'>Are you sure you want to permanently delete this entire trip plan? This action cannot be undone.</Typography>
+				</DialogContent>
+				<DialogActions sx={{ justifyContent:'space-between' }}>
+					<Button onClick={()=> setConfirmDeleteOpen(false)} disabled={deletingTrip}>Cancel</Button>
+					<Button
+						variant='contained'
+						color='error'
+						disabled={deletingTrip}
+						onClick={async()=> {
+							if(!authToken){ openToast('error','Not signed in'); return; }
+							if(deletingTrip) return;
+							setDeletingTrip(true);
+							try {
+								await apiServices.deleteTrip(authToken, tripId);
+								openToast('success','Trip deleted');
+								setConfirmDeleteOpen(false);
+								setSettingsOpen(false);
+								setTimeout(()=> { try { window.location.href = '/'; } catch {} }, 300);
+							} catch(err){
+								openToast('error','Delete failed');
+							} finally { setDeletingTrip(false); }
+						}}
+					>
+						{deletingTrip ? 'Deleting...' : 'Delete Trip'}
+					</Button>
 				</DialogActions>
 			</Dialog>
 		</Box>

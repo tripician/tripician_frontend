@@ -157,4 +157,9 @@ export const apiServices = {
     apiClient.patch(`/trips/${tripId}/visibility`, data, {
       headers: { Authorization: `Bearer ${token}` }
     }),
+
+  // DELETE /trips/{tripId}
+  deleteTrip: (token: string, tripId: string) => apiClient.delete(`/trips/${tripId}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  }),
 };
