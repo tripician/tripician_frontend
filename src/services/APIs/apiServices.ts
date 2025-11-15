@@ -124,6 +124,7 @@ export const apiServices = {
       geocodedDestinations: number;
       legCount: number;
       routeDistanceKm: number;
+      importantNotes?: string;
     };
     itinerary: Array<{
       id: string;

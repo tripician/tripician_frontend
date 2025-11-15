@@ -127,15 +127,20 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	// Core meta state
 	const [title, setTitle] = React.useState<string>(normalizedInitial?.meta.name || 'Untitled Trip');
 	const [editingTitle, setEditingTitle] = React.useState(false);
-	// Notes field (plain text, auto-grow)
-	const [importantNotes, setImportantNotes] = React.useState<string>('');
+	// Notes field (plain text, auto-grow) seeded from normalized initial trip meta if present
+	const [importantNotes, setImportantNotes] = React.useState<string>(
+		(normalizedInitial?.meta.importantNotes && typeof normalizedInitial.meta.importantNotes === 'string')
+			? normalizedInitial.meta.importantNotes
+			: ''
+	);
+	
 	const notesRef = React.useRef<HTMLTextAreaElement | null>(null);
 	const [privacy, setPrivacy] = React.useState<'Private'|'Trip Members'|'My Followers'|'Everyone'>('Private');
 	const [tripStartDate, setTripStartDate] = React.useState<string|null>(normalizedInitial?.meta.startDate ? sanitizeDateString(normalizedInitial.meta.startDate) : null);
 	const [tripEndDate, setTripEndDate] = React.useState<string|null>(normalizedInitial?.meta.endDate ? sanitizeDateString(normalizedInitial.meta.endDate) : null);
-		// Draft flag: derive from raw initialTrip.trip.status if provided; fallback to true
-		const initialStatus = (initialTrip && initialTrip.trip && typeof initialTrip.trip.status === 'string') ? String(initialTrip.trip.status).toUpperCase() : undefined;
-		const [isDraft, setIsDraft] = React.useState<boolean>(initialStatus ? initialStatus !== 'PUBLISHED' : true);
+	// Draft flag: derive from raw initialTrip.trip.status if provided; fallback to true
+	const initialStatus = (initialTrip && initialTrip.trip && typeof initialTrip.trip.status === 'string') ? String(initialTrip.trip.status).toUpperCase() : undefined;
+	const [isDraft, setIsDraft] = React.useState<boolean>(initialStatus ? initialStatus !== 'PUBLISHED' : true);
 
 	// Section + tab UI state
 	const [section, setSection] = React.useState<'plan'|'news'|'docs'|'packing'>('plan');
@@ -172,13 +177,15 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	// Fallback remote fetch when initialTrip absent (direct reload of planner route)
 	React.useEffect(()=> {
 		if(initialTrip || remoteTrip || !tripId) return;
-		if(!authToken) return; // wait for token
+		if(!authToken) return; // wait for token before network fetch
 		let active = true;
 		(async()=> {
 			try {
 				const resp = await apiServices.getTripById(authToken, tripId);
 				if(!active) return;
-				if(resp?.data) setRemoteTrip(resp.data);
+				if(resp?.data){
+					setRemoteTrip(resp.data);
+				}
 			} catch(err) {
 				// silent fail; user can retry later
 			}
@@ -579,6 +586,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				console.info('[TripPersist] End date differs from original. original=', originalEnd, 'persisting=', finalEnd);
 			}
 		}
+		const notesClean = importantNotes.trim();
 		return {
 			trip: {
 				id: tripId,
@@ -594,7 +602,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				geocodedDestinations: geocodedCount,
 				legCount: legs.length,
 				routeDistanceKm: Number(routeDistanceKm.toFixed(2)),
-				importantNotes: importantNotes.trim() || undefined
+				importantNotes: notesClean, // always include (empty string signifies clear)
+				notes: notesClean // legacy fallback so clearing propagates
 			},
 			itinerary,
 			legs,
@@ -614,6 +623,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		setLastSaveTs(now);
 		try {
 			await apiServices.updateTrip(authToken, tripId, payload);
+			// Update in-memory remoteTrip so navigation without initialTrip still reflects latest
+			setRemoteTrip({ trip: payload.trip, itinerary: payload.itinerary });
 			setLastSavedDisplay(new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' }));
 			openToast('success', payload.trip.status==='DRAFT'? 'Draft saved':'Trip updated');
 		} catch(err:any){
