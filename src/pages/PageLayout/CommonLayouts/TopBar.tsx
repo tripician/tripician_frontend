@@ -65,7 +65,10 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
           backdropFilter: 'blur(10px)',
           borderBottom: 1,
           borderColor: 'divider',
-          padding: "20px 10px",
+          // Slightly tighter padding; if logo (back button) present push closer to edge
+          // Slightly larger left/right padding when no search to nudge logo/right controls
+          px: showSearch ? 1.25 : 1,
+          py: 1.2,
           boxShadow: 1,
           positionRelative: 'relative'
         }}
@@ -83,7 +86,8 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
             flexGrow: 1,
             display: 'flex',
             alignItems: 'center',
-            px: { xs: 1, md: 3 },
+            // Remove internal horizontal padding when showing logo to shift it left
+            px: showSearch ? { xs: 1, md: 3 } : 0,
           }}
         >
           {showSearch ? (

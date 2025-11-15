@@ -26,6 +26,7 @@ import ChatAssistant from '../../components/CommonComponents/ChatAssistant';
 import MapPanel from './MapPanel';
 import CloseFullscreenIcon from '@mui/icons-material/CloseFullscreen';
 import OpenInFullIcon from '@mui/icons-material/OpenInFull';
+import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
 // Removed useLocation to allow TripPlanner usage outside Router context.
@@ -343,6 +344,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 
 	const [visaOpen, setVisaOpen] = React.useState(false);
 	const [pinnedOpen, setPinnedOpen] = React.useState(false);
+	const [exitConfirmOpen, setExitConfirmOpen] = React.useState(false);
+	const [exiting, setExiting] = React.useState(false);
 
 	// Auto-close doc-related dialogs when feature disabled to prevent stray popups
 	React.useEffect(()=> {
@@ -650,14 +653,53 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		}
 	};
 
+	const redirectHome = React.useCallback(() => {
+		try { window.location.href = '/'; } catch {}
+	}, []);
+
+	const performSaveDraftAndExit = React.useCallback(async () => {
+		if(exiting) return; setExiting(true);
+		try {
+			if(isDirty && isOwnerExternal){
+				const payload = buildPersistPayload(true);
+				persistedPayloadRef.current = payload;
+				await persistToBackend(payload);
+				commitSnapshot(true);
+			}
+			redirectHome();
+		} finally { setExiting(false); }
+	}, [isDirty, isOwnerExternal, buildPersistPayload, persistToBackend, commitSnapshot, redirectHome, exiting]);
+
+	const handleBackHomeClick = () => {
+		if(!isDirty){ redirectHome(); return; }
+		setExitConfirmOpen(true);
+	};
+
 	const hideSectionsArr: string[] = Array.isArray(hideSections) ? hideSections : [];
 	return (
 		<React.Fragment>
 		<Box sx={{ display:'flex', flexDirection:'row', height:'100vh', overflow:'hidden' }}>
 	<CreateTripNav active={section} onChange={(id)=> setSectionDebug(id as any)} onSettingsClick={()=> setSettingsOpen(true)} hideSections={hideSectionsArr} canAccessDocs={canAccessDocs} docsEnabled={ENABLE_DOC_UPLOAD} />
 			<Box sx={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, minHeight:0 }}>
-				<TopBar showSearch={false} centerNode={
-					<Box sx={{ display:'flex', alignItems:'center' }}>
+				<TopBar showSearch={false} logo={
+					<Tooltip title='Back to Home'>
+						<IconButton
+							onClick={handleBackHomeClick}
+							sx={{
+								width:44,
+								height:44,
+								borderRadius:'50%',
+								color:'text.secondary',
+								transition:'background-color .15s ease, transform .15s ease',
+								'&:hover':{ backgroundColor:'rgba(0,0,0,0.04)' },
+								'&:active':{ transform:'scale(.92)' }
+							}}
+						>
+							<ArrowBackIosNewIcon fontSize='small' />
+						</IconButton>
+					</Tooltip>
+				} centerNode={
+					<Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
 						{editingTitle ? (
 							<Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
 								<InputBase value={title} onChange={e=> setTitle(e.target.value)} autoFocus onBlur={()=> setEditingTitle(false)} disabled={isExternalNonOwner} sx={{ px:1.2, py:.5, borderRadius:1.5, fontWeight:600, fontSize:18, border:(t)=>`1px solid ${t.palette.divider}`, background:(t)=> t.palette.mode==='dark'? '#1e2936':'#f5f7f9', minWidth:180, opacity:isExternalNonOwner? .6:1 }} />
@@ -687,7 +729,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						</Box>
 					) : (
 					<Box sx={(theme)=>({ flexBasis: mapCollapsed?'100%':`calc(${(1-mapWidth)*100}% - 2px)`, maxWidth: mapCollapsed?'100%':`calc(${(1-mapWidth)*100}% - 2px)`, minWidth:0, flexShrink:0, display:'flex', flexDirection:'column', backgroundColor: theme.palette.background.paper, borderRight: mapCollapsed? 'none': { lg:`1px solid ${theme.palette.divider}`}, transition: resizingRef.current?'none':'flex-basis .18s ease' })}>
-						<Box sx={{ px:2, py:1.25, display:'flex', alignItems:'stretch', gap:2, borderBottom:(t)=>`1px solid ${t.palette.divider}` }}>
+						<Box sx={{ px:2, py:1.25, display:'flex', alignItems:'stretch', gap:2, borderBottom:(t)=>`1px solid ${t.palette.divider}`, position:'relative' }}>
 							<Box sx={{ flex:1.4, minWidth:360, display:'flex', alignItems:'stretch' }}>
 								{/* Legacy rich editor commented out */}
 								<Box sx={{ width:'100%', display:'flex', flexDirection:'column', gap:.75 }}>
@@ -1113,6 +1155,19 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				onDeleteTrip={()=> { setSettingsOpen(false); }}
 					onInviteEmail={async(_)=> { /* invite email placeholder */ }}
 			/>
+			<Dialog open={exitConfirmOpen} onClose={()=> setExitConfirmOpen(false)} maxWidth='xs' fullWidth>
+				<DialogTitle>Unsaved Changes</DialogTitle>
+				<DialogContent dividers>
+					<Typography variant='body2'>You have unsaved changes. Save them as a draft before leaving, or discard changes?</Typography>
+				</DialogContent>
+				<DialogActions sx={{ justifyContent:'space-between' }}>
+					<Button onClick={()=> setExitConfirmOpen(false)} disabled={exiting}>Cancel</Button>
+					<Box sx={{ display:'flex', gap:1 }}>
+						<Button variant='outlined' onClick={()=> { setExitConfirmOpen(false); performSaveDraftAndExit(); }} disabled={exiting}>{exiting? 'Saving...' : 'Save Draft & Exit'}</Button>
+						<Button variant='contained' color='error' onClick={()=> { setExitConfirmOpen(false); redirectHome(); }} disabled={exiting}>Discard & Exit</Button>
+					</Box>
+				</DialogActions>
+			</Dialog>
 		</Box>
 		<Snackbar open={toast.open} autoHideDuration={3000} onClose={closeToast} anchorOrigin={{ vertical:'bottom', horizontal:'right' }}>
 			<Alert onClose={closeToast} severity={toast.type} variant='filled' sx={{ boxShadow:2 }}>
