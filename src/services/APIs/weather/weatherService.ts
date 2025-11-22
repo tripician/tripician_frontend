@@ -66,6 +66,7 @@ export async function fetchWeather(countryCode: string): Promise<WeatherData> {
   if(cached && cached.expires > now) {
     return cached.data;
   }
+  try {
   const coords = COUNTRY_COORDS[cc] || COUNTRY_COORDS['us'];
   const url = `https://api.open-meteo.com/v1/forecast?latitude=${coords.lat}&longitude=${coords.lon}&current=temperature_2m,wind_speed_10m,weather_code&daily=weather_code,temperature_2m_max,temperature_2m_min&timezone=UTC`;
   const res = await fetch(url);
@@ -97,4 +98,8 @@ export async function fetchWeather(countryCode: string): Promise<WeatherData> {
   };
   CACHE[cc] = { data, expires: now + TTL_MS };
   return data;
+  } catch(err){
+    // graceful degraded object
+    return { temperatureC:null, windKph:null, conditionCode:null, conditionText:null, updated:new Date().toISOString(), severity:'normal', icon:'unknown', forecast:[] };
+  }
 }

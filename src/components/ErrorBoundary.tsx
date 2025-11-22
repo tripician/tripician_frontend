@@ -1,4 +1,5 @@
 import React from 'react';
+import { SomethingWentWrong } from '../pages/ErrorPages/ErrorPages';
 
 interface ErrorBoundaryState { hasError: boolean; error?: any; info?: any; }
 
@@ -17,18 +18,7 @@ class ErrorBoundary extends React.Component<React.PropsWithChildren, ErrorBounda
 
   render() {
     if (this.state.hasError) {
-      return (
-        <div style={{ padding: '2rem', fontFamily: 'sans-serif' }}>
-          <h2 style={{ marginTop:0 }}>Something went wrong.</h2>
-          <p style={{ opacity:.75, maxWidth:560 }}>A runtime error occurred. Try refreshing. If it keeps happening, capture the console log and report it.</p>
-          {process.env.NODE_ENV !== 'production' && this.state.error && (
-            <pre style={{ background:'#1e293b', color:'#f8fafc', padding:'1rem', borderRadius:8, overflow:'auto', maxHeight:240 }}>
-{String(this.state.error?.stack || this.state.error)}
-            </pre>
-          )}
-          <button onClick={()=> window.location.reload()} style={{ marginTop:12, padding:'8px 16px', borderRadius:6, border:'1px solid #334155', background:'#0ea5e9', color:'#fff', fontWeight:600, cursor:'pointer' }}>Reload</button>
-        </div>
-      );
+      return <SomethingWentWrong />;
     }
     return this.props.children;
   }

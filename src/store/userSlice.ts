@@ -3,6 +3,7 @@ import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/tool
 import { apiServices } from "../services/APIs/apiServices";
 
 interface UserProfile {
+  bannertint: string | undefined;
   id?: string;
   email?: string;
   fname?: string;
@@ -14,8 +15,6 @@ interface UserProfile {
   bio?: string;
   coverpicture?: string;
   profilepicture?: string;
-  // Optional hex color (e.g. #FF7F50) used to tint the banner overlay
-  bannertint?: string;
   facebook?: string;
   twitter?: string;
   instagram?: string;

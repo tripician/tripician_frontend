@@ -69,21 +69,25 @@ export async function fetchNews(params: FetchNewsParams, apiKey?: string): Promi
   }
   const useProxy = import.meta.env.VITE_NEWS_PROXY === '1' && location.hostname === 'localhost';
   const url = useProxy ? PROXY_API_URL : DIRECT_API_URL;
-  const res = await fetch(url, {
-    method: 'POST',
-    headers: {
-      'Authorization': `apikey ${key}`,
-      'Content-Type': 'application/json; charset=utf-8',
-      'Accept': 'application/json; charset=utf-8'
-    },
-    body: JSON.stringify(body)
-  });
-  if(!res.ok){
-    const text = await res.text();
-    const diagnostic = useProxy && res.status === 404
-      ? ' (Dev proxy 404: ensure VITE_NEWS_PROXY=1 is in .env.local and dev server restarted)'
-      : '';
-    throw new Error(`Twingly error ${res.status}: ${text}${diagnostic}`);
+  try {
+    const res = await fetch(url, {
+      method: 'POST',
+      headers: {
+        'Authorization': `apikey ${key}`,
+        'Content-Type': 'application/json; charset=utf-8',
+        'Accept': 'application/json; charset=utf-8'
+      },
+      body: JSON.stringify(body)
+    });
+    if(!res.ok){
+      const text = await res.text();
+      const diagnostic = useProxy && res.status === 404
+        ? ' (Dev proxy 404: ensure VITE_NEWS_PROXY=1 is in .env.local and dev server restarted)'
+        : '';
+      throw new Error(`Twingly error ${res.status}: ${text}${diagnostic}`);
+    }
+    return res.json();
+  } catch(err){
+    return { number_of_documents:0, number_of_documents_estimated_total:0, documents:[] };
   }
-  return res.json();
 }

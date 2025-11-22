@@ -8,7 +8,11 @@ import Home from './pages/HomePage/Home'
 import Community from './pages/CommunityPage/Community'
 import Settings from './pages/SettingsPage/Settings'
 import ProtectedRoute from './services/APIs/Auth/ProtectedRoute'
-import CreateTrip from './pages/CreateTripPage/CreateTrip'
+import TripPlannerRoute from './pages/CreateTripPage/TripPlannerRoute.tsx'
+import TripPlannerEntry from './pages/CreateTripPage/TripPlannerEntry.tsx'
+import TripView from './pages/TripViewPage/TripView';
+import AuthenticatedLayout from './pages/PageLayout/AuthenticatedLayout';
+import { NotFound404, InternalError500, UnauthorizedAccess, UnderConstruction, SomethingWentWrong, DynamicErrorPage } from './pages/ErrorPages/ErrorPages';
 
 // Import debug utilities for development
 if (process.env.NODE_ENV === 'development') {
@@ -22,61 +26,34 @@ function App() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/signin" element={<Signin />} />
         
-        {/* Protected Routes */}
-        <Route 
-          path="/home" 
-          element={
-            <ProtectedRoute>
-              <Home />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/dashboard" 
-          element={
-            <ProtectedRoute>
-              <Dashboard />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/profile" 
-          element={
-            <ProtectedRoute>
-              <Profile />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/community" 
-          element={
-            <ProtectedRoute>
-              <Community />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/settings" 
-          element={
-            <ProtectedRoute>
-              <Settings />
-            </ProtectedRoute>
-          } 
-        />
-        <Route 
-          path="/create-trip" 
-          element={
-            <ProtectedRoute>
-              <CreateTrip />
-            </ProtectedRoute>
-          } 
-        />
+        {/* Protected Routes grouped under persistent layout */}
+        <Route element={<ProtectedRoute><AuthenticatedLayout /></ProtectedRoute>}>
+          <Route path="/home" element={<Home />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/community" element={<Community />} />
+          <Route path="/settings" element={<Settings />} />
+        </Route>
+  {/* Trip Planner entry: redirect /tripplanner -> /tripplanner/:generatedId (reusing last draft if available) */}
+  <Route path="/tripplanner" element={<ProtectedRoute><TripPlannerEntry /></ProtectedRoute>} />
+  <Route path="/tripplanner/:tripId" element={<ProtectedRoute><TripPlannerRoute /></ProtectedRoute>} />
+  {/* Read-only trip view route */}
+  <Route path="/trip/:tripId" element={<ProtectedRoute><TripView /></ProtectedRoute>} />
+  {/* Legacy path redirect */}
+  <Route path="/create-trip" element={<Navigate to="/error/404" replace />} />
+        {/* Error & status pages */}
+        <Route path="/error/404" element={<NotFound404 />} />
+        <Route path="/error/500" element={<InternalError500 />} />
+        <Route path="/error/unauthorized" element={<UnauthorizedAccess />} />
+        <Route path="/under-construction" element={<UnderConstruction />} />
+        <Route path="/error" element={<SomethingWentWrong />} />
+        <Route path="/error/:code" element={<DynamicErrorPage />} />
         
         {/* Default redirect */}
         <Route path="/" element={<Navigate to="/home" replace />} />
         
-        {/* Catch all - redirect to signin */}
-        <Route path="*" element={<Navigate to="/signin" replace />} />
+  {/* Final catch-all -> 404 page */}
+  <Route path="*" element={<NotFound404 />} />
       </Routes>
     </div>
   )

@@ -1,4 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+// Removed differenceInDays dependency after simplifying chain recalculation (nights no longer auto-stretched)
 
 
 export interface PlannerDestination {
@@ -20,6 +21,14 @@ export interface PlannerDestination {
     reference?: string;
     notes?: string;
   };
+  /** Multiple accommodation entries (new richer model). Each minimal object contains name & reference */
+  stays?: Array<{
+    id: string;
+    name?: string;
+    reference?: string;
+  }>;
+  /** General notes about accommodation (check-in instructions etc.) */
+  stayNotes?: string;
   lat?: number; // optional latitude for mapping
   lng?: number; // optional longitude for mapping
   spots?: PlannerSpot[]; // discover spots
@@ -75,7 +84,15 @@ export interface PlannerState {
   destinations: PlannerDestination[];
   currency: 'EUR' | 'USD' | 'GBP';
   targetNights: number;
+  /** When true, targetNights was explicitly provided (backend or user) and should not auto-resync to sum of destination nights */
+  targetLocked?: boolean;
   lastSaved?: string;
+  /** Currently hydrated trip id (used to detect cross-trip state reuse) */
+  tripId?: string;
+  /** Trip-level start date (chain anchor) */
+  tripStartDate?: string;
+  /** Trip-level end date (chain terminus) */
+  tripEndDate?: string;
   /** Trip-level supporting documents (not tied to a destination) */
   globalDocs?: PlannerDoc[];
   /** Visa specific documents (scans, letters, confirmations) */
@@ -112,14 +129,18 @@ const initialState: PlannerState = {
   destinations: [],
   currency: 'EUR',
   targetNights: 8,
+  targetLocked: false,
   globalDocs: [],
   visaDocs: [],
   pinnedDocIds: [],
   tripBudget: undefined,
   expenses: [],
   simplifyGroupExpenses: false,
-  expenseVisibilityEmails: []
-  ,comments: []
+  expenseVisibilityEmails: [],
+  comments: [],
+  tripId: undefined,
+  tripStartDate: undefined,
+  tripEndDate: undefined
 };
 
 // Utility to recompute nights based on start/end date (exclusive of end)
@@ -139,27 +160,61 @@ const plannerSlice = createSlice({
   name: 'planner',
   initialState,
   reducers: {
+    /** Recalculate contiguous chain dates based on tripStartDate + each destination's own nights.
+     *  Rules:
+     *   - First destination start forced to tripStartDate (if provided) else keep existing.
+     *   - Subsequent destinations start at previous end.
+     *   - No automatic expansion/clamping of nights to fill overall span.
+     *   - tripEndDate becomes the last destination's end (max itinerary end); never forces night changes.
+     */
+    _recalcChain(state) {
+      if(!state.destinations.length) return;
+      const anchorStart = state.tripStartDate || state.destinations[0].startDate || new Date().toISOString().slice(0,10);
+      state.destinations[0].startDate = anchorStart;
+      state.destinations[0].endDate = new Date(new Date(anchorStart).getTime() + state.destinations[0].nights*24*60*60*1000).toISOString().slice(0,10);
+      for(let i=1;i<state.destinations.length;i++) {
+        const prev = state.destinations[i-1];
+        const cur = state.destinations[i];
+        cur.startDate = prev.endDate;
+        cur.endDate = new Date(new Date(cur.startDate).getTime() + cur.nights*24*60*60*1000).toISOString().slice(0,10);
+      }
+      // Derive tripEndDate from last destination end (max itinerary date)
+      const lastEnd = state.destinations[state.destinations.length-1].endDate;
+      if(lastEnd) state.tripEndDate = lastEnd;
+      // If target not locked, sync target to total nights
+      if(!state.targetLocked) {
+        const total = state.destinations.reduce((a,c)=> a + c.nights, 0);
+        state.targetNights = total || state.targetNights;
+      }
+    },
     setCurrency(state, action: PayloadAction<'EUR' | 'USD' | 'GBP'>) {
       state.currency = action.payload;
     },
     setTargetNights(state, action: PayloadAction<number>) {
       state.targetNights = action.payload;
+      state.targetLocked = true; // manual override locks target
     },
-    addDestination(state, action: PayloadAction<{ name: string; lat?: number; lng?: number; placeId?: string; photoUrl?: string }>) {
-      // Prevent adding if total nights already meets or exceeds target
+    setTripDates(state, action: PayloadAction<{ startDate?: string; endDate?: string }>) {
+      if(action.payload.startDate) state.tripStartDate = action.payload.startDate;
+      if(action.payload.endDate) state.tripEndDate = action.payload.endDate;
+      plannerSlice.caseReducers._recalcChain(state);
+    },
+    addDestination(state, action: PayloadAction<{ name: string; nights?: number; lat?: number; lng?: number; placeId?: string; photoUrl?: string }>) {
+      // Multi-day creation support: allow specifying nights upfront (default 1). Clamp to remaining nights.
+      const requested = Math.max(1, Math.round(action.payload.nights || 1));
       const totalNights = state.destinations.reduce((a,c)=> a + c.nights, 0);
-      if (totalNights >= state.targetNights) return;
+      const remaining = state.targetNights - totalNights;
+      if (remaining <= 0) return;
+      const useNights = Math.min(requested, remaining);
       const last = state.destinations[state.destinations.length - 1];
-      const startDate = last ? last.endDate : new Date().toISOString().slice(0,10);
-      const endDate = new Date(new Date(startDate).getTime() + 24*60*60*1000).toISOString().slice(0,10);
-      // If adding 1 night would exceed target, abort
-      if (totalNights + 1 > state.targetNights) return;
+      const startDate = last ? last.endDate : (state.tripStartDate || new Date().toISOString().slice(0,10));
+      const endDate = new Date(new Date(startDate).getTime() + useNights * 24*60*60*1000).toISOString().slice(0,10);
       state.destinations.push({
         id: Date.now().toString(),
         name: action.payload.name,
         startDate,
         endDate,
-        nights: 1,
+        nights: useNights,
         transport: '',
         budget: 0,
         lat: action.payload.lat,
@@ -169,6 +224,11 @@ const plannerSlice = createSlice({
         category: 'general',
         completed: false
       });
+      // If target not locked, resync target to new total so progress ring denominator stays meaningful
+      if(!state.targetLocked) {
+        const newTotal = state.destinations.reduce((a,c)=> a + c.nights, 0);
+        state.targetNights = newTotal;
+      }
     },
     removeDestination(state, action: PayloadAction<string>) {
       state.destinations = state.destinations.filter(d => d.id !== action.payload);
@@ -198,6 +258,17 @@ const plannerSlice = createSlice({
         // adjust endDate relative to startDate
         const s = new Date(d.startDate).getTime();
         d.endDate = new Date(s + d.nights * 24*60*60*1000).toISOString().slice(0,10);
+        // Cascade recalculation of subsequent destination start/end dates to maintain a contiguous chain
+        const idx = state.destinations.findIndex(x => x.id === d.id);
+        for(let i = idx + 1; i < state.destinations.length; i++) {
+          const prev = state.destinations[i - 1];
+          const cur = state.destinations[i];
+          cur.startDate = prev.endDate;
+          const startMs = new Date(cur.startDate).getTime();
+          cur.endDate = new Date(startMs + cur.nights * 24*60*60*1000).toISOString().slice(0,10);
+        }
+        // Recompute contiguous chain + derived tripEndDate (no auto night expansion)
+        plannerSlice.caseReducers._recalcChain(state);
       }
     },
     setTransport(state, action: PayloadAction<{ id: string; transport: string }>) {
@@ -227,6 +298,26 @@ const plannerSlice = createSlice({
     setDestinationStay(state, action: PayloadAction<{ id: string; stay: { name?: string; reference?: string; notes?: string } }>) {
       const d = state.destinations.find(x => x.id === action.payload.id);
       if (d) d.stay = { ...d.stay, ...action.payload.stay };
+    },
+    // --- Multi accommodation CRUD ---
+    addStayEntry(state, action: PayloadAction<{ destinationId: string; name?: string; reference?: string }>) {
+      const d = state.destinations.find(x=> x.id === action.payload.destinationId);
+      if(!d) return; if(!d.stays) d.stays = [];
+      d.stays.push({ id: 'stay_'+Date.now()+'_'+Math.random().toString(36).slice(2), name: action.payload.name?.trim(), reference: action.payload.reference?.trim() });
+    },
+    updateStayEntry(state, action: PayloadAction<{ destinationId: string; stayId: string; patch: { name?: string; reference?: string } }>) {
+      const d = state.destinations.find(x=> x.id === action.payload.destinationId);
+      if(!d?.stays) return; const s = d.stays.find(x=> x.id === action.payload.stayId); if(!s) return;
+      if(action.payload.patch.name!==undefined) s.name = action.payload.patch.name.trim();
+      if(action.payload.patch.reference!==undefined) s.reference = action.payload.patch.reference.trim();
+    },
+    removeStayEntry(state, action: PayloadAction<{ destinationId: string; stayId: string }>) {
+      const d = state.destinations.find(x=> x.id === action.payload.destinationId);
+      if(!d?.stays) return; d.stays = d.stays.filter(s=> s.id !== action.payload.stayId);
+    },
+    setStayNotes(state, action: PayloadAction<{ destinationId: string; notes: string }>) {
+      const d = state.destinations.find(x=> x.id === action.payload.destinationId);
+      if(!d) return; d.stayNotes = action.payload.notes;
     },
     renameDestination(state, action: PayloadAction<{ id: string; name: string }>) {
       const d = state.destinations.find(x => x.id === action.payload.id);
@@ -490,9 +581,38 @@ const plannerSlice = createSlice({
         cur.endDate = end;
       }
       state.destinations = newOrder;
+      plannerSlice.caseReducers._recalcChain(state);
+    },
+    // Exact reorder (allow first to move). Dates recomputed starting from original first startDate.
+    reorderChainExact(state, action: PayloadAction<{ ids: string[] }>) {
+      const { ids } = action.payload; if(!ids.length) return;
+      const map: Record<string, PlannerDestination> = {}; state.destinations.forEach(d=> { map[d.id]=d; });
+      const newOrder: PlannerDestination[] = []; ids.forEach(id=> { if(map[id]) newOrder.push(map[id]); });
+      if(newOrder.length !== state.destinations.length) return; // safety
+      // Preserve original trip start date from earliest current start (first element before reorder)
+      const originalStart = state.destinations[0]?.startDate || new Date().toISOString().slice(0,10);
+      let cursorStart = originalStart;
+      for(let i=0;i<newOrder.length;i++) {
+        const d = newOrder[i];
+        d.startDate = cursorStart;
+        const end = new Date(new Date(cursorStart).getTime() + d.nights*24*60*60*1000).toISOString().slice(0,10);
+        d.endDate = end;
+        cursorStart = end; // next start
+      }
+      state.destinations = newOrder;
+      plannerSlice.caseReducers._recalcChain(state);
     },
     loadState(_state, action: PayloadAction<PlannerState>) {
-      return { ...action.payload };
+      return { ...action.payload, targetLocked: action.payload.targetLocked };
+    },
+    resetPlanner(state, action: PayloadAction<{ tripId?: string }>) {
+      // Preserve currency preference; reset rest.
+      const preservedCurrency = state.currency;
+      return {
+        ...initialState,
+        currency: preservedCurrency,
+        tripId: action.payload.tripId
+      };
     },
     markSaved(state) {
       state.lastSaved = new Date().toISOString();
@@ -511,11 +631,16 @@ export const {
   setDestinationBudget,
   reorderDestinations,
   reorderChain,
+  reorderChainExact,
   loadState,
   markSaved,
   setDestinationCoords,
   setDestinationNotes,
   setDestinationStay,
+  addStayEntry,
+  updateStayEntry,
+  removeStayEntry,
+  setStayNotes,
   renameDestination,
   setDestinationCategory,
   toggleDestinationCompleted,
@@ -557,6 +682,7 @@ export const {
 } = plannerSlice.actions;
 
 export const { addComment, addReply, updateComment, removeComment, toggleUpvote } = plannerSlice.actions;
+export const { resetPlanner } = plannerSlice.actions;
 
 // Doc actions already re-exported above
 

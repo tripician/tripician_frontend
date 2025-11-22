@@ -60,24 +60,24 @@ export interface DestinationCardProps {
   onDragEnd?: () => void;
 }
 
-const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled, onRename, onChangeCategory, onToggleComplete, onDuplicate, onRemove, onOpenNotes, onOpenDiscover, onOpenDocs, onOpenStay, onChangeNights }) => {
-  const { id, name, startDate, endDate, nights, category='general', completed, notes, spots, foods, stay, docs, photoUrl } = destination;
+const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled, onRename, /* onChangeCategory removed */ onToggleComplete, onDuplicate, onRemove, onOpenNotes, onOpenDiscover, onOpenDocs, onOpenStay, onChangeNights }) => {
+  const { id, name, startDate, endDate, nights, category='general', completed, notes, spots, foods, stay, stays, docs, photoUrl } = destination as any;
   const [editing, setEditing] = React.useState(false);
   const [menuAnchor, setMenuAnchor] = React.useState<HTMLElement | null>(null);
-  const [catAnchor, setCatAnchor] = React.useState<HTMLElement | null>(null);
+  // Category selection removed per request; retain background color only.
   const [localName, setLocalName] = React.useState(name);
 
   React.useEffect(()=> setLocalName(name), [name]);
 
   const openMenu = (e: React.MouseEvent<HTMLElement>) => setMenuAnchor(e.currentTarget);
   const closeMenu = () => setMenuAnchor(null);
-  const openCategory = (e: React.MouseEvent<HTMLElement>) => setCatAnchor(e.currentTarget);
-  const closeCategory = () => setCatAnchor(null);
+  // Removed category open/close handlers.
 
   const commitName = () => { if(localName.trim() && localName !== name) onRename?.(id, localName.trim()); setEditing(false); };
   const handleKey: React.KeyboardEventHandler<HTMLInputElement> = (e) => { if(e.key==='Enter') { commitName(); } else if(e.key==='Escape'){ setLocalName(name); setEditing(false);} };
 
-  const catInfo = CATEGORY_COLORS[category];
+  const catKey = (category || 'general') as NonNullable<PlannerDestination['category']>;
+  const catInfo = CATEGORY_COLORS[catKey];
   const dateFmt = (iso?: string) => { if(!iso) return ''; try { const d = new Date(iso + 'T00:00:00'); return d.toLocaleDateString(undefined, { month:'short', day:'2-digit' }); } catch { return iso || ''; } };
 
   return (
@@ -138,8 +138,8 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
   <CardContent sx={{ pl:2, pr:1.5, py:1.5, flex:1, display:'flex', flexDirection:'column', gap:1.5, minHeight:120, pb:6 }}> {/* increased minHeight & extra bottom padding */}
         {/* Top row: Destination name (left) then meta chips then actions (right) */}
         <Box sx={{ display:'flex', alignItems:'center', width:'100%' }}>
-          {/* Name (constrained to max 35% width) */}
-          <Box sx={{ pr:2, display:'flex', alignItems:'center', flex:'0 0 35%', maxWidth:'35%', minWidth:0, overflow:'hidden' }}>
+          {/* Name column: allow responsive growth/shrink instead of rigid 35% so unused space can be reallocated */}
+          <Box sx={{ pr:2, display:'flex', alignItems:'center', flex:'1 1 280px', minWidth:180, maxWidth:'42%', overflow:'hidden' }}>
             {editing ? (
               <InputBase
                 value={localName}
@@ -186,8 +186,9 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
               </Typography>
             )}
           </Box>
-          {/* Meta chips */}
-          <Box sx={{ display:'flex', alignItems:'center', gap:0.75, flexWrap:'wrap', flexShrink:1, minWidth:0, maxWidth:'38%' }}>
+          {/* Meta chips: no premature wrap; can use leftover width. Wrap only on narrower screens. */}
+          <Box sx={(t)=>({ display:'flex', alignItems:'center', gap:0.75, flexWrap:'nowrap', flex:'0 1 auto', minWidth:0, ml:2, overflow:'hidden', maxWidth:'50%',
+            [t.breakpoints.down('md')]: { flexWrap:'wrap', rowGap:0.5 } })}>
             <Chip
               size='small'
               onClick={(e)=> { e.stopPropagation(); }}
@@ -201,7 +202,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
               sx={{ fontSize:11, height:22, fontWeight:600 }}
             />
             <Chip size='small' label={`${dateFmt(startDate)} – ${dateFmt(endDate)}`} variant='outlined' sx={{ fontSize:11, height:22, fontWeight:600 }} />
-            <Chip size='small' onClick={openCategory} label={catInfo.label} sx={{ fontSize:11, height:22, bgcolor:catInfo.bg, color:catInfo.fg, '&:hover':{ bgcolor:catInfo.bg } }} icon={<Box component='span' sx={{ display:'flex', alignItems:'center', fontSize:16, color:catInfo.fg }}>{catInfo.icon}</Box>} />
+            {/* Category chip removed */}
             {completed && <Chip size='small' label='Completed' color='success' sx={{ fontSize:11, height:22 }} />}
           </Box>
           {/* Spacer */}
@@ -242,13 +243,13 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
               )}
             </Box>
           </Tooltip>
-          {/* Stay chip shows count of filled fields */}
+          {/* Stay chip shows count of properties (multi stays) or legacy field usage */}
           <Tooltip title='Stay / accommodation info'>
             <Box sx={{ position:'relative' }}>
-              <Chip onClick={()=> onOpenStay?.(id)} icon={<HotelIcon color={(stay?.name||stay?.reference||stay?.notes)? 'primary':'inherit'} />} label='Stay' size='small' sx={(t)=>({ cursor:'pointer', fontWeight:600, bgcolor:(stay?.name||stay?.reference||stay?.notes)? (t.palette.mode==='dark'? t.palette.primary.main+'22': t.palette.primary.light+'33'):(t.palette.mode==='dark'? t.palette.grey[800]: t.palette.grey[100]), color:(stay?.name||stay?.reference||stay?.notes)? t.palette.primary.main: t.palette.text.secondary })} />
-              {((stay?.name?1:0)+(stay?.reference?1:0)+(stay?.notes?1:0))>0 && (
-                <Box sx={(t)=>({ position:'absolute', top:-4, right:-4, background:t.palette.primary.main, color:t.palette.primary.contrastText, minWidth:18, height:18, px:0.5, borderRadius:9, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, boxShadow:'0 0 0 2px '+t.palette.background.paper })}>{(stay?.name?1:0)+(stay?.reference?1:0)+(stay?.notes?1:0)}</Box>
-              )}
+              <Chip onClick={()=> onOpenStay?.(id)} icon={<HotelIcon color={((Array.isArray(stays)&&stays.length>0) || (stay?.name||stay?.reference||stay?.notes))? 'primary':'inherit'} />} label='Stay' size='small' sx={(t)=>({ cursor:'pointer', fontWeight:600, bgcolor: ((Array.isArray(stays)&&stays.length>0) || (stay?.name||stay?.reference||stay?.notes))? (t.palette.mode==='dark'? t.palette.primary.main+'22': t.palette.primary.light+'33'):(t.palette.mode==='dark'? t.palette.grey[800]: t.palette.grey[100]), color: ((Array.isArray(stays)&&stays.length>0) || (stay?.name||stay?.reference||stay?.notes))? t.palette.primary.main: t.palette.text.secondary })} />
+              {(()=> { const count = Array.isArray(stays)? stays.length : ((stay?.name||stay?.reference||stay?.notes)? 1:0); return count>0 ? (
+                <Box sx={(t)=>({ position:'absolute', top:-4, right:-4, background:t.palette.primary.main, color:t.palette.primary.contrastText, minWidth:18, height:18, px:0.5, borderRadius:9, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, boxShadow:'0 0 0 2px '+t.palette.background.paper })}>{count}</Box>
+              ): null; })()}
             </Box>
           </Tooltip>
           {/* Docs chip with doc count */}
@@ -278,15 +279,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
         <MenuItem onClick={()=> { closeMenu(); onToggleComplete?.(id); }}>{completed? 'Mark Incomplete':'Mark Complete'}</MenuItem>
         <MenuItem onClick={()=> { closeMenu(); onRemove?.(id); }} sx={{ color:'error.main' }}>Delete</MenuItem>
       </Menu>
-      {/* Category Menu */}
-      <Menu anchorEl={catAnchor} open={Boolean(catAnchor)} onClose={closeCategory} elevation={3}>
-        {(Object.keys(CATEGORY_COLORS) as Array<keyof typeof CATEGORY_COLORS>).map(key => (
-          <MenuItem key={key} selected={category===key} onClick={()=> { closeCategory(); onChangeCategory?.(id, key); }}>
-            <Box sx={{ width:14, height:14, borderRadius:.5, bgcolor:CATEGORY_COLORS[key].bg, mr:1 }} />
-            <Typography variant='body2'>{CATEGORY_COLORS[key].label}</Typography>
-          </MenuItem>
-        ))}
-      </Menu>
+      {/* Category menu removed */}
     </Card>
   );
 };

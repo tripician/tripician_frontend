@@ -11,7 +11,6 @@ import {
   List,
   ListItemText,
   ListItem,
-  IconButton,
   useTheme,
   useMediaQuery,
   Tooltip
@@ -22,7 +21,6 @@ import {
   People as CommunityIcon,
   Dashboard as DasboardIcon,
   Settings as SettingsIcon,
-  Menu as MenuIcon,
   Add as AddIcon
 } from '@mui/icons-material';
 import TripCreationModal from '../../../components/CreateTripComponents/TripCreationModal';
@@ -42,7 +40,7 @@ const collapsedDrawerWidth = 64;
 const menuItems = [
   { text: 'Home', icon: <HomeIcon />, path: '/home' },
   { text: 'Dashboard', icon: <DasboardIcon />, path: '/dashboard' },
-  { text: 'Community', icon: <CommunityIcon />, path: '/community' },
+  { text: 'Community', icon: <CommunityIcon />, path: '/community', disabled: true, comingSoon: true },
   { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
 ];
 
@@ -51,8 +49,16 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+  // Collapsed state is now responsive-only (no manual toggle)
   const [isCollapsed, setIsCollapsed] = useState(false);
-  const [selectedItem, setSelectedItem] = useState('Home');
+  // Initialize selected item from current route to avoid initial flicker defaulting to Home
+  const [selectedItem, setSelectedItem] = useState(() => {
+    const currentPath = location.pathname;
+    const match = menuItems.find(item => item.path === currentPath);
+    if (match) return match.text;
+    if (currentPath === '/profile') return 'Profile';
+    return 'Home';
+  });
   const [createTripOpen, setCreateTripOpen] = useState(false);
 
   const dispatch = useDispatch<AppDispatch>();
@@ -73,26 +79,23 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
   useEffect(() => {
     const currentPath = location.pathname;
     const currentItem = menuItems.find(item => item.path === currentPath);
+    let newSelection: string | null = null;
     if (currentItem) {
-      setSelectedItem(currentItem.text);
-      if (onMenuItemChange) {
-        onMenuItemChange(currentItem.text);
-      }
+      newSelection = currentItem.text;
     } else if (currentPath === '/profile') {
-      setSelectedItem('Profile');
-      if (onMenuItemChange) {
-        onMenuItemChange('Profile');
-      }
+      newSelection = 'Profile';
     }
-  }, [location.pathname, onMenuItemChange]);
+    if (newSelection && newSelection !== selectedItem) {
+      setSelectedItem(newSelection);
+      onMenuItemChange?.(newSelection);
+    }
+  }, [location.pathname, onMenuItemChange, selectedItem]);
 
   useEffect(() => {
     setIsCollapsed(isMobile);
   }, [isMobile]);
 
-  const toggleDrawer = () => {
-    setIsCollapsed(!isCollapsed);
-  };
+  // Manual toggle removed per requirement; collapse purely follows breakpoint
 
   const handleMenuItemClick = (itemText: string) => {
     // Only navigate, don't update state here to prevent race conditions
@@ -102,6 +105,7 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
     } else {
       const menuItem = menuItems.find(item => item.text === itemText);
       if (menuItem) {
+        if((menuItem as any).disabled) return; // block navigation
         navigate(menuItem.path);
       }
     }
@@ -129,13 +133,13 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
             flexDirection: 'column',
             justifyContent: 'space-between',
             p: isCollapsed ? 1 : 2,
-            background: theme.palette.mode === 'light' 
+            background: theme.palette.mode === 'light'
               ? 'linear-gradient(180deg, #132735ff 0%, #006097ff 100%)'
               : 'linear-gradient(180deg, #1a202c 0%, #2d3748 100%)',
             color: 'white',
             overflowX: 'hidden',
-            boxShadow: theme.palette.mode === 'light' 
-              ? '0 4px 20px rgba(102, 126, 234, 0.3)' 
+            boxShadow: theme.palette.mode === 'light'
+              ? '0 4px 20px rgba(102, 126, 234, 0.3)'
               : '0 4px 20px rgba(0, 0, 0, 0.5)',
             backdropFilter: 'blur(10px)',
             borderRight: `1px solid ${theme.palette.mode === 'light' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)'}`,
@@ -152,125 +156,98 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
             sx={{
               display: 'flex',
               alignItems: 'center',
-              justifyContent: isCollapsed ? 'center' : 'space-between',
+              justifyContent: 'center',
               mb: 2,
-              minHeight: 64,
+              px: 0,
+              minHeight: 48,
             }}
           >
-            {!isCollapsed && (
-              <div 
-                className="common-logo"
-                style={{
-                  transition: 'all 0.3s ease',
-                  cursor: 'pointer',
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.transform = 'scale(1.05)';
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.transform = 'scale(1)';
-                }}
-              >
-                <img
-                  src={import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_URL}
-                  alt="Tripician Logo"
-                  style={{
-                    maxHeight: '40px',
-                    width: 'auto',
-                    filter: 'brightness(1.1)',
-                  }}
-                />
-              </div>
-            )}
-            {(isMobile || isCollapsed) && (
-              <IconButton
-                onClick={toggleDrawer}
-                sx={{
-                  color: 'white',
-                  backgroundColor: 'rgba(255,255,255,0.1)',
-                  backdropFilter: 'blur(10px)',
-                  border: '1px solid rgba(255,255,255,0.2)',
-                  borderRadius: 2,
-                  transition: 'all 0.3s ease',
-                  '&:hover': {
-                    backgroundColor: 'rgba(255,255,255,0.2)',
-                    transform: 'scale(1.05)',
-                    borderColor: 'rgba(255,255,255,0.3)',
-                  },
-                }}
-              >
-                <MenuIcon />
-              </IconButton>
-            )}
+            <img
+              src={isCollapsed ? import.meta.env.VITE_TRIPICIAN_LOGO_ICON_URL : import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_URL}
+              alt="Tripician"
+              style={{ height: isCollapsed ? 34 : 46, width: 'auto', display: 'block', maxWidth: '100%' }}
+            />
           </Box>
 
           {/* Menu Items */}
+
           <List sx={{ px: 0 }}>
-            {menuItems.map((item) => (
-              <Tooltip
-                key={item.text}
-                title={isCollapsed ? item.text : ''}
-                placement="right"
-                arrow
-              >
-                <ListItem
-                  component="button"
-                  onClick={() => handleMenuItemClick(item.text)}
-                  sx={{
-                    borderRadius: 1,
-                    px: isCollapsed ? 1 : 2,
-                    py: 1.5,
-                    mb: 1,
-                    minHeight: 48,
-                    justifyContent: isCollapsed ? 'center' : 'flex-start',
-                    backgroundColor: selectedItem === item.text ? 'rgba(255,255,255,0.2)' : 'transparent',
-                    '&:hover': {
-                      backgroundColor: selectedItem === item.text
-                        ? 'rgba(255,255,255,0.25)'
-                        : 'rgba(255,255,255,0.15)',
-                      transform: 'translateX(4px)',
-                    },
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    position: 'relative',
-                    '&::before': selectedItem === item.text ? {
-                      content: '""',
-                      position: 'absolute',
-                      left: 0,
-                      top: '50%',
-                      transform: 'translateY(-50%)',
-                      width: '4px',
-                      height: '60%',
-                      backgroundColor: 'rgba(255,255,255,0.8)',
-                      borderRadius: '0 2px 2px 0',
-                    } : {},
-                  }}
+            {menuItems.map(item => {
+              const disabled = (item as any).disabled;
+              const comingSoon = (item as any).comingSoon;
+              return (
+                <Tooltip
+                  key={item.text}
+                  title={isCollapsed ? (comingSoon ? `${item.text} (Coming Soon)` : item.text) : (comingSoon ? 'Coming Soon' : '')}
+                  placement="right"
+                  arrow
                 >
-                  <Box
+                  <ListItem
+                    component="button"
+                    disabled={disabled}
+                    onClick={() => handleMenuItemClick(item.text)}
                     sx={{
-                      color: selectedItem === item.text ? '#fff' : 'rgba(255,255,255,0.8)',
-                      display: 'flex',
-                      alignItems: 'center',
-                      minWidth: 24,
-                      mr: isCollapsed ? 0 : 2,
+                      borderRadius: 1,
+                      px: isCollapsed ? 1 : 2,
+                      py: 1.5,
+                      mb: 1,
+                      minHeight: 48,
+                      justifyContent: isCollapsed ? 'center' : 'flex-start',
+                      backgroundColor: selectedItem === item.text ? 'rgba(255,255,255,0.2)' : 'transparent',
+                      '&:hover': disabled ? {} : {
+                        backgroundColor: selectedItem === item.text
+                          ? 'rgba(255,255,255,0.25)'
+                          : 'rgba(255,255,255,0.15)',
+                        transform: 'translateX(4px)',
+                      },
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      position: 'relative',
+                      '&::before': selectedItem === item.text ? {
+                        content: '""',
+                        position: 'absolute',
+                        left: 0,
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        width: '4px',
+                        height: '60%',
+                        backgroundColor: 'rgba(255,255,255,0.8)',
+                        borderRadius: '0 2px 2px 0',
+                      } : {},
+                      opacity: disabled ? 0.45 : 1,
+                      cursor: disabled ? 'not-allowed' : 'pointer'
                     }}
                   >
-                    {item.icon}
-                  </Box>
-                  {!isCollapsed && (
-                    <ListItemText
-                      primary={item.text}
+                    <Box
                       sx={{
                         color: selectedItem === item.text ? '#fff' : 'rgba(255,255,255,0.8)',
-                        fontWeight: selectedItem === item.text ? 600 : 400,
-                        '& .MuiListItemText-primary': {
-                          fontSize: '0.95rem',
-                        },
+                        display: 'flex',
+                        alignItems: 'center',
+                        minWidth: 24,
+                        mr: isCollapsed ? 0 : 2,
                       }}
-                    />
-                  )}
-                </ListItem>
-              </Tooltip>
-            ))}
+                    >
+                      {item.icon}
+                    </Box>
+                    {!isCollapsed && (
+                      <ListItemText
+                        primary={item.text}
+                        sx={{
+                          color: selectedItem === item.text ? '#fff' : 'rgba(255,255,255,0.8)',
+                          fontWeight: selectedItem === item.text ? 600 : 400,
+                          '& .MuiListItemText-primary': { fontSize: '0.95rem' },
+                          display: 'flex',
+                          alignItems: 'center',
+                          gap: 1,
+                        }}
+                      />
+                    )}
+                    {!isCollapsed && comingSoon && (
+                      <Box sx={{ ml: 'auto', fontSize: 10, px: .7, py: .2, bgcolor: 'rgba(255,255,255,0.18)', borderRadius: 1, fontWeight: 600, letterSpacing: .5 }}>SOON</Box>
+                    )}
+                  </ListItem>
+                </Tooltip>
+              );
+            })}
           </List>
         </Box>
 
@@ -329,7 +306,7 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
       </Drawer>
 
       {/* Right Side: Main Content + Footer */}
-  <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1, width: `calc(100vw - ${currentDrawerWidth}px)`, height: '100vh', overflow: 'visible', position: 'relative' }}>
+      <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1, width: `calc(100vw - ${currentDrawerWidth}px)`, height: '100vh', overflow: 'visible', position: 'relative' }}>
         {/* Main Content Area with Footer inside scrollable area */}
         <Box
           component="main"
