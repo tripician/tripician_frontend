@@ -19,7 +19,7 @@ import TripSettingsDialog from './TripSettingsDialog';
 import DestinationsPanel, { type DestinationRow } from './DestinationsPanel';
 import DestinationCardsPanel from './DestinationCardsPanel';
 import ExpensesPanel from './ExpensesPanel';
-import ImportantNotesEditor from './ImportantNotesEditor'; // legacy rich editor (temporarily disabled)
+// import ImportantNotesEditor from './ImportantNotesEditor'; // legacy rich editor (temporarily disabled)
 import TripComments from './TripComments';
 import PackingPanel from './PackingPanel';
 import ChatAssistant from '../../components/CommonComponents/ChatAssistant';
@@ -134,6 +134,25 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			? normalizedInitial.meta.importantNotes
 			: ''
 	);
+	// Banner image (trip card photo) – store as URL (existing backend-provided or newly selected object URL / base64)
+	const [bannerUrl, setBannerUrl] = React.useState<string>(() => {
+		try {
+			const root = earlyRawTrip || (initialTrip?.trip) || initialTrip;
+			const existing = root && typeof root.photoUrl === 'string' ? root.photoUrl : undefined;
+			return existing || (import.meta.env.VITE_TRIP_DEFAULT_IMAGE || '');
+		} catch { return import.meta.env.VITE_TRIP_DEFAULT_IMAGE || ''; }
+	});
+	// Countries selected during trip creation (array of strings)
+	const [countries, setCountries] = React.useState<string[]>(() => {
+		try {
+			const root = earlyRawTrip || (initialTrip?.trip) || initialTrip;
+			const arr = root && Array.isArray(root.countries) ? root.countries.filter((c:any)=> typeof c==='string' && c.trim()) : [];
+			return arr;
+		} catch { return []; }
+	});
+	const handleRemoveCountry = React.useCallback((country:string) => {
+		setCountries(prev => prev.filter(c=> c!==country));
+	}, []);
 	
 	const notesRef = React.useRef<HTMLTextAreaElement | null>(null);
 	const [privacy, setPrivacy] = React.useState<'Private'|'Trip Members'|'My Followers'|'Everyone'>('Private');
@@ -165,9 +184,11 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			d:planner.destinations.map(d=> ({ id:d.id, n:d.name, sd:d.startDate, ed:d.endDate, nts:d.nights, lat:d.lat, lng:d.lng, tr:d.transport })),
 			c:currency,
 			dr:isDraft,
-			in:importantNotes.trim()
+			in:importantNotes.trim(),
+			b:bannerUrl,
+			cs:countries
 		});
-	}, [title, privacy, tripStartDate, tripEndDate, planner.destinations, currency, isDraft, importantNotes]);
+	}, [title, privacy, tripStartDate, tripEndDate, planner.destinations, currency, isDraft, importantNotes, bannerUrl, countries]);
 	const commitSnapshot = React.useCallback((draft:boolean)=> { setIsDraft(draft); lastCommittedRef.current = computeSignature(); }, [computeSignature]);
 	React.useEffect(()=> { if(!lastCommittedRef.current) lastCommittedRef.current = computeSignature(); }, [computeSignature]);
 	const isDirty = computeSignature() !== lastCommittedRef.current;
@@ -336,6 +357,35 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const [toast, setToast] = React.useState<{ open:boolean; type:'success'|'error'|'info'; msg:string }>({ open:false, type:'success', msg:'' });
 	const openToast = (type:'success'|'error'|'info', msg:string)=> setToast({ open:true, type, msg });
 	const closeToast = ()=> setToast(t=> ({ ...t, open:false }));
+	// Lightweight settings save listener (Save Settings button dispatches browser event)
+	React.useEffect(()=> {
+		const handler = async () => {
+			if(!authToken || !tripId) { openToast('error','Cannot save settings'); return; }
+			try {
+				const privacyEnum = privacy==='Private' ? 'PRIVATE' : privacy==='Trip Members' ? 'TRIP_MEMBERS' : privacy==='My Followers' ? 'FOLLOWERS' : 'EVERYONE';
+				await apiServices.updateTripSettings(authToken, tripId, { name:title, privacy: privacyEnum, countries, photoUrl: bannerUrl || undefined });
+				try {
+					const refreshed = await apiServices.getTripById(authToken, tripId);
+					const meta = (refreshed?.data?.trip) || refreshed?.data?.meta || refreshed?.data;
+					if(meta){
+						if(typeof meta.name==='string') setTitle(meta.name);
+						if(typeof meta.photoUrl==='string') setBannerUrl(meta.photoUrl);
+						if(Array.isArray(meta.countries)) setCountries(meta.countries.filter((c:any)=> typeof c==='string'));
+						if(typeof meta.visibility==='string') {
+							const vis = meta.visibility.toLowerCase();
+							setPrivacy(vis.startsWith('every')? 'Everyone' : vis.startsWith('trip')? 'Trip Members' : vis.startsWith('my')? 'My Followers' : 'Private');
+						}
+						setRemoteTrip(refreshed.data);
+					}
+				} catch { /* silent refresh fail */ }
+				openToast('success','Settings saved');
+			} catch(err){
+				openToast('error','Save settings failed');
+			}
+		};
+		window.addEventListener('trip:settings:save', handler);
+		return ()=> window.removeEventListener('trip:settings:save', handler);
+	}, [authToken, tripId, title, privacy, countries, bannerUrl]);
 	const [mapCollapsed, setMapCollapsed] = React.useState(false);
 	const [mapWidth, setMapWidth] = React.useState(0.30); // default map takes 30% width now
 	const containerRef = React.useRef<HTMLDivElement|null>(null);
@@ -609,6 +659,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				routeDistanceKm: Number(routeDistanceKm.toFixed(2)),
 				importantNotes: notesClean, // always include (empty string signifies clear)
 				notes: notesClean // legacy fallback so clearing propagates
+				,photoUrl: bannerUrl || (import.meta.env.VITE_TRIP_DEFAULT_IMAGE || ''),
+				countries: countries
 			},
 			itinerary,
 			legs,
@@ -697,6 +749,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				// Role heuristic: if object marks owner/self, else Editor if canEdit flag, else Viewer
 				let role: 'Owner'|'Editor'|'Viewer' = 'Viewer';
 				if(m.role==='Owner' || m.isOwner) role='Owner'; else if(m.role==='Editor' || m.canEdit) role='Editor';
+				// Normalize owner: if backend sends canEdit + matches current user id treat as Owner
+				if(userProfile && (id === String(userProfile.id)) && role==='Editor' && isOwnerExternal) role='Owner';
 				list.push({ id, name, handle, avatar, role });
 			} catch {}
 		}
@@ -705,8 +759,14 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			const currentId = String(userProfile.id || 'me');
 			if(!list.some(m=> m.id===currentId)){
 				const name = [userProfile.fname, userProfile.lname].filter(Boolean).join(' ') || userProfile.email || 'You';
-				const handle = userProfile.email ? '' : '';
-				list.unshift({ id: currentId, name, handle, avatar: userProfile.profilepicture, role: isOwnerExternal? 'Owner':'Viewer' });
+				const derivedHandle = userProfile.email ? '@'+(userProfile.email.split('@')[0]||'you') : '@you';
+				list.unshift({ id: currentId, name, handle: derivedHandle, avatar: userProfile.profilepicture, role: isOwnerExternal? 'Owner':'Viewer' });
+			}
+			else {
+				// Ensure existing entry for current user is labeled Owner if isOwnerExternal
+				if(isOwnerExternal){
+					for(const member of list){ if(member.id===currentId){ member.role='Owner'; break; } }
+				}
 			}
 		}
 		return list;
@@ -1183,6 +1243,12 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				endDate={tripEndDate || planner.destinations[planner.destinations.length-1]?.endDate || tripStartDate || new Date().toISOString().slice(0,10)}
 				privacy={privacy}
 				members={tripMembers}
+				bannerUrl={bannerUrl}
+				onChangeBanner={({ url })=> { setBannerUrl(url); }}
+				countries={countries}
+				onRemoveCountry={(c: string)=> { // defer persistence until Save Settings
+					handleRemoveCountry(c); /* mark dirty only */
+				}}
 				onChangeTitle={(t)=> setTitle(t)}
 		onChangeStartDate={()=> {/* future: update chain */}}
 		onChangeEndDate={()=> {/* future: update chain */}}

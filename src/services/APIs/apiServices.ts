@@ -125,6 +125,8 @@ export const apiServices = {
       legCount: number;
       routeDistanceKm: number;
       importantNotes?: string;
+      photoUrl?: string;
+      countries?: string[];
     };
     itinerary: Array<{
       id: string;
@@ -160,6 +162,16 @@ export const apiServices = {
 
   // DELETE /trips/{tripId}
   deleteTrip: (token: string, tripId: string) => apiClient.delete(`/trips/${tripId}`, {
+    headers: { Authorization: `Bearer ${token}` }
+  }),
+
+  // PUT /trips/{tripId}/settings - lightweight settings update (name, privacy, countries, photoUrl)
+  updateTripSettings: (token: string, tripId: string, data: {
+    name?: string;
+    privacy?: string; // backend will map
+    countries?: string[];
+    photoUrl?: string;
+  }) => apiClient.put(`/trips/${tripId}/settings`, data, {
     headers: { Authorization: `Bearer ${token}` }
   }),
 };
