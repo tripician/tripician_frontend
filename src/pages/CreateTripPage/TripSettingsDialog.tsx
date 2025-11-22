@@ -35,6 +35,8 @@ interface TripSettingsDialogProps {
 const PRIVACY_OPTIONS = ['Private','Trip Members','My Followers','Everyone'];
 
 import { flagEmojiFromName, flagPngUrl, countryCodeFromName } from '../../utils/countryFlags';
+import { apiServices } from '../../services/APIs/apiServices';
+import { useAuthToken } from '../../hooks/useAuth0Token';
 
 interface CountryRowProps { name: string; onRemove?: (name:string)=>void; }
 const CountryRow: React.FC<CountryRowProps> = ({ name, onRemove }) => {
@@ -67,6 +69,11 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
   const [view, setView] = React.useState<'main'|'invite'>('main');
   const [inviteEmail, setInviteEmail] = React.useState('');
   const [inviting, setInviting] = React.useState(false);
+  const { token: authToken } = useAuthToken();
+  const [searchError, setSearchError] = React.useState<string>('');
+  const [foundUser, setFoundUser] = React.useState<{id:number; fname:string; lname:string; email:string; country?:string} | null>(null);
+  const [pendingUsers, setPendingUsers] = React.useState<Array<{id:number; fname:string; lname:string; email:string; country?:string}>>([]);
+  const [addingMembers, setAddingMembers] = React.useState(false);
 
   const copy = (text:string) => {
     navigator.clipboard.writeText(text).then(()=> {
@@ -75,13 +82,88 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
     });
   };
 
-  const handleInvite = async () => {
-    if(!inviteEmail) return;
+  const handleSearchUser = async () => {
+    if(!inviteEmail || !inviteEmail.includes('@')) {
+      setSearchError('Please enter a valid email address');
+      return;
+    }
+    setSearchError('');
+    setFoundUser(null);
+    setInviting(true);
     try {
-      setInviting(true);
-      await onInviteEmail?.(inviteEmail);
-      setInviteEmail('');
+      const email = inviteEmail.trim().toLowerCase();
+      const token = authToken || localStorage.getItem('accessToken') || '';
+      if(!token) { setSearchError('Authentication required'); return; }
+      console.log('[InviteSearch] Searching user by email', email);
+      const resp = await apiServices.getUserProfileByEmail(token, email);
+      const userData = resp.data;
+      if(!userData) { setSearchError('No user data returned'); return; }
+      setFoundUser(userData);
+      console.log('[InviteSearch] User found', userData);
+    } catch(err:any) {
+      if(err?.response?.status === 404) setSearchError('No user found with this email');
+      else setSearchError('Search failed. Please try again.');
+      console.warn('[InviteSearch] Search failed', err);
     } finally { setInviting(false); }
+  };
+
+  const handleAddToPending = () => {
+    if(!foundUser) return;
+    // Check if already pending
+    if(pendingUsers.some(u=> u.id === foundUser.id)) {
+      setSearchError('User already added to pending list');
+      return;
+    }
+    setPendingUsers(prev=> [...prev, foundUser]);
+    setInviteEmail('');
+    setFoundUser(null);
+    setSearchError('');
+  };
+
+  const handleRemovePending = (userId: number) => {
+    setPendingUsers(prev=> prev.filter(u=> u.id !== userId));
+  };
+
+  const handleDone = async () => {
+    if(pendingUsers.length === 0) {
+      setView('main');
+      return;
+    }
+    if(!tripId) {
+      setSearchError('Trip ID missing');
+      return;
+    }
+    setAddingMembers(true);
+    try {
+      const token = authToken || localStorage.getItem('accessToken') || '';
+      if(!token) { setSearchError('Authentication required'); return; }
+      const userIds = pendingUsers.map(u=> u.id);
+      console.log('[InviteMembers] Adding users', userIds);
+      await apiServices.addTripUsers(token, tripId, userIds);
+      console.log('[InviteMembers] Users added successfully');
+      // Clear pending and return to main
+      setPendingUsers([]);
+      setView('main');
+      // Optionally trigger a refresh callback if parent needs to reload members
+      // Dispatch a custom event so TripPlanner can refetch and update member list
+      try {
+        window.dispatchEvent(new CustomEvent('trip:members:updated', { detail: { tripId, userIds } }));
+      } catch {}
+      await onInviteEmail?.(''); // legacy callback (kept for backward compatibility)
+    } catch(err:any) {
+      setSearchError('Failed to add members. Please try again.');
+      console.warn('[InviteMembers] Add failed', err);
+    } finally {
+      setAddingMembers(false);
+    }
+  };
+
+  const handleDiscard = () => {
+    setPendingUsers([]);
+    setInviteEmail('');
+    setFoundUser(null);
+    setSearchError('');
+    setView('main');
   };
 
   return (
@@ -98,11 +180,70 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
       <DialogContent dividers sx={{ p:3, display:'flex', flexDirection:'column', gap:3 }}>
         {view==='invite' && (
           <Box sx={{ display:'flex', flexDirection:'column', gap:3 }}>
-            <Box sx={(t)=>({ display:'flex', alignItems:'center', border:`1px solid ${t.palette.divider}`, borderRadius:2, overflow:'hidden' })}>
-              <InputBase placeholder="Enter your friend's email.." value={inviteEmail} onChange={e=> setInviteEmail(e.target.value)} sx={{ flex:1, px:1.5, py:1 }} />
-              <Button disabled={!inviteEmail || inviting} onClick={handleInvite} variant='contained' sx={{ m:0.5, px:2.5, textTransform:'none', borderRadius:3 }}>{inviting? 'Inviting...':'Invite'}</Button>
+            <Box sx={{ display:'flex', flexDirection:'column', gap:1.5 }}>
+              <Box sx={(t)=>({ display:'flex', alignItems:'center', border:`1px solid ${t.palette.divider}`, borderRadius:2, overflow:'hidden' })}>
+                <InputBase 
+                  placeholder="Enter user's email to search.." 
+                  value={inviteEmail} 
+                  onChange={e=> { setInviteEmail(e.target.value); setSearchError(''); setFoundUser(null); }} 
+                  onKeyPress={e=> e.key==='Enter' && handleSearchUser()}
+                  sx={{ flex:1, px:1.5, py:1 }} 
+                />
+                <Button disabled={!inviteEmail || inviting} onClick={handleSearchUser} variant='contained' sx={{ m:0.5, px:2.5, textTransform:'none', borderRadius:3, position:'relative' }}>
+                  {inviting? 'Searching...':'Search'}
+                  {inviting && (
+                    <Box sx={{ position:'absolute', right:12, top:'50%', transform:'translateY(-50%)', width:16, height:16, border:'2px solid rgba(255,255,255,0.6)', borderTopColor:'#fff', borderRadius:'50%', animation:'spin .8s linear infinite', '@keyframes spin':{ to:{ transform:'translateY(-50%) rotate(360deg)' } } }} />
+                  )}
+                </Button>
+              </Box>
+              {searchError && (
+                <Typography variant='caption' color='error' sx={{ px:0.5 }}>{searchError}</Typography>
+              )}
+              {foundUser && (
+                <Box sx={(t)=>({ p:1.25, borderRadius:2, border:`1px solid ${t.palette.divider}`, background: t.palette.mode==='dark'? t.palette.grey[900]: t.palette.grey[50], display:'flex', alignItems:'center', gap:1.5 })}>
+                  <Avatar sx={{ width:40, height:40, bgcolor:'primary.main' }}>
+                    {foundUser.fname?.[0]}{foundUser.lname?.[0]}
+                  </Avatar>
+                  <Box sx={{ flex:1, minWidth:0 }}>
+                    <Typography variant='body2' fontWeight={600} noWrap>{foundUser.fname} {foundUser.lname}</Typography>
+                    <Typography variant='caption' color='text.secondary' noWrap>{foundUser.email}</Typography>
+                  </Box>
+                  <IconButton size='small' onClick={handleAddToPending} color='primary' sx={{ bgcolor:'primary.main', color:'#fff', '&:hover':{ bgcolor:'primary.dark' } }}>
+                    <Box component='span' sx={{ fontSize:20, fontWeight:600 }}>+</Box>
+                  </IconButton>
+                </Box>
+              )}
+              {/* Pending users list */}
+              {pendingUsers.length > 0 && (
+                <Box sx={{ display:'flex', flexDirection:'column', gap:1, mt:1 }}>
+                  <Typography variant='subtitle2' fontWeight={700} color='primary'>Pending members ({pendingUsers.length})</Typography>
+                  {pendingUsers.map(u=> (
+                    <Box key={u.id} sx={(t)=>({ p:1.25, borderRadius:2, border:`1px solid ${t.palette.primary.light}`, background: t.palette.mode==='dark'? t.palette.grey[900]: t.palette.grey[50], display:'flex', alignItems:'center', gap:1.5 })}>
+                      <Avatar sx={{ width:36, height:36, bgcolor:'primary.light' }}>
+                        {u.fname?.[0]}{u.lname?.[0]}
+                      </Avatar>
+                      <Box sx={{ flex:1, minWidth:0 }}>
+                        <Typography variant='body2' fontWeight={600} noWrap>{u.fname} {u.lname}</Typography>
+                        <Typography variant='caption' color='text.secondary' noWrap>{u.email}</Typography>
+                      </Box>
+                      <IconButton size='small' onClick={()=> handleRemovePending(u.id)}>
+                        <CloseIconSmall fontSize='small' />
+                      </IconButton>
+                    </Box>
+                  ))}
+                </Box>
+              )}
             </Box>
-            <Typography variant='subtitle2' fontWeight={700} gutterBottom>Trip members</Typography>
+            {/* Action buttons */}
+            <Box sx={{ display:'flex', gap:2, justifyContent:'flex-end', mt:2 }}>
+              <Button variant='outlined' onClick={handleDiscard} disabled={addingMembers} sx={{ textTransform:'none', borderRadius:2, minWidth:100 }}>
+                Discard
+              </Button>
+              <Button variant='contained' onClick={handleDone} disabled={addingMembers} sx={{ textTransform:'none', borderRadius:2, minWidth:100 }}>
+                {addingMembers? 'Adding...':'Done'}
+              </Button>
+            </Box>
+            <Typography variant='subtitle2' fontWeight={700} gutterBottom>Current members</Typography>
             <Box sx={{ display:'flex', flexDirection:'column', gap:1 }}>
               {members.map(m=> (
                 <Box key={m.id} sx={(t)=>({ display:'flex', alignItems:'center', p:1.1, borderRadius:2, background: t.palette.mode==='dark'? t.palette.grey[900]: t.palette.grey[50], border:`1px solid ${t.palette.divider}` })}>
@@ -224,8 +365,19 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
 
         {/* Members */}
         <Box>
-          <Typography variant='subtitle2' fontWeight={700} gutterBottom>Trip members</Typography>
-          <Box sx={{ display:'flex', flexDirection:'column', gap:1, mt:1 }}>
+          <Box sx={{ display:'flex', alignItems:'center', justifyContent:'space-between', mb:1 }}>
+            <Typography variant='subtitle2' fontWeight={700}>Trip members</Typography>
+            <Button 
+              size='small' 
+              variant='outlined' 
+              startIcon={<EmailIcon fontSize='small' />} 
+              onClick={()=> setView('invite')} 
+              sx={{ textTransform:'none', borderRadius:2 }}
+            >
+              Add member
+            </Button>
+          </Box>
+          <Box sx={{ display:'flex', flexDirection:'column', gap:1 }}>
             {members.map(m=> (
               <Box key={m.id} sx={(t)=>({ display:'flex', alignItems:'center', p:1, borderRadius:2, background: t.palette.mode==='dark'? t.palette.grey[900]: t.palette.grey[50], border:`1px solid ${t.palette.divider}` })}>
                 <Avatar src={m.avatar} sx={{ width:40, height:40, mr:1 }} />
