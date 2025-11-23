@@ -192,4 +192,23 @@ export const apiServices = {
     apiClient.get(`/trips/${tripId}/users`, {
       headers: { Authorization: `Bearer ${token}` }
     }),
+
+  // ------------------------------------------------------------
+  // Profile Settings (Privacy)
+  // GET api/profile/settings/privacy
+  getPrivacySettings: (token: string) =>
+    apiClient.get('/api/profile/settings/privacy', {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+  // PATCH api/profile/settings/privacy
+  // Accepts partial update object. Frontend sends only changed keys.
+  updatePrivacySettings: (token: string, model: {
+    Visibility: string; // e.g. Public | Friends | Private
+    ShowTravelHistory: boolean;
+    ShowContactInfo: boolean;
+    AllowDirectMessages: boolean;
+  }) =>
+    apiClient.patch('/api/profile/settings/privacy', model, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
 };
