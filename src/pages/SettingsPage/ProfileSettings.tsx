@@ -1,4 +1,6 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useAuthToken } from '../../hooks/useAuth0Token';
+import { apiServices } from '../../services/APIs/apiServices';
 import {
   Box,
   Card,
@@ -16,6 +18,47 @@ const ProfileSettings: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [showNewPassword, setShowNewPassword] = useState(false);
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+
+  // Profile settings state (fetched from backend)
+  const [fname, setFname] = useState('');
+  const [lname, setLname] = useState('');
+  const [bio, setBio] = useState('');
+  const [location, setLocation] = useState('');
+  const [website, setWebsite] = useState('');
+  const [email, setEmail] = useState('');
+  const [phone, setPhone] = useState('');
+  const [profilePicture, setProfilePicture] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false); // initial fetch
+  const [saving, setSaving] = useState(false);   // personal info save
+  const [contactSaving, setContactSaving] = useState(false); // contact info save
+  const [error, setError] = useState<string | null>(null);
+  const [success, setSuccess] = useState<string | null>(null);
+
+  const { token: authToken } = useAuthToken();
+
+  useEffect(()=> {
+    if(!authToken) return;
+    let active = true;
+    (async()=>{
+      setLoading(true); setError(null);
+      try {
+        const resp = await apiServices.getProfileSettings(authToken);
+        const data = resp.data || {};
+        if(!active) return;
+        setFname(data.Fname || data.fname || '');
+        setLname(data.Lname || data.lname || '');
+        setBio(data.Bio || data.bio || '');
+        setLocation(data.Location || data.location || '');
+        setWebsite(data.Website || data.website || '');
+        setEmail(data.Email || data.email || '');
+        setPhone(data.Phone || data.phone || '');
+        setProfilePicture(data.ProfilePicture || data.profilePicture || null);
+      } catch(err:any){
+        setError('Failed to load profile settings');
+      } finally { setLoading(false); }
+    })();
+    return ()=> { active=false; };
+  }, [authToken]);
 
   return (
     <Box sx={{ maxWidth: "100%"}}>
@@ -45,16 +88,17 @@ const ProfileSettings: React.FC = () => {
 
           <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
             <Avatar 
+              src={profilePicture || undefined}
               sx={{ 
                 width: 80, 
                 height: 80, 
-                bgcolor: "background.default",
+                bgcolor: profilePicture? 'transparent' : 'background.default',
                 color: "text.secondary",
                 fontSize: "1.5rem",
                 fontWeight: 500
               }}
             >
-              SC
+              {!profilePicture && (fname?.[0] || 'U')}{!profilePicture && (lname?.[0] || '')}
             </Avatar>
 
             <Box sx={{ display: "flex", gap: 2 }}>
@@ -126,84 +170,79 @@ const ProfileSettings: React.FC = () => {
             <TextField 
               fullWidth 
               label="First Name" 
-              defaultValue="Sarah"
+              value={fname}
+              onChange={e=> setFname(e.target.value)}
               size="small"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 1.5,
-                }
-              }}
+              disabled={loading}
+              sx={{"& .MuiOutlinedInput-root": { borderRadius: 1.5 }}}
             />
             <TextField 
               fullWidth 
               label="Last Name" 
-              defaultValue="Chen"
+              value={lname}
+              onChange={e=> setLname(e.target.value)}
               size="small"
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 1.5,
-                }
-              }}
+              disabled={loading}
+              sx={{"& .MuiOutlinedInput-root": { borderRadius: 1.5 }}}
             />
           </Box>
 
           <TextField
             fullWidth
             label="Bio"
-            defaultValue="Digital nomad exploring the world one adventure at a time ✈️"
+            value={bio}
+            onChange={e=> setBio(e.target.value)}
             multiline
             rows={3}
             size="small"
-            sx={{
-              mb: 3,
-              "& .MuiOutlinedInput-root": {
-                borderRadius: 1.5,
-              }
-            }}
+            disabled={loading}
+            sx={{ mb: 3, "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}
           />
 
           <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
             <TextField 
               fullWidth 
               label="Current Location" 
-              defaultValue="Bangkok, Thailand"
+              value={location}
+              onChange={e=> setLocation(e.target.value)}
               size="small"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <LocationOn sx={{ color: "text.secondary", fontSize: 20 }} />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 1.5,
-                }
-              }}
+              disabled={loading}
+              InputProps={{ startAdornment: (<InputAdornment position="start"><LocationOn sx={{ color: "text.secondary", fontSize: 20 }} /></InputAdornment>) }}
+              sx={{"& .MuiOutlinedInput-root": { borderRadius: 1.5 }}}
             />
             <TextField 
               fullWidth 
               label="Website" 
-              defaultValue="sarahexplores.com"
+              value={website}
+              onChange={e=> setWebsite(e.target.value)}
               size="small"
-              InputProps={{
-                startAdornment: (
-                  <InputAdornment position="start">
-                    <Language sx={{ color: "text.secondary", fontSize: 20 }} />
-                  </InputAdornment>
-                ),
-              }}
-              sx={{
-                "& .MuiOutlinedInput-root": {
-                  borderRadius: 1.5,
-                }
-              }}
+              disabled={loading}
+              InputProps={{ startAdornment: (<InputAdornment position="start"><Language sx={{ color: "text.secondary", fontSize: 20 }} /></InputAdornment>) }}
+              sx={{"& .MuiOutlinedInput-root": { borderRadius: 1.5 }}}
             />
           </Box>
 
           <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
             <Button 
               variant="contained"
+              disabled={loading || saving}
+              onClick={async ()=> {
+                if(!authToken) return;
+                setSaving(true); setError(null); setSuccess(null);
+                try {
+                  const payload = {
+                    Fname: fname,
+                    Lname: lname,
+                    Bio: bio,
+                    Location: location,
+                    Website: website,
+                  };
+                  await apiServices.updatePersonalInfoSettings(authToken, payload);
+                  setSuccess('Personal info updated');
+                } catch(e:any){
+                  setError('Failed to save changes');
+                } finally { setSaving(false); }
+              }}
               sx={{ 
                 textTransform: "none",
                 fontWeight: 500,
@@ -212,7 +251,7 @@ const ProfileSettings: React.FC = () => {
                 borderRadius: 1.5
               }}
             >
-              Save Changes
+              {saving ? 'Saving...' : 'Save Changes'}
             </Button>
           </Box>
         </CardContent>
@@ -244,45 +283,38 @@ const ProfileSettings: React.FC = () => {
           <TextField
             fullWidth
             label="Email Address"
-            defaultValue="sarah.chen@email.com"
+            value={email}
+            onChange={e=> setEmail(e.target.value)}
             size="small"
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Email sx={{ color: "text.secondary", fontSize: 20 }} />
-                </InputAdornment>
-              ),
-            }}
-            sx={{
-              mb: 3,
-              "& .MuiOutlinedInput-root": {
-                borderRadius: 1.5,
-              }
-            }}
+            disabled={loading}
+            InputProps={{ startAdornment: (<InputAdornment position="start"><Email sx={{ color: "text.secondary", fontSize: 20 }} /></InputAdornment>) }}
+            sx={{ mb: 3, "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}
           />
 
           <TextField
             fullWidth
             label="Phone Number"
-            defaultValue="+1 (555) 123-4567"
+            value={phone}
+            onChange={e=> setPhone(e.target.value)}
             size="small"
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <Phone sx={{ color: "text.secondary", fontSize: 20 }} />
-                </InputAdornment>
-              ),
-            }}
-            sx={{
-              mb: 3,
-              "& .MuiOutlinedInput-root": {
-                borderRadius: 1.5,
-              }
-            }}
+            disabled={loading}
+            InputProps={{ startAdornment: (<InputAdornment position="start"><Phone sx={{ color: "text.secondary", fontSize: 20 }} /></InputAdornment>) }}
+            sx={{ mb: 3, "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}
           />
 
           <Button 
             variant="outlined"
+            disabled={loading || contactSaving}
+            onClick={async ()=> {
+              if(!authToken) return;
+              setContactSaving(true); setError(null); setSuccess(null);
+              try {
+                await apiServices.updateContactInfoSettings(authToken, { Email: email, Phone: phone });
+                setSuccess('Contact info updated');
+              } catch(e:any){
+                setError('Failed to update contact info');
+              } finally { setContactSaving(false); }
+            }}
             sx={{ 
               textTransform: "none",
               fontWeight: 500,
@@ -291,7 +323,7 @@ const ProfileSettings: React.FC = () => {
               borderRadius: 1.5
             }}
           >
-            Update Contact Info
+            {contactSaving ? 'Updating...' : 'Update Contact Info'}
           </Button>
         </CardContent>
       </Card>
@@ -324,6 +356,7 @@ const ProfileSettings: React.FC = () => {
             type={showPassword ? "text" : "password"}
             placeholder="Enter current password"
             size="small"
+            disabled={loading}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -335,13 +368,11 @@ const ProfileSettings: React.FC = () => {
                     {showPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
                 </InputAdornment>
-              ),
+              )
             }}
             sx={{
-              mb: 2,
-              "& .MuiOutlinedInput-root": {
-                borderRadius: 1.5,
-              }
+              mb: 3,
+              "& .MuiOutlinedInput-root": { borderRadius: 1.5 }
             }}
           />
 
@@ -351,6 +382,7 @@ const ProfileSettings: React.FC = () => {
             type={showNewPassword ? "text" : "password"}
             placeholder="Enter new password"
             size="small"
+            disabled={loading}
             InputProps={{
               endAdornment: (
                 <InputAdornment position="end">
@@ -362,13 +394,11 @@ const ProfileSettings: React.FC = () => {
                     {showNewPassword ? <VisibilityOff /> : <Visibility />}
                   </IconButton>
                 </InputAdornment>
-              ),
+              )
             }}
             sx={{
-              mb: 2,
-              "& .MuiOutlinedInput-root": {
-                borderRadius: 1.5,
-              }
+              mb: 3,
+              "& .MuiOutlinedInput-root": { borderRadius: 1.5 }
             }}
           />
 
@@ -401,18 +431,19 @@ const ProfileSettings: React.FC = () => {
 
           <Button 
             variant="outlined"
-            sx={{ 
-              textTransform: "none",
-              fontWeight: 500,
-              px: 3,
-              py: 1,
-              borderRadius: 1.5
-            }}
+            disabled={loading}
+            sx={{ textTransform: "none", fontWeight: 500, px: 3, py: 1, borderRadius: 1.5 }}
           >
             Change Password
           </Button>
         </CardContent>
       </Card>
+    {error && (
+      <Typography variant="caption" color="error" sx={{ mt:2, display:'block' }}>{error}</Typography>
+    )}
+    {success && (
+      <Typography variant="caption" color="success.main" sx={{ mt:1, display:'block' }}>{success}</Typography>
+    )}
     </Box>
   );
 };

@@ -200,6 +200,26 @@ export const apiServices = {
     apiClient.get('/api/profile/settings/privacy', {
       headers: { Authorization: `Bearer ${token}` }
     }),
+  // GET profile settings (basic user profile fields)
+  getProfileSettings: (token: string) =>
+    apiClient.get('/api/profile/settings/Profile', {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+  // PATCH personal info settings (basic profile editable fields)
+  updatePersonalInfoSettings: (token: string, model: {
+    Fname?: string;
+    Lname?: string;
+    Bio?: string;
+    Location?: string;
+    Website?: string;
+    Twitter?: string;
+    Instagram?: string;
+    Facebook?: string;
+  }) =>
+    apiClient.patch('/api/profile/settings/Personal-Info', model, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+  
   // PATCH api/profile/settings/privacy
   // Accepts partial update object. Frontend sends only changed keys.
   updatePrivacySettings: (token: string, model: {
@@ -209,6 +229,11 @@ export const apiServices = {
     AllowDirectMessages: boolean;
   }) =>
     apiClient.patch('/api/profile/settings/privacy', model, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+  // PATCH contact info settings (email / phone)
+  updateContactInfoSettings: (token: string, model: { Email?: string; Phone?: string }) =>
+    apiClient.patch('/api/profile/settings/contact-info', model, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 };
