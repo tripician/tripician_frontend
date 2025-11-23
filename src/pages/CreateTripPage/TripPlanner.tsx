@@ -110,6 +110,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		}, [initialTrip]);
 	// Support direct page reload without location.state by performing a fallback fetch.
 	const [remoteTrip, setRemoteTrip] = React.useState<any|null>(null);
+	const [tripUsers, setTripUsers] = React.useState<any[]>([]); // authoritative members list from /trips/{id}/users
 	const unifiedTrip = React.useMemo(()=> {
 		return normalizedInitial || (remoteTrip ? normalizeTrip(remoteTrip) : null);
 	}, [normalizedInitial, remoteTrip]); // naming retained for downstream references
@@ -359,7 +360,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const closeToast = ()=> setToast(t=> ({ ...t, open:false }));
 	// Lightweight settings save listener (Save Settings button dispatches browser event)
 	React.useEffect(()=> {
-		const handler = async () => {
+		const settingsSaveHandler = async () => {
 			if(!authToken || !tripId) { openToast('error','Cannot save settings'); return; }
 			try {
 				const privacyEnum = privacy==='Private' ? 'PRIVATE' : privacy==='Trip Members' ? 'TRIP_MEMBERS' : privacy==='My Followers' ? 'FOLLOWERS' : 'EVERYONE';
@@ -383,9 +384,38 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				openToast('error','Save settings failed');
 			}
 		};
-		window.addEventListener('trip:settings:save', handler);
-		return ()=> window.removeEventListener('trip:settings:save', handler);
-	}, [authToken, tripId, title, privacy, countries, bannerUrl]);
+		window.addEventListener('trip:settings:save', settingsSaveHandler);
+		// Listen for members updated events (batch invites) to refresh members list
+		const membersUpdatedHandler = async (e: any) => {
+			try {
+				if(!authToken || !tripId) return;
+				if(e?.detail?.tripId && e.detail.tripId !== tripId) return; // ignore other trips
+				// Fetch authoritative members list
+				const usersResp = await apiServices.getTripUsers(authToken, tripId);
+				if(Array.isArray(usersResp?.data)) setTripUsers(usersResp.data);
+				openToast('success','Members updated');
+			} catch {}
+		};
+		window.addEventListener('trip:members:updated', membersUpdatedHandler);
+		return ()=> {
+			window.removeEventListener('trip:settings:save', settingsSaveHandler);
+			window.removeEventListener('trip:members:updated', membersUpdatedHandler);
+		};
+	}, [authToken, tripId, title, privacy, countries, bannerUrl, openToast]);
+
+	// Initial fetch of trip users (when token & tripId available)
+	React.useEffect(()=> {
+		if(!authToken || !tripId) return;
+		let active = true;
+		(async()=> {
+			try {
+				const resp = await apiServices.getTripUsers(authToken, tripId);
+				if(!active) return;
+				if(Array.isArray(resp?.data)) setTripUsers(resp.data);
+			} catch {}
+		})();
+		return ()=> { active = false; };
+	}, [authToken, tripId]);
 	const [mapCollapsed, setMapCollapsed] = React.useState(false);
 	const [mapWidth, setMapWidth] = React.useState(0.30); // default map takes 30% width now
 	const containerRef = React.useRef<HTMLDivElement|null>(null);
@@ -735,17 +765,18 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const userProfile = useSelector((s:RootState)=> s.user.profile);
 	const tripMembers = React.useMemo(()=> {
 		const list: { id:string; name:string; handle:string; avatar?:string; role:'Owner'|'Editor'|'Viewer' }[] = [];
-		// Backend may include members in initialTrip.trip.members or initialTrip.members
-		const rawMembers: any[] = Array.isArray((initialTrip?.trip as any)?.members) ? (initialTrip!.trip as any).members
+		// Prefer authoritative tripUsers from /trips/{id}/users; fallback to embedded members in initialTrip
+		const embeddedMembers: any[] = Array.isArray((initialTrip?.trip as any)?.members) ? (initialTrip!.trip as any).members
 			: Array.isArray((initialTrip as any)?.members) ? (initialTrip as any).members : [];
+		const rawMembers: any[] = tripUsers.length ? tripUsers : embeddedMembers;
 		for(const m of rawMembers){
 			try {
-				const id = String(m.id || m.userId || Math.random().toString(36).slice(2));
+				const id = String(m.id || m.userId || m.Id || Math.random().toString(36).slice(2));
 				const nameParts = [m.name, m.fullName, m.fname, m.lname].filter(v=> typeof v==='string' && v.trim());
 				let name = nameParts.join(' ').trim();
-				if(!name) name = (typeof m.username==='string' && m.username) || 'Member';
+				if(!name) name = (typeof m.username==='string' && m.username) || (typeof m.email==='string' ? m.email.split('@')[0] : 'Member');
 				const handle = typeof m.username==='string' && m.username ? '@'+m.username : (typeof m.handle==='string' ? m.handle : '@member');
-				const avatar = (m.avatar || m.profilepicture || m.photoUrl) as string | undefined;
+				const avatar = (m.avatar || m.profilepicture || m.photoUrl || m.profilePic) as string | undefined;
 				// Role heuristic: if object marks owner/self, else Editor if canEdit flag, else Viewer
 				let role: 'Owner'|'Editor'|'Viewer' = 'Viewer';
 				if(m.role==='Owner' || m.isOwner) role='Owner'; else if(m.role==='Editor' || m.canEdit) role='Editor';
@@ -770,7 +801,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			}
 		}
 		return list;
-	}, [initialTrip, userProfile, isOwnerExternal]);
+	}, [initialTrip, userProfile, isOwnerExternal, tripUsers]);
 	return (
 		<React.Fragment>
 		<Box sx={{ display:'flex', flexDirection:'row', height:'100vh', overflow:'hidden' }}>

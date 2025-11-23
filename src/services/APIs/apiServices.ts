@@ -174,4 +174,22 @@ export const apiServices = {
   }) => apiClient.put(`/trips/${tripId}/settings`, data, {
     headers: { Authorization: `Bearer ${token}` }
   }),
+
+  // GET /user-profiles/{userEmail} - search user by email
+  getUserProfileByEmail: (token: string, userEmail: string) =>
+    apiClient.get(`/search/user-profiles/${encodeURIComponent(userEmail)}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // PATCH /trips/{tripId}/add-users - batch add members to trip
+  addTripUsers: (token: string, tripId: string, userIds: number[]) =>
+    apiClient.patch(`/trips/${tripId}/add-users`, { UserIds: userIds }, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // GET /trips/{tripId}/users - fetch all users (members) of a trip
+  getTripUsers: (token: string, tripId: string) =>
+    apiClient.get(`/trips/${tripId}/users`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
 };
