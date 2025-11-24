@@ -255,4 +255,22 @@ export const apiServices = {
     apiClient.patch('/api/profile/settings/notification', model, {
       headers: { Authorization: `Bearer ${token}` }
     }),
+  // ------------------------------------------------------------
+  // Preference Settings
+  // GET api/profile/settings/preference
+  getPreferenceSettings: (token: string) =>
+    apiClient.get('/api/profile/settings/preference', {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+  // PATCH api/profile/settings/preference
+  updatePreferenceSettings: (token: string, model: {
+    language?: string;
+    timezone?: string;
+    preferredCurrency?: string;
+    travelStyle?: string;
+    budgetRange?: string;
+  }) =>
+    apiClient.patch('/api/profile/settings/preference', model, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
 };

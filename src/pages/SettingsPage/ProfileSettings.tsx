@@ -11,8 +11,9 @@ import {
   Avatar,
   IconButton,
   InputAdornment,
+  CircularProgress,
 } from "@mui/material";
-import { LocationOn, Language, Email, Phone, Visibility, VisibilityOff } from "@mui/icons-material";
+import { LocationOn, Language, Email, Phone, Visibility, VisibilityOff, Save } from "@mui/icons-material";
 
 const ProfileSettings: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -32,7 +33,7 @@ const ProfileSettings: React.FC = () => {
   const [saving, setSaving] = useState(false);   // personal info save
   const [contactSaving, setContactSaving] = useState(false); // contact info save
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
+  // Removed local success state; using global overlay events instead
 
   const { token: authToken } = useAuthToken();
 
@@ -61,7 +62,7 @@ const ProfileSettings: React.FC = () => {
   }, [authToken]);
 
   return (
-    <Box sx={{ maxWidth: "100%"}}>
+    <Box sx={{ maxWidth: "100%" }}>
       {/* Profile Photo Section */}
       <Card
         sx={{
@@ -73,69 +74,67 @@ const ProfileSettings: React.FC = () => {
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>            
-            <Typography 
-              variant="h6" 
-              sx={{ 
-                fontWeight: 600, 
+          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>
+            <Typography
+              variant="h6"
+              sx={{
+                fontWeight: 600,
                 color: "text.primary",
-                fontSize: "1.1rem"
+                fontSize: "1.1rem",
               }}
             >
               Profile Photo
             </Typography>
           </Box>
-
           <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
-            <Avatar 
+            <Avatar
               src={profilePicture || undefined}
-              sx={{ 
-                width: 80, 
-                height: 80, 
-                bgcolor: profilePicture? 'transparent' : 'background.default',
+              sx={{
+                width: 80,
+                height: 80,
+                bgcolor: profilePicture ? "transparent" : "background.default",
                 color: "text.secondary",
                 fontSize: "1.5rem",
-                fontWeight: 500
+                fontWeight: 500,
               }}
             >
-              {!profilePicture && (fname?.[0] || 'U')}{!profilePicture && (lname?.[0] || '')}
+              {!profilePicture && (fname?.[0] || "U")}
+              {!profilePicture && (lname?.[0] || "")}
             </Avatar>
-
             <Box sx={{ display: "flex", gap: 2 }}>
-              <Button 
-                variant="contained" 
+              <Button
+                variant="contained"
                 size="small"
-                sx={{ 
-                  textTransform: "none",
-                  fontWeight: 500,
-                  px: 2,
-                  py: 1
+                onClick={() => {
+                  window.dispatchEvent(
+                    new CustomEvent("app:success", { detail: { message: "Photo uploaded" } })
+                  );
                 }}
+                sx={{ textTransform: "none", fontWeight: 500, px: 2, py: 1 }}
               >
                 Upload New Photo
               </Button>
-              <Button 
-                variant="text" 
-                color="error" 
+              <Button
+                variant="text"
+                color="error"
                 size="small"
-                sx={{ 
-                  textTransform: "none",
-                  fontWeight: 500,
-                  px: 2,
-                  py: 1
+                onClick={() => {
+                  window.dispatchEvent(
+                    new CustomEvent("app:success", { detail: { message: "Photo removed" } })
+                  );
                 }}
+                sx={{ textTransform: "none", fontWeight: 500, px: 2, py: 1 }}
               >
                 Remove Photo
               </Button>
             </Box>
           </Box>
-
-          <Typography 
-            variant="body2" 
-            sx={{ 
-              color: "text.secondary", 
+          <Typography
+            variant="body2"
+            sx={{
+              color: "text.secondary",
               mt: 2,
-              fontSize: "0.875rem"
+              fontSize: "0.875rem",
             }}
           >
             Recommended: Square image, at least 400x400px
@@ -223,12 +222,14 @@ const ProfileSettings: React.FC = () => {
           </Box>
 
           <Box sx={{ display: "flex", justifyContent: "flex-end" }}>
-            <Button 
+            <Button
               variant="contained"
+              startIcon={saving ? <CircularProgress size={18} /> : <Save />}
               disabled={loading || saving}
-              onClick={async ()=> {
-                if(!authToken) return;
-                setSaving(true); setError(null); setSuccess(null);
+              onClick={async () => {
+                if (!authToken) return;
+                setSaving(true);
+                setError(null);
                 try {
                   const payload = {
                     Fname: fname,
@@ -238,20 +239,26 @@ const ProfileSettings: React.FC = () => {
                     Website: website,
                   };
                   await apiServices.updatePersonalInfoSettings(authToken, payload);
-                  setSuccess('Personal info updated');
-                } catch(e:any){
-                  setError('Failed to save changes');
-                } finally { setSaving(false); }
+                  window.dispatchEvent(
+                    new CustomEvent("app:success", { detail: { message: "Personal info updated" } })
+                  );
+                } catch (e: any) {
+                  setError("Failed to save changes");
+                } finally {
+                  setSaving(false);
+                }
               }}
-              sx={{ 
+              sx={{
                 textTransform: "none",
                 fontWeight: 500,
                 px: 3,
-                py: 1,
-                borderRadius: 1.5
+                py: 1.5,
+                borderRadius: 1.5,
+                backgroundColor: "#3b82f6",
+                "&:hover": { backgroundColor: "#2563eb" },
               }}
             >
-              {saving ? 'Saving...' : 'Save Changes'}
+              {saving ? "Saving..." : "Save"}
             </Button>
           </Box>
         </CardContent>
@@ -307,10 +314,10 @@ const ProfileSettings: React.FC = () => {
             disabled={loading || contactSaving}
             onClick={async ()=> {
               if(!authToken) return;
-              setContactSaving(true); setError(null); setSuccess(null);
+              setContactSaving(true); setError(null);
               try {
                 await apiServices.updateContactInfoSettings(authToken, { Email: email, Phone: phone });
-                setSuccess('Contact info updated');
+                window.dispatchEvent(new CustomEvent('app:success',{ detail:{ message:'Contact info updated' }}));
               } catch(e:any){
                 setError('Failed to update contact info');
               } finally { setContactSaving(false); }
@@ -432,6 +439,7 @@ const ProfileSettings: React.FC = () => {
           <Button 
             variant="outlined"
             disabled={loading}
+            onClick={()=> window.dispatchEvent(new CustomEvent('app:success',{ detail:{ message:'Password changed' }}))}
             sx={{ textTransform: "none", fontWeight: 500, px: 3, py: 1, borderRadius: 1.5 }}
           >
             Change Password
@@ -441,9 +449,7 @@ const ProfileSettings: React.FC = () => {
     {error && (
       <Typography variant="caption" color="error" sx={{ mt:2, display:'block' }}>{error}</Typography>
     )}
-    {success && (
-      <Typography variant="caption" color="success.main" sx={{ mt:1, display:'block' }}>{success}</Typography>
-    )}
+    {/* success caption removed in favor of global overlay */}
     </Box>
   );
 };
