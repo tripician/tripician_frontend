@@ -236,4 +236,23 @@ export const apiServices = {
     apiClient.patch('/api/profile/settings/contact-info', model, {
       headers: { Authorization: `Bearer ${token}` }
     }),
+  // ------------------------------------------------------------
+  // Notification Settings
+  // GET api/profile/settings/notification
+  getNotificationSettings: (token: string) =>
+    apiClient.get('/api/profile/settings/notification', {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+  // PATCH api/profile/settings/notification
+  updateNotificationSettings: (token: string, model: Partial<{
+    emailUpdates: boolean;
+    communityPosts: boolean;
+    blogComments: boolean;
+    newsletter: boolean;
+    pushNotifications: boolean;
+    travelReminders: boolean;
+  }>) =>
+    apiClient.patch('/api/profile/settings/notification', model, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
 };
