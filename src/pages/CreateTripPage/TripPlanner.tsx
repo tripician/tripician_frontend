@@ -8,7 +8,7 @@ import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
-import { setCurrency as setCurrencyAction, updateDestinationNights, setTransport, addDestination, removeDestination, reorderChainExact, addVisaDoc, removeVisaDoc, removeGlobalDoc, pinDoc, unpinDoc, loadState, resetPlanner } from '../../store/plannerSlice';
+import { setCurrency as setCurrencyAction, updateDestinationNights, setTransport, addDestination, removeDestination, reorderChainExact, addVisaDoc, removeVisaDoc, removeGlobalDoc, pinDoc, unpinDoc, loadState, resetPlanner, setTripDates, setTargetNights } from '../../store/plannerSlice';
 import { togglePin as togglePinDocSlice, removeDocument as removeDocsSliceDocument } from '../../store/docsSlice';
 import { DEFAULT_DOC_RULE } from '../../utils/fileValidation'; // legacy use (validateFiles removed after refactor)
 import ValidatedFileInput from '../../components/CommonComponents/ValidatedFileInput';
@@ -154,6 +154,11 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const handleRemoveCountry = React.useCallback((country:string) => {
 		setCountries(prev => prev.filter(c=> c!==country));
 	}, []);
+	const handleAddCountry = React.useCallback((country:string) => {
+		const c = (country || '').trim();
+		if(!c) return;
+		setCountries(prev => prev.includes(c) ? prev : [...prev, c]);
+	}, []);
 	
 	const notesRef = React.useRef<HTMLTextAreaElement | null>(null);
 	const [privacy, setPrivacy] = React.useState<'Private'|'Trip Members'|'My Followers'|'Everyone'>('Private');
@@ -195,6 +200,23 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const isDirty = computeSignature() !== lastCommittedRef.current;
 	// Hydration status flag
 	const isHydrated = Boolean(hydratedRef.current);
+
+	// Sync planner store dates & target nights when trip date range changes
+	React.useEffect(()=> {
+		try {
+			const sd = tripStartDate && tripStartDate.length>=10 ? tripStartDate.slice(0,10) : undefined;
+			const ed = tripEndDate && tripEndDate.length>=10 ? tripEndDate.slice(0,10) : undefined;
+			if(sd || ed) {
+				dispatch(setTripDates({ startDate: sd, endDate: ed }));
+				if(sd && ed && !planner.targetLocked) {
+					const start = new Date(sd);
+					const end = new Date(ed);
+					const diff = Math.max(1, Math.round((end.getTime() - start.getTime())/(24*60*60*1000)));
+					dispatch(setTargetNights(diff));
+				}
+			}
+		} catch {}
+	}, [tripStartDate, tripEndDate, dispatch, planner.targetLocked]);
 
 
 	// Fallback remote fetch when initialTrip absent (direct reload of planner route)
@@ -363,8 +385,27 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		const settingsSaveHandler = async () => {
 			if(!authToken || !tripId) { openToast('error','Cannot save settings'); return; }
 			try {
-				const privacyEnum = privacy==='Private' ? 'PRIVATE' : privacy==='Trip Members' ? 'TRIP_MEMBERS' : privacy==='My Followers' ? 'FOLLOWERS' : 'EVERYONE';
-				await apiServices.updateTripSettings(authToken, tripId, { name:title, privacy: privacyEnum, countries, photoUrl: bannerUrl || undefined });
+				const visibilityEnum = privacy==='Private' ? 'PRIVATE' : privacy==='Trip Members' ? 'TRIP_MEMBERS' : privacy==='My Followers' ? 'FOLLOWERS' : 'EVERYONE';
+				const sd = sanitizeDateString(tripStartDate) || undefined;
+				const ed = sanitizeDateString(tripEndDate) || undefined;
+				// Immediately reflect updated date span in nights ring before waiting for refetch
+				if(sd && ed){
+					try {
+						const start = new Date(sd);
+						const end = new Date(ed);
+						const diff = Math.max(1, Math.round((end.getTime() - start.getTime())/(24*60*60*1000)));
+						dispatch(setTargetNights(diff)); // locks target to explicit span
+						dispatch(setTripDates({ startDate: sd, endDate: ed }));
+					} catch {}
+				}
+				await apiServices.updateTripSettings(authToken, tripId, {
+					name: title,
+					visibility: visibilityEnum,
+					startDate: sd,
+					endDate: ed,
+					countries,
+					photoUrl: bannerUrl || undefined // fallback until bannerPhotoId flow is implemented
+				});
 				try {
 					const refreshed = await apiServices.getTripById(authToken, tripId);
 					const meta = (refreshed?.data?.trip) || refreshed?.data?.meta || refreshed?.data;
@@ -376,12 +417,20 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 							const vis = meta.visibility.toLowerCase();
 							setPrivacy(vis.startsWith('every')? 'Everyone' : vis.startsWith('trip')? 'Trip Members' : vis.startsWith('my')? 'My Followers' : 'Private');
 						}
+						if(typeof meta.startDate==='string') setTripStartDate(sanitizeDateString(meta.startDate));
+						if(typeof meta.endDate==='string') setTripEndDate(sanitizeDateString(meta.endDate));
 						setRemoteTrip(refreshed.data);
 					}
 				} catch { /* silent refresh fail */ }
 				openToast('success','Settings saved');
-			} catch(err){
-				openToast('error','Save settings failed');
+				// Auto-close settings dialog after successful save
+				setSettingsOpen(false);
+			} catch(err:any){
+				const status = err?.response?.status;
+				if(status === 404) openToast('error','Trip not found or you are not the owner');
+				else if(status === 401) openToast('error','Unauthorized: please sign in');
+				else if(status === 400) openToast('error','Invalid settings payload');
+				else openToast('error','Save settings failed');
 			}
 		};
 		window.addEventListener('trip:settings:save', settingsSaveHandler);
@@ -764,7 +813,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	// Build dynamic trip members list (owner + any backend-provided members if structure exists)
 	const userProfile = useSelector((s:RootState)=> s.user.profile);
 	const tripMembers = React.useMemo(()=> {
-		const list: { id:string; name:string; handle:string; avatar?:string; role:'Owner'|'Editor'|'Viewer' }[] = [];
+		const list: { id:string; name:string; handle:string; email?:string; avatar?:string; role:'Owner'|'Editor'|'Viewer' }[] = [];
 		// Prefer authoritative tripUsers from /trips/{id}/users; fallback to embedded members in initialTrip
 		const embeddedMembers: any[] = Array.isArray((initialTrip?.trip as any)?.members) ? (initialTrip!.trip as any).members
 			: Array.isArray((initialTrip as any)?.members) ? (initialTrip as any).members : [];
@@ -776,13 +825,14 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				let name = nameParts.join(' ').trim();
 				if(!name) name = (typeof m.username==='string' && m.username) || (typeof m.email==='string' ? m.email.split('@')[0] : 'Member');
 				const handle = typeof m.username==='string' && m.username ? '@'+m.username : (typeof m.handle==='string' ? m.handle : '@member');
+				const email = typeof m.email==='string' ? m.email : undefined;
 				const avatar = (m.avatar || m.profilepicture || m.photoUrl || m.profilePic) as string | undefined;
 				// Role heuristic: if object marks owner/self, else Editor if canEdit flag, else Viewer
 				let role: 'Owner'|'Editor'|'Viewer' = 'Viewer';
 				if(m.role==='Owner' || m.isOwner) role='Owner'; else if(m.role==='Editor' || m.canEdit) role='Editor';
 				// Normalize owner: if backend sends canEdit + matches current user id treat as Owner
 				if(userProfile && (id === String(userProfile.id)) && role==='Editor' && isOwnerExternal) role='Owner';
-				list.push({ id, name, handle, avatar, role });
+				list.push({ id, name, handle, email, avatar, role });
 			} catch {}
 		}
 		// Always include current user as Owner (or Viewer if external non-owner) at top if not already present
@@ -791,7 +841,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			if(!list.some(m=> m.id===currentId)){
 				const name = [userProfile.fname, userProfile.lname].filter(Boolean).join(' ') || userProfile.email || 'You';
 				const derivedHandle = userProfile.email ? '@'+(userProfile.email.split('@')[0]||'you') : '@you';
-				list.unshift({ id: currentId, name, handle: derivedHandle, avatar: userProfile.profilepicture, role: isOwnerExternal? 'Owner':'Viewer' });
+				list.unshift({ id: currentId, name, handle: derivedHandle, email: userProfile.email, avatar: userProfile.profilepicture, role: isOwnerExternal? 'Owner':'Viewer' });
 			}
 			else {
 				// Ensure existing entry for current user is labeled Owner if isOwnerExternal
@@ -1270,23 +1320,28 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				onClose={()=> setSettingsOpen(false)}
 				title={title}
 				tripId={tripId}
-				startDate={tripStartDate || planner.destinations[0]?.startDate || new Date().toISOString().slice(0,10)}
-				endDate={tripEndDate || planner.destinations[planner.destinations.length-1]?.endDate || tripStartDate || new Date().toISOString().slice(0,10)}
+					startDate={tripStartDate || planner.destinations[0]?.startDate || new Date().toISOString().slice(0,10)}
+					endDate={tripEndDate || planner.destinations[planner.destinations.length-1]?.endDate || tripStartDate || new Date().toISOString().slice(0,10)}
 				privacy={privacy}
 				members={tripMembers}
 				bannerUrl={bannerUrl}
+				currentUserIsOwner={isOwnerExternal}
 				onChangeBanner={({ url })=> { setBannerUrl(url); }}
 				countries={countries}
+					onAddCountry={(c: string)=> { // defer persistence until Save Settings
+						handleAddCountry(c);
+					}}
 				onRemoveCountry={(c: string)=> { // defer persistence until Save Settings
 					handleRemoveCountry(c); /* mark dirty only */
 				}}
-				onChangeTitle={(t)=> setTitle(t)}
-		onChangeStartDate={()=> {/* future: update chain */}}
-		onChangeEndDate={()=> {/* future: update chain */}}
+					onChangeTitle={(t)=> setTitle(t)}
+					onChangeStartDate={(d)=> setTripStartDate(d)}
+					onChangeEndDate={(d)=> setTripEndDate(d)}
 				onChangePrivacy={(p)=> setPrivacy(p as any)}
 				onDeleteTrip={()=> { setConfirmDeleteOpen(true); }}
 					onInviteEmail={async(_)=> { /* invite email placeholder */ }}
 			/>
+
 			<Dialog open={exitConfirmOpen} onClose={()=> setExitConfirmOpen(false)} maxWidth='xs' fullWidth>
 				<DialogTitle>Unsaved Changes</DialogTitle>
 				<DialogContent dividers>

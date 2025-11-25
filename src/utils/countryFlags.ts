@@ -58,6 +58,9 @@ const NAME_TO_CODE: Record<string, string> = {
   'Zimbabwe': 'ZW'
 };
 
+// Export a stable list of supported country names for dropdowns/autocomplete
+export const COUNTRY_NAMES: string[] = Object.keys(NAME_TO_CODE);
+
 export function countryCodeFromName(name: string): string | undefined {
   if (!name) return undefined;
   return NAME_TO_CODE[name] || undefined;

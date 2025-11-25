@@ -165,11 +165,16 @@ export const apiServices = {
     headers: { Authorization: `Bearer ${token}` }
   }),
 
-  // PUT /trips/{tripId}/settings - lightweight settings update (name, privacy, countries, photoUrl)
+  // PUT /trips/{tripId}/settings - settings update (DTO-compatible: name, visibility, dates, countries, bannerPhotoId)
   updateTripSettings: (token: string, tripId: string, data: {
     name?: string;
-    privacy?: string; // backend will map
+    visibility?: string; // e.g., PRIVATE | TRIP_MEMBERS | FOLLOWERS | EVERYONE
+    startDate?: string; // ISO date (yyyy-MM-dd)
+    endDate?: string;   // ISO date (yyyy-MM-dd)
     countries?: string[];
+    bannerPhotoId?: string; // GUID as string if available
+    // Backward compatibility
+    privacy?: string;
     photoUrl?: string;
   }) => apiClient.put(`/trips/${tripId}/settings`, data, {
     headers: { Authorization: `Bearer ${token}` }
@@ -190,6 +195,11 @@ export const apiServices = {
   // GET /trips/{tripId}/users - fetch all users (members) of a trip
   getTripUsers: (token: string, tripId: string) =>
     apiClient.get(`/trips/${tripId}/users`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+  // DELETE /trips/{tripId}/users/{userId} - remove a single user from trip (owner only)
+  removeTripUser: (token: string, tripId: string, userId: string | number) =>
+    apiClient.delete(`/trips/${tripId}/users/${userId}`, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
