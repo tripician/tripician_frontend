@@ -3,6 +3,7 @@ import TripCard from './TripCard';
 import '../../assets/css/Dashboard.css';
 import santorini from '../../assets/santorini.png'; // fallback placeholder image
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
+import Footer from '../PageLayout/CommonLayouts/Footer';
 import { Tabs, Tab, Box, CircularProgress, Typography, Alert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { apiServices } from '../../services/APIs/apiServices';
@@ -31,8 +32,9 @@ const Dashboard: React.FC = () => {
         const mapped = (resp.data || []).map((t: any) => ({
           id: t.id || t.Id,
           title: t.name || t.title || 'Untitled trip',
-            // naive country -> location mapping (first country) fallback
-          location: t.countries && t.countries.length ? t.countries[0] : 'Unknown',
+          // naive country -> location mapping (first country) fallback
+          location: Array.isArray(t.countries) && t.countries.length ? t.countries[0] : 'Unknown',
+          countries: Array.isArray(t.countries) ? t.countries : [],
           image: santorini, // placeholder; could map by country later
           progress: typeof t.progress === 'number' ? t.progress : 0,
           edited: t.updatedAt ? new Date(t.updatedAt).toLocaleDateString() : '—',
@@ -71,10 +73,17 @@ const Dashboard: React.FC = () => {
     }
   };
   return (
-      <Box sx={{ width: "100%", backgroundColor: "background.default", minHeight: "100vh" }}>
-        <TopBar />
-        
-        <Box sx={{ justifyContent: "center" }}>
+    <Box
+      sx={{
+        width: '100%',
+        backgroundColor: 'background.default',
+        minHeight: '100vh',
+        display: 'flex',
+        flexDirection: 'column'
+      }}
+    >
+      <TopBar />
+      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
           <Tabs
             value={tabValue}
             className="mb-1 mt-3"
@@ -114,7 +123,7 @@ const Dashboard: React.FC = () => {
             <Tab label="Completed" />
             <Tab label="In Progress" />
           </Tabs>
-          <div className="trip-cards-container mb-5">
+          <div className="trip-cards-container" style={{ marginBottom: '32px' }}>
             {loading && (
               <Box sx={{ display:'flex', justifyContent:'center', py:6 }}>
                 <CircularProgress />
@@ -133,6 +142,7 @@ const Dashboard: React.FC = () => {
                 key={plan.id || plan.title}
                 title={plan.title}
                 location={plan.location}
+                countries={plan.countries}
                 image={plan.image}
                 progress={plan.progress}
                 edited={plan.edited}
@@ -158,8 +168,8 @@ const Dashboard: React.FC = () => {
               />
             ))}
           </div>
-        </Box>
       </Box>
+    </Box>
   );
 };
 export default Dashboard;
