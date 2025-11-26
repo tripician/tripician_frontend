@@ -8,7 +8,8 @@ import {
 import ProfileLayoutNav from "./ProfileLayoutNav";
 import RecentPosts from "../../../components/ProfileComponents/RecentPosts";
 
-const tabs = ["RecentPosts", "TravelMap", "Statistics"] as const;
+// const tabs = ["RecentPosts", "TravelMap", "Statistics"] as const;
+const tabs = ["TravelMap", "Statistics"] as const;
 
 // TabPanel
 type TabPanelProps = { children: React.ReactNode; value: number; index: number };
@@ -56,7 +57,7 @@ const ProfileDashboard: React.FC = () => {
             {/* Panels */}
             {tabs.map((tab, index) => (
               <TabPanel key={index} value={activeTab} index={index}>
-                {tab === "RecentPosts" && <RecentPosts />}
+                {/* {tab === "RecentPosts" && <RecentPosts />} */}
                 {tab === "TravelMap" && (
                   <Typography>Travel Map feature coming soon...</Typography>
                 )}

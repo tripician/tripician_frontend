@@ -51,7 +51,7 @@ const ProfileLayoutNav: React.FC<SettingsTopNavProps> = ({
           '& .MuiTabs-indicator': { display: 'none' },
         }}
       >
-        <Tab
+        {/* <Tab
           value="RecentPosts"
           label={
             <Box sx={{ display: "flex", alignItems: "center", gap: 1, fontWeight: 700 }}>
@@ -59,7 +59,7 @@ const ProfileLayoutNav: React.FC<SettingsTopNavProps> = ({
               Recent Posts
             </Box>
           }
-        />
+        /> */}
         <Tab
           value="TravelMap"
           label={
