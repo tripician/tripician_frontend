@@ -1,8 +1,13 @@
-import React, { useEffect, useState } from 'react';
-import { Box, Typography, Card, CardContent, CardMedia, Button, CircularProgress, Alert } from '@mui/material';
+import React, { useEffect, useState, useRef } from 'react';
+import { Box, Typography, Card, CardContent, CardMedia, Button, CircularProgress, Alert, IconButton, Tooltip } from '@mui/material';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import OpenInFullIcon from '@mui/icons-material/OpenInFull';
+import CloseFullscreenIcon from '@mui/icons-material/CloseFullscreen';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import { useNavigate } from 'react-router-dom';
 import { apiServices } from '../../services/APIs/apiServices';
+import TravelMap from '../../components/ProfileComponents/TravelMap';
 
 // Import destination images
 import santorini from '../../assets/santorini.png';
@@ -31,13 +36,13 @@ const Home: React.FC = () => {
     {
       id: 3,
       title: 'Paris, France',
-      description: 'Fall in love with the City of Light and its timeless romantic charm.',
+      description: 'Explore the city of lights and its romantic charm.',
       image: paris,
     },
     {
       id: 4,
       title: 'Dubai, UAE',
-      description: 'Experience luxury and modern architecture in this desert metropolis.',
+      description: 'Experience luxury and modern architecture in the desert.',
       image: dubai,
     },
   ];
@@ -50,11 +55,10 @@ const Home: React.FC = () => {
     let active = true;
     const fetchPublic = async () => {
       setLoadingPublic(true);
-      setPublicError(null);
       try {
-        const resp = await apiServices.getPublicTrips();
+        const response = await apiServices.getPublicTrips();
         if(active){
-          setPublicTrips(resp.data || []);
+          setPublicTrips(response.data || []);
         }
       } catch(err: any){
         if(active){
@@ -73,12 +77,53 @@ const Home: React.FC = () => {
     navigate('/profile');
   };
 
-  return (
-      <Box sx={{ width: "100%", backgroundColor: "background.default", minHeight: "calc(100vh - 100px)" }}>
-        <TopBar />
+  const [mapCollapsed, setMapCollapsed] = useState(false);
+  const [mapWidth, setMapWidth] = useState(0.35); // fraction of total width
+  const containerRef = useRef<HTMLDivElement | null>(null);
+  const resizingRef = useRef(false);
 
+  const startResize = (e: React.MouseEvent) => {
+    if (mapCollapsed) return; // only resize when expanded
+    resizingRef.current = true;
+    document.body.style.cursor = 'col-resize';
+    e.preventDefault();
+  };
+  useEffect(() => {
+    const move = (e: MouseEvent) => {
+      if (!resizingRef.current || !containerRef.current) return;
+      const rect = containerRef.current.getBoundingClientRect();
+      const relativeX = e.clientX - rect.left;
+      const fraction = relativeX / rect.width;
+      const clamped = Math.min(0.65, Math.max(0.20, fraction));
+      setMapWidth(clamped);
+    };
+    const up = () => {
+      if (resizingRef.current) {
+        resizingRef.current = false;
+        document.body.style.cursor = 'default';
+      }
+    };
+    window.addEventListener('mousemove', move);
+    window.addEventListener('mouseup', up);
+    return () => { window.removeEventListener('mousemove', move); window.removeEventListener('mouseup', up); };
+  }, []);
+
+  const toggleCollapse = () => setMapCollapsed(c => !c);
+
+  // Map status arrays (single source for overlay + TravelMap)
+  const visitedCountries = ["USA", "IND", "SGP"];
+  const plannedCountries = ["FRA", "DEU"];
+  const upcomingCountries = ["AUS"];
+  const progressPercent = Math.round((visitedCountries.length / (visitedCountries.length + plannedCountries.length + upcomingCountries.length)) * 100);
+
+  return (
+    <Box ref={containerRef} sx={{ width: '100%', backgroundColor: 'background.default', minHeight: 'calc(100vh - 100px)', display:'flex', flexDirection:'column' }}>
+      <TopBar />
+      <Box sx={{ flex:1,  display:'flex', flexDirection:'row', position:'relative' }}>
+        {/* LEFT CONTENT AREA */}
+        <Box sx={{ flexGrow:1, width: '60%',px:4, py:3, overflow:'auto' }}>
         {/* Featured Destinations */}
-        <Box sx={{ px: 4, pb: 6, mt: 3 }}>
+        <Box sx={{ pb: 6 }}>
           <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ mb: 4 }}>
             Featured Destinations
           </Typography>
@@ -115,7 +160,7 @@ const Home: React.FC = () => {
         </Box>
 
         {/* Public Trips */}
-        <Box sx={{ px:4, mt:2 }}>
+        <Box sx={{ mt:2 }}>
           <Typography variant="h4" fontWeight="bold" gutterBottom sx={{ mb: 3 }}>
             Public Trips
           </Typography>
@@ -153,7 +198,7 @@ const Home: React.FC = () => {
           px: 4,
           backgroundColor: 'background.paper',
           borderRadius: 2,
-          mx: 4,
+          mx: 0,
           mb: 4,
           boxShadow: 1
         }}>
@@ -180,7 +225,91 @@ const Home: React.FC = () => {
             Get Started
           </Button>
         </Box>
+        </Box>
+        {/* SPLITTER */}
+        <Box
+          onMouseDown={startResize}
+          sx={{ width: '50px', cursor: mapCollapsed ? 'pointer':'col-resize', background: 'transparent', position:'relative' }}
+        >
+          <Box sx={{ position:'absolute', top:8, left:-6, display:'flex', flexDirection:'column', gap:1 }}>
+            <Tooltip title={mapCollapsed ? 'Expand map' : 'Collapse map'}>
+              <IconButton size='small' onClick={toggleCollapse} sx={{ bgcolor:'background.paper', boxShadow:1 }}>
+                {mapCollapsed ? <ChevronRightIcon fontSize='small' /> : <ChevronLeftIcon fontSize='small' />}
+              </IconButton>
+            </Tooltip>
+          </Box>
+        </Box>
+        {/* RIGHT MAP PANEL */}
+        <Box sx={{
+          width: mapCollapsed ? 0 : `${Math.round(mapWidth*100)}%`,
+          transition: 'width .25s ease',
+          borderLeft: 1,
+          borderColor: 'divider',
+          position:'relative',
+          display: mapCollapsed ? 'none':'flex',
+          flexDirection:'column',
+          p:0,
+        }}>
+          <Box sx={{ flex:1, position:'relative', overflow:'hidden', background: 'transparent' }}>
+            {/* Status overlay */}
+            <Box sx={(theme) => ({
+              width:'90%',
+              position:'absolute',
+              top:8,
+              left:'50%',
+              transform:'translateX(-50%)',
+              display:'flex',
+              gap:2,
+              bgcolor: theme.palette.mode === 'dark' ? 'rgba(25, 25, 25, 0.75)' : 'rgba(255, 255, 255, 0.82)',
+              backdropFilter:'blur(6px)',
+              borderRadius:4,
+              px:2,
+              py:0.75,
+              boxShadow:2,
+              alignItems:'center',
+              zIndex:10,
+              border: '1px solid',
+              borderColor: theme.palette.divider,
+            })}>
+              <Tooltip title={visitedCountries.length ? visitedCountries.join(', ') : 'No completed countries'} arrow>
+                <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
+                  <Box sx={{ width:12, height:12, borderRadius:2, background:'#0B5F89' }} />
+                  <Typography variant='caption' sx={{ fontWeight:500, color:'text.primary' }}>
+                    Completed: {visitedCountries.length}
+                  </Typography>
+                </Box>
+              </Tooltip>
+              <Tooltip title={plannedCountries.length ? plannedCountries.join(', ') : 'No planned countries'} arrow>
+                <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
+                  <Box sx={{ width:12, height:12, borderRadius:2, background:'#2B89C7' }} />
+                  <Typography variant='caption' sx={{ fontWeight:500, color:'text.primary' }}>
+                    Planned: {plannedCountries.length}
+                  </Typography>
+                </Box>
+              </Tooltip>
+              {/* Completion bar */}
+              <Box sx={{ display:'flex', alignItems:'center', gap:1, ml:1 }}>
+                <Typography variant='caption' sx={{ opacity:0.7 }}>Progress</Typography>
+                <Box sx={{ width:100, height:6, borderRadius:3, bgcolor:'rgba(0,0,0,0.15)', overflow:'hidden' }}>
+                  <Box sx={{ width:`${progressPercent}%`, height:'100%', bgcolor:'#0B5F89' }} />
+                </Box>
+              </Box>
+            </Box>
+            <Box sx={{ mt:10}}>
+              <TravelMap
+                visited={visitedCountries}
+                planned={plannedCountries}
+                upcoming={upcomingCountries}
+                autoRotate={true}
+                rotationSpeedDegPerSec={3}
+                disableAttribution={true}
+                persistUserControl={true}
+              />
+            </Box>
+          </Box>
+        </Box>
       </Box>
+    </Box>
   );
 };
 

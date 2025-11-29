@@ -155,11 +155,11 @@ const Profile: React.FC = () => {
           tintColor={profile.bannertint}
         />
         {/* Badges */}
-        <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 } }}>
+        {/* <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 } }}>
           <Box sx={{ mt: 2, mb: 3 }}>
             <ProfileBadges />
           </Box>
-        </Container>
+        </Container> */}
 
         <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 }, pb: 4 }}>
           <Box 
@@ -176,7 +176,7 @@ const Profile: React.FC = () => {
             </Box>
 
             {/* Right: Profile details */}
-            <Box sx={{ width: { xs: '100%', lg: '20vw' }, flexShrink: 0 }}>
+            <Box sx={{ width: { xs: '100%', lg: '25vw' }, flexShrink: 0 }}>
               <ProfileDetailsRightCard
                 title="Profile Details"
                 rows={[
@@ -193,64 +193,6 @@ const Profile: React.FC = () => {
               />
             </Box>
           </Box>
-
-          {/* Refresh Button */}
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} justifyContent="center" sx={{ mt: 4 }}>
-            <Button 
-              variant="outlined" 
-              startIcon={<Refresh />}
-              onClick={() => dispatch(fetchUserProfile())}
-              disabled={loading}
-              sx={{
-                textTransform: "none",
-                fontWeight: 500,
-                px: 3,
-                py: 1.5,
-                borderRadius: 2,
-                borderColor: "divider",
-                color: "text.primary",
-                backgroundColor: 'background.paper',
-                '&:hover': { borderColor: 'primary.main', backgroundColor: 'background.default' },
-                '&:disabled': { opacity: 0.6 }
-              }}
-            >
-              {loading ? "Refreshing..." : "Refresh Profile"}
-            </Button>
-            <Button
-              variant="contained"
-              color="error"
-              onClick={() => {
-                localStorage.removeItem('accessToken');
-                localStorage.removeItem('refreshToken');
-                dispatch(clearUser());
-                navigate('/signin');
-              }}
-              sx={{
-                textTransform: 'none',
-                fontWeight: 600,
-                px: 3,
-                py: 1.5,
-                borderRadius: 2,
-                boxShadow: 'none',
-                '&:hover': { boxShadow: 2 }
-              }}
-            >
-              Log out
-            </Button>
-          </Stack>
-          {/* Debug info (dev only) */}
-          {process.env.NODE_ENV === 'development' && (
-            <Card sx={{ mt: 4, borderRadius: 2, boxShadow: 1, border: 1, borderColor: 'divider', backgroundColor: 'warning.light' }}>
-              <CardContent sx={{ p: 3 }}>
-                <Typography variant="h6" gutterBottom sx={{ color: 'warning.dark', fontWeight: 600, fontSize: '1.1rem' }}>
-                  🔧 Debug: Raw Profile Data
-                </Typography>
-                <Box component="pre" sx={{ fontSize: '0.8rem', overflow: 'auto', backgroundColor: 'background.paper', p: 2, borderRadius: 1.5, border: 1, borderColor: 'divider', maxHeight: '400px', fontFamily: "Monaco, 'Cascadia Code', 'Roboto Mono', monospace" }}>
-                  {JSON.stringify(profile, null, 2)}
-                </Box>
-              </CardContent>
-            </Card>
-          )}
         </Container>
     </Box>
   );

@@ -1,5 +1,6 @@
 import React from "react";
 import { Box, Typography, IconButton, Avatar, Tooltip, Popover, Divider, List, ListItemButton, ListItemText, ListItemIcon, Button } from "@mui/material";
+import { styled } from '@mui/material/styles';
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import LogoutIcon from '@mui/icons-material/Logout';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -49,6 +50,26 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
       console.error('Logout error', e);
     }
   };
+
+  const LogoutButton = styled(Button)(({ theme }) => ({
+    position: 'absolute',
+    bottom: 16,
+    padding: '6px 16px',
+    zIndex: 3,
+    backgroundColor: theme.palette.error.main,
+    color: theme.palette.getContrastText(theme.palette.error.main),
+    fontWeight: 600,
+    textTransform: 'none',
+    boxShadow: theme.palette.mode === 'dark'
+      ? '0 4px 12px rgba(0,0,0,0.4)'
+      : '0 4px 12px rgba(0,0,0,0.2)',
+    '&:hover': {
+      backgroundColor: theme.palette.error.dark,
+      boxShadow: theme.palette.mode === 'dark'
+        ? '0 0 12px rgba(255, 120, 120, 0.6)'
+        : '0 0 12px rgba(255, 0, 0, 0.35)',
+    },
+  }));
 
   return (
     <>
@@ -163,7 +184,7 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
           sx: {
             mt: 1,
             width: 340,
-            borderRadius: 3,
+            borderRadius: 0.5,
             boxShadow: 4,
             overflow: 'hidden'
           }
@@ -180,25 +201,11 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
               {profile ? `${profile.fname ?? ''} ${profile.lname ?? ''}`.trim() || 'Traveler' : 'Traveler'}
             </Typography>
             <Typography variant="caption" color="text.secondary" noWrap>{profile?.email}</Typography>
-            <Box sx={{ display: 'flex', gap: 2, mt: 1 }}>
-              <Box>
-                <Typography variant="caption" color="text.secondary">Followers</Typography>
-                <Typography variant="body2" fontWeight={600}>34</Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" color="text.secondary">Following</Typography>
-                <Typography variant="body2" fontWeight={600}>12</Typography>
-              </Box>
-              <Box>
-                <Typography variant="caption" color="text.secondary">Countries</Typography>
-                <Typography variant="body2" fontWeight={600}>32</Typography>
-              </Box>
-            </Box>
           </Box>
         </Box>
         <Divider />
         {/* Primary Links */}
-        <List dense disablePadding>
+        {/* <List dense disablePadding>
           <ListItemButton onClick={() => goTo('/profile')}>
             <ListItemIcon sx={{ minWidth: 36 }}><PersonIcon fontSize="small" /></ListItemIcon>
             <ListItemText primary="My Profile" primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }} />
@@ -208,7 +215,7 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
             <ListItemText primary="Settings" primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }} />
           </ListItemButton>
         </List>
-        <Divider sx={{ my: 0.5 }} />
+        <Divider sx={{ my: 0.5 }} /> */}
         <List dense disablePadding>
           <ListItemButton>
             <ListItemIcon sx={{ minWidth: 36 }}><HelpOutlineIcon fontSize="small" /></ListItemIcon>
@@ -228,10 +235,8 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
           </ListItemButton>
         </List>
         <Divider />
-        <Box sx={{ p: 1.5, display: 'flex', justifyContent: 'flex-end' }}>
-          <Button onClick={handleLogout} size="small" color="inherit" startIcon={<LogoutIcon fontSize="small" />} sx={{ textTransform: 'none', fontWeight: 600 }}>
-            Log out
-          </Button>
+        <Box sx={{ p: 1.5, display: 'flex', justifyContent: 'flex-end', position: 'relative', minHeight: 64 }}>
+          <LogoutButton onClick={handleLogout} size="small" startIcon={<LogoutIcon fontSize="small" />}>Log out</LogoutButton>
         </Box>
       </Popover>
     </>
