@@ -11,6 +11,7 @@ import EmailIcon from '@mui/icons-material/Email';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import CloseIconSmall from '@mui/icons-material/Close';
+import covers from '../../assets/covers.json';
 
 interface Member { id: string; name: string; handle: string; email?: string; avatar?: string; role: 'Owner' | 'Editor' | 'Viewer'; }
 
@@ -302,7 +303,13 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
               {bannerUrl ? (
                 <Box component='img' src={bannerUrl} alt='Trip banner' sx={{ width:'100%', height:'100%', objectFit:'cover' }} onError={(e:any)=> { e.currentTarget.style.opacity='0.35'; }} />
               ) : (
-                <Typography variant='caption' color='text.secondary'>No image</Typography>
+                <Box component='img' src={covers[
+            (
+              countries && countries.length && covers.hasOwnProperty(String(countries[0].toLowerCase()))
+                ? covers[countries[0].toLowerCase() as keyof typeof covers].length > 0? (countries[0].toLowerCase() as keyof typeof covers) : 'default'
+                : 'default'
+            ) as keyof typeof covers
+          ]} alt='Trip banner' sx={{ width:'100%', height:'100%', objectFit:'cover' }} onError={(e:any)=> { e.currentTarget.style.opacity='0.35'; }} />
               )}
               <Box sx={{ position:'absolute', top:8, right:8, display:'flex', flexDirection:'column', gap:.75 }}>
                 <Button size='small' variant='contained' color='primary' onClick={()=> {

@@ -1,16 +1,37 @@
 import React, { useEffect, useState } from 'react';
 import TripCard from './TripCard';
 import '../../assets/css/Dashboard.css';
-import santorini from '../../assets/santorini.png'; // fallback placeholder image
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import Footer from '../PageLayout/CommonLayouts/Footer';
 import { Tabs, Tab, Box, CircularProgress, Typography, Alert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
+import covers from '../../assets/covers.json';
 
 
 const Dashboard: React.FC = () => {
+  const formatRelativeTime = (dateStr?: string) => {
+    if (!dateStr) return '—';
+    const then = new Date(dateStr).getTime();
+    if (isNaN(then)) return '—';
+    const now = Date.now();
+    const diffMs = Math.max(0, now - then);
+    const sec = Math.floor(diffMs / 1000);
+    const min = Math.floor(sec / 60);
+    const hr = Math.floor(min / 60);
+    const day = Math.floor(hr / 24);
+    const week = Math.floor(day / 7);
+    const month = Math.floor(day / 30);
+    const year = Math.floor(day / 365);
+    if (sec < 60) return `${sec}s ago`;
+    if (min < 60) return `${min}m ago`;
+    if (hr < 24) return `${hr}h ago`;
+    if (day < 7) return `${day}d ago`;
+    if (week < 5) return `${week}w ago`;
+    if (month < 12) return `${month}mo ago`;
+    return `${year}y ago`;
+  };
   const { token } = useAuthToken();
   const navigate = useNavigate();
   const [allPlans, setAllPlans] = useState<any[]>([]);
@@ -35,11 +56,18 @@ const Dashboard: React.FC = () => {
           // naive country -> location mapping (first country) fallback
           location: Array.isArray(t.countries) && t.countries.length ? t.countries[0] : 'Unknown',
           countries: Array.isArray(t.countries) ? t.countries : [],
-          image: santorini, // placeholder; could map by country later
+          image: covers[
+            (
+              t.countries && t.countries.length && covers.hasOwnProperty(String(t.countries[0].toLowerCase()))
+                ? covers[t.countries[0].toLowerCase() as keyof typeof covers].length > 0? (t.countries[0].toLowerCase() as keyof typeof covers) : 'default'
+                : 'default'
+            ) as keyof typeof covers
+          ], // placeholder; could map by country later
           progress: typeof t.progress === 'number' ? t.progress : 0,
-          edited: t.updatedAt ? new Date(t.updatedAt).toLocaleDateString() : '—',
+          edited: formatRelativeTime(t.updatedDate),
           members: t.members || t.invitedUsers || [],
         }));
+        debugger;
         if(active){
           setAllPlans(mapped);
           setPlans(mapped);
@@ -145,7 +173,7 @@ const Dashboard: React.FC = () => {
                 countries={plan.countries}
                 image={plan.image}
                 progress={plan.progress}
-                edited={plan.edited}
+                edited={plan.edited}                
                 members={plan.members}
                 onClick={()=> {
                   // Force planner slice reset BEFORE route transition to avoid itinerary bleed.

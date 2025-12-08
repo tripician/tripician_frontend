@@ -31,7 +31,7 @@ const TripCard: React.FC<TripCardProps> = ({ title, location, image, progress, e
       tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
       onKeyDown={(e)=> { if(onClick && (e.key==='Enter' || e.key===' ')){ e.preventDefault(); onClick(); } }}
-      style={{ width: '100%', height: '40vh', cursor: onClick ? 'pointer' : 'default' }}>
+      style={{ width: '100%', marginBottom: '3vh', aspectRatio: '4 / 5', cursor: onClick ? 'pointer' : 'default' }}>
       <div className="trip-image-wrapper">
         <img src={image} className="card-img-top" alt={title} />
       </div>

@@ -5,6 +5,7 @@
   height: 320px;
   transition: transform 0.3s ease, box-shadow 0.3s ease, filter 0.3s ease;
   cursor: pointer;
+  filter: brightness(0.75);
 }
 .trip-image-wrapper {
   height: 100%;

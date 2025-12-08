@@ -7,11 +7,7 @@ import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import { useNavigate } from 'react-router-dom';
 import { apiServices } from '../../services/APIs/apiServices';
 import TravelMap from '../../components/ProfileComponents/TravelMap';
-
-import santorini from '../../assets/santorini.png';
-import kyoto from '../../assets/kyoto.png';
-import paris from '../../assets/paris.png';
-import dubai from '../../assets/dubai.png';
+import covers from '../../assets/covers.json';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -21,25 +17,25 @@ const Home: React.FC = () => {
       id: 1,
       title: 'Santorini, Greece',
       description: 'Experience the stunning sunsets and white-washed buildings of this iconic Greek island.',
-      image: santorini,
+      image: covers['greece'],
     },
     {
       id: 2,
       title: 'Kyoto, Japan',
       description: 'Discover the ancient temples and traditional culture of Japan\'s former capital.',
-      image: kyoto,
+      image: covers['japan'],
     },
     {
       id: 3,
       title: 'Paris, France',
       description: 'Explore the city of lights and its romantic charm.',
-      image: paris,
+      image: covers['france'],
     },
     {
       id: 4,
       title: 'Dubai, UAE',
       description: 'Experience luxury and modern architecture in the desert.',
-      image: dubai,
+      image: covers['uae'],
     },
   ];
 
