@@ -151,7 +151,7 @@ const Signin = () => {
       <div className="signin-split-right">
         <div className="signin-card">
           <div className="signin-logo">
-            <img src={import.meta.env.VITE_TRIPICIAN_LOGO_FULL_BLACK_URL} alt="Tripician Logo"/>
+            <img style={{ height: 50, maxWidth: '100%' }} src={import.meta.env.VITE_TRIPICIAN_LOGO_FULL_BLACK_URL} alt="Tripician Logo"/>
           </div>
 
           {/* Display error message if signin fails */}

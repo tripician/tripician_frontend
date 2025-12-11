@@ -159,19 +159,20 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
               justifyContent: 'center',
               mb: 2,
               px: 0,
-              minHeight: 48,
+              py: 1,
+              minHeight: 50,
             }}
           >
             <img
               src={isCollapsed ? import.meta.env.VITE_TRIPICIAN_LOGO_ICON_URL : import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_URL}
               alt="Tripician"
-              style={{ height: isCollapsed ? 34 : 46, width: 'auto', display: 'block', maxWidth: '100%' }}
+              style={{ height: isCollapsed ? 34 : 43, width: 'auto', display: 'block', maxWidth: '100%' }}
             />
           </Box>
 
           {/* Menu Items */}
 
-          <List sx={{ px: 0 }}>
+          <List sx={{ px: 0, py: 5 }}>
             {menuItems.map(item => {
               const disabled = (item as any).disabled;
               const comingSoon = (item as any).comingSoon;
