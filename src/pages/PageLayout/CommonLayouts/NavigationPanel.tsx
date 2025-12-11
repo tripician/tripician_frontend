@@ -34,9 +34,6 @@ interface Props {
 const drawerWidth = 240;
 const collapsedDrawerWidth = 64;
 
- 
-
-
 const menuItems = [
   { text: 'Home', icon: <HomeIcon />, path: '/home' },
   { text: 'Dashboard', icon: <DasboardIcon />, path: '/dashboard' },
@@ -163,11 +160,53 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
               minHeight: 50,
             }}
           >
-            <img
-              src={isCollapsed ? import.meta.env.VITE_TRIPICIAN_LOGO_ICON_URL : import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_URL}
-              alt="Tripician"
-              style={{ height: isCollapsed ? 34 : 43, width: 'auto', display: 'block', maxWidth: '100%' }}
-            />
+            <Box
+              sx={{
+                position: 'relative',
+                display: 'inline-flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                mt: isCollapsed ? 0.5 : 1.25
+              }}
+            >
+              <Box
+                component="img"
+                src={isCollapsed ? import.meta.env.VITE_TRIPICIAN_LOGO_ICON_URL : import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_URL}
+                alt="Tripician"
+                sx={{
+                  height: isCollapsed ? 40 : 45,
+                  width: 'auto',
+                  display: 'block',
+                  maxWidth: '100%',
+                  filter: theme.palette.mode === 'light'
+                    ? 'drop-shadow(0px 4px 12px rgba(0, 0, 0, 0.18))'
+                    : 'drop-shadow(0px 6px 14px rgba(0, 0, 0, 0.6))'
+                }}
+              />
+              <Box
+                sx={{
+                  position: 'absolute',
+                  top: isCollapsed ? -6 : -12,
+                  right: isCollapsed ? -8 : -16,
+                  px: 0.75,
+                  py: 0.15,
+                  fontSize: isCollapsed ? '0.58rem' : '0.62rem',
+                  fontWeight: 700,
+                  letterSpacing: 1.2,
+                  textTransform: 'uppercase',
+                  borderRadius: 999,
+                  backgroundColor: theme.palette.mode === 'light'
+                    ? 'rgba(255,255,255,0.92)'
+                    : 'rgba(199,210,254,0.88)',
+                  color: theme.palette.mode === 'light' ? '#0d1b2a' : '#1f2937',
+                  boxShadow: theme.palette.mode === 'light'
+                    ? '0 2px 8px rgba(13, 37, 56, 0.25)'
+                    : '0 2px 8px rgba(15, 23, 42, 0.4)'
+                }}
+              >
+                BETA
+              </Box>
+            </Box>
           </Box>
 
           {/* Menu Items */}
