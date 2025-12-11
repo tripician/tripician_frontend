@@ -88,8 +88,8 @@ const ChatAssistant: React.FC = () => {
       <Box
         sx={{
           position: 'fixed',
-          right: 24,
-          bottom: 110,
+          right: 32,
+          bottom: 100,
           zIndex: 1700,
           display: 'flex',
           flexDirection: 'column',
