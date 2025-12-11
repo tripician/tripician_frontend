@@ -9,7 +9,6 @@ import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import covers from '../../assets/covers.json';
 
-
 const Dashboard: React.FC = () => {
   const formatRelativeTime = (dateStr?: string) => {
     if (!dateStr) return '—';
@@ -59,7 +58,7 @@ const Dashboard: React.FC = () => {
           image: covers[
             (
               t.countries && t.countries.length && covers.hasOwnProperty(String(t.countries[0].toLowerCase()))
-                ? covers[t.countries[0].toLowerCase() as keyof typeof covers].length > 0? (t.countries[0].toLowerCase() as keyof typeof covers) : 'default'
+                ? covers[t.countries[0].toLowerCase() as keyof typeof covers].length > 0 ? (t.countries[0].toLowerCase() as keyof typeof covers) : 'default'
                 : 'default'
             ) as keyof typeof covers
           ], // placeholder; could map by country later
@@ -67,7 +66,6 @@ const Dashboard: React.FC = () => {
           edited: formatRelativeTime(t.updatedDate),
           members: t.members || t.invitedUsers || [],
         }));
-        debugger;
         if(active){
           setAllPlans(mapped);
           setPlans(mapped);
