@@ -192,6 +192,13 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
     }
   };
 
+  const canManageMembers = Boolean(currentUserIsOwner);
+  React.useEffect(() => {
+    if(!canManageMembers && view === 'invite') {
+      setView('main');
+    }
+  }, [canManageMembers, view]);
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth='sm' fullWidth TransitionComponent={Fade} keepMounted>
       <DialogTitle sx={{ display:'flex', alignItems:'center', justifyContent:'space-between', pr:1.5 }}>
@@ -440,15 +447,17 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
         <Box>
           <Box sx={{ display:'flex', alignItems:'center', justifyContent:'space-between', mb:1 }}>
             <Typography variant='subtitle2' fontWeight={700}>Trip members</Typography>
-            <Button 
-              size='small' 
-              variant='outlined' 
-              startIcon={<EmailIcon fontSize='small' />} 
-              onClick={()=> setView('invite')} 
-              sx={{ textTransform:'none', borderRadius:2 }}
-            >
-              Add member
-            </Button>
+            {canManageMembers && (
+              <Button 
+                size='small' 
+                variant='outlined' 
+                startIcon={<EmailIcon fontSize='small' />} 
+                onClick={()=> setView('invite')} 
+                sx={{ textTransform:'none', borderRadius:2 }}
+              >
+                Add member
+              </Button>
+            )}
           </Box>
           {/* Simplified: no search or filters per request */}
           <Box sx={{ display:'flex', flexDirection:'column', gap:1 }}>
@@ -501,7 +510,9 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
             const event = new CustomEvent('trip:settings:save');
             window.dispatchEvent(event);
           }} sx={{ textTransform:'none', borderRadius:3, minWidth:120 }}>Save settings</Button>
-          <Button variant='outlined' color='error' startIcon={<DeleteOutlineIcon />} onClick={onDeleteTrip} sx={{ textTransform:'none', borderRadius:3, minWidth:120 }}>Delete trip</Button>
+          {canManageMembers && (
+            <Button variant='outlined' color='error' startIcon={<DeleteOutlineIcon />} onClick={onDeleteTrip} sx={{ textTransform:'none', borderRadius:3, minWidth:120 }}>Delete trip</Button>
+          )}
         </Box>
         </>
         )}

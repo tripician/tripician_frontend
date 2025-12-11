@@ -86,9 +86,13 @@ const TravelMap: React.FC<TravelMapProps> = ({
       projection: "globe",
       center: [0, 20],
       zoom: 1,
+      minZoom: 1,
+      maxZoom: 1,
       pitch: 5,
       antialias: true,
       attributionControl: !disableAttribution,
+      scrollZoom: false,
+      doubleClickZoom: false,
     });
 
     mapRef.current = map;

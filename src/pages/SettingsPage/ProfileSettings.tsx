@@ -14,6 +14,9 @@ import {
   CircularProgress,
 } from "@mui/material";
 import { LocationOn, Language, Email, Phone, Visibility, VisibilityOff, Save } from "@mui/icons-material";
+import { useDispatch, useSelector } from 'react-redux';
+import type { AppDispatch, RootState } from '../../store';
+import { fetchUserProfile, setUserProfile, type UserProfile } from '../../store/userSlice';
 
 const ProfileSettings: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -36,6 +39,8 @@ const ProfileSettings: React.FC = () => {
   // Removed local success state; using global overlay events instead
 
   const { token: authToken } = useAuthToken();
+  const dispatch = useDispatch<AppDispatch>();
+  const currentProfile = useSelector((state: RootState)=> state.user.profile);
 
   useEffect(()=> {
     if(!authToken) return;
@@ -239,6 +244,19 @@ const ProfileSettings: React.FC = () => {
                     Website: website,
                   };
                   await apiServices.updatePersonalInfoSettings(authToken, payload);
+                  try {
+                    const optimisticProfile: UserProfile = {
+                      ...(currentProfile ?? {}),
+                      fname,
+                      lname,
+                      bio,
+                      location,
+                      website,
+                      bannertint: currentProfile?.bannertint,
+                    };
+                    dispatch(setUserProfile(optimisticProfile));
+                    await dispatch(fetchUserProfile({ force: true })).unwrap();
+                  } catch {}
                   window.dispatchEvent(
                     new CustomEvent("app:success", { detail: { message: "Personal info updated" } })
                   );
@@ -317,6 +335,16 @@ const ProfileSettings: React.FC = () => {
               setContactSaving(true); setError(null);
               try {
                 await apiServices.updateContactInfoSettings(authToken, { Email: email, Phone: phone });
+                try {
+                  const optimisticProfile: UserProfile = {
+                    ...(currentProfile ?? {}),
+                    email,
+                    phone,
+                    bannertint: currentProfile?.bannertint,
+                  };
+                  dispatch(setUserProfile(optimisticProfile));
+                  await dispatch(fetchUserProfile({ force: true })).unwrap();
+                } catch {}
                 window.dispatchEvent(new CustomEvent('app:success',{ detail:{ message:'Contact info updated' }}));
               } catch(e:any){
                 setError('Failed to update contact info');

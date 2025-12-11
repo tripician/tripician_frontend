@@ -40,6 +40,89 @@ import { useAuthToken } from '../../hooks/useAuth0Token';
 import { normalizeTrip, type NormalizedTrip } from '../../utils/normalizeTrip';
 import { differenceInDays } from 'date-fns';
 
+type OwnerInfo = { id?: string; email?: string; name?: string; handle?: string; avatar?: string };
+
+const pickFirstString = (...values: any[]): string | undefined => {
+	for (const value of values) {
+		if (typeof value !== 'string') continue;
+		const trimmed = value.trim();
+		if (trimmed.length > 0) return trimmed;
+	}
+	return undefined;
+};
+
+const pickFirstId = (...values: any[]): string | undefined => {
+	for (const value of values) {
+		if (value === undefined || value === null) continue;
+		const str = String(value).trim();
+		if (str.length > 0) return str;
+	}
+	return undefined;
+};
+
+const normalizeHandle = (value?: string): string | undefined => {
+	if (!value) return undefined;
+	const trimmed = value.trim().replace(/^@+/, '');
+	if (!trimmed) return undefined;
+	return `@${trimmed}`;
+};
+
+const deriveOwnerInfo = (tripSources: any[], memberCandidates: any[]): OwnerInfo => {
+	const info: OwnerInfo = {};
+	const assign = (key: keyof OwnerInfo, value?: string) => {
+		if (!value) return;
+		if (key === 'email') {
+			const lowered = value.toLowerCase();
+			if (!info.email) info.email = lowered;
+			return;
+		}
+		if (!info[key]) info[key] = value;
+	};
+	const processOwnerObject = (owner: any) => {
+		if (!owner || typeof owner !== 'object') return;
+		const id = pickFirstId(owner.id, owner.Id, owner.userId, owner.UserId);
+		const email = pickFirstString(owner.email, owner.Email, owner.userEmail, owner.UserEmail);
+		const directName = pickFirstString(owner.name, owner.Name, owner.fullName, owner.FullName, owner.displayName, owner.DisplayName);
+		const firstName = pickFirstString(owner.fname, owner.Fname, owner.firstName, owner.FirstName);
+		const lastName = pickFirstString(owner.lname, owner.Lname, owner.lastName, owner.LastName);
+		const name = directName || (firstName || lastName ? [firstName, lastName].filter(Boolean).join(' ').trim() : undefined);
+		const handle = normalizeHandle(pickFirstString(owner.handle, owner.Handle, owner.username, owner.Username, owner.userName));
+		const avatar = pickFirstString(owner.avatar, owner.Avatar, owner.profilepicture, owner.profilePicture, owner.photoUrl, owner.PhotoUrl, owner.profilePic, owner.ProfilePic);
+		assign('id', id);
+		assign('email', email);
+		assign('name', name);
+		assign('handle', handle);
+		assign('avatar', avatar);
+	};
+	const processTripSource = (source: any) => {
+		if (!source || typeof source !== 'object') return;
+		const root = source.trip && typeof source.trip === 'object' ? source.trip : source;
+		const ownerId = pickFirstId(root.OwnerUserId, root.ownerUserId, root.ownerId, root.OwnerId, root.TripOwnerId, root.tripOwnerId, root.tripOwnerUserId, root.ownerUserID);
+		const ownerEmail = pickFirstString(root.OwnerEmail, root.ownerEmail, root.ownerUserEmail, root.OwnerUserEmail, root.owner?.email, root.Owner?.email, root.Owner?.Email);
+		const ownerName = pickFirstString(root.OwnerName, root.ownerName);
+		const handle = normalizeHandle(pickFirstString(root.OwnerHandle, root.ownerHandle));
+		const avatar = pickFirstString(root.OwnerAvatar, root.ownerAvatar);
+		assign('id', ownerId);
+		assign('email', ownerEmail);
+		assign('name', ownerName);
+		assign('handle', handle);
+		assign('avatar', avatar);
+		processOwnerObject(root.Owner);
+		processOwnerObject(root.owner);
+		processOwnerObject(root.TripOwner);
+		processOwnerObject(root.tripOwner);
+	};
+	tripSources.forEach(processTripSource);
+	memberCandidates.forEach(candidate => {
+		if (!candidate || typeof candidate !== 'object') return;
+		const roleRaw = pickFirstString(candidate.role, candidate.Role, candidate.userRole, candidate.UserRole, candidate.membershipRole, candidate.MembershipRole);
+		const isOwnerRole = roleRaw ? roleRaw.toLowerCase() === 'owner' : false;
+		if (!isOwnerRole && !candidate.isOwner && !candidate.IsOwner && !candidate.isTripOwner && !candidate.IsTripOwner) return;
+		processOwnerObject(candidate);
+	});
+	return info;
+};
+
 // Helper: ensure date string conforms to YYYY-MM-DD for HTML date inputs & backend consistency.
 // Accepts ISO strings like 2025-10-26T00:00:00Z or with milliseconds; returns date portion.
 const sanitizeDateString = (v: string | null | undefined): string | null => {
@@ -125,6 +208,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			originalDatesRef.current = { start: rawStart, end: rawEnd };
 		}
 	}
+
+	console.log('info from trip view: ', { showViewEditAction, isOwnerExternal, isExternalNonOwner });
+	debugger;
 
 	// Core meta state
 	const [title, setTitle] = React.useState<string>(normalizedInitial?.meta.name || 'Untitled Trip');
@@ -771,7 +857,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	}, [authToken, saving, lastSaveTs, tripId, openToast]);
 
 	const handlePublish = () => {
-		if(!isOwnerExternal) return; // safety
+		if(!currentUserIsOwner) return; // safety
 		if(isDraft){
 			// Build enriched published payload (draft=false)
 			const payload = buildPersistPayload(false);
@@ -786,25 +872,29 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		}
 	};
 
-	const redirectHome = React.useCallback(() => {
-		try { window.location.href = '/'; } catch {}
+	const redirectDashboard = React.useCallback(() => {
+		try { window.location.href = '/dashboard'; } catch {}
 	}, []);
 
 	const performSaveDraftAndExit = React.useCallback(async () => {
 		if(exiting) return; setExiting(true);
 		try {
-			if(isDirty && isOwnerExternal){
+			if(isDirty && effectiveCanEdit){
 				const payload = buildPersistPayload(true);
 				persistedPayloadRef.current = payload;
 				await persistToBackend(payload);
 				commitSnapshot(true);
 			}
-			redirectHome();
+			redirectDashboard();
 		} finally { setExiting(false); }
-	}, [isDirty, isOwnerExternal, buildPersistPayload, persistToBackend, commitSnapshot, redirectHome, exiting]);
+	}, [isDirty, effectiveCanEdit, buildPersistPayload, persistToBackend, commitSnapshot, redirectDashboard, exiting]);
 
 	const handleBackHomeClick = () => {
-		if(!isDirty){ redirectHome(); return; }
+		if(readOnly || !effectiveCanEdit){
+			redirectDashboard();
+			return;
+		}
+		if(!isDirty){ redirectDashboard(); return; }
 		setExitConfirmOpen(true);
 	};
 
@@ -812,46 +902,88 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 
 	// Build dynamic trip members list (owner + any backend-provided members if structure exists)
 	const userProfile = useSelector((s:RootState)=> s.user.profile);
+	const ownerInfo = React.useMemo(() => deriveOwnerInfo([initialTrip, remoteTrip], tripUsers), [initialTrip, remoteTrip, tripUsers]);
+	const currentUserIsOwner = React.useMemo(() => {
+		if(!userProfile){
+			return Boolean(isOwnerExternal);
+		}
+		const userId = userProfile.id != null ? String(userProfile.id) : undefined;
+		const userEmail = typeof userProfile.email === 'string' ? userProfile.email.toLowerCase() : undefined;
+		if(ownerInfo.id && userId && ownerInfo.id === userId) return true;
+		if(ownerInfo.email && userEmail && ownerInfo.email === userEmail) return true;
+		if(ownerInfo.id || ownerInfo.email) return false;
+		return Boolean(isOwnerExternal);
+	}, [userProfile, ownerInfo, isOwnerExternal]);
+	const currentUserRole: 'Owner'|'Editor'|'Viewer' = currentUserIsOwner ? 'Owner' : (effectiveCanEdit ? 'Editor' : 'Viewer');
 	const tripMembers = React.useMemo(()=> {
 		const list: { id:string; name:string; handle:string; email?:string; avatar?:string; role:'Owner'|'Editor'|'Viewer' }[] = [];
 		// Prefer authoritative tripUsers from /trips/{id}/users; fallback to embedded members in initialTrip
 		const embeddedMembers: any[] = Array.isArray((initialTrip?.trip as any)?.members) ? (initialTrip!.trip as any).members
 			: Array.isArray((initialTrip as any)?.members) ? (initialTrip as any).members : [];
 		const rawMembers: any[] = tripUsers.length ? tripUsers : embeddedMembers;
+		const ownerIdNormalized = ownerInfo.id ? String(ownerInfo.id) : undefined;
+		const ownerEmailNormalized = ownerInfo.email;
+		let ownerPresent = false;
 		for(const m of rawMembers){
 			try {
-				const id = String(m.id || m.userId || m.Id || Math.random().toString(36).slice(2));
-				const nameParts = [m.name, m.fullName, m.fname, m.lname].filter(v=> typeof v==='string' && v.trim());
-				let name = nameParts.join(' ').trim();
-				if(!name) name = (typeof m.username==='string' && m.username) || (typeof m.email==='string' ? m.email.split('@')[0] : 'Member');
-				const handle = typeof m.username==='string' && m.username ? '@'+m.username : (typeof m.handle==='string' ? m.handle : '@member');
-				const email = typeof m.email==='string' ? m.email : undefined;
-				const avatar = (m.avatar || m.profilepicture || m.photoUrl || m.profilePic) as string | undefined;
-				// Role heuristic: if object marks owner/self, else Editor if canEdit flag, else Viewer
+				const id = pickFirstId(m.id, m.userId, m.Id, m.UserId) || Math.random().toString(36).slice(2);
+				const directName = pickFirstString(m.name, m.Name, m.fullName, m.FullName, m.displayName, m.DisplayName);
+				const firstName = pickFirstString(m.fname, m.Fname, m.firstName, m.FirstName);
+				const lastName = pickFirstString(m.lname, m.Lname, m.lastName, m.LastName);
+				let name = directName || (firstName || lastName ? [firstName, lastName].filter(Boolean).join(' ').trim() : '');
+				let handle = normalizeHandle(pickFirstString(m.username, m.Username, m.handle, m.Handle, m.userHandle, m.UserHandle)) || '@member';
+				let email = pickFirstString(m.email, m.Email, m.userEmail, m.UserEmail, m.emailAddress, m.EmailAddress, m.memberEmail, m.MemberEmail);
+				let avatar = pickFirstString(m.avatar, m.Avatar, m.profilepicture, m.profilePicture, m.photoUrl, m.PhotoUrl, m.profilePic, m.ProfilePic);
+				if(!name) name = email ? email.split('@')[0] : 'Member';
+				if(handle === '@') handle = '@member';
+				const rawRole = pickFirstString(m.role, m.Role, m.userRole, m.UserRole, m.membershipRole, m.MembershipRole);
+				const normalizedRole = rawRole ? rawRole.toLowerCase() : undefined;
+				const emailLower = email ? email.toLowerCase() : undefined;
+				const matchesOwner = Boolean(
+					(ownerIdNormalized && id === ownerIdNormalized) ||
+					(ownerEmailNormalized && emailLower && ownerEmailNormalized === emailLower)
+				);
 				let role: 'Owner'|'Editor'|'Viewer' = 'Viewer';
-				if(m.role==='Owner' || m.isOwner) role='Owner'; else if(m.role==='Editor' || m.canEdit) role='Editor';
+				if(matchesOwner || normalizedRole === 'owner' || m.isOwner || m.IsOwner || m.isTripOwner || m.IsTripOwner) role='Owner';
+				else if(normalizedRole === 'editor' || m.canEdit || m.CanEdit) role='Editor';
 				// Normalize owner: if backend sends canEdit + matches current user id treat as Owner
-				if(userProfile && (id === String(userProfile.id)) && role==='Editor' && isOwnerExternal) role='Owner';
-				list.push({ id, name, handle, email, avatar, role });
+				if(userProfile && (id === String(userProfile.id)) && role==='Editor' && currentUserIsOwner) role='Owner';
+				if(matchesOwner){
+					if(ownerInfo.name && (!name || name.toLowerCase() === 'member')) name = ownerInfo.name;
+					if(ownerInfo.handle && (handle === '@member' || !handle)) handle = ownerInfo.handle;
+					if(ownerInfo.avatar && !avatar) avatar = ownerInfo.avatar;
+					if(ownerInfo.email && !email) email = ownerInfo.email;
+				}
+				if(role==='Owner') ownerPresent = true;
+				list.push({ id, name, handle, email, avatar: avatar || undefined, role });
 			} catch {}
 		}
-		// Always include current user as Owner (or Viewer if external non-owner) at top if not already present
+		if(!ownerPresent && (ownerIdNormalized || ownerEmailNormalized)){
+			const fallbackId = ownerIdNormalized || ownerEmailNormalized || 'owner';
+			const fallbackName = ownerInfo.name || (ownerInfo.email ? ownerInfo.email.split('@')[0] : 'Trip owner');
+			const fallbackHandle = normalizeHandle(ownerInfo.handle || (ownerInfo.email ? ownerInfo.email.split('@')[0] : undefined)) || '@owner';
+			list.unshift({ id: fallbackId, name: fallbackName, handle: fallbackHandle, email: ownerInfo.email, avatar: ownerInfo.avatar, role: 'Owner' });
+			ownerPresent = true;
+		}
+		// Ensure current user is present in list with derived role (owner/editor/viewer)
 		if(userProfile){
 			const currentId = String(userProfile.id || 'me');
 			if(!list.some(m=> m.id===currentId)){
 				const name = [userProfile.fname, userProfile.lname].filter(Boolean).join(' ') || userProfile.email || 'You';
 				const derivedHandle = userProfile.email ? '@'+(userProfile.email.split('@')[0]||'you') : '@you';
-				list.unshift({ id: currentId, name, handle: derivedHandle, email: userProfile.email, avatar: userProfile.profilepicture, role: isOwnerExternal? 'Owner':'Viewer' });
+				list.unshift({ id: currentId, name, handle: derivedHandle, email: userProfile.email, avatar: userProfile.profilepicture, role: currentUserRole });
 			}
 			else {
-				// Ensure existing entry for current user is labeled Owner if isOwnerExternal
-				if(isOwnerExternal){
+				// Update existing entry to reflect current user's role
+				if(currentUserIsOwner){
 					for(const member of list){ if(member.id===currentId){ member.role='Owner'; break; } }
+				} else if(effectiveCanEdit){
+					for(const member of list){ if(member.id===currentId && member.role==='Viewer'){ member.role='Editor'; break; } }
 				}
 			}
 		}
 		return list;
-	}, [initialTrip, userProfile, isOwnerExternal, tripUsers]);
+	}, [initialTrip, userProfile, tripUsers, ownerInfo, currentUserIsOwner, currentUserRole, effectiveCanEdit]);
 	return (
 		<React.Fragment>
 		<Box sx={{ display:'flex', flexDirection:'row', height:'100vh', overflow:'hidden' }}>
@@ -1089,8 +1221,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 											size='small'
 											variant='outlined'
 											onClick={()=> {
-												if(!isOwnerExternal) return; // safety
-																									if(!isHydrated){ openToast('error','Trip data still loading'); return; }
+												if(!effectiveCanEdit){ openToast('error','Trip is read only'); return; }
+												if(!isHydrated){ openToast('error','Trip data still loading'); return; }
 																									// Dev logging removed (pre-save)
 												if(!isDraft){
 													const payload = buildPersistPayload(false);
@@ -1106,19 +1238,19 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 																				// Dev logging removed (post-save draft)
 												}
 											}}
-																		disabled={!isOwnerExternal || !isDirty || saving || !isHydrated}
+													disabled={!effectiveCanEdit || !isDirty || saving || !isHydrated}
 											sx={{ textTransform:'none', borderRadius:2 }}
 										>
 											{isDraft ? 'Save as Draft' : 'Update'}{saving && <CircularProgress size={16} thickness={5} sx={{ ml:1 }} />}
 										</Button>
-										{isOwnerExternal && (
+											{currentUserIsOwner && (
 											<Button
 												size='small'
 												variant='contained'
 												color={isDraft? 'primary':'warning'}
 												onClick={()=> {
 																if(!isHydrated){ openToast('error','Trip data still loading'); return; }
-																// Dev logging removed (publish pre-save)
+															// Dev logging removed (publish pre-save)
 													if(isDraft){
 														// Publish commit
 														handlePublish();
@@ -1132,7 +1264,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 													}
 												}}
 														sx={{ textTransform:'none', borderRadius:2, opacity: isDraft? 1 : 0.7 }}
-														disabled={!isOwnerExternal || !isDirty || saving || !isHydrated}
+														disabled={!currentUserIsOwner || !isDirty || saving || !isHydrated}
 											>
 												{isDraft? 'Publish' : 'Unpublish'}{saving && <CircularProgress size={16} thickness={5} sx={{ ml:1 }} />}
 											</Button>
@@ -1325,7 +1457,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				privacy={privacy}
 				members={tripMembers}
 				bannerUrl={bannerUrl}
-				currentUserIsOwner={isOwnerExternal}
+				currentUserIsOwner={currentUserIsOwner}
 				onChangeBanner={({ url })=> { setBannerUrl(url); }}
 				countries={countries}
 					onAddCountry={(c: string)=> { // defer persistence until Save Settings
@@ -1351,7 +1483,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					<Button onClick={()=> setExitConfirmOpen(false)} disabled={exiting}>Cancel</Button>
 					<Box sx={{ display:'flex', gap:1 }}>
 						<Button variant='outlined' onClick={()=> { setExitConfirmOpen(false); performSaveDraftAndExit(); }} disabled={exiting}>{exiting? 'Saving...' : 'Save Draft & Exit'}</Button>
-						<Button variant='contained' color='error' onClick={()=> { setExitConfirmOpen(false); redirectHome(); }} disabled={exiting}>Discard & Exit</Button>
+						<Button variant='contained' color='error' onClick={()=> { setExitConfirmOpen(false); redirectDashboard(); }} disabled={exiting}>Discard & Exit</Button>
 					</Box>
 				</DialogActions>
 			</Dialog>
