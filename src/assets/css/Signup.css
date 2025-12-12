@@ -8,9 +8,10 @@
 
 .signup-bg {
   flex: 1;
-  background-image: url('../../assets/AuthBG.jpg');
+  background-color: #0f1d2d;
   background-size: cover;
   background-position: center;
+  max-width: 35%;
 }
 
 @media (max-width: 768px) {
@@ -24,13 +25,44 @@
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: white;
+  position: relative;
+  overflow: hidden;
+  background: linear-gradient(135deg, #f5f7fb 0%, #eef2ff 40%, #ffffff 100%);
+}
+
+.signup-content::before,
+.signup-content::after {
+  content: "";
+  position: absolute;
+  border-radius: 50%;
+  pointer-events: none;
+}
+
+.signup-content::before {
+  width: 420px;
+  height: 420px;
+  top: -160px;
+  right: -120px;
+  background: radial-gradient(circle at 30% 30%, rgba(63, 81, 181, 0.28), rgba(63, 81, 181, 0));
+}
+
+.signup-content::after {
+  width: 520px;
+  height: 520px;
+  bottom: -220px;
+  left: -160px;
+  background: radial-gradient(circle at 70% 70%, rgba(0, 188, 212, 0.25), rgba(0, 188, 212, 0));
 }
 
 .signup-paper {
+  position: relative;
+  z-index: 1;
   padding: 32px;
   width: 80%;
   max-width: 500px;
+  border-radius: 22px;
+  box-shadow: 0 25px 60px rgba(15, 23, 42, 0.12), 0 8px 24px rgba(15, 23, 42, 0.08);
+  backdrop-filter: blur(2px);
 }
 
 .signup-grid {

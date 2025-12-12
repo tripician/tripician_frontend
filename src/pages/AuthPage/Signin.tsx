@@ -23,6 +23,8 @@ const Signin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
+  const loginBackground = import.meta.env.VITE_LOGINPAGE_IMAGE_URL;
+  const leftPaneStyle = loginBackground ? { backgroundImage: `url(${loginBackground})` } : undefined;
 
   // Form state
   const [formData, setFormData] = useState({
@@ -147,7 +149,7 @@ const Signin = () => {
 
   return (
     <div className="signin-split-root">
-      <div className="signin-split-left" />
+      <div className="signin-split-left" style={leftPaneStyle} />
       <div className="signin-split-right">
         <div className="signin-card">
           <div className="signin-logo">
