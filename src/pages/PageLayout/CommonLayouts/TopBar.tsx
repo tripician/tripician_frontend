@@ -3,12 +3,10 @@ import { Box, Typography, IconButton, Avatar, Tooltip, Popover, Divider, List, L
 import { styled } from '@mui/material/styles';
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import LogoutIcon from '@mui/icons-material/Logout';
-import SettingsIcon from '@mui/icons-material/Settings';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import ShieldIcon from '@mui/icons-material/PrivacyTip';
 import GavelIcon from '@mui/icons-material/Gavel';
 import ContactSupportIcon from '@mui/icons-material/ContactSupport';
-import PersonIcon from '@mui/icons-material/Person';
 import SearchBar from "../../../components/CommonComponents/SearchBar";
 import ThemeToggle from '../../../components/CommonComponents/ThemeToggle';
 import { useSelector, useDispatch } from 'react-redux';
@@ -36,7 +34,6 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
   };
   const handleClose = () => setAnchorEl(null);
 
-  const goTo = (path: string) => { navigate(path); handleClose(); };
   const handleLogout = () => {
     try {
       // Remove stored tokens (adjust keys as needed)

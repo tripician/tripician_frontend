@@ -3,7 +3,6 @@ import '../../assets/css/TripCard.css';
 
 interface TripCardProps {
   title: string;
-  location: string;
   image: string;
   progress?: number;
   edited?: string;
@@ -12,7 +11,7 @@ interface TripCardProps {
   onClick?: () => void;
 }
 
-const TripCard: React.FC<TripCardProps> = ({ title, location, image, progress, edited, members, countries, onClick }) => {
+const TripCard: React.FC<TripCardProps> = ({ title, image, progress, edited, members, countries, onClick }) => {
   const fallbackProfile = import.meta.env.VITE_NO_PROFILE_PIC_URL || '';
   const countryDisplay = React.useMemo(()=> {
     if(!countries || countries.length===0) return null;

@@ -71,18 +71,20 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
   {navItems.filter(i=> !hideSections.includes(i.id) && (i.id!=='docs' || (canAccessDocs && docsSection))).map(item => {
         const selected = item.id === active;
         const isDocs = item.id==='docs';
+        const isPacking = item.id === 'packing';
   const disabledDocs = isDocs && !docsEnabled;
+  const isDisabled = disabledDocs || isPacking;
         return (
-          <Tooltip key={item.id} title={disabledDocs? 'Docs (Coming Soon)': item.label} placement='right' arrow>
+          <Tooltip key={item.id} title={isDisabled ? `${item.label} (Coming Soon)` : item.label} placement='right' arrow>
             <Box
               role='button'
               tabIndex={0}
               aria-pressed={selected}
               data-nav-id={item.id}
-              onClick={() => { if(disabledDocs) return; onChange?.(item.id); }}
-              onKeyDown={(e)=> { if(disabledDocs) return; if(e.key==='Enter' || e.key===' ') { e.preventDefault(); onChange?.(item.id); } }}
+              onClick={() => { if(isDisabled) return; onChange?.(item.id); }}
+              onKeyDown={(e)=> { if(isDisabled) return; if(e.key==='Enter' || e.key===' ') { e.preventDefault(); onChange?.(item.id); } }}
               sx={{
-                cursor: disabledDocs? 'not-allowed':'pointer',
+                cursor: isDisabled? 'not-allowed':'pointer',
                 width: 48,
                 mx: 0,
                 display: 'flex',
@@ -92,11 +94,11 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
                 borderRadius: 2,
                 background: selected
                   ? 'rgba(255,255,255,0.22)'
-                  : (disabledDocs ? 'rgba(255,255,255,0.05)' : 'transparent'),
+                  : (isDisabled ? 'rgba(255,255,255,0.05)' : 'transparent'),
                 border: selected
                   ? '1px solid rgba(255,255,255,0.40)'
-                  : (disabledDocs ? '1px solid rgba(255,255,255,0.15)' : 'none'),
-                opacity: disabledDocs ? 0.6 : 1,
+                  : (isDisabled ? '1px solid rgba(255,255,255,0.15)' : 'none'),
+                opacity: isDisabled ? 0.6 : 1,
                 color: '#fff',
                 transition: 'background .25s ease, transform .25s ease',
                 userSelect: 'none',
@@ -104,7 +106,7 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
                 '&:focus-visible': {
                   boxShadow: '0 0 0 2px rgba(255,255,255,0.9)'
                 },
-                '&:hover': disabledDocs? { background:'rgba(255,255,255,0.05)' } : {
+                '&:hover': isDisabled? { background:'rgba(255,255,255,0.05)' } : {
                   transform: 'translateY(-2px)',
                   background: 'rgba(255,255,255,0.12)'
                 },
@@ -117,7 +119,7 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
               {selected && (
                 <Box sx={{ position: 'absolute', left: -2, top: '50%', transform: 'translateY(-50%)', width: 4, height: '55%', bgcolor: 'rgba(255,255,255,0.85)', borderRadius: '0 2px 2px 0' }} />
               )}
-              {disabledDocs && (<SoonTag sx={{ position:'absolute', bottom:6, right:6 }} />)}
+              {isDisabled && (<SoonTag sx={{ position:'absolute', bottom:6, right:6 }} />)}
             </Box>
           </Tooltip>
         );

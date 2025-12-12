@@ -1,6 +1,6 @@
 import React from "react";
 import { Tabs, Tab, Box, useTheme } from "@mui/material";
-import { FileText, Map, BarChart3 } from "lucide-react";
+import { Map, BarChart3 } from "lucide-react";
 
 interface SettingsTopNavProps {
   selectedSettingsMenuItem: string;

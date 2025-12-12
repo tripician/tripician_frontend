@@ -38,6 +38,7 @@ import { FEATURE_FLAGS } from '../../config/featureFlags';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { normalizeTrip, type NormalizedTrip } from '../../utils/normalizeTrip';
+import { countryNameFromCode } from '../../utils/countryFlags';
 import { differenceInDays } from 'date-fns';
 
 type OwnerInfo = { id?: string; email?: string; name?: string; handle?: string; avatar?: string };
@@ -65,6 +66,29 @@ const normalizeHandle = (value?: string): string | undefined => {
 	const trimmed = value.trim().replace(/^@+/, '');
 	if (!trimmed) return undefined;
 	return `@${trimmed}`;
+};
+
+const normalizeCountryLabel = (value?: string): string | null => {
+	if (typeof value !== 'string') return null;
+	const trimmed = value.trim();
+	if (!trimmed) return null;
+	const direct = countryNameFromCode(trimmed) || countryNameFromCode(trimmed.toUpperCase());
+	if (direct) return direct;
+	const collapsed = trimmed.replace(/\s+/g, ' ');
+	return collapsed
+		.split(' ')
+		.map(segment => segment ? segment.charAt(0).toUpperCase() + segment.slice(1).toLowerCase() : '')
+		.join(' ')
+		.trim();
+};
+
+const normalizeCountryList = (input: unknown): string[] => {
+	if (!Array.isArray(input)) return [];
+	const normalized = input
+		.map(entry => (typeof entry === 'string' ? entry : entry == null ? '' : String(entry)))
+		.map(normalizeCountryLabel)
+		.filter((entry): entry is string => Boolean(entry));
+	return Array.from(new Set(normalized));
 };
 
 const deriveOwnerInfo = (tripSources: any[], memberCandidates: any[]): OwnerInfo => {
@@ -229,21 +253,26 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			return existing || (import.meta.env.VITE_TRIP_DEFAULT_IMAGE || '');
 		} catch { return import.meta.env.VITE_TRIP_DEFAULT_IMAGE || ''; }
 	});
-	// Countries selected during trip creation (array of strings)
+	// Countries selected during trip creation (array of display names)
 	const [countries, setCountries] = React.useState<string[]>(() => {
 		try {
 			const root = earlyRawTrip || (initialTrip?.trip) || initialTrip;
-			const arr = root && Array.isArray(root.countries) ? root.countries.filter((c:any)=> typeof c==='string' && c.trim()) : [];
-			return arr;
+			return normalizeCountryList(root && (root as any)?.countries);
 		} catch { return []; }
 	});
 	const handleRemoveCountry = React.useCallback((country:string) => {
-		setCountries(prev => prev.filter(c=> c!==country));
+		if(!country) return;
+		const normalized = normalizeCountryLabel(country);
+		setCountries(prev => prev.filter(entry => {
+			if(entry === country) return false;
+			if(normalized && entry === normalized) return false;
+			return true;
+		}));
 	}, []);
 	const handleAddCountry = React.useCallback((country:string) => {
-		const c = (country || '').trim();
-		if(!c) return;
-		setCountries(prev => prev.includes(c) ? prev : [...prev, c]);
+		const normalized = normalizeCountryLabel(country);
+		if(!normalized) return;
+		setCountries(prev => prev.includes(normalized) ? prev : [...prev, normalized]);
 	}, []);
 	
 	const notesRef = React.useRef<HTMLTextAreaElement | null>(null);
@@ -334,6 +363,13 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		try {
 			const candidate = (meta as any).importantNotes || (meta as any).notes;
 			if (typeof candidate === 'string' && candidate.trim().length) setImportantNotes(candidate);
+		} catch {}
+		try {
+			if (Array.isArray((meta as any).countries)) {
+				setCountries(normalizeCountryList((meta as any).countries));
+			} else if ((meta as any).countries === null) {
+				setCountries([]);
+			}
 		} catch {}
 		setPrivacy((() => {
 			const v = (meta.visibility||'').toLowerCase();
@@ -498,7 +534,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					if(meta){
 						if(typeof meta.name==='string') setTitle(meta.name);
 						if(typeof meta.photoUrl==='string') setBannerUrl(meta.photoUrl);
-						if(Array.isArray(meta.countries)) setCountries(meta.countries.filter((c:any)=> typeof c==='string'));
+						if(Array.isArray(meta.countries)) setCountries(normalizeCountryList(meta.countries));
 						if(typeof meta.visibility==='string') {
 							const vis = meta.visibility.toLowerCase();
 							setPrivacy(vis.startsWith('every')? 'Everyone' : vis.startsWith('trip')? 'Trip Members' : vis.startsWith('my')? 'My Followers' : 'Private');
@@ -987,7 +1023,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	return (
 		<React.Fragment>
 		<Box sx={{ display:'flex', flexDirection:'row', height:'100vh', overflow:'hidden' }}>
-	<CreateTripNav active={section} onChange={(id)=> setSectionDebug(id as any)} onSettingsClick={()=> setSettingsOpen(true)} hideSections={hideSectionsArr} canAccessDocs={canAccessDocs} docsEnabled={ENABLE_DOC_UPLOAD} />
+		<CreateTripNav active={section} onChange={(id)=> setSectionDebug(id as any)} onSettingsClick={()=> setSettingsOpen(true)} hideSections={hideSectionsArr} canAccessDocs={canAccessDocs} docsEnabled={ENABLE_DOC_UPLOAD} />
 			<Box sx={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, minHeight:0 }}>
 				<TopBar showSearch={false} logo={
 					<Tooltip title='Back to Home'>
@@ -1025,7 +1061,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				<Box ref={containerRef} sx={{ flex:1, display:'flex', position:'relative', minHeight:0 }}>
 					{section==='news' ? (
 						<Box sx={{ flex:1, overflowY:'auto', overflowX:'hidden', display:'flex', flexDirection:'column' }}>
-							<NewsPanel />
+							<NewsPanel selectedCountries={countries} />
 						</Box>
 					) : section==='docs' ? (
 						<Box sx={{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }}>
@@ -1191,7 +1227,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						</Box>
 						)}
 						<Divider />
-						<Box sx={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column' }}>
+						<Box sx={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column'}}>
 							{section==='plan' && tab===0 && (
 								<Box sx={{ px:0 }}>
 									{ENABLE_CARD_LAYOUT ? (

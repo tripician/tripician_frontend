@@ -2,7 +2,6 @@ import React, { useEffect, useState } from 'react';
 import TripCard from './TripCard';
 import '../../assets/css/Dashboard.css';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
-import Footer from '../PageLayout/CommonLayouts/Footer';
 import { Tabs, Tab, Box, CircularProgress, Typography, Alert } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { apiServices } from '../../services/APIs/apiServices';
@@ -167,7 +166,6 @@ const Dashboard: React.FC = () => {
               <TripCard
                 key={plan.id || plan.title}
                 title={plan.title}
-                location={plan.location}
                 countries={plan.countries}
                 image={plan.image}
                 progress={plan.progress}

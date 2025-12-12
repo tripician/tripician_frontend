@@ -10,7 +10,8 @@ export interface CurrencyData {
 // Mapping of country code -> primary currency (simplified)
 const COUNTRY_CURRENCY: Record<string, string> = {
   us: 'USD', gb: 'GBP', fr: 'EUR', de: 'EUR', es: 'EUR', it: 'EUR',
-  jp: 'JPY', cn: 'CNY', in: 'INR', ca: 'CAD', au: 'AUD'
+  jp: 'JPY', cn: 'CNY', in: 'INR', ca: 'CAD', au: 'AUD',
+  nz: 'NZD', sg: 'SGD', ae: 'AED', br: 'BRL', mx: 'MXN', za: 'ZAR', th: 'THB'
 };
 
 const MAJORS = ['USD','EUR','GBP'];

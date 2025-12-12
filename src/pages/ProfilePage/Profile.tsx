@@ -1,22 +1,19 @@
 import { 
-  Box, Typography, Card, CardContent, CircularProgress, 
-  Alert, Button, Container, Stack
+  Box, Typography, CircularProgress, 
+  Alert, Button, Container
 } from "@mui/material";
-import { Refresh, Person } from "@mui/icons-material";
+import { Person } from "@mui/icons-material";
 import UserProfileBanner from "./UserProfileBanner";
 import { useEffect } from "react";
 import TopBar from "../PageLayout/CommonLayouts/TopBar";
-import ProfileBadges from "./ProfileBadges";
 import ProfileDetailsRightCard from "./ProfileDetailsRightCard";
 import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "../../store";
-import { fetchUserProfile, clearUser } from "../../store/userSlice";
-import { useNavigate } from 'react-router-dom';
+import { fetchUserProfile } from "../../store/userSlice";
 import ProfileDashboard from "../PageLayout/ProfileLayouts/ProfileDashboard";
 
 const Profile: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const navigate = useNavigate();
 
   // ✅ Get user profile from Redux store
   const { profile, loading, error } = useSelector((state: RootState) => state.user);
