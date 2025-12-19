@@ -19,7 +19,7 @@ interface UserProfile {
   name: string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:44338';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 console.log('Current Environment:', import.meta.env.VITE_ENV);
 console.log('API Base URL:', API_BASE_URL);

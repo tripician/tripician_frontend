@@ -88,7 +88,7 @@ export const useAuthToken = () => {
       const token = localStorage.getItem('accessToken');
       if (token) {
         // Update this URL to match your backend
-        await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://localhost:44338'}/api/auth/logout`, {
+        await fetch(`${import.meta.env.VITE_API_BASE_URL}/api/auth/logout`, {
           method: 'POST',
           headers: {
             'Authorization': `Bearer ${token}`,

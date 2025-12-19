@@ -299,7 +299,7 @@ const COUNTRIES = [
 const primary = "#1976d2";
 
 const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) => {
-  const apiBase = import.meta.env.VITE_API_BASE_URL || 'https://localhost:44338';
+  const apiBase = import.meta.env.VITE_API_BASE_URL;
   const [formData, setFormData] = useState<FormData>({
     tripName: "",
     selectedCountries: [],

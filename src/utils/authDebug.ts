@@ -39,7 +39,7 @@ export const authDebug = {
   // Test backend connection
   testBackendConnection: async () => {
     try {
-      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || 'https://localhost:44338'}/health`, {
+      const response = await fetch(`${import.meta.env.VITE_API_BASE_URL}/health`, {
         method: 'GET',
         headers: {
           'Content-Type': 'application/json'

@@ -1,7 +1,7 @@
 // api/apiService.ts - This is the ONLY additional file you need
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:44338';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 // Debug log once (safe in dev; minimal noise in prod)
 if (typeof window !== 'undefined') {
   // eslint-disable-next-line no-console

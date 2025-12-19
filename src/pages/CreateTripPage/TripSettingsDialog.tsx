@@ -69,7 +69,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
   const [copyMain, setCopyMain] = React.useState(false);
   // Derive username from first owner/editor member handle (strip leading @) or 'user'
   // Share URL now based solely on tripId; member handle retrieval removed.
-  const baseDomain = import.meta.env.MODE === 'production' ? 'https://www.tripician.com' : 'http://localhost:5173';
+  const baseDomain = import.meta.env.VITE_ENV === 'production' ? 'https://www.tripician.com' : 'http://localhost:5173';
   // Use tripId for canonical share link if available; fallback to title slug
   const tripSlug = tripId ? encodeURIComponent(tripId) : encodeURIComponent(title||'trip');
   const shareUrl = `${baseDomain}/trip/${tripSlug}`; // stable share URL using tripId

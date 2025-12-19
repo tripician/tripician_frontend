@@ -57,7 +57,7 @@ const PrivacySettings: React.FC = () => {
     try {
       const { apiServices } = await import('../../services/APIs/apiServices');
       // Log full request target before calling endpoint
-      const base = import.meta.env.VITE_API_BASE_URL || 'https://localhost:44338';
+      const base = import.meta.env.VITE_API_BASE_URL;
       const path = '/api/profile/settings/privacy';
       console.log('[PrivacySettings] GET privacy settings', { base, path, fullUrl: base.replace(/\/$/, '') + path });
       const resp = await apiServices.getPrivacySettings(authToken);
@@ -122,7 +122,7 @@ const PrivacySettings: React.FC = () => {
       const { apiServices } = await import('../../services/APIs/apiServices');
       // Build full model using latest toggles
       const current = buildModel(newVal, privacySettings);
-      const base = import.meta.env.VITE_API_BASE_URL || 'https://localhost:44338';
+      const base = import.meta.env.VITE_API_BASE_URL;
       console.log('[PrivacySettings] PATCH privacy settings', { base, path: '/api/profile/settings/privacy', payload: current });
       await apiServices.updatePrivacySettings(authToken, current);
     } catch(err:any) {
@@ -147,7 +147,7 @@ const PrivacySettings: React.FC = () => {
       const { apiServices } = await import('../../services/APIs/apiServices');
       const nextSettings = privacySettings.map(p => p.id === id ? { ...p, enabled: !p.enabled } : p);
       const model = buildModel(profileVisibility, nextSettings);
-      const base = import.meta.env.VITE_API_BASE_URL || 'https://localhost:44338';
+      const base = import.meta.env.VITE_API_BASE_URL;
       console.log('[PrivacySettings] PATCH toggle setting', { base, path: '/api/profile/settings/privacy', payload: model });
       await apiServices.updatePrivacySettings(authToken, model);
     } catch(err:any) {
