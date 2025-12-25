@@ -97,10 +97,16 @@ export const createAuthenticatedAPI = (token: string) => {
     deleteUserAccount: () => authenticatedClient.delete('/user/deleteuseraccount'),
 
     // Trip management (example endpoints)
-    getTrips: () => authenticatedClient.get('/trips'),
-    createTrip: (tripData: any) => authenticatedClient.post('/trips', tripData),
-    updateTrip: (tripId: string, tripData: any) => authenticatedClient.put(`/trips/${tripId}`, tripData),
-    deleteTrip: (tripId: string) => authenticatedClient.delete(`/trips/${tripId}`),
+    getTrips: () => authenticatedClient.get('/api/trips/dashboard'),
+
+    createTrip: (tripData: any) =>
+      authenticatedClient.post('/api/trips', tripData),
+
+    updateTrip: (tripId: string, tripData: any) =>
+      authenticatedClient.put(`/api/trips/${tripId}`, tripData),
+
+    deleteTrip: (tripId: string) =>
+      authenticatedClient.delete(`/api/trips/${tripId}`),
     
     // Add other protected endpoints here
   };
