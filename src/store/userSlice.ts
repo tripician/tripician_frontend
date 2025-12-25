@@ -12,6 +12,7 @@ interface UserProfile {
   dateOfBirth?: string;
   gender?: string;
   country?: string;
+  location?: string;
   bio?: string;
   coverpicture?: string;
   profilepicture?: string;
@@ -28,22 +29,135 @@ interface UserState {
   error: string | null;
 }
 
+const coerceProfileValue = (value: unknown): string | undefined => {
+  if (value === undefined || value === null) return undefined;
+  if (typeof value === 'string') return value.trim();
+  if (typeof value === 'number' || typeof value === 'boolean') return String(value);
+  if (value instanceof Date) return value.toISOString();
+  if (typeof value === 'object') {
+    try {
+      const asString = JSON.stringify(value);
+      return asString === '{}' ? undefined : asString;
+    } catch {
+      return undefined;
+    }
+  }
+  return undefined;
+};
+
+const normalizeProfile = (raw: any, previous: UserProfile | null = null): UserProfile | null => {
+  if (!raw && !previous) return null;
+
+  const source = raw ?? {};
+  const base: UserProfile = {
+    bannertint: previous?.bannertint,
+    id: previous?.id,
+    email: previous?.email,
+    fname: previous?.fname,
+    lname: previous?.lname,
+    phone: previous?.phone,
+    dateOfBirth: previous?.dateOfBirth,
+    gender: previous?.gender,
+    country: previous?.country,
+    location: previous?.location,
+    bio: previous?.bio,
+    coverpicture: previous?.coverpicture,
+    profilepicture: previous?.profilepicture,
+    facebook: previous?.facebook,
+    twitter: previous?.twitter,
+    instagram: previous?.instagram,
+    website: previous?.website,
+  };
+
+  const assign = (field: keyof UserProfile, keys: string[]) => {
+    for (const key of keys) {
+      if (!Object.prototype.hasOwnProperty.call(source, key)) continue;
+      const candidate = coerceProfileValue(source[key]);
+      if (candidate !== undefined) {
+        base[field] = candidate;
+        return;
+      }
+    }
+  };
+
+  assign('bannertint', ['bannertint', 'bannerTint', 'BannerTint']);
+  assign('id', ['id', 'Id', 'userId', 'UserId', 'userID']);
+  assign('email', ['email', 'Email', 'userEmail', 'UserEmail']);
+  assign('fname', ['fname', 'Fname', 'firstName', 'FirstName']);
+  assign('lname', ['lname', 'Lname', 'lastName', 'LastName']);
+  assign('phone', ['phone', 'Phone', 'mobile', 'Mobile']);
+  assign('dateOfBirth', ['dateOfBirth', 'DateOfBirth', 'dob', 'Dob']);
+  assign('gender', ['gender', 'Gender']);
+  assign('country', ['country', 'Country']);
+  assign('location', ['location', 'Location', 'city', 'City']);
+  assign('bio', ['bio', 'Bio']);
+  assign('coverpicture', ['coverpicture', 'coverPicture', 'CoverPicture']);
+  assign('profilepicture', ['profilepicture', 'profilePicture', 'ProfilePicture']);
+  assign('facebook', ['facebook', 'Facebook', 'facebookUrl', 'FacebookUrl']);
+  assign('twitter', ['twitter', 'Twitter', 'twitterUrl', 'TwitterUrl']);
+  assign('instagram', ['instagram', 'Instagram', 'instagramUrl', 'InstagramUrl']);
+  assign('website', ['website', 'Website', 'site', 'Site']);
+
+  return base;
+};
+
 const initialState: UserState = {
-  profile: null,
+  profile: (() => {
+    try {
+      const cached = localStorage.getItem('userProfile');
+      if (!cached) return null;
+      const parsed = JSON.parse(cached);
+      const normalized = normalizeProfile(parsed);
+      if (normalized) {
+        try {
+          localStorage.setItem('userProfile', JSON.stringify(normalized));
+        } catch {}
+      }
+      return normalized;
+    } catch {
+      return null;
+    }
+  })(),
   loading: false,
   error: null,
 };
 
 // 🔹 Async thunk to fetch user profile
-export const fetchUserProfile = createAsyncThunk<UserProfile, void, { rejectValue: string }>(
+export const fetchUserProfile = createAsyncThunk<UserProfile, { force?: boolean } | undefined, { rejectValue: string }>(
   "user/fetchProfile",
-  async (_, { rejectWithValue }) => {
+  async (arg, { rejectWithValue }) => {
     try {
       const token = localStorage.getItem("accessToken");
       if (!token) throw new Error("No token available");
 
+      const force = Boolean(arg?.force);
+
+      if (!force) {
+        // Try cache first
+        const cached = localStorage.getItem('userProfile');
+        if (cached) {
+          try {
+            const parsed = JSON.parse(cached);
+            if (parsed) {
+              const normalized = normalizeProfile(parsed);
+              if (normalized && normalized.id) {
+                return normalized;
+              }
+            }
+          } catch {
+            // ignore malformed cache, proceed to network
+          }
+        }
+      }
+
+      // Fallback to API
       const response = await apiServices.getUserProfile(token);
-      return response.data as UserProfile;
+      const normalized = normalizeProfile(response.data);
+      if (!normalized) throw new Error('Invalid profile data');
+      if (normalized.id) {
+        localStorage.setItem('userProfile', JSON.stringify(normalized));
+      }
+      return normalized;
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || err.message);
     }
@@ -57,6 +171,30 @@ const userSlice = createSlice({
     clearUser: (state) => {
       state.profile = null;
       state.error = null;
+      try {
+        localStorage.removeItem('userProfile');
+      } catch {}
+    },
+    setUserProfile: (state, action: PayloadAction<UserProfile | null>) => {
+      if (action.payload === null) {
+        state.profile = null;
+        state.error = null;
+        try {
+          localStorage.removeItem('userProfile');
+        } catch {}
+        return;
+      }
+
+      const normalized = normalizeProfile(action.payload, state.profile);
+      state.profile = normalized;
+      state.error = null;
+      try {
+        if (normalized) {
+          localStorage.setItem('userProfile', JSON.stringify(normalized));
+        } else {
+          localStorage.removeItem('userProfile');
+        }
+      } catch {}
     },
   },
   extraReducers: (builder) => {
@@ -67,7 +205,12 @@ const userSlice = createSlice({
       })
       .addCase(fetchUserProfile.fulfilled, (state, action: PayloadAction<UserProfile>) => {
         state.loading = false;
-        state.profile = action.payload;
+        state.profile = normalizeProfile(action.payload, state.profile);
+        if (state.profile && state.profile.id) {
+          try {
+            localStorage.setItem('userProfile', JSON.stringify(state.profile));
+          } catch {}
+        }
       })
       .addCase(fetchUserProfile.rejected, (state, action) => {
         state.loading = false;
@@ -76,5 +219,6 @@ const userSlice = createSlice({
   },
 });
 
-export const { clearUser } = userSlice.actions;
+export const { clearUser, setUserProfile } = userSlice.actions;
+export type { UserProfile };
 export default userSlice.reducer;

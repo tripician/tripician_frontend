@@ -3,16 +3,26 @@ import '../../assets/css/TripCard.css';
 
 interface TripCardProps {
   title: string;
-  location: string;
   image: string;
   progress?: number;
   edited?: string;
   members?: { name: string; profilePic: string; id?: string }[];
+  countries?: string[]; // optional list of countries
   onClick?: () => void;
 }
 
-const TripCard: React.FC<TripCardProps> = ({ title, location, image, progress, edited, members, onClick }) => {
+const TripCard: React.FC<TripCardProps> = ({ title, image, progress, edited, members, countries, onClick }) => {
   const fallbackProfile = import.meta.env.VITE_NO_PROFILE_PIC_URL || '';
+  const countryDisplay = React.useMemo(()=> {
+    if(!countries || countries.length===0) return null;
+    // Deduplicate & simple title-case formatting (first letter upper only)
+    const normalize = (c:string) => c ? c.charAt(0).toUpperCase() + c.slice(1).toLowerCase() : c;
+    const unique = countries.filter((c,i,arr)=> c && arr.indexOf(c)===i).map(normalize);
+    if(unique.length===1) return { list: [unique[0]], extra: 0 };
+    const firstTwo = unique.slice(0,2);
+    const extra = unique.length - 2;
+    return { list: firstTwo, extra };
+  }, [countries]);
   return (
     <div
       className="trip-card card border-0"
@@ -20,13 +30,38 @@ const TripCard: React.FC<TripCardProps> = ({ title, location, image, progress, e
       tabIndex={onClick ? 0 : undefined}
       onClick={onClick}
       onKeyDown={(e)=> { if(onClick && (e.key==='Enter' || e.key===' ')){ e.preventDefault(); onClick(); } }}
-      style={{ width: '100%', height: '40vh', cursor: onClick ? 'pointer' : 'default' }}>
+      style={{ width: '100%', marginBottom: '3vh', aspectRatio: '4 / 5', cursor: onClick ? 'pointer' : 'default' }}>
       <div className="trip-image-wrapper">
         <img src={image} className="card-img-top" alt={title} />
       </div>
       <div className="card-img-overlay d-flex flex-column justify-content-end text-white">
         <h5 className="card-title fw-bold">{title}</h5>
-        <p className="card-text small text-white-50 mt-0">{location}</p>
+        {countryDisplay && (
+          <div style={{ display:'flex', alignItems:'center', gap:'6px', flexWrap:'wrap', marginBottom:'4px' }} aria-label="Trip countries">
+            {countryDisplay.list.map((c,idx)=> (
+              <span key={idx} style={{
+                background:'rgba(255,255,255,0.18)',
+                color:'#fff',
+                padding:'2px 8px',
+                borderRadius:'10px',
+                fontSize:'11px',
+                fontWeight:500,
+                letterSpacing:'.3px',
+                backdropFilter:'blur(2px)'
+              }}>{c}</span>
+            ))}
+            {countryDisplay.extra>0 && (
+              <span style={{
+                background:'rgba(255,255,255,0.10)',
+                color:'#fff',
+                padding:'2px 8px',
+                borderRadius:'10px',
+                fontSize:'11px',
+                fontWeight:600
+              }}>+{countryDisplay.extra}</span>
+            )}
+          </div>
+        )}
         {progress !== undefined && (
           <div className="progress mb-2" style={{ height: '2px' }}>
             <div

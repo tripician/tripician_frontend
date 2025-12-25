@@ -19,7 +19,7 @@ interface UserProfile {
   name: string;
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:44338';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 
 console.log('Current Environment:', import.meta.env.VITE_ENV);
 console.log('API Base URL:', API_BASE_URL);
@@ -97,10 +97,16 @@ export const createAuthenticatedAPI = (token: string) => {
     deleteUserAccount: () => authenticatedClient.delete('/user/deleteuseraccount'),
 
     // Trip management (example endpoints)
-    getTrips: () => authenticatedClient.get('/trips'),
-    createTrip: (tripData: any) => authenticatedClient.post('/trips', tripData),
-    updateTrip: (tripId: string, tripData: any) => authenticatedClient.put(`/trips/${tripId}`, tripData),
-    deleteTrip: (tripId: string) => authenticatedClient.delete(`/trips/${tripId}`),
+    getTrips: () => authenticatedClient.get('/api/trips/dashboard'),
+
+    createTrip: (tripData: any) =>
+      authenticatedClient.post('/api/trips', tripData),
+
+    updateTrip: (tripId: string, tripData: any) =>
+      authenticatedClient.put(`/api/trips/${tripId}`, tripData),
+
+    deleteTrip: (tripId: string) =>
+      authenticatedClient.delete(`/api/trips/${tripId}`),
     
     // Add other protected endpoints here
   };

@@ -623,6 +623,7 @@ const plannerSlice = createSlice({
 export const {
   setCurrency,
   setTargetNights,
+  setTripDates,
   addDestination,
   removeDestination,
   updateDestinationNights,

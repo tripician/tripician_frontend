@@ -24,7 +24,14 @@ const COUNTRY_COORDS: Record<string, { lat: number; lon: number }> = {
   cn: { lat: 35.8, lon: 104.1 },
   in: { lat: 22.9, lon: 78.4 },
   ca: { lat: 56.1, lon: -106.3 },
-  au: { lat: -25.0, lon: 133.0 }
+  au: { lat: -25.0, lon: 133.0 },
+  nz: { lat: -41.3, lon: 174.8 },
+  sg: { lat: 1.35, lon: 103.82 },
+  ae: { lat: 24.45, lon: 54.38 },
+  br: { lat: -10.8, lon: -52.9 },
+  mx: { lat: 23.6, lon: -102.5 },
+  za: { lat: -30.6, lon: 22.9 },
+  th: { lat: 15.8, lon: 100.8 }
 };
 
 function mapWeatherCodeToText(code: number | null): string | null {

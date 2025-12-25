@@ -13,6 +13,7 @@ import TripPlannerEntry from './pages/CreateTripPage/TripPlannerEntry.tsx'
 import TripView from './pages/TripViewPage/TripView';
 import AuthenticatedLayout from './pages/PageLayout/AuthenticatedLayout';
 import { NotFound404, InternalError500, UnauthorizedAccess, UnderConstruction, SomethingWentWrong, DynamicErrorPage } from './pages/ErrorPages/ErrorPages';
+import SuccessOverlay from './components/CommonComponents/SuccessOverlay';
 
 // Import debug utilities for development
 if (process.env.NODE_ENV === 'development') {
@@ -55,6 +56,7 @@ function App() {
   {/* Final catch-all -> 404 page */}
   <Route path="*" element={<NotFound404 />} />
       </Routes>
+      <SuccessOverlay />
     </div>
   )
 }

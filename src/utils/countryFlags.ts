@@ -58,9 +58,117 @@ const NAME_TO_CODE: Record<string, string> = {
   'Zimbabwe': 'ZW'
 };
 
+const ISO2_TO_ISO3: Record<string, string> = {
+  IN: 'IND',
+  US: 'USA',
+  GB: 'GBR',
+  CA: 'CAN',
+  AU: 'AUS',
+  FR: 'FRA',
+  DE: 'DEU',
+  ES: 'ESP',
+  IT: 'ITA',
+  JP: 'JPN',
+  CN: 'CHN',
+  BR: 'BRA',
+  MX: 'MEX',
+  ZA: 'ZAF',
+  NZ: 'NZL',
+  CH: 'CHE',
+  SE: 'SWE',
+  NO: 'NOR',
+  DK: 'DNK',
+  NL: 'NLD',
+  BE: 'BEL',
+  PT: 'PRT',
+  GR: 'GRC',
+  TR: 'TUR',
+  AE: 'ARE',
+  SG: 'SGP',
+  TH: 'THA',
+  ID: 'IDN',
+  VN: 'VNM',
+  PH: 'PHL',
+  KR: 'KOR',
+  RU: 'RUS',
+  AR: 'ARG',
+  CL: 'CHL',
+  PE: 'PER',
+  CO: 'COL',
+  EG: 'EGY',
+  MA: 'MAR',
+  KE: 'KEN',
+  TZ: 'TZA',
+  IL: 'ISR',
+  SA: 'SAU',
+  IE: 'IRL',
+  IS: 'ISL',
+  AT: 'AUT',
+  CZ: 'CZE',
+  PL: 'POL',
+  HU: 'HUN',
+  FI: 'FIN',
+  HR: 'HRV',
+  BW: 'BWA',
+  ZW: 'ZWE',
+};
+
+const ISO3_TO_ISO2: Record<string, string> = Object.entries(ISO2_TO_ISO3).reduce((acc, [iso2, iso3]) => {
+  acc[iso3] = iso2;
+  return acc;
+}, {} as Record<string, string>);
+
+const CODE_TO_NAME: Record<string, string> = Object.entries(NAME_TO_CODE).reduce((acc, [name, iso2]) => {
+  acc[iso2] = name;
+  return acc;
+}, {} as Record<string, string>);
+
+const ISO3_TO_NAME: Record<string, string> = Object.entries(ISO2_TO_ISO3).reduce((acc, [iso2, iso3]) => {
+  const name = CODE_TO_NAME[iso2];
+  if (name) acc[iso3] = name;
+  return acc;
+}, {} as Record<string, string>);
+
+// Export a stable list of supported country names for dropdowns/autocomplete
+export const COUNTRY_NAMES: string[] = Object.keys(NAME_TO_CODE);
+
 export function countryCodeFromName(name: string): string | undefined {
   if (!name) return undefined;
   return NAME_TO_CODE[name] || undefined;
+}
+
+export function countryAlpha3FromCode(code?: string): string | undefined {
+  if (!code) return undefined;
+  const upper = code.trim().toUpperCase();
+  if (!upper) return undefined;
+  if (upper.length === 3) {
+    return ISO3_TO_ISO2[upper] ? upper : upper;
+  }
+  if (upper.length === 2) {
+    return ISO2_TO_ISO3[upper];
+  }
+  return undefined;
+}
+
+export function countryAlpha3FromName(name: string): string | undefined {
+  const iso2 = countryCodeFromName(name);
+  if (!iso2) return undefined;
+  return ISO2_TO_ISO3[iso2];
+}
+
+export function countryNameFromCode(code: string): string | undefined {
+  if (!code) return undefined;
+  const upper = code.trim().toUpperCase();
+  if (!upper) return undefined;
+  if (upper.length === 2) {
+    return CODE_TO_NAME[upper];
+  }
+  if (upper.length === 3) {
+    const iso2 = ISO3_TO_ISO2[upper];
+    if (iso2) return CODE_TO_NAME[iso2];
+    return ISO3_TO_NAME[upper];
+  }
+  return undefined;
 }
 
 export function flagEmojiFromCode(code?: string): string {
@@ -85,6 +193,9 @@ export function flagPngUrl(code?: string, size: number = 24): string | undefined
 
 export default {
   countryCodeFromName,
+  countryAlpha3FromCode,
+  countryAlpha3FromName,
+  countryNameFromCode,
   flagEmojiFromCode,
   flagEmojiFromName,
   flagPngUrl

@@ -235,6 +235,10 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
             <Paper sx={(t)=>({ display:'flex', alignItems:'center', gap:1, px:1.5, py:.75, borderRadius:3, border:'1px solid '+t.palette.divider, background:t.palette.background.paper })}>
               <SearchIcon fontSize='small' sx={{ opacity:.6 }} />
               <InputBase value={searchValue} onChange={e=> setSearchValue(e.target.value)} placeholder={maxed? 'Night limit reached':'Search or add destination'} disabled={maxed} sx={{ flex:1, fontSize:14 }} />
+              <Box sx={{ display:'flex', alignItems:'center', gap:0.5, opacity:0.7, fontSize:11, whiteSpace:'nowrap' }}>
+                <span>Powered by</span>
+                <Box component='img' alt='Google' src={import.meta.env.VITE_GOOGLE_LOGO || 'https://developers.google.com/static/maps/documentation/images/google_on_white.png'} sx={{ height:14 }} />
+              </Box>
               <Button size='small' variant='contained' disabled={!searchValue.trim() || maxed} onClick={()=> { if(!searchValue.trim()) return; dispatch(addDestination({ name: searchValue.trim() })); setSearchValue(''); }}>Add</Button>
             </Paper>
             {(predictions.length>0 || loadingPred) && searchValue && (

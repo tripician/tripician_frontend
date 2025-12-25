@@ -23,6 +23,8 @@ import { useNavigate } from 'react-router-dom';
 const Signup = () => {
     const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
+  const signupBackground = import.meta.env.VITE_SIGNUPPAGE_IMAGE_URL || import.meta.env.VITE_LOGINPAGE_IMAGE_URL;
+  const backgroundStyle = signupBackground ? { backgroundImage: `url(${signupBackground})` } : undefined;
 
     const [formData, setFormData] = useState({
       firstName: '',
@@ -106,7 +108,7 @@ const Signup = () => {
 
   return (
     <Box className="signup-root">
-      <Box className="signup-bg" />
+      <Box className="signup-bg" style={backgroundStyle} />
       <Box className="signup-content">
           
         <Paper elevation={3} className="signup-paper">

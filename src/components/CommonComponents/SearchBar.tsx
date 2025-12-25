@@ -139,6 +139,7 @@ const SearchBar: React.FC<SearchBarProps> = ({
       }}
     >
       <TextField
+        disabled
         fullWidth
         variant={variant}
         placeholder={placeholder}

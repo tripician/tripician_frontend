@@ -3,12 +3,14 @@ import React from 'react';
 import { Box, Button, Alert, CircularProgress } from '@mui/material';
 import TripPlanner from '../CreateTripPage/TripPlanner';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
-import { useSelector } from 'react-redux';
+import { useSelector, useDispatch } from 'react-redux';
+import type { AppDispatch } from '../../store';
 import type { RootState } from '../CreateTripPage/../../store';
 import TripPlannerNav from '../CreateTripPage/TripPlannerNav';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import { apiServices } from '../../services/APIs/apiServices';
+import { fetchUserProfile } from '../../store/userSlice';
 
 // Basic shape of trip meta we expect (extend later when backend schema finalized)
 interface TripDTO { 
@@ -34,6 +36,13 @@ const TripView: React.FC = () => {
   const initialTrip = state.trip && state.trip.id === tripId ? state.trip : undefined;
   const userProfile = useSelector((s:RootState)=> s.user.profile);
   const userLoading = useSelector((s:RootState)=> s.user.loading);
+  const dispatch = useDispatch<AppDispatch>();
+  React.useEffect(() => {
+    if (!userProfile && !userLoading) {
+      // Only fetch if not already loading and profile is missing
+      dispatch(fetchUserProfile());
+    }
+  }, [userProfile, userLoading, dispatch]);
   const currentUserId = userProfile?.id; // real user id (may be undefined until loaded)
   const [loading, setLoading] = React.useState(!initialTrip);
   const [trip, setTrip] = React.useState<TripDTO | undefined>(initialTrip);
@@ -65,7 +74,6 @@ const TripView: React.FC = () => {
         const resp = await apiServices.getTripById(effectiveToken, tripId);
         console.log('TripView: fetched trip data', resp);
         const data = resp?.data;
-        debugger;
         if (data) {
           // Minimal meta normalization with defaults
           // const meta: TripDTO = {
@@ -88,45 +96,43 @@ const TripView: React.FC = () => {
     return ()=> { active=false; };
   }, [tripId, token, hasFetched]);
 
-  // Robust meta extraction: backend may nest under trip.trip or use alternative keys
+  // Robust meta extraction: backend may nest under Trip/ trip keys or flatten data
   const rawTrip: any = trip as any;
-  const nested = rawTrip && typeof rawTrip === 'object' && rawTrip.trip && typeof rawTrip.trip === 'object' ? rawTrip.trip : rawTrip;
-  const tripRoot: any = nested;
-  const ownerId = tripRoot?.ownerId || tripRoot?.ownerID || tripRoot?.owner_id || rawTrip?.ownerId;
-  const memberIds: string[] = Array.isArray(tripRoot?.memberIds) ? tripRoot.memberIds
-    : Array.isArray(tripRoot?.members) ? tripRoot.members.map((m:any)=> typeof m==='string'? m : (m?.id || m?.userId)).filter(Boolean)
-    : Array.isArray(rawTrip?.memberIds) ? rawTrip.memberIds
+  let tripRoot: any = rawTrip;
+  if (rawTrip && typeof rawTrip === 'object') {
+    if (rawTrip.trip && typeof rawTrip.trip === 'object') {
+      tripRoot = rawTrip.trip;
+    } else if (rawTrip.Trip && typeof rawTrip.Trip === 'object') {
+      tripRoot = rawTrip.Trip;
+    }
+  }
+  // Backend returns OwnerUserId (user id) and Members (array of emails)
+  const ownerId = tripRoot?.OwnerUserId || tripRoot?.ownerUserId || tripRoot?.ownerId || rawTrip?.OwnerUserId || rawTrip?.ownerId;
+  const memberEmailsSource: any[] = Array.isArray(tripRoot?.Members) ? tripRoot.Members
+    : Array.isArray(rawTrip?.Members) ? rawTrip.Members
+    : Array.isArray(tripRoot?.memberEmails) ? tripRoot.memberEmails
+    : Array.isArray(tripRoot?.members) ? tripRoot.members
     : [];
-  const visibilityRaw = tripRoot?.visibility || tripRoot?.privacy || rawTrip?.visibility || rawTrip?.privacy || 'private';
+  const memberEmails: string[] = memberEmailsSource
+    .map((m: any) => {
+      if (typeof m === 'string') return m;
+      return m?.email || m?.Email || m?.userEmail || null;
+    })
+    .filter((email: any): email is string => typeof email === 'string' && email.length > 0);
+  const currentUserEmail = userProfile?.email ?? userProfile?.email ?? null;
+  const visibilityRaw = tripRoot?.visibility || tripRoot?.Visibility || rawTrip?.visibility || rawTrip?.Visibility || 'private';
   const visibility = (visibilityRaw || 'private').toLowerCase();
   const isPrivate = visibility.startsWith('priv');
   const profileResolved = !userLoading; // profile fetch finished (success or fail)
-  const isOwner = ownerId != null && currentUserId != null && ownerId === currentUserId;
-  const isMember = isOwner || (currentUserId != null && memberIds.includes(currentUserId));
+  const isOwner = Boolean(ownerId && currentUserId && String(ownerId) === String(currentUserId));
+  const isMember = isOwner || Boolean(currentUserEmail && memberEmails.some(email => String(email).toLowerCase() === String(currentUserEmail).toLowerCase()));
   // Only decide readability after profile resolved if private
   const readable = trip ? (
     isPrivate ? (profileResolved && (isOwner || isMember)) : true
   ) : false;
 
-  // While trip is loaded but profile still loading and trip is private, keep loading spinner instead of premature denial
-  const waitingForProfile = !loading && trip && isPrivate && !profileResolved;
-
-  if(loading){
-    return (
-      <Box sx={{ display:'flex', flexDirection:'column', height:'100vh' }}>
-        <TopBar showSearch={false} />
-        <Box sx={{ display:'flex', flex:1 }}>
-          <TripPlannerNav active='plan' hideSections={['docs']} />
-          <Box sx={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <CircularProgress />
-          </Box>
-        </Box>
-  {/* Footer removed for TripView loading state */}
-      </Box>
-    );
-  }
-
-  if (waitingForProfile) {
+  // Loading guard: wait for both user profile and trip meta
+  if (loading || userLoading || !userProfile || !trip) {
     return (
       <Box sx={{ display:'flex', flexDirection:'column', height:'100vh' }}>
         <TopBar showSearch={false} />
@@ -160,7 +166,7 @@ const TripView: React.FC = () => {
   const handleEdit = () => {
     // Navigate to full planner for editing (reuse planner route)
     // Pass current `trip` meta under `trip` key for planner hydration.
-    navigate(`/tripplanner/${tripId}`, { state: { tripId, trip } });
+    navigate(`/tripplanner/${tripId}`, { state: { tripId, trip, isOwner, isMember, canEdit: isOwner || isMember } });
   };
 
   return (
@@ -168,14 +174,14 @@ const TripView: React.FC = () => {
       <TripPlanner
         tripId={tripId}
         initialTrip={trip}
-        readOnly={!isOwner}
+        readOnly
         hideSections={(!isOwner && !isMember) || isPrivate ? ['docs','packing'] : []}
         isOwnerExternal={!!isOwner}
-        effectiveCanEdit={isOwner}
+        effectiveCanEdit={false}
         canAccessDocs={isMember || isOwner}
         onRequestEdit={handleEdit}
-        showPlannerActions={isOwner}
-        showViewEditAction={!isOwner}
+        showPlannerActions={false}
+        showViewEditAction={isOwner || isMember}
         isExternalNonOwner={!isOwner}
       />
     </Box>

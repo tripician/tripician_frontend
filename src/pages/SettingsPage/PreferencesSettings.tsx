@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   Box,
   Card,
@@ -8,16 +8,45 @@ import {
   MenuItem,
   FormControl,
   Button,
+  CircularProgress,
   type SelectChangeEvent,
 } from "@mui/material";
+import { useAuthToken } from '../../hooks/useAuth0Token';
+import { apiServices } from '../../services/APIs/apiServices';
 import { KeyboardArrowDown, Save, RestartAlt } from "@mui/icons-material";
 
 const PreferencesSettings: React.FC = () => {
-  const [language, setLanguage] = useState("english");
-  const [timezone, setTimezone] = useState("thailand");
-  const [currency, setCurrency] = useState("usd");
-  const [travelStyle, setTravelStyle] = useState("backpacker");
-  const [budgetRange, setBudgetRange] = useState("30-50");
+  const [language, setLanguage] = useState("");
+  const [timezone, setTimezone] = useState("");
+  const [currency, setCurrency] = useState("");
+  const [travelStyle, setTravelStyle] = useState("");
+  const [budgetRange, setBudgetRange] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  // success overlay via global event; local success state removed
+  const { token: authToken } = useAuthToken();
+
+  useEffect(()=> {
+    if(!authToken) return;
+    let active = true;
+    (async()=>{
+      setLoading(true); setError(null);
+      try {
+        const resp = await apiServices.getPreferenceSettings(authToken);
+        const data = resp.data || {};
+        if(!active) return;
+        setLanguage(data.language || 'english');
+        setTimezone(data.timezone || 'thailand');
+        setCurrency(data.preferredCurrency || 'usd');
+        setTravelStyle(data.travelStyle || 'backpacker');
+        setBudgetRange(data.budgetRange || '30-50');
+      } catch(e:any){
+        setError('Failed to load preferences');
+      } finally { setLoading(false); }
+    })();
+    return ()=> { active=false; };
+  }, [authToken]);
 
   const handleLanguageChange = (event: SelectChangeEvent) => {
     setLanguage(event.target.value);
@@ -39,23 +68,30 @@ const PreferencesSettings: React.FC = () => {
     setBudgetRange(event.target.value);
   };
 
-  const handleSaveSettings = () => {
-    // Handle save settings logic here
-    console.log("Settings saved:", {
-      language,
-      timezone,
-      currency,
-      travelStyle,
-      budgetRange,
-    });
+  const handleSaveSettings = async () => {
+    if(!authToken) return;
+    setSaving(true); setError(null);
+    try {
+      await apiServices.updatePreferenceSettings(authToken, {
+        language,
+        timezone,
+        preferredCurrency: currency,
+        travelStyle,
+        budgetRange,
+      });
+      window.dispatchEvent(new CustomEvent('app:success',{ detail:{ message:'Preferences updated' }}));
+    } catch(e:any){
+      setError('Failed to save preferences');
+    } finally { setSaving(false); }
   };
 
   const handleResetToDefaults = () => {
-    setLanguage("english");
-    setTimezone("thailand");
-    setCurrency("usd");
-    setTravelStyle("backpacker");
-    setBudgetRange("30-50");
+    setLanguage('english');
+    setTimezone('thailand');
+    setCurrency('usd');
+    setTravelStyle('backpacker');
+    setBudgetRange('30-50');
+    setError(null);
   };
 
   const selectStyles = {
@@ -100,6 +136,7 @@ const PreferencesSettings: React.FC = () => {
           value={value}
           onChange={onChange}
           IconComponent={KeyboardArrowDown}
+          disabled={loading || saving}
           sx={selectStyles}
         >
           {options.map((option) => (
@@ -237,8 +274,9 @@ const PreferencesSettings: React.FC = () => {
       <Box sx={{ display: "flex", gap: 2, justifyContent: "flex-start" }}>
         <Button 
           variant="contained"
-          startIcon={<Save />}
+          startIcon={saving ? <CircularProgress size={18} /> : <Save />}
           onClick={handleSaveSettings}
+          disabled={loading || saving}
           sx={{ 
             textTransform: "none",
             fontWeight: 500,
@@ -251,12 +289,13 @@ const PreferencesSettings: React.FC = () => {
             },
           }}
         >
-          Save All Settings
+          {saving ? 'Saving...' : 'Save'}
         </Button>
         <Button 
           variant="text"
           startIcon={<RestartAlt />}
           onClick={handleResetToDefaults}
+          disabled={loading || saving}
           sx={{ 
             textTransform: "none",
             fontWeight: 500,
@@ -264,13 +303,20 @@ const PreferencesSettings: React.FC = () => {
             py: 1.5,
             borderRadius: 1.5,
             color: "#6b7280",
-            "&:hover": {
-              backgroundColor: "#f3f4f6",
-            },
+            "&:hover": { backgroundColor: "#f3f4f6" },
           }}
         >
           Reset to Defaults
         </Button>
+        {loading && (
+          <Box sx={{ display:'flex', alignItems:'center', ml:2 }}>
+            <CircularProgress size={22} />
+          </Box>
+        )}
+        {error && (
+          <Typography variant="caption" color="error" sx={{ ml:2 }}>{error}</Typography>
+        )}
+        {/* success caption replaced by global overlay */}
       </Box>
     </Box>
   );

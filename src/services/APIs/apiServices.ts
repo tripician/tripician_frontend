@@ -1,7 +1,7 @@
 // api/apiService.ts - This is the ONLY additional file you need
 import axios from 'axios';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://localhost:44338';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 // Debug log once (safe in dev; minimal noise in prod)
 if (typeof window !== 'undefined') {
   // eslint-disable-next-line no-console
@@ -75,22 +75,22 @@ export const apiServices = {
     }),
 
   // Trip endpoints (updated to match new TripController)
-  // GET /trips/dashboard - user dashboard trips
+  // GET /api/trips/dashboard - user dashboard trips
   getDashboardTrips: (token: string) => 
-    apiClient.get('/trips/dashboard', {
+    apiClient.get('/api/trips/dashboard', {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  // GET /trips/public - public trips (no auth required but we allow optional token)
+  // GET /api/trips/public - public trips (no auth required but we allow optional token)
   getPublicTrips: (token?: string) => 
-    apiClient.get('/trips/public', {
+    apiClient.get('/api/trips/public', {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined
     }),
 
   // Simple connectivity ping (GET public trips) to help diagnose local server reachability (no auth required).
-  pingPublicTrips: () => apiClient.get('/trips/public').then(r => ({ ok: true, status: r.status })).catch(e => ({ ok: false, error: e.message })),
+  pingPublicTrips: () => apiClient.get('/api/trips/public').then(r => ({ ok: true, status: r.status })).catch(e => ({ ok: false, error: e.message })),
 
-  // POST /trips - create trip
+  // POST /api/trips - create trip
   createTrip: (token: string, data: {
     name: string;
     countries: string[];
@@ -98,16 +98,16 @@ export const apiServices = {
     endDate?: string | null;
     visibility: 'TRIP_MEMBERS' | 'FOLLOWERS' | 'EVERYONE';
     invites?: string[];
-  }) => apiClient.post('/trips', data, {
+  }) => apiClient.post('/api/trips', data, {
     headers: { Authorization: `Bearer ${token}` }
   }),
 
-  // GET /trips/{tripId}
-  getTripById: (token: string, tripId: string) => apiClient.get(`/trips/${tripId}`, {
+  // GET /api/trips/{tripId}
+  getTripById: (token: string, tripId: string) => apiClient.get(`/api/trips/${tripId}`, {
     headers: { Authorization: `Bearer ${token}` }
   }),
 
-  // PUT /trips/{tripId} - update trip core + itinerary + docs/meta
+  // PUT /api/trips/{tripId} - update trip core + itinerary + docs/meta
   // TripUpdateDto should match backend expected shape; we map from front-end payload built in TripPlanner (buildPersistPayload)
   updateTrip: (token: string, tripId: string, data: {
     trip: {
@@ -150,28 +150,33 @@ export const apiServices = {
     visaDocs: Array<{ id:string; originalName:string; mimeType:string }>;
     destinationDocsCount: number;
     version: number;
-  }) => apiClient.put(`/trips/${tripId}`, data, {
+  }) => apiClient.put(`/api/trips/${tripId}`, data, {
     headers: { Authorization: `Bearer ${token}` }
   }),
 
-  // PATCH /trips/{tripId}/visibility
+  // PATCH /api/trips/{tripId}/visibility
   changeTripVisibility: (token: string, tripId: string, data: { visibility: 'TRIP_MEMBERS' | 'FOLLOWERS' | 'EVERYONE' }) =>
-    apiClient.patch(`/trips/${tripId}/visibility`, data, {
+    apiClient.patch(`/api/trips/${tripId}/visibility`, data, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  // DELETE /trips/{tripId}
-  deleteTrip: (token: string, tripId: string) => apiClient.delete(`/trips/${tripId}`, {
+  // DELETE /api/trips/{tripId}
+  deleteTrip: (token: string, tripId: string) => apiClient.delete(`/api/trips/${tripId}`, {
     headers: { Authorization: `Bearer ${token}` }
   }),
 
-  // PUT /trips/{tripId}/settings - lightweight settings update (name, privacy, countries, photoUrl)
+  // PUT /api/trips/{tripId}/settings - settings update (DTO-compatible: name, visibility, dates, countries, bannerPhotoId)
   updateTripSettings: (token: string, tripId: string, data: {
     name?: string;
-    privacy?: string; // backend will map
+    visibility?: string; // e.g., PRIVATE | TRIP_MEMBERS | FOLLOWERS | EVERYONE
+    startDate?: string; // ISO date (yyyy-MM-dd)
+    endDate?: string;   // ISO date (yyyy-MM-dd)
     countries?: string[];
+    bannerPhotoId?: string; // GUID as string if available
+    // Backward compatibility
+    privacy?: string;
     photoUrl?: string;
-  }) => apiClient.put(`/trips/${tripId}/settings`, data, {
+  }) => apiClient.put(`/api/trips/${tripId}/settings`, data, {
     headers: { Authorization: `Bearer ${token}` }
   }),
 
@@ -181,15 +186,101 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  // PATCH /trips/{tripId}/add-users - batch add members to trip
+  // PATCH /api/trips/{tripId}/add-users - batch add members to trip
   addTripUsers: (token: string, tripId: string, userIds: number[]) =>
-    apiClient.patch(`/trips/${tripId}/add-users`, { UserIds: userIds }, {
+    apiClient.patch(`/api/trips/${tripId}/add-users`, { UserIds: userIds }, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  // GET /trips/{tripId}/users - fetch all users (members) of a trip
+  // GET /api/trips/{tripId}/users - fetch all users (members) of a trip
   getTripUsers: (token: string, tripId: string) =>
-    apiClient.get(`/trips/${tripId}/users`, {
+    apiClient.get(`/api/trips/${tripId}/users`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+  // DELETE /api/trips/{tripId}/users/{userId} - remove a single user from trip (owner only)
+  removeTripUser: (token: string, tripId: string, userId: string | number) =>
+    apiClient.delete(`/api/trips/${tripId}/users/${userId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // ------------------------------------------------------------
+  // Profile Settings (Privacy)
+  // GET api/profile/settings/privacy
+  getPrivacySettings: (token: string) =>
+    apiClient.get('/api/profile/settings/privacy', {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+  // GET profile settings (basic user profile fields)
+  getProfileSettings: (token: string) =>
+    apiClient.get('/api/profile/settings/Profile', {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+  // PATCH personal info settings (basic profile editable fields)
+  updatePersonalInfoSettings: (token: string, model: {
+    Fname?: string;
+    Lname?: string;
+    Bio?: string;
+    Location?: string;
+    Website?: string;
+    Twitter?: string;
+    Instagram?: string;
+    Facebook?: string;
+  }) =>
+    apiClient.patch('/api/profile/settings/Personal-Info', model, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+  
+  // PATCH api/profile/settings/privacy
+  // Accepts partial update object. Frontend sends only changed keys.
+  updatePrivacySettings: (token: string, model: {
+    Visibility: string; // e.g. Public | Friends | Private
+    ShowTravelHistory: boolean;
+    ShowContactInfo: boolean;
+    AllowDirectMessages: boolean;
+  }) =>
+    apiClient.patch('/api/profile/settings/privacy', model, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+  // PATCH contact info settings (email / phone)
+  updateContactInfoSettings: (token: string, model: { Email?: string; Phone?: string }) =>
+    apiClient.patch('/api/profile/settings/contact-info', model, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+  // ------------------------------------------------------------
+  // Notification Settings
+  // GET api/profile/settings/notification
+  getNotificationSettings: (token: string) =>
+    apiClient.get('/api/profile/settings/notification', {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+  // PATCH api/profile/settings/notification
+  updateNotificationSettings: (token: string, model: Partial<{
+    emailUpdates: boolean;
+    communityPosts: boolean;
+    blogComments: boolean;
+    newsletter: boolean;
+    pushNotifications: boolean;
+    travelReminders: boolean;
+  }>) =>
+    apiClient.patch('/api/profile/settings/notification', model, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+  // ------------------------------------------------------------
+  // Preference Settings
+  // GET api/profile/settings/preference
+  getPreferenceSettings: (token: string) =>
+    apiClient.get('/api/profile/settings/preference', {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+  // PATCH api/profile/settings/preference
+  updatePreferenceSettings: (token: string, model: {
+    language?: string;
+    timezone?: string;
+    preferredCurrency?: string;
+    travelStyle?: string;
+    budgetRange?: string;
+  }) =>
+    apiClient.patch('/api/profile/settings/preference', model, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 };

@@ -38,7 +38,8 @@ const DIRECT_API_URL = "https://data.twingly.net/news/b/search/v1/search";
 const PROXY_API_URL = "/twingly-news/news/b/search/v1/search";
 
 export interface FetchNewsParams {
-  location: string; // country code e.g. 'us'
+  locations?: string[]; // list of country codes e.g. ['us','jp']
+  location?: string; // legacy single country input
   queryAll?: string[]; // optional additional terms
   size?: number;
   sinceIso?: string; // ISO timestamp since param
@@ -57,8 +58,19 @@ export async function fetchNews(params: FetchNewsParams, apiKey?: string): Promi
   const allTerms = params.queryAll && params.queryAll.length ? params.queryAll : fallbackAll;
   const broad = import.meta.env.VITE_NEWS_BROAD === '1';
   const queryMode = (import.meta.env.VITE_NEWS_QUERY_MODE as string | undefined)?.toLowerCase() === 'any' ? 'any' : 'all';
+  const normalizedLocations = (() => {
+    const list = params.locations && params.locations.length ? params.locations : (params.location ? [params.location] : []);
+    const sanitized = list
+      .map(loc => String(loc).trim().toLowerCase())
+      .filter(Boolean);
+    if(sanitized.length) return Array.from(new Set(sanitized));
+    return [];
+  })();
+  if(!normalizedLocations.length) {
+    return { number_of_documents: 0, number_of_documents_estimated_total: 0, documents: [] };
+  }
   const body: Record<string, any> = {
-    locations: [params.location],
+    locations: normalizedLocations,
     size: params.size ?? 20,
     timestamp: params.sinceIso ? { since: params.sinceIso } : undefined
   };

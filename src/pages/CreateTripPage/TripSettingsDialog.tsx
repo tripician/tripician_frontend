@@ -1,5 +1,9 @@
 import React from 'react';
-import { Dialog, DialogContent, DialogTitle, Box, Typography, IconButton, TextField, Button, Chip, Avatar, Fade, InputBase } from '@mui/material';
+import { Dialog, DialogContent, DialogTitle, Box, Typography, IconButton, TextField, Button, Chip, Avatar, Fade, InputBase, FormControl, Select, MenuItem } from '@mui/material';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
+import { DatePicker } from '@mui/x-date-pickers/DatePicker';
+import dayjs from 'dayjs';
 import CloseIcon from '@mui/icons-material/Close';
 import LinkIcon from '@mui/icons-material/Link';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
@@ -7,8 +11,9 @@ import EmailIcon from '@mui/icons-material/Email';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import CloseIconSmall from '@mui/icons-material/Close';
+import covers from '../../assets/covers.json';
 
-interface Member { id: string; name: string; handle: string; avatar?: string; role: 'Owner' | 'Editor' | 'Viewer'; }
+interface Member { id: string; name: string; handle: string; email?: string; avatar?: string; role: 'Owner' | 'Editor' | 'Viewer'; }
 
 interface TripSettingsDialogProps {
   open: boolean;
@@ -29,12 +34,14 @@ interface TripSettingsDialogProps {
   onInviteEmail?: (email:string)=> Promise<void>|void;
   countries?: string[]; // list of selected countries
   onRemoveCountry?: (country:string)=>void; // removal callback
+  onAddCountry?: (country:string)=>void; // add callback
+  currentUserIsOwner?: boolean; // allow member removal in invite view
 }
 
 // Align with planner's internal privacy state values for correct highlighting
 const PRIVACY_OPTIONS = ['Private','Trip Members','My Followers','Everyone'];
 
-import { flagEmojiFromName, flagPngUrl, countryCodeFromName } from '../../utils/countryFlags';
+import { flagEmojiFromName, flagPngUrl, countryCodeFromName, COUNTRY_NAMES } from '../../utils/countryFlags';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 
@@ -58,11 +65,11 @@ const CountryRow: React.FC<CountryRowProps> = ({ name, onRemove }) => {
   );
 };
 
-const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, title, tripId, startDate, endDate, privacy, members = [], bannerUrl, onChangeBanner, onChangeTitle, onChangeStartDate, onChangeEndDate, onChangePrivacy, onDeleteTrip, onInviteEmail, countries = [], onRemoveCountry }) => {
+const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, title, tripId, startDate, endDate, privacy, members = [], bannerUrl, onChangeBanner, onChangeTitle, onChangeStartDate, onChangeEndDate, onChangePrivacy, onDeleteTrip, onInviteEmail, countries = [], onRemoveCountry, onAddCountry, currentUserIsOwner }) => {
   const [copyMain, setCopyMain] = React.useState(false);
   // Derive username from first owner/editor member handle (strip leading @) or 'user'
   // Share URL now based solely on tripId; member handle retrieval removed.
-  const baseDomain = import.meta.env.MODE === 'production' ? 'https://www.tripician.com' : 'http://localhost:5173';
+  const baseDomain = import.meta.env.VITE_ENV === 'production' ? 'https://www.tripician.com' : 'http://localhost:5173';
   // Use tripId for canonical share link if available; fallback to title slug
   const tripSlug = tripId ? encodeURIComponent(tripId) : encodeURIComponent(title||'trip');
   const shareUrl = `${baseDomain}/trip/${tripSlug}`; // stable share URL using tripId
@@ -74,6 +81,12 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
   const [foundUser, setFoundUser] = React.useState<{id:number; fname:string; lname:string; email:string; country?:string} | null>(null);
   const [pendingUsers, setPendingUsers] = React.useState<Array<{id:number; fname:string; lname:string; email:string; country?:string}>>([]);
   const [addingMembers, setAddingMembers] = React.useState(false);
+  const [newCountry, setNewCountry] = React.useState('');
+  // Member list UX controls (scales to large sets)
+  // Simplified member list (no search/filter). Owners first for clarity.
+  const orderedMembers = React.useMemo(()=> {
+    return [...members].sort((a,b)=> (a.role==='Owner'?0:1) - (b.role==='Owner'?0:1));
+  }, [members]);
 
   const copy = (text:string) => {
     navigator.clipboard.writeText(text).then(()=> {
@@ -166,6 +179,26 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
     setView('main');
   };
 
+  const handleRemoveMember = async (userId: string) => {
+    if(!currentUserIsOwner || !tripId) return;
+    try {
+      const token = authToken || localStorage.getItem('accessToken') || '';
+      if(!token) { setSearchError('Authentication required'); return; }
+      await apiServices.removeTripUser(token, tripId, userId);
+      // Trigger refresh in parent
+      window.dispatchEvent(new CustomEvent('trip:members:updated', { detail:{ tripId, removedUserId: userId } }));
+    } catch(err:any){
+      setSearchError('Failed to remove member');
+    }
+  };
+
+  const canManageMembers = Boolean(currentUserIsOwner);
+  React.useEffect(() => {
+    if(!canManageMembers && view === 'invite') {
+      setView('main');
+    }
+  }, [canManageMembers, view]);
+
   return (
     <Dialog open={open} onClose={onClose} maxWidth='sm' fullWidth TransitionComponent={Fade} keepMounted>
       <DialogTitle sx={{ display:'flex', alignItems:'center', justifyContent:'space-between', pr:1.5 }}>
@@ -252,7 +285,12 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
                     <Typography variant='body2' fontWeight={600} noWrap>{m.name}</Typography>
                     <Typography variant='caption' color='text.secondary' noWrap>{m.handle}</Typography>
                   </Box>
-                  <Chip label={m.role} size='small' color={m.role==='Owner' ? 'primary':'default'} sx={{ fontWeight:600 }} />
+                  <Chip label={m.role} size='small' color={m.role==='Owner' ? 'primary':'default'} sx={{ fontWeight:600, mr: currentUserIsOwner && m.role!=='Owner'? 1:0 }} />
+                  {currentUserIsOwner && m.role!=='Owner' && (
+                    <IconButton size='small' aria-label='Remove member' onClick={()=> handleRemoveMember(m.id)}>
+                      <CloseIconSmall fontSize='small' />
+                    </IconButton>
+                  )}
                 </Box>
               ))}
               {members.length===0 && (
@@ -272,7 +310,13 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
               {bannerUrl ? (
                 <Box component='img' src={bannerUrl} alt='Trip banner' sx={{ width:'100%', height:'100%', objectFit:'cover' }} onError={(e:any)=> { e.currentTarget.style.opacity='0.35'; }} />
               ) : (
-                <Typography variant='caption' color='text.secondary'>No image</Typography>
+                <Box component='img' src={covers[
+            (
+              countries && countries.length && covers.hasOwnProperty(String(countries[0].toLowerCase()))
+                ? covers[countries[0].toLowerCase() as keyof typeof covers].length > 0? (countries[0].toLowerCase() as keyof typeof covers) : 'default'
+                : 'default'
+            ) as keyof typeof covers
+          ]} alt='Trip banner' sx={{ width:'100%', height:'100%', objectFit:'cover' }} onError={(e:any)=> { e.currentTarget.style.opacity='0.35'; }} />
               )}
               <Box sx={{ position:'absolute', top:8, right:8, display:'flex', flexDirection:'column', gap:.75 }}>
                 <Button size='small' variant='contained' color='primary' onClick={()=> {
@@ -297,6 +341,30 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
           {/* Countries Vertical List */}
           <Box sx={{ flex:1, minWidth:240, display:'flex', flexDirection:'column', gap:1 }}>
             <Typography variant='subtitle2' fontWeight={700}>Trip countries</Typography>
+            {/* Add country dropdown (adds on select) */}
+            <Box sx={(t)=>({ display:'flex', alignItems:'center', border:`1px solid ${t.palette.divider}`, borderRadius:2, overflow:'hidden' })}>
+              <FormControl size='small' sx={{ flex:1 }}>
+                <Select
+                  value={newCountry}
+                  onChange={(e)=> {
+                    const c = String(e.target.value).trim();
+                    // Reset selection back to placeholder
+                    setNewCountry('');
+                    if(c && !countries.includes(c)) {
+                      onAddCountry?.(c);
+                    }
+                  }}
+                  displayEmpty
+                  renderValue={(selected)=> selected ? String(selected) : 'Select a country'}
+                  sx={{ px:1, '& .MuiOutlinedInput-notchedOutline': { border: 'none' } }}
+                >
+                  <MenuItem disabled value=''>Select a country</MenuItem>
+                  {COUNTRY_NAMES.map(name=> (
+                    <MenuItem key={name} value={name}>{name}</MenuItem>
+                  ))}
+                </Select>
+              </FormControl>
+            </Box>
             <Box sx={{ display:'flex', flexDirection:'column', gap:.75 }}>
               {countries.length===0 && (
                 <Typography variant='caption' color='text.secondary'>No countries selected.</Typography>
@@ -305,7 +373,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
                 <CountryRow key={c} name={c} onRemove={onRemoveCountry} />
               ))}
             </Box>
-            <Typography variant='caption' color='text.secondary'>Removing a country saves immediately.</Typography>
+            <Typography variant='caption' color='text.secondary'>Add or remove countries here; changes apply in settings.</Typography>
           </Box>
         </Box>
         {/* Title & Dates */}
@@ -320,13 +388,25 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
             sx={{ '& .MuiInputBase-root':{ fontWeight:600 } }}
           />
           <Box sx={{ mt:2, display:'flex', gap:2, flexWrap:'wrap' }}>
-            {/* Sanitize incoming date strings that may include time component (e.g. 2025-10-26T00:00:00) for HTML date input */}
-            {(() => { const sanitize = (d:string) => (d && d.length >= 10 ? d.slice(0,10) : d); return (
-              <>
-                <TextField label='Start date' type='date' value={sanitize(startDate)} onChange={e=> onChangeStartDate?.(e.target.value)} InputLabelProps={{ shrink:true }} size='small' sx={{ flex:1, minWidth:160, '& .MuiInputBase-input':{ cursor:'default' } }} InputProps={{ readOnly:true }} />
-                <TextField label='End date' type='date' value={sanitize(endDate)} onChange={e=> onChangeEndDate?.(e.target.value)} InputLabelProps={{ shrink:true }} size='small' sx={{ flex:1, minWidth:160, '& .MuiInputBase-input':{ cursor:'default' } }} InputProps={{ readOnly:true }} />
-              </>
-            ); })()}
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              {(() => { const sanitize = (d:string) => (d && d.length >= 10 ? d.slice(0,10) : d); const sd = dayjs(sanitize(startDate)); const ed = dayjs(sanitize(endDate)); return (
+                <>
+                  <DatePicker
+                    label="Start date"
+                    value={sd.isValid()? sd : null}
+                    onChange={(v)=> { const iso = v? v.format('YYYY-MM-DD') : ''; onChangeStartDate?.(iso); }}
+                    slotProps={{ textField: { size:'small', sx:{ flex:1, minWidth:160 } } }}
+                  />
+                  <DatePicker
+                    label="End date"
+                    value={ed.isValid()? ed : null}
+                    minDate={sd.isValid()? sd : undefined}
+                    onChange={(v)=> { const iso = v? v.format('YYYY-MM-DD') : ''; onChangeEndDate?.(iso); }}
+                    slotProps={{ textField: { size:'small', sx:{ flex:1, minWidth:160 } } }}
+                  />
+                </>
+              ); })()}
+            </LocalizationProvider>
           </Box>
         </Box>
 
@@ -367,28 +447,57 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
         <Box>
           <Box sx={{ display:'flex', alignItems:'center', justifyContent:'space-between', mb:1 }}>
             <Typography variant='subtitle2' fontWeight={700}>Trip members</Typography>
-            <Button 
-              size='small' 
-              variant='outlined' 
-              startIcon={<EmailIcon fontSize='small' />} 
-              onClick={()=> setView('invite')} 
-              sx={{ textTransform:'none', borderRadius:2 }}
-            >
-              Add member
-            </Button>
+            {canManageMembers && (
+              <Button 
+                size='small' 
+                variant='outlined' 
+                startIcon={<EmailIcon fontSize='small' />} 
+                onClick={()=> setView('invite')} 
+                sx={{ textTransform:'none', borderRadius:2 }}
+              >
+                Add member
+              </Button>
+            )}
           </Box>
+          {/* Simplified: no search or filters per request */}
           <Box sx={{ display:'flex', flexDirection:'column', gap:1 }}>
-            {members.map(m=> (
-              <Box key={m.id} sx={(t)=>({ display:'flex', alignItems:'center', p:1, borderRadius:2, background: t.palette.mode==='dark'? t.palette.grey[900]: t.palette.grey[50], border:`1px solid ${t.palette.divider}` })}>
-                <Avatar src={m.avatar} sx={{ width:40, height:40, mr:1 }} />
-                <Box sx={{ flex:1, minWidth:0 }}>
-                  <Typography variant='body2' fontWeight={600} noWrap>{m.name}</Typography>
-                  <Typography variant='caption' color='text.secondary' noWrap>{m.handle}</Typography>
-                </Box>
-                <Chip label={m.role} size='small' color={m.role==='Owner' ? 'primary':'default'} sx={{ fontWeight:600 }} />
-              </Box>
-            ))}
-            {members.length===0 && (
+              {orderedMembers.length>0 && (
+                <>
+                  {orderedMembers.map(m=> {
+                    const isOwner = m.role === 'Owner';
+                    return (
+                      <Box key={m.id} sx={(t)=>({
+                        p:1.15,
+                        borderRadius:1.2,
+                        display:'flex',
+                        flexDirection:'row',
+                        alignItems:'center',
+                        background: t.palette.mode==='dark'? 'rgba(30,45,58,0.55)': '#f5fafc',
+                        border:`1px solid ${t.palette.mode==='dark'? t.palette.grey[800]: '#e1e9ee'}`,
+                        position:'relative',
+                        overflow:'hidden',
+                        transition:'box-shadow .18s, transform .18s',
+                        '&:hover':{ boxShadow:'0 4px 12px rgba(0,0,0,0.08)', transform:'translateY(-2px)' }
+                      })}>
+                        <Avatar src={m.avatar} sx={{ width:44, height:44, mr:1.25, bgcolor:isOwner? 'primary.main':'secondary.light', fontWeight:600 }}>
+                          {!m.avatar && m.name?.[0]}
+                        </Avatar>
+                        <Box sx={{ flex:1, minWidth:0 }}>
+                          <Typography variant='body2' fontWeight={600} noWrap sx={{ display:'flex', alignItems:'center', gap:.35 }}>
+                            {isOwner && <Box component='span' aria-label='Owner' sx={{ fontSize:16 }}>👑</Box>}
+                            {m.name}
+                          </Typography>
+                          <Typography variant='caption' color='text.secondary' noWrap sx={{ opacity:.75 }}>
+                            {m.email || m.handle}
+                          </Typography>
+                        </Box>
+                        <Typography variant='caption' fontWeight={600} sx={{ ml:2, minWidth:60, textAlign:'right', color:isOwner? 'primary.main':'text.secondary' }}>{m.role}</Typography>
+                      </Box>
+                    );
+                  })}
+                </>
+              )}
+              {orderedMembers.length===0 && (
               <Typography variant='body2' color='text.secondary'>No members yet.</Typography>
             )}
           </Box>
@@ -401,7 +510,9 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
             const event = new CustomEvent('trip:settings:save');
             window.dispatchEvent(event);
           }} sx={{ textTransform:'none', borderRadius:3, minWidth:120 }}>Save settings</Button>
-          <Button variant='outlined' color='error' startIcon={<DeleteOutlineIcon />} onClick={onDeleteTrip} sx={{ textTransform:'none', borderRadius:3, minWidth:120 }}>Delete trip</Button>
+          {canManageMembers && (
+            <Button variant='outlined' color='error' startIcon={<DeleteOutlineIcon />} onClick={onDeleteTrip} sx={{ textTransform:'none', borderRadius:3, minWidth:120 }}>Delete trip</Button>
+          )}
         </Box>
         </>
         )}

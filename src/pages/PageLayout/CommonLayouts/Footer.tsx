@@ -1,7 +1,11 @@
 import React from 'react';
 import { Box, Typography, Link, Container } from '@mui/material';
 
-const Footer: React.FC = () => {
+interface FooterProps {
+  fixed?: boolean; // when true, footer is fixed to viewport bottom
+}
+
+const Footer: React.FC<FooterProps> = ({ fixed = false }) => {
   const currentYear = new Date().getFullYear();
 
   return (
@@ -11,10 +15,16 @@ const Footer: React.FC = () => {
         backgroundColor: 'background.paper',
         color: 'text.primary',
         py: 3,
-        mt: 'auto', // Push footer to bottom of content
+        mt: fixed ? 0 : 'auto',
         borderTop: 1,
         borderColor: 'divider',
-        // Removed sidebar margin since footer is now inside main content area
+        width: '100%',
+        position: fixed ? 'fixed' : 'static',
+        left: fixed ? 0 : undefined,
+        bottom: fixed ? 0 : undefined,
+        zIndex: fixed ? (theme) => theme.zIndex.appBar - 1 : undefined,
+        boxShadow: fixed ? '0 -2px 6px rgba(0,0,0,0.08)' : 'none',
+        backdropFilter: fixed ? 'blur(6px)' : 'none'
       }}
     >
       <Container maxWidth="lg">
