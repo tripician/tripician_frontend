@@ -1,0 +1,64 @@
+name: Deploy Tripician Frontend
+
+on:
+  push:
+    branches:
+      - production_hyd
+
+permissions:
+  id-token: write
+  contents: read
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1️⃣ Checkout frontend repo
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2️⃣ Setup Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 18
+          cache: npm
+
+      # 3️⃣ Install dependencies
+      - name: Install dependencies
+        run: npm ci
+
+      # 4️⃣ Build React app
+      - name: Build frontend
+        run: npm run build
+
+      # 5️⃣ Configure AWS credentials using OIDC
+      - name: Configure AWS credentials (OIDC)
+        uses: aws-actions/configure-aws-credentials@v4
+        with:
+          role-to-assume: arn:aws:iam::353284253364:role/tripician-github-deploy
+          aws-region: ap-south-2
+
+      # 6️⃣ Upload build to S3 (clean deploy)
+      - name: Deploy to S3
+        run: |
+          aws s3 sync dist/ s3://tripician-frontend-prod \
+            --delete \
+            --cache-control "max-age=31536000,public"
+
+      # 7️⃣ Ensure index.html is NOT cached (CRITICAL)
+      - name: Set no-cache for index.html
+        run: |
+          aws s3 cp dist/index.html \
+            s3://tripician-frontend-prod/index.html \
+            --cache-control "no-cache,no-store,must-revalidate" \
+            --content-type "text/html" \
+            --metadata-directive REPLACE
+
+      # 8️⃣ Invalidate CloudFront
+      - name: Invalidate CloudFront cache
+        run: |
+          aws cloudfront create-invalidation \
+            --distribution-id E1RVDNOA9Z1DC3 \
+            --paths "/*"
