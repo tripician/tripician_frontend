@@ -160,11 +160,6 @@ const Signin = () => {
           {error && <Alert severity="error" sx={{mb: 2, mx: 1}}>{error}</Alert>}
           {/* Display success message if signin is successful*/}
           {success && <Alert severity="success" sx={{mb: 2, mx: 1}}>{success}</Alert>}
-
-          Environment name: {import.meta.env.VITE_ENV} <br/>
-          BaseURL : {import.meta.env.VITE_API_BASE_URL} <br/>
-          Auth0 Client ID: {import.meta.env.VITE_AUTH0_CLIENT_ID} <br/>
-
           
           <form className="signin-form" onSubmit={handleSubmit}>
               <TextField
