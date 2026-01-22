@@ -219,7 +219,7 @@ export const apiServices = {
   updatePersonalInfoSettings: (token: string, model: {
     Fname?: string;
     Lname?: string;
-    Bio?: string;
+    Bio?: { highlights: { key: string; label: string; value: string; icon: string; }[] };
     Location?: string;
     Website?: string;
     Twitter?: string;
