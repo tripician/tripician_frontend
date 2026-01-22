@@ -26,7 +26,11 @@ const ProfileSettings: React.FC = () => {
   // Profile settings state (fetched from backend)
   const [fname, setFname] = useState('');
   const [lname, setLname] = useState('');
-  const [bio, setBio] = useState('');
+  const [bioHighlights, setBioHighlights] = useState({
+    about: '',
+    dreamPlace: '',
+    from: ''
+  });
   const [location, setLocation] = useState('');
   const [website, setWebsite] = useState('');
   const [email, setEmail] = useState('');
@@ -53,7 +57,20 @@ const ProfileSettings: React.FC = () => {
         if(!active) return;
         setFname(data.Fname || data.fname || '');
         setLname(data.Lname || data.lname || '');
-        setBio(data.Bio || data.bio || '');
+        
+        // Parse bio highlights
+        const bioData = data.Bio || data.bio;
+        if (bioData && typeof bioData === 'object' && bioData.highlights) {
+          const highlights = bioData.highlights;
+          setBioHighlights({
+            about: highlights.find((h: any) => h.key === 'about')?.value || '',
+            dreamPlace: highlights.find((h: any) => h.key === 'dreamPlace')?.value || '',
+            from: highlights.find((h: any) => h.key === 'from')?.value || ''
+          });
+        } else {
+          setBioHighlights({ about: '', dreamPlace: '', from: '' });
+        }
+        
         setLocation(data.Location || data.location || '');
         setWebsite(data.Website || data.website || '');
         setEmail(data.Email || data.email || '');
@@ -191,13 +208,46 @@ const ProfileSettings: React.FC = () => {
             />
           </Box>
 
+          <Typography 
+            variant="subtitle2" 
+            sx={{ 
+              fontWeight: 600, 
+              mb: 2,
+              color: "text.primary",
+              fontSize: "0.95rem"
+            }}
+          >
+            Bio Highlights
+          </Typography>
+
           <TextField
             fullWidth
-            label="Bio"
-            value={bio}
-            onChange={e=> setBio(e.target.value)}
-            multiline
-            rows={3}
+            label="I'm a/an"
+            placeholder="e.g., Traveller, Photographer, Adventure Seeker"
+            value={bioHighlights.about}
+            onChange={e=> setBioHighlights(prev => ({ ...prev, about: e.target.value }))}
+            size="small"
+            disabled={loading}
+            sx={{ mb: 2, "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}
+          />
+
+          <TextField
+            fullWidth
+            label="My dream place is"
+            placeholder="e.g., Bali, Indonesia"
+            value={bioHighlights.dreamPlace}
+            onChange={e=> setBioHighlights(prev => ({ ...prev, dreamPlace: e.target.value }))}
+            size="small"
+            disabled={loading}
+            sx={{ mb: 2, "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}
+          />
+
+          <TextField
+            fullWidth
+            label="I'm from"
+            placeholder="e.g., New York, USA"
+            value={bioHighlights.from}
+            onChange={e=> setBioHighlights(prev => ({ ...prev, from: e.target.value }))}
             size="small"
             disabled={loading}
             sx={{ mb: 3, "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}
@@ -236,10 +286,37 @@ const ProfileSettings: React.FC = () => {
                 setSaving(true);
                 setError(null);
                 try {
+                  // Build bio highlights array
+                  const highlights = [];
+                  if (bioHighlights.about) {
+                    highlights.push({
+                      key: 'about',
+                      label: "I'm a/an",
+                      value: bioHighlights.about,
+                      icon: 'heart'
+                    });
+                  }
+                  if (bioHighlights.dreamPlace) {
+                    highlights.push({
+                      key: 'dreamPlace',
+                      label: 'My dream place is',
+                      value: bioHighlights.dreamPlace,
+                      icon: 'map'
+                    });
+                  }
+                  if (bioHighlights.from) {
+                    highlights.push({
+                      key: 'from',
+                      label: "I'm from",
+                      value: bioHighlights.from,
+                      icon: 'map-pin'
+                    });
+                  }
+
                   const payload = {
                     Fname: fname,
                     Lname: lname,
-                    Bio: bio,
+                    Bio: { highlights },
                     Location: location,
                     Website: website,
                   };
@@ -249,7 +326,7 @@ const ProfileSettings: React.FC = () => {
                       ...(currentProfile ?? {}),
                       fname,
                       lname,
-                      bio,
+                      bio: { highlights },
                       location,
                       website,
                       bannertint: currentProfile?.bannertint,

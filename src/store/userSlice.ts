@@ -2,6 +2,13 @@
 import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
 import { apiServices } from "../services/APIs/apiServices";
 
+interface BioHighlight {
+  key: string;
+  label: string;
+  value: string;
+  icon: string;
+}
+
 interface UserProfile {
   bannertint: string | undefined;
   id?: string;
@@ -13,7 +20,7 @@ interface UserProfile {
   gender?: string;
   country?: string;
   location?: string;
-  bio?: string;
+  bio?: string | { highlights: BioHighlight[] };
   coverpicture?: string;
   profilepicture?: string;
   facebook?: string;
@@ -29,8 +36,17 @@ interface UserState {
   error: string | null;
 }
 
-const coerceProfileValue = (value: unknown): string | undefined => {
+const coerceProfileValue = (value: unknown, fieldName?: string): string | { highlights: BioHighlight[] } | undefined => {
   if (value === undefined || value === null) return undefined;
+  
+  // Special handling for bio field
+  if (fieldName === 'bio') {
+    if (typeof value === 'object' && value !== null && 'highlights' in value) {
+      return value as { highlights: BioHighlight[] };
+    }
+    if (typeof value === 'string') return value.trim();
+  }
+  
   if (typeof value === 'string') return value.trim();
   if (typeof value === 'number' || typeof value === 'boolean') return String(value);
   if (value instanceof Date) return value.toISOString();
@@ -72,9 +88,9 @@ const normalizeProfile = (raw: any, previous: UserProfile | null = null): UserPr
   const assign = (field: keyof UserProfile, keys: string[]) => {
     for (const key of keys) {
       if (!Object.prototype.hasOwnProperty.call(source, key)) continue;
-      const candidate = coerceProfileValue(source[key]);
+      const candidate = coerceProfileValue(source[key], field);
       if (candidate !== undefined) {
-        base[field] = candidate;
+        base[field] = candidate as any;
         return;
       }
     }
@@ -220,5 +236,5 @@ const userSlice = createSlice({
 });
 
 export const { clearUser, setUserProfile } = userSlice.actions;
-export type { UserProfile };
+export type { UserProfile, BioHighlight };
 export default userSlice.reducer;
