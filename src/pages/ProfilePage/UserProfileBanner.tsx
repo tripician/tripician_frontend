@@ -5,10 +5,11 @@ import EditIcon from '@mui/icons-material/Edit';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useNavigate } from 'react-router-dom';
 import { useAuthToken } from '../../hooks/useAuth0Token';
+import type { BioHighlight } from '../../store/userSlice';
 
 interface UserProfileBannerProps {
   name?: string;
-  bio?: string;
+  bio?: { highlights: BioHighlight[] };
   following?: number;
   followers?: number;
   countries?: number;
@@ -174,7 +175,7 @@ const LogoutButton = styled(Button)(({ theme }) => ({
 
 const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
   name = 'Srideep Kar',
-  bio = 'Passionate traveler and abstract photographer',
+  bio,
   following = 0,
   followers = 0,
   countries = 0,
@@ -197,6 +198,30 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
     } finally {
       setIsLoggingOut(false);
     }
+  };
+
+  // Render bio highlights
+  const renderBio = () => {
+    if (!bio || !bio.highlights || bio.highlights.length === 0) return null;
+    
+    return (
+      <Box sx={{ mb: 2 }}>
+        {bio.highlights.map((highlight, index) => (
+          <Typography
+            key={highlight.key || index}
+            variant="body1"
+            sx={{
+              fontSize: '1.0rem',
+              opacity: 0.9,
+              mb: 0.5,
+              lineHeight: 1.5,
+            }}
+          >
+            {highlight.label} {highlight.value}
+          </Typography>
+        ))}
+      </Box>
+    );
   };
 
   return (
@@ -247,17 +272,7 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
               {name}
             </Typography>
 
-            <Typography
-              variant="body1"
-              sx={{
-                fontSize: '1.1rem',
-                opacity: 0.9,
-                mb: 2,
-                lineHeight: 1.5,
-              }}
-            >
-              {bio}
-            </Typography>
+            {renderBio()}
 
             <StatsContainer>
               <StatItem>
