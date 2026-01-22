@@ -20,7 +20,7 @@ interface UserProfile {
   gender?: string;
   country?: string;
   location?: string;
-  bio?: string | { highlights: BioHighlight[] };
+  bio?: { highlights: BioHighlight[] };
   coverpicture?: string;
   profilepicture?: string;
   facebook?: string;
@@ -39,12 +39,13 @@ interface UserState {
 const coerceProfileValue = (value: unknown, fieldName?: string): string | { highlights: BioHighlight[] } | undefined => {
   if (value === undefined || value === null) return undefined;
   
-  // Special handling for bio field
+  // Special handling for bio field - only accept object format
   if (fieldName === 'bio') {
     if (typeof value === 'object' && value !== null && 'highlights' in value) {
       return value as { highlights: BioHighlight[] };
     }
-    if (typeof value === 'string') return value.trim();
+    // Ignore string bio values - backend only accepts object format now
+    return undefined;
   }
   
   if (typeof value === 'string') return value.trim();
