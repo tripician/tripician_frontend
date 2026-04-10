@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Typography, IconButton, Avatar, Tooltip, Popover, Divider, List, ListItemButton, ListItemText, ListItemIcon, Button } from "@mui/material";
+import { Box, Typography, IconButton, Avatar, Tooltip, Popover, Divider, List, ListItemButton, ListItemText, ListItemIcon, Button, Badge } from "@mui/material";
 import { styled } from '@mui/material/styles';
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import LogoutIcon from '@mui/icons-material/Logout';
@@ -8,7 +8,6 @@ import ShieldIcon from '@mui/icons-material/PrivacyTip';
 import GavelIcon from '@mui/icons-material/Gavel';
 import ContactSupportIcon from '@mui/icons-material/ContactSupport';
 import SearchBar from "../../../components/CommonComponents/SearchBar";
-import ThemeToggle from '../../../components/CommonComponents/ThemeToggle';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../../store';
 import { clearUser } from '../../../store/userSlice';
@@ -53,18 +52,15 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
     bottom: 16,
     padding: '6px 16px',
     zIndex: 3,
-    backgroundColor: theme.palette.error.main,
-    color: theme.palette.getContrastText(theme.palette.error.main),
+    backgroundColor: '#FF385C',
+    color: '#fff',
     fontWeight: 600,
     textTransform: 'none',
-    boxShadow: theme.palette.mode === 'dark'
-      ? '0 4px 12px rgba(0,0,0,0.4)'
-      : '0 4px 12px rgba(0,0,0,0.2)',
+    borderRadius: '50px',
+    boxShadow: '0 4px 14px rgba(255, 56, 92, 0.35)',
     '&:hover': {
-      backgroundColor: theme.palette.error.dark,
-      boxShadow: theme.palette.mode === 'dark'
-        ? '0 0 12px rgba(255, 120, 120, 0.6)'
-        : '0 0 12px rgba(255, 0, 0, 0.35)',
+      backgroundColor: '#E31C5F',
+      boxShadow: '0 8px 24px rgba(255, 56, 92, 0.50)',
     },
   }));
 
@@ -80,14 +76,12 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
           top: 0,
           zIndex: 1100,
           backgroundColor: 'background.paper',
-          backdropFilter: 'blur(10px)',
-          borderBottom: 1,
+          backdropFilter: 'blur(12px)',
+          borderBottom: '1px solid',
           borderColor: 'divider',
-          // Slightly tighter padding; if logo (back button) present push closer to edge
-          // Slightly larger left/right padding when no search to nudge logo/right controls
           px: showSearch ? 1.25 : 1,
           py: 1.2,
-          boxShadow: 1,
+          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
           positionRelative: 'relative'
         }}
       >        
@@ -130,20 +124,37 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
             flexShrink: 0,
           }}
         >
-          <IconButton
-            sx={{
-              width: 44,
-              height: 44,
-              '&:hover': {
-                backgroundColor: 'rgba(0, 0, 0, 0.04)',
-              }
-            }}
-          >
-            <NotificationsNoneIcon sx={{ color: "text.secondary" }} fontSize="medium" />
-          </IconButton>
-
-          {/* Theme Toggle */}
-          <ThemeToggle />
+          <Tooltip title="Notifications" arrow>
+            <IconButton
+              sx={{
+                width: 40,
+                height: 40,
+                borderRadius: '50%',
+                transition: 'all 0.2s ease',
+                '&:hover': {
+                  backgroundColor: 'rgba(255, 56, 92, 0.08)',
+                  transform: 'scale(1.08)',
+                }
+              }}
+            >
+              <Badge
+                variant="dot"
+                sx={{
+                  '& .MuiBadge-dot': {
+                    backgroundColor: '#FF385C',
+                    width: 8,
+                    height: 8,
+                    borderRadius: '50%',
+                    border: '2px solid white',
+                    top: 2,
+                    right: 2,
+                  }
+                }}
+              >
+                <NotificationsNoneIcon sx={{ color: "text.secondary", fontSize: 22 }} />
+              </Badge>
+            </IconButton>
+          </Tooltip>
           {/* Profile Avatar + Name */}
           <Tooltip title="Account" arrow>
             <Box
@@ -155,9 +166,8 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
                 cursor: 'pointer',
                 borderRadius: '50%',
                 lineHeight: 0,
-                // No background, no shadow per request
-                '&:hover': { transform: 'scale(1.04)' },
-                transition: 'transform .18s ease'
+                '&:hover': { transform: 'scale(1.06)' },
+                transition: 'transform .2s ease'
               }}
             >
               <Avatar
@@ -179,11 +189,13 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         PaperProps={{
           sx: {
-            mt: 1,
-            width: 340,
-            borderRadius: 0.5,
-            boxShadow: 4,
-            overflow: 'hidden'
+            mt: 1.5,
+            width: 320,
+            borderRadius: 3,
+            boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+            overflow: 'hidden',
+            border: '1px solid',
+            borderColor: 'divider',
           }
         }}
       >

@@ -27,9 +27,11 @@
     "bootstrap": "^5.3.7",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
+    "gsap": "^3.14.2",
     "lucide-react": "^0.539.0",
     "mapbox-gl": "^3.16.0",
     "react": "^19.1.0",
+    "react-barcode": "^1.6.1",
     "react-dom": "^19.1.0",
     "react-redux": "^9.2.0",
     "react-router-dom": "^7.7.1"

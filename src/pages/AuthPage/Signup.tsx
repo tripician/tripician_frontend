@@ -1,30 +1,15 @@
-import React from 'react';
+import React, { useState } from 'react';
+import '../../assets/css/Signin.css';
 import '../../assets/css/Signup.css';
-import { useState } from 'react';
-
-import {
-  Box,
-  TextField,
-  Button,
-  Paper,
-  FormControl,
-  IconButton,
-  InputAdornment,
-  InputLabel,
-  OutlinedInput,
-  Stack,
-  Alert,
-  Typography
-} from '@mui/material';
-import { VisibilityOff, Visibility, Explore } from '@mui/icons-material';
+import { Eye, EyeOff, Plane, MapPin, Globe, Brain, Check } from 'lucide-react';
 import { authAPI } from '../../services/APIs/Auth/auth';
 import { useNavigate } from 'react-router-dom';
 
 const Signup = () => {
     const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
-  const signupBackground = import.meta.env.VITE_SIGNUPPAGE_IMAGE_URL || import.meta.env.VITE_LOGINPAGE_IMAGE_URL;
-  const backgroundStyle = signupBackground ? { backgroundImage: `url(${signupBackground})` } : undefined;
+    const signupBackground = import.meta.env.VITE_SIGNUPPAGE_IMAGE_URL as string | undefined;
+    const logoUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_2_URL as string | undefined;
 
     const [formData, setFormData] = useState({
       firstName: '',
@@ -37,8 +22,8 @@ const Signup = () => {
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState('');
     const [success, setSuccess] = useState('');
-  
-    const handleClickShowPassword = () => setShowPassword((show) => !show);
+
+    const handleClickShowPassword = () => setShowPassword(v => !v);
     const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
       event.preventDefault();
     };
@@ -81,7 +66,6 @@ const Signup = () => {
       setSuccess('');
 
       try {
-        // Fixed: Map frontend field names to backend field names
         const signupData = {
           fname: formData.firstName,
           lname: formData.lastName,
@@ -92,12 +76,10 @@ const Signup = () => {
         const response = await authAPI.signup(signupData);
         console.log('Signup response:', response);
         setSuccess(response.data.message || 'Signup successful! Please check your email for verification.');
-        
-        // Optional: Add a delay before redirect to show success message
+
         setTimeout(() => {
           navigate('/signin');
         }, 2000);
-
       } catch (err: any) {
         console.error('Signup error:', err);
         setError(err.response?.data?.message || 'An error occurred during signup. Please try again.');
@@ -107,151 +89,152 @@ const Signup = () => {
     };
 
   return (
-    <Box className="signup-root">
-      <Box className="signup-bg" style={backgroundStyle} />
-      <Box className="signup-content">
-          
-        <Paper elevation={3} className="signup-paper">
-          <div className="signin-logo">
-            <img src={import.meta.env.VITE_TRIPICIAN_LOGO_FULL_BLACK_URL} alt="Tripician Logo"/>
+    <div className="auth-root">
+      {/* ── Left brand pane ─────────────────────────────────────── */}
+      <div className="auth-left">
+        <div
+          className="auth-left__bg"
+          style={signupBackground ? { backgroundImage: `url(${signupBackground})` } : undefined}
+        />
+        <div className="auth-left__overlay" />
+        <div className="auth-left__content">
+          <div className="auth-left__logo">
+            {logoUrl
+              ? <img src={logoUrl} alt="Tripician" className="auth-left__logo-img" />
+              : <><Plane size={20} /><span>Tripician</span></>
+            }
           </div>
-          <Box className="signup-subheader" sx={{ textAlign: 'center', mb: 3 }}>
-              <Typography 
-                variant="h6" 
-                component="div"
-                sx={{
-                  color: 'text.secondary',
-                  fontWeight: 300,
-                  letterSpacing: '0.5px',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  gap: 1,
-                  fontSize: { xs: '1rem', sm: '1.1rem' }
-                }}
-              >
-                <Explore sx={{ color: 'primary.main', fontSize: '1.2em' }} />
-                Join us and start your journey!
-              </Typography>
-            </Box>
+          <h2 className="auth-left__title">
+            Your journey<br /><em>begins here.</em>
+          </h2>
+          <p className="auth-left__sub">
+            Join thousands of explorers planning smarter with Tripician.
+          </p>
+          <ul className="auth-left__perks">
+            <li><Check size={14} /> Free forever — no credit card needed</li>
+            <li><MapPin size={14} /> Unlimited trip itineraries</li>
+            <li><Globe size={14} /> 150+ destinations covered</li>
+            <li><Brain size={14} /> AI-powered trip suggestions</li>
+          </ul>
+        </div>
+      </div>
 
-          {/* Display error message if signup fails */}
-          {error && <Alert severity="error" sx={{mb: 2}}>{error}</Alert>}
-          {/* Display success message if signup is successful*/}
-          {success && <Alert severity="success" sx={{mb: 2}}>{success}</Alert>}
+      {/* ── Right form pane ─────────────────────────────────────── */}
+      <div className="auth-right">
+        <div className="auth-card auth-card--signup">
+          {/* <div className="auth-card__logo">
+            {logoUrl
+              ? <img src={logoUrl} alt="Tripician" className="auth-card__logo-img" />
+              : <><Plane size={19} /><span>Tripician</span></>
+            }
+          </div> */}
 
-          
-          <form onSubmit={handleSubmit} className="signup-form">
-            
-            <div className="signup-grid">
-              <div className="signup-grid-row">
-                <TextField 
-                    label="First Name" 
-                    fullWidth
-                    value={formData.firstName}
-                    onChange={handleInputChange('firstName')}
-                    required
-                />
-                <TextField 
-                    label="Last Name" 
-                    fullWidth
-                    value={formData.lastName}
-                    onChange={handleInputChange('lastName')}
-                    required
-                />
-              </div>
-              <div className="signup-grid-row">
-                <TextField 
-                    label="Email Address" 
-                    fullWidth
-                    type="email"
-                    value={formData.email}
-                    onChange={handleInputChange('email')}
-                    required
+          <h1 className="auth-card__heading">Create account</h1>
+          <p className="auth-card__subheading">Start planning your next adventure</p>
+
+          {error && <div className="auth-alert auth-alert--error">{error}</div>}
+          {success && <div className="auth-alert auth-alert--success">{success}</div>}
+
+          <form className="auth-form" onSubmit={handleSubmit}>
+            <div className="auth-field-row">
+              <div className="auth-field">
+                <label className="auth-field__label">First Name</label>
+                <input
+                  className="auth-field__input"
+                  type="text"
+                  placeholder="Alex"
+                  value={formData.firstName}
+                  onChange={handleInputChange('firstName')}
+                  required
                 />
               </div>
-
-              <div className="signin-password-row">
-                  <FormControl
-                    variant="outlined"
-                    fullWidth
-                    sx={{ m: 0 }}
-                  >
-                    <InputLabel htmlFor="outlined-adornment-password">Password</InputLabel>
-                    <OutlinedInput
-                      id="outlined-adornment-password"
-                      type={showPassword ? 'text' : 'password'}
-                      endAdornment={
-                        <InputAdornment position="end">
-                          <IconButton
-                            aria-label={showPassword ? 'hide the password' : 'display the password'}
-                            onClick={handleClickShowPassword}
-                            onMouseDown={handleMouseDownPassword}
-                            onMouseUp={handleMouseUpPassword}
-                            edge="end"
-                          >
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      }
-                      label="Password"
-                      required
-                      value={formData.password}
-                      onChange={handleInputChange('password')}
-                    />
-                  </FormControl>
-                </div>
-              <div className="signin-password-row">
-                  <FormControl
-                    variant="outlined"
-                    fullWidth
-                    sx={{ m: 0, mt: '-10px'}}
-                  >
-                    <InputLabel htmlFor="confirm-password">Confirm Password</InputLabel>
-                    <OutlinedInput
-                      id="confirm-password"
-                      type={showPassword ? 'text' : 'password'}
-                      value={formData.confirmPassword}
-                      onChange={handleInputChange('confirmPassword')}                      
-                      endAdornment={
-                        <InputAdornment position="end">
-                          <IconButton
-                            aria-label={showPassword ? 'hide the password' : 'display the password'}
-                            onClick={handleClickShowPassword}
-                            onMouseDown={handleMouseDownPassword}
-                            onMouseUp={handleMouseUpPassword}
-                            edge="end"
-                          >
-                            {showPassword ? <VisibilityOff /> : <Visibility />}
-                          </IconButton>
-                        </InputAdornment>
-                      }
-                      label="Confirm Password"
-                      required
-                    />
-                  </FormControl>
-                </div>
+              <div className="auth-field">
+                <label className="auth-field__label">Last Name</label>
+                <input
+                  className="auth-field__input"
+                  type="text"
+                  placeholder="Smith"
+                  value={formData.lastName}
+                  onChange={handleInputChange('lastName')}
+                  required
+                />
+              </div>
             </div>
 
-            {/* Fixed: Moved button inside form */}
-            <Stack spacing={3} direction="column" className="signup-button-stack">
-                  <Button 
-                    variant="contained" 
-                    type="submit"
-                    disabled={loading}
-                  >
-                  {loading ? 'Creating Account...' : 'Sign Up'}
-                  </Button>
-            </Stack>
+            <div className="auth-field">
+              <label className="auth-field__label">Email Address</label>
+              <input
+                className="auth-field__input"
+                type="email"
+                placeholder="you@example.com"
+                value={formData.email}
+                onChange={handleInputChange('email')}
+                required
+                autoComplete="email"
+              />
+            </div>
+
+            <div className="auth-field">
+              <label className="auth-field__label">Password</label>
+              <div className="auth-field__password-wrap">
+                <input
+                  className="auth-field__input"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Min. 8 characters"
+                  value={formData.password}
+                  onChange={handleInputChange('password')}
+                  required
+                  autoComplete="new-password"
+                />
+                <button
+                  type="button"
+                  className="auth-field__eye"
+                  onClick={handleClickShowPassword}
+                  onMouseDown={handleMouseDownPassword}
+                  onMouseUp={handleMouseUpPassword}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
+              </div>
+            </div>
+
+            <div className="auth-field">
+              <label className="auth-field__label">Confirm Password</label>
+              <div className="auth-field__password-wrap">
+                <input
+                  className="auth-field__input"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Re-enter password"
+                  value={formData.confirmPassword}
+                  onChange={handleInputChange('confirmPassword')}
+                  required
+                />
+                <button
+                  type="button"
+                  className="auth-field__eye"
+                  onClick={handleClickShowPassword}
+                  onMouseDown={handleMouseDownPassword}
+                  onMouseUp={handleMouseUpPassword}
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
+              </div>
+            </div>
+
+            <button className="auth-btn auth-btn--primary" type="submit" disabled={loading}>
+              {loading ? 'Creating Account…' : 'Create Account'}
+            </button>
           </form>
-          
-          <div className="signin-bottom-text">
+
+          <p className="auth-switch">
             Already have an account?
-            <a href="/signin" className="signin-link">Sign In</a>
-          </div>
-        </Paper>
-      </Box>
-    </Box>
+            <a href="/signin" className="auth-switch__link">Sign in</a>
+          </p>
+        </div>
+      </div>
+    </div>
   );
 };
 

@@ -12,7 +12,6 @@ import {
   ListItemText,
   ListItem,
   useTheme,
-  useMediaQuery,
   Tooltip
 } from '@mui/material';
 
@@ -45,9 +44,8 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-  // Collapsed state is now responsive-only (no manual toggle)
-  const [isCollapsed, setIsCollapsed] = useState(false);
+  // Sidebar is always collapsed (icons only)
+  const isCollapsed = true;
   // Initialize selected item from current route to avoid initial flicker defaulting to Home
   const [selectedItem, setSelectedItem] = useState(() => {
     const currentPath = location.pathname;
@@ -88,12 +86,6 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
     }
   }, [location.pathname, onMenuItemChange, selectedItem]);
 
-  useEffect(() => {
-    setIsCollapsed(isMobile);
-  }, [isMobile]);
-
-  // Manual toggle removed per requirement; collapse purely follows breakpoint
-
   const handleMenuItemClick = (itemText: string) => {
     // Only navigate, don't update state here to prevent race conditions
     // Let the useEffect handle state updates based on route changes
@@ -130,16 +122,13 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
             flexDirection: 'column',
             justifyContent: 'space-between',
             p: isCollapsed ? 1 : 2,
-            background: theme.palette.mode === 'light'
-              ? 'linear-gradient(180deg, #132735ff 0%, #006097ff 100%)'
-              : 'linear-gradient(180deg, #1a202c 0%, #2d3748 100%)',
-            color: 'white',
+            background: theme.palette.mode === 'light' ? '#FFFFFF' : '#141414',
+            color: theme.palette.mode === 'light' ? '#222222' : '#E5E5E5',
             overflowX: 'hidden',
             boxShadow: theme.palette.mode === 'light'
-              ? '0 4px 20px rgba(102, 126, 234, 0.3)'
-              : '0 4px 20px rgba(0, 0, 0, 0.5)',
-            backdropFilter: 'blur(10px)',
-            borderRight: `1px solid ${theme.palette.mode === 'light' ? 'rgba(255,255,255,0.2)' : 'rgba(255,255,255,0.1)'}`,
+              ? '2px 0 20px rgba(0, 0, 0, 0.06)'
+              : '2px 0 20px rgba(0, 0, 0, 0.5)',
+            borderRight: `1px solid ${theme.palette.mode === 'light' ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.08)'}`,
             transition: theme.transitions.create('width', {
               easing: theme.transitions.easing.sharp,
               duration: theme.transitions.duration.enteringScreen,
@@ -195,13 +184,9 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
                   letterSpacing: 1.2,
                   textTransform: 'uppercase',
                   borderRadius: 999,
-                  backgroundColor: theme.palette.mode === 'light'
-                    ? 'rgba(255,255,255,0.92)'
-                    : 'rgba(199,210,254,0.88)',
-                  color: theme.palette.mode === 'light' ? '#0d1b2a' : '#1f2937',
-                  boxShadow: theme.palette.mode === 'light'
-                    ? '0 2px 8px rgba(13, 37, 56, 0.25)'
-                    : '0 2px 8px rgba(15, 23, 42, 0.4)'
+                  backgroundColor: '#FF385C',
+                  color: '#FFFFFF',
+                  boxShadow: '0 2px 8px rgba(255, 56, 92, 0.35)'
                 }}
               >
                 BETA
@@ -233,11 +218,13 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
                       mb: 1,
                       minHeight: 48,
                       justifyContent: isCollapsed ? 'center' : 'flex-start',
-                      backgroundColor: selectedItem === item.text ? 'rgba(255,255,255,0.2)' : 'transparent',
+                      backgroundColor: selectedItem === item.text
+                        ? (theme.palette.mode === 'light' ? 'rgba(255, 56, 92, 0.08)' : 'rgba(255, 56, 92, 0.18)')
+                        : 'transparent',
                       '&:hover': disabled ? {} : {
                         backgroundColor: selectedItem === item.text
-                          ? 'rgba(255,255,255,0.25)'
-                          : 'rgba(255,255,255,0.15)',
+                          ? (theme.palette.mode === 'light' ? 'rgba(255, 56, 92, 0.12)' : 'rgba(255, 56, 92, 0.24)')
+                          : (theme.palette.mode === 'light' ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.08)'),
                         transform: 'translateX(4px)',
                       },
                       transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
@@ -250,7 +237,7 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
                         transform: 'translateY(-50%)',
                         width: '4px',
                         height: '60%',
-                        backgroundColor: 'rgba(255,255,255,0.8)',
+                        backgroundColor: '#FF385C',
                         borderRadius: '0 2px 2px 0',
                       } : {},
                       opacity: disabled ? 0.45 : 1,
@@ -259,7 +246,9 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
                   >
                     <Box
                       sx={{
-                        color: selectedItem === item.text ? '#fff' : 'rgba(255,255,255,0.8)',
+                        color: selectedItem === item.text
+                          ? '#FF385C'
+                          : (theme.palette.mode === 'light' ? '#717171' : 'rgba(255,255,255,0.6)'),
                         display: 'flex',
                         alignItems: 'center',
                         minWidth: 24,
@@ -272,9 +261,11 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
                       <ListItemText
                         primary={item.text}
                         sx={{
-                          color: selectedItem === item.text ? '#fff' : 'rgba(255,255,255,0.8)',
-                          fontWeight: selectedItem === item.text ? 600 : 400,
-                          '& .MuiListItemText-primary': { fontSize: '0.95rem' },
+                          color: selectedItem === item.text
+                            ? '#FF385C'
+                            : (theme.palette.mode === 'light' ? '#333333' : 'rgba(255,255,255,0.8)'),
+                          fontWeight: selectedItem === item.text ? 700 : 400,
+                          '& .MuiListItemText-primary': { fontSize: '0.9rem', fontFamily: "'Inter', sans-serif", letterSpacing: '0.01em' },
                           display: 'flex',
                           alignItems: 'center',
                           gap: 1,
@@ -282,7 +273,7 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
                       />
                     )}
                     {!isCollapsed && comingSoon && (
-                      <Box sx={{ ml: 'auto', fontSize: 10, px: .7, py: .2, bgcolor: 'rgba(255,255,255,0.18)', borderRadius: 1, fontWeight: 600, letterSpacing: .5 }}>SOON</Box>
+                      <Box sx={{ ml: 'auto', fontSize: 10, px: .7, py: .2, bgcolor: theme.palette.mode === 'light' ? 'rgba(255,56,92,0.1)' : 'rgba(255,255,255,0.18)', color: theme.palette.mode === 'light' ? '#FF385C' : '#fff', borderRadius: 1, fontWeight: 700, letterSpacing: .5 }}>SOON</Box>
                     )}
                   </ListItem>
                 </Tooltip>
@@ -307,20 +298,20 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
               py: 1.5,
               mb: 1,
               minHeight: 48,
-              border: '1px solid rgba(255,255,255,0.3)',
+              border: `1px solid ${theme.palette.mode === 'light' ? 'rgba(255,56,92,0.45)' : 'rgba(255,255,255,0.3)'}`,
               justifyContent: isCollapsed ? 'center' : 'flex-start',
-              backgroundColor: 'rgba(255,255,255,0.08)',
+              backgroundColor: theme.palette.mode === 'light' ? 'rgba(255,56,92,0.06)' : 'rgba(255,255,255,0.08)',
               '&:hover': {
-                backgroundColor: 'rgba(255,255,255,0.18)',
+                backgroundColor: theme.palette.mode === 'light' ? 'rgba(255,56,92,0.12)' : 'rgba(255,255,255,0.18)',
                 transform: 'translateX(4px)',
-                borderColor: 'rgba(255,255,255,0.4)',
+                borderColor: theme.palette.mode === 'light' ? '#FF385C' : 'rgba(255,255,255,0.4)',
               },
               transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
             }}
           >
             <Box
               sx={{
-                color: '#fff',
+                color: theme.palette.mode === 'light' ? '#FF385C' : '#fff',
                 display: 'flex',
                 alignItems: 'center',
                 minWidth: 24,
@@ -333,10 +324,12 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
               <ListItemText
                 primary={'Create Trip'}
                 sx={{
-                  color: '#fff',
-                  fontWeight: 600,
+                  color: theme.palette.mode === 'light' ? '#FF385C' : '#fff',
+                  fontWeight: 700,
                   '& .MuiListItemText-primary': {
-                    fontSize: '0.95rem',
+                    fontSize: '0.9rem',
+                    fontFamily: "'Inter', sans-serif",
+                    letterSpacing: '0.01em',
                   },
                 }}
               />

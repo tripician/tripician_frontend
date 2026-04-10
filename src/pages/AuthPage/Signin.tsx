@@ -1,30 +1,20 @@
 import React, { useState } from 'react';
 import '../../assets/css/Signin.css';
-import TextField from '@mui/material/TextField';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import OutlinedInput from '@mui/material/OutlinedInput';
-import InputAdornment from '@mui/material/InputAdornment';
-import IconButton from '@mui/material/IconButton';
-import Visibility from '@mui/icons-material/Visibility';
-import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import Stack from '@mui/material/Stack';
-import Button from '@mui/material/Button';
 import GoogleIcon from '@mui/icons-material/Google';
 import AppleIcon from '@mui/icons-material/Apple';
-import Alert from '@mui/material/Alert';
+import { Eye, EyeOff, Plane, MapPin, Globe, Brain } from 'lucide-react';
 import { authAPI } from '../../services/APIs/Auth/auth';
 import { useNavigate } from 'react-router-dom';
 import { fetchUserProfile } from '../../store/userSlice';
-import { useDispatch } from "react-redux";
+import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../store';
 
 const Signin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
-  const loginBackground = import.meta.env.VITE_LOGINPAGE_IMAGE_URL;
-  const leftPaneStyle = loginBackground ? { backgroundImage: `url(${loginBackground})` } : undefined;
+  const loginBackground = import.meta.env.VITE_SIGNINPAGE_IMAGE_URL as string | undefined;
+  const logoUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_2_URL as string | undefined;
 
   // Form state
   const [formData, setFormData] = useState({
@@ -36,14 +26,6 @@ const Signin = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
-  const handleClickShowPassword = () => setShowPassword((show) => !show);
-  const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-  };
-  const handleMouseUpPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-  };
 
   const handleInputChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
@@ -85,37 +67,25 @@ const Signin = () => {
       const response = await authAPI.signin(signInData);
       console.log('SignIn response:', response);
 
-      // ✅ fetch profile once and store globally
       dispatch(fetchUserProfile());
-      
-      // Check if the response indicates success
+
       if (response.data?.success && response.data?.accessToken) {
-        // Store the token
         localStorage.setItem('accessToken', response.data.accessToken);
         if (response.data.refreshToken) {
           localStorage.setItem('refreshToken', response.data.refreshToken);
         }
-        
+
         setSuccess('Sign in successful! Redirecting to home...');
-        
-        // Clear form data
-        setFormData({
-          email: '',
-          password: ''
-        });
-        
-        // Redirect to home after a short delay
+        setFormData({ email: '', password: '' });
+
         setTimeout(() => {
           navigate('/home');
         }, 1500);
       } else {
         setError('Unexpected response from server. Please try again.');
       }
-
     } catch (err: any) {
       console.error('SignIn error:', err);
-      
-      // Handle different types of errors
       if (err.response?.status === 401) {
         setError('Invalid email or password. Please try again.');
       } else if (err.response?.status === 400) {
@@ -131,126 +101,139 @@ const Signin = () => {
   };
 
   const handleForgotPassword = () => {
-    // You can implement forgot password functionality here
     navigate('/forgot-password');
   };
 
   const handleGoogleSignIn = () => {
-    // TODO: Implement Google Sign In
     console.log('Google Sign In clicked');
-    // You can integrate with Auth0's social login or Google OAuth
   };
 
   const handleAppleSignIn = () => {
-    // TODO: Implement Apple Sign In
     console.log('Apple Sign In clicked');
-    // You can integrate with Auth0's social login or Apple OAuth
   };
 
   return (
-    <div className="signin-split-root">
-      <div className="signin-split-left" style={leftPaneStyle} />
-      <div className="signin-split-right">
-        <div className="signin-card">
-          <div className="signin-logo">
-            <img style={{ height: 50, maxWidth: '100%' }} src={import.meta.env.VITE_TRIPICIAN_LOGO_FULL_BLACK_URL} alt="Tripician Logo"/>
+    <div className="auth-root">
+      {/* ── Left brand pane ─────────────────────────────────────── */}
+      <div className="auth-left">
+        <div
+          className="auth-left__bg"
+          style={loginBackground ? { backgroundImage: `url(${loginBackground})` } : undefined}
+        />
+        <div className="auth-left__overlay" />
+        <div className="auth-left__content">
+          <div className="auth-left__logo">
+            {logoUrl
+              ? <img src={logoUrl} alt="Tripician" className="auth-left__logo-img" />
+              : <><Plane size={20} /><span>Tripician</span></>
+            }
           </div>
+          <h2 className="auth-left__title">
+            Plan Smarter.<br /><em>Travel Further.</em>
+          </h2>
+          <p className="auth-left__sub">
+            Your AI-powered companion for every adventure.
+          </p>
+          <ul className="auth-left__perks">
+            <li><MapPin size={14} /> Day-by-day itinerary planner</li>
+            <li><Globe size={14} /> 150+ destinations covered</li>
+            <li><Brain size={14} /> Smart AI trip suggestions</li>
+          </ul>
+        </div>
+      </div>
 
-          {/* Display error message if signin fails */}
-          {error && <Alert severity="error" sx={{mb: 2, mx: 1}}>{error}</Alert>}
-          {/* Display success message if signin is successful*/}
-          {success && <Alert severity="success" sx={{mb: 2, mx: 1}}>{success}</Alert>}
-          
-          <form className="signin-form" onSubmit={handleSubmit}>
-              <TextField
-                id="loginid"
-                label="Email Address"
-                variant="outlined"
-                fullWidth
-                type="text"
+      {/* ── Right form pane ─────────────────────────────────────── */}
+      <div className="auth-right">
+        <div className="auth-card">
+          {/* <div className="auth-card__logo">
+            {logoUrl
+              ? <img src={logoUrl} alt="Tripician" className="auth-card__logo-img" />
+              : <><Plane size={19} /><span>Tripician</span></>
+            }
+          </div> */}
+
+          <h1 className="auth-card__heading">Welcome back</h1>
+          <p className="auth-card__subheading">Sign in to your account to continue</p>
+
+          {error && <div className="auth-alert auth-alert--error">{error}</div>}
+          {success && <div className="auth-alert auth-alert--success">{success}</div>}
+
+          <form className="auth-form" onSubmit={handleSubmit}>
+            <div className="auth-field">
+              <label className="auth-field__label">Email Address</label>
+              <input
+                className="auth-field__input"
+                type="email"
+                placeholder="you@example.com"
                 value={formData.email}
                 onChange={handleInputChange('email')}
                 required
                 autoComplete="email"
-                sx={{ m: 1 }}
               />
+            </div>
 
-              <div className="signin-password-row">
-                <FormControl
-                  variant="outlined"
-                  fullWidth
-                  sx={{ m: 0 }}
+            <div className="auth-field">
+              <div className="auth-field__label-row">
+                <label className="auth-field__label">Password</label>
+                <a
+                  href="#"
+                  className="auth-forgot"
+                  onClick={e => { e.preventDefault(); handleForgotPassword(); }}
                 >
-                  <InputLabel htmlFor="outlined-adornment-password">Password</InputLabel>
-                  <OutlinedInput
-                    id="outlined-adornment-password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={formData.password}
-                    onChange={handleInputChange('password')}
-                    required
-                    autoComplete="current-password"
-                    endAdornment={
-                      <InputAdornment position="end">
-                        <IconButton
-                          aria-label={showPassword ? 'hide the password' : 'display the password'}
-                          onClick={handleClickShowPassword}
-                          onMouseDown={handleMouseDownPassword}
-                          onMouseUp={handleMouseUpPassword}
-                          edge="end"
-                        >
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    }
-                    label="Password"
-                  />
-                </FormControl>
-                
+                  Forgot password?
+                </a>
               </div>
-              <a 
-                href="#" 
-                className="signin-forgot"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleForgotPassword();
-                }}
-              >
-                Forgot password?
-              </a>
-              <Stack spacing={3} direction="column" className="signin-button-stack">
-                <Button 
-                  variant="contained" 
-                  type="submit"
-                  disabled={loading}
+              <div className="auth-field__password-wrap">
+                <input
+                  className="auth-field__input"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleInputChange('password')}
+                  required
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  className="auth-field__eye"
+                  onClick={() => setShowPassword(v => !v)}
+                  tabIndex={-1}
                 >
-                  {loading ? 'Signing In...' : 'Sign in'}
-                </Button>
-              </Stack>
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
+              </div>
+            </div>
+
+            <button className="auth-btn auth-btn--primary" type="submit" disabled={loading}>
+              {loading ? 'Signing In…' : 'Sign In'}
+            </button>
           </form>
-          
-          <div className="signin-bottom-text">
-            Don't have an account? 
-            <a href="/signup" className="signin-link">Sign up</a>
+
+          <p className="auth-switch">
+            Don't have an account?
+            <a href="/signup" className="auth-switch__link">Sign up free</a>
+          </p>
+
+          <div className="auth-divider"><span>or continue with</span></div>
+
+          <div className="auth-social">
+            <button
+              className="auth-social-btn"
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+            >
+              <GoogleIcon style={{ fontSize: 17 }} /> Google
+            </button>
+            <button
+              className="auth-social-btn"
+              type="button"
+              onClick={handleAppleSignIn}
+              disabled={loading}
+            >
+              <AppleIcon style={{ fontSize: 17 }} /> Apple
+            </button>
           </div>
-          <div className="signin-divider">
-            <span>or</span>
-          </div>
-          <Button 
-            variant="outlined" 
-            className="signin-social-btn google"
-            onClick={handleGoogleSignIn}
-            disabled={loading}
-          >
-            <GoogleIcon/> Sign in with Google
-          </Button>
-          <Button 
-            variant="outlined" 
-            className="signin-social-btn google"
-            onClick={handleAppleSignIn}
-            disabled={loading}
-          >
-            <AppleIcon/> Sign in with Apple
-          </Button>
         </div>
       </div>
     </div>

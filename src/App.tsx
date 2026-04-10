@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
 import Signin from './pages/AuthPage/Signin'
 import Signup from './pages/AuthPage/Signup'
+import Landingpage from './pages/LandingPage/LandingPage'
 import Dashboard from './pages/DashboardPage/Dashboard'
 import Profile from './pages/ProfilePage/Profile'
 import Home from './pages/HomePage/Home'
@@ -16,7 +17,7 @@ import { NotFound404, InternalError500, UnauthorizedAccess, UnderConstruction, S
 import SuccessOverlay from './components/CommonComponents/SuccessOverlay';
 
 // Import debug utilities for development
-if (process.env.NODE_ENV === 'development') {
+if (import.meta.env.DEV) {
   import('./utils/authDebug');
 }
 
@@ -26,6 +27,7 @@ function App() {
       <Routes>
         <Route path="/signup" element={<Signup />} />
         <Route path="/signin" element={<Signin />} />
+        <Route path="/" element={<Landingpage/>} />
         
         {/* Protected Routes grouped under persistent layout */}
         <Route element={<ProtectedRoute><AuthenticatedLayout /></ProtectedRoute>}>
@@ -51,7 +53,7 @@ function App() {
         <Route path="/error/:code" element={<DynamicErrorPage />} />
         
         {/* Default redirect */}
-        <Route path="/" element={<Navigate to="/home" replace />} />
+        {/* <Route path="/" element={<Navigate to="/home" replace />} /> */}
         
   {/* Final catch-all -> 404 page */}
   <Route path="*" element={<NotFound404 />} />
