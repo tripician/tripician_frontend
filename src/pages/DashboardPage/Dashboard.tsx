@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import TripCard from './TripCard';
 import '../../assets/css/Dashboard.css';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
-import { Tabs, Tab, Box, CircularProgress, Typography, Alert } from '@mui/material';
+import { Tabs, Tab, Box, CircularProgress, Typography, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, Snackbar } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
@@ -81,6 +81,35 @@ const Dashboard: React.FC = () => {
     fetchTrips();
     return () => { active = false; };
   }, [token]);
+
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [snackbar, setSnackbar] = useState<string | null>(null);
+
+  const handleShare = (plan: any) => {
+    const url = `${window.location.origin}/trip/${plan.id}`;
+    if (navigator.share) {
+      navigator.share({ title: plan.title, url }).catch(() => {});
+    } else {
+      navigator.clipboard.writeText(url).then(() => setSnackbar('Link copied to clipboard!'));
+    }
+  };
+
+  const handleDeleteConfirm = async () => {
+    if (!deleteTarget || !token) return;
+    setDeleting(true);
+    try {
+      await apiServices.deleteTrip(deleteTarget.id, token);
+      setAllPlans(prev => prev.filter(p => p.id !== deleteTarget.id));
+      setPlans(prev => prev.filter(p => p.id !== deleteTarget.id));
+      setSnackbar('Trip deleted.');
+    } catch {
+      setSnackbar('Failed to delete trip.');
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
+  };
 
   const private_plans = allPlans.filter(plan => plan.members.length <= 1);
   const group_plans = allPlans.filter(plan => plan.members.length > 1);
@@ -171,10 +200,9 @@ const Dashboard: React.FC = () => {
                 progress={plan.progress}
                 edited={plan.edited}                
                 members={plan.members}
+                onShare={() => handleShare(plan)}
+                onDelete={() => setDeleteTarget({ id: plan.id, title: plan.title })}
                 onClick={()=> {
-                  // Force planner slice reset BEFORE route transition to avoid itinerary bleed.
-                  // We prefer passing trip meta under state.trip so TripPlanner can hydrate once.
-                  // Adding a unique navigation key ensures React Router remount even if same path reused quickly.
                   navigate(`/trip/${plan.id}`, {
                     state: {
                       trip: {
@@ -185,7 +213,7 @@ const Dashboard: React.FC = () => {
                         memberIds: (plan.members||[]).map((m:any)=> m.id).filter(Boolean)
                       },
                       tripId: plan.id,
-                      __ts: Date.now() // debug timestamp to help differentiate rapid clicks
+                      __ts: Date.now()
                     }
                   });
                 }}
@@ -193,6 +221,36 @@ const Dashboard: React.FC = () => {
             ))}
           </div>
       </Box>
+
+      {/* Delete confirmation dialog */}
+      <Dialog open={!!deleteTarget} onClose={() => setDeleteTarget(null)} PaperProps={{ sx: { borderRadius: 3, p: 1 } }}>
+        <DialogTitle sx={{ fontWeight: 700, fontFamily: "'Inter', sans-serif" }}>Delete trip?</DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ fontFamily: "'Inter', sans-serif" }}>
+            <strong>"{deleteTarget?.title}"</strong> will be permanently deleted. This cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <Button onClick={() => setDeleteTarget(null)} sx={{ textTransform: 'none', fontFamily: "'Inter', sans-serif" }}>Cancel</Button>
+          <Button
+            onClick={handleDeleteConfirm}
+            disabled={deleting}
+            variant="contained"
+            sx={{ textTransform: 'none', fontFamily: "'Inter', sans-serif", background: '#EF4444', '&:hover': { background: '#DC2626' }, borderRadius: 2 }}
+          >
+            {deleting ? 'Deleting…' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      {/* Snackbar */}
+      <Snackbar
+        open={!!snackbar}
+        autoHideDuration={3000}
+        onClose={() => setSnackbar(null)}
+        message={snackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 };

@@ -1,8 +1,13 @@
 import React, { useEffect, useState } from 'react';
-import { Box, Typography, Card, CardContent, CardMedia, Button, CircularProgress, Alert, Stack, Avatar, Chip } from '@mui/material';
+import { Box, Typography, Button, CircularProgress, Alert, Stack, Avatar } from '@mui/material';
 import { useSelector } from 'react-redux';
 import ExploreIcon from '@mui/icons-material/TravelExplore';
 import PublicIcon from '@mui/icons-material/Public';
+import FavoriteRoundedIcon from '@mui/icons-material/FavoriteRounded';
+import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
+
+import PlaceRoundedIcon from '@mui/icons-material/PlaceRounded';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import TrendingUpIcon from '@mui/icons-material/TrendingUp';
 import ConnectingAirportsIcon from '@mui/icons-material/ConnectingAirports';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
@@ -10,6 +15,7 @@ import { useNavigate } from 'react-router-dom';
 import { apiServices } from '../../services/APIs/apiServices';
 import covers from '../../assets/covers.json';
 import TripCreationModal from '../../components/CreateTripComponents/TripCreationModal';
+import TripCard from '../DashboardPage/TripCard';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { countryAlpha3FromCode, countryAlpha3FromName, countryNameFromCode, countryCodeFromName } from '../../utils/countryFlags';
 import Barcode from 'react-barcode';
@@ -742,179 +748,341 @@ const Home: React.FC = () => {
         }}>
           {/* FEATURED DESTINATIONS */}
           <Box sx={{ pb: 6 }}>
-            <Box sx={{ mb: 6 }}>
-            <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1.5, justifyContent: 'space-between' }}>
+            {/* Section header */}
+            <Box sx={{ mb: 3.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
                 <Box sx={{ width: 4, height: 22, borderRadius: 2, background: 'linear-gradient(180deg, #FF385C, #D91A50)' }} />
-                <Typography variant="h5" fontWeight={700} sx={{
+                <Typography fontWeight={800} sx={{
                   fontFamily: "'Inter', sans-serif",
-                  letterSpacing: '-0.025em',
+                  letterSpacing: '-0.03em',
                   fontSize: { xs: '1.3rem', md: '1.5rem' },
+                  color: 'text.primary',
                 }}>
                   Trending Destinations
                 </Typography>
               </Box>
+              <Typography sx={{
+                fontSize: '0.78rem', fontWeight: 600, color: '#FF385C',
+                fontFamily: "'Inter', sans-serif", cursor: 'pointer',
+                letterSpacing: '0.01em',
+                '&:hover': { textDecoration: 'underline' },
+              }}>View all →</Typography>
             </Box>
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3 }}>
-              {featuredDestinations.map(destination => (
-                <Card key={destination.id} sx={{
-                  width: { xs: '100%', sm: 'calc(50% - 12px)', md: 'calc(25% - 18px)' },
-                  display: 'flex',
-                  flexDirection: 'column',
-                  borderRadius: 3,
-                  overflow: 'hidden',
-                  transition: 'all .35s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-                  boxShadow: '0 2px 12px rgba(0,0,0,0.07)',
-                  border: '1px solid',
-                  borderColor: 'divider',
-                  minHeight: 300,
-                  position: 'relative',
-                  backgroundColor: 'background.paper',
-                  '&:hover': { transform: 'translateY(-6px)', boxShadow: '0 18px 44px rgba(0,0,0,0.16)', cursor: 'pointer' }
-                }}>
-                  {/* Badge */}
-                  <Chip 
-                    label={destination.badge}
-                    size="small"
+
+            {/* Cards grid */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 2.5 }}>
+              {featuredDestinations.map((destination) => (
+                <Box
+                  key={destination.id}
+                  sx={{
+                    position: 'relative',
+                    borderRadius: '16px',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    minHeight: { xs: 260, md: 320 },
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.10)',
+                    transition: 'transform 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.32s ease',
+                    '&:hover': {
+                      transform: 'translateY(-6px) scale(1.012)',
+                      boxShadow: '0 20px 48px rgba(0,0,0,0.20)',
+                    },
+                    '&:hover .dest-overlay': { opacity: 1 },
+                    '&:hover .dest-img': { transform: 'scale(1.06)' },
+                  }}
+                >
+                  {/* Image */}
+                  <Box
+                    className="dest-img"
+                    component="img"
+                    src={destination.image}
+                    alt={destination.title}
                     sx={{
-                      position: 'absolute',
-                      top: 12,
-                      right: 12,
-                      zIndex: 2,
-                      fontWeight: 600,
-                      background: 'rgba(255,255,255,0.95)',
-                      backdropFilter: 'blur(10px)',
+                      width: '100%', height: '100%',
+                      objectFit: 'cover',
+                      display: 'block',
+                      transition: 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
                     }}
                   />
-          <CardMedia component="img" height="210" image={destination.image} alt={destination.title} sx={{ objectFit: 'cover' }} />
-                  <CardContent sx={{ flexGrow: 1 }}>
-                    <Typography gutterBottom variant="h6" fontWeight="bold" sx={{ fontSize: { xs: "1rem", md: "1.25rem" } }}>
+
+                  {/* Permanent gradient overlay bottom */}
+                  <Box sx={{
+                    position: 'absolute', inset: 0,
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 45%, transparent 100%)',
+                  }} />
+
+                  {/* Hover tint overlay */}
+                  <Box className="dest-overlay" sx={{
+                    position: 'absolute', inset: 0,
+                    background: 'linear-gradient(135deg, rgba(255,56,92,0.18) 0%, transparent 60%)',
+                    opacity: 0, transition: 'opacity 0.3s ease',
+                  }} />
+
+                  {/* Badge top-right */}
+                  <Box sx={{
+                    position: 'absolute', top: 14, right: 14,
+                    px: 1.25, py: 0.45,
+                    background: 'rgba(255,255,255,0.92)',
+                    backdropFilter: 'blur(12px)',
+                    borderRadius: '50px',
+                    fontSize: '0.7rem', fontWeight: 700,
+                    fontFamily: "'Inter', sans-serif",
+                    color: '#111',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.14)',
+                    lineHeight: 1.4,
+                  }}>
+                    {destination.badge}
+                  </Box>
+
+                  {/* Text bottom */}
+                  <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, p: '18px 20px 20px' }}>
+                    <Typography sx={{
+                      color: '#FFFFFF', fontWeight: 700,
+                      fontSize: '1rem',
+                      fontFamily: "'Inter', sans-serif",
+                      lineHeight: 1.3, mb: 0.5,
+                      letterSpacing: '-0.01em',
+                    }}>
                       {destination.title}
                     </Typography>
-                    <Typography variant="body2" color="text.secondary" sx={{ fontSize: { xs: "0.85rem", md: "0.875rem" } }}>
+                    <Typography sx={{
+                      color: 'rgba(255,255,255,0.72)', fontSize: '0.72rem',
+                      fontFamily: "'Inter', sans-serif",
+                      lineHeight: 1.5,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}>
                       {destination.description}
                     </Typography>
-                  </CardContent>
-                </Card>
+                  </Box>
+                </Box>
               ))}
-            </Box>
             </Box>
           </Box>
 
           {/* Community Adventures */}
-          <Box sx={{ mt: 2 }}>
-          <Box sx={{ mb: 3, display: 'flex', alignItems: 'center', gap: 1.5, justifyContent: 'space-between' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Box sx={{ width: 4, height: 22, borderRadius: 2, background: 'linear-gradient(180deg, #FF385C, #D91A50)' }} />
-                <Typography variant="h5" fontWeight={700} sx={{
+          <Box sx={{ mt: 2, mb: 6 }}>
+
+            {/* ── Section master header ── */}
+            <Box sx={{ mb: 4, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+              <Box>
+                <Typography sx={{
                   fontFamily: "'Inter', sans-serif",
-                  letterSpacing: '-0.025em',
-                  fontSize: { xs: '1.3rem', md: '1.5rem' },
-                }}>
-                  Community Adventures
+                  fontWeight: 900,
+                  fontSize: { xs: '1.55rem', md: '1.85rem' },
+                  letterSpacing: '-0.04em',
+                  lineHeight: 1,
+                  background: 'linear-gradient(135deg, #111 40%, #555)',
+                  WebkitBackgroundClip: 'text',
+                  WebkitTextFillColor: 'transparent',
+                }}>Community Adventures</Typography>
+                <Typography sx={{ fontSize: '0.78rem', color: '#999', fontFamily: "'Inter', sans-serif", mt: 0.6, letterSpacing: '0.01em' }}>
+                  Real trip plans from the Tripician community
                 </Typography>
               </Box>
-          </Box>
+              <Typography onClick={() => navigate('/community')} sx={{
+                fontSize: '0.78rem', fontWeight: 600, color: '#FF385C',
+                fontFamily: "'Inter', sans-serif", cursor: 'pointer',
+                '&:hover': { textDecoration: 'underline' },
+              }}>Browse all →</Typography>
+            </Box>
 
             {loadingPublic && (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 4 }}>
-                <CircularProgress size={32} />
+              <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                <CircularProgress size={32} sx={{ color: '#FF385C' }} />
               </Box>
             )}
-
-            {publicError && !loadingPublic && (
-              <Alert severity="error" sx={{ mb: 2 }}>{publicError}</Alert>
-            )}
-
+            {publicError && !loadingPublic && <Alert severity="error" sx={{ mb: 2 }}>{publicError}</Alert>}
             {!loadingPublic && !publicError && publicTrips.length === 0 && (
-              <Typography variant="body2" color="text.secondary" sx={{ mb: 4 }}>
-                No public trips yet.
-              </Typography>
+              <Typography variant="body2" color="text.secondary">No public trips yet.</Typography>
             )}
 
-            {!loadingPublic && !publicError && (
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 3, mb: 4 }}>
-                {publicTrips.map(t => (
-                  <Card
-                    key={t.id || t.Id}
-                    sx={{
-                      width: { xs: '100%', sm: 'calc(50% - 12px)', md: 'calc(25% - 18px)' },
-                      borderRadius: 3,
-                      boxShadow: 2,
-                      transition: 'all .2s ease',
-                      minHeight: 320,
-                      overflow: 'hidden',
-                      position: 'relative',
-                      display: 'flex',
-                      flexDirection: 'column',
-                      cursor: 'pointer',
-                      '&:hover': { transform: 'translateY(-4px)', boxShadow: 5 }
-                    }}
-                    onClick={() => {
-                      // Go to trip view page for this trip
-                      navigate(`/trip/${t.id || t.Id}`);
-                    }}
-                  >
-                    {/* Cover image */}
-                    {(() => {
-                      // Try to get cover image from t.cover, t.countries[0], or fallback
-                      let coverImg: string | undefined = undefined;
-                      if (typeof t.cover === 'string' && Object.prototype.hasOwnProperty.call(covers, t.cover)) {
-                        coverImg = covers[t.cover as keyof typeof covers];
-                      } else if (
-                        Array.isArray(t.countries) &&
-                        t.countries.length > 0 &&
-                        typeof t.countries[0] === 'string' &&
-                        Object.prototype.hasOwnProperty.call(covers, t.countries[0].toLowerCase())
-                      ) {
-                        coverImg = covers[t.countries[0].toLowerCase() as keyof typeof covers];
-                      } else {
-                        coverImg = covers['default'] || Object.values(covers)[0];
-                      }
-                      return (
-                        <CardMedia component="img" height="140" image={coverImg} alt={t.name || t.title || 'Trip cover'} />
-                      );
-                    })()}
-                    <CardContent sx={{ position: 'relative' }}>
-                      <Stack direction="row" spacing={1} alignItems="center" sx={{ mb: 1 }}>
-                        <Avatar sx={{ width: 24, height: 24 }}>{(t.name || t.title || 'U')[0]}</Avatar>
-                        <Typography variant="subtitle1" fontWeight="bold" sx={{ fontSize: { xs: "0.95rem", md: "1rem" } }}>
-                          {t.name || t.title || 'Untitled trip'}
+            {!loadingPublic && !publicError && publicTrips.length > 0 && (() => {
+              // Helper: resolve cover image for a trip
+              const getCover = (t: typeof publicTrips[0]): string => {
+                if (typeof t.cover === 'string' && Object.prototype.hasOwnProperty.call(covers, t.cover))
+                  return covers[t.cover as keyof typeof covers];
+                if (Array.isArray(t.countries) && t.countries.length > 0 && typeof t.countries[0] === 'string' && Object.prototype.hasOwnProperty.call(covers, t.countries[0].toLowerCase()))
+                  return covers[t.countries[0].toLowerCase() as keyof typeof covers];
+                return covers['default'] || (Object.values(covers)[0] as string);
+              };
+              // Helper: extract display name from owner (may be string, object, or number)
+              const ownerName = (owner: unknown): string => {
+                if (!owner) return 'Traveler';
+                const str = typeof owner === 'string' ? owner : typeof owner === 'object' && owner !== null && 'name' in owner ? String((owner as Record<string, unknown>).name) : typeof owner === 'object' && owner !== null && 'email' in owner ? String((owner as Record<string, unknown>).email) : String(owner);
+                if (!str || str === 'undefined') return 'Traveler';
+                const base = str.includes('@') ? str.split('@')[0] : str;
+                return base.replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim() || 'Traveler';
+              };
+
+              const userId = userProfile?.id || userProfile?.email;
+              const recommended = publicTrips.slice(0, 3);
+              const alsoCheckout = publicTrips.slice(3, 11);
+
+              return (
+                <>
+                  {/* ══ ROW 1: Tripician Recommended ══ */}
+                  <Box sx={{ mb: 4 }}>
+                    {/* Row label */}
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                      <Box sx={{
+                        display: 'flex', alignItems: 'center', gap: 0.6,
+                        px: 1.25, py: 0.45,
+                        background: 'linear-gradient(135deg, #FF385C 0%, #D91A50 100%)',
+                        borderRadius: '50px',
+                        boxShadow: '0 4px 14px rgba(255,56,92,0.35)',
+                      }}>
+                        <VerifiedRoundedIcon sx={{ fontSize: 13, color: '#fff' }} />
+                        <Typography sx={{ fontSize: '0.65rem', fontWeight: 800, color: '#fff', letterSpacing: '0.1em', fontFamily: "'Inter', sans-serif" }}>
+                          TRIPICIAN RECOMMENDED
                         </Typography>
-                      </Stack>
-                      <Typography variant="body2" color="text.secondary" sx={{ mb: 1, fontSize: { xs: "0.85rem", md: "0.875rem" } }}>
-                        {(t.countries && t.countries.join(', ')) || 'No countries specified'}
-                      </Typography>
-                      <Chip size="small" label={`${t.countries?.length || 0} countries`} />
-                      {/* Edit button, only if user is member or owner */}
-                      {(() => {
-                        // Assume t.members is array of user ids/emails, t.owner is user id/email
-                        // userProfile is from Redux store
-                        const userId = userProfile?.id || userProfile?.email;
-                        const isOwner = t.owner && userId && t.owner === userId;
-                        const isMember = Array.isArray(t.members) && userId && t.members.includes(userId);
-                        if (isOwner || isMember) {
+                      </Box>
+                      <Box sx={{ flex: 1, height: '1px', background: 'linear-gradient(to right, rgba(255,56,92,0.15), transparent)' }} />
+                    </Box>
+
+                    {/* Uniform grid — matches dashboard 5-col layout */}
+                    <Box sx={{
+                      display: 'grid',
+                      gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)', lg: 'repeat(5, 1fr)' },
+                      gap: 2,
+                    }}>
+                      {recommended.map((t, tIdx) => {
+                        const coverImg = getCover(t);
+                        const tripName = t.name || t.title || 'Untitled Trip';
+                        const countriesList: string[] = Array.isArray(t.countries) ? t.countries : [];
+                        const likeCount = 18 + (tIdx * 13 + 5) % 74;
+                        const tripRating = parseFloat((3.8 + (likeCount % 12) / 10).toFixed(1));
+                        const author = ownerName(t.owner);
+
+                        return (
+                          <TripCard
+                            key={t.id || t.Id}
+                            title={tripName}
+                            image={coverImg}
+                            countries={countriesList}
+                            rating={tripRating}
+                            likes={likeCount}
+                            owner={author}
+                            onClick={() => navigate(`/trip/${t.id || t.Id}`)}
+                          />
+                        );
+                      })}
+                    </Box>
+                  </Box>
+
+                  {/* ══ ROW 2: Also Check Out ══ */}
+                  {alsoCheckout.length > 0 && (
+                    <Box>
+                      {/* Row label */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                        <Box sx={{
+                          display: 'flex', alignItems: 'center', gap: 0.6,
+                          px: 1.25, py: 0.45,
+                          background: '#F5F5F5',
+                          border: '1px solid rgba(0,0,0,0.08)',
+                          borderRadius: '50px',
+                        }}>
+                          <ExploreIcon sx={{ fontSize: 13, color: '#555' }} />
+                          <Typography sx={{ fontSize: '0.65rem', fontWeight: 800, color: '#555', letterSpacing: '0.1em', fontFamily: "'Inter', sans-serif" }}>
+                            ALSO CHECK OUT
+                          </Typography>
+                        </Box>
+                        <Box sx={{ flex: 1, height: '1px', background: 'rgba(0,0,0,0.07)' }} />
+                      </Box>
+
+                      {/* Compact horizontal cards grid */}
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 1.5 }}>
+                        {alsoCheckout.map((t, tIdx) => {
+                          const coverImg = getCover(t);
+                          const tripName = t.name || t.title || 'Untitled Trip';
+                          const countriesList: string[] = Array.isArray(t.countries) ? t.countries : [];
+                          const likeCount = 8 + (tIdx * 11 + 7) % 55;
+                          const author = ownerName(t.owner);
+                          const authorInitial = author[0].toUpperCase();
+                          const isOwner = t.owner && userId && t.owner === userId;
+                          const isMember = Array.isArray(t.members) && userId && t.members.includes(userId);
+
                           return (
-                            <Button
-                              variant="outlined"
-                              size="small"
-                              sx={{ position: 'absolute', top: 8, right: 8, zIndex: 2 }}
-                              onClick={e => {
-                                e.stopPropagation();
-                                navigate(`/trip/${t.id || t.Id}/edit`);
+                            <Box
+                              key={t.id || t.Id}
+                              onClick={() => navigate(`/trip/${t.id || t.Id}`)}
+                              sx={{
+                                display: 'flex',
+                                borderRadius: '14px',
+                                overflow: 'hidden',
+                                background: '#FFFFFF',
+                                border: '1px solid rgba(0,0,0,0.07)',
+                                boxShadow: '0 1px 6px rgba(0,0,0,0.05)',
+                                cursor: 'pointer',
+                                height: 86,
+                                transition: 'transform 0.22s ease, box-shadow 0.22s ease, border-color 0.2s',
+                                '&:hover': { transform: 'translateY(-3px)', boxShadow: '0 8px 28px rgba(0,0,0,0.10)', borderColor: 'rgba(255,56,92,0.2)' },
+                                '&:hover .co-img': { transform: 'scale(1.08)' },
                               }}
                             >
-                              Edit
-                            </Button>
+                              {/* Thumbnail */}
+                              <Box sx={{ width: 86, flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
+                                <Box
+                                  className="co-img"
+                                  component="img"
+                                  src={coverImg}
+                                  alt={tripName}
+                                  sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.35s ease' }}
+                                />
+                                {(isOwner || isMember) && (
+                                  <Box
+                                    onClick={e => { e.stopPropagation(); navigate(`/trip/${t.id || t.Id}/edit`); }}
+                                    sx={{
+                                      position: 'absolute', top: 5, right: 5,
+                                      width: 20, height: 20, borderRadius: '50%',
+                                      background: 'rgba(255,255,255,0.85)',
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      '&:hover': { background: '#FF385C', '& svg': { color: '#fff' } },
+                                      transition: 'background 0.18s',
+                                    }}
+                                  >
+                                    <EditRoundedIcon sx={{ fontSize: 10, color: '#555' }} />
+                                  </Box>
+                                )}
+                              </Box>
+
+                              {/* Text */}
+                              <Box sx={{ p: '10px 12px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: 0 }}>
+                                <Typography sx={{
+                                  fontWeight: 700, fontSize: '0.8rem',
+                                  fontFamily: "'Inter', sans-serif",
+                                  color: '#111', letterSpacing: '-0.01em', lineHeight: 1.3,
+                                  display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                                }}>{tripName}</Typography>
+
+                                {countriesList.length > 0 && (
+                                  <Typography sx={{ fontSize: '0.65rem', color: '#999', fontFamily: "'Inter', sans-serif", display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                                    <PlaceRoundedIcon sx={{ fontSize: 9, color: '#FF385C', mr: 0.3, verticalAlign: 'middle' }} />
+                                    {countriesList.join(' · ')}
+                                  </Typography>
+                                )}
+
+                                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                                    <Avatar sx={{ width: 16, height: 16, fontSize: '0.45rem', fontWeight: 800, background: 'linear-gradient(135deg, #FF385C, #D91A50)', color: '#fff' }}>{authorInitial}</Avatar>
+                                    <Typography sx={{ fontSize: '0.62rem', color: '#AAA', fontFamily: "'Inter', sans-serif", fontWeight: 500, display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden', maxWidth: 70 }}>{author}</Typography>
+                                  </Box>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
+                                    <FavoriteRoundedIcon sx={{ fontSize: 9, color: '#FF385C' }} />
+                                    <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: '#888', fontFamily: "'Inter', sans-serif" }}>{likeCount}</Typography>
+                                  </Box>
+                                </Box>
+                              </Box>
+                            </Box>
                           );
-                        }
-                        return null;
-                      })()}
-                    </CardContent>
-                  </Card>
-                ))}
-              </Box>
-            )}
+                        })}
+                      </Box>
+                    </Box>
+                  )}
+                </>
+              );
+            })()}
           </Box>
 
           {/* CTA */}
