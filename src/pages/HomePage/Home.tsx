@@ -134,11 +134,12 @@ const Home: React.FC = () => {
   const userProfile = useSelector((state: any) => state.user?.profile);
   const userFirstName = userProfile?.fname || userProfile?.email?.split('@')[0] || 'Explorer';
 
-  // Derive a 3-letter IATA-style home country code from profile
-  const homeCountryRaw = userProfile?.country || 'HOME';
+  // Derive a 3-letter IATA-style code from the user's current location (set in Profile Settings)
+  // Falls back to country, then a placeholder
+  const homeCountryRaw = userProfile?.location || userProfile?.country || null;
   const homeCountryCode = homeCountryRaw
     ? homeCountryRaw.replace(/[,\s].*/,'').slice(0,3).toUpperCase()
-    : 'HME';
+    : '—';
 
   const tripGeography = React.useMemo(() => {
     const visitedNamesSet = new Set<string>();

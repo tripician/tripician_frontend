@@ -1,4 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../store';
 import TripCard from './TripCard';
 import '../../assets/css/Dashboard.css';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
@@ -40,20 +42,32 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const pageRef  = useRef<HTMLDivElement>(null);
-  const tabsRef  = useRef<HTMLDivElement>(null);
-  const cardsRef = useRef<HTMLDivElement>(null);
+  const pageRef   = useRef<HTMLDivElement>(null);
+  const tabsRef   = useRef<HTMLDivElement>(null);
+  const cardsRef  = useRef<HTMLDivElement>(null);
+  const bannerRef = useRef<HTMLDivElement>(null);
   const [createTripOpen, setCreateTripOpen] = useState(false);
 
-  // Page entrance animation (tabs + cards)
+  const { profile } = useSelector((state: RootState) => state.user);
+  const userFirstName = profile?.fname || 'Traveler';
+
+  // Use the location the user has saved in their profile settings (same source as Settings page)
+  const currentCity = profile?.location || null;
+
+  // Page entrance animation (banner + tabs + cards)
   useEffect(() => {
     const ctx = gsap.context(() => {
+      if (bannerRef.current) {
+        gsap.from(bannerRef.current, {
+          y: -28, opacity: 0, scale: 0.97, duration: 0.6, ease: 'power3.out', delay: 0.05,
+        });
+      }
       gsap.from(tabsRef.current, {
-        y: -24, opacity: 0, duration: 0.55, ease: 'power3.out', delay: 0.05,
+        y: -18, opacity: 0, duration: 0.5, ease: 'power3.out', delay: 0.22,
       });
     }, pageRef);
     return () => ctx.revert();
-  }, []);
+  }, [loading]);
 
   // Re-animate cards whenever the displayed list changes
   useEffect(() => {
@@ -93,6 +107,8 @@ const Dashboard: React.FC = () => {
           progress: typeof t.progress === 'number' ? t.progress : 0,
           edited: formatRelativeTime(t.updatedDate),
           members: t.members || t.invitedUsers || [],
+          startDate: t.startDate || t.start_date || null,
+          endDate: t.endDate || t.end_date || null,
         }));
         if(active){
           setAllPlans(mapped);
@@ -140,6 +156,20 @@ const Dashboard: React.FC = () => {
     }
   };
 
+  // Next trip to feature on the boarding pass: prefer future-dated, fallback to first plan
+  const today = Date.now();
+  const nextUpcoming = allPlans
+    .filter(p => p.startDate && new Date(p.startDate).getTime() > today)
+    .sort((a, b) => new Date(a.startDate).getTime() - new Date(b.startDate).getTime())[0]
+    ?? allPlans[0] ?? null;
+
+  const formatBoardingDate = (ds: string | null) => {
+    if (!ds) return 'TBD';
+    const d = new Date(ds);
+    if (isNaN(d.getTime())) return 'TBD';
+    return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
+  };
+
   const private_plans = allPlans.filter(plan => plan.members.length <= 1);
   const group_plans = allPlans.filter(plan => plan.members.length > 1);
   const in_progress_plans = allPlans.filter(plan => plan.progress < 100);
@@ -168,6 +198,182 @@ const Dashboard: React.FC = () => {
     >
       <TopBar />
       <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
+
+        {/* ── Boarding pass / Welcome banner ── */}
+        {!loading && (
+          <Box ref={bannerRef} sx={{ mx: '2%', mt: 2.5, mb: 1 }}>
+            {allPlans.length === 0 ? (
+              /* ── Premium welcome banner (new / no trips) ── */
+              <Box
+                sx={{
+                  position: 'relative',
+                  borderRadius: '20px',
+                  overflow: 'hidden',
+                  background: 'linear-gradient(125deg, #1a1a2e 0%, #16213e 45%, #0f3460 100%)',
+                  p: { xs: 3, md: 3.5 },
+                  display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+                  minHeight: 130,
+                }}
+              >
+                {/* Decorative circles */}
+                <Box sx={{ position:'absolute', top:-40, right:-40, width:200, height:200, borderRadius:'50%', background:'rgba(255,56,92,0.08)', pointerEvents:'none' }} />
+                <Box sx={{ position:'absolute', bottom:-50, right:120, width:150, height:150, borderRadius:'50%', background:'rgba(255,255,255,0.03)', pointerEvents:'none' }} />
+
+                <Box sx={{ position:'relative', zIndex:1, maxWidth: 480 }}>
+                  <Box sx={{ display:'flex', alignItems:'center', gap:1, mb:1 }}>
+                    <Box sx={{ px:1.2, py:0.3, borderRadius:999, background:'rgba(255,56,92,0.2)', border:'1px solid rgba(255,56,92,0.35)' }}>
+                      <Typography sx={{ fontSize:'0.62rem', fontWeight:800, letterSpacing:1.8, color:'#FF385C', fontFamily:"'Inter',sans-serif", textTransform:'uppercase' }}>Tripician</Typography>
+                    </Box>
+                    <Box sx={{ width:4, height:4, borderRadius:'50%', bgcolor:'rgba(255,255,255,0.2)' }} />
+                    <Typography sx={{ fontSize:'0.68rem', fontWeight:500, color:'rgba(255,255,255,0.4)', fontFamily:"'Inter',sans-serif" }}>Your journey starts here</Typography>
+                  </Box>
+                  <Typography sx={{ fontFamily:"'Playfair Display',serif", fontWeight:800, fontSize:{ xs:'1.35rem', md:'1.65rem' }, color:'#fff', lineHeight:1.25, letterSpacing:'-0.02em', mb:1 }}>
+                    Where will you go next?
+                  </Typography>
+                  <Typography sx={{ fontFamily:"'Inter',sans-serif", fontSize:'0.82rem', color:'rgba(255,255,255,0.52)', lineHeight:1.6, mb:2.5 }}>
+                    Plan your dream trip, track every destination, and travel smarter.
+                  </Typography>
+                  <Button
+                    onClick={() => setCreateTripOpen(true)}
+                    variant="contained"
+                    sx={{
+                      fontFamily:"'Inter',sans-serif", fontWeight:700, fontSize:'0.82rem',
+                      px:3, py:1, borderRadius:999, textTransform:'none',
+                      background:'linear-gradient(135deg,#FF385C 0%,#D91A50 100%)',
+                      boxShadow:'0 6px 22px rgba(255,56,92,0.4)',
+                      '&:hover':{ background:'linear-gradient(135deg,#E31C5F,#B01550)', boxShadow:'0 10px 32px rgba(255,56,92,0.55)', transform:'translateY(-1px)' },
+                      transition:'all 0.22s ease',
+                    }}
+                  >+ Plan your first trip</Button>
+                </Box>
+
+                {/* Right illustration */}
+                <Box sx={{ display:{ xs:'none', md:'flex' }, alignItems:'center', justifyContent:'center', position:'relative', zIndex:1, mr:2 }}>
+                  <Box sx={{ fontSize:'4.5rem', filter:'drop-shadow(0 8px 24px rgba(255,56,92,0.35))', lineHeight:1 }}>✈️</Box>
+                  <Box sx={{ position:'absolute', width:80, height:80, borderRadius:'50%', background:'rgba(255,56,92,0.1)', filter:'blur(20px)' }} />
+                </Box>
+              </Box>
+            ) : (
+              /* ── Boarding pass (has trips) ── */
+              <Box
+                onClick={() => nextUpcoming && navigate(`/trip/${nextUpcoming.id}`, { state:{ trip:{ id:nextUpcoming.id, name:nextUpcoming.title }, tripId:nextUpcoming.id, __ts:Date.now() } })}
+                sx={{
+                  position:'relative', borderRadius:'20px', overflow:'hidden',
+                  display:'flex', alignItems:'stretch',
+                  background:(t) => t.palette.mode === 'light' ? '#fff' : '#1a1a1a',
+                  boxShadow:(t) => t.palette.mode === 'light'
+                    ? '0 4px 32px rgba(0,0,0,0.10), 0 1px 4px rgba(0,0,0,0.06)'
+                    : '0 4px 32px rgba(0,0,0,0.5)',
+                  border:(t) => `1px solid ${t.palette.mode === 'light' ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)'}`,
+                  cursor: nextUpcoming ? 'pointer' : 'default',
+                  transition:'transform 0.2s ease, box-shadow 0.2s ease',
+                  '&:hover': nextUpcoming ? {
+                    transform:'translateY(-2px)',
+                    boxShadow:(t) => t.palette.mode === 'light'
+                      ? '0 12px 48px rgba(0,0,0,0.14)'
+                      : '0 12px 48px rgba(0,0,0,0.65)',
+                  } : {},
+                  minHeight: 120,
+                }}
+              >
+                {/* Red accent strip */}
+                <Box sx={{ width:5, background:'linear-gradient(180deg,#FF385C 0%,#D91A50 100%)', flexShrink:0 }} />
+
+                {/* Main body */}
+                <Box sx={{ flex:1, px:{ xs:2.5, md:3.5 }, py:2.5, display:'flex', flexDirection:'column', justifyContent:'space-between', minWidth:0 }}>
+
+                  {/* Header row */}
+                  <Box sx={{ display:'flex', alignItems:'center', justifyContent:'space-between', mb:2 }}>
+                    <Box sx={{ px:1.2, py:0.3, borderRadius:999, background:'rgba(255,56,92,0.08)', border:'1px solid rgba(255,56,92,0.18)' }}>
+                      <Typography sx={{ fontSize:'0.58rem', fontWeight:800, letterSpacing:2, color:'#FF385C', fontFamily:"'Inter',sans-serif", textTransform:'uppercase' }}>Next Trip</Typography>
+                    </Box>
+                    <Typography sx={{ fontSize:'0.58rem', fontWeight:700, letterSpacing:2.5, color:'text.disabled', fontFamily:"'Inter',sans-serif", textTransform:'uppercase' }}>Boarding Pass</Typography>
+                  </Box>
+
+                  {/* PASSENGER + FROM → NONSTOP → TO row */}
+                  <Box sx={{ display:'flex', alignItems:'flex-end', gap:{ xs:2, md:4 }, flexWrap:'wrap', rowGap:2, mb:2 }}>
+
+                    {/* Passenger */}
+                    <Box sx={{ minWidth:0 }}>
+                      <Typography sx={{ fontSize:'0.58rem', fontWeight:700, letterSpacing:2, color:'text.disabled', fontFamily:"'Inter',sans-serif", textTransform:'uppercase', mb:0.4 }}>Passenger</Typography>
+                      <Typography sx={{ fontFamily:"'Playfair Display',serif", fontWeight:800, fontSize:{ xs:'1.4rem', md:'1.65rem' }, color:'text.primary', lineHeight:1, letterSpacing:'-0.02em' }} noWrap>
+                        {userFirstName}
+                      </Typography>
+                    </Box>
+
+                    {/* FROM */}
+                    <Box sx={{ minWidth:0 }}>
+                      <Typography sx={{ fontSize:'0.58rem', fontWeight:700, letterSpacing:2, color:'text.disabled', fontFamily:"'Inter',sans-serif", textTransform:'uppercase', mb:0.4 }}>From</Typography>
+                      <Typography sx={{ fontFamily:"'Playfair Display',serif", fontWeight:700, fontSize:{ xs:'1.1rem', md:'1.3rem' }, color:'text.primary', lineHeight:1 }} noWrap>
+                        {currentCity ?? '—'}
+                      </Typography>
+                    </Box>
+
+                    {/* Flight line */}
+                    <Box sx={{ display:'flex', flexDirection:'column', alignItems:'center', pb:0.3, gap:0.2, color:'#FF385C', flexShrink:0 }}>
+                      <Box component="span" sx={{ fontSize:'1.1rem', lineHeight:1 }}>✈</Box>
+                      <Typography sx={{ fontSize:'0.52rem', fontWeight:700, letterSpacing:1.8, color:'text.disabled', fontFamily:"'Inter',sans-serif", textTransform:'uppercase', mt:0.2 }}>Nonstop</Typography>
+                    </Box>
+
+                    {/* TO */}
+                    <Box sx={{ minWidth:0 }}>
+                      <Typography sx={{ fontSize:'0.58rem', fontWeight:700, letterSpacing:2, color:'text.disabled', fontFamily:"'Inter',sans-serif", textTransform:'uppercase', mb:0.4 }}>To</Typography>
+                      <Typography sx={{ fontFamily:"'Playfair Display',serif", fontWeight:700, fontSize:{ xs:'1.1rem', md:'1.3rem' }, color:'#FF385C', lineHeight:1 }} noWrap>
+                        {nextUpcoming?.countries?.[0] || nextUpcoming?.location || '—'}
+                      </Typography>
+                    </Box>
+
+                  </Box>
+
+                  {/* Bottom details row */}
+                  <Box sx={{ display:'flex', alignItems:'center', gap:{ xs:3, md:5 }, flexWrap:'wrap', rowGap:0.5 }}>
+                    {[
+                      { label:'Date',    value: formatBoardingDate(nextUpcoming?.startDate) },
+                      { label:'Status',  value: nextUpcoming?.progress === 100 ? 'Completed' : nextUpcoming?.progress > 0 ? 'In progress' : 'Planning' },
+                      { label:'Seat',    value: nextUpcoming?.members?.length > 1 ? `${nextUpcoming.members.length} travelers` : 'Solo' },
+                    ].map(({ label, value }) => (
+                      <Box key={label}>
+                        <Typography sx={{ fontSize:'0.58rem', fontWeight:700, letterSpacing:1.5, color:'text.disabled', fontFamily:"'Inter',sans-serif", textTransform:'uppercase', mb:0.2 }}>{label}</Typography>
+                        <Typography sx={{ fontSize:'0.78rem', fontWeight:600, color:'text.primary', fontFamily:"'Inter',sans-serif" }}>{value}</Typography>
+                      </Box>
+                    ))}
+                  </Box>
+
+                </Box>
+
+                {/* Dashed separator */}
+                <Box sx={{ display:{ xs:'none', md:'flex' }, alignItems:'center', px:0.5 }}>
+                  <Box sx={{ width:'1px', height:'70%', borderLeft:'2px dashed', borderColor:'divider' }} />
+                </Box>
+
+                {/* Right panel — progress ring */}
+                <Box sx={{ display:{ xs:'none', md:'flex' }, flexDirection:'column', alignItems:'center', justifyContent:'center', px:3, gap:1.5, flexShrink:0, minWidth:130 }}>
+                  <Box sx={{ position:'relative', width:60, height:60 }}>
+                    <Box component="svg" viewBox="0 0 60 60" sx={{ position:'absolute', inset:0, transform:'rotate(-90deg)' }}>
+                      <circle cx="30" cy="30" r="24" fill="none" stroke="rgba(255,56,92,0.1)" strokeWidth="5" />
+                      <circle
+                        cx="30" cy="30" r="24" fill="none" stroke="#FF385C" strokeWidth="5"
+                        strokeLinecap="round"
+                        strokeDasharray={`${2 * Math.PI * 24}`}
+                        strokeDashoffset={`${2 * Math.PI * 24 * (1 - (nextUpcoming?.progress ?? 0) / 100)}`}
+                        style={{ transition:'stroke-dashoffset 0.8s ease' }}
+                      />
+                    </Box>
+                    <Box sx={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
+                      <Typography sx={{ fontFamily:"'Inter',sans-serif", fontWeight:800, fontSize:'0.76rem', color:'#FF385C' }}>{nextUpcoming?.progress ?? 0}%</Typography>
+                    </Box>
+                  </Box>
+                  <Typography sx={{ fontFamily:"'Inter',sans-serif", fontSize:'0.62rem', color:'text.disabled', textAlign:'center', maxWidth:90 }}>Trip completeness</Typography>
+                </Box>
+
+                {/* Notch cutout */}
+                <Box sx={{ position:'absolute', left:1, top:'50%', transform:'translateY(-50%)', width:14, height:14, borderRadius:'50%', background:(t) => t.palette.background.default, border:'1px solid', borderColor:'divider', display:{ xs:'none', md:'block' } }} />
+              </Box>
+            )}
+          </Box>
+        )}
+
           <Tabs
             ref={tabsRef}
             value={tabValue}
