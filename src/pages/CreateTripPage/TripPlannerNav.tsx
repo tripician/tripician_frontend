@@ -48,26 +48,34 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
         display: { xs: 'none', md: 'flex' },
         flexDirection: 'column',
         alignItems: 'center',
-        py: 1.5,
+        py: 0,
         gap: 1.25,
+        justifyContent: 'center',
         background: theme.palette.mode === 'light'
-          ? 'linear-gradient(180deg, #132735 0%, #006097 100%)'
-          : 'linear-gradient(180deg, #1a202c 0%, #2d3748 100%)',
-        color: '#fff',
+          ? '#ffffff'
+          : '#18181b',
+        color: theme.palette.mode === 'light' ? '#222222' : '#f4f4f5',
         position: 'relative',
-        boxShadow: '0 4px 20px rgba(0,0,0,0.35)',
-        borderRight: '1px solid rgba(255,255,255,0.15)',
-        overflow: 'hidden',
-        zIndex: 5
+        boxShadow: theme.palette.mode === 'light'
+          ? '2px 0 12px rgba(0,0,0,0.07)'
+          : '2px 0 12px rgba(0,0,0,0.45)',
+        borderRight: theme.palette.mode === 'light'
+          ? '1px solid rgba(0,0,0,0.07)'
+          : '1px solid rgba(255,255,255,0.06)',
+        zIndex: 5,
+        '&::after': {
+          content: '""',
+          position: 'absolute',
+          right: 0,
+          top: '12%',
+          bottom: '12%',
+          width: '1px',
+          background: 'linear-gradient(180deg, transparent 0%, rgba(255,56,92,0.45) 50%, transparent 100%)',
+          pointerEvents: 'none',
+        },
+        fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
       })}
     >
-      <Box sx={{ width: '100%', display: 'flex', justifyContent: 'center', alignItems: 'center', mb: 1, minHeight: 50 }}>
-        <img
-          src={import.meta.env.VITE_TRIPICIAN_LOGO_ICON_URL}
-          alt='Logo'
-          style={{ height: 38, width: 38, borderRadius: 12, objectFit: 'contain', filter: 'brightness(1.05)' }}
-        />
-      </Box>
   {navItems.filter(i=> !hideSections.includes(i.id) && (i.id!=='docs' || (canAccessDocs && docsSection))).map(item => {
         const selected = item.id === active;
         const isDocs = item.id==='docs';
@@ -83,7 +91,7 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
               data-nav-id={item.id}
               onClick={() => { if(isDisabled) return; onChange?.(item.id); }}
               onKeyDown={(e)=> { if(isDisabled) return; if(e.key==='Enter' || e.key===' ') { e.preventDefault(); onChange?.(item.id); } }}
-              sx={{
+              sx={(theme) => ({
                 cursor: isDisabled? 'not-allowed':'pointer',
                 width: 48,
                 mx: 0,
@@ -93,44 +101,55 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
                 height: 48,
                 borderRadius: 2,
                 background: selected
-                  ? 'rgba(255,255,255,0.22)'
-                  : (isDisabled ? 'rgba(255,255,255,0.05)' : 'transparent'),
+                  ? (theme.palette.mode === 'light' ? 'rgba(255,56,92,0.09)' : 'rgba(255,56,92,0.18)')
+                  : (isDisabled
+                      ? (theme.palette.mode === 'light' ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)')
+                      : 'transparent'),
                 border: selected
-                  ? '1px solid rgba(255,255,255,0.40)'
-                  : (isDisabled ? '1px solid rgba(255,255,255,0.15)' : 'none'),
-                opacity: isDisabled ? 0.6 : 1,
-                color: '#fff',
-                transition: 'background .25s ease, transform .25s ease',
+                  ? (theme.palette.mode === 'light' ? '1px solid rgba(255,56,92,0.22)' : '1px solid rgba(255,56,92,0.35)')
+                  : (isDisabled
+                      ? (theme.palette.mode === 'light' ? '1px solid rgba(0,0,0,0.07)' : '1px solid rgba(255,255,255,0.07)')
+                      : 'none'),
+                opacity: isDisabled ? 0.5 : 1,
+                color: selected
+                  ? '#FF385C'
+                  : (theme.palette.mode === 'light' ? '#717171' : 'rgba(255,255,255,0.5)'),
+                boxShadow: selected
+                  ? '0 4px 18px rgba(255,56,92,0.28)'
+                  : 'none',
+                transition: 'background .2s ease, color .2s ease, transform .2s ease, box-shadow .2s ease',
                 userSelect: 'none',
                 outline: 'none',
+                fontFamily: "'Inter', system-ui, sans-serif",
                 '&:focus-visible': {
-                  boxShadow: '0 0 0 2px rgba(255,255,255,0.9)'
+                  boxShadow: '0 0 0 2px rgba(255,56,92,0.55)'
                 },
-                '&:hover': isDisabled? { background:'rgba(255,255,255,0.05)' } : {
+                '&:hover': isDisabled ? {} : {
                   transform: 'translateY(-2px)',
-                  background: 'rgba(255,255,255,0.12)'
+                  background: theme.palette.mode === 'light'
+                    ? 'rgba(255,56,92,0.07)'
+                    : 'rgba(255,56,92,0.13)',
+                  color: '#FF385C',
                 },
                 position: 'relative'
-              }}
+              })}
             >
-              <Box sx={{ display: 'flex', alignItems: 'center', opacity: selected ? 1 : .9 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center' }}>
                 {item.icon}
               </Box>
-              {selected && (
-                <Box sx={{ position: 'absolute', left: -2, top: '50%', transform: 'translateY(-50%)', width: 4, height: '55%', bgcolor: 'rgba(255,255,255,0.85)', borderRadius: '0 2px 2px 0' }} />
-              )}
+
               {isDisabled && (<SoonTag sx={{ position:'absolute', bottom:6, right:6 }} />)}
             </Box>
           </Tooltip>
         );
       })}
-      <Box sx={{ flexGrow: 1 }} />
-      {/* Import/Export and Settings at bottom */}
+      {/* Import/Export and Settings pinned to bottom */}
+      <Box sx={{ position: 'absolute', bottom: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
       <Tooltip title={importExport? 'Import / Export':'Import / Export (Coming Soon)'} placement='right' arrow>
         <Box
           aria-disabled={!importExport}
           onClick={()=> { if(!importExport) return; /* future: open import/export */ }}
-          sx={{
+          sx={(theme) => ({
             position: 'relative',
             cursor: importExport? 'pointer':'not-allowed',
             display: 'flex',
@@ -139,12 +158,19 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
             width: 48,
             height: 48,
             borderRadius: 2,
-            mb: 1,
-            border: '1px solid rgba(255,255,255,0.15)',
-            background: importExport? 'rgba(255,255,255,0.18)' : 'rgba(255,255,255,0.05)',
-            opacity: importExport? 1:.6,
-            userSelect: 'none'
-          }}
+            border: theme.palette.mode === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)',
+            background: importExport
+              ? (theme.palette.mode === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.07)')
+              : 'transparent',
+            color: theme.palette.mode === 'light' ? '#717171' : 'rgba(255,255,255,0.45)',
+            opacity: importExport? 1 : 0.45,
+            userSelect: 'none',
+            transition: 'background .2s ease, color .2s ease',
+            '&:hover': importExport ? {
+              background: theme.palette.mode === 'light' ? 'rgba(255,56,92,0.07)' : 'rgba(255,56,92,0.13)',
+              color: '#FF385C',
+            } : {}
+          })}
         >
           <ImportExportIcon fontSize='small' />
           {!importExport && <SoonTag sx={{ position:'absolute', bottom:6, right:6 }} />}
@@ -153,7 +179,7 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
       <Tooltip title='Settings' placement='right' arrow>
         <Box
           onClick={onSettingsClick}
-          sx={{
+          sx={(theme) => ({
             cursor: 'pointer',
             display: 'flex',
             alignItems: 'center',
@@ -161,14 +187,20 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
             width: 48,
             height: 48,
             borderRadius: 2,
-            border: '1px solid rgba(255,255,255,0.18)',
-            background: 'rgba(255,255,255,0.08)',
-            '&:hover': { background: 'rgba(255,255,255,0.18)' }
-          }}
+            border: theme.palette.mode === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)',
+            background: theme.palette.mode === 'light' ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.06)',
+            color: theme.palette.mode === 'light' ? '#717171' : 'rgba(255,255,255,0.5)',
+            transition: 'background .2s ease, color .2s ease',
+            '&:hover': {
+              background: theme.palette.mode === 'light' ? 'rgba(255,56,92,0.07)' : 'rgba(255,56,92,0.13)',
+              color: '#FF385C',
+            }
+          })}
         >
           <SettingsIcon fontSize='small' />
         </Box>
       </Tooltip>
+      </Box>
     </Box>
   );
 };
