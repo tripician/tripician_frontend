@@ -9,19 +9,15 @@
 import React from 'react';
 import {
   Box, Stack, Typography, Fade, Paper, InputBase, Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, IconButton, Chip, Tabs, Tab, Checkbox, Tooltip, Menu, MenuItem, LinearProgress
+  Button, IconButton, Chip, Tabs, Tab, Checkbox, LinearProgress
 } from '@mui/material';
 import SearchIcon from '@mui/icons-material/Search';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
-import DirectionsCarRoundedIcon from '@mui/icons-material/DirectionsCarRounded';
-import FlightTakeoffRoundedIcon from '@mui/icons-material/FlightTakeoffRounded';
-import TrainRoundedIcon from '@mui/icons-material/TrainRounded';
-import DirectionsBusFilledRoundedIcon from '@mui/icons-material/DirectionsBusFilledRounded';
-import DirectionsWalkRoundedIcon from '@mui/icons-material/DirectionsWalkRounded';
-import DirectionsBikeRoundedIcon from '@mui/icons-material/DirectionsBikeRounded';
 import SmartToyIcon from '@mui/icons-material/SmartToy';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
+import CloseIcon from '@mui/icons-material/Close';
+import NotesIcon from '@mui/icons-material/Notes';
 import DestinationCard from './DestinationCard';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
@@ -29,7 +25,7 @@ import {
   addDestination, removeDestination, duplicateDestination, toggleDestinationCompleted, setDestinationCategory, renameDestination,
   setDestinationNotes, addDestinationDoc, removeDestinationDoc,
   addSpot, toggleSpot, removeSpot, addFoodItem, toggleFoodItem, removeFoodItem,
-  updateDestinationNights, setTransport,
+  updateDestinationNights,
   addStayEntry, updateStayEntry, removeStayEntry, setStayNotes
 } from '../../store/plannerSlice';
 import ValidatedFileInput from '../../components/CommonComponents/ValidatedFileInput';
@@ -39,26 +35,34 @@ import { DEFAULT_DOC_RULE } from '../../utils/fileValidation';
 import AiActionButton from '../../components/CommonComponents/AiActionButton';
 
 interface DestinationCardsPanelProps { maxed: boolean; readOnly?: boolean; canAccessDocs?: boolean; canEdit?: boolean }
-type TransportMode = 'car' | 'flight' | 'train' | 'bus' | 'walk' | 'bike';
-interface TransportLegDetail { provider?: string; distanceText?: string; durationText?: string; loading?: boolean; error?: string }
 
-const transportIcon = (mode:TransportMode, size=16) => {
-  const props = { sx:{ fontSize:size } } as any;
-  switch(mode){
-    case 'flight': return <FlightTakeoffRoundedIcon {...props} />;
-    case 'train': return <TrainRoundedIcon {...props} />;
-    case 'bus': return <DirectionsBusFilledRoundedIcon {...props} />;
-  case 'walk': return <DirectionsWalkRoundedIcon {...props} />;
-  case 'bike': return <DirectionsBikeRoundedIcon {...props} />;
-    default: return <DirectionsCarRoundedIcon {...props} />;
+/* ---- Google Maps JS SDK loader (standalone, since MapPanel now uses Mapbox) ---- */
+function ensureGoogleMapsLoaded(apiKey: string): Promise<void> {
+  if ((window as any).google?.maps?.places) return Promise.resolve();
+  const existing = document.getElementById('gm-sdk');
+  if (existing) {
+    return new Promise(resolve => existing.addEventListener('load', () => resolve(), { once: true }));
   }
-};
-const defaultProviderForMode = (m:TransportMode) => m==='flight'?'Flight': m==='train'?'Train': m==='bus'?'Bus': m==='walk'?'Walk':'Car';
+  return new Promise((resolve, reject) => {
+    const s = document.createElement('script');
+    s.id = 'gm-sdk';
+    s.src = `https://maps.googleapis.com/maps/api/js?key=${apiKey}&libraries=places&v=quarterly`;
+    s.async = true; s.defer = true;
+    s.onload = () => resolve();
+    s.onerror = reject;
+    document.head.appendChild(s);
+  });
+}
 
 const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, readOnly=false, canAccessDocs=false, canEdit=false }) => {
   const dispatch = useDispatch<AppDispatch>();
   const destinations = useSelector((s:RootState)=> s.planner.destinations);
-  const completedCount = React.useMemo(()=> destinations.filter(d=> d.completed).length, [destinations]);
+  // completedCount removed with Timeline header
+  /* Load Google Maps SDK once on mount so Places autocomplete works independently of MapPanel */
+  React.useEffect(() => {
+    const key = (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
+    if (key) ensureGoogleMapsLoaded(key).catch(() => {});
+  }, []);
   const ENABLE_DOC_UPLOAD = FEATURE_FLAGS.docsUpload;
 
   /* ----------------------------- Autocomplete ----------------------------- */
@@ -180,32 +184,6 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
   const onAcceptDocs = (files: File[]) => { if(!docsFor) return; files.forEach((f,idx)=>{ const id=f.name+'_'+Date.now().toString(36)+'_'+idx; const url=URL.createObjectURL(f); dispatch(addDestinationDoc({ destinationId: docsFor, doc:{ id, originalName:f.name, mimeType:f.type, url } })); }); };
   const removeDoc = (docId:string) => { if(!docsFor) return; dispatch(removeDestinationDoc({ destinationId: docsFor, docId })); };
 
-  /* ------------------------------ Transport legs ------------------------------ */
-  const [transportModes, setTransportModes] = React.useState<TransportMode[]>([]);
-  const [transportDetails] = React.useState<TransportLegDetail[]>([]);
-  // Sync local leg transport modes with arrival destination.transport (destinations[i+1])
-  React.useEffect(()=> {
-    const need = Math.max(0, destinations.length - 1);
-    const arr: TransportMode[] = [];
-    for(let i=0;i<need;i++){
-      const arrival = destinations[i+1];
-      const t = (arrival?.transport as TransportMode) || 'car';
-      arr.push(t);
-    }
-    setTransportModes(arr);
-  }, [destinations]);
-  const [transportAnchor, setTransportAnchor] = React.useState<{ index:number; el:HTMLElement } | null>(null);
-  const openTransportMenu = (i:number, el:HTMLElement) => { if(readOnly) return; setTransportAnchor({ index:i, el }); };
-  const closeTransportMenu = () => setTransportAnchor(null);
-  const updateTransportMode = (i:number, mode:TransportMode) => {
-    setTransportModes(m=> m.map((v,idx)=> idx===i? mode: v));
-    // Persist transport to arrival destination for leg i (between i and i+1)
-    const arrival = destinations[i+1];
-    if(arrival){
-      dispatch(setTransport({ id: arrival.id, transport: mode }));
-    }
-  };
-
   /* --------------------------- Timeline rail geometry -------------------------- */
   const cardRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
   const containerRef = React.useRef<HTMLDivElement | null>(null);
@@ -222,65 +200,51 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
   /* --------------------------------- Render --------------------------------- */
   return (
     <Fade in timeout={300}>
-      <Box sx={{ px:2.5, py:2, display:'flex', flexDirection:'column', gap:2, position:'relative' }}>
-        <Box sx={{ display:'flex', alignItems:'center', gap:1.25, flexWrap:'wrap' }}>
-          <Typography variant='h6' sx={{ fontWeight:700 }}>Timeline</Typography>
-          <Chip size='small' label={`${destinations.length} destination(s)`} />
-          <Chip size='small' color='primary' label={`${completedCount} done`} />
-        </Box>
-
+      <Box sx={{ px:2.5, pt:2, pb:1.5, display:'flex', flexDirection:'column', gap:1.5, position:'relative' }}>
         {/* Search bar (hidden when readOnly) */}
         {!readOnly && (
-          <Box sx={{ maxWidth:800, position:'relative', mx:'auto', width:'100%' }}>
-            <Paper sx={(t)=>({ display:'flex', alignItems:'center', gap:1, px:1.5, py:.75, borderRadius:3, border:'1px solid '+t.palette.divider, background:t.palette.background.paper })}>
-              <SearchIcon fontSize='small' sx={{ opacity:.6 }} />
+          <Box sx={{ maxWidth:900, position:'relative', mx:'auto', width:'100%' }}>
+            <Paper elevation={0} sx={(t)=>({ display:'flex', alignItems:'center', gap:1, pl:2, pr:.75, py:.55, borderRadius:'50px', border:`1px solid ${t.palette.mode==='dark'?'rgba(255,255,255,0.1)':'rgba(0,0,0,0.1)'}`, background:t.palette.mode==='dark'?t.palette.background.paper:'#fff', boxShadow: t.palette.mode==='dark'?'none':'0 1px 8px rgba(0,0,0,0.07)', transition:'border-color .2s, box-shadow .2s', '&:focus-within':{ borderColor:'rgba(255,56,92,0.45)', boxShadow:'0 0 0 3px rgba(255,56,92,0.10)' } })}>
+              <SearchIcon fontSize='small' sx={{ opacity:.4, flexShrink:0 }} />
               <InputBase value={searchValue} onChange={e=> setSearchValue(e.target.value)} placeholder={maxed? 'Night limit reached':'Search or add destination'} disabled={maxed} sx={{ flex:1, fontSize:14 }} />
-              <Box sx={{ display:'flex', alignItems:'center', gap:0.5, opacity:0.7, fontSize:11, whiteSpace:'nowrap' }}>
+              <Box sx={{ display:'flex', alignItems:'center', gap:.4, opacity:.5, fontSize:11, whiteSpace:'nowrap', mr:.75, flexShrink:0 }}>
                 <span>Powered by</span>
-                <Box component='img' alt='Google' src={import.meta.env.VITE_GOOGLE_LOGO || 'https://developers.google.com/static/maps/documentation/images/google_on_white.png'} sx={{ height:14 }} />
+                <Box component='img' alt='Google' src={import.meta.env.VITE_GOOGLE_LOGO || 'https://developers.google.com/static/maps/documentation/images/google_on_white.png'} sx={{ height:13 }} />
               </Box>
-              <Button size='small' variant='contained' disabled={!searchValue.trim() || maxed} onClick={()=> { if(!searchValue.trim()) return; dispatch(addDestination({ name: searchValue.trim() })); setSearchValue(''); }}>Add</Button>
+              <Button size='small' variant='contained' disabled={!searchValue.trim() || maxed} onClick={()=> { if(!searchValue.trim()) return; dispatch(addDestination({ name: searchValue.trim() })); setSearchValue(''); }} sx={{ borderRadius:'40px', px:2.25, py:.5, fontSize:12, fontWeight:700, textTransform:'none', background:'linear-gradient(135deg,#FF385C,#E31C5F)', boxShadow:'0 2px 8px rgba(255,56,92,0.3)', '&:hover':{ background:'linear-gradient(135deg,#E31C5F,#D91A50)', boxShadow:'0 4px 12px rgba(255,56,92,0.4)' }, '&.Mui-disabled':{ background:'rgba(0,0,0,0.07)', boxShadow:'none' } }}>Add</Button>
             </Paper>
             {(predictions.length>0 || loadingPred) && searchValue && (
-              <Paper elevation={6} sx={{ position:'absolute', top:'100%', left:0, mt:1, width:'100%', maxHeight:320, overflowY:'auto', zIndex:10, borderRadius:2 }}>
-                {loadingPred && <Box sx={{ px:1.5, py:1, fontSize:12, opacity:.7 }}>Searching...</Box>}
+              <Paper elevation={8} sx={{ position:'absolute', top:'100%', left:0, mt:1, width:'100%', maxHeight:320, overflowY:'auto', zIndex:10, borderRadius:'16px', overflow:'hidden' }}>
+                {loadingPred && <Box sx={{ px:2, py:1, fontSize:12, opacity:.7 }}>Searching...</Box>}
                 {predictions.map(p=> (
-                  <Box key={p.place_id} onClick={()=> selectPrediction(p)} sx={{ px:1.5, py:1, cursor:'pointer', borderBottom:'1px solid', borderColor:'divider', '&:hover':{ background:'action.hover' }, fontSize:13 }}>
+                  <Box key={p.place_id} onClick={()=> selectPrediction(p)} sx={{ px:2, py:.9, cursor:'pointer', borderBottom:'1px solid', borderColor:'divider', '&:hover':{ background:'rgba(255,56,92,0.05)' }, fontSize:13, transition:'background .12s' }}>
                     <strong>{p.structured_formatting?.main_text || p.description}</strong>
-                    {p.structured_formatting?.secondary_text && <Box sx={{ fontSize:11, opacity:.6 }}>{p.structured_formatting.secondary_text}</Box>}
+                    {p.structured_formatting?.secondary_text && <Box sx={{ fontSize:11, opacity:.55, mt:.15 }}>{p.structured_formatting.secondary_text}</Box>}
                   </Box>
                 ))}
                 {!loadingPred && predictions.length===0 && (
-                  <Box sx={{ px:1.5, py:1, fontSize:12, opacity:.65 }}>No matches</Box>
+                  <Box sx={{ px:2, py:1, fontSize:12, opacity:.65 }}>No matches</Box>
                 )}
               </Paper>
             )}
           </Box>
         )}
 
-        <Box ref={containerRef} sx={{ position:'relative', pl:8, maxWidth:800, mx:'auto', width:'100%' }}>
+        <Box ref={containerRef} sx={{ position:'relative', pl:8, maxWidth:900, mx:'auto', width:'100%' }}>
           {railBounds && (
             <>
-              <Box sx={{ position:'absolute', top:railBounds.top, height: railBounds.bottom - railBounds.top, left:18, width:2, background:'repeating-linear-gradient(to bottom,#6b7280 0 5px,transparent 5px 10px)', pointerEvents:'none' }} />
+              <Box sx={{ position:'absolute', top:railBounds.top, height: railBounds.bottom - railBounds.top, left:18, width:2, background:'repeating-linear-gradient(to bottom,rgba(255,56,92,0.35) 0 6px,transparent 6px 11px)', pointerEvents:'none' }} />
               {centers.map((c, idx)=>(
                 <Box key={idx} sx={{ position:'absolute', top:c, left:6, width:28, height:24, display:'flex', alignItems:'center', justifyContent:'center', transform:'translateY(-50%)', zIndex:3 }}>
-                  <Box sx={(t)=>({ width:24, height:24, borderRadius:'50%', background:t.palette.background.paper, border:'2px solid '+t.palette.divider, display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:600 })}>{idx+1}</Box>
+                  <Box sx={{ width:22, height:22, borderRadius:'50%', background:'linear-gradient(135deg,#FF385C,#E31C5F)', color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, boxShadow:'0 2px 8px rgba(255,56,92,0.4)' }}>{idx+1}</Box>
                 </Box>
               ))}
-              {centers.length>1 && centers.slice(0,-1).map((c,idx)=>{ const next=centers[idx+1]; const mid=(c+next)/2; const mode=transportModes[idx]||'car'; const detail=transportDetails[idx]; const provider=detail?.provider||defaultProviderForMode(mode); return (
-                <Box key={'leg-'+idx} sx={{ position:'absolute', top:mid, left:18, transform:'translate(-50%,-50%)', zIndex:4 }}>
-                  <Tooltip title={provider} placement='right' enterDelay={300}>
-                    <Box onClick={(e)=> openTransportMenu(idx, e.currentTarget)} sx={(t)=>({ cursor:readOnly?'default':'pointer', display:'flex', alignItems:'center', gap:.5, background:t.palette.background.paper, border:'1px solid '+t.palette.divider, borderRadius:20, px:1, py:.35, fontSize:12 })}>
-                      {transportIcon(mode,16)}<Box sx={{ fontWeight:600 }}>{provider}</Box>
-                    </Box>
-                  </Tooltip>
-                </Box>); })}
             </>
           )}
           {destinations.length===0 && (
-            <Box sx={(t)=>({ mt:3, p:5, border:'2px dashed '+t.palette.divider, borderRadius:4, textAlign:'center', fontSize:14, opacity:.7 })}>Add your first destination to begin planning.</Box>
+            <Box sx={(t)=>({ mt:3, p:5, border:'2px dashed rgba(255,56,92,0.2)', borderRadius:3, textAlign:'center', fontSize:14, color:t.palette.text.secondary })}>Search above to add your first destination.</Box>
           )}
-          <Stack spacing={2}>
+          <Stack spacing={1}>
             {destinations.map(d=> (
               <Box key={d.id} ref={el=> { cardRefs.current[d.id]=el as HTMLDivElement | null; }}>
                 <DestinationCard
@@ -300,14 +264,6 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
             ))}
           </Stack>
         </Box>
-
-        <Menu open={!!transportAnchor} anchorEl={transportAnchor?.el} onClose={closeTransportMenu} disablePortal>
-          {(['car','flight','train','bus','walk','bike'] as TransportMode[]).map(m=> (
-            <MenuItem key={m} disabled={readOnly} onClick={()=> { if(transportAnchor) updateTransportMode(transportAnchor.index, m); closeTransportMenu(); }}>
-              {transportIcon(m,18)}<Box sx={{ ml:1 }}>{m.charAt(0).toUpperCase()+m.slice(1)}</Box>
-            </MenuItem>
-          ))}
-        </Menu>
 
         {/* Discover Dialog */}
         <Dialog open={!!discoverFor} onClose={()=> setDiscoverFor(null)} fullWidth maxWidth='lg' PaperProps={{ sx:{ height:'80vh' } }}>
@@ -389,15 +345,79 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
         </Dialog>
 
         {/* Notes Dialog */}
-        <Dialog open={!!notesFor} onClose={()=> setNotesFor(null)} fullWidth maxWidth='sm'>
-          <DialogTitle>Notes</DialogTitle>
-          <DialogContent>
-            <InputBase autoFocus disabled={readOnly} multiline minRows={6} value={notesDraft} onChange={e=> setNotesDraft(e.target.value)} placeholder='Notes...' sx={{ width:'100%', border:'1px solid', borderColor:'divider', borderRadius:2, p:1, fontSize:14 }} />
-          </DialogContent>
-          <DialogActions>
-            <Button onClick={()=> setNotesFor(null)}>Close</Button>
-            {!readOnly && <Button variant='contained' onClick={saveNotes}>Save</Button>}
-          </DialogActions>
+        <Dialog
+          open={!!notesFor}
+          onClose={()=> setNotesFor(null)}
+          fullWidth
+          maxWidth='xs'
+          PaperProps={{ sx:(t)=>({ borderRadius:3, overflow:'hidden', background: t.palette.mode==='dark'? '#1a1a1a':'#fff', boxShadow:'0 24px 80px rgba(0,0,0,0.18)' }) }}
+        >
+          {/* Header */}
+          <Box sx={(t)=>({ display:'flex', alignItems:'center', gap:1.5, px:3, pt:2.5, pb:2, borderBottom:`1px solid ${t.palette.divider}` })}>
+            <Box sx={{ width:32, height:32, borderRadius:'10px', background:'linear-gradient(135deg,#FF385C,#E31C5F)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+              <NotesIcon sx={{ fontSize:16, color:'#fff' }} />
+            </Box>
+            <Box sx={{ flex:1 }}>
+              <Typography sx={{ fontSize:15, fontWeight:700, lineHeight:1.2 }}>
+                {destinations.find(p=>p.id===notesFor)?.name || 'Destination'}
+              </Typography>
+              <Typography sx={{ fontSize:11, color:'text.secondary', lineHeight:1.3 }}>Travel notes</Typography>
+            </Box>
+            <IconButton size='small' onClick={()=>setNotesFor(null)} sx={{ color:'text.disabled', '&:hover':{ color:'text.primary', background:'action.hover' }, p:.5 }}>
+              <CloseIcon sx={{ fontSize:16 }} />
+            </IconButton>
+          </Box>
+
+          {/* Body – flat notepad */}
+          <Box sx={(t)=>({
+            mx:0, px:3, pt:2, pb:2,
+            background: t.palette.mode==='dark'
+              ? 'repeating-linear-gradient(to bottom, transparent, transparent 27px, rgba(255,255,255,0.05) 28px)'
+              : 'repeating-linear-gradient(to bottom, transparent, transparent 27px, rgba(0,0,0,0.06) 28px)',
+            backgroundPositionY: '16px',
+          })}>
+            <InputBase
+              autoFocus
+              disabled={readOnly}
+              multiline
+              minRows={7}
+              maxRows={14}
+              value={notesDraft}
+              onChange={e=>setNotesDraft(e.target.value)}
+              placeholder='Write your travel notes here…'
+              sx={{
+                width:'100%',
+                fontSize:14,
+                lineHeight:'28px',
+                color:'text.primary',
+                alignItems:'flex-start',
+                border:'none',
+                p:0,
+                '& textarea': { lineHeight:'28px', padding:0, backgroundImage:'none' },
+                '& textarea::placeholder':{ color:'text.disabled', opacity:1 },
+              }}
+            />
+          </Box>
+
+          {/* Footer */}
+          {!readOnly && (
+            <Box sx={(t)=>({ display:'flex', justifyContent:'flex-end', gap:1, px:3, pb:2.5, pt:.5, borderTop:`1px solid ${t.palette.divider}` })}>
+              <Button
+                onClick={()=>setNotesFor(null)}
+                sx={{ borderRadius:2, textTransform:'none', fontWeight:600, fontSize:13, color:'text.secondary', px:2, '&:hover':{ background:'action.hover' } }}
+              >Discard</Button>
+              <Button
+                variant='contained'
+                onClick={saveNotes}
+                sx={{ borderRadius:2, textTransform:'none', fontWeight:700, fontSize:13, px:3, background:'linear-gradient(135deg,#FF385C,#E31C5F)', boxShadow:'none', '&:hover':{ background:'linear-gradient(135deg,#e02d50,#c91855)', boxShadow:'0 4px 16px rgba(255,56,92,0.35)' } }}
+              >Save</Button>
+            </Box>
+          )}
+          {readOnly && (
+            <Box sx={(t)=>({ display:'flex', justifyContent:'flex-end', px:3, pb:2.5, pt:.5, borderTop:`1px solid ${t.palette.divider}` })}>
+              <Button onClick={()=>setNotesFor(null)} sx={{ borderRadius:2, textTransform:'none', fontWeight:600, fontSize:13, color:'text.secondary', px:2 }}>Close</Button>
+            </Box>
+          )}
         </Dialog>
 
         {/* Stay Dialog (discover-style) */}

@@ -24,7 +24,7 @@ interface TripCardProps {
 }
 
 const TripCard: React.FC<TripCardProps> = ({
-  title, image, progress, edited, countries, rating, likes, owner, onClick, onShare, onDelete
+  title, image, progress, edited, members, countries, rating, likes, owner, onClick, onShare, onDelete
 }) => {
   const countryDisplay = React.useMemo(() => {
     if (!countries || countries.length === 0) return null;
@@ -131,6 +131,29 @@ const TripCard: React.FC<TripCardProps> = ({
           </p>
         )}
 
+        {/* 2b. Member avatars (max 5) */}
+        {members && members.length > 0 && (
+          <div className="tc-members-row">
+            {members.slice(0, 5).map((m, i) => (
+              <div
+                key={m.id ?? i}
+                className="tc-member-avatar"
+                style={{ zIndex: 5 - i }}
+                title={m.name}
+              >
+                {m.profilePic
+                  ? <img src={m.profilePic} alt={m.name} className="tc-member-avatar-img" />
+                  : m.name?.charAt(0).toUpperCase()}
+              </div>
+            ))}
+            {members.length > 5 && (
+              <div className="tc-member-avatar tc-member-avatar--more" style={{ zIndex: 0 }}>
+                +{members.length - 5}
+              </div>
+            )}
+          </div>
+        )}
+
         {/* 3. Rating row */}
         <div className="tc-rating-row">
           {stars && (
@@ -147,12 +170,7 @@ const TripCard: React.FC<TripCardProps> = ({
               </div>
             </div>
           )}
-          {countryDisplay && (
-            <span className="tc-badge-info">
-              {countryDisplay.total} {countryDisplay.total === 1 ? 'Country' : 'Countries'}
-            </span>
-          )}
-          {edited && !stars && !countryDisplay && (
+          {edited && !stars && (
             <span className="tc-badge-info">{edited}</span>
           )}
         </div>

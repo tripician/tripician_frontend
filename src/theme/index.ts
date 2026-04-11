@@ -114,30 +114,59 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
       ...colorPalette,
     },
     typography: {
-      fontFamily: '"system-ui", "Avenir", "Helvetica", "Arial", sans-serif',
+      fontFamily: "'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif",
       h1: {
         fontWeight: 700,
         fontSize: '2.5rem',
+        letterSpacing: '-0.5px',
       },
       h2: {
         fontWeight: 700,
         fontSize: '2rem',
+        letterSpacing: '-0.4px',
       },
       h3: {
         fontWeight: 600,
         fontSize: '1.75rem',
+        letterSpacing: '-0.3px',
       },
       h4: {
         fontWeight: 600,
         fontSize: '1.5rem',
+        letterSpacing: '-0.2px',
       },
       h5: {
         fontWeight: 600,
         fontSize: '1.25rem',
+        letterSpacing: '-0.1px',
       },
       h6: {
         fontWeight: 600,
         fontSize: '1rem',
+      },
+      body1: {
+        fontSize: '0.9375rem',
+        lineHeight: 1.6,
+      },
+      body2: {
+        fontSize: '0.875rem',
+        lineHeight: 1.55,
+      },
+      subtitle1: {
+        fontWeight: 600,
+        fontSize: '0.9375rem',
+      },
+      subtitle2: {
+        fontWeight: 600,
+        fontSize: '0.8125rem',
+      },
+      caption: {
+        fontSize: '0.75rem',
+        lineHeight: 1.4,
+      },
+      button: {
+        fontWeight: 600,
+        letterSpacing: '0',
       },
     },
     shape: {

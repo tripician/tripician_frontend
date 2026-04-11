@@ -24,9 +24,17 @@ import TripComments from './TripComments';
 import PackingPanel from './PackingPanel';
 // ChatAssistant replaced by inline PremiumChatPanel
 import MapDrawer from './MapDrawer';
+import DrawingCanvas, { type DrawingCanvasHandle } from './DrawingCanvas';
+import DrawingDock from './DrawingDock';
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
+import StarRoundedIcon from '@mui/icons-material/StarRounded';
+import StarBorderRoundedIcon from '@mui/icons-material/StarBorderRounded';
+import ShareRoundedIcon from '@mui/icons-material/ShareRounded';
+import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
+import NightsStayRoundedIcon from '@mui/icons-material/NightsStayRounded';
+import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
 // Removed useLocation to allow TripPlanner usage outside Router context.
 import EditIcon from '@mui/icons-material/Edit';
@@ -37,7 +45,7 @@ import { FEATURE_FLAGS } from '../../config/featureFlags';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { normalizeTrip, type NormalizedTrip } from '../../utils/normalizeTrip';
-import { countryNameFromCode } from '../../utils/countryFlags';
+import { countryNameFromCode, flagEmojiFromName } from '../../utils/countryFlags';
 import { differenceInDays } from 'date-fns';
 
 type OwnerInfo = { id?: string; email?: string; name?: string; handle?: string; avatar?: string };
@@ -251,7 +259,7 @@ const PremiumChatPanel: React.FC = () => {
 					</Box>
 				</Box>
 				<Box sx={{ flex: 1, minWidth: 0 }}>
-					<Typography sx={{ fontWeight: 700, fontSize: 13.5, lineHeight: 1, color: isLight ? '#0d0d0d' : '#f0f0f0', fontFamily: 'inherit', letterSpacing: -0.2 }}>
+					<Typography sx={{ fontWeight: 800, fontSize: 14, lineHeight: 1, color: isLight ? '#0d0d0d' : '#f0f0f0', fontFamily: 'inherit', letterSpacing: -0.3 }}>
 						Navia
 					</Typography>
 					<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.3 }}>
@@ -293,7 +301,7 @@ const PremiumChatPanel: React.FC = () => {
 							px: 1.5, py: 0.9,
 							maxWidth: '88%',
 							borderRadius: m.role === 'user' ? '14px 14px 4px 14px' : '4px 14px 14px 14px',
-							fontSize: 12.5, lineHeight: 1.6, fontFamily: 'inherit',
+							fontSize: 13, lineHeight: 1.65, fontFamily: 'inherit',
 							background: m.role === 'user'
 								? 'linear-gradient(135deg,#FF385C,#D91A50)'
 								: (isLight ? '#f4f4f4' : 'rgba(255,255,255,0.06)'),
@@ -402,6 +410,305 @@ const PremiumChatPanel: React.FC = () => {
 	);
 };
 
+/* ─── Public / View-Mode Info Panel ─── */
+interface TripViewPanelProps {
+	title: string;
+	description: string;
+	bannerUrl: string;
+	countries: string[];
+	tripUsers: any[];
+	ownerInfo: OwnerInfo;
+	startDate: string | null;
+	endDate: string | null;
+	totalNights: number;
+	destinationCount: number;
+}
+
+const TripViewPanel: React.FC<TripViewPanelProps> = ({
+	title, description, bannerUrl, countries, tripUsers, ownerInfo,
+	startDate, endDate, totalNights, destinationCount,
+}) => {
+	const theme = useTheme();
+	const isLight = theme.palette.mode === 'light';
+	const [userRating, setUserRating] = React.useState(0);
+	const [hoverRating, setHoverRating] = React.useState(0);
+	const [ratingSubmitted, setRatingSubmitted] = React.useState(false);
+
+	const handleRate = (star: number) => {
+		setUserRating(star);
+		setRatingSubmitted(true);
+	};
+
+	const bg = isLight ? '#ffffff' : '#0e1012';
+	const border = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.07)';
+	const textPrimary = isLight ? '#111111' : '#f0f0f0';
+	const textMuted = isLight ? 'rgba(0,0,0,0.44)' : 'rgba(255,255,255,0.38)';
+	const sectionBg = isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.04)';
+
+	const formatDate = (raw: string | null) => {
+		if (!raw) return '—';
+		const d = new Date(raw);
+		return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+	};
+
+	const ownerDisplayName = ownerInfo.name || ownerInfo.handle || ownerInfo.email?.split('@')[0] || 'Unknown';
+
+	const MAX_AVATARS = 5;
+	const shownUsers = tripUsers.slice(0, MAX_AVATARS);
+	const extraUsers = Math.max(0, tripUsers.length - MAX_AVATARS);
+
+	const getMemberLabel = (u: any) => {
+		return u.name || u.displayName || u.username || u.email?.split('@')[0] || 'Member';
+	};
+	const getMemberInitial = (u: any) => getMemberLabel(u)[0]?.toUpperCase() || 'M';
+	const getMemberAvatar = (u: any) => u.avatar || u.profilePic || u.profilePicture || null;
+
+	return (
+		<Box sx={{
+			width: 320,
+			flexShrink: 0,
+			display: 'flex',
+			flexDirection: 'column',
+			borderLeft: `1px solid ${border}`,
+			background: bg,
+			fontFamily: "'Inter', system-ui, sans-serif",
+			overflow: 'hidden',
+		}}>
+			{/* ── Banner + Title header ── */}
+			<Box sx={{ position: 'relative', flexShrink: 0 }}>
+				{bannerUrl ? (
+					<Box
+						component="img" src={bannerUrl} alt={title}
+						sx={{ width: '100%', height: 110, objectFit: 'cover', display: 'block' }}
+					/>
+				) : (
+					<Box sx={{
+						width: '100%', height: 110,
+						background: 'linear-gradient(135deg, #FF385C 0%, #C2185B 100%)',
+						display: 'flex', alignItems: 'center', justifyContent: 'center',
+					}}>
+						<Typography sx={{ fontSize: '2.5rem', opacity: 0.25 }}>✈</Typography>
+					</Box>
+				)}
+				{/* Gradient overlay */}
+				<Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.62) 0%, transparent 55%)' }} />
+				{/* Title */}
+				<Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, px: 2, pb: 1.5 }}>
+					<Typography sx={{
+						fontFamily: "'Playfair Display', serif",
+						fontWeight: 800, fontStyle: 'italic',
+						fontSize: '1.05rem', color: '#fff',
+						textShadow: '0 1px 6px rgba(0,0,0,0.5)',
+						lineHeight: 1.2,
+					}}>{title}</Typography>
+					{ownerInfo.name && (
+						<Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'inherit', mt: 0.25 }}>
+							by {ownerDisplayName}
+						</Typography>
+					)}
+				</Box>
+			</Box>
+
+			{/* ── Scrollable body ── */}
+			<Box sx={{
+				flex: 1, overflowY: 'auto', px: 2, py: 1.75,
+				display: 'flex', flexDirection: 'column', gap: 2,
+				'&::-webkit-scrollbar': { width: 4 },
+				'&::-webkit-scrollbar-thumb': { borderRadius: 3, background: isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.10)' },
+			}}>
+
+				{/* ── Rate this trip ── */}
+				<Box sx={{ borderRadius: '12px', background: sectionBg, border: `1px solid ${border}`, p: '12px 14px' }}>
+					<Typography sx={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: textMuted, fontFamily: 'inherit', mb: 1 }}>
+						Rate this trip
+					</Typography>
+					<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
+						{[1, 2, 3, 4, 5].map(star => {
+							const active = (hoverRating || userRating) >= star;
+							return (
+								<Box
+									key={star}
+									onMouseEnter={() => !ratingSubmitted && setHoverRating(star)}
+									onMouseLeave={() => !ratingSubmitted && setHoverRating(0)}
+									onClick={() => handleRate(star)}
+									sx={{ cursor: ratingSubmitted ? 'default' : 'pointer', lineHeight: 0, transition: 'transform 0.15s', '&:hover': { transform: ratingSubmitted ? 'none' : 'scale(1.2)' } }}
+								>
+									{active
+										? <StarRoundedIcon sx={{ fontSize: 28, color: '#FFD700', filter: 'drop-shadow(0 1px 4px rgba(255,200,0,0.45))' }} />
+										: <StarBorderRoundedIcon sx={{ fontSize: 28, color: isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.22)' }} />
+									}
+								</Box>
+							);
+						})}
+						{ratingSubmitted && (
+							<Typography sx={{ ml: 0.75, fontSize: '0.75rem', fontWeight: 600, color: '#FF385C', fontFamily: 'inherit' }}>
+								Thanks!
+							</Typography>
+						)}
+					</Box>
+					{!ratingSubmitted && (
+						<Typography sx={{ fontSize: '0.65rem', color: textMuted, mt: 0.6, fontFamily: 'inherit' }}>
+							Tap a star to rate
+						</Typography>
+					)}
+				</Box>
+
+				{/* ── Description ── */}
+				{description && (
+					<Box>
+						<Typography sx={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: textMuted, fontFamily: 'inherit', mb: 0.75 }}>
+							About this trip
+						</Typography>
+						<Typography sx={{ fontSize: '0.82rem', color: textPrimary, fontFamily: 'inherit', lineHeight: 1.7, opacity: 0.85 }}>
+							{description}
+						</Typography>
+					</Box>
+				)}
+
+				{/* ── Quick stats ── */}
+				<Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+					{[
+						{ Icon: NightsStayRoundedIcon,  label: 'Nights',       value: totalNights || '—' },
+						{ Icon: GroupsRoundedIcon,       label: 'Destinations', value: destinationCount || '—' },
+					].map(({ Icon, label, value }) => (
+						<Box key={label} sx={{
+							borderRadius: '10px', background: sectionBg, border: `1px solid ${border}`,
+							p: '10px 12px', display: 'flex', flexDirection: 'column', gap: 0.35,
+						}}>
+							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+								<Icon sx={{ fontSize: 12, color: '#FF385C' }} />
+								<Typography sx={{ fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: textMuted, fontFamily: 'inherit' }}>
+									{label}
+								</Typography>
+							</Box>
+							<Typography sx={{ fontSize: '0.82rem', fontWeight: 700, color: textPrimary, fontFamily: 'inherit', lineHeight: 1.15 }}>
+								{value}
+							</Typography>
+						</Box>
+					))}
+				</Box>
+
+				{/* ── Members ── */}
+				{tripUsers.length > 0 && (
+					<Box sx={{ borderRadius: '12px', background: sectionBg, border: `1px solid ${border}`, p: '12px 14px' }}>
+						<Typography sx={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: textMuted, fontFamily: 'inherit', mb: 1.25 }}>
+							Members · {tripUsers.length}
+						</Typography>
+						{/* Avatar stack row */}
+						<Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
+							{shownUsers.map((u, i) => {
+								const initial = getMemberInitial(u);
+								const avatarSrc = getMemberAvatar(u);
+								const role = u.role || u.Role || '';
+								const isOwnerMember = role.toLowerCase() === 'owner';
+								return (
+									<Tooltip key={u.id ?? i} title={getMemberLabel(u)} arrow placement="top">
+										<Avatar
+											src={avatarSrc ?? undefined}
+											sx={{
+												width: 36, height: 36, fontSize: '0.72rem', fontWeight: 800,
+												ml: i === 0 ? 0 : '-10px',
+												zIndex: shownUsers.length - i,
+												background: isOwnerMember
+													? 'linear-gradient(135deg,#FF385C,#D91A50)'
+													: (isLight ? '#e0e0e0' : 'rgba(255,255,255,0.14)'),
+												color: isOwnerMember ? '#fff' : textPrimary,
+												border: `2.5px solid ${isLight ? '#fff' : '#0e1012'}`,
+												boxShadow: isOwnerMember ? '0 0 0 1.5px rgba(255,56,92,0.45)' : 'none',
+												cursor: 'default',
+											}}
+										>{initial}</Avatar>
+									</Tooltip>
+								);
+							})}
+							{extraUsers > 0 && (
+								<Avatar sx={{
+									width: 36, height: 36, fontSize: '0.65rem', fontWeight: 700,
+									ml: '-10px', zIndex: 0,
+									background: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.10)',
+									color: textMuted,
+									border: `2.5px solid ${isLight ? '#fff' : '#0e1012'}`,
+								}}>+{extraUsers}</Avatar>
+							)}
+						</Box>
+						{/* Name list below */}
+						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.6 }}>
+							{shownUsers.map((u, i) => {
+								const label = getMemberLabel(u);
+								const initial = getMemberInitial(u);
+								const avatarSrc = getMemberAvatar(u);
+								const role = u.role || u.Role || '';
+								const isOwnerMember = role.toLowerCase() === 'owner';
+								return (
+									<Box key={u.id ?? i} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+										<Avatar
+											src={avatarSrc ?? undefined}
+											sx={{
+												width: 24, height: 24, fontSize: '0.58rem', fontWeight: 800,
+												background: isOwnerMember
+													? 'linear-gradient(135deg,#FF385C,#D91A50)'
+													: (isLight ? '#e0e0e0' : 'rgba(255,255,255,0.12)'),
+												color: isOwnerMember ? '#fff' : textPrimary,
+												border: `1.5px solid ${border}`,
+												flexShrink: 0,
+											}}
+										>{initial}</Avatar>
+										<Typography sx={{
+											fontSize: '0.78rem', fontWeight: 600, color: textPrimary,
+											fontFamily: 'inherit', lineHeight: 1.2,
+											overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
+										}}>{label}</Typography>
+										{isOwnerMember && (
+											<Box sx={{
+												px: 0.8, py: 0.2, borderRadius: '50px',
+												background: 'rgba(255,56,92,0.10)',
+												border: '1px solid rgba(255,56,92,0.25)',
+											}}>
+												<Typography sx={{ fontSize: '0.52rem', fontWeight: 800, color: '#FF385C', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'inherit' }}>
+													Owner
+												</Typography>
+											</Box>
+										)}
+									</Box>
+								);
+							})}
+							{extraUsers > 0 && (
+								<Typography sx={{ fontSize: '0.7rem', color: textMuted, fontFamily: 'inherit', pl: 0.25 }}>
+									+{extraUsers} more member{extraUsers > 1 ? 's' : ''}
+								</Typography>
+							)}
+						</Box>
+					</Box>
+				)}
+
+			</Box>
+
+			{/* ── Footer: share button ── */}
+			<Box sx={{
+				px: 2, py: 1.25, flexShrink: 0,
+				borderTop: `1px solid ${border}`,
+				background: bg,
+			}}>
+				<Button
+					fullWidth
+					variant="outlined"
+					startIcon={<ShareRoundedIcon sx={{ fontSize: 16 }} />}
+					onClick={() => { navigator.clipboard.writeText(window.location.href); }}
+					sx={{
+						textTransform: 'none', borderRadius: '10px', fontFamily: 'inherit',
+						fontWeight: 600, fontSize: '0.82rem',
+						borderColor: 'rgba(255,56,92,0.30)', color: '#FF385C',
+						py: 0.9,
+						'&:hover': { borderColor: '#FF385C', background: 'rgba(255,56,92,0.05)' },
+					}}
+				>
+					Share this trip
+				</Button>
+			</Box>
+		</Box>
+	);
+};
+
 const TripPlanner: React.FC<TripPlannerProps> = ({
 	tripId,
 	initialTrip,
@@ -455,6 +762,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 
 	// Core meta state
 	const [title, setTitle] = React.useState<string>(normalizedInitial?.meta.name || 'Untitled Trip');
+	const [tripDescription, setTripDescription] = React.useState<string>((normalizedInitial?.meta as any)?.description || '');
 	const [editingTitle, setEditingTitle] = React.useState(false);
 	// Notes field (plain text, auto-grow) seeded from normalized initial trip meta if present
 	const [importantNotes, setImportantNotes] = React.useState<string>(
@@ -807,6 +1115,11 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		return ()=> { active = false; };
 	}, [authToken, tripId]);
 	const [mapDrawerOpen, setMapDrawerOpen] = React.useState(false);
+	const [drawingActive, setDrawingActive] = React.useState(false);
+	const [drawingTool, setDrawingTool] = React.useState<'pen' | 'eraser'>('pen');
+	const [drawingColor, setDrawingColor] = React.useState('#111111');
+	const [drawingWidth, setDrawingWidth] = React.useState(4);
+	const drawingCanvasRef = React.useRef<DrawingCanvasHandle | null>(null);
 	const containerRef = React.useRef<HTMLDivElement|null>(null);
 	const [visaErrors, setVisaErrors] = React.useState<string[]>([]);
 
@@ -1268,16 +1581,16 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 							</Box>
 						) : (
 							<Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
-								<Typography variant='h6' fontWeight={600} noWrap sx={{ cursor:isDraft && !isExternalNonOwner ? 'text':'default' }} onClick={()=> { if(isDraft && !isExternalNonOwner) setEditingTitle(true); }}>{title}</Typography>
+								<Typography noWrap sx={{ fontFamily:"'Playfair Display', Georgia, serif", fontWeight:700, fontStyle:'italic', fontSize:'1.2rem', letterSpacing:'-0.35px', lineHeight:1.15, cursor:isDraft && !isExternalNonOwner ? 'text':'default' }} onClick={()=> { if(isDraft && !isExternalNonOwner) setEditingTitle(true); }}>{title}</Typography>
 								{isDraft && !isExternalNonOwner && <IconButton size='small' onClick={()=> setEditingTitle(true)} sx={{ ml:-.5 }}><EditIcon fontSize='small' /></IconButton>}
 							</Box>
 						)}
-						<Chip size='small' label={isDraft? 'Draft':'Published'} color={isDraft? 'default':'success'} sx={{ fontSize:11, fontWeight:500, ml:1 }} />
+						<Chip size='small' label={isDraft? 'Draft':'Published'} color={isDraft? 'default':'success'} sx={{ fontSize:11, fontWeight:600, letterSpacing:'0.2px', ml:1 }} />
 					</Box>
 				} />
 				<Box ref={containerRef} sx={{ flex:1, display:'flex', position:'relative', minHeight:0 }}>
 					{/* Centre content column */}
-					<Box sx={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', overflow:'hidden' }}>
+					<Box sx={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative' }}>
 					{section==='news' ? (
 						<Box sx={{ flex:1, overflowY:'auto', overflowX:'hidden', display:'flex', flexDirection:'column' }}>
 							<NewsPanel selectedCountries={countries} />
@@ -1306,7 +1619,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 								// Block navigation into disabled features
 								if((v===1 && !ENABLE_EXPENSES) || (v===2 && !ENABLE_COMMENTS)) return;
 								handleTabChange(e,v);
-							}} variant='scrollable' allowScrollButtonsMobile sx={{ flex:1, minHeight:38, '& .MuiTab-root':{ minHeight:38, fontSize:13, fontWeight:600, textTransform:'none', fontFamily:"'Inter', system-ui, sans-serif" }, '& .Mui-selected':{ color:'#FF385C !important' }, '& .MuiTabs-indicator':{ backgroundColor:'#FF385C', height:2 } }}>
+							}} variant='scrollable' allowScrollButtonsMobile sx={{ flex:1, minHeight:40, '& .MuiTab-root':{ minHeight:40, fontSize:14, fontWeight:600, textTransform:'none', fontFamily:"'Inter', system-ui, sans-serif", letterSpacing:'-0.1px' }, '& .Mui-selected':{ color:'#FF385C !important', fontWeight:700 }, '& .MuiTabs-indicator':{ backgroundColor:'#FF385C', height:2.5, borderRadius:2 } }}>
 								<Tab label='Planning' />
 								<Tab label={
 									<Box sx={{ display:'flex', alignItems:'center', gap:.75 }}>
@@ -1324,12 +1637,12 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 							{/* Budget + Privacy compact */}
 							<Box sx={{ display:'flex', alignItems:'center', gap:1, mr:.5 }}>
 								<Tooltip title='Budget currency'>
-									<Button size='small' variant='text' onClick={readOnly? undefined : openCurrency} disabled={readOnly} endIcon={<ExpandMoreIcon sx={{ fontSize:14 }} />} sx={{ textTransform:'none', fontWeight:600, fontSize:12, px:.75, minWidth:0, color:'text.primary', fontFamily:"'Inter', sans-serif" }}>
+									<Button size='small' variant='text' onClick={readOnly? undefined : openCurrency} disabled={readOnly} endIcon={<ExpandMoreIcon sx={{ fontSize:14 }} />} sx={{ textTransform:'none', fontWeight:700, fontSize:13, px:.75, minWidth:0, color:'text.primary', fontFamily:"'Inter', sans-serif", letterSpacing:'-0.1px' }}>
 										{(planner.tripBudget!=null ? planner.tripBudget : 0).toFixed(0)} {currency}
 									</Button>
 								</Tooltip>
 								<Tooltip title='Privacy'>
-									<Button size='small' variant='text' onClick={readOnly? undefined: openPrivacy} disabled={readOnly} endIcon={<ExpandMoreIcon sx={{ fontSize:14 }} />} sx={{ textTransform:'none', fontWeight:600, fontSize:12, px:.75, minWidth:0, color:'text.primary', fontFamily:"'Inter', sans-serif" }}>
+									<Button size='small' variant='text' onClick={readOnly? undefined: openPrivacy} disabled={readOnly} endIcon={<ExpandMoreIcon sx={{ fontSize:14 }} />} sx={{ textTransform:'none', fontWeight:700, fontSize:13, px:.75, minWidth:0, color:'text.primary', fontFamily:"'Inter', sans-serif", letterSpacing:'-0.1px' }}>
 										{privacy}
 									</Button>
 								</Tooltip>
@@ -1478,10 +1791,46 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						</Box>
 					</Box>
 					)}
+					{/* Drawing canvas overlay — sits on top of all board content when active */}
+					<DrawingCanvas
+						ref={drawingCanvasRef}
+						tool={drawingTool}
+						color={drawingColor}
+						lineWidth={drawingWidth}
+						active={drawingActive}
+					/>
 					</Box>{/* end centre column */}
-					{/* Persistent AI Chat Panel — always visible */}
+				{/* Right panel — Navia for owners/editors, trip info for public viewers */}
+				{isExternalNonOwner ? (
+					<TripViewPanel
+						title={title}
+						description={tripDescription}
+						bannerUrl={bannerUrl}
+						countries={countries}
+						tripUsers={tripUsers}
+						ownerInfo={ownerInfo}
+						startDate={unifiedTrip?.meta.startDate ?? null}
+						endDate={unifiedTrip?.meta.endDate ?? null}
+						totalNights={totalNights}
+						destinationCount={planner.destinations.length}
+					/>
+				) : (
 					<PremiumChatPanel />
+				)}
 		</Box>
+		{/* Drawing dock — fixed overlay on right edge of screen */}
+		<DrawingDock
+			active={drawingActive}
+			onToggle={() => setDrawingActive(v => !v)}
+			tool={drawingTool}
+			onTool={setDrawingTool}
+			color={drawingColor}
+			onColor={setDrawingColor}
+			lineWidth={drawingWidth}
+			onLineWidth={setDrawingWidth}
+			onUndo={() => drawingCanvasRef.current?.undo()}
+			onClear={() => drawingCanvasRef.current?.clear()}
+		/>
 		{effectiveCanEdit && (
 			<Menu anchorEl={currencyAnchor} open={Boolean(currencyAnchor)} onClose={closeCurrency} elevation={3}>
 				{(['EUR','USD','GBP'] as const).map(c=> (<MenuItem key={c} selected={c===currency} onClick={()=> selectCurrency(c)}><Avatar sx={{ width:20, height:20, mr:1, fontSize:11 }}>{c==='EUR'?'€': c==='USD'? '$':'£'}</Avatar>{c}</MenuItem>))}
@@ -1663,6 +2012,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					onChangeStartDate={(d)=> setTripStartDate(d)}
 					onChangeEndDate={(d)=> setTripEndDate(d)}
 				onChangePrivacy={(p)=> setPrivacy(p as any)}
+				description={tripDescription}
+				onChangeDescription={(d)=> setTripDescription(d)}
 				onDeleteTrip={()=> { setConfirmDeleteOpen(true); }}
 					onInviteEmail={async(_)=> { /* invite email placeholder */ }}
 			/>

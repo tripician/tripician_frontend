@@ -1,5 +1,5 @@
 import React from 'react';
-import { Dialog, DialogContent, DialogTitle, Box, Typography, IconButton, TextField, Button, Chip, Avatar, Fade, InputBase, FormControl, Select, MenuItem } from '@mui/material';
+import { Dialog, DialogContent, Box, Typography, IconButton, TextField, Button, Chip, Avatar, Fade, InputBase } from '@mui/material';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -32,6 +32,8 @@ interface TripSettingsDialogProps {
   onChangePrivacy?: (p:string)=>void;
   onDeleteTrip?: ()=>void;
   onInviteEmail?: (email:string)=> Promise<void>|void;
+  description?: string;
+  onChangeDescription?: (d:string)=>void;
   countries?: string[]; // list of selected countries
   onRemoveCountry?: (country:string)=>void; // removal callback
   onAddCountry?: (country:string)=>void; // add callback
@@ -45,27 +47,7 @@ import { flagEmojiFromName, flagPngUrl, countryCodeFromName, COUNTRY_NAMES } fro
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 
-interface CountryRowProps { name: string; onRemove?: (name:string)=>void; }
-const CountryRow: React.FC<CountryRowProps> = ({ name, onRemove }) => {
-  const code = countryCodeFromName(name);
-  const png = flagPngUrl(code, 24);
-  const emoji = flagEmojiFromName(name);
-  return (
-    <Box sx={(t)=>({ display:'flex', alignItems:'center', gap:1, px:1.25, py:.6, borderRadius:2, background: t.palette.mode==='dark'? t.palette.grey[900]: t.palette.grey[50], border:`1px solid ${t.palette.divider}` })}>
-      {png ? (
-        <Box component='img' src={png} alt={name+ ' flag'} sx={{ width:24, height:18, borderRadius:'3px', objectFit:'cover', flexShrink:0 }} />
-      ) : (
-        <Box sx={{ fontSize:18, lineHeight:1 }}>{emoji || '🌍'}</Box>
-      )}
-      <Typography variant='body2' fontWeight={600} sx={{ flex:1 }}>{name}</Typography>
-      <IconButton size='small' onClick={()=> onRemove?.(name)} aria-label={'Remove ' + name}>
-        <CloseIconSmall fontSize='small' />
-      </IconButton>
-    </Box>
-  );
-};
-
-const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, title, tripId, startDate, endDate, privacy, members = [], bannerUrl, onChangeBanner, onChangeTitle, onChangeStartDate, onChangeEndDate, onChangePrivacy, onDeleteTrip, onInviteEmail, countries = [], onRemoveCountry, onAddCountry, currentUserIsOwner }) => {
+const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, title, tripId, startDate, endDate, privacy, members = [], bannerUrl, onChangeBanner, onChangeTitle, onChangeStartDate, onChangeEndDate, onChangePrivacy, onDeleteTrip, onInviteEmail, countries = [], onRemoveCountry, onAddCountry, currentUserIsOwner, description = '', onChangeDescription }) => {
   const [copyMain, setCopyMain] = React.useState(false);
   // Derive username from first owner/editor member handle (strip leading @) or 'user'
   // Share URL now based solely on tripId; member handle retrieval removed.
@@ -81,7 +63,10 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
   const [foundUser, setFoundUser] = React.useState<{id:number; fname:string; lname:string; email:string; country?:string} | null>(null);
   const [pendingUsers, setPendingUsers] = React.useState<Array<{id:number; fname:string; lname:string; email:string; country?:string}>>([]);
   const [addingMembers, setAddingMembers] = React.useState(false);
-  const [newCountry, setNewCountry] = React.useState('');
+  const [countrySearch, setCountrySearch] = React.useState('');
+  const [countryDropOpen, setCountryDropOpen] = React.useState(false);
+  const countryAnchorRef = React.useRef<HTMLDivElement>(null);
+  const filteredCountries = React.useMemo(()=> COUNTRY_NAMES.filter(n=> n.toLowerCase().includes(countrySearch.toLowerCase()) && !countries.includes(n)), [countrySearch, countries]);
   // Member list UX controls (scales to large sets)
   // Simplified member list (no search/filter). Owners first for clarity.
   const orderedMembers = React.useMemo(()=> {
@@ -200,17 +185,32 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
   }, [canManageMembers, view]);
 
   return (
-    <Dialog open={open} onClose={onClose} maxWidth='sm' fullWidth TransitionComponent={Fade} keepMounted>
-      <DialogTitle sx={{ display:'flex', alignItems:'center', justifyContent:'space-between', pr:1.5 }}>
-        <Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
-          {view==='invite' && (
-            <IconButton size='small' onClick={()=> setView('main')} aria-label='Back to settings'><ArrowBackIcon fontSize='small' /></IconButton>
-          )}
-          <Typography fontWeight={700} fontSize={20}>{view==='main'? 'Trip settings':'Invite members'}</Typography>
+    <Dialog open={open} onClose={onClose} maxWidth='sm' fullWidth TransitionComponent={Fade} keepMounted
+      PaperProps={{ sx:(t:any)=>({ borderRadius:4, overflow:'hidden', background: t.palette.mode==='dark'?'#141414':'#fff', boxShadow:'0 32px 96px rgba(0,0,0,0.22)' }) }}
+    >
+      {/* Header */}
+      <Box sx={(t:any)=>({ display:'flex', alignItems:'center', gap:1, px:3, pt:2.5, pb:2, borderBottom:`1px solid ${t.palette.divider}` })}>
+        {view==='invite' && (
+          <IconButton size='small' onClick={()=> setView('main')} aria-label='Back to settings' sx={{ mr:.5 }}><ArrowBackIcon fontSize='small' /></IconButton>
+        )}
+        <Box sx={{ flex:1 }}>
+          <Typography sx={{
+            fontFamily: view==='main' ? "'Playfair Display', Georgia, serif" : "'Inter', system-ui, sans-serif",
+            fontWeight: 700,
+            fontSize: view==='main' ? 22 : 18,
+            fontStyle: view==='main' ? 'italic' : 'normal',
+            letterSpacing: '-0.4px',
+            lineHeight: 1.1,
+          }}>
+            {view==='main' ? 'Trip' : 'Invite'}&nbsp;
+            <Box component='span' sx={{ fontStyle: view==='main' ? 'normal' : 'normal', fontWeight: 800 }}>
+              {view==='main' ? 'settings' : 'members'}
+            </Box>
+          </Typography>
         </Box>
-        <IconButton onClick={onClose} size='small' aria-label='Close settings dialog'><CloseIcon /></IconButton>
-      </DialogTitle>
-      <DialogContent dividers sx={{ p:3, display:'flex', flexDirection:'column', gap:3 }}>
+        <IconButton onClick={onClose} size='small' aria-label='Close' sx={{ color:'text.disabled', '&:hover':{ color:'text.primary' } }}><CloseIcon sx={{ fontSize:18 }} /></IconButton>
+      </Box>
+      <DialogContent sx={{ p:3, display:'flex', flexDirection:'column', gap:3 }}>
         {view==='invite' && (
           <Box sx={{ display:'flex', flexDirection:'column', gap:3 }}>
             <Box sx={{ display:'flex', flexDirection:'column', gap:1.5 }}>
@@ -302,92 +302,133 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
         {view==='main' && (
         <>
         {/* Banner & Countries side-by-side */}
-        <Box sx={{ display:'flex', gap:3, flexWrap:'wrap' }}>
-          {/* Vertical Banner */}
-          <Box sx={{ flex:'0 0 220px', display:'flex', flexDirection:'column', gap:1 }}>
-            <Typography variant='subtitle2' fontWeight={700}>Banner image</Typography>
-            <Box sx={(t)=>({ position:'relative', width:'100%', height:300, borderRadius:3, overflow:'hidden', border:`1px solid ${t.palette.divider}`, background:t.palette.mode==='dark'? t.palette.grey[900]:'#f5f7fa', display:'flex', alignItems:'center', justifyContent:'center' })}>
-              {bannerUrl ? (
-                <Box component='img' src={bannerUrl} alt='Trip banner' sx={{ width:'100%', height:'100%', objectFit:'cover' }} onError={(e:any)=> { e.currentTarget.style.opacity='0.35'; }} />
-              ) : (
-                <Box component='img' src={covers[
-            (
-              countries && countries.length && covers.hasOwnProperty(String(countries[0].toLowerCase()))
-                ? covers[countries[0].toLowerCase() as keyof typeof covers].length > 0? (countries[0].toLowerCase() as keyof typeof covers) : 'default'
-                : 'default'
-            ) as keyof typeof covers
-          ]} alt='Trip banner' sx={{ width:'100%', height:'100%', objectFit:'cover' }} onError={(e:any)=> { e.currentTarget.style.opacity='0.35'; }} />
-              )}
-              <Box sx={{ position:'absolute', top:8, right:8, display:'flex', flexDirection:'column', gap:.75 }}>
-                <Button size='small' variant='contained' color='primary' onClick={()=> {
-                  const input = document.createElement('input');
-                  input.type='file';
-                  input.accept='image/*';
-                  input.onchange = async ()=> {
-                    const f = input.files?.[0];
-                    if(!f) return;
-                    const reader = new FileReader();
-                    reader.onload = ()=> { const url = typeof reader.result==='string'? reader.result: ''; onChangeBanner?.({ url, file: f }); };
-                    reader.readAsDataURL(f);
-                  };
+        <Box sx={{ display:'flex', gap:2.5, flexWrap:'wrap' }}>
+          {/* Banner */}
+          <Box sx={{ flex:'0 0 200px' }}>
+            <Typography sx={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.6px', color:'text.secondary', mb:.75 }}>Banner image</Typography>
+            <Box sx={(t:any)=>({ position:'relative', width:'100%', height:280, borderRadius:3, overflow:'hidden', background:t.palette.mode==='dark'?'#1e1e1e':'#f0f0f0' })}>
+              <Box component='img'
+                src={bannerUrl || covers[(countries?.length && covers.hasOwnProperty(countries[0].toLowerCase()) ? (countries[0].toLowerCase() as keyof typeof covers) : 'default') as keyof typeof covers]}
+                alt='Trip banner' sx={{ width:'100%', height:'100%', objectFit:'cover' }}
+                onError={(e:any)=>{ e.currentTarget.style.opacity='0.3'; }}
+              />
+              <Box sx={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 55%)', pointerEvents:'none' }} />
+              <Box sx={{ position:'absolute', bottom:10, left:'50%', transform:'translateX(-50%)', display:'flex', gap:.75 }}>
+                <Button size='small' onClick={()=>{
+                  const input=document.createElement('input'); input.type='file'; input.accept='image/*';
+                  input.onchange=async()=>{ const f=input.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ const url=typeof r.result==='string'?r.result:''; onChangeBanner?.({url,file:f}); }; r.readAsDataURL(f); };
                   input.click();
-                }} sx={{ textTransform:'none', borderRadius:2 }}>Change</Button>
+                }} sx={{ textTransform:'none', borderRadius:20, fontWeight:700, fontSize:12, px:2, background:'rgba(255,255,255,0.92)', color:'#111', backdropFilter:'blur(6px)', '&:hover':{ background:'#fff' } }}>Change</Button>
                 {bannerUrl && (
-                  <Button size='small' variant='outlined' color='error' onClick={()=> onChangeBanner?.({ url:'', file: undefined })} sx={{ textTransform:'none', borderRadius:2 }}>Remove</Button>
+                  <Button size='small' onClick={()=>onChangeBanner?.({url:'',file:undefined})} sx={{ textTransform:'none', borderRadius:20, fontWeight:700, fontSize:12, px:1.5, background:'rgba(220,38,38,0.85)', color:'#fff', '&:hover':{ background:'rgba(220,38,38,1)' } }}>Remove</Button>
                 )}
               </Box>
             </Box>
           </Box>
-          {/* Countries Vertical List */}
-          <Box sx={{ flex:1, minWidth:240, display:'flex', flexDirection:'column', gap:1 }}>
-            <Typography variant='subtitle2' fontWeight={700}>Trip countries</Typography>
-            {/* Add country dropdown (adds on select) */}
-            <Box sx={(t)=>({ display:'flex', alignItems:'center', border:`1px solid ${t.palette.divider}`, borderRadius:2, overflow:'hidden' })}>
-              <FormControl size='small' sx={{ flex:1 }}>
-                <Select
-                  value={newCountry}
-                  onChange={(e)=> {
-                    const c = String(e.target.value).trim();
-                    // Reset selection back to placeholder
-                    setNewCountry('');
-                    if(c && !countries.includes(c)) {
-                      onAddCountry?.(c);
-                    }
-                  }}
-                  displayEmpty
-                  renderValue={(selected)=> selected ? String(selected) : 'Select a country'}
-                  sx={{ px:1, '& .MuiOutlinedInput-notchedOutline': { border: 'none' } }}
+          {/* Countries – chip multi-select */}
+          <Box sx={{ flex:1, minWidth:200, display:'flex', flexDirection:'column', gap:1 }}>
+            <Typography sx={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.6px', color:'text.secondary', mb:.25 }}>Trip countries</Typography>
+
+            {/* Tag input box */}
+            <Box ref={countryAnchorRef} sx={{ position:'relative' }}>
+              <Box
+                sx={(t:any)=>({ display:'flex', flexWrap:'wrap', alignItems:'center', gap:.5, px:1, py:.65, borderRadius:2,
+                  border:`1.5px solid ${countryDropOpen?'#FF385C':t.palette.divider}`,
+                  background: t.palette.mode==='dark'?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.02)',
+                  cursor:'text', transition:'border-color .15s', minHeight:38 })}
+                onClick={()=>setCountryDropOpen(true)}
+              >
+                {/* Selected chips */}
+                {countries.map(c=>{
+                  const code = countryCodeFromName(c);
+                  const png = flagPngUrl(code, 16);
+                  const emoji = flagEmojiFromName(c);
+                  return (
+                    <Box key={c} sx={(t:any)=>({ display:'flex', alignItems:'center', gap:.4, pl:.6, pr:.4, py:.2,
+                      borderRadius:20, fontSize:12, fontWeight:600,
+                      background: t.palette.mode==='dark'?'rgba(255,56,92,0.18)':'rgba(255,56,92,0.1)',
+                      border:'1px solid rgba(255,56,92,0.25)', color:'#FF385C', flexShrink:0 })}>
+                      {png
+                        ? <Box component='img' src={png} alt='' sx={{ width:16, height:12, borderRadius:'2px', objectFit:'cover' }} />
+                        : <Box sx={{ fontSize:13, lineHeight:1 }}>{emoji||'🌍'}</Box>}
+                      {c}
+                      <Box component='span' onClick={(e:any)=>{ e.stopPropagation(); onRemoveCountry?.(c); }}
+                        sx={{ display:'flex', alignItems:'center', ml:.25, cursor:'pointer', opacity:.6, '&:hover':{ opacity:1 }, fontSize:14, lineHeight:1 }}>×</Box>
+                    </Box>
+                  );
+                })}
+                <InputBase
+                  placeholder={countries.length===0 ? 'Search countries…' : ''}
+                  value={countrySearch}
+                  onChange={e=>{ setCountrySearch(e.target.value); setCountryDropOpen(true); }}
+                  onFocus={()=>setCountryDropOpen(true)}
+                  sx={{ minWidth:80, flex:1, fontSize:13, '& input':{ p:0 } }}
+                />
+              </Box>
+              {/* Dropdown */}
+              {countryDropOpen && (
+                <Box
+                  sx={(t:any)=>({ position:'absolute', top:'calc(100% + 4px)', left:0, right:0, zIndex:1400,
+                    borderRadius:2, border:`1px solid ${t.palette.divider}`,
+                    background: t.palette.mode==='dark'?'#1e1e1e':'#fff',
+                    boxShadow:'0 8px 32px rgba(0,0,0,0.14)',
+                    maxHeight:180, overflowY:'auto' })}
+                  onMouseDown={e=>e.preventDefault()}
                 >
-                  <MenuItem disabled value=''>Select a country</MenuItem>
-                  {COUNTRY_NAMES.map(name=> (
-                    <MenuItem key={name} value={name}>{name}</MenuItem>
-                  ))}
-                </Select>
-              </FormControl>
-            </Box>
-            <Box sx={{ display:'flex', flexDirection:'column', gap:.75 }}>
-              {countries.length===0 && (
-                <Typography variant='caption' color='text.secondary'>No countries selected.</Typography>
+                  {filteredCountries.length===0
+                    ? <Box sx={{ px:2, py:1.5, fontSize:13, color:'text.disabled' }}>No matches</Box>
+                    : filteredCountries.slice(0,60).map(name=>{
+                        const code = countryCodeFromName(name);
+                        const png = flagPngUrl(code, 20);
+                        const emoji = flagEmojiFromName(name);
+                        return (
+                          <Box key={name} onClick={()=>{ onAddCountry?.(name); setCountrySearch(''); setCountryDropOpen(false); }}
+                            sx={(t:any)=>({ display:'flex', alignItems:'center', gap:1, px:1.5, py:.75, fontSize:13, cursor:'pointer',
+                              '&:hover':{ background: t.palette.mode==='dark'?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.04)' } })}>
+                            {png
+                              ? <Box component='img' src={png} alt='' sx={{ width:20, height:15, borderRadius:'2px', objectFit:'cover', flexShrink:0 }} />
+                              : <Box sx={{ fontSize:16, lineHeight:1 }}>{emoji||'🌍'}</Box>}
+                            {name}
+                          </Box>
+                        );
+                      })
+                  }
+                </Box>
               )}
-              {countries.map(c=> (
-                <CountryRow key={c} name={c} onRemove={onRemoveCountry} />
-              ))}
+              {countryDropOpen && <Box sx={{ position:'fixed', inset:0, zIndex:1399 }} onClick={()=>{ setCountryDropOpen(false); setCountrySearch(''); }} />}
             </Box>
-            <Typography variant='caption' color='text.secondary'>Add or remove countries here; changes apply in settings.</Typography>
           </Box>
         </Box>
-        {/* Title & Dates */}
-        <Box>
-          <TextField
-            label='Trip name'
-            value={title}
-            fullWidth
-            onChange={e=> onChangeTitle?.(e.target.value)}
-            size='small'
-            inputProps={{ maxLength:80 }}
-            sx={{ '& .MuiInputBase-root':{ fontWeight:600 } }}
-          />
-          <Box sx={{ mt:2, display:'flex', gap:2, flexWrap:'wrap' }}>
+        {/* Title, Description & Dates */}
+        <Box sx={{ display:'flex', flexDirection:'column', gap:2 }}>
+          <Box sx={{ display:'flex', gap:2 }}>
+            <Box sx={{ flex:1 }}>
+              <Typography sx={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.6px', color:'text.secondary', mb:.75 }}>Trip name</Typography>
+              <TextField
+                value={title}
+                fullWidth
+                onChange={e=> onChangeTitle?.(e.target.value)}
+                size='small'
+                inputProps={{ maxLength:80 }}
+                sx={(t:any)=>({ '& .MuiOutlinedInput-root':{ borderRadius:2, fontWeight:700, fontSize:16, letterSpacing:'-0.2px', background: t.palette.mode==='dark'?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.02)' } })}
+              />
+            </Box>
+          </Box>
+          <Box>
+            <Typography sx={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.6px', color:'text.secondary', mb:.75 }}>Description</Typography>
+            <TextField
+              value={description}
+              fullWidth
+              multiline
+              minRows={2}
+              maxRows={4}
+              onChange={e=> onChangeDescription?.(e.target.value)}
+              placeholder='A short description of your trip…'
+              inputProps={{ maxLength:400 }}
+              sx={(t:any)=>({ '& .MuiOutlinedInput-root':{ borderRadius:2, fontSize:14, lineHeight:1.65, background: t.palette.mode==='dark'?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.02)' } })}
+            />
+          </Box>
+          <Box sx={{ display:'flex', gap:2, flexWrap:'wrap' }}>
             <LocalizationProvider dateAdapter={AdapterDayjs}>
               {(() => { const sanitize = (d:string) => (d && d.length >= 10 ? d.slice(0,10) : d); const sd = dayjs(sanitize(startDate)); const ed = dayjs(sanitize(endDate)); return (
                 <>
@@ -412,30 +453,34 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
 
         {/* Share link */}
         <Box>
-          <Typography variant='subtitle2' fontWeight={700} gutterBottom>Share your trip</Typography>
-          <Box sx={(t)=>({ display:'flex', alignItems:'center', background: t.palette.mode==='dark'? t.palette.grey[900]: t.palette.grey[100], border:`1px solid ${t.palette.divider}`, p:1, borderRadius:2, gap:1, flexWrap:'wrap' })}>
-            <LinkIcon fontSize='small' color='primary' />
-            <Typography variant='body2' sx={{ flex:1, fontFamily:'monospace', minWidth:180 }} noWrap>{shareUrl}</Typography>
-            <Button size='small' variant='contained' color={copyMain? 'success':'primary'} startIcon={<ContentCopyIcon fontSize='small' />} onClick={()=> copy(shareUrl)} sx={{ textTransform:'none', borderRadius:2 }}>{copyMain? 'Copied':'Copy link'}</Button>
-            <Button size='small' variant='outlined' startIcon={<EmailIcon fontSize='small' />} onClick={()=> setView('invite')} sx={{ textTransform:'none', borderRadius:2 }}>Invite by email</Button>
+          <Typography sx={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.6px', color:'text.secondary', mb:.75 }}>Share your trip</Typography>
+          <Box sx={(t:any)=>({ display:'flex', alignItems:'center', gap:1, px:1.5, py:.9, borderRadius:2.5, border:`1px solid ${t.palette.divider}`, background: t.palette.mode==='dark'?'rgba(255,255,255,0.03)':'rgba(0,0,0,0.02)' })}>
+            <LinkIcon sx={{ fontSize:15, color:'text.disabled', flexShrink:0 }} />
+            <Typography sx={{ flex:1, fontSize:12, fontFamily:'monospace', color:'text.secondary', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{shareUrl}</Typography>
+            <IconButton size='small' onClick={()=> copy(shareUrl)} sx={{ color: copyMain?'success.main':'text.disabled', '&:hover':{ color: copyMain?'success.main':'#FF385C' }, transition:'color .2s' }}>
+              <ContentCopyIcon sx={{ fontSize:15 }} />
+            </IconButton>
+            <Box onClick={()=>setView('invite')} sx={{ display:'flex', alignItems:'center', gap:.4, fontSize:12, fontWeight:600, color:'#FF385C', cursor:'pointer', px:1.25, py:.5, borderRadius:20, border:'1px solid rgba(255,56,92,0.25)', '&:hover':{ background:'rgba(255,56,92,0.06)' } }}>
+              <EmailIcon sx={{ fontSize:13 }}/> Invite
+            </Box>
           </Box>
         </Box>
 
         {/* Privacy */}
         <Box>
-          <Typography variant='subtitle2' fontWeight={700} gutterBottom>Who can view your trip?</Typography>
-          <Box sx={{ display:'flex', gap:1, flexWrap:'wrap' }}>
+          <Typography sx={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.6px', color:'text.secondary', mb:.75 }}>Who can view your trip?</Typography>
+          <Box sx={{ display:'flex', gap:.75, flexWrap:'wrap' }}>
             {PRIVACY_OPTIONS.map(p=> {
               const selected = privacy === p;
               return (
-                <Chip
-                  key={p}
-                  label={p}
-                  onClick={()=> onChangePrivacy?.(p)}
-                  color={selected? 'primary': 'default'}
-                  variant={selected? 'filled':'outlined'}
-                  sx={{ fontWeight:500 }}
-                />
+                <Box key={p} onClick={()=> onChangePrivacy?.(p)} sx={{
+                  px:1.75, py:.65, borderRadius:20, fontSize:13.5, fontWeight:600, cursor:'pointer', userSelect:'none', transition:'all .15s',
+                  background: selected ? 'linear-gradient(135deg,#FF385C,#E31C5F)' : 'transparent',
+                  color: selected ? '#fff' : 'text.secondary',
+                  border: selected ? '1px solid transparent' : '1px solid rgba(0,0,0,0.13)',
+                  boxShadow: selected ? '0 4px 14px rgba(255,56,92,0.3)' : 'none',
+                  '&:hover': selected ? {} : { borderColor:'#FF385C', color:'#FF385C' },
+                }}>{p}</Box>
               );
             })}
           </Box>
@@ -446,73 +491,57 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
         {/* Members */}
         <Box>
           <Box sx={{ display:'flex', alignItems:'center', justifyContent:'space-between', mb:1 }}>
-            <Typography variant='subtitle2' fontWeight={700}>Trip members</Typography>
+            <Typography sx={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.6px', color:'text.secondary' }}>Trip members</Typography>
             {canManageMembers && (
-              <Button 
-                size='small' 
-                variant='outlined' 
-                startIcon={<EmailIcon fontSize='small' />} 
-                onClick={()=> setView('invite')} 
-                sx={{ textTransform:'none', borderRadius:2 }}
-              >
-                Add member
-              </Button>
+              <Box onClick={()=>setView('invite')} sx={{ display:'flex', alignItems:'center', gap:.4, fontSize:12, fontWeight:600, color:'#FF385C', cursor:'pointer', '&:hover':{ opacity:.75 } }}>
+                <EmailIcon sx={{ fontSize:14 }}/> Add member
+              </Box>
             )}
           </Box>
-          {/* Simplified: no search or filters per request */}
-          <Box sx={{ display:'flex', flexDirection:'column', gap:1 }}>
-              {orderedMembers.length>0 && (
-                <>
-                  {orderedMembers.map(m=> {
-                    const isOwner = m.role === 'Owner';
-                    return (
-                      <Box key={m.id} sx={(t)=>({
-                        p:1.15,
-                        borderRadius:1.2,
-                        display:'flex',
-                        flexDirection:'row',
-                        alignItems:'center',
-                        background: t.palette.mode==='dark'? 'rgba(30,45,58,0.55)': '#f5fafc',
-                        border:`1px solid ${t.palette.mode==='dark'? t.palette.grey[800]: '#e1e9ee'}`,
-                        position:'relative',
-                        overflow:'hidden',
-                        transition:'box-shadow .18s, transform .18s',
-                        '&:hover':{ boxShadow:'0 4px 12px rgba(0,0,0,0.08)', transform:'translateY(-2px)' }
-                      })}>
-                        <Avatar src={m.avatar} sx={{ width:44, height:44, mr:1.25, bgcolor:isOwner? 'primary.main':'secondary.light', fontWeight:600 }}>
-                          {!m.avatar && m.name?.[0]}
-                        </Avatar>
-                        <Box sx={{ flex:1, minWidth:0 }}>
-                          <Typography variant='body2' fontWeight={600} noWrap sx={{ display:'flex', alignItems:'center', gap:.35 }}>
-                            {isOwner && <Box component='span' aria-label='Owner' sx={{ fontSize:16 }}>👑</Box>}
-                            {m.name}
-                          </Typography>
-                          <Typography variant='caption' color='text.secondary' noWrap sx={{ opacity:.75 }}>
-                            {m.email || m.handle}
-                          </Typography>
-                        </Box>
-                        <Typography variant='caption' fontWeight={600} sx={{ ml:2, minWidth:60, textAlign:'right', color:isOwner? 'primary.main':'text.secondary' }}>{m.role}</Typography>
-                      </Box>
-                    );
-                  })}
-                </>
-              )}
-              {orderedMembers.length===0 && (
-              <Typography variant='body2' color='text.secondary'>No members yet.</Typography>
-            )}
+          <Box sx={{ display:'flex', flexDirection:'column', gap:.75 }}>
+            {orderedMembers.map(m=> {
+              const isOwner = m.role==='Owner';
+              const roleColor = isOwner?'#FF385C': m.role==='Editor'?'#3b82f6':'#6b7280';
+              return (
+                <Box key={m.id} sx={(t:any)=>({
+                  display:'flex', alignItems:'center', gap:1.5, px:1.5, py:1,
+                  borderRadius:2.5,
+                  border:`1px solid ${t.palette.mode==='dark'?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.06)'}`,
+                  background: t.palette.mode==='dark'?'rgba(255,255,255,0.03)':'rgba(0,0,0,0.015)',
+                  transition:'border-color .15s',
+                  '&:hover':{ borderColor:'rgba(255,56,92,0.25)' },
+                })}>
+                  <Avatar src={m.avatar} sx={{ width:36, height:36, fontSize:14, fontWeight:700, bgcolor: isOwner?'#FF385C':'#6b7280' }}>
+                    {!m.avatar && m.name?.[0]}
+                  </Avatar>
+                  <Box sx={{ flex:1, minWidth:0 }}>
+                    <Typography sx={{ fontSize:14, fontWeight:700, lineHeight:1.3, letterSpacing:'-0.1px' }} noWrap>
+                      {isOwner && <Box component='span' sx={{ fontSize:13, mr:.5 }}>👑</Box>}{m.name}
+                    </Typography>
+                    <Typography sx={{ fontSize:12, color:'text.disabled', lineHeight:1.3 }} noWrap>{m.email||m.handle}</Typography>
+                  </Box>
+                  <Box sx={{ flexShrink:0, px:1.25, py:.3, borderRadius:20, fontSize:11, fontWeight:700, color:roleColor, border:`1px solid ${roleColor}44`, background:`${roleColor}11` }}>
+                    {m.role}
+                  </Box>
+                </Box>
+              );
+            })}
+            {orderedMembers.length===0 && <Typography sx={{ fontSize:13, color:'text.disabled' }}>No members yet.</Typography>}
           </Box>
         </Box>
 
         {/* Actions */}
-        <Box sx={{ display:'flex', justifyContent:'center', gap:2, mt:1 }}>
-          <Button variant='contained' color='primary' onClick={()=> {
-            // parent handles via settings save (prop added later)
-            const event = new CustomEvent('trip:settings:save');
-            window.dispatchEvent(event);
-          }} sx={{ textTransform:'none', borderRadius:3, minWidth:120 }}>Save settings</Button>
-          {canManageMembers && (
-            <Button variant='outlined' color='error' startIcon={<DeleteOutlineIcon />} onClick={onDeleteTrip} sx={{ textTransform:'none', borderRadius:3, minWidth:120 }}>Delete trip</Button>
-          )}
+        <Box sx={{ display:'flex', justifyContent:'space-between', alignItems:'center', pt:.5 }}>
+          {canManageMembers
+            ? <Box onClick={onDeleteTrip} sx={{ display:'flex', alignItems:'center', gap:.5, fontSize:13.5, fontWeight:600, color:'text.disabled', cursor:'pointer', '&:hover':{ color:'error.main' }, transition:'color .15s' }}>
+                <DeleteOutlineIcon sx={{ fontSize:16 }}/> Delete trip
+              </Box>
+            : <Box />}
+          <Button variant='contained' onClick={()=>{ window.dispatchEvent(new CustomEvent('trip:settings:save')); }}
+            sx={{ textTransform:'none', fontWeight:700, fontSize:14, borderRadius:20, px:3.5, py:.85,
+              background:'linear-gradient(135deg,#FF385C,#E31C5F)', boxShadow:'none',
+              '&:hover':{ background:'linear-gradient(135deg,#e02d50,#c91855)', boxShadow:'0 4px 16px rgba(255,56,92,0.35)' } }}
+          >Save settings</Button>
         </Box>
         </>
         )}

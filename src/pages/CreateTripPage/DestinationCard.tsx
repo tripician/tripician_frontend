@@ -60,18 +60,16 @@ export interface DestinationCardProps {
   onDragEnd?: () => void;
 }
 
-const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled, onRename, /* onChangeCategory removed */ onToggleComplete, onDuplicate, onRemove, onOpenNotes, onOpenDiscover, onOpenDocs, onOpenStay, onChangeNights }) => {
-  const { id, name, startDate, endDate, nights, category='general', completed, notes, spots, foods, stay, stays, docs, photoUrl } = destination as any;
+const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled, onRename, onToggleComplete, onDuplicate, onRemove, onOpenNotes, onOpenDiscover, onOpenDocs, onOpenStay, onChangeNights }) => {
+  const { id, name, startDate, endDate, nights, category='general', completed, notes, spots, foods, stay, stays, docs } = destination as any;
   const [editing, setEditing] = React.useState(false);
   const [menuAnchor, setMenuAnchor] = React.useState<HTMLElement | null>(null);
-  // Category selection removed per request; retain background color only.
   const [localName, setLocalName] = React.useState(name);
 
   React.useEffect(()=> setLocalName(name), [name]);
 
-  const openMenu = (e: React.MouseEvent<HTMLElement>) => setMenuAnchor(e.currentTarget);
+  const openMenu = (e: React.MouseEvent<HTMLElement>) => { e.stopPropagation(); setMenuAnchor(e.currentTarget); };
   const closeMenu = () => setMenuAnchor(null);
-  // Removed category open/close handlers.
 
   const commitName = () => { if(localName.trim() && localName !== name) onRename?.(id, localName.trim()); setEditing(false); };
   const handleKey: React.KeyboardEventHandler<HTMLInputElement> = (e) => { if(e.key==='Enter') { commitName(); } else if(e.key==='Escape'){ setLocalName(name); setEditing(false);} };
@@ -83,203 +81,118 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
   return (
     <Card
       elevation={0}
-      sx={(t)=>({ 
-        position:'relative', 
-        overflow:'hidden', 
-        opacity: disabled? .6:1, 
-        display:'flex', 
-        flexDirection:'column', 
-        borderRadius:2, /* reduced corner roundness */
-        border:'1px solid '+t.palette.divider,
-        background: t.palette.mode==='dark'? t.palette.background.paper : t.palette.common.white, 
-        boxShadow: t.palette.mode==='dark'? '0 1px 3px rgba(0,0,0,0.7)':'0 1px 2px rgba(0,0,0,0.05)',
-        transition:'box-shadow .2s, border-color .2s, background .25s', 
-        minWidth: 650, /* further widened card */
+      sx={(t)=>({
+        position:'relative', overflow:'hidden', opacity: disabled? .6:1,
+        display:'flex', flexDirection:'column',
+        borderRadius:'10px',
+        border:`1px solid ${t.palette.mode==='dark'? 'rgba(255,255,255,0.07)':'rgba(0,0,0,0.07)'}`,
+        background: t.palette.mode==='dark'? t.palette.background.paper : '#fff',
+        boxShadow: t.palette.mode==='dark'? '0 1px 4px rgba(0,0,0,0.5)':'0 1px 4px rgba(0,0,0,0.05)',
         '&:hover': {
-          borderColor: t.palette.primary.main,
-          boxShadow: t.palette.mode==='dark'? '0 4px 14px -4px rgba(0,0,0,0.85)': '0 4px 10px -2px rgba(0,0,0,0.12)'
+          borderColor:'rgba(255,56,92,0.35)',
+          boxShadow: t.palette.mode==='dark'? '0 6px 24px rgba(0,0,0,0.5)':'0 4px 20px rgba(255,56,92,0.12)',
+          transform:'translateY(-1px)',
         }
       })}
     >
-      {/* Decorative diagonal photo background */}
-      {photoUrl && (
-        <Box aria-hidden='true' sx={(t)=>({
-          position:'absolute',
-          inset:0,
-          pointerEvents:'none',
-          '&:before': {
-            content:'""',
-            position:'absolute',
-            top:0,
-            right:0,
-            bottom:0,
-            left:'45%', // start image roughly mid card
-            backgroundImage:`url(${photoUrl})`,
-            backgroundSize:'cover',
-            backgroundPosition:'center',
-            opacity: t.palette.mode==='dark'? 0.18:0.22,
-            filter:'grayscale(15%) saturate(105%) contrast(105%)',
-            /* Create a 45deg diagonal dividing line: polygon from mid-top to right-top to right-bottom to mid-bottom */
-            clipPath:'polygon(55% 0%, 100% 0%, 100% 100%, 45% 100%)',
-            transition:'opacity .3s'
-          },
-          '&:after': {
-            content:'""',
-            position:'absolute',
-            inset:0,
-            background: t.palette.mode==='dark'? 'linear-gradient(90deg, rgba(0,0,0,0.0) 40%, rgba(0,0,0,0.55) 95%)':'linear-gradient(90deg, rgba(255,255,255,0) 40%, rgba(255,255,255,0.85) 95%)',
-            mixBlendMode: t.palette.mode==='dark'? 'normal':'multiply',
-            pointerEvents:'none'
-          }
-        })} />
-      )}
-      {/* Category Bar */}
-  <Box sx={{ position:'absolute', top:0, left:0, bottom:0, width:4, background: catInfo.bg, opacity:.95, borderRadius:'3px 0 0 3px' }} />
-  <CardContent sx={{ pl:2, pr:1.5, py:1.5, flex:1, display:'flex', flexDirection:'column', gap:1.5, minHeight:120, pb:6 }}> {/* increased minHeight & extra bottom padding */}
-        {/* Top row: Destination name (left) then meta chips then actions (right) */}
-        <Box sx={{ display:'flex', alignItems:'center', width:'100%' }}>
-          {/* Name column: allow responsive growth/shrink instead of rigid 35% so unused space can be reallocated */}
-          <Box sx={{ pr:2, display:'flex', alignItems:'center', flex:'1 1 280px', minWidth:180, maxWidth:'42%', overflow:'hidden' }}>
-            {editing ? (
-              <InputBase
-                value={localName}
-                autoFocus
-                onChange={e=> setLocalName(e.target.value)}
-                onBlur={commitName}
-                onKeyDown={handleKey}
-                multiline
-                maxRows={3}
-                sx={{
-                  fontSize:20,
-                  fontWeight:700,
-                  lineHeight:1.2,
-                  px:0.5,
-                  py:0.25,
-                  borderRadius:1,
-                  border:(t)=>`1px solid ${t.palette.divider}`,
-                  background:(t)=> t.palette.background.paper,
-                  boxShadow:'none',
-                  width:'100%',
-                  overflow:'hidden'
-                }}
-              />
-            ) : (
-              <Typography
-                variant='h6'
-                onDoubleClick={()=> setEditing(true)}
-                sx={{
-                  fontSize:20,
-                  fontWeight:700,
-                  lineHeight:1.2,
-                  cursor:'text',
-                  userSelect:'text',
-                  textDecoration: completed? 'line-through':'none',
-                  color: completed? 'text.secondary':'text.primary',
-                  display:'-webkit-box',
-                  WebkitLineClamp:3,
-                  WebkitBoxOrient:'vertical',
-                  overflow:'hidden',
-                  wordBreak:'break-word'
-                }}
-              >
-                {name}
-              </Typography>
-            )}
-          </Box>
-          {/* Meta chips: no premature wrap; can use leftover width. Wrap only on narrower screens. */}
-          <Box sx={(t)=>({ display:'flex', alignItems:'center', gap:0.75, flexWrap:'nowrap', flex:'0 1 auto', minWidth:0, ml:2, overflow:'hidden', maxWidth:'50%',
-            [t.breakpoints.down('md')]: { flexWrap:'wrap', rowGap:0.5 } })}>
-            <Chip
-              size='small'
-              onClick={(e)=> { e.stopPropagation(); }}
-              label={
-                <Box sx={{ display:'flex', alignItems:'center', gap:0.5, fontWeight:600 }}>
-                  <Box component='button' type='button' onClick={(ev)=> { ev.stopPropagation(); onChangeNights?.(id, -1); }} disabled={nights<=1} style={{ border:'none', background:'transparent', cursor: nights>1? 'pointer':'not-allowed', padding:0, lineHeight:1, fontSize:14, opacity:nights>1?1:.4, fontWeight:700 }}>−</Box>
-                  <span style={{ fontWeight:600 }}>{nights} night{nights!==1?'s':''}</span>
-                  <Box component='button' type='button' onClick={(ev)=> { ev.stopPropagation(); onChangeNights?.(id, +1); }} style={{ border:'none', background:'transparent', cursor:'pointer', padding:0, lineHeight:1, fontSize:14, fontWeight:700 }}>＋</Box>
-                </Box>
-              }
-              sx={{ fontSize:11, height:22, fontWeight:600 }}
-            />
-            <Chip size='small' label={`${dateFmt(startDate)} – ${dateFmt(endDate)}`} variant='outlined' sx={{ fontSize:11, height:22, fontWeight:600 }} />
-            {/* Category chip removed */}
-            {completed && <Chip size='small' label='Completed' color='success' sx={{ fontSize:11, height:22 }} />}
-          </Box>
-          {/* Spacer */}
-          <Box sx={{ flex:1 }} />
-          {/* Action buttons */}
-          <Box sx={{ display:'flex', alignItems:'center', gap:.5, ml:1 }}>
-            <Tooltip title={completed? 'Mark incomplete':'Mark complete'}>
-              <IconButton size='small' onClick={()=> onToggleComplete?.(id)} sx={(t)=>({ color:t.palette.text.secondary })}>
-                {completed? <CheckCircleOutlineIcon fontSize='small' color='success' />: <RadioButtonUncheckedIcon fontSize='small' />}
-              </IconButton>
-            </Tooltip>
-            <Tooltip title='Duplicate'>
-              <IconButton size='small' onClick={()=> onDuplicate?.(id)} sx={(t)=>({ color:t.palette.text.secondary })}>
-                <ContentCopyIcon fontSize='small' />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title='Delete'>
-              <IconButton size='small' onClick={()=> onRemove?.(id)} sx={(t)=>({ color:t.palette.text.secondary, '&:hover':{ color:t.palette.error.main } })}>
-                <DeleteIcon fontSize='small' />
-              </IconButton>
-            </Tooltip>
-            <Tooltip title='More'>
-              <IconButton size='small' onClick={openMenu} sx={(t)=>({ color:t.palette.text.secondary })}>
-                <MoreVertIcon fontSize='small' />
-              </IconButton>
-            </Tooltip>
-          </Box>
+      {/* Rose accent bar */}
+      <Box sx={{ position:'absolute', top:0, left:0, bottom:0, width:3, background:'linear-gradient(180deg,#FF385C,#E31C5F)', borderRadius:'3px 0 0 3px', pointerEvents:'none' }} />
+      <CardContent sx={{ pl:2, pr:.5, py:'0 !important', minHeight:48, display:'flex', alignItems:'center', gap:.75 }}>
+
+        {/* ── Name ── */}
+        <Box sx={{ flex:'1 1 100px', minWidth:60, maxWidth:'34%', overflow:'hidden' }}>
+          {editing ? (
+            <InputBase value={localName} autoFocus onChange={e=>setLocalName(e.target.value)} onBlur={commitName} onKeyDown={handleKey}
+              sx={{ fontSize:14, fontWeight:700, width:'100%', px:.5, py:.15, border:(t)=>`1px solid ${t.palette.divider}`, borderRadius:1, background:(t)=>t.palette.background.paper }} />
+          ) : (
+            <Typography onDoubleClick={()=>setEditing(true)} noWrap sx={{ fontSize:14, fontWeight:700, cursor:'text', lineHeight:1.2,
+              textDecoration:completed?'line-through':'none', color:completed?'text.disabled':'text.primary' }}>{name}</Typography>
+          )}
         </Box>
-        
-        {/* Action chips repositioned to bottom-right corner */}
-        <Box sx={{ position:'absolute', right:12, bottom:10, display:'flex', alignItems:'center', gap:1, flexWrap:'nowrap' }}>
-          {/* Discover chip with count (spots + foods) */}
-          <Tooltip title='Discover spots & foods'>
-            <Box sx={{ position:'relative' }}>
-              <Chip disabled onClick={()=> onOpenDiscover?.(id)} icon={<ExploreIcon color={(spots?.length||0)+(foods?.length||0)>0? 'primary': 'inherit'} />} label='Discover' size='small' sx={(t)=>({ cursor:'pointer', fontWeight:600, bgcolor: ((spots?.length||0)+(foods?.length||0)>0)? (t.palette.mode==='dark'? t.palette.primary.main+'22': t.palette.primary.light+'33') : (t.palette.mode==='dark'? t.palette.grey[800]: t.palette.grey[100]), color: ((spots?.length||0)+(foods?.length||0)>0)? t.palette.primary.main: t.palette.text.secondary })} />
-              {((spots?.length||0)+(foods?.length||0))>0 && (
-                <Box sx={(t)=>({ position:'absolute', top:-4, right:-4, background:t.palette.primary.main, color:t.palette.primary.contrastText, minWidth:18, height:18, px:0.5, borderRadius:9, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, boxShadow:'0 0 0 2px '+t.palette.background.paper })}>{(spots?.length||0)+(foods?.length||0)}</Box>
-              )}
+
+        <Box sx={{ flex:1 }} />
+
+        {/* ── Nights pill ── */}
+        <Box onClick={e=>e.stopPropagation()} sx={{ display:'flex', alignItems:'center', background:'rgba(255,56,92,0.07)', border:'1px solid rgba(255,56,92,0.20)', borderRadius:20, px:.6, height:22, gap:.25, flexShrink:0 }}>
+          <Box component='button' type='button' onClick={(e:any)=>{e.stopPropagation();onChangeNights?.(id,-1);}} disabled={nights<=1}
+            style={{ border:'none',background:'transparent',cursor:nights>1?'pointer':'default',padding:'0 2px',fontSize:12,fontWeight:800,color:'#FF385C',opacity:nights>1?1:.3,lineHeight:1 }}>−</Box>
+          <Typography sx={{ fontSize:11, fontWeight:700, color:'#FF385C', lineHeight:1, whiteSpace:'nowrap', px:.2 }}>{nights}n</Typography>
+          <Box component='button' type='button' onClick={(e:any)=>{e.stopPropagation();onChangeNights?.(id,+1);}}
+            style={{ border:'none',background:'transparent',cursor:'pointer',padding:'0 2px',fontSize:12,fontWeight:800,color:'#FF385C',lineHeight:1 }}>+</Box>
+        </Box>
+
+        {/* ── Date pill ── */}
+        <Box sx={(t)=>({ height:22, px:.8, borderRadius:20, border:`1px solid ${t.palette.divider}`, fontSize:11, fontWeight:600, whiteSpace:'nowrap', flexShrink:0, color:t.palette.text.secondary, display:'flex', alignItems:'center' })}>
+          {dateFmt(startDate)} – {dateFmt(endDate)}
+        </Box>
+
+        {completed && <Chip size='small' label='✓' color='success' sx={{ height:16, minWidth:0, fontSize:10, fontWeight:700, '& .MuiChip-label':{ px:.6 } }} />}
+
+        {/* ── Feature icon strip (icon-only, tooltip labels) ── */}
+        {(()=>{
+          const discoverCount=(spots?.length||0)+(foods?.length||0);
+          const stayCount=Array.isArray(stays)?stays.length:((stay?.name||stay?.reference||stay?.notes)?1:0);
+          const docsCount=docs?.length||0;
+          const strip=[
+            { key:'discover', icon:<ExploreIcon sx={{fontSize:13}}/>,    tip:'Discover',  count:discoverCount, onClick:()=>onOpenDiscover?.(id), active:discoverCount>0, warn:false, disabled:true  },
+            { key:'stay',     icon:<HotelIcon sx={{fontSize:13}}/>,       tip:'Stay',      count:stayCount,    onClick:()=>onOpenStay?.(id),     active:stayCount>0,    warn:false, disabled:true  },
+            { key:'docs',     icon:<UploadFileIcon sx={{fontSize:13}}/>,   tip:'Docs',      count:docsCount,    onClick:()=>onOpenDocs?.(id),     active:docsCount>0,    warn:false, disabled:true  },
+            { key:'notes',    icon:<NotesIcon sx={{fontSize:13}}/>,       tip:'Notes',     count:0,            onClick:()=>onOpenNotes?.(id),    active:!!notes, warn:false, disabled:false },
+            { key:'alerts',   icon:<WarningAmberIcon sx={{fontSize:13}}/>, tip:'Alerts',   count:0,            onClick:()=>{},                   active:true,           warn:true,  disabled:false },
+          ];
+          return (
+            <Box onClick={e=>e.stopPropagation()} sx={{ display:'flex', alignItems:'center', gap:.1, borderLeft:(t)=>`1px solid ${t.palette.divider}`, pl:.75, mr:.25 }}>
+              {strip.map(s=>(
+                <Tooltip key={s.key} title={s.tip} enterDelay={400}>
+                  <Box onClick={s.disabled?undefined:(e)=>{ e.stopPropagation(); s.onClick(); }} sx={(t)=>({
+                    position:'relative', display:'flex', alignItems:'center', justifyContent:'center',
+                    width:28, height:28, borderRadius:'8px', cursor:s.disabled?'default':'pointer',
+                    color: s.warn?(t.palette.mode==='dark'?'#fbbf24':'#d97706'):s.active?'#FF385C':t.palette.text.disabled,
+                    transition:'background .12s, color .12s',
+                    '&:hover': s.disabled?{}:{ background:s.warn?'rgba(217,119,6,0.1)':'rgba(255,56,92,0.08)', color:s.warn?'#b45309':'#E31C5F' }
+                  })}>
+                    {s.icon}
+                    {s.count>0 && <Box sx={{ position:'absolute', top:3, right:3, background:s.warn?'#d97706':'#FF385C', color:'#fff', borderRadius:'50%', width:8, height:8, fontSize:0 }} />}
+                  </Box>
+                </Tooltip>
+              ))}
             </Box>
+          );
+        })()}
+
+        {/* ── Management icons ── */}
+        <Box onClick={e=>e.stopPropagation()} sx={{ display:'flex', alignItems:'center', borderLeft:(t)=>`1px solid ${t.palette.divider}`, pl:.5 }}>
+          <Tooltip title={completed?'Mark incomplete':'Mark complete'}>
+            <IconButton size='small' onClick={(e)=>{ e.stopPropagation(); onToggleComplete?.(id); }} sx={{ p:.45, color:'text.disabled', '&:hover':{ color:'success.main' } }}>
+              {completed?<CheckCircleOutlineIcon sx={{fontSize:15}} color='success'/>:<RadioButtonUncheckedIcon sx={{fontSize:15}}/>}
+            </IconButton>
           </Tooltip>
-          {/* Stay chip shows count of properties (multi stays) or legacy field usage */}
-          <Tooltip title='Stay / accommodation info'>
-            <Box sx={{ position:'relative' }}>
-              <Chip disabled onClick={()=> onOpenStay?.(id)} icon={<HotelIcon color={((Array.isArray(stays)&&stays.length>0) || (stay?.name||stay?.reference||stay?.notes))? 'primary':'inherit'} />} label='Stay' size='small' sx={(t)=>({ cursor:'pointer', fontWeight:600, bgcolor: ((Array.isArray(stays)&&stays.length>0) || (stay?.name||stay?.reference||stay?.notes))? (t.palette.mode==='dark'? t.palette.primary.main+'22': t.palette.primary.light+'33'):(t.palette.mode==='dark'? t.palette.grey[800]: t.palette.grey[100]), color: ((Array.isArray(stays)&&stays.length>0) || (stay?.name||stay?.reference||stay?.notes))? t.palette.primary.main: t.palette.text.secondary })} />
-              {(()=> { const count = Array.isArray(stays)? stays.length : ((stay?.name||stay?.reference||stay?.notes)? 1:0); return count>0 ? (
-                <Box sx={(t)=>({ position:'absolute', top:-4, right:-4, background:t.palette.primary.main, color:t.palette.primary.contrastText, minWidth:18, height:18, px:0.5, borderRadius:9, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, boxShadow:'0 0 0 2px '+t.palette.background.paper })}>{count}</Box>
-              ): null; })()}
-            </Box>
+          <Tooltip title='Duplicate'>
+            <IconButton size='small' onClick={(e)=>{ e.stopPropagation(); onDuplicate?.(id); }} sx={{ p:.45, color:'text.disabled', '&:hover':{ color:'text.secondary' } }}>
+              <ContentCopyIcon sx={{fontSize:13}}/>
+            </IconButton>
           </Tooltip>
-          {/* Docs chip with doc count */}
-          <Tooltip title='Documents'>
-            <Box sx={{ position:'relative' }}>
-              <Chip disabled onClick={()=> onOpenDocs?.(id)} icon={<UploadFileIcon color={(docs?.length||0)>0? 'primary':'inherit'} />} label='Docs' size='small' sx={(t)=>({ cursor:'pointer', fontWeight:600, bgcolor:(docs?.length||0)>0? (t.palette.mode==='dark'? t.palette.primary.main+'22': t.palette.primary.light+'33'):(t.palette.mode==='dark'? t.palette.grey[800]: t.palette.grey[100]), color:(docs?.length||0)>0? t.palette.primary.main: t.palette.text.secondary })} />
-              {(docs?.length||0)>0 && (
-                <Box sx={(t)=>({ position:'absolute', top:-4, right:-4, background:t.palette.primary.main, color:t.palette.primary.contrastText, minWidth:18, height:18, px:0.5, borderRadius:9, display:'flex', alignItems:'center', justifyContent:'center', fontSize:11, fontWeight:700, boxShadow:'0 0 0 2px '+t.palette.background.paper })}>{docs!.length}</Box>
-              )}
-            </Box>
+          <Tooltip title='Delete'>
+            <IconButton size='small' onClick={(e)=>{ e.stopPropagation(); onRemove?.(id); }} sx={{ p:.45, color:'text.disabled', '&:hover':{ color:'error.main' } }}>
+              <DeleteIcon sx={{fontSize:14}}/>
+            </IconButton>
           </Tooltip>
-            {/* Notes chip highlight if notes exist */}
-          <Tooltip title='Notes'>
-            <Chip onClick={()=> onOpenNotes?.(id)} icon={<NotesIcon color={notes? 'primary':'inherit'} />} label='Notes' size='small' sx={(t)=>({ cursor:'pointer', fontWeight:600, bgcolor:notes? (t.palette.mode==='dark'? t.palette.primary.main+'22': t.palette.primary.light+'33'):(t.palette.mode==='dark'? t.palette.grey[800]: t.palette.grey[100]), color:notes? t.palette.primary.main: t.palette.text.secondary })} />
-          </Tooltip>
-          {/* Alerts chip (replaces Share) - currently placeholder count 0 */}
-          <Tooltip title='Alerts'>
-            <Chip onClick={()=> {/* future alerts */}} icon={<WarningAmberIcon color='warning' />} label='Alerts' size='small' sx={(t)=>({ cursor:'pointer', fontWeight:600, bgcolor: t.palette.mode==='dark'? t.palette.warning.main+'22':'#fef3c7', color: t.palette.mode==='dark'? t.palette.warning.light : '#92400e' })} />
+          <Tooltip title='More'>
+            <IconButton size='small' onClick={(e)=>{ e.stopPropagation(); openMenu(e); }} sx={{ p:.45, color:'text.disabled', '&:hover':{ color:'text.secondary' } }}>
+              <MoreVertIcon sx={{fontSize:15}}/>
+            </IconButton>
           </Tooltip>
         </Box>
+
       </CardContent>
       {/* Overflow Menu */}
-      <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu} elevation={3}>
-        <MenuItem disabled dense sx={{ fontSize:12, opacity:.7 }}>More Actions</MenuItem>
-        <MenuItem onClick={()=> { closeMenu(); setEditing(true); }}>Rename</MenuItem>
-        <MenuItem onClick={()=> { closeMenu(); onDuplicate?.(id); }}>Duplicate</MenuItem>
-        <MenuItem onClick={()=> { closeMenu(); onToggleComplete?.(id); }}>{completed? 'Mark Incomplete':'Mark Complete'}</MenuItem>
-        <MenuItem onClick={()=> { closeMenu(); onRemove?.(id); }} sx={{ color:'error.main' }}>Delete</MenuItem>
+      <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu} elevation={3} PaperProps={{ sx:{ borderRadius:2, minWidth:160 } }}>
+        <MenuItem disabled dense sx={{ fontSize:12, opacity:.6, fontWeight:600 }}>Actions</MenuItem>
+        <MenuItem dense onClick={()=>{ closeMenu(); setEditing(true); }}>Rename</MenuItem>
+        <MenuItem dense onClick={()=>{ closeMenu(); onDuplicate?.(id); }}>Duplicate</MenuItem>
+        <MenuItem dense onClick={()=>{ closeMenu(); onToggleComplete?.(id); }}>{completed?'Mark Incomplete':'Mark Complete'}</MenuItem>
+        <MenuItem dense onClick={()=>{ closeMenu(); onRemove?.(id); }} sx={{ color:'error.main' }}>Delete</MenuItem>
       </Menu>
-      {/* Category menu removed */}
     </Card>
   );
 };

@@ -3,7 +3,7 @@ import { Box, Typography, Button, CircularProgress, Alert, Stack, Avatar } from 
 import { useSelector } from 'react-redux';
 import ExploreIcon from '@mui/icons-material/TravelExplore';
 import PublicIcon from '@mui/icons-material/Public';
-import FavoriteRoundedIcon from '@mui/icons-material/FavoriteRounded';
+import StarRoundedIcon from '@mui/icons-material/StarRounded';
 import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
 
 import PlaceRoundedIcon from '@mui/icons-material/PlaceRounded';
@@ -242,6 +242,25 @@ const Home: React.FC = () => {
   const plannedCount = plannedNames.length;
   const upcomingCount = upcomingNames.length;
 
+  // Next future-dated trip (strictly after today)
+  const nextUpcomingTrip = React.useMemo(() => {
+    const today = Date.now();
+    const unwrap = (raw: any) => (raw?.trip && typeof raw.trip === 'object') ? raw.trip : raw;
+    const candidates = userTrips
+      .map((rawTrip) => {
+        const trip = unwrap(rawTrip);
+        const startRaw = trip?.startDate ?? rawTrip?.startDate ?? rawTrip?.StartDate;
+        if (!startRaw) return null;
+        const str = typeof startRaw === 'string' ? startRaw : String(startRaw);
+        const ms = Date.parse(str.length >= 10 ? str.slice(0, 10) : str);
+        return !Number.isNaN(ms) && ms > today ? { startMs: ms } : null;
+      })
+      .filter(Boolean) as { startMs: number }[];
+    if (!candidates.length) return null;
+    candidates.sort((a, b) => a.startMs - b.startMs);
+    return candidates[0];
+  }, [userTrips]);
+
   // Barcode encodes: name + stats. Code128 supports printable ASCII.
   const barcodeValue = React.useMemo(() => {
     const safeName = userFirstName.toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 10) || 'EXPLORER';
@@ -374,9 +393,122 @@ const Home: React.FC = () => {
     >
       <TopBar />
 
-      {/* HERO SECTION — Boarding Pass */}
+      {/* HERO SECTION */}
       <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 2, md: 3 }, pb: 2, position: 'relative', zIndex: 2 }}>
-        {/* Outer ticket card */}
+
+      {/* ── No upcoming trip: premium "Plan Your Next Journey" banner ── */}
+      {!nextUpcomingTrip && (
+        <Box ref={heroRef} className="gs-hero" sx={{
+          position: 'relative',
+          borderRadius: '20px',
+          overflow: 'hidden',
+          minHeight: { xs: 220, md: 260 },
+          display: 'flex',
+          alignItems: 'stretch',
+          background: 'linear-gradient(135deg, #0D0D14 0%, #1A0A14 50%, #0D0D14 100%)',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.06), 0 12px 32px rgba(0,0,0,0.18), 0 32px 72px rgba(0,0,0,0.22)',
+          border: '1px solid rgba(255,255,255,0.06)',
+        }}>
+          {/* Rose glow blob */}
+          <Box sx={{
+            position: 'absolute', top: '-30%', left: '-8%',
+            width: '55%', height: '200%',
+            background: 'radial-gradient(ellipse at center, rgba(255,56,92,0.18) 0%, transparent 65%)',
+            pointerEvents: 'none',
+          }} />
+          {/* Right subtle glow */}
+          <Box sx={{
+            position: 'absolute', top: '20%', right: '-5%',
+            width: '45%', height: '120%',
+            background: 'radial-gradient(ellipse at center, rgba(195,30,100,0.12) 0%, transparent 70%)',
+            pointerEvents: 'none',
+          }} />
+
+          {/* Left accent stripe */}
+          <Box sx={{
+            width: 7, flexShrink: 0,
+            background: 'linear-gradient(180deg, #FF6B6B 0%, #FF385C 35%, #C2185B 100%)',
+          }} />
+
+          {/* Content */}
+          <Box sx={{
+            flex: 1,
+            p: { xs: '28px 24px', sm: '36px 44px', md: '40px 52px' },
+            display: 'flex', flexDirection: 'column', justifyContent: 'center',
+            position: 'relative', zIndex: 1,
+          }}>
+            {/* Label */}
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+              <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: '#FF385C', boxShadow: '0 0 8px rgba(255,56,92,0.7)' }} />
+              <Typography sx={{
+                fontSize: '0.52rem', fontWeight: 800, letterSpacing: '0.25em',
+                color: 'rgba(255,56,92,0.85)', textTransform: 'uppercase',
+                fontFamily: "'Inter', sans-serif",
+              }}>No Upcoming Trip</Typography>
+            </Box>
+
+            {/* Headline */}
+            <Typography sx={{
+              fontFamily: "'Playfair Display', serif",
+              fontSize: { xs: '1.85rem', md: '2.8rem' },
+              fontWeight: 800, fontStyle: 'italic',
+              color: '#FFFFFF',
+              lineHeight: 1.15, letterSpacing: '-0.5px',
+              mb: 1.2,
+            }}>
+              Where will you go next?
+            </Typography>
+
+            {/* Sub */}
+            <Typography sx={{
+              fontSize: { xs: '0.88rem', md: '0.95rem' },
+              color: 'rgba(255,255,255,0.45)',
+              fontFamily: "'Inter', sans-serif",
+              mb: 3.5, maxWidth: 460, lineHeight: 1.65,
+            }}>
+              Your boarding pass is waiting. Plan a trip now and we'll fill in the details — dates, destinations, itineraries and more.
+            </Typography>
+
+            {/* CTA */}
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+              <Button
+                variant="contained" size="large" startIcon={<ExploreIcon />} onClick={handleExploreTrips}
+                sx={{
+                  px: 3.5, py: 1.35, borderRadius: '50px', textTransform: 'none',
+                  fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '0.92rem',
+                  background: 'linear-gradient(135deg, #FF385C 0%, #D91A50 100%)',
+                  boxShadow: '0 6px 24px rgba(255,56,92,0.45)',
+                  '&:hover': { background: 'linear-gradient(135deg, #E31C5F 0%, #B01550 100%)', boxShadow: '0 12px 36px rgba(255,56,92,0.6)', transform: 'translateY(-2px)' },
+                  transition: 'all 0.25s ease', width: { xs: '100%', sm: 'auto' },
+                }}
+              >Plan Your Next Trip</Button>
+              <Button
+                variant="outlined" size="large" startIcon={<PublicIcon />} onClick={handleExploreDashboard}
+                sx={{
+                  px: 3.5, py: 1.35, borderRadius: '50px', textTransform: 'none',
+                  fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '0.92rem',
+                  borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.65)',
+                  '&:hover': { borderColor: 'rgba(255,56,92,0.45)', color: '#FF6B8A', backgroundColor: 'rgba(255,56,92,0.07)', transform: 'translateY(-1px)' },
+                  transition: 'all 0.25s ease', width: { xs: '100%', sm: 'auto' },
+                }}
+              >View Dashboard</Button>
+            </Stack>
+          </Box>
+
+          {/* Right ghost plane decoration */}
+          <Box sx={{
+            display: { xs: 'none', md: 'flex' },
+            alignItems: 'center', justifyContent: 'center',
+            pr: 6, pl: 2, opacity: 0.07, pointerEvents: 'none', flexShrink: 0,
+          }}>
+            <ConnectingAirportsIcon sx={{ fontSize: '13rem', color: '#FFFFFF' }} />
+          </Box>
+        </Box>
+      )}
+
+      {/* ── Has upcoming trip: Boarding Pass ── */}
+      {nextUpcomingTrip && (
+        <>
         <Box ref={heroRef} className="gs-hero" sx={{
           position: 'relative',
           borderRadius: '20px',
@@ -490,7 +622,7 @@ const Home: React.FC = () => {
             {/* ── Row 3: Ticket info fields ── */}
             <Box sx={{ display: 'flex', gap: { xs: 3, md: 4.5 }, mb: 3, flexWrap: 'wrap' }}>
               {[
-                { label: 'Date',      value: new Date().toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) },
+                { label: 'Date',      value: new Date(nextUpcomingTrip!.startMs).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) },
                 { label: 'Class',     value: 'Explorer' },
                 { label: 'Gate',      value: 'TRPC' },
                 { label: 'Seat',      value: `${String.fromCharCode(65 + (visitedCount % 6))}${visitedCount || 1}` },
@@ -674,10 +806,13 @@ const Home: React.FC = () => {
             sx={{ height: 22, width: 'auto', filter: 'grayscale(1)' }}
           />
         </Box>
+        </>
+      )}
+
       </Box>
 
       {/* CATEGORIES ROW */}
-      <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, pb: 5, zIndex: 2 }}>
+      <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 3, md: 4 }, pb: 5, zIndex: 2 }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
           <Box sx={{ width: 4, height: 22, borderRadius: 2, background: 'linear-gradient(180deg, #FF385C, #D91A50)' }} />
           <Typography variant="h5" fontWeight={700} sx={{
@@ -967,8 +1102,7 @@ const Home: React.FC = () => {
                         const coverImg = getCover(t);
                         const tripName = t.name || t.title || 'Untitled Trip';
                         const countriesList: string[] = Array.isArray(t.countries) ? t.countries : [];
-                        const likeCount = 18 + (tIdx * 13 + 5) % 74;
-                        const tripRating = parseFloat((3.8 + (likeCount % 12) / 10).toFixed(1));
+                        const tripRating = parseFloat((3.5 + (tIdx * 7 + 3) % 15 / 10).toFixed(1));
                         const author = ownerName(t.owner);
 
                         return (
@@ -978,7 +1112,6 @@ const Home: React.FC = () => {
                               image={coverImg}
                               countries={countriesList}
                               rating={tripRating}
-                              likes={likeCount}
                               owner={author}
                               onClick={() => navigate(`/trip/${t.id || t.Id}`)}
                             />
@@ -1014,7 +1147,7 @@ const Home: React.FC = () => {
                           const coverImg = getCover(t);
                           const tripName = t.name || t.title || 'Untitled Trip';
                           const countriesList: string[] = Array.isArray(t.countries) ? t.countries : [];
-                          const likeCount = 8 + (tIdx * 11 + 7) % 55;
+                          const tripRating = parseFloat((3.4 + (tIdx * 9 + 2) % 16 / 10).toFixed(1));
                           const author = ownerName(t.owner);
                           const authorInitial = author[0].toUpperCase();
                           const isOwner = t.owner && userId && t.owner === userId;
@@ -1092,14 +1225,14 @@ const Home: React.FC = () => {
                                     <Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.75)', fontFamily: "'Inter',sans-serif", fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 80 }}>{author}</Typography>
                                   </Box>
                                   <Box sx={{
-                                    display: 'flex', alignItems: 'center', gap: 0.4,
+                                    display: 'flex', alignItems: 'center', gap: 0.35,
                                     px: 0.9, py: 0.35, borderRadius: '50px',
                                     backdropFilter: 'blur(6px)',
                                     background: 'rgba(255,255,255,0.15)',
                                     border: '1px solid rgba(255,255,255,0.2)',
                                   }}>
-                                    <FavoriteRoundedIcon sx={{ fontSize: 9, color: '#FF385C' }} />
-                                    <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: '#fff', fontFamily: "'Inter',sans-serif" }}>{likeCount}</Typography>
+                                    <StarRoundedIcon sx={{ fontSize: 10, color: '#FFD700' }} />
+                                    <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: '#fff', fontFamily: "'Inter',sans-serif" }}>{tripRating}</Typography>
                                   </Box>
                                 </Box>
                               </Box>
