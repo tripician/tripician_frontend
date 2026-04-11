@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import TripCard from './TripCard';
 import '../../assets/css/Dashboard.css';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
@@ -7,6 +7,8 @@ import { useNavigate } from 'react-router-dom';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import covers from '../../assets/covers.json';
+import gsap from 'gsap';
+import TripCreationModal from '../../components/CreateTripComponents/TripCreationModal';
 
 const Dashboard: React.FC = () => {
   const formatRelativeTime = (dateStr?: string) => {
@@ -37,6 +39,33 @@ const Dashboard: React.FC = () => {
   const [tabValue, setTabValue] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const pageRef  = useRef<HTMLDivElement>(null);
+  const tabsRef  = useRef<HTMLDivElement>(null);
+  const cardsRef = useRef<HTMLDivElement>(null);
+  const [createTripOpen, setCreateTripOpen] = useState(false);
+
+  // Page entrance animation (tabs + cards)
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      gsap.from(tabsRef.current, {
+        y: -24, opacity: 0, duration: 0.55, ease: 'power3.out', delay: 0.05,
+      });
+    }, pageRef);
+    return () => ctx.revert();
+  }, []);
+
+  // Re-animate cards whenever the displayed list changes
+  useEffect(() => {
+    if (!cardsRef.current || plans.length === 0) return;
+    const cards = cardsRef.current.querySelectorAll<HTMLElement>('.gs-trip-card');
+    if (!cards.length) return;
+    gsap.fromTo(
+      cards,
+      { y: 40, opacity: 0, scale: 0.96 },
+      { y: 0, opacity: 1, scale: 1, duration: 0.5, stagger: 0.07, ease: 'power3.out', clearProps: 'transform,opacity' }
+    );
+  }, [plans]);
 
   // Fetch dashboard trips
   useEffect(() => {
@@ -128,6 +157,7 @@ const Dashboard: React.FC = () => {
   };
   return (
     <Box
+      ref={pageRef}
       sx={{
         width: '100%',
         backgroundColor: 'background.default',
@@ -139,6 +169,7 @@ const Dashboard: React.FC = () => {
       <TopBar />
       <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
           <Tabs
+            ref={tabsRef}
             value={tabValue}
             className="mb-1 mt-3"
             onChange={handleTabChange}
@@ -177,7 +208,7 @@ const Dashboard: React.FC = () => {
             <Tab label="Completed" />
             <Tab label="In Progress" />
           </Tabs>
-          <div className="trip-cards-container" style={{ marginBottom: '32px' }}>
+          <div ref={cardsRef} className="trip-cards-container" style={{ marginBottom: '32px' }}>
             {loading && (
               <Box sx={{ display:'flex', justifyContent:'center', py:6 }}>
                 <CircularProgress />
@@ -187,13 +218,59 @@ const Dashboard: React.FC = () => {
               <Alert severity="error" sx={{ mb:2 }}>{error}</Alert>
             )}
             {!loading && !error && plans.length === 0 && (
-              <Typography variant="body2" sx={{ color:'text.secondary', px:2, py:4 }}>
-                No trips yet. Create your first trip to get started.
-              </Typography>
+              <Box
+                sx={{
+                  flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+                  minHeight: '55vh', px: 3, textAlign: 'center',
+                }}
+              >
+                {/* Illustration */}
+                <Box sx={{
+                  width: 110, height: 110, borderRadius: '50%',
+                  background: 'linear-gradient(135deg, rgba(255,56,92,0.10) 0%, rgba(255,56,92,0.04) 100%)',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  mb: 3, fontSize: '3.2rem',
+                  boxShadow: '0 0 0 18px rgba(255,56,92,0.04)',
+                }}>✈️</Box>
+
+                {/* Headline */}
+                <Typography sx={{
+                  fontFamily: "'Playfair Display', serif",
+                  fontWeight: 800,
+                  fontSize: { xs: '1.6rem', md: '2rem' },
+                  color: 'text.primary',
+                  letterSpacing: '-0.03em',
+                  mb: 1,
+                }}>Your adventure awaits.</Typography>
+
+                {/* Sub */}
+                <Typography sx={{
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: '0.92rem',
+                  color: 'text.secondary',
+                  maxWidth: 360,
+                  lineHeight: 1.7,
+                  mb: 3.5,
+                }}>Let's start building your itinerary and make every journey unforgettable.</Typography>
+
+                {/* CTA */}
+                <Button
+                  variant="contained"
+                  onClick={() => setCreateTripOpen(true)}
+                  sx={{
+                    fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '0.9rem',
+                    px: 4, py: 1.4, borderRadius: '50px', textTransform: 'none',
+                    background: 'linear-gradient(135deg, #FF385C 0%, #D91A50 100%)',
+                    boxShadow: '0 8px 24px rgba(255,56,92,0.32)',
+                    '&:hover': { background: 'linear-gradient(135deg, #E31C5F 0%, #B01550 100%)', boxShadow: '0 14px 36px rgba(255,56,92,0.44)', transform: 'translateY(-2px)' },
+                    transition: 'all 0.25s ease',
+                  }}
+                >+ Plan your trip</Button>
+              </Box>
             )}
             {!loading && !error && plans.map((plan) => (
+              <div key={plan.id || plan.title} className="gs-trip-card">
               <TripCard
-                key={plan.id || plan.title}
                 title={plan.title}
                 countries={plan.countries}
                 image={plan.image}
@@ -218,6 +295,7 @@ const Dashboard: React.FC = () => {
                   });
                 }}
               />
+              </div>
             ))}
           </div>
       </Box>
@@ -251,6 +329,7 @@ const Dashboard: React.FC = () => {
         message={snackbar}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
+      <TripCreationModal open={createTripOpen} onClose={() => setCreateTripOpen(false)} />
     </Box>
   );
 };

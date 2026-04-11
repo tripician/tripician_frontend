@@ -229,21 +229,14 @@ const PrivacySettings: React.FC = () => {
       {/* Profile Privacy Section */}
       <Card
         sx={{
-          borderRadius: 2,
-          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-          border: "1px solid #e5e7eb",
+          borderRadius: '16px',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+          border: '1px solid',
+          borderColor: 'divider',
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              fontWeight: 600, 
-              mb: 4,
-              color: 'text.primary',
-              fontSize: '1.1rem'
-            }}
-          >
+          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', mb: 4, color: 'text.primary', letterSpacing: '-0.01em' }}>
             Profile Privacy
           </Typography>
 

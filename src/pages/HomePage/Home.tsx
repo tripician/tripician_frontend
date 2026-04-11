@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Box, Typography, Button, CircularProgress, Alert, Stack, Avatar } from '@mui/material';
 import { useSelector } from 'react-redux';
 import ExploreIcon from '@mui/icons-material/TravelExplore';
@@ -24,9 +24,13 @@ import iconBeaches from '../../assets/icons/beaches.png';
 import iconCity from '../../assets/icons/city.png';
 import iconForest from '../../assets/icons/forest.png';
 import iconMountains from '../../assets/icons/mountains.png';
+import gsap from 'gsap';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+
+  const pageRef      = useRef<HTMLDivElement>(null);
+  const heroRef      = useRef<HTMLDivElement>(null);
 
   const featuredDestinations = [
     {
@@ -342,8 +346,20 @@ const Home: React.FC = () => {
     setCurrentMotivation({ title: motivationalQuotes[motivationIndex] });
   }, [statusMessages, motivationalQuotes]);
 
+  useEffect(() => {
+    const ctx = gsap.context(() => {
+      // ── Hero boarding pass entrance ──
+      gsap.from(heroRef.current, {
+        y: 70, opacity: 0, duration: 1.05, ease: 'power4.out', delay: 0.1,
+      });
+    }, pageRef);
+
+    return () => ctx.revert();
+  }, []);
+
   return (
     <Box
+      ref={pageRef}
       sx={{
         width: '100%',
         minHeight: '100vh',
@@ -360,7 +376,7 @@ const Home: React.FC = () => {
       {/* HERO SECTION — Boarding Pass */}
       <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 2, md: 3 }, pb: 2, position: 'relative', zIndex: 2 }}>
         {/* Outer ticket card */}
-        <Box sx={{
+        <Box ref={heroRef} className="gs-hero" sx={{
           position: 'relative',
           borderRadius: '20px',
           overflow: 'hidden',
@@ -955,16 +971,17 @@ const Home: React.FC = () => {
                         const author = ownerName(t.owner);
 
                         return (
-                          <TripCard
-                            key={t.id || t.Id}
-                            title={tripName}
-                            image={coverImg}
-                            countries={countriesList}
-                            rating={tripRating}
-                            likes={likeCount}
-                            owner={author}
-                            onClick={() => navigate(`/trip/${t.id || t.Id}`)}
-                          />
+                          <Box key={t.id || t.Id}>
+                            <TripCard
+                              title={tripName}
+                              image={coverImg}
+                              countries={countriesList}
+                              rating={tripRating}
+                              likes={likeCount}
+                              owner={author}
+                              onClick={() => navigate(`/trip/${t.id || t.Id}`)}
+                            />
+                          </Box>
                         );
                       })}
                     </Box>
@@ -991,7 +1008,7 @@ const Home: React.FC = () => {
                       </Box>
 
                       {/* Compact horizontal cards grid */}
-                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 1.5 }}>
+                      <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' }, gap: 1.5, overflow: 'hidden' }}>
                         {alsoCheckout.map((t, tIdx) => {
                           const coverImg = getCover(t);
                           const tripName = t.name || t.title || 'Untitled Trip';
@@ -1007,69 +1024,81 @@ const Home: React.FC = () => {
                               key={t.id || t.Id}
                               onClick={() => navigate(`/trip/${t.id || t.Id}`)}
                               sx={{
-                                display: 'flex',
+                                position: 'relative',
                                 borderRadius: '14px',
                                 overflow: 'hidden',
-                                background: '#FFFFFF',
-                                border: '1px solid rgba(0,0,0,0.07)',
-                                boxShadow: '0 1px 6px rgba(0,0,0,0.05)',
                                 cursor: 'pointer',
-                                height: 86,
-                                transition: 'transform 0.22s ease, box-shadow 0.22s ease, border-color 0.2s',
-                                '&:hover': { transform: 'translateY(-3px)', boxShadow: '0 8px 28px rgba(0,0,0,0.10)', borderColor: 'rgba(255,56,92,0.2)' },
-                                '&:hover .co-img': { transform: 'scale(1.08)' },
+                                aspectRatio: '4 / 3',
+                                boxShadow: '0 2px 12px rgba(0,0,0,0.10)',
+                                transition: 'transform 0.26s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.26s ease',
+                                '&:hover': { transform: 'translateY(-4px) scale(1.01)', boxShadow: '0 10px 28px rgba(0,0,0,0.16)' },
+                                '&:hover .co-img': { transform: 'scale(1.06)' },
                               }}
                             >
-                              {/* Thumbnail */}
-                              <Box sx={{ width: 86, flexShrink: 0, overflow: 'hidden', position: 'relative' }}>
+                              {/* Cover photo */}
+                              <Box
+                                className="co-img"
+                                component="img"
+                                src={coverImg}
+                                alt={tripName}
+                                sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
+                              />
+
+                              {/* Gradient overlay */}
+                              <Box sx={{
+                                position: 'absolute', inset: 0,
+                                background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.15) 55%, transparent 100%)',
+                              }} />
+
+                              {/* Edit badge */}
+                              {(isOwner || isMember) && (
                                 <Box
-                                  className="co-img"
-                                  component="img"
-                                  src={coverImg}
-                                  alt={tripName}
-                                  sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block', transition: 'transform 0.35s ease' }}
-                                />
-                                {(isOwner || isMember) && (
-                                  <Box
-                                    onClick={e => { e.stopPropagation(); navigate(`/trip/${t.id || t.Id}/edit`); }}
-                                    sx={{
-                                      position: 'absolute', top: 5, right: 5,
-                                      width: 20, height: 20, borderRadius: '50%',
-                                      background: 'rgba(255,255,255,0.85)',
-                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                      '&:hover': { background: '#FF385C', '& svg': { color: '#fff' } },
-                                      transition: 'background 0.18s',
-                                    }}
-                                  >
-                                    <EditRoundedIcon sx={{ fontSize: 10, color: '#555' }} />
+                                  onClick={e => { e.stopPropagation(); navigate(`/trip/${t.id || t.Id}/edit`); }}
+                                  sx={{
+                                    position: 'absolute', top: 10, right: 10,
+                                    width: 28, height: 28, borderRadius: '50%',
+                                    backdropFilter: 'blur(8px)',
+                                    background: 'rgba(255,255,255,0.22)',
+                                    border: '1px solid rgba(255,255,255,0.35)',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    '&:hover': { background: '#FF385C', border: 'none' },
+                                    transition: 'all 0.18s',
+                                  }}
+                                >
+                                  <EditRoundedIcon sx={{ fontSize: 12, color: '#fff' }} />
+                                </Box>
+                              )}
+
+                              {/* Bottom info */}
+                              <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, p: '12px 14px' }}>
+                                {countriesList.length > 0 && (
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, mb: 0.5 }}>
+                                    <PlaceRoundedIcon sx={{ fontSize: 10, color: '#FF385C' }} />
+                                    <Typography sx={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.75)', fontFamily: "'Inter',sans-serif", fontWeight: 500, letterSpacing: '0.02em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>
+                                      {countriesList.join(' · ')}
+                                    </Typography>
                                   </Box>
                                 )}
-                              </Box>
-
-                              {/* Text */}
-                              <Box sx={{ p: '10px 12px', flex: 1, display: 'flex', flexDirection: 'column', justifyContent: 'space-between', minWidth: 0 }}>
                                 <Typography sx={{
-                                  fontWeight: 700, fontSize: '0.8rem',
-                                  fontFamily: "'Inter', sans-serif",
-                                  color: '#111', letterSpacing: '-0.01em', lineHeight: 1.3,
-                                  display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                                  fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '0.82rem',
+                                  color: '#fff', letterSpacing: '-0.01em', lineHeight: 1.3, mb: 1,
+                                  display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                                 }}>{tripName}</Typography>
 
-                                {countriesList.length > 0 && (
-                                  <Typography sx={{ fontSize: '0.65rem', color: '#999', fontFamily: "'Inter', sans-serif", display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
-                                    <PlaceRoundedIcon sx={{ fontSize: 9, color: '#FF385C', mr: 0.3, verticalAlign: 'middle' }} />
-                                    {countriesList.join(' · ')}
-                                  </Typography>
-                                )}
-
                                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-                                    <Avatar sx={{ width: 16, height: 16, fontSize: '0.45rem', fontWeight: 800, background: 'linear-gradient(135deg, #FF385C, #D91A50)', color: '#fff' }}>{authorInitial}</Avatar>
-                                    <Typography sx={{ fontSize: '0.62rem', color: '#AAA', fontFamily: "'Inter', sans-serif", fontWeight: 500, display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden', maxWidth: 70 }}>{author}</Typography>
+                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+                                    <Avatar sx={{ width: 20, height: 20, fontSize: '0.5rem', fontWeight: 800, bgcolor: '#FF385C', border: '1.5px solid rgba(255,255,255,0.5)' }}>{authorInitial}</Avatar>
+                                    <Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.75)', fontFamily: "'Inter',sans-serif", fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 80 }}>{author}</Typography>
                                   </Box>
-                                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.3 }}>
+                                  <Box sx={{
+                                    display: 'flex', alignItems: 'center', gap: 0.4,
+                                    px: 0.9, py: 0.35, borderRadius: '50px',
+                                    backdropFilter: 'blur(6px)',
+                                    background: 'rgba(255,255,255,0.15)',
+                                    border: '1px solid rgba(255,255,255,0.2)',
+                                  }}>
                                     <FavoriteRoundedIcon sx={{ fontSize: 9, color: '#FF385C' }} />
-                                    <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: '#888', fontFamily: "'Inter', sans-serif" }}>{likeCount}</Typography>
+                                    <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: '#fff', fontFamily: "'Inter',sans-serif" }}>{likeCount}</Typography>
                                   </Box>
                                 </Box>
                               </Box>
@@ -1091,7 +1120,6 @@ const Home: React.FC = () => {
             px: { xs: 3, md: 6 },
             background: 'linear-gradient(145deg, #3d0014 0%, #1e0009 45%, #100005 100%)',
             borderRadius: 4,
-            boxShadow: '0 12px 48px rgba(255, 56, 92, 0.20)',
             mb: 4,
             position: 'relative',
             overflow: 'hidden',

@@ -25,6 +25,9 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
 
+  const displayName = profile ? `${profile.fname ?? ''} ${profile.lname ?? ''}`.trim() || 'T' : 'T';
+  const initials = displayName.charAt(0).toUpperCase();
+
   const open = Boolean(anchorEl);
   const id = open ? 'profile-popover' : undefined;
 
@@ -71,70 +74,55 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
           display: "flex",
           alignItems: "center",
           width: "100%",
-          height: 64,
+          height: 52,
           position: "sticky",
           top: 0,
           zIndex: 1100,
-          backgroundColor: 'background.paper',
-          backdropFilter: 'blur(12px)',
+          background: (theme) => theme.palette.mode === 'light'
+            ? 'rgba(255,255,255,0.82)'
+            : 'rgba(14,14,14,0.88)',
+          backdropFilter: 'blur(20px)',
+          WebkitBackdropFilter: 'blur(20px)',
           borderBottom: '1px solid',
-          borderColor: 'divider',
-          px: showSearch ? 1.25 : 1,
-          py: 1.2,
-          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-          positionRelative: 'relative'
+          borderColor: (theme) => theme.palette.mode === 'light'
+            ? 'rgba(0,0,0,0.07)'
+            : 'rgba(255,255,255,0.07)',
+          px: 2,
+          boxShadow: 'none',
+          position: 'relative',
         }}
       >        
         {centerNode && (
           <Box sx={{ position:'absolute', left:'50%', top:'50%', transform:'translate(-50%, -50%)', display:'flex', alignItems:'center', gap:1 }}>
-            {/* pointerEvents previously disabled, preventing editing of trip title */}
             {centerNode}
           </Box>
         )}
 
-        {/* Center Section - Search or Logo */}
-        <Box
-          sx={{
-            flexGrow: 1,
-            display: 'flex',
-            alignItems: 'center',
-            // Remove internal horizontal padding when showing logo to shift it left
-            px: showSearch ? { xs: 1, md: 3 } : 0,
-          }}
-        >
+        {/* Left Section - Search or Logo */}
+        <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', pr: 2 }}>
           {showSearch ? (
-            <Box sx={{ maxWidth: '500px', width: '100%' }}>
+            <Box sx={{ maxWidth: 380, width: '100%' }}>
               <SearchBar />
             </Box>
           ) : (
-            <Box sx={{ display: 'flex', alignItems: 'center' }}>
-              {logo}
-            </Box>
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>{logo}</Box>
           )}
         </Box>
 
         {/* Right Section - Actions */}
-        <Box 
-          sx={{ 
-            display: "flex", 
-            alignItems: "center", 
-            gap: { xs: 1, md: 2 },
-            minWidth: { xs: "140px", md: "220px" },
-            justifyContent: "flex-end",
-            flexShrink: 0,
-          }}
-        >
+        <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}>
+          {/* Notifications */}
           <Tooltip title="Notifications" arrow>
             <IconButton
+              size="small"
               sx={{
-                width: 40,
-                height: 40,
-                borderRadius: '50%',
-                transition: 'all 0.2s ease',
+                width: 34, height: 34,
+                borderRadius: '10px',
+                transition: 'background 0.18s ease, transform 0.18s ease',
                 '&:hover': {
-                  backgroundColor: 'rgba(255, 56, 92, 0.08)',
-                  transform: 'scale(1.08)',
-                }
+                  backgroundColor: 'rgba(255,56,92,0.07)',
+                  transform: 'scale(1.06)',
+                },
               }}
             >
               <Badge
@@ -142,20 +130,26 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
                 sx={{
                   '& .MuiBadge-dot': {
                     backgroundColor: '#FF385C',
-                    width: 8,
-                    height: 8,
+                    width: 7,
+                    height: 7,
                     borderRadius: '50%',
-                    border: '2px solid white',
-                    top: 2,
-                    right: 2,
-                  }
+                    border: '1.5px solid',
+                    borderColor: 'background.paper',
+                    top: 1,
+                    right: 1,
+                    minWidth: 'unset',
+                  },
                 }}
               >
-                <NotificationsNoneIcon sx={{ color: "text.secondary", fontSize: 22 }} />
+                <NotificationsNoneIcon sx={{ color: "text.secondary", fontSize: 20 }} />
               </Badge>
             </IconButton>
           </Tooltip>
-          {/* Profile Avatar + Name */}
+
+          {/* Divider */}
+          <Box sx={{ width: '1px', height: 22, bgcolor: 'divider', mx: 0.5 }} />
+
+          {/* Profile Avatar */}
           <Tooltip title="Account" arrow>
             <Box
               aria-describedby={id}
@@ -166,15 +160,24 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
                 cursor: 'pointer',
                 borderRadius: '50%',
                 lineHeight: 0,
+                ml: 0.5,
                 '&:hover': { transform: 'scale(1.06)' },
-                transition: 'transform .2s ease'
+                transition: 'transform .18s ease',
               }}
             >
               <Avatar
-                src={profile?.profilepicture || import.meta.env.VITE_NO_PROFILE_PIC_URL}
-                alt={profile ? `${profile.fname || ''} ${profile.lname || ''}` : 'Profile'}
-                sx={{ width: 40, height: 40 }}
-              />
+                src={profile?.profilepicture || undefined}
+                alt={displayName}
+                sx={{
+                  width: 34, height: 34,
+                  bgcolor: '#FF385C',
+                  fontFamily: "'Inter', sans-serif",
+                  fontWeight: 700,
+                  fontSize: '0.85rem',
+                  letterSpacing: '-0.01em',
+                  boxShadow: '0 2px 10px rgba(255,56,92,0.3)',
+                }}
+              >{!profile?.profilepicture && initials}</Avatar>
             </Box>
           </Tooltip>
         </Box>
@@ -190,62 +193,74 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
         PaperProps={{
           sx: {
             mt: 1.5,
-            width: 320,
-            borderRadius: 3,
-            boxShadow: '0 8px 40px rgba(0,0,0,0.18)',
+            width: 280,
+            borderRadius: '16px',
+            boxShadow: '0 16px 48px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08)',
             overflow: 'hidden',
             border: '1px solid',
             borderColor: 'divider',
           }
         }}
       >
-        {/* Account Section */}
-        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', gap: 2 }}>
+        {/* Profile section */}
+        <Box sx={{ px: 2.5, pt: 2.5, pb: 2, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
           <Avatar
-            src={profile?.profilepicture || import.meta.env.VITE_NO_PROFILE_PIC_URL}
-            sx={{ width: 56, height: 56 }}
-          />
-          <Box sx={{ flexGrow: 1, minWidth: 0 }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }} noWrap>
-              {profile ? `${profile.fname ?? ''} ${profile.lname ?? ''}`.trim() || 'Traveler' : 'Traveler'}
+            src={profile?.profilepicture || undefined}
+            sx={{
+              width: 60, height: 60,
+              bgcolor: '#FF385C',
+              fontFamily: "'Inter', sans-serif",
+              fontWeight: 800,
+              fontSize: '1.5rem',
+              color: '#fff',
+              boxShadow: '0 4px 20px rgba(255,56,92,0.35)',
+            }}
+          >{!profile?.profilepicture && initials}</Avatar>
+          <Box sx={{ textAlign: 'center', minWidth: 0, width: '100%' }}>
+            <Typography sx={{ fontFamily:"'Inter',sans-serif", fontWeight: 700, fontSize:'0.975rem', letterSpacing:'-0.01em', color:'text.primary' }} noWrap>
+              {displayName === 'T' ? 'Traveler' : displayName}
             </Typography>
-            <Typography variant="caption" color="text.secondary" noWrap>{profile?.email}</Typography>
+            <Typography sx={{ fontSize:'0.73rem', color:'text.disabled', mt: 0.2 }} noWrap>
+              {profile?.email}
+            </Typography>
           </Box>
         </Box>
-        <Divider />
-        {/* Primary Links */}
-        {/* <List dense disablePadding>
-          <ListItemButton onClick={() => goTo('/profile')}>
-            <ListItemIcon sx={{ minWidth: 36 }}><PersonIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="My Profile" primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }} />
-          </ListItemButton>
-          <ListItemButton onClick={() => goTo('/settings')}>
-            <ListItemIcon sx={{ minWidth: 36 }}><SettingsIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="Settings" primaryTypographyProps={{ fontSize: 14, fontWeight: 500 }} />
-          </ListItemButton>
+
+        <Divider sx={{ mx: 2 }} />
+
+        {/* Links */}
+        <List dense disablePadding sx={{ py: 1, px: 1 }}>
+          {[
+            { icon: <HelpOutlineIcon sx={{ fontSize: 17 }} />, label: 'Get Help' },
+            { icon: <ShieldIcon sx={{ fontSize: 17 }} />, label: 'Privacy Policy' },
+            { icon: <GavelIcon sx={{ fontSize: 17 }} />, label: 'Terms of Service' },
+            { icon: <ContactSupportIcon sx={{ fontSize: 17 }} />, label: 'Contact Us' },
+          ].map(({ icon, label }) => (
+            <ListItemButton key={label} sx={{
+              px: 1.5, py: 0.9, borderRadius: '10px',
+              color: 'text.secondary',
+              '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
+              transition: 'all 0.15s',
+            }}>
+              <ListItemIcon sx={{ minWidth: 32, color: 'inherit' }}>{icon}</ListItemIcon>
+              <ListItemText primary={label} primaryTypographyProps={{ fontSize: 13, fontWeight: 500, fontFamily:"'Inter',sans-serif" }} />
+            </ListItemButton>
+          ))}
         </List>
-        <Divider sx={{ my: 0.5 }} /> */}
-        <List dense disablePadding>
-          <ListItemButton>
-            <ListItemIcon sx={{ minWidth: 36 }}><HelpOutlineIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="Get Help" primaryTypographyProps={{ fontSize: 13 }} />
+
+        <Box sx={{ px: 1.5, pb: 1.5 }}>
+          <ListItemButton
+            onClick={handleLogout}
+            sx={{
+              px: 1.5, py: 0.9, borderRadius: '10px',
+              color: '#FF385C',
+              '&:hover': { bgcolor: 'rgba(255,56,92,0.07)' },
+              transition: 'all 0.15s',
+            }}
+          >
+            <ListItemIcon sx={{ minWidth: 32, color: 'inherit' }}><LogoutIcon sx={{ fontSize: 17 }} /></ListItemIcon>
+            <ListItemText primary="Log out" primaryTypographyProps={{ fontSize: 13, fontWeight: 600, fontFamily:"'Inter',sans-serif" }} />
           </ListItemButton>
-          <ListItemButton>
-            <ListItemIcon sx={{ minWidth: 36 }}><ShieldIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="Privacy Policy" primaryTypographyProps={{ fontSize: 13 }} />
-          </ListItemButton>
-          <ListItemButton>
-            <ListItemIcon sx={{ minWidth: 36 }}><GavelIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="Terms of Service" primaryTypographyProps={{ fontSize: 13 }} />
-          </ListItemButton>
-          <ListItemButton>
-            <ListItemIcon sx={{ minWidth: 36 }}><ContactSupportIcon fontSize="small" /></ListItemIcon>
-            <ListItemText primary="Contact Us" primaryTypographyProps={{ fontSize: 13 }} />
-          </ListItemButton>
-        </List>
-        <Divider />
-        <Box sx={{ p: 1.5, display: 'flex', justifyContent: 'flex-end', position: 'relative', minHeight: 64 }}>
-          <LogoutButton onClick={handleLogout} size="small" startIcon={<LogoutIcon fontSize="small" />}>Log out</LogoutButton>
         </Box>
       </Popover>
     </>

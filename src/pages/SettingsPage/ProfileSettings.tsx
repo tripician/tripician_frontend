@@ -89,39 +89,30 @@ const ProfileSettings: React.FC = () => {
       <Card
         sx={{
           mb: 3,
-          borderRadius: 2,
-          boxShadow: 1,
-          border: 1,
+          borderRadius: '16px',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+          border: '1px solid',
           borderColor: 'divider',
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Box sx={{ display: "flex", alignItems: "center", gap: 1, mb: 3 }}>
-            <Typography
-              variant="h6"
-              sx={{
-                fontWeight: 600,
-                color: "text.primary",
-                fontSize: "1.1rem",
-              }}
-            >
-              Profile Photo
-            </Typography>
-          </Box>
+          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', mb: 2.5, color: 'text.primary', letterSpacing: '-0.01em' }}>
+            Profile Photo
+          </Typography>
           <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
             <Avatar
               src={profilePicture || undefined}
               sx={{
-                width: 80,
-                height: 80,
-                bgcolor: profilePicture ? "transparent" : "background.default",
-                color: "text.secondary",
-                fontSize: "1.5rem",
-                fontWeight: 500,
+                width: 80, height: 80,
+                bgcolor: '#FF385C',
+                color: '#fff',
+                fontSize: '1.7rem',
+                fontWeight: 800,
+                fontFamily: "'Inter',sans-serif",
+                boxShadow: '0 4px 18px rgba(255,56,92,0.3)',
               }}
             >
-              {!profilePicture && (fname?.[0] || "U")}
-              {!profilePicture && (lname?.[0] || "")}
+              {!profilePicture && (fname?.[0]?.toUpperCase() || 'U')}
             </Avatar>
             <Box sx={{ display: "flex", gap: 2 }}>
               <Button
@@ -132,7 +123,7 @@ const ProfileSettings: React.FC = () => {
                     new CustomEvent("app:success", { detail: { message: "Photo uploaded" } })
                   );
                 }}
-                sx={{ textTransform: "none", fontWeight: 500, px: 2, py: 1 }}
+                sx={{ textTransform: "none", fontWeight: 600, px: 2.5, py: 1, borderRadius: '50px', background: 'linear-gradient(135deg,#FF385C,#D91A50)', boxShadow: '0 4px 12px rgba(255,56,92,0.28)', '&:hover': { background: 'linear-gradient(135deg,#E31C5F,#B01550)' } }}
               >
                 Upload New Photo
               </Button>
@@ -168,22 +159,14 @@ const ProfileSettings: React.FC = () => {
       <Card
         sx={{
           mb: 3,
-          borderRadius: 2,
-          boxShadow: 1,
-          border: 1,
+          borderRadius: '16px',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+          border: '1px solid',
           borderColor: 'divider',
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              fontWeight: 600, 
-              mb: 3,
-              color: "text.primary",
-              fontSize: "1.1rem"
-            }}
-          >
+          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
             Personal Information
           </Typography>
 
@@ -345,12 +328,13 @@ const ProfileSettings: React.FC = () => {
               }}
               sx={{
                 textTransform: "none",
-                fontWeight: 500,
+                fontWeight: 600,
                 px: 3,
                 py: 1.5,
-                borderRadius: 1.5,
-                backgroundColor: "#3b82f6",
-                "&:hover": { backgroundColor: "#2563eb" },
+                borderRadius: '50px',
+                background: 'linear-gradient(135deg, #FF385C 0%, #D91A50 100%)',
+                boxShadow: '0 4px 14px rgba(255,56,92,0.3)',
+                "&:hover": { background: 'linear-gradient(135deg, #E31C5F 0%, #B01550 100%)', boxShadow: '0 8px 24px rgba(255,56,92,0.42)' },
               }}
             >
               {saving ? "Saving..." : "Save"}
@@ -363,22 +347,14 @@ const ProfileSettings: React.FC = () => {
       <Card
         sx={{
           mb: 3,
-          borderRadius: 2,
-          boxShadow: 1,
-          border: 1,
+          borderRadius: '16px',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+          border: '1px solid',
           borderColor: 'divider',
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              fontWeight: 600, 
-              mb: 3,
-              color: "text.primary",
-              fontSize: "1.1rem"
-            }}
-          >
+          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
             Contact Information
           </Typography>
 
@@ -443,22 +419,14 @@ const ProfileSettings: React.FC = () => {
       {/* Security Section */}
       <Card
         sx={{
-          borderRadius: 2,
-          boxShadow: 1,
-          border: 1,
+          borderRadius: '16px',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+          border: '1px solid',
           borderColor: 'divider',
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              fontWeight: 600, 
-              mb: 3,
-              color: "text.primary",
-              fontSize: "1.1rem"
-            }}
-          >
+          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
             Security
           </Typography>
 

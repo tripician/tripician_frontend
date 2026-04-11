@@ -1,5 +1,5 @@
 import React from "react";
-import { Tabs, Tab, Box } from "@mui/material";
+import { Box } from "@mui/material";
 import { User, Bell, Shield, Globe } from "lucide-react";
 
 interface SettingsTopNavProps {
@@ -7,79 +7,44 @@ interface SettingsTopNavProps {
   onChange: (value: string) => void;
 }
 
-const SettingsTopNav: React.FC<SettingsTopNavProps> = ({
-  selectedSettingsMenuItem,
-  onChange,
-}) => {
-  const handleChange = (_event: React.SyntheticEvent, newValue: string) => {
-    onChange(newValue.charAt(0).toUpperCase() + newValue.slice(1));
-  };
+const NAV_ITEMS = [
+  { value: 'profile',       label: 'Profile',       Icon: User   },
+  { value: 'notifications', label: 'Notifications', Icon: Bell   },
+  { value: 'privacy',       label: 'Privacy',       Icon: Shield },
+  { value: 'preferences',   label: 'Preferences',   Icon: Globe  },
+];
 
-  return (
-    <Box sx={{ width: '100%' }}>
-      <Tabs
-        value={selectedSettingsMenuItem.toLowerCase()}
-        onChange={handleChange}
-        variant="fullWidth"
-        TabIndicatorProps={{ style: { display: "none" } }} 
-        sx={{
-          '& .MuiTabs-flexContainer': {
-            backgroundColor: 'action.hover',
-            borderRadius: '8px',
-            padding: '4px',            
-          },
-          '& .MuiTab-root': {
-            minHeight: '40px',
-            borderRadius: '6px',
-            margin: '0 2px',
-            textTransform: 'none',
-            fontWeight: 500,
-            '&.Mui-selected': {
-              backgroundColor: 'background.paper',
-              boxShadow: 1,
+const SettingsTopNav: React.FC<SettingsTopNavProps> = ({ selectedSettingsMenuItem, onChange }) => (
+  <Box sx={{ display: 'flex', flexDirection: { xs: 'row', md: 'column' }, gap: 0.5, flexWrap: 'wrap' }}>
+    {NAV_ITEMS.map(({ value, label, Icon }) => {
+      const active = selectedSettingsMenuItem.toLowerCase() === value;
+      return (
+        <Box
+          key={value}
+          onClick={() => onChange(label)}
+          sx={{
+            display: 'flex', alignItems: 'center', gap: 1.5,
+            px: 1.5, py: 1.1, borderRadius: '10px',
+            cursor: 'pointer',
+            fontFamily: "'Inter', sans-serif",
+            fontWeight: active ? 600 : 500,
+            fontSize: '0.875rem',
+            color: active ? '#FF385C' : 'text.secondary',
+            bgcolor: active ? 'rgba(255,56,92,0.08)' : 'transparent',
+            userSelect: 'none',
+            '&:hover': {
+              bgcolor: active ? 'rgba(255,56,92,0.1)' : 'action.hover',
+              color: active ? '#FF385C' : 'text.primary',
             },
-          },
-        }}
-      >
-        <Tab
-          value="profile"
-          label={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700}}>
-              <User size={16} />
-              Profile
-            </Box>
-          }
-        />
-        <Tab
-          value="notifications"
-          label={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700 }}>
-              <Bell size={16} />
-              Notifications
-            </Box>
-          }
-        />
-        <Tab
-          value="privacy"
-          label={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700 }}>
-              <Shield size={16} />
-              Privacy
-            </Box>
-          }
-        />
-        <Tab
-          value="preferences"
-          label={
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, fontWeight: 700 }}>
-              <Globe size={16} />
-              Preferences
-            </Box>
-          }
-        />
-      </Tabs>
-    </Box>
-  );
-};
+            transition: 'all 0.15s ease',
+          }}
+        >
+          <Icon size={15} strokeWidth={active ? 2.3 : 1.8} />
+          {label}
+        </Box>
+      );
+    })}
+  </Box>
+);
 
 export default SettingsTopNav;

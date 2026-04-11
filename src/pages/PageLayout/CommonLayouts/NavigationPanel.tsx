@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
+import gsap from 'gsap';
 import { useNavigate, useLocation } from 'react-router-dom';
 import Footer from "./Footer";
 import { useSelector, useDispatch } from "react-redux";
@@ -9,7 +10,6 @@ import {
   Box,
   Drawer,
   List,
-  ListItemText,
   ListItem,
   useTheme,
   Tooltip
@@ -18,7 +18,7 @@ import {
 import {
   Home as HomeIcon,
   People as CommunityIcon,
-  Dashboard as DasboardIcon,
+  Dashboard as DashboardIcon,
   Settings as SettingsIcon,
   Add as AddIcon
 } from '@mui/icons-material';
@@ -30,352 +30,264 @@ interface Props {
   onMenuItemChange?: (itemName: string) => void;
 }
 
-const drawerWidth = 240;
-const collapsedDrawerWidth = 64;
+interface NavItem {
+  text: string;
+  Icon: React.ElementType;
+  path: string;
+  disabled?: boolean;
+  comingSoon?: boolean;
+}
 
-const menuItems = [
-  { text: 'Home', icon: <HomeIcon />, path: '/home' },
-  { text: 'Dashboard', icon: <DasboardIcon />, path: '/dashboard' },
-  { text: 'Community', icon: <CommunityIcon />, path: '/community', disabled: true, comingSoon: true },
-  { text: 'Settings', icon: <SettingsIcon />, path: '/settings' },
+const DRAWER_WIDTH = 72;
+
+const NAV_ITEMS: NavItem[] = [
+  { text: 'Home',      Icon: HomeIcon,       path: '/home'      },
+  { text: 'Dashboard', Icon: DashboardIcon,  path: '/dashboard' },
+  { text: 'Community', Icon: CommunityIcon,  path: '/community', disabled: true, comingSoon: true },
+  { text: 'Settings',  Icon: SettingsIcon,   path: '/settings'  },
 ];
 
 const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
-  // Sidebar is always collapsed (icons only)
-  const isCollapsed = true;
-  // Initialize selected item from current route to avoid initial flicker defaulting to Home
-  const [selectedItem, setSelectedItem] = useState(() => {
-    const currentPath = location.pathname;
-    const match = menuItems.find(item => item.path === currentPath);
-    if (match) return match.text;
-    if (currentPath === '/profile') return 'Profile';
-    return 'Home';
+  const isLight = theme.palette.mode === 'light';
+
+  const [selectedItem, setSelectedItem] = useState<string>(() => {
+    const match = NAV_ITEMS.find(item => item.path === location.pathname);
+    return match?.text ?? (location.pathname === '/profile' ? 'Profile' : 'Home');
   });
   const [createTripOpen, setCreateTripOpen] = useState(false);
 
   const dispatch = useDispatch<AppDispatch>();
-
-  // ✅ Get user profile from Redux store
   const { profile } = useSelector((state: RootState) => state.user);
 
-  // Fetch profile once when component mounts
+  // ── GSAP refs ────────────────────────────────────────────────────────────────
+  const navItemRefs = useRef<(HTMLElement | null)[]>([]);
+  const createBtnRef = useRef<HTMLDivElement>(null);
+  const iconRefs     = useRef<Record<string, HTMLElement | null>>({});
+
+  // Mount animation — items stagger in, create button bounces in last
   useEffect(() => {
-    if (!profile) {
-      dispatch(fetchUserProfile());
+    const items = navItemRefs.current.filter(Boolean);
+    const tl = gsap.timeline();
+    tl.fromTo(
+      items,
+      { y: 16, opacity: 0, scale: 0.8 },
+      { y: 0, opacity: 1, scale: 1, stagger: 0.09, duration: 0.44, ease: 'back.out(1.7)', delay: 0.12 }
+    );
+    if (createBtnRef.current) {
+      tl.fromTo(
+        createBtnRef.current,
+        { y: 20, opacity: 0, scale: 0.72 },
+        { y: 0, opacity: 1, scale: 1, duration: 0.42, ease: 'back.out(2.2)' },
+        '-=0.05'
+      );
     }
+    return () => { tl.kill(); };
+  }, []);
+
+  // Active icon pop when selection changes
+  useEffect(() => {
+    const el = iconRefs.current[selectedItem];
+    if (el) gsap.fromTo(el, { scale: 0.68 }, { scale: 1, duration: 0.36, ease: 'back.out(2.6)' });
+  }, [selectedItem]);
+
+  useEffect(() => {
+    if (!profile) dispatch(fetchUserProfile());
   }, [dispatch, profile]);
 
-  // profile button removed; profile access via TopBar avatar. (profilename no longer needed)
-
-  // Update selected item based on current route
   useEffect(() => {
-    const currentPath = location.pathname;
-    const currentItem = menuItems.find(item => item.path === currentPath);
-    let newSelection: string | null = null;
-    if (currentItem) {
-      newSelection = currentItem.text;
-    } else if (currentPath === '/profile') {
-      newSelection = 'Profile';
-    }
-    if (newSelection && newSelection !== selectedItem) {
-      setSelectedItem(newSelection);
-      onMenuItemChange?.(newSelection);
+    const match = NAV_ITEMS.find(item => item.path === location.pathname);
+    const newSel = match?.text ?? (location.pathname === '/profile' ? 'Profile' : null);
+    if (newSel && newSel !== selectedItem) {
+      setSelectedItem(newSel);
+      onMenuItemChange?.(newSel);
     }
   }, [location.pathname, onMenuItemChange, selectedItem]);
 
   const handleMenuItemClick = (itemText: string) => {
-    // Only navigate, don't update state here to prevent race conditions
-    // Let the useEffect handle state updates based on route changes
-    if (itemText === 'Profile') {
-      navigate('/profile');
-    } else {
-      const menuItem = menuItems.find(item => item.text === itemText);
-      if (menuItem) {
-        if((menuItem as any).disabled) return; // block navigation
-        navigate(menuItem.path);
-      }
-    }
+    if (itemText === 'Profile') { navigate('/profile'); return; }
+    const item = NAV_ITEMS.find(i => i.text === itemText);
+    if (item && !item.disabled) navigate(item.path);
   };
 
-  const currentDrawerWidth = isCollapsed ? collapsedDrawerWidth : drawerWidth;
+  // GSAP icon hover helpers
+  const handleIconEnter = (text: string) => {
+    const el = iconRefs.current[text];
+    if (el) gsap.to(el, { scale: 1.28, duration: 0.2, ease: 'back.out(2)' });
+  };
+  const handleIconLeave = (text: string) => {
+    const el = iconRefs.current[text];
+    if (el) gsap.to(el, { scale: 1, duration: 0.18, ease: 'power2.out' });
+  };
+
+  // GSAP Create-Trip + rotate
+  const handleCreateEnter = () => {
+    const svg = createBtnRef.current?.querySelector('svg');
+    if (svg) gsap.to(svg, { rotate: 90, duration: 0.28, ease: 'back.out(1.5)' });
+  };
+  const handleCreateLeave = () => {
+    const svg = createBtnRef.current?.querySelector('svg');
+    if (svg) gsap.to(svg, { rotate: 0, duration: 0.22, ease: 'power2.out' });
+  };
 
   return (
     <Box sx={{ display: 'flex', height: '100vh', maxWidth: '100vw', overflow: 'hidden' }}>
-      {/* Sidebar */}
+
+      {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
       <Drawer
         variant="permanent"
         anchor="left"
         sx={{
-          width: currentDrawerWidth,
+          width: DRAWER_WIDTH,
           flexShrink: 0,
-          transition: theme.transitions.create('width', {
-            easing: theme.transitions.easing.sharp,
-            duration: theme.transitions.duration.enteringScreen,
-          }),
           '& .MuiDrawer-paper': {
-            width: currentDrawerWidth,
+            width: DRAWER_WIDTH,
             boxSizing: 'border-box',
             display: 'flex',
             flexDirection: 'column',
-            justifyContent: 'space-between',
-            p: isCollapsed ? 1 : 2,
-            background: theme.palette.mode === 'light' ? '#FFFFFF' : '#141414',
-            color: theme.palette.mode === 'light' ? '#222222' : '#E5E5E5',
+            alignItems: 'center',
+            py: 2,
+            background: isLight ? 'rgba(255,255,255,0.9)' : 'rgba(14,14,14,0.92)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            borderRight: 'none',
+            boxShadow: isLight
+              ? '4px 0 32px rgba(0,0,0,0.07)'
+              : '4px 0 32px rgba(0,0,0,0.6)',
             overflowX: 'hidden',
-            boxShadow: theme.palette.mode === 'light'
-              ? '2px 0 20px rgba(0, 0, 0, 0.06)'
-              : '2px 0 20px rgba(0, 0, 0, 0.5)',
-            borderRight: `1px solid ${theme.palette.mode === 'light' ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.08)'}`,
-            transition: theme.transitions.create('width', {
-              easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.enteringScreen,
-            }),
+            // Gradient brand line on the right edge
+            '&::after': {
+              content: '""',
+              position: 'absolute',
+              right: 0,
+              top: '15%',
+              bottom: '15%',
+              width: '1px',
+              background: 'linear-gradient(180deg, transparent 0%, rgba(255,56,92,0.4) 50%, transparent 100%)',
+            },
           },
         }}
       >
-        {/* Sidebar Header */}
-        <Box>
-          <Box
-            sx={{
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              mb: 2,
-              px: 0,
-              py: 1,
-              minHeight: 50,
-            }}
-          >
-            <Box
-              sx={{
-                position: 'relative',
-                display: 'inline-flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                mt: isCollapsed ? 0.5 : 1.25
-              }}
-            >
-              <Box
-                component="img"
-                src={isCollapsed ? import.meta.env.VITE_TRIPICIAN_LOGO_ICON_URL : import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_URL}
-                alt="Tripician"
-                sx={{
-                  height: isCollapsed ? 40 : 45,
-                  width: 'auto',
-                  display: 'block',
-                  maxWidth: '100%',
-                  filter: theme.palette.mode === 'light'
-                    ? 'drop-shadow(0px 4px 12px rgba(0, 0, 0, 0.18))'
-                    : 'drop-shadow(0px 6px 14px rgba(0, 0, 0, 0.6))'
-                }}
-              />
-              <Box
-                sx={{
-                  position: 'absolute',
-                  top: isCollapsed ? -6 : -12,
-                  right: isCollapsed ? -8 : -16,
-                  px: 0.75,
-                  py: 0.15,
-                  fontSize: isCollapsed ? '0.58rem' : '0.62rem',
-                  fontWeight: 700,
-                  letterSpacing: 1.2,
-                  textTransform: 'uppercase',
-                  borderRadius: 999,
-                  backgroundColor: '#FF385C',
-                  color: '#FFFFFF',
-                  boxShadow: '0 2px 8px rgba(255, 56, 92, 0.35)'
-                }}
+        {/* Top spacer — vertically centers the nav list */}
+        <Box sx={{ flex: 1 }} />
+
+        {/* ── Nav items ───────────────────────────────────────────────────── */}
+        <List disablePadding sx={{ display: 'flex', flexDirection: 'column', gap: '6px', px: 1 }}>
+          {NAV_ITEMS.map((item, idx) => {
+            const active = selectedItem === item.text;
+            return (
+              <Tooltip
+                key={item.text}
+                title={item.comingSoon ? `${item.text} (Coming Soon)` : item.text}
+                placement="right"
+                arrow
               >
-                BETA
-              </Box>
-            </Box>
-          </Box>
-
-          {/* Menu Items */}
-
-          <List sx={{ px: 0, py: 5 }}>
-            {menuItems.map(item => {
-              const disabled = (item as any).disabled;
-              const comingSoon = (item as any).comingSoon;
-              return (
-                <Tooltip
-                  key={item.text}
-                  title={isCollapsed ? (comingSoon ? `${item.text} (Coming Soon)` : item.text) : (comingSoon ? 'Coming Soon' : '')}
-                  placement="right"
-                  arrow
+                <ListItem
+                  component="button"
+                  disabled={item.disabled}
+                  ref={(el: any) => { navItemRefs.current[idx] = el; }}
+                  onClick={() => handleMenuItemClick(item.text)}
+                  onMouseEnter={() => !item.disabled && handleIconEnter(item.text)}
+                  onMouseLeave={() => !item.disabled && handleIconLeave(item.text)}
+                  sx={{
+                    width: 48, height: 48,
+                    borderRadius: '14px',
+                    p: 0,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    background: active
+                      ? (isLight
+                        ? 'linear-gradient(135deg,rgba(255,56,92,0.11) 0%,rgba(217,26,80,0.07) 100%)'
+                        : 'linear-gradient(135deg,rgba(255,56,92,0.26) 0%,rgba(217,26,80,0.17) 100%)')
+                      : 'transparent',
+                    border: `1px solid ${active
+                      ? `rgba(255,56,92,${isLight ? '0.24' : '0.38'})`
+                      : 'transparent'}`,
+                    boxShadow: active ? '0 2px 16px rgba(255,56,92,0.2)' : 'none',
+                    opacity: item.disabled ? 0.36 : 1,
+                    cursor: item.disabled ? 'not-allowed' : 'pointer',
+                    transition: 'background 0.22s ease, border-color 0.22s ease, box-shadow 0.22s ease',
+                    '&:hover': item.disabled ? {} : {
+                      background: active
+                        ? undefined
+                        : (isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.07)'),
+                    },
+                  }}
                 >
-                  <ListItem
-                    component="button"
-                    disabled={disabled}
-                    onClick={() => handleMenuItemClick(item.text)}
+                  <Box
+                    ref={(el: any) => { iconRefs.current[item.text] = el; }}
                     sx={{
-                      borderRadius: 1,
-                      px: isCollapsed ? 1 : 2,
-                      py: 1.5,
-                      mb: 1,
-                      minHeight: 48,
-                      justifyContent: isCollapsed ? 'center' : 'flex-start',
-                      backgroundColor: selectedItem === item.text
-                        ? (theme.palette.mode === 'light' ? 'rgba(255, 56, 92, 0.08)' : 'rgba(255, 56, 92, 0.18)')
-                        : 'transparent',
-                      '&:hover': disabled ? {} : {
-                        backgroundColor: selectedItem === item.text
-                          ? (theme.palette.mode === 'light' ? 'rgba(255, 56, 92, 0.12)' : 'rgba(255, 56, 92, 0.24)')
-                          : (theme.palette.mode === 'light' ? 'rgba(0, 0, 0, 0.04)' : 'rgba(255, 255, 255, 0.08)'),
-                        transform: 'translateX(4px)',
-                      },
-                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                      position: 'relative',
-                      '&::before': selectedItem === item.text ? {
-                        content: '""',
-                        position: 'absolute',
-                        left: 0,
-                        top: '50%',
-                        transform: 'translateY(-50%)',
-                        width: '4px',
-                        height: '60%',
-                        backgroundColor: '#FF385C',
-                        borderRadius: '0 2px 2px 0',
-                      } : {},
-                      opacity: disabled ? 0.45 : 1,
-                      cursor: disabled ? 'not-allowed' : 'pointer'
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      color: active ? '#FF385C' : (isLight ? '#BEBEBE' : 'rgba(255,255,255,0.35)'),
+                      filter: active ? 'drop-shadow(0 2px 8px rgba(255,56,92,0.55))' : 'none',
+                      transition: 'color 0.22s ease, filter 0.22s ease',
                     }}
                   >
-                    <Box
-                      sx={{
-                        color: selectedItem === item.text
-                          ? '#FF385C'
-                          : (theme.palette.mode === 'light' ? '#717171' : 'rgba(255,255,255,0.6)'),
-                        display: 'flex',
-                        alignItems: 'center',
-                        minWidth: 24,
-                        mr: isCollapsed ? 0 : 2,
-                      }}
-                    >
-                      {item.icon}
-                    </Box>
-                    {!isCollapsed && (
-                      <ListItemText
-                        primary={item.text}
-                        sx={{
-                          color: selectedItem === item.text
-                            ? '#FF385C'
-                            : (theme.palette.mode === 'light' ? '#333333' : 'rgba(255,255,255,0.8)'),
-                          fontWeight: selectedItem === item.text ? 700 : 400,
-                          '& .MuiListItemText-primary': { fontSize: '0.9rem', fontFamily: "'Inter', sans-serif", letterSpacing: '0.01em' },
-                          display: 'flex',
-                          alignItems: 'center',
-                          gap: 1,
-                        }}
-                      />
-                    )}
-                    {!isCollapsed && comingSoon && (
-                      <Box sx={{ ml: 'auto', fontSize: 10, px: .7, py: .2, bgcolor: theme.palette.mode === 'light' ? 'rgba(255,56,92,0.1)' : 'rgba(255,255,255,0.18)', color: theme.palette.mode === 'light' ? '#FF385C' : '#fff', borderRadius: 1, fontWeight: 700, letterSpacing: .5 }}>SOON</Box>
-                    )}
-                  </ListItem>
-                </Tooltip>
-              );
-            })}
-          </List>
-        </Box>
+                    <item.Icon sx={{ fontSize: 22 }} />
+                  </Box>
+                </ListItem>
+              </Tooltip>
+            );
+          })}
+        </List>
 
-        {/* Create Trip Button now placed at end */}
-        <Tooltip
-          key="CreateTrip"
-          title={isCollapsed ? 'Create Trip' : ''}
-          placement="right"
-          arrow
-        >
-          <ListItem
-            component="button"
-            onClick={() => setCreateTripOpen(true)}
-            sx={{
-              borderRadius: 1,
-              px: isCollapsed ? 1 : 2,
-              py: 1.5,
-              mb: 1,
-              minHeight: 48,
-              border: `1px solid ${theme.palette.mode === 'light' ? 'rgba(255,56,92,0.45)' : 'rgba(255,255,255,0.3)'}`,
-              justifyContent: isCollapsed ? 'center' : 'flex-start',
-              backgroundColor: theme.palette.mode === 'light' ? 'rgba(255,56,92,0.06)' : 'rgba(255,255,255,0.08)',
-              '&:hover': {
-                backgroundColor: theme.palette.mode === 'light' ? 'rgba(255,56,92,0.12)' : 'rgba(255,255,255,0.18)',
-                transform: 'translateX(4px)',
-                borderColor: theme.palette.mode === 'light' ? '#FF385C' : 'rgba(255,255,255,0.4)',
-              },
-              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-            }}
-          >
+        {/* Bottom spacer */}
+        <Box sx={{ flex: 1 }} />
+
+        {/* ── Create Trip button ───────────────────────────────────────────── */}
+        <Box ref={createBtnRef} sx={{ mb: 1.5 }}>
+          <Tooltip title="Create Trip" placement="right" arrow>
             <Box
+              component="button"
+              onClick={() => setCreateTripOpen(true)}
+              onMouseEnter={handleCreateEnter}
+              onMouseLeave={handleCreateLeave}
               sx={{
-                color: theme.palette.mode === 'light' ? '#FF385C' : '#fff',
+                width: 44, height: 44,
+                borderRadius: '14px',
+                background: 'linear-gradient(135deg,#FF385C 0%,#D91A50 100%)',
+                border: 'none',
+                cursor: 'pointer',
                 display: 'flex',
                 alignItems: 'center',
-                minWidth: 24,
-                mr: isCollapsed ? 0 : 2,
+                justifyContent: 'center',
+                boxShadow: '0 4px 22px rgba(255,56,92,0.42)',
+                transition: 'box-shadow 0.22s ease, transform 0.15s ease',
+                '&:hover': { boxShadow: '0 6px 30px rgba(255,56,92,0.65)' },
+                '&:active': { transform: 'scale(0.94)' },
               }}
             >
-              <AddIcon />
+              <AddIcon sx={{ color: '#fff', fontSize: 22 }} />
             </Box>
-            {!isCollapsed && (
-              <ListItemText
-                primary={'Create Trip'}
-                sx={{
-                  color: theme.palette.mode === 'light' ? '#FF385C' : '#fff',
-                  fontWeight: 700,
-                  '& .MuiListItemText-primary': {
-                    fontSize: '0.9rem',
-                    fontFamily: "'Inter', sans-serif",
-                    letterSpacing: '0.01em',
-                  },
-                }}
-              />
-            )}
-          </ListItem>
-        </Tooltip>
+          </Tooltip>
+        </Box>
       </Drawer>
 
-      {/* Right Side: Main Content + Footer */}
-      <Box sx={{ display: 'flex', flexDirection: 'column', flexGrow: 1, width: `calc(100vw - ${currentDrawerWidth}px)`, height: '100vh', overflow: 'visible', position: 'relative' }}>
-        {/* Main Content Area with Footer inside scrollable area */}
-        <Box
-          component="main"
-          sx={{
-            flexGrow: 1,
-            overflowY: 'auto',
-            backgroundColor: 'background.default',
-            display: 'flex',
-            flexDirection: 'column',
-            transition: theme.transitions.create('margin', {
-              easing: theme.transitions.easing.sharp,
-              duration: theme.transitions.duration.enteringScreen,
-            }),
-          }}
-        >
-          {/* Content Container */}
-          <Box
-            sx={{
-              flexGrow: 1,
-              pl: 0,
-              pr: 0,
-              pt: 0,
-              pb: 2,
-            }}
-          >
-            {children}
-          </Box>
-
-          {/* Footer - now inside scrollable area */}
+      {/* ── Main content ────────────────────────────────────────────────────── */}
+      <Box sx={{
+        display: 'flex', flexDirection: 'column', flexGrow: 1,
+        width: `calc(100vw - ${DRAWER_WIDTH}px)`, height: '100vh',
+        overflow: 'visible', position: 'relative',
+      }}>
+        <Box component="main" sx={{
+          flexGrow: 1, overflowY: 'auto',
+          backgroundColor: 'background.default',
+          display: 'flex', flexDirection: 'column',
+        }}>
+          <Box sx={{ flexGrow: 1, p: 0, pb: 2 }}>{children}</Box>
           <Footer />
         </Box>
         <TripCreationModal open={createTripOpen} onClose={() => setCreateTripOpen(false)} />
         <ChatAssistant />
       </Box>
+
     </Box>
   );
 };
 
 export default NavigationPannel;
+
