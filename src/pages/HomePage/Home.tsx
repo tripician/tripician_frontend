@@ -19,6 +19,11 @@ import TripCard from '../DashboardPage/TripCard';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { countryAlpha3FromCode, countryAlpha3FromName, countryNameFromCode, countryCodeFromName } from '../../utils/countryFlags';
 import Barcode from 'react-barcode';
+import iconArchitecture from '../../assets/icons/architecture.png';
+import iconBeaches from '../../assets/icons/beaches.png';
+import iconCity from '../../assets/icons/city.png';
+import iconForest from '../../assets/icons/forest.png';
+import iconMountains from '../../assets/icons/mountains.png';
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
@@ -666,62 +671,56 @@ const Home: React.FC = () => {
             Browse by Vibe
           </Typography>
         </Box>
-        <Box sx={{ display: 'flex', gap: { xs: 1.5, md: 2 }, overflowX: 'auto', pb: 1, '&::-webkit-scrollbar': { display: 'none' } }}>
+        <Box sx={{ display: 'flex', gap: { xs: 3, md: 4 }, overflowX: 'auto', pb: 1.5, '&::-webkit-scrollbar': { display: 'none' } }}>
           {[
-            { label: 'Timeless', emoji: '🏛', gradient: 'linear-gradient(145deg, #7C3AED, #A855F7)' },
-            { label: 'Coastal',  emoji: '🏖', gradient: 'linear-gradient(145deg, #0284C7, #38BDF8)' },
-            { label: 'Urban',    emoji: '🌆', gradient: 'linear-gradient(145deg, #D97706, #FCD34D)' },
-            { label: 'Wild',     emoji: '🌲', gradient: 'linear-gradient(145deg, #059669, #34D399)' },
-            { label: 'Summit',   emoji: '🏔', gradient: 'linear-gradient(145deg, #4F46E5, #818CF8)' },
+            { label: 'Timeless', icon: iconArchitecture, glow: 'rgba(168,85,247,0.55)',  accent: '#ffc400' },
+            { label: 'Coastal',  icon: iconBeaches,      glow: 'rgba(56,189,248,0.55)',  accent: '#0EA5E9' },
+            { label: 'Urban',    icon: iconCity,         glow: 'rgba(251,191,36,0.55)',  accent: '#F59E0B' },
+            { label: 'Wild',     icon: iconForest,       glow: 'rgba(52,211,153,0.55)',  accent: '#10B981' },
+            { label: 'Summit',   icon: iconMountains,    glow: 'rgba(129,140,248,0.55)', accent: '#00afe4' },
           ].map((cat) => (
             <Box
               key={cat.label}
               sx={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5,
                 cursor: 'pointer', flexShrink: 0,
-                pt: 2.5, pb: 2, px: { xs: 3, md: 4 },
-                borderRadius: 4,
-                border: '1.5px solid',
-                borderColor: 'divider',
-                backgroundColor: 'background.paper',
-                boxShadow: '0 1px 6px rgba(0,0,0,0.05)',
-                transition: 'all 0.22s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-                position: 'relative',
-                overflow: 'hidden',
+                py: 1.5, px: 1,
+                background: 'transparent',
+                border: 'none',
+                transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
                 '&:hover': {
-                  borderColor: '#FF385C',
-                  boxShadow: '0 8px 28px rgba(255,56,92,0.15)',
-                  transform: 'translateY(-5px)',
-                  '& .cat-bg': { opacity: 0.1 },
-                  '& .cat-label': { color: '#FF385C' },
+                  transform: 'translateY(-6px)',
+                  '& .cat-icon-img': {
+                    filter: `drop-shadow(0 0 10px ${cat.glow}) drop-shadow(0 0 22px ${cat.glow})`,
+                    transform: 'scale(1.15)',
+                  },
+                  '& .cat-label': { color: cat.accent },
                 },
               }}
             >
-              {/* Subtle color wash on hover */}
-              <Box className="cat-bg" sx={{
-                position: 'absolute', inset: 0,
-                background: 'linear-gradient(145deg, #FF385C, #E31C5F)',
-                opacity: 0, transition: 'opacity 0.22s ease',
-                pointerEvents: 'none',
-              }} />
-              <Box sx={{
-                width: 60, height: 60, borderRadius: '50%',
-                background: cat.gradient,
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-                fontSize: '1.7rem',
-                boxShadow: '0 4px 16px rgba(0,0,0,0.18)',
-                position: 'relative', zIndex: 1,
-              }}>
-                {cat.emoji}
-              </Box>
-              <Typography className="cat-label" sx={{
-                fontSize: '0.76rem', fontWeight: 700,
-                color: 'text.primary',
-                fontFamily: "'Inter', sans-serif",
-                letterSpacing: '0.01em',
-                position: 'relative', zIndex: 1,
-                transition: 'color 0.2s ease',
-              }}>
+              <img
+                className="cat-icon-img"
+                src={cat.icon}
+                alt={cat.label}
+                style={{
+                  width: 100, height: 100,
+                  objectFit: 'contain',
+                  display: 'block',
+                  transition: 'filter 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
+                  filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.15))',
+                }}
+              />
+              <Typography
+                className="cat-label"
+                sx={{
+                  fontSize: '0.8rem', fontWeight: 600,
+                  color: 'text.secondary',
+                  fontFamily: "'Inter', sans-serif",
+                  letterSpacing: '0.01em',
+                  transition: 'color 0.25s ease',
+                  userSelect: 'none',
+                }}
+              >
                 {cat.label}
               </Typography>
             </Box>
