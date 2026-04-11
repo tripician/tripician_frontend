@@ -1,6 +1,6 @@
-// TripPlanner main page component (formerly CreateTrip)
+﻿// TripPlanner main page component (formerly CreateTrip)
 import React from 'react';
-import { Box, Tabs, Tab, Typography, Divider, Button, Chip, Menu, MenuItem, Avatar, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Snackbar, Alert, TextareaAutosize } from '@mui/material';
+import { Box, Tabs, Tab, Typography, Divider, Button, Chip, Menu, MenuItem, Avatar, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Snackbar, Alert, useTheme } from '@mui/material';
 // Props-based TripPlanner; tripId + optional initialTrip provided by route wrapper
 import DownloadIcon from '@mui/icons-material/Download';
 import PushPinIcon from '@mui/icons-material/PushPin';
@@ -22,10 +22,9 @@ import ExpensesPanel from './ExpensesPanel';
 // import ImportantNotesEditor from './ImportantNotesEditor'; // legacy rich editor (temporarily disabled)
 import TripComments from './TripComments';
 import PackingPanel from './PackingPanel';
-import ChatAssistant from '../../components/CommonComponents/ChatAssistant';
-import MapPanel from './MapPanel';
-import CloseFullscreenIcon from '@mui/icons-material/CloseFullscreen';
-import OpenInFullIcon from '@mui/icons-material/OpenInFull';
+// ChatAssistant replaced by inline PremiumChatPanel
+import MapDrawer from './MapDrawer';
+import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
@@ -185,6 +184,224 @@ interface TripPlannerProps {
 	isOwnerExternal?: boolean; // current user owns trip (controls publish)
 }
 
+/* ─── Persistent AI Chat Panel (GitHub Copilot-style right column) ─── */
+const SUGGESTED_PROMPTS = [
+	'Suggest the best route for my destinations',
+	'What should I pack for this trip?',
+	'Find hidden gems near my stops',
+	'Estimate my total travel time',
+	'Best local food near my stops?',
+];
+
+interface PanelMessage { id: string; role: 'user' | 'assistant'; content: string; }
+
+const PremiumChatPanel: React.FC = () => {
+	const theme = useTheme();
+	const isLight = theme.palette.mode === 'light';
+	const [messages, setMessages] = React.useState<PanelMessage[]>([
+		{ id: 'welcome', role: 'assistant', content: "Hi! I'm Navia, your AI trip assistant. Ask me anything about your plan — routes, packing, local tips and more." },
+	]);
+	const [input, setInput] = React.useState('');
+	const endRef = React.useRef<HTMLDivElement | null>(null);
+
+	const send = (text: string) => {
+		if (!text.trim()) return;
+		const trimmed = text.trim();
+		setMessages(prev => [...prev, { id: Date.now() + 'u', role: 'user', content: trimmed }]);
+		setInput('');
+		setTimeout(() => {
+			setMessages(prev => [...prev, {
+				id: Date.now() + 'a', role: 'assistant',
+				content: 'AI agent response coming soon — I\'m being connected to your trip data now.',
+			}]);
+		}, 480);
+	};
+
+	React.useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
+
+	return (
+		<Box sx={{
+			width: 420,
+			flexShrink: 0,
+			display: 'flex',
+			flexDirection: 'column',
+			borderLeft: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.07)'}`,
+			background: isLight ? '#ffffff' : '#0e1012',
+			fontFamily: "'Inter', system-ui, sans-serif",
+			overflow: 'hidden',
+		}}>
+			{/* Header */}
+			<Box sx={{
+				px: 2, py: 1.25,
+				display: 'flex', alignItems: 'center', gap: 1.25,
+				borderBottom: `1px solid ${isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.06)'}`,
+				background: isLight ? 'rgba(255,255,255,0.98)' : 'rgba(14,16,18,0.98)',
+				backdropFilter: 'blur(8px)',
+				flexShrink: 0,
+			}}>
+				{/* AI avatar */}
+				<Box sx={{
+					width: 32, height: 32, borderRadius: '10px', flexShrink: 0,
+					background: 'linear-gradient(135deg,#FF385C 0%,#D91A50 100%)',
+					display: 'flex', alignItems: 'center', justifyContent: 'center',
+					boxShadow: '0 3px 12px rgba(255,56,92,0.40)',
+				}}>
+					<Box component='svg' viewBox='0 0 24 24' sx={{ width: 16, height: 16 }}>
+						<path fill='#fff' d='M12 2a10 10 0 110 20A10 10 0 0112 2zm0 2a8 8 0 100 16A8 8 0 0012 4zm0 12a1 1 0 110 2 1 1 0 010-2zm.5-8v6h-1V8h1z'/>
+					</Box>
+				</Box>
+				<Box sx={{ flex: 1, minWidth: 0 }}>
+					<Typography sx={{ fontWeight: 700, fontSize: 13.5, lineHeight: 1, color: isLight ? '#0d0d0d' : '#f0f0f0', fontFamily: 'inherit', letterSpacing: -0.2 }}>
+						Navia
+					</Typography>
+					<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.3 }}>
+						<Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'rgba(255,56,92,0.7)', boxShadow: '0 0 5px rgba(255,56,92,0.6)' }} />
+						<Typography sx={{ fontSize: 10.5, color: 'rgba(255,56,92,0.85)', fontWeight: 600, fontFamily: 'inherit', letterSpacing: 0.4 }}>
+							AI PREVIEW
+						</Typography>
+					</Box>
+				</Box>
+			</Box>
+
+			{/* Messages area */}
+			<Box sx={{
+				flex: 1, overflowY: 'auto', px: 1.75, py: 1.5,
+				display: 'flex', flexDirection: 'column', gap: 1.25,
+				'&::-webkit-scrollbar': { width: 4 },
+				'&::-webkit-scrollbar-thumb': { borderRadius: 3, background: isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.10)' },
+				'&::-webkit-scrollbar-track': { background: 'transparent' },
+			}}>
+				{messages.map(m => (
+					<Box key={m.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
+						{m.role === 'assistant' && (
+							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.4 }}>
+								<Box sx={{
+									width: 16, height: 16, borderRadius: '5px',
+									background: 'linear-gradient(135deg,#FF385C,#D91A50)',
+									display: 'flex', alignItems: 'center', justifyContent: 'center',
+								}}>
+									<Box component='svg' viewBox='0 0 24 24' sx={{ width: 9, height: 9 }}>
+										<path fill='#fff' d='M12 2a10 10 0 110 20A10 10 0 0112 2zm0 2a8 8 0 100 16A8 8 0 0012 4zm0 12a1 1 0 110 2 1 1 0 010-2zm.5-8v6h-1V8h1z'/>
+									</Box>
+								</Box>
+								<Typography sx={{ fontSize: 9.5, fontWeight: 700, color: '#FF385C', fontFamily: 'inherit', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+									Navia
+								</Typography>
+							</Box>
+						)}
+						<Box sx={{
+							px: 1.5, py: 0.9,
+							maxWidth: '88%',
+							borderRadius: m.role === 'user' ? '14px 14px 4px 14px' : '4px 14px 14px 14px',
+							fontSize: 12.5, lineHeight: 1.6, fontFamily: 'inherit',
+							background: m.role === 'user'
+								? 'linear-gradient(135deg,#FF385C,#D91A50)'
+								: (isLight ? '#f4f4f4' : 'rgba(255,255,255,0.06)'),
+							color: m.role === 'user' ? '#fff' : (isLight ? '#1a1a1a' : 'rgba(255,255,255,0.88)'),
+							boxShadow: m.role === 'user' ? '0 2px 12px rgba(255,56,92,0.28)' : 'none',
+							border: m.role === 'user' ? 'none' : `1px solid ${isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)'}`,
+						}}>
+							{m.content}
+						</Box>
+					</Box>
+				))}
+				<div ref={endRef} />
+			</Box>
+
+			{/* Suggested prompts */}
+			<Box sx={{
+				px: 1.5, py: 0.75,
+				display: 'flex', flexDirection: 'column', gap: 0.5,
+				borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)'}`,
+				flexShrink: 0,
+			}}>
+				<Typography sx={{ fontSize: 10.5, fontWeight: 600, color: isLight ? 'rgba(0,0,0,0.38)' : 'rgba(255,255,255,0.30)', fontFamily: 'inherit', mb: 0.3 }}>
+					Suggested
+				</Typography>
+				{SUGGESTED_PROMPTS.slice(0, 3).map(p => (
+					<Box
+						key={p}
+						onClick={() => send(p)}
+						sx={{
+							px: 1.25, py: 0.6, borderRadius: '8px',
+							border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
+							background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.03)',
+							fontSize: 11.5, color: isLight ? '#444' : 'rgba(255,255,255,0.65)',
+							cursor: 'pointer', fontFamily: 'inherit',
+							transition: 'background .15s, border-color .15s, color .15s',
+							'&:hover': {
+								background: isLight ? 'rgba(255,56,92,0.06)' : 'rgba(255,56,92,0.10)',
+								borderColor: 'rgba(255,56,92,0.30)',
+								color: '#FF385C',
+							},
+						}}
+					>
+						{p}
+					</Box>
+				))}
+			</Box>
+
+			{/* Input */}
+			<Box sx={{
+				px: 1.5, pb: 1.5, pt: 0.75,
+				borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.06)'}`,
+				flexShrink: 0,
+			}}>
+				<Box sx={{
+					display: 'flex', alignItems: 'flex-end', gap: 0.75,
+					border: `1.5px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)'}`,
+					borderRadius: '12px', px: 1.5, py: 0.75,
+					background: isLight ? '#fafafa' : 'rgba(255,255,255,0.03)',
+					transition: 'border-color .2s, box-shadow .2s',
+					'&:focus-within': {
+						borderColor: 'rgba(255,56,92,0.60)',
+						boxShadow: '0 0 0 3px rgba(255,56,92,0.10)',
+					},
+				}}>
+					<InputBase
+						value={input}
+						onChange={e => setInput(e.target.value)}
+						onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); } }}
+						placeholder='Ask Navia anything…'
+						multiline
+						maxRows={4}
+						sx={{
+							flex: 1, fontSize: 13, lineHeight: 1.5,
+							fontFamily: "'Inter', system-ui, sans-serif",
+							'& textarea': { padding: 0, color: isLight ? '#1a1a1a' : 'rgba(255,255,255,0.88)', resize: 'none' },
+							'& textarea::placeholder': { color: isLight ? 'rgba(0,0,0,0.32)' : 'rgba(255,255,255,0.25)', opacity: 1 },
+						}}
+					/>
+					<IconButton
+						size='small'
+						onClick={() => send(input)}
+						disabled={!input.trim()}
+						sx={{
+							width: 32, height: 32, borderRadius: '9px', flexShrink: 0, mb: 0.1,
+							background: input.trim() ? 'linear-gradient(135deg,#FF385C,#D91A50)' : 'transparent',
+							color: input.trim() ? '#fff' : (isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.20)'),
+							boxShadow: input.trim() ? '0 2px 10px rgba(255,56,92,0.35)' : 'none',
+							transition: 'background .18s, color .18s, box-shadow .18s',
+							'&:hover': { background: input.trim() ? '#D91A50' : undefined },
+							'&.Mui-disabled': { background: 'transparent', color: isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.15)' },
+						}}
+					>
+						<Box component='svg' viewBox='0 0 24 24' sx={{ width: 14, height: 14 }}>
+							<path fill='currentColor' d='M2.01 21L23 12 2.01 3 2 10l15 2-15 2z'/>
+						</Box>
+					</IconButton>
+				</Box>
+				<Typography sx={{ fontSize: 10, color: isLight ? 'rgba(0,0,0,0.28)' : 'rgba(255,255,255,0.20)', mt: 0.6, textAlign: 'center', fontFamily: 'inherit' }}>
+					Navia · AI travel agent · coming soon
+				</Typography>
+				<Typography sx={{ fontSize: 9.5, color: isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.15)', mt: 0.3, textAlign: 'center', fontFamily: 'inherit', letterSpacing: 0.2 }}>
+					Powered by GPT-5
+				</Typography>
+			</Box>
+		</Box>
+	);
+};
+
 const TripPlanner: React.FC<TripPlannerProps> = ({
 	tripId,
 	initialTrip,
@@ -275,7 +492,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		setCountries(prev => prev.includes(normalized) ? prev : [...prev, normalized]);
 	}, []);
 	
-	const notesRef = React.useRef<HTMLTextAreaElement | null>(null);
+	// notesRef removed (notes moved to trip settings)
+	const notesRef = React.useRef<HTMLTextAreaElement | null>(null); // retained to avoid large refactor
+	void notesRef;
 	const [privacy, setPrivacy] = React.useState<'Private'|'Trip Members'|'My Followers'|'Everyone'>('Private');
 	const [tripStartDate, setTripStartDate] = React.useState<string|null>(normalizedInitial?.meta.startDate ? sanitizeDateString(normalizedInitial.meta.startDate) : null);
 	const [tripEndDate, setTripEndDate] = React.useState<string|null>(normalizedInitial?.meta.endDate ? sanitizeDateString(normalizedInitial.meta.endDate) : null);
@@ -587,10 +806,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		})();
 		return ()=> { active = false; };
 	}, [authToken, tripId]);
-	const [mapCollapsed, setMapCollapsed] = React.useState(false);
-	const [mapWidth, setMapWidth] = React.useState(0.30); // default map takes 30% width now
+	const [mapDrawerOpen, setMapDrawerOpen] = React.useState(false);
 	const containerRef = React.useRef<HTMLDivElement|null>(null);
-	const resizingRef = React.useRef(false);
 	const [visaErrors, setVisaErrors] = React.useState<string[]>([]);
 
 	const [visaOpen, setVisaOpen] = React.useState(false);
@@ -610,6 +827,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 
 	// (Removed secondary meta extraction effect; consolidated into primary hydration effect)
 
+	// passportIconUrl / pinnedIconUrl reserved for future settings dialogs
 	const passportIconUrl = React.useMemo(() => {
 		return import.meta.env.MODE === 'production'
 			? (import.meta.env.VITE_PASSPORT_ICON_URL_PROD || import.meta.env.VITE_PASSPORT_ICON_URL)
@@ -619,7 +837,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		return import.meta.env.MODE === 'production'
 			? (import.meta.env.VITE_PINNEDDOCS_ICON_URL_PROD || import.meta.env.VITE_PINNEDDOCS_ICON_URL)
 			: (import.meta.env.VITE_PINNEDDOCS_ICON_URL_DEV || import.meta.env.VITE_PINNEDDOCS_ICON_URL);
-	}, []);
+	}, []); void passportIconUrl; void pinnedIconUrl;
 	const combinedPinnedDocs = React.useMemo(() => {
 		const plannerPinned = ['visaDocs','globalDocs','destinations'].flatMap(src => {
 			if(src==='destinations') return planner.destinations.flatMap(d=> (d.docs||[]));
@@ -673,8 +891,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const handleAddDestination = (name:string, coords?:{lat:number; lng:number})=> dispatch(addDestination({ name, lat:coords?.lat, lng:coords?.lng }));
 	const handleRemoveDestination = (id:string)=> dispatch(removeDestination(id));
 
-	const startResize = (e:React.MouseEvent)=> { if(mapCollapsed) return; resizingRef.current=true; document.body.style.cursor='col-resize'; e.preventDefault(); };
-	React.useEffect(()=>{ const move=(e:MouseEvent)=>{ if(!resizingRef.current||!containerRef.current) return; const rect=containerRef.current.getBoundingClientRect(); const left=e.clientX-rect.left; const ratioLeft=Math.min(0.80,Math.max(0.20,left/rect.width)); setMapWidth(1-ratioLeft); }; const up=()=>{ if(resizingRef.current){ resizingRef.current=false; document.body.style.cursor=''; } }; window.addEventListener('mousemove',move); window.addEventListener('mouseup',up); return ()=>{ window.removeEventListener('mousemove',move); window.removeEventListener('mouseup',up); }; }, [mapCollapsed]);
+
 
 	const computeShortestRoute = () => {
 		const pts = planner.destinations.filter(d=> d.lat!=null && d.lng!=null);
@@ -1059,6 +1276,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					</Box>
 				} />
 				<Box ref={containerRef} sx={{ flex:1, display:'flex', position:'relative', minHeight:0 }}>
+					{/* Centre content column */}
+					<Box sx={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', overflow:'hidden' }}>
 					{section==='news' ? (
 						<Box sx={{ flex:1, overflowY:'auto', overflowX:'hidden', display:'flex', flexDirection:'column' }}>
 							<NewsPanel selectedCountries={countries} />
@@ -1072,98 +1291,22 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 							<PackingPanel />
 						</Box>
 					) : (
-					<Box sx={(theme)=>({ flexBasis: mapCollapsed?'100%':`calc(${(1-mapWidth)*100}% - 2px)`, maxWidth: mapCollapsed?'100%':`calc(${(1-mapWidth)*100}% - 2px)`, minWidth:0, flexShrink:0, display:'flex', flexDirection:'column', backgroundColor: theme.palette.background.paper, borderRight: mapCollapsed? 'none': { lg:`1px solid ${theme.palette.divider}`}, transition: resizingRef.current?'none':'flex-basis .18s ease' })}>
-						<Box sx={{ px:2, py:1.25, display:'flex', alignItems:'stretch', gap:2, borderBottom:(t)=>`1px solid ${t.palette.divider}`, position:'relative' }}>
-							<Box sx={{ flex:1.4, minWidth:360, display:'flex', alignItems:'stretch' }}>
-								{/* Legacy rich editor commented out */}
-								<Box sx={{ width:'100%', display:'flex', flexDirection:'column', gap:.75 }}>
-									<Paper elevation={0} sx={(t)=>({ p:.75, border:`1px solid ${t.palette.divider}`, borderRadius:1.25, background:t.palette.mode==='dark'? '#1e2933':'#f8fafc' })}>
-										<TextareaAutosize
-											ref={notesRef}
-											value={importantNotes}
-											onChange={(e)=> setImportantNotes(e.target.value)}
-											minRows={4}
-											placeholder={isExternalNonOwner? 'Notes (read only)':'Add trip notes...'}
-											readOnly={isExternalNonOwner}
-											style={{
-												width:'100%',
-												fontSize:'13px',
-												lineHeight:'1.4',
-												padding:'0.6rem 0.7rem',
-												borderRadius:6,
-												border:'1px solid var(--mui-palette-divider, #ccc)',
-												background:'inherit',
-												resize:'vertical',
-												outline:'none'
-											}}
-										/>
-										<Typography variant='caption' sx={{ opacity:.55, mt:.25 }}>Saved with draft/update.</Typography>
-									</Paper>
-								</Box>
-							</Box>
-							<Box sx={{ ml:'auto', display:'flex', alignItems:'flex-start', gap:3, minWidth:300 }}>
-								<Box sx={{ display:'flex', flexDirection:'column', maxWidth:140 }}>
-									<Typography variant='caption' color='text.secondary'>Budget ({currency})</Typography>
-									<Box sx={{ display:'flex', alignItems:'center', gap:.5 }}>
-										<Typography variant='body2' fontWeight={600}>
-											{(planner.tripBudget!=null ? planner.tripBudget : 0).toFixed(2)}
-										</Typography>
-										<Button size='small' variant='text' onClick={readOnly? undefined : openCurrency} disabled={readOnly} endIcon={<ExpandMoreIcon fontSize='small' />} sx={{ textTransform:'none', px:1, minWidth:0 }}>{currency}</Button>
-									</Box>
-									{canAccessDocs && (
-									<Paper
-									  role={ENABLE_DOC_UPLOAD? 'button': undefined}
-									  aria-disabled={!ENABLE_DOC_UPLOAD}
-									  onClick={()=> { if(!ENABLE_DOC_UPLOAD) return; setVisaOpen(true); }}
-									  sx={(t)=>({ mt:1.25, cursor: ENABLE_DOC_UPLOAD? 'pointer':'not-allowed', width:140, px:1.2, py:1, borderRadius:1, display:'flex', flexDirection:'row', gap:.75, alignItems:'center', border:`1px dashed ${t.palette.divider}`, background: t.palette.mode==='dark'? '#13202b':'#f5fbff', '&:hover': ENABLE_DOC_UPLOAD? { borderColor:t.palette.primary.main } : undefined, opacity: ENABLE_DOC_UPLOAD? 1: .65 })}
-									>
-										<Box component='img' src={passportIconUrl} alt='Visa docs' loading='lazy' style={{ width:30, height:30, objectFit:'contain', filter:'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }} />
-										<Box sx={{ display:'flex', flexDirection:'column', minWidth:0 }}>
-											<Typography variant='caption' sx={{ fontWeight:700, letterSpacing:.4, opacity: ENABLE_DOC_UPLOAD?1:.5 }}>Visa(s)</Typography>
-											{ENABLE_DOC_UPLOAD ? (
-												<Typography variant='caption' sx={{ opacity:.6, lineHeight:1 }}>{planner.visaDocs?.length||0} file(s)</Typography>
-											) : (
-												<SoonTag sx={{ mt:.3 }} />
-											)}
-										</Box>
-									</Paper>
-									)}
-								</Box>
-								<Box sx={{ display:'flex', flexDirection:'column', maxWidth:140 }}>
-									<Typography variant='caption' color='text.secondary'>Privacy</Typography>
-									<Box sx={{ display:'flex', alignItems:'center', gap:.5 }}>
-										<Typography variant='body2' fontWeight={600}>{privacy}</Typography>
-										<Button size='small' variant='text' onClick={readOnly? undefined: openPrivacy} disabled={readOnly} endIcon={<ExpandMoreIcon fontSize='small' />} sx={{ textTransform:'none', px:1, minWidth:0 }} />
-									</Box>
-									{canAccessDocs && (
-									<Paper
-									  role={ENABLE_DOC_UPLOAD? 'button': undefined}
-									  aria-disabled={!ENABLE_DOC_UPLOAD}
-									  onClick={()=> { if(!ENABLE_DOC_UPLOAD) return; setPinnedOpen(true); }}
-									  sx={(t)=>({ mt:1.8, cursor: ENABLE_DOC_UPLOAD? 'pointer':'not-allowed', width:140, px:1.2, py:1, borderRadius:1, display:'flex', flexDirection:'row', gap:.75, alignItems:'center', border:`1px dashed ${t.palette.divider}`, background: t.palette.mode==='dark'? '#181c24':'#f7f7fa', '&:hover': ENABLE_DOC_UPLOAD? { borderColor:t.palette.primary.main } : undefined, opacity: ENABLE_DOC_UPLOAD? 1: .65 })}
-									>
-										<Box component='img' src={pinnedIconUrl} alt='Pinned docs' loading='lazy' style={{ width:30, height:30, objectFit:'contain', filter:'drop-shadow(0 1px 2px rgba(0,0,0,0.25))' }} />
-										<Box sx={{ display:'flex', flexDirection:'column', minWidth:0 }}>
-											<Typography variant='caption' sx={{ fontWeight:700, letterSpacing:.4, opacity: ENABLE_DOC_UPLOAD?1:.55 }}>Pinned</Typography>
-											{ENABLE_DOC_UPLOAD ? (
-												<Typography variant='caption' sx={{ opacity:.6, lineHeight:1 }}>{combinedPinnedDocs.length} pinned</Typography>
-											) : (
-												<SoonTag sx={{ mt:.3 }} />
-											)}
-										</Box>
-									</Paper>
-									)}
-								</Box>
-							</Box>
-						</Box>
+					<Box sx={(theme)=>({ flex:1, minWidth:0, display:'flex', flexDirection:'column',
+						/* Premium board background — dot grid pattern */
+						backgroundColor: theme.palette.mode==='light' ? '#f9fafb' : '#111315',
+						backgroundImage: theme.palette.mode==='light'
+							? 'radial-gradient(circle, rgba(0,0,0,0.10) 1px, transparent 1px)'
+							: 'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)',
+						backgroundSize: '22px 22px',
+					})}>
 						<Divider />
 						{section==='plan' && (
-						<Box sx={{ display:'flex', alignItems:'center', px:2, gap:1, py:1 }}>
+						<Box sx={(t)=>({ display:'flex', alignItems:'center', px:2, gap:1, py:.75, borderBottom:`1px solid ${t.palette.divider}`, background: t.palette.mode==='light'? 'rgba(255,255,255,0.92)':'rgba(20,22,26,0.92)', backdropFilter:'blur(8px)', position:'sticky', top:0, zIndex:2 })}>
 							<Tabs value={tab} onChange={(e,v)=> {
 								// Block navigation into disabled features
 								if((v===1 && !ENABLE_EXPENSES) || (v===2 && !ENABLE_COMMENTS)) return;
 								handleTabChange(e,v);
-							}} variant='scrollable' allowScrollButtonsMobile sx={{ flex:1, minHeight:44, '& .MuiTab-root':{ minHeight:44 } }}>
+							}} variant='scrollable' allowScrollButtonsMobile sx={{ flex:1, minHeight:38, '& .MuiTab-root':{ minHeight:38, fontSize:13, fontWeight:600, textTransform:'none', fontFamily:"'Inter', system-ui, sans-serif" }, '& .Mui-selected':{ color:'#FF385C !important' }, '& .MuiTabs-indicator':{ backgroundColor:'#FF385C', height:2 } }}>
 								<Tab label='Planning' />
 								<Tab label={
 									<Box sx={{ display:'flex', alignItems:'center', gap:.75 }}>
@@ -1178,37 +1321,50 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 									</Box>
 								} disabled={!ENABLE_COMMENTS} />
 							</Tabs>
-							<Box sx={{ display:'flex', alignItems:'center', gap:.75, mr:1 }}>
-								<Box sx={{ position:'relative', width:46, height:46 }}>
+							{/* Budget + Privacy compact */}
+							<Box sx={{ display:'flex', alignItems:'center', gap:1, mr:.5 }}>
+								<Tooltip title='Budget currency'>
+									<Button size='small' variant='text' onClick={readOnly? undefined : openCurrency} disabled={readOnly} endIcon={<ExpandMoreIcon sx={{ fontSize:14 }} />} sx={{ textTransform:'none', fontWeight:600, fontSize:12, px:.75, minWidth:0, color:'text.primary', fontFamily:"'Inter', sans-serif" }}>
+										{(planner.tripBudget!=null ? planner.tripBudget : 0).toFixed(0)} {currency}
+									</Button>
+								</Tooltip>
+								<Tooltip title='Privacy'>
+									<Button size='small' variant='text' onClick={readOnly? undefined: openPrivacy} disabled={readOnly} endIcon={<ExpandMoreIcon sx={{ fontSize:14 }} />} sx={{ textTransform:'none', fontWeight:600, fontSize:12, px:.75, minWidth:0, color:'text.primary', fontFamily:"'Inter', sans-serif" }}>
+										{privacy}
+									</Button>
+								</Tooltip>
+							</Box>
+							<Box sx={{ display:'flex', alignItems:'center', gap:.75 }}>
+								<Box sx={{ position:'relative', width:38, height:38 }}>
 									<CircularProgress
 										variant='determinate'
 										value={100}
-										size={46}
-										thickness={4.2}
+										size={38}
+										thickness={4.5}
 										sx={(t)=>({ color: t.palette.mode==='dark'? t.palette.grey[800] : t.palette.grey[300] })}
 									/>
 									<CircularProgress
 										variant='determinate'
 										value={targetNights? Math.min(100,(totalNights/targetNights)*100):0}
-										size={46}
-										thickness={4.2}
-										sx={(t)=>({
+										size={38}
+										thickness={4.5}
+										sx={{
 											position:'absolute',
 											left:0,
 											top:0,
-											color: t.palette.primary.main,
+											color:'#FF385C',
 											transition:'color .3s'
-										})}
+										}}
 									/>
 									<Box sx={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-										<Typography variant='caption' fontWeight={700} sx={{ fontSize:11 }}>{totalNights}/{targetNights}</Typography>
+										<Typography variant='caption' fontWeight={700} sx={{ fontSize:10 }}>{totalNights}/{targetNights}</Typography>
 									</Box>
 								</Box>
-								<Typography variant='caption' fontWeight={600}>Nights</Typography>
+								<Typography variant='caption' fontWeight={600} sx={{ fontSize:11 }}>Nights</Typography>
 							</Box>
-							<Tooltip title={mapCollapsed? 'Show map':'Hide map'}>
-								<IconButton size='small' onClick={()=> setMapCollapsed(c=> !c)} sx={{ bgcolor:'background.paper', border:(t)=>`1px solid ${t.palette.divider}`, '&:hover':{ bgcolor:'action.hover' }, mr:.25 }}>
-									{mapCollapsed ? <OpenInFullIcon fontSize='small' /> : <CloseFullscreenIcon fontSize='small' />}
+							<Tooltip title='View map'>
+								<IconButton size='small' onClick={()=> setMapDrawerOpen(true)} sx={{ bgcolor:'background.paper', border:(t)=>`1px solid ${t.palette.divider}`, '&:hover':{ bgcolor:'rgba(255,56,92,0.07)', borderColor:'rgba(255,56,92,0.4)', color:'#FF385C' }, mr:.25, color:'text.secondary' }}>
+									<MapOutlinedIcon fontSize='small' />
 								</IconButton>
 							</Tooltip>
 							{!isExternalNonOwner && (
@@ -1322,15 +1478,16 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						</Box>
 					</Box>
 					)}
-					{section==='plan' && !mapCollapsed && (<><Box onMouseDown={startResize} sx={{ width:4, cursor:'col-resize', background:(t)=> t.palette.mode==='dark'? t.palette.grey[800]: t.palette.grey[200], '&:hover':{ background:(t)=> t.palette.primary.main } }} /><MapPanel widthFraction={mapWidth} /></>)}
-					<ChatAssistant />
-				</Box>
-				{effectiveCanEdit && (
-				<Menu anchorEl={currencyAnchor} open={Boolean(currencyAnchor)} onClose={closeCurrency} elevation={3}>
-					{(['EUR','USD','GBP'] as const).map(c=> (<MenuItem key={c} selected={c===currency} onClick={()=> selectCurrency(c)}><Avatar sx={{ width:20, height:20, mr:1, fontSize:11 }}>{c==='EUR'?'€': c==='USD'? '$':'£'}</Avatar>{c}</MenuItem>))}
-				</Menu>
-				)}
-				{effectiveCanEdit && (
+					</Box>{/* end centre column */}
+					{/* Persistent AI Chat Panel — always visible */}
+					<PremiumChatPanel />
+		</Box>
+		{effectiveCanEdit && (
+			<Menu anchorEl={currencyAnchor} open={Boolean(currencyAnchor)} onClose={closeCurrency} elevation={3}>
+				{(['EUR','USD','GBP'] as const).map(c=> (<MenuItem key={c} selected={c===currency} onClick={()=> selectCurrency(c)}><Avatar sx={{ width:20, height:20, mr:1, fontSize:11 }}>{c==='EUR'?'€': c==='USD'? '$':'£'}</Avatar>{c}</MenuItem>))}
+			</Menu>
+		)}
+		{effectiveCanEdit && (
 				<Menu anchorEl={privacyAnchor} open={Boolean(privacyAnchor)} onClose={closePrivacy} elevation={3}>
 					{(['Private','Trip Members','My Followers','Everyone'] as const).map(p=> (<MenuItem key={p} selected={p===privacy} onClick={()=> selectPrivacy(p)}>{p}</MenuItem>))}
 				</Menu>
@@ -1555,6 +1712,13 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				</DialogActions>
 			</Dialog>
 		</Box>
+		<MapDrawer
+			open={mapDrawerOpen}
+			onClose={()=> setMapDrawerOpen(false)}
+			destinations={planner.destinations}
+			travelMode={planner.destinations[0]?.transport || 'car'}
+			tripId={tripId}
+		/>
 		<Snackbar open={toast.open} autoHideDuration={3000} onClose={closeToast} anchorOrigin={{ vertical:'bottom', horizontal:'right' }}>
 			<Alert onClose={closeToast} severity={toast.type} variant='filled' sx={{ boxShadow:2 }}>
 				{toast.msg}

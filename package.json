@@ -27,6 +27,7 @@
     "bootstrap": "^5.3.7",
     "date-fns": "^4.1.0",
     "dayjs": "^1.11.13",
+    "framer-motion": "^12.38.0",
     "gsap": "^3.14.2",
     "lucide-react": "^0.539.0",
     "mapbox-gl": "^3.16.0",
