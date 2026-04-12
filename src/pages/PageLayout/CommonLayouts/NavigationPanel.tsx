@@ -20,7 +20,8 @@ import {
   People as CommunityIcon,
   Dashboard as DashboardIcon,
   Settings as SettingsIcon,
-  Add as AddIcon
+  Add as AddIcon,
+  Security as RiskMonitorIcon
 } from '@mui/icons-material';
 import TripCreationModal from '../../../components/CreateTripComponents/TripCreationModal';
 import ChatAssistant from '../../../components/CommonComponents/ChatAssistant';
@@ -42,8 +43,9 @@ const DRAWER_WIDTH = 72;
 
 const NAV_ITEMS: NavItem[] = [
   { text: 'Home',      Icon: HomeIcon,       path: '/home'      },
-  { text: 'Dashboard', Icon: DashboardIcon,  path: '/dashboard' },
-  { text: 'Community', Icon: CommunityIcon,  path: '/community', disabled: true, comingSoon: true },
+  { text: 'Dashboard',     Icon: DashboardIcon,    path: '/dashboard' },
+  { text: 'Risk Monitor',   Icon: RiskMonitorIcon,  path: '/risk-monitor' },
+  { text: 'Community',     Icon: CommunityIcon,    path: '/community', disabled: true, comingSoon: true },
   { text: 'Settings',  Icon: SettingsIcon,   path: '/settings'  },
 ];
 

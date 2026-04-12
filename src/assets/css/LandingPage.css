@@ -1546,6 +1546,29 @@
   font-size: 0.71rem;
   color: rgba(241,245,249,0.35);
 }
+.lp-bento-risk__cta {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 14px;
+  padding: 8px 18px;
+  background: rgba(239,68,68,0.12);
+  border: 1px solid rgba(239,68,68,0.3);
+  border-radius: 999px;
+  color: #fca5a5;
+  font-size: 0.78rem;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
+  cursor: pointer;
+  transition: background 0.18s, border-color 0.18s, color 0.18s, transform 0.18s;
+  align-self: flex-start;
+}
+.lp-bento-risk__cta:hover {
+  background: rgba(239,68,68,0.22);
+  border-color: rgba(239,68,68,0.55);
+  color: #fecaca;
+  transform: translateX(3px);
+}
 /* Ghost deco icon */
 .lp-bento-card--risk .lp-bento-card__deco-icon { color: #ef4444; opacity: 0.03; }
 

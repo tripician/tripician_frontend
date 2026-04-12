@@ -12,6 +12,7 @@ import ProtectedRoute from './services/APIs/Auth/ProtectedRoute'
 import TripPlannerRoute from './pages/CreateTripPage/TripPlannerRoute.tsx'
 import TripPlannerEntry from './pages/CreateTripPage/TripPlannerEntry.tsx'
 import TripView from './pages/TripViewPage/TripView';
+import RiskMonitor from './pages/RiskMonitorPage/RiskMonitor';
 import AuthenticatedLayout from './pages/PageLayout/AuthenticatedLayout';
 import { NotFound404, InternalError500, UnauthorizedAccess, UnderConstruction, SomethingWentWrong, DynamicErrorPage } from './pages/ErrorPages/ErrorPages';
 import SuccessOverlay from './components/CommonComponents/SuccessOverlay';
@@ -35,6 +36,7 @@ function App() {
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/profile" element={<Profile />} />
           <Route path="/community" element={<Community />} />
+          <Route path="/risk-monitor" element={<RiskMonitor />} />
           <Route path="/settings" element={<Settings />} />
         </Route>
   {/* Trip Planner entry: redirect /tripplanner -> /tripplanner/:generatedId (reusing last draft if available) */}

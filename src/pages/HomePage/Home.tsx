@@ -456,7 +456,7 @@ const Home: React.FC = () => {
             {/* Headline */}
             <Typography sx={{
               fontFamily: "'Playfair Display', serif",
-              fontSize: { xs: '1.85rem', md: '2.8rem' },
+              fontSize: { xs: '1.5rem', md: '2.1rem' },
               fontWeight: 800, fontStyle: 'italic',
               color: '#FFFFFF',
               lineHeight: 1.15, letterSpacing: '-0.5px',
@@ -524,7 +524,7 @@ const Home: React.FC = () => {
           flexDirection: { xs: 'column', lg: 'row' },
           boxShadow: '0 2px 4px rgba(0,0,0,0.04), 0 8px 24px rgba(0,0,0,0.08), 0 24px 56px rgba(0,0,0,0.10)',
           border: '1px solid rgba(0,0,0,0.065)',
-          minHeight: { xs: 'auto', lg: 340 },
+          minHeight: { xs: 'auto', lg: 260 },
         }}>
           {/* Left coral accent stripe */}
           <Box sx={{
@@ -535,7 +535,7 @@ const Home: React.FC = () => {
           {/* Main ticket body */}
           <Box sx={{
             flex: 1,
-            p: { xs: '28px 22px', sm: '36px 40px', md: '40px 48px' },
+            p: { xs: '20px 18px', sm: '26px 32px', md: '28px 40px' },
             display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
             // Subtle dot-pattern texture
             backgroundImage: 'radial-gradient(rgba(0,0,0,0.04) 1px, transparent 1px)',
@@ -570,7 +570,7 @@ const Home: React.FC = () => {
             </Box>
 
             {/* ── Row 2: Passenger name + route ── */}
-            <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: { xs: 2, md: 5 }, mb: 3.5, flexWrap: 'wrap' }}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: { xs: 2, md: 4 }, mb: 2.5, flexWrap: 'wrap' }}>
               {/* Passenger */}
               <Box>
                 <Typography sx={{
@@ -580,9 +580,9 @@ const Home: React.FC = () => {
                 }}>Passenger</Typography>
                 <Typography sx={{
                   fontFamily: "'Playfair Display', serif",
-                  fontSize: { xs: '2.6rem', md: '3.8rem' },
+                  fontSize: { xs: '1.8rem', md: '2.6rem' },
                   fontWeight: 800, color: '#111111',
-                  lineHeight: 1, letterSpacing: '-1px',
+                  lineHeight: 1, letterSpacing: '-0.5px',
                   animation: 'fadeInUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.1s both',
                 }}>{userFirstName}</Typography>
               </Box>
@@ -591,7 +591,7 @@ const Home: React.FC = () => {
               <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2, md: 3 }, pb: 0.5 }}>
                 <Box sx={{ textAlign: 'center' }}>
                   <Typography sx={{ fontSize: '0.52rem', fontWeight: 700, letterSpacing: '0.16em', color: '#C8C8C8', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif", mb: 0.5 }}>From</Typography>
-                  <Typography sx={{ fontSize: { xs: '1.7rem', md: '2.4rem' }, fontWeight: 900, color: '#1A1A1A', fontFamily: "'Inter', sans-serif", letterSpacing: '-1px', lineHeight: 1 }}>{homeCountryCode}</Typography>
+                  <Typography sx={{ fontSize: { xs: '1.25rem', md: '1.7rem' }, fontWeight: 900, color: '#1A1A1A', fontFamily: "'Inter', sans-serif", letterSpacing: '-0.5px', lineHeight: 1 }}>{homeCountryCode}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', px: { xs: 0.5, md: 1 } }}>
                   <Typography sx={{ color: '#FF385C', fontSize: '1.1rem', lineHeight: 1, mb: 0.75 }}>✈</Typography>
@@ -600,7 +600,7 @@ const Home: React.FC = () => {
                 </Box>
                 <Box sx={{ textAlign: 'center' }}>
                   <Typography sx={{ fontSize: '0.52rem', fontWeight: 700, letterSpacing: '0.16em', color: '#C8C8C8', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif", mb: 0.5 }}>To</Typography>
-                  <Typography sx={{ fontSize: { xs: '1.7rem', md: '2.4rem' }, fontWeight: 900, color: '#FF385C', fontFamily: "'Inter', sans-serif", letterSpacing: '-1px', lineHeight: 1 }}>
+                  <Typography sx={{ fontSize: { xs: '1.25rem', md: '1.7rem' }, fontWeight: 900, color: '#FF385C', fontFamily: "'Inter', sans-serif", letterSpacing: '-0.5px', lineHeight: 1 }}>
                     {nextDestinationLabel.replace(/[,\s].*/,'').slice(0,3).toUpperCase()}
                   </Typography>
                 </Box>

@@ -650,9 +650,12 @@ export default function LandingPage() {
             </div>
             {/* Footer */}
             <div className="lp-bento-risk__footer">
-              <span>3 destinations monitored</span>
+              <span>35 destinations monitored</span>
               <span>Updated just now</span>
             </div>
+            <button className="lp-bento-risk__cta" onClick={() => navigate('/risk-monitor')}>
+              Check Destinations {"\u2192"}
+            </button>
           </div>
           {/* Agent - violet, span 3 */}
           <div className="lp-bento-card lp-bento-card--agent">
