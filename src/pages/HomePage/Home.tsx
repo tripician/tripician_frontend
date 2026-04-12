@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Typography, Button, CircularProgress, Alert, Stack, Avatar } from '@mui/material';
+import { Box, Typography, Button, CircularProgress, Alert, Stack, Avatar, Skeleton } from '@mui/material';
 import { KalaLotus } from '../../components/DecorativeComponents/KalaDecor';
 import { useSelector } from 'react-redux';
 import ExploreIcon from '@mui/icons-material/TravelExplore';
@@ -72,9 +72,9 @@ const Home: React.FC = () => {
   const [loadingPublic, setLoadingPublic] = useState(false);
   const [publicError, setPublicError] = useState<string | null>(null);
   const [createTripOpen, setCreateTripOpen] = useState(false);
-  const { token: authToken } = useAuthToken();
+  const { token: authToken, loading: authLoading } = useAuthToken();
   const [userTrips, setUserTrips] = useState<any[]>([]);
-  const [, setUserTripsLoading] = useState(false);
+  const [userTripsLoading, setUserTripsLoading] = useState(true);
   const [, setUserTripsError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -100,7 +100,8 @@ const Home: React.FC = () => {
   }, []);
 
   useEffect(() => {
-    if (!authToken) return;
+    if (authLoading) return; // auth still resolving
+    if (!authToken) { setUserTripsLoading(false); return; }
     let active = true;
     const fetchUserTrips = async () => {
       setUserTripsLoading(true);
@@ -121,7 +122,7 @@ const Home: React.FC = () => {
     };
     fetchUserTrips();
     return () => { active = false; };
-  }, [authToken]);
+  }, [authToken, authLoading]);
 
   const handleExploreTrips = () => {
     setCreateTripOpen(true);
@@ -368,15 +369,15 @@ const Home: React.FC = () => {
   }, [statusMessages, motivationalQuotes]);
 
   useEffect(() => {
+    if (userTripsLoading) return;
+    if (!heroRef.current) return;
     const ctx = gsap.context(() => {
-      // ── Hero boarding pass entrance ──
-      gsap.from(heroRef.current, {
-        y: 70, opacity: 0, duration: 1.05, ease: 'power4.out', delay: 0.1,
+      gsap.to(heroRef.current, {
+        y: 0, opacity: 1, duration: 0.85, ease: 'power4.out', delay: 0.05,
       });
     }, pageRef);
-
     return () => ctx.revert();
-  }, []);
+  }, [userTripsLoading]);
 
   return (
     <Box
@@ -400,8 +401,10 @@ const Home: React.FC = () => {
       <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 2, md: 3 }, pb: 2, position: 'relative', zIndex: 2 }}>
 
       {/* ── No upcoming trip: premium "Plan Your Next Journey" banner ── */}
-      {!nextUpcomingTrip && (
-        <Box ref={heroRef} className="gs-hero" sx={{
+      {userTripsLoading ? (
+        <Box sx={{ height: { xs: 220, md: 260 }, borderRadius: '20px' }} />
+      ) : !nextUpcomingTrip && (
+        <Box ref={heroRef} className="gs-hero" style={{ opacity: 0, transform: 'translateY(56px)' }} sx={{
           position: 'relative',
           borderRadius: '20px',
           overflow: 'hidden',
@@ -510,9 +513,9 @@ const Home: React.FC = () => {
       )}
 
       {/* ── Has upcoming trip: Boarding Pass ── */}
-      {nextUpcomingTrip && (
+      {!userTripsLoading && nextUpcomingTrip && (
         <>
-        <Box ref={heroRef} className="gs-hero" sx={{
+        <Box ref={heroRef} className="gs-hero" style={{ opacity: 0, transform: 'translateY(56px)' }} sx={{
           position: 'relative',
           borderRadius: '20px',
           overflow: 'hidden',

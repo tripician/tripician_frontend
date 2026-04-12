@@ -35,12 +35,12 @@ const Dashboard: React.FC = () => {
     if (month < 12) return `${month}mo ago`;
     return `${year}y ago`;
   };
-  const { token } = useAuthToken();
+  const { token, loading: authLoading } = useAuthToken();
   const navigate = useNavigate();
   const [allPlans, setAllPlans] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
   const [tabValue, setTabValue] = useState(0);
-  const [loading, setLoading] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   const pageRef   = useRef<HTMLDivElement>(null);
@@ -53,14 +53,14 @@ const Dashboard: React.FC = () => {
 
   // Page entrance animation (banner + tabs + cards)
   useEffect(() => {
+    if (loading) return; // wait until banner is in the DOM
+    if (!bannerRef.current) return;
     const ctx = gsap.context(() => {
-      if (bannerRef.current) {
-        gsap.from(bannerRef.current, {
-          y: -28, opacity: 0, scale: 0.97, duration: 0.6, ease: 'power3.out', delay: 0.05,
-        });
-      }
-      gsap.from(tabsRef.current, {
-        y: -18, opacity: 0, duration: 0.5, ease: 'power3.out', delay: 0.22,
+      gsap.to(bannerRef.current, {
+        y: 0, opacity: 1, scale: 1, duration: 0.6, ease: 'power3.out', delay: 0.05,
+      });
+      gsap.to(tabsRef.current, {
+        y: 0, opacity: 1, duration: 0.5, ease: 'power3.out', delay: 0.22,
       });
     }, pageRef);
     return () => ctx.revert();
@@ -82,7 +82,8 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     let active = true;
     const fetchTrips = async () => {
-      if(!token) return; // handled by higher level auth route guard
+      if (authLoading) return; // auth still resolving — wait before fetching
+      if(!token) { setLoading(false); return; } // not authenticated
       setLoading(true);
       setError(null);
       try {
@@ -122,7 +123,7 @@ const Dashboard: React.FC = () => {
     };
     fetchTrips();
     return () => { active = false; };
-  }, [token]);
+  }, [token, authLoading]);
 
   const [deleteTarget, setDeleteTarget] = useState<{ id: string; title: string } | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -201,7 +202,7 @@ const Dashboard: React.FC = () => {
 
         {/* ── Boarding pass / Welcome banner ── */}
         {!loading && (
-          <Box ref={bannerRef} sx={{ mx: '2%', mt: 2.5, mb: 1 }}>
+          <Box ref={bannerRef} style={{ opacity: 0, transform: 'translateY(-28px) scale(0.97)' }} sx={{ mx: '2%', mt: 2.5, mb: 1 }}>
             {allPlans.length === 0 || !nextUpcoming ? (
               /* ── Premium welcome banner (new / no trips) ── */
               <Box
@@ -351,6 +352,7 @@ const Dashboard: React.FC = () => {
 
           <Tabs
             ref={tabsRef}
+            style={{ opacity: 0, transform: 'translateY(-18px)' }}
             value={tabValue}
             className="mb-1 mt-3"
             onChange={handleTabChange}

@@ -1,5 +1,6 @@
 ﻿// TripPlanner main page component (formerly CreateTrip)
 import React from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { Box, Tabs, Tab, Typography, Divider, Button, Chip, Menu, MenuItem, Avatar, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Snackbar, Alert, useTheme } from '@mui/material';
 import { KalaMandala } from '../../components/DecorativeComponents/KalaDecor';
 // Props-based TripPlanner; tripId + optional initialTrip provided by route wrapper
@@ -834,9 +835,14 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const initialStatus = (initialTrip && initialTrip.trip && typeof initialTrip.trip.status === 'string') ? String(initialTrip.trip.status).toUpperCase() : undefined;
 	const [isDraft, setIsDraft] = React.useState<boolean>(initialStatus ? initialStatus !== 'PUBLISHED' : true);
 
-	// Section + tab UI state
-	const [section, setSection] = React.useState<'plan'|'news'|'docs'|'packing'>('plan');
-	const setSectionDebug = (s:any)=> setSection(s); // preserve prop expectation
+	// Section + tab UI state — persisted in ?tab= query param so refresh keeps the same panel
+	const VALID_SECTIONS = ['plan', 'news', 'docs', 'packing'] as const;
+	const [searchParams, setSearchParams] = useSearchParams();
+	const rawTab = searchParams.get('tab') as typeof VALID_SECTIONS[number] | null;
+	const section: typeof VALID_SECTIONS[number] = rawTab && (VALID_SECTIONS as readonly string[]).includes(rawTab) ? rawTab : 'plan';
+	const setSectionDebug = (s: typeof VALID_SECTIONS[number]) => {
+		setSearchParams(prev => { prev.set('tab', s); return prev; }, { replace: true });
+	};
 	const [tab, setTab] = React.useState(0);
 
 	// Derived counts

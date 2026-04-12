@@ -131,26 +131,29 @@ const TripCard: React.FC<TripCardProps> = ({
           </p>
         )}
 
-        {/* 2b. Member avatars (max 5) */}
-        {members && members.length > 0 && (
+        {/* 2b. Member avatars (max 5) + last-edited badge */}
+        {((members && members.length > 0) || edited) && (
           <div className="tc-members-row">
-            {members.slice(0, 5).map((m, i) => (
-              <div
-                key={m.id ?? i}
-                className="tc-member-avatar"
-                style={{ zIndex: 5 - i }}
-                title={m.name}
-              >
-                {m.profilePic
-                  ? <img src={m.profilePic} alt={m.name} className="tc-member-avatar-img" />
-                  : m.name?.charAt(0).toUpperCase()}
-              </div>
-            ))}
-            {members.length > 5 && (
-              <div className="tc-member-avatar tc-member-avatar--more" style={{ zIndex: 0 }}>
-                +{members.length - 5}
-              </div>
-            )}
+            <div className="tc-members-avatars">
+              {members && members.slice(0, 5).map((m, i) => (
+                <div
+                  key={m.id ?? i}
+                  className="tc-member-avatar"
+                  style={{ zIndex: 5 - i }}
+                  title={m.name}
+                >
+                  {m.profilePic
+                    ? <img src={m.profilePic} alt={m.name} className="tc-member-avatar-img" />
+                    : m.name?.charAt(0).toUpperCase()}
+                </div>
+              ))}
+              {members && members.length > 5 && (
+                <div className="tc-member-avatar tc-member-avatar--more" style={{ zIndex: 0 }}>
+                  +{members.length - 5}
+                </div>
+              )}
+            </div>
+            {edited && <span className="tc-badge-info">{edited}</span>}
           </div>
         )}
 
@@ -170,9 +173,7 @@ const TripCard: React.FC<TripCardProps> = ({
               </div>
             </div>
           )}
-          {edited && !stars && (
-            <span className="tc-badge-info">{edited}</span>
-          )}
+
         </div>
 
         {/* 4. Owner + likes row */}

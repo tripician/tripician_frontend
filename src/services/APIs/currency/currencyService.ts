@@ -1,5 +1,5 @@
-// Simple currency service using exchangerate.host (free, no key)
-// https://exchangerate.host/#/#docs
+// Currency service using Open Exchange Rates API (https://open.er-api.com)
+// Completely free, no API key required, updated every hour.
 
 export interface CurrencyData {
   base: string;
@@ -29,11 +29,11 @@ export async function fetchCurrency(countryCode: string): Promise<CurrencyData> 
     return cached.data;
   }
   try {
-  const symbols = Array.from(new Set([base, ...MAJORS])).join(',');
-  const url = `https://api.exchangerate.host/latest?base=${base}&symbols=${symbols}`;
+  const url = `https://open.er-api.com/v6/latest/${base}`;
   const res = await fetch(url);
   if(!res.ok) throw new Error('Currency fetch failed: '+res.status);
   const json = await res.json();
+  if(json.result !== 'success') throw new Error('Currency API error: ' + (json['error-type'] || 'unknown'));
   const data: CurrencyData = { base, rates: json.rates || {}, fetched: new Date().toISOString() };
   CACHE[base] = { data, expires: now + TTL_MS };
   return data;

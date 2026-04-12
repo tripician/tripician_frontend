@@ -1,4 +1,4 @@
-/* ─────────────────────────────────────────────────────────────────
+﻿/* ─────────────────────────────────────────────────────────────────
    LandingPage.css  —  Tripician  (Polarsteps-inspired cinematic)
    ───────────────────────────────────────────────────────────────── */
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,500;1,700&family=Inter:wght@300;400;500;600&display=swap');
@@ -1053,4 +1053,829 @@
   .lp-steps__line { display: none; }
   .lp-step { padding-left: 72px; }
   .lp-step__num { width: 40px; height: 40px; font-size: 0.72rem; left: 16px; }
+}
+/* ─────────────────────────────────────────────────────────────────
+   AGENTIC AI SECTION
+   ───────────────────────────────────────────────────────────────── */
+.lp-ai-agent {
+  padding: 110px 52px;
+  background: linear-gradient(160deg, #0a0a0f 0%, #0d1320 40%, #0a0f1a 100%);
+  position: relative;
+  overflow: hidden;
+}
+.lp-ai-agent::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(ellipse at 20% 40%, rgba(255,56,92,0.08) 0%, transparent 50%),
+              radial-gradient(ellipse at 80% 60%, rgba(0,125,220,0.09) 0%, transparent 50%);
+  pointer-events: none;
+}
+
+.lp-ai-agent__inner {
+  max-width: var(--lp-max-w);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 80px;
+  align-items: center;
+}
+
+.lp-ai-agent__text {
+  position: relative;
+  z-index: 1;
+}
+.lp-ai-agent__text .lp-section-eyebrow { color: rgba(255,255,255,0.55); }
+.lp-ai-agent__text .lp-section-title {
+  color: #f8fafc;
+  font-size: clamp(2rem, 3.5vw, 3rem);
+  margin: 12px 0 20px;
+}
+.lp-ai-agent__text .lp-section-title::after { display: none; }
+
+.lp-ai-agent__desc {
+  font-size: 1.05rem;
+  line-height: 1.75;
+  color: rgba(255,255,255,0.65);
+  margin-bottom: 28px;
+  max-width: 480px;
+}
+.lp-ai-agent__desc em { color: #FF8A9F; font-style: normal; font-weight: 600; }
+
+.lp-ai-agent__bullets {
+  list-style: none;
+  padding: 0;
+  margin: 0 0 36px;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.lp-ai-agent__bullets li {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  color: rgba(255,255,255,0.75);
+  font-size: 0.925rem;
+}
+.lp-ai-agent__bullets li svg { color: var(--lp-primary); flex-shrink: 0; }
+
+.lp-ai-agent__widget { position: relative; z-index: 1; }
+
+/* ── Agent Demo Window ── */
+.lp-agent-window {
+  background: #13161e;
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 14px;
+  overflow: hidden;
+  box-shadow: 0 32px 80px rgba(0,0,0,0.65), 0 0 0 1px rgba(255,255,255,0.05);
+  min-height: 420px;
+  display: flex;
+  flex-direction: column;
+}
+
+.lp-agent-window__bar {
+  background: rgba(255,255,255,0.05);
+  border-bottom: 1px solid rgba(255,255,255,0.07);
+  padding: 12px 16px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.lp-agent-window__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.lp-agent-window__title {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.75rem;
+  color: rgba(255,255,255,0.4);
+  font-weight: 500;
+  letter-spacing: 0.03em;
+  margin-left: 8px;
+}
+
+.lp-agent-window__body {
+  flex: 1;
+  padding: 20px 18px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  overflow: hidden;
+}
+
+/* ── Agent Messages ── */
+.lp-agent-msg {
+  opacity: 0;
+  transform: translateY(8px);
+  transition: opacity 0.4s ease, transform 0.4s ease;
+}
+.lp-agent-msg--in {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.lp-agent-bubble {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.82rem;
+  line-height: 1.55;
+}
+
+.lp-agent-avatar {
+  flex-shrink: 0;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.01em;
+}
+.lp-agent-avatar--you {
+  background: linear-gradient(135deg, #334155, #475569);
+  color: #cbd5e1;
+}
+.lp-agent-avatar--n {
+  background: linear-gradient(135deg, #FF385C, #D91A50);
+  color: #fff;
+}
+
+.lp-agent-bubble--user span:last-child {
+  background: rgba(255,255,255,0.07);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 10px 10px 10px 2px;
+  padding: 8px 12px;
+  color: rgba(255,255,255,0.8);
+}
+
+.lp-agent-bubble--ai span:last-child {
+  background: rgba(255,56,92,0.1);
+  border: 1px solid rgba(255,56,92,0.25);
+  border-radius: 10px 10px 10px 2px;
+  padding: 8px 12px;
+  color: #fce7ec;
+}
+
+.lp-agent-bubble--think {
+  padding: 6px 10px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.06);
+  font-size: 0.78rem;
+  color: rgba(255,255,255,0.4);
+  flex-wrap: wrap;
+}
+
+.lp-agent-bubble--alert {
+  background: rgba(239,68,68,0.12);
+  border: 1px solid rgba(239,68,68,0.35);
+  border-radius: 8px;
+  padding: 8px 12px;
+  font-size: 0.8rem;
+  color: #fca5a5;
+}
+
+/* Thinking dots */
+.lp-agent-dots {
+  display: inline-flex;
+  gap: 3px;
+  align-items: center;
+  margin-right: 6px;
+}
+.lp-agent-dots span {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: rgba(255,255,255,0.4);
+  animation: agentDotPulse 1.4s ease-in-out infinite;
+}
+.lp-agent-dots span:nth-child(2) { animation-delay: 0.2s; }
+.lp-agent-dots span:nth-child(3) { animation-delay: 0.4s; }
+@keyframes agentDotPulse {
+  0%, 60%, 100% { opacity: 0.25; transform: scale(1); }
+  30%           { opacity: 1;    transform: scale(1.3); }
+}
+
+/* Plan card inside window */
+.lp-agent-plan-card {
+  background: rgba(0,125,220,0.1);
+  border: 1px solid rgba(0,125,220,0.3);
+  border-radius: 10px;
+  padding: 12px 14px;
+}
+.lp-agent-plan-card__head {
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: #93c5fd;
+  margin-bottom: 8px;
+  letter-spacing: 0.02em;
+}
+.lp-agent-plan-card__day {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.77rem;
+  color: rgba(255,255,255,0.7);
+  padding: 3px 0;
+}
+.lp-agent-plan-card__dot {
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: #60a5fa;
+  flex-shrink: 0;
+}
+
+/* ─────────────────────────────────────────────────────────────────
+   WHY DIFFERENT — BENTO GRID
+   ───────────────────────────────────────────────────────────────── */
+/* ─────────────────────────────────────────────────────────────────
+   BENTO GRID  "Why Different"
+   ───────────────────────────────────────────────────────────────── */
+.lp-bento {
+  padding: 120px 52px;
+  background: linear-gradient(180deg, #f0f4fb 0%, #f8faff 60%, #ffffff 100%);
+  position: relative;
+}
+.lp-bento::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: radial-gradient(circle, rgba(100,116,139,0.055) 1px, transparent 1px);
+  background-size: 28px 28px;
+  pointer-events: none;
+}
+.lp-bento__header {
+  text-align: center;
+  max-width: 640px;
+  margin: 0 auto 64px;
+  position: relative;
+  z-index: 1;
+}
+.lp-bento__grid {
+  max-width: var(--lp-max-w);
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 18px;
+  position: relative;
+  z-index: 1;
+}
+
+/* ── Base card ── */
+.lp-bento-card {
+  border-radius: 22px;
+  padding: 32px 30px;
+  position: relative;
+  overflow: hidden;
+  transition: transform 0.28s cubic-bezier(.22,.68,0,1.2), box-shadow 0.28s ease, border-color 0.28s ease;
+  border: 1px solid transparent;
+}
+.lp-bento-card:hover { transform: translateY(-5px); }
+
+/* Ghost decorative icon */
+.lp-bento-card__deco-icon {
+  position: absolute;
+  right: -14px;
+  bottom: -18px;
+  opacity: 0.055;
+  pointer-events: none;
+  line-height: 0;
+  color: currentColor;
+}
+
+.lp-bento-card h3 {
+  font-family: 'Playfair Display', serif;
+  font-size: 1.13rem;
+  font-weight: 700;
+  margin: 14px 0 9px;
+  color: var(--lp-text);
+}
+.lp-bento-card p {
+  font-size: 0.86rem;
+  line-height: 1.65;
+  color: var(--lp-text-muted);
+  margin: 0;
+}
+.lp-bento-card__icon { color: var(--lp-primary); }
+.lp-bento-card__tag {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.67rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 1.1px;
+  padding: 3px 10px;
+  border-radius: 999px;
+  background: rgba(255,56,92,0.1);
+  color: var(--lp-primary);
+  border: 1px solid rgba(255,56,92,0.22);
+  margin-bottom: 6px;
+}
+
+/* ── Grid placement ── */
+.lp-bento-card--risk    { grid-column: span 6; }
+.lp-bento-card--agent   { grid-column: span 3; }
+.lp-bento-card--collab  { grid-column: span 3; }
+.lp-bento-card--canvas  { grid-column: span 6; }
+.lp-bento-card--passport{ grid-column: span 6; }
+
+/* -- RISK  dark navy -- */
+.lp-bento-card--risk {
+  background: linear-gradient(135deg, #060d1a 0%, #0b1830 50%, #0e1f3a 100%);
+  border-color: rgba(239,68,68,0.2);
+  position: relative;
+}
+/* Animated top border */
+.lp-bento-card--risk::before {
+  content: "";
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, transparent 0%, #ef4444 30%, #f97316 60%, #ef4444 80%, transparent 100%);
+  background-size: 300% 100%;
+  animation: riskBorderShift 3s linear infinite;
+}
+@keyframes riskBorderShift {
+  0%   { background-position: 100% 0%; }
+  100% { background-position: -200% 0%; }
+}
+/* Radial glow blob */
+.lp-bento-risk__glow {
+  position: absolute;
+  top: -40px;
+  right: -40px;
+  width: 220px;
+  height: 220px;
+  background: radial-gradient(circle, rgba(239,68,68,0.18) 0%, transparent 70%);
+  border-radius: 50%;
+  pointer-events: none;
+}
+.lp-bento-card--risk:hover {
+  border-color: rgba(239,68,68,0.38);
+  box-shadow: 0 32px 64px rgba(0,0,0,0.5), 0 0 60px rgba(239,68,68,0.14);
+}
+.lp-bento-card--risk h3 { color: #f1f5f9; font-size: 1.2rem; letter-spacing: -0.01em; }
+.lp-bento-card--risk p  { color: rgba(241,245,249,0.52); font-size: 0.84rem; }
+
+/* Header row */
+.lp-bento-risk__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+/* LIVE badge */
+.lp-bento-risk__live {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.65rem;
+  font-weight: 800;
+  letter-spacing: 1.2px;
+  color: #4ade80;
+  background: rgba(74,222,128,0.1);
+  border: 1px solid rgba(74,222,128,0.25);
+  padding: 3px 8px;
+  border-radius: 999px;
+}
+.lp-bento-risk__live-dot {
+  width: 6px; height: 6px;
+  background: #4ade80;
+  border-radius: 50%;
+  animation: riskLivePulse 1.4s ease-in-out infinite;
+}
+@keyframes riskLivePulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.4; transform: scale(0.7); }
+}
+/* EXCLUSIVE tag pulse dot */
+.lp-bento-risk__pulse {
+  display: inline-block;
+  width: 5px; height: 5px;
+  background: #f87171;
+  border-radius: 50%;
+  margin-right: 4px;
+  vertical-align: middle;
+  animation: riskLivePulse 1.8s ease-in-out infinite;
+}
+.lp-bento-card--risk .lp-bento-card__tag {
+  background: rgba(239,68,68,0.15);
+  color: #f87171;
+  border-color: rgba(239,68,68,0.3);
+}
+/* Icon + title row */
+.lp-bento-risk__title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 14px 0 8px;
+}
+.lp-bento-risk__icon-wrap {
+  width: 36px; height: 36px;
+  background: rgba(239,68,68,0.14);
+  border: 1px solid rgba(239,68,68,0.28);
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #f87171;
+  flex-shrink: 0;
+}
+.lp-bento-risk__title-row h3 { margin: 0; }
+/* Risk table */
+.lp-bento-risk-table {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 16px;
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.07);
+  overflow: hidden;
+}
+.lp-bento-risk-row-mini {
+  display: grid;
+  grid-template-columns: 22px 1fr 80px 80px;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 14px;
+  background: rgba(255,255,255,0.03);
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  transition: background 0.2s;
+}
+.lp-bento-risk-row-mini:last-child { border-bottom: none; }
+.lp-bento-risk-row-mini:hover { background: rgba(255,255,255,0.055); }
+.lp-risk-flag { font-size: 1rem; line-height: 1; }
+.lp-risk-name { font-size: 0.82rem; font-weight: 600; color: rgba(241,245,249,0.9); }
+/* Progress bar */
+.lp-risk-bar-wrap {
+  height: 4px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 999px;
+  overflow: hidden;
+}
+.lp-risk-bar {
+  height: 100%;
+  border-radius: 999px;
+  transition: width 0.6s ease;
+}
+.lp-risk-badge {
+  font-size: 0.68rem;
+  font-weight: 700;
+  padding: 3px 9px;
+  border-radius: 999px;
+  border: 1px solid;
+  background: rgba(255,255,255,0.05);
+  text-align: center;
+  white-space: nowrap;
+}
+/* Footer */
+.lp-bento-risk__footer {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 14px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.07);
+  font-size: 0.71rem;
+  color: rgba(241,245,249,0.35);
+}
+/* Ghost deco icon */
+.lp-bento-card--risk .lp-bento-card__deco-icon { color: #ef4444; opacity: 0.03; }
+
+/* ── AGENT  violet/indigo ── */
+.lp-bento-card--agent {
+  background: linear-gradient(145deg, #faf5ff 0%, #ede9fe 100%);
+  border-color: rgba(139,92,246,0.18);
+}
+.lp-bento-card--agent::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #8b5cf6, #a78bfa, #8b5cf6);
+}
+.lp-bento-card--agent:hover { box-shadow: 0 20px 48px rgba(139,92,246,0.2); border-color: rgba(139,92,246,0.32); }
+.lp-bento-card--agent .lp-bento-card__icon { color: #7c3aed; }
+.lp-bento-card--agent h3 { color: #3b1f7a; }
+.lp-bento-card--agent p  { color: #6d4a9e; }
+.lp-bento-card--agent .lp-bento-card__tag  { background: rgba(139,92,246,0.12); color: #7c3aed; border-color: rgba(139,92,246,0.25); }
+
+/* ── COLLAB  blue ── */
+.lp-bento-card--collab {
+  background: linear-gradient(145deg, #eff6ff 0%, #dbeafe 100%);
+  border-color: rgba(59,130,246,0.18);
+}
+.lp-bento-card--collab::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #3b82f6, #60a5fa, #3b82f6);
+}
+.lp-bento-card--collab:hover { box-shadow: 0 20px 48px rgba(59,130,246,0.18); border-color: rgba(59,130,246,0.32); }
+.lp-bento-card--collab .lp-bento-card__icon { color: #2563eb; }
+.lp-bento-card--collab h3 { color: #1e3a7a; }
+.lp-bento-card--collab p  { color: #3a6aba; }
+.lp-bento-card--collab .lp-bento-card__tag { background: rgba(59,130,246,0.1); color: #2563eb; border-color: rgba(59,130,246,0.25); }
+
+/* ── CANVAS  orange/warm ── */
+.lp-bento-card--canvas {
+  background: linear-gradient(145deg, #fff7ed 0%, #ffedd5 100%);
+  border-color: rgba(234,88,12,0.15);
+}
+.lp-bento-card--canvas::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #f97316, #fb923c, #f97316);
+}
+.lp-bento-card--canvas:hover { box-shadow: 0 20px 48px rgba(234,88,12,0.15); border-color: rgba(234,88,12,0.28); }
+.lp-bento-card--canvas .lp-bento-card__icon { color: #ea580c; }
+.lp-bento-card--canvas h3 { color: #7c2d12; }
+.lp-bento-card--canvas p  { color: #9a4520; }
+.lp-bento-card--canvas .lp-bento-card__tag { background: rgba(234,88,12,0.1); color: #ea580c; border-color: rgba(234,88,12,0.25); }
+
+/* ── PASSPORT  emerald ── */
+.lp-bento-card--passport {
+  background: linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%);
+  border-color: rgba(22,163,74,0.15);
+}
+.lp-bento-card--passport::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0;
+  height: 2px;
+  background: linear-gradient(90deg, #16a34a, #4ade80, #16a34a);
+}
+.lp-bento-card--passport:hover { box-shadow: 0 20px 48px rgba(22,163,74,0.15); border-color: rgba(22,163,74,0.28); }
+.lp-bento-card--passport .lp-bento-card__icon { color: #16a34a; }
+.lp-bento-card--passport h3 { color: #14532d; }
+.lp-bento-card--passport p  { color: #247a4a; }
+.lp-bento-card--passport .lp-bento-card__tag { background: rgba(22,163,74,0.1); color: #16a34a; border-color: rgba(22,163,74,0.25); }
+
+/* ─── Risk mini table (inside risk card) ───── */
+.lp-bento-risk-table {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  margin-top: 18px;
+  padding: 14px 16px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 12px;
+  border: 1px solid rgba(255,255,255,0.08);
+}
+.lp-bento-risk-row-mini {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: rgba(248,250,252,0.85);
+}
+.lp-bento-risk-row-mini > span:nth-child(2) { flex: 1; }
+.lp-risk-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.lp-risk-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  padding: 2px 8px;
+  border-radius: 999px;
+  border: 1px solid;
+  background: rgba(255,255,255,0.06);
+}
+
+/* ─── Agent chat preview ───── */
+.lp-bento-agent-preview {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.lp-bento-agent-msg {
+  font-size: 0.75rem;
+  padding: 7px 11px;
+  border-radius: 10px;
+  line-height: 1.45;
+  max-width: 92%;
+}
+.lp-bento-agent-msg--user {
+  background: rgba(139,92,246,0.12);
+  border: 1px solid rgba(139,92,246,0.22);
+  color: #4c1d95;
+  align-self: flex-end;
+  text-align: right;
+}
+.lp-bento-agent-msg--ai {
+  background: rgba(139,92,246,0.07);
+  border: 1px solid rgba(139,92,246,0.15);
+  color: #5b21b6;
+  align-self: flex-start;
+}
+
+/* ─── Collab avatars ───── */
+.lp-bento-collab-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-top: 18px;
+}
+.lp-bento-avatars { display: flex; }
+.lp-bento-avatars span {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #3b82f6, #6366f1);
+  color: #fff;
+  font-size: 0.67rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #eff6ff;
+  margin-left: -8px;
+}
+.lp-bento-avatars span:first-child { margin-left: 0; }
+.lp-bento-live-badge {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: #16a34a;
+  background: rgba(22,163,74,0.1);
+  border: 1px solid rgba(22,163,74,0.22);
+  padding: 3px 9px;
+  border-radius: 999px;
+}
+
+/* ─── Canvas SVG route ───── */
+.lp-bento-route-svg {
+  width: 100%;
+  max-width: 260px;
+  height: 48px;
+  margin-top: 20px;
+  display: block;
+}
+
+/* ─── Passport stamps ───── */
+.lp-bento-stamps {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 18px;
+  flex-wrap: wrap;
+}
+.lp-bento-stamps > span { font-size: 1.5rem; filter: drop-shadow(0 1px 3px rgba(0,0,0,0.1)); }
+.lp-bento-stamps-more {
+  font-size: 0.72rem !important;
+  font-weight: 700;
+  padding: 3px 9px;
+  background: rgba(22,163,74,0.12);
+  color: #16a34a;
+  border-radius: 999px;
+  border: 1px solid rgba(22,163,74,0.22);
+  line-height: 1.6;
+}
+
+
+/* ─────────────────────────────────────────────────────────────────
+   RISK MONITOR TEASER
+   ───────────────────────────────────────────────────────────────── */
+.lp-risk-preview {
+  padding: 100px 52px;
+  background: linear-gradient(160deg, #080c14 0%, #0c1525 60%, #10192e 100%);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.lp-risk-preview__card {
+  position: relative;
+  z-index: 2;
+  max-width: 680px;
+  width: 100%;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.1);
+  border-radius: 24px;
+  padding: 52px 48px;
+  backdrop-filter: blur(20px);
+  box-shadow: 0 40px 100px rgba(0,0,0,0.5);
+}
+
+.lp-risk-preview__kala {
+  position: absolute;
+  right: -120px;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  z-index: 1;
+}
+
+.lp-risk-preview__live {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 2px;
+  color: #4ade80;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+.lp-live-pulse {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #4ade80;
+  animation: livePulse 2s ease-in-out infinite;
+  flex-shrink: 0;
+}
+@keyframes livePulse {
+  0%, 100% { opacity: 1; box-shadow: 0 0 0 0 rgba(74,222,128,0.6); }
+  50%       { opacity: 0.6; box-shadow: 0 0 0 6px rgba(74,222,128,0); }
+}
+
+.lp-risk-preview__title {
+  font-family: 'Playfair Display', serif;
+  font-size: clamp(1.8rem, 3vw, 2.6rem);
+  font-weight: 700;
+  color: #f8fafc;
+  line-height: 1.15;
+  margin: 0 0 18px;
+}
+.lp-risk-preview__title em {
+  background: linear-gradient(90deg, #FF385C, #FF8A9F);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  font-style: normal;
+}
+
+.lp-risk-preview__desc {
+  font-size: 0.975rem;
+  line-height: 1.7;
+  color: rgba(255,255,255,0.6);
+  margin-bottom: 32px;
+}
+
+.lp-risk-preview__rows {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-bottom: 36px;
+  padding: 16px;
+  background: rgba(255,255,255,0.04);
+  border: 1px solid rgba(255,255,255,0.07);
+  border-radius: 14px;
+}
+.lp-risk-row {
+  display: grid;
+  grid-template-columns: 28px 1fr auto 1fr;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px;
+  background: rgba(255,255,255,0.03);
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.06);
+}
+.lp-risk-row__flag  { font-size: 1.25rem; line-height: 1; }
+.lp-risk-row__name  { font-size: 0.875rem; font-weight: 700; color: #f8fafc; }
+.lp-risk-row__status{ font-size: 0.78rem; font-weight: 800; text-align: right; }
+.lp-risk-row__detail{ font-size: 0.75rem; color: rgba(255,255,255,0.45); text-align: right; }
+
+/* ─────────────────────────────────────────────────────────────────
+   RESPONSIVE ADDITIONS
+   ───────────────────────────────────────────────────────────────── */
+@media (max-width: 1024px) {
+  .lp-ai-agent { padding: 80px 32px; }
+  .lp-ai-agent__inner { grid-template-columns: 1fr; gap: 52px; }
+  .lp-bento { padding: 80px 32px; }
+  .lp-bento__grid { grid-template-columns: repeat(2, 1fr); }
+  .lp-bento-card--risk, .lp-bento-card--agent, .lp-bento-card--collab,
+  .lp-bento-card--canvas, .lp-bento-card--passport { grid-column: span 1; }
+  .lp-bento-card--risk { grid-column: span 2; }
+  .lp-risk-preview { padding: 80px 32px; }
+  .lp-risk-row { grid-template-columns: 28px 1fr auto; }
+  .lp-risk-row__detail { display: none; }
+}
+@media (max-width: 768px) {
+  .lp-ai-agent { padding: 64px 20px; }
+  .lp-bento { padding: 64px 20px; }
+  .lp-bento__grid { grid-template-columns: 1fr; }
+  .lp-bento-card--risk { grid-column: span 1; }
+  .lp-risk-preview { padding: 64px 20px; }
+  .lp-risk-preview__card { padding: 36px 24px; }
+  .lp-risk-preview__kala { display: none; }
+  .lp-risk-row { grid-template-columns: 28px 1fr auto; }
 }

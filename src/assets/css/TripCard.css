@@ -367,7 +367,13 @@
 .tc-members-row {
   display: flex;
   align-items: center;
+  justify-content: space-between;
   margin-top: -2px;
+}
+
+.tc-members-avatars {
+  display: flex;
+  align-items: center;
 }
 
 .tc-member-avatar {

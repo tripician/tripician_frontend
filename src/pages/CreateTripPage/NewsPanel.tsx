@@ -2,7 +2,13 @@ import React, { useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import { loadNews, setLocations, type NewsArticle } from '../../store/newsSlice';
-import { Box, Typography, Card, CardActionArea, Skeleton, Chip, Divider, Button, Stack } from '@mui/material';
+import { Box, Typography, Card, CardActionArea, Skeleton, Chip, Divider, Button, Stack, Accordion, AccordionSummary, AccordionDetails, Collapse, IconButton } from '@mui/material';
+import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
+import ExpandLessIcon from '@mui/icons-material/ExpandLess';
+import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
+import ErrorOutlineRoundedIcon from '@mui/icons-material/ErrorOutlineRounded';
+import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
+import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import { fetchWeather } from '../../services/APIs/weather/weatherService';
 import { fetchCurrency } from '../../services/APIs/currency/currencyService';
 import { flagEmojiFromCode, countryNameFromCode, countryCodeFromName } from '../../utils/countryFlags';
@@ -108,6 +114,197 @@ function normalizeLocationCode(value?: string): string {
   const match = lower.match(/[a-z]{2}/);
   return match ? match[0] : '';
 }
+
+// ─── Colour/icon helpers shared with AlertsPanel ──────────────────────────
+const ALERT_META: Record<string, { bg: string; border: string; iconColor: string; badgeColor: 'error' | 'warning' | 'info' | 'default'; description: string }> = {
+  'Severe Weather': {
+    bg: 'rgba(127,29,29,0.18)', border: 'rgba(239,68,68,0.45)', iconColor: '#f87171',
+    badgeColor: 'error',
+    description: 'Extreme meteorological events (hurricanes, typhoons, floods, earthquakes, wildfires) that may directly impact travel safety and infrastructure.'
+  },
+  'Travel Advisory': {
+    bg: 'rgba(120,53,15,0.18)', border: 'rgba(245,158,11,0.45)', iconColor: '#fbbf24',
+    badgeColor: 'warning',
+    description: 'Official travel bans, border closures, visa restrictions, curfews or states of emergency issued by governments that affect entry and movement.'
+  },
+  'Security Risk': {
+    bg: 'rgba(120,53,15,0.18)', border: 'rgba(245,158,11,0.4)', iconColor: '#fb923c',
+    badgeColor: 'warning',
+    description: 'Active security threats including protests, civil unrest, terrorist incidents or crime events in or near your travel corridor.'
+  },
+  'Health Alert': {
+    bg: 'rgba(20,83,45,0.18)', border: 'rgba(74,222,128,0.35)', iconColor: '#4ade80',
+    badgeColor: 'default',
+    description: 'Active disease outbreaks, epidemics or public health advisories that may require vaccination, testing or mask requirements for entry.'
+  },
+  'Transport Update': {
+    bg: 'rgba(30,58,138,0.2)', border: 'rgba(96,165,250,0.4)', iconColor: '#60a5fa',
+    badgeColor: 'info',
+    description: 'Disruptions to airports, airlines or rail services — including cancellations, strikes or major delays affecting your itinerary.'
+  }
+};
+
+interface AlertsPanelProps {
+  articles: NewsArticle[];
+  loading: boolean;
+  classifyImpact: (a: NewsArticle) => { label: string; color: string } | null;
+  formatDate: (iso?: string) => string;
+}
+
+const AlertsPanel: React.FC<AlertsPanelProps> = ({ articles, loading, classifyImpact, formatDate }) => {
+  const [expandedKey, setExpandedKey] = React.useState<string | false>(false);
+  const [openArticle, setOpenArticle] = React.useState<number | false>(false);
+
+  const groups = React.useMemo(() => {
+    type Group = { label: string; articles: NewsArticle[] };
+    const map = new Map<string, Group>();
+    articles.forEach(a => {
+      const impact = classifyImpact(a);
+      if (!impact) return;
+      const existing = map.get(impact.label);
+      if (existing) existing.articles.push(a);
+      else map.set(impact.label, { label: impact.label, articles: [a] });
+    });
+    // Order: Severe Weather → Travel Advisory → Security Risk → Health Alert → Transport Update
+    const order = ['Severe Weather', 'Travel Advisory', 'Security Risk', 'Health Alert', 'Transport Update'];
+    return order.map(k => map.get(k)).filter(Boolean) as Group[];
+  }, [articles, classifyImpact]);
+
+  if (loading && articles.length === 0) {
+    return (
+      <Card sx={{ p: 2.2, borderRadius: 2.5, border: '1px solid rgba(239,68,68,0.25)', bgcolor: theme => theme.palette.mode === 'dark' ? 'rgba(60,10,10,0.3)' : 'rgba(254,244,243,0.9)' }}>
+        <Stack direction='row' alignItems='center' spacing={1.5} sx={{ mb: 1.5 }}>
+          <Skeleton variant='circular' width={28} height={28} />
+          <Skeleton width='60%' height={20} />
+        </Stack>
+        {[80, 70, 90].map((w, i) => <Skeleton key={i} width={`${w}%`} height={14} sx={{ mb: 0.6 }} />)}
+      </Card>
+    );
+  }
+
+  if (!groups.length) return null;
+
+  const totalAlerts = groups.reduce((s, g) => s + g.articles.length, 0);
+
+  return (
+    <Card sx={{
+      borderRadius: 3, overflow: 'hidden', p: 0,
+      border: '1px solid rgba(239,68,68,0.35)',
+      background: theme => theme.palette.mode === 'dark'
+        ? 'linear-gradient(145deg, #1a0a0a 0%, #1c0f0f 100%)'
+        : 'linear-gradient(145deg, #fff7f7 0%, #fff1f1 100%)',
+      boxShadow: '0 8px 32px rgba(239,68,68,0.1)'
+    }}>
+      {/* Header */}
+      <Box sx={{ px: 2.2, pt: 2, pb: 1.8, display: 'flex', alignItems: 'center', justifyContent: 'space-between', borderBottom: '1px solid rgba(239,68,68,0.18)' }}>
+        <Stack direction='row' spacing={1.2} alignItems='center'>
+          <Box sx={{ width: 32, height: 32, borderRadius: 1.5, bgcolor: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
+            <WarningAmberRoundedIcon sx={{ fontSize: 17, color: '#ef4444' }} />
+          </Box>
+          <Box>
+            <Typography variant='subtitle1' fontWeight={800} sx={{ lineHeight: 1.1, color: theme => theme.palette.mode === 'dark' ? '#fca5a5' : '#b91c1c' }}>Active Alerts</Typography>
+            <Typography variant='caption' sx={{ opacity: .6 }}>{totalAlerts} item{totalAlerts !== 1 ? 's' : ''} across {groups.length} categor{groups.length !== 1 ? 'ies' : 'y'}</Typography>
+          </Box>
+        </Stack>
+        <Box sx={{ px: 1.2, py: 0.4, borderRadius: 999, bgcolor: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)' }}>
+          <Typography variant='caption' sx={{ fontWeight: 800, color: '#ef4444', letterSpacing: .5 }}>{totalAlerts}</Typography>
+        </Box>
+      </Box>
+
+      {/* Alert category accordions */}
+      {groups.map(group => {
+        const meta = ALERT_META[group.label] || ALERT_META['Transport Update'];
+        const isOpen = expandedKey === group.label;
+        return (
+          <Box key={group.label} sx={{ borderBottom: '1px solid rgba(239,68,68,0.1)', '&:last-child': { borderBottom: 'none' } }}>
+            {/* Category header (clickable) */}
+            <Box
+              onClick={() => setExpandedKey(isOpen ? false : group.label)}
+              sx={{
+                px: 2.2, py: 1.5, display: 'flex', alignItems: 'center', gap: 1.5, cursor: 'pointer',
+                transition: 'background .18s',
+                bgcolor: isOpen ? meta.bg : 'transparent',
+                '&:hover': { bgcolor: meta.bg }
+              }}
+            >
+              <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: meta.iconColor, flexShrink: 0, boxShadow: `0 0 6px ${meta.iconColor}` }} />
+              <Typography variant='body2' fontWeight={700} sx={{ flex: 1, color: theme => theme.palette.mode === 'dark' ? '#f1f5f9' : '#0f172a' }}>
+                {group.label}
+              </Typography>
+              <Chip size='small' label={group.articles.length} sx={{ height: 20, fontSize: 11, fontWeight: 700, bgcolor: meta.bg, color: meta.iconColor, border: `1px solid ${meta.border}`, minWidth: 28 }} />
+              {isOpen
+                ? <ExpandLessIcon sx={{ fontSize: 18, opacity: .55, flexShrink: 0 }} />
+                : <ExpandMoreIcon sx={{ fontSize: 18, opacity: .55, flexShrink: 0 }} />}
+            </Box>
+
+            {/* Expanded content */}
+            <Collapse in={isOpen} timeout={220}>
+              <Box sx={{ px: 2.2, pb: 1.5, pt: 0.5 }}>
+                {/* What does this mean explanation */}
+                <Box sx={{ p: 1.4, mb: 1.5, borderRadius: 2, bgcolor: meta.bg, border: `1px solid ${meta.border}` }}>
+                  <Stack direction='row' spacing={1} alignItems='flex-start'>
+                    <InfoOutlinedIcon sx={{ fontSize: 15, color: meta.iconColor, mt: '1px', flexShrink: 0 }} />
+                    <Typography variant='caption' sx={{ lineHeight: 1.65, color: theme => theme.palette.mode === 'dark' ? '#e2e8f0' : '#1e293b', fontStyle: 'italic' }}>
+                      {meta.description}
+                    </Typography>
+                  </Stack>
+                </Box>
+
+                {/* Individual article items */}
+                <Stack spacing={0.6}>
+                  {group.articles.slice(0, 8).map(a => {
+                    const isArticleOpen = openArticle === a.article_id;
+                    return (
+                      <Box key={a.article_id}>
+                        <Box
+                          onClick={() => setOpenArticle(isArticleOpen ? false : a.article_id)}
+                          sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.2, p: 1, borderRadius: 1.5, cursor: 'pointer', transition: 'background .15s', '&:hover': { background: theme => theme.palette.action.hover } }}
+                        >
+                          <ErrorOutlineRoundedIcon sx={{ fontSize: 14, color: meta.iconColor, mt: '2px', flexShrink: 0 }} />
+                          <Typography variant='caption' sx={{ flex: 1, lineHeight: 1.5, fontWeight: 500 }}>{a.title}</Typography>
+                          <Stack direction='row' spacing={0.5} alignItems='center' sx={{ flexShrink: 0 }}>
+                            <Typography variant='caption' sx={{ opacity: .45, whiteSpace: 'nowrap' }}>{formatDate(a.timestamp)}</Typography>
+                            {isArticleOpen
+                              ? <ExpandLessIcon sx={{ fontSize: 14, opacity: .4 }} />
+                              : <ExpandMoreIcon sx={{ fontSize: 14, opacity: .4 }} />}
+                          </Stack>
+                        </Box>
+
+                        <Collapse in={isArticleOpen} timeout={180}>
+                          <Box sx={{ ml: 2.8, mb: 1, p: 1.2, borderRadius: 1.5, bgcolor: theme => theme.palette.action.hover, border: theme => `1px solid ${theme.palette.divider}` }}>
+                            {a.summary && (
+                              <Typography variant='caption' sx={{ display: 'block', lineHeight: 1.65, mb: 1, color: 'text.primary' }}>{a.summary}</Typography>
+                            )}
+                            <Stack direction='row' spacing={1} alignItems='center' justifyContent='space-between'>
+                              <Stack direction='row' spacing={0.6} flexWrap='wrap'>
+                                {a.site_name && <Chip size='small' label={a.site_name} variant='outlined' sx={{ height: 18, fontSize: 10 }} />}
+                                {a.section_name && <Chip size='small' label={a.section_name} sx={{ height: 18, fontSize: 10, bgcolor: meta.bg, color: meta.iconColor, border: `1px solid ${meta.border}` }} />}
+                              </Stack>
+                              <Box
+                                component='a' href={a.url} target='_blank' rel='noopener noreferrer'
+                                onClick={(e: React.MouseEvent) => e.stopPropagation()}
+                                sx={{ display: 'flex', alignItems: 'center', gap: 0.4, fontSize: 11, color: 'primary.main', textDecoration: 'none', fontWeight: 600, '&:hover': { textDecoration: 'underline' }, whiteSpace: 'nowrap', flexShrink: 0 }}
+                              >
+                                Read more <OpenInNewRoundedIcon sx={{ fontSize: 11 }} />
+                              </Box>
+                            </Stack>
+                          </Box>
+                        </Collapse>
+                      </Box>
+                    );
+                  })}
+                  {group.articles.length > 8 && (
+                    <Typography variant='caption' sx={{ pl: 1, opacity: .5 }}>+{group.articles.length - 8} more items</Typography>
+                  )}
+                </Stack>
+              </Box>
+            </Collapse>
+          </Box>
+        );
+      })}
+    </Card>
+  );
+};
 
 interface NewsPanelProps {
   selectedCountries?: string[];
@@ -422,17 +619,14 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
   };
 
   const HeroSkeletons = (
-    <Box sx={{
-      mb: 2,
-      display: 'grid',
-      gap: 2,
-      gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,1fr)', md: 'repeat(4,1fr)' }
-    }}>
+    <Box sx={{ mb: 2, display: 'grid', gap: 2, gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,1fr)', md: 'repeat(4,1fr)' } }}>
       {Array.from({ length: MAX_HERO }).map((_, i) => (
-        <Box key={i}>
-          <Skeleton variant="rectangular" height={140} />
-          <Skeleton width="80%" />
-          <Skeleton width="60%" />
+        <Box key={i} sx={{ borderRadius: 2.5, overflow: 'hidden' }}>
+          <Skeleton variant='rectangular' height={160} sx={{ borderRadius: '10px 10px 0 0' }} />
+          <Box sx={{ p: 1.5 }}>
+            <Skeleton width='85%' height={18} sx={{ mb: 1 }} />
+            <Skeleton width='60%' height={14} />
+          </Box>
         </Box>
       ))}
     </Box>
@@ -440,11 +634,14 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
 
   if (!targetLocations.length) {
     return (
-      <Box sx={{ p: { xs: 2, md: 3 }, width: '100%', boxSizing: 'border-box' }}>
-        <Card sx={{ p: { xs: 2.5, md: 3 }, borderRadius: 3, textAlign: 'center', border: '1px dashed', borderColor: 'divider', bgcolor: 'background.paper' }}>
-          <Typography variant='h6' sx={{ fontWeight: 700, mb: 1 }}>Select Trip Countries</Typography>
-          <Typography variant='body2' color='text.secondary'>Add at least one destination in trip settings to unlock travel news, weather, and currency intelligence tailored to your itinerary.</Typography>
-        </Card>
+      <Box sx={{ p: { xs: 2, md: 3 }, width: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 340 }}>
+        <Box sx={{ textAlign: 'center', maxWidth: 420 }}>
+          <Box sx={{ fontSize: 60, mb: 2.5, lineHeight: 1, filter: 'grayscale(0.1)' }}>🛰️</Box>
+          <Typography variant='h6' sx={{ fontWeight: 800, mb: 1.5, letterSpacing: .3 }}>No Active Corridors</Typography>
+          <Typography variant='body2' color='text.secondary' sx={{ lineHeight: 1.7, maxWidth: 360, mx: 'auto' }}>
+            Add destinations in your trip settings to unlock real-time intelligence — breaking news, live weather alerts, and currency rates curated for your itinerary.
+          </Typography>
+        </Box>
       </Box>
     );
   }
@@ -464,70 +661,65 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
         </Box>
       )}
 
-      <Card
-        sx={{
-          mb: 3,
-          p: { xs: 2.2, md: 3 },
-          color: '#f8fafc',
-          background: 'linear-gradient(135deg,#0f172a 0%, #1e3a8a 38%, #0ea5e9 100%)',
-          border: 'none',
-          borderRadius: 3,
-          position: 'relative',
-          overflow: 'hidden',
-          boxShadow: '0 28px 42px rgba(15,23,42,0.35)'
-        }}
-      >
-        <Box sx={{ position: 'absolute', inset: 0, background: 'radial-gradient(circle at 18% 20%, rgba(255,255,255,0.18), transparent 55%)' }} />
-        <Box sx={{ position: 'relative', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: { xs: 2, md: 4 }, justifyContent: 'space-between' }}>
-          <Box sx={{ maxWidth: 520 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap', mb: 1 }}>
-              <Typography variant='h5' sx={{ fontWeight: 700, letterSpacing: .4 }}>Travel Risk Monitor</Typography>
-              <Box sx={{ px: 1.2, py: 0.4, borderRadius: 999, border: '1px solid rgba(148,163,184,0.5)', bgcolor: 'rgba(15,23,42,0.35)', display: 'inline-flex', alignItems: 'center' }}>
-                <Typography variant='caption' sx={{ fontWeight: 600, letterSpacing: 1, color: '#f8fafc', textTransform: 'uppercase' }}>Coming Soon</Typography>
+      {/* ── Premium Risk Monitor Banner ── */}
+      <Box sx={{
+        mb: 3, color: '#f8fafc', borderRadius: { xs: 2.5, md: 3.5 },
+        background: 'linear-gradient(135deg, #020a1c 0%, #0a1628 20%, #0d2146 50%, #1255b0 78%, #0288d1 100%)',
+        position: 'relative', overflow: 'hidden',
+        boxShadow: '0 32px 80px rgba(2,8,28,0.55), 0 0 0 1px rgba(255,255,255,0.07)',
+        p: { xs: 2.5, md: 3.5 }
+      }}>
+        {/* Dot grid overlay */}
+        <Box sx={{ position: 'absolute', inset: 0, backgroundImage: 'radial-gradient(rgba(255,255,255,0.045) 1px, transparent 1px)', backgroundSize: '22px 22px', pointerEvents: 'none' }} />
+        {/* Radial glow blobs */}
+        <Box sx={{ position: 'absolute', inset: 0, background: 'radial-gradient(ellipse at 12% 25%, rgba(56,189,248,0.18) 0%, transparent 52%), radial-gradient(ellipse at 88% 75%, rgba(99,102,241,0.15) 0%, transparent 48%)', pointerEvents: 'none' }} />
+
+        <Box sx={{ position: 'relative', display: 'flex', flexDirection: { xs: 'column', md: 'row' }, gap: { xs: 2.5, md: 4 }, justifyContent: 'space-between', alignItems: { md: 'center' } }}>
+          {/* Left: title + description */}
+          <Box sx={{ maxWidth: 500 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', mb: 1.2 }}>
+              <Box sx={{ width: 38, height: 38, borderRadius: 2, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🛰️</Box>
+              <Typography variant='h5' sx={{ fontWeight: 800, letterSpacing: .3, fontSize: { xs: '1.15rem', md: '1.4rem' } }}>Travel Risk Monitor</Typography>
+              {/* Live pulse indicator */}
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, px: 1.2, py: 0.45, borderRadius: 999, border: '1px solid rgba(74,222,128,0.5)', bgcolor: 'rgba(20,83,45,0.55)', flexShrink: 0 }}>
+                <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#4ade80', '@keyframes livePulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.35 } }, animation: 'livePulse 2s ease-in-out infinite' }} />
+                <Typography variant='caption' sx={{ fontWeight: 700, letterSpacing: .8, color: '#4ade80', fontSize: 10, textTransform: 'uppercase' }}>Live</Typography>
               </Box>
             </Box>
-            <Typography variant='body2' sx={{ opacity: .86 }}>
+            <Typography variant='body2' sx={{ opacity: .8, lineHeight: 1.6 }}>
               Curating {filteredCount} essential updates with {alertCount} critical alerts across {coverageCount} active corridors.
             </Typography>
           </Box>
-          <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ minWidth: { sm: 320 } }}>
-            <Box sx={{ flex: 1, minWidth: 120, p: 2, borderRadius: 2, bgcolor: 'rgba(15,23,42,0.45)', border: '1px solid rgba(148,163,184,0.25)' }}>
-              <Typography variant='overline' sx={{ letterSpacing: 1.2, opacity: .7 }}>Stories </Typography>
-              <Typography variant='h5' sx={{ fontWeight: 700 }}>{filteredCount}</Typography>
-            </Box>
-            <Box sx={{ flex: 1, minWidth: 120, p: 2, borderRadius: 2, bgcolor: 'rgba(14,116,144,0.45)', border: '1px solid rgba(148,163,184,0.25)' }}>
-              <Typography variant='overline' sx={{ letterSpacing: 1.2, opacity: .75 }}>Alerts</Typography>
-              <Typography variant='h5' sx={{ fontWeight: 700 }}>{alertCount}</Typography>
-            </Box>
-            <Box sx={{ flex: 1, minWidth: 120, p: 2, borderRadius: 2, bgcolor: 'rgba(8,47,73,0.55)', border: '1px solid rgba(148,163,184,0.25)' }}>
-              <Typography variant='overline' sx={{ letterSpacing: 1.2, opacity: .75 }}>Countries</Typography>
-              <Typography variant='h5' sx={{ fontWeight: 700 }}>{coverageCount}</Typography>
-            </Box>
+
+          {/* Right: stat boxes */}
+          <Stack direction='row' spacing={1.5} sx={{ flexShrink: 0 }}>
+            {[{ label: 'Stories', value: filteredCount, accent: 'rgba(56,189,248,0.25)', border: 'rgba(56,189,248,0.35)' },
+              { label: 'Alerts', value: alertCount, accent: alertCount > 0 ? 'rgba(239,68,68,0.22)' : 'rgba(255,255,255,0.07)', border: alertCount > 0 ? 'rgba(239,68,68,0.5)' : 'rgba(255,255,255,0.14)' },
+              { label: 'Countries', value: coverageCount, accent: 'rgba(255,255,255,0.07)', border: 'rgba(255,255,255,0.14)' }
+            ].map(stat => (
+              <Box key={stat.label} sx={{ minWidth: 80, px: { xs: 1.5, md: 2 }, py: 1.5, borderRadius: 2.5, bgcolor: stat.accent, border: `1px solid ${stat.border}`, textAlign: 'center', backdropFilter: 'blur(12px)', transition: 'transform .2s', '&:hover': { transform: 'translateY(-2px)' } }}>
+                <Typography sx={{ fontSize: 10, letterSpacing: 1.4, opacity: .65, textTransform: 'uppercase', display: 'block', fontWeight: 600 }}>{stat.label}</Typography>
+                <Typography variant='h5' sx={{ fontWeight: 800, lineHeight: 1.1, color: stat.label === 'Alerts' && alertCount > 0 ? '#f87171' : 'inherit' }}>{stat.value}</Typography>
+              </Box>
+            ))}
           </Stack>
         </Box>
-        <Stack direction='row' spacing={1} flexWrap='wrap' sx={{ position: 'relative', mt: { xs: 2, md: 3 } }}>
+
+        {/* Country pills */}
+        <Stack direction='row' flexWrap='wrap' sx={{ position: 'relative', mt: 2.5, gap: '8px !important' }}>
           {coverageStats.map(item => (
-            <Chip
-              key={item.code}
-              size='small'
-              variant='outlined'
+            <Chip key={item.code} size='small' variant='outlined'
               label={`${item.flag ? `${item.flag} ` : ''}${item.name} • ${item.stories} stories`}
-              sx={{
-                borderColor: 'rgba(226,232,240,0.4)',
-                color: '#f8fafc',
-                bgcolor: 'rgba(15,23,42,0.3)',
-                fontSize: 12,
-                '&:hover': { bgcolor: 'rgba(148,163,184,0.25)' }
-              }}
+              sx={{ borderColor: 'rgba(255,255,255,0.22)', color: '#f8fafc', bgcolor: 'rgba(255,255,255,0.08)', backdropFilter: 'blur(8px)', fontSize: 11.5, '&:hover': { bgcolor: 'rgba(255,255,255,0.16)' } }}
             />
           ))}
         </Stack>
-      </Card>
+      </Box>
 
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', xl: 'row' }, gap: { xs: 3, xl: 4 }, alignItems: 'stretch' }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Box sx={{ mb: 2.5 }}>
-            <Typography variant="h6" sx={{ mb: 1.5, fontWeight: 700, letterSpacing: .3 }}>Top Stories</Typography>
+            <Typography variant='h6' sx={{ mb: 1.5, fontWeight: 800, letterSpacing: .3, display: 'flex', alignItems: 'center', gap: 1 }}>📰 Top Stories</Typography>
             {loading && !activeArticles.length ? HeroSkeletons : heroes.length ? (
               <Box sx={{
                 borderRadius: 3,
@@ -654,7 +846,7 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
           <Divider sx={{ mb: 2.5 }} />
 
           <Box>
-            <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>Latest</Typography>
+            <Typography variant='h6' sx={{ mb: 2, fontWeight: 800, letterSpacing: .3, display: 'flex', alignItems: 'center', gap: 1 }}>⚡ Latest</Typography>
             {loading && !activeArticles.length && (
               <Box>
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -666,8 +858,8 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
               </Box>
             )}
             {!loading && latest.map(a => (
-              <Card key={a.article_id} variant="outlined" sx={{ mb: 2, borderRadius: 2, transition: 'all .25s', '&:hover': { boxShadow: 4, transform: 'translateY(-2px)' } }}>
-                <CardActionArea href={a.url} target="_blank" rel="noopener noreferrer" sx={{ p: 1.5, display: 'flex', alignItems: 'flex-start', gap: 2 }}>
+              <Card key={a.article_id} sx={{ mb: 1.5, borderRadius: 2.5, overflow: 'hidden', transition: 'all .22s ease', border: theme => `1px solid ${theme.palette.divider}`, '&:hover': { transform: 'translateY(-3px)', boxShadow: theme => theme.palette.mode === 'dark' ? '0 12px 32px rgba(0,0,0,0.5)' : '0 12px 32px rgba(15,23,42,0.14)' } }}>
+                <CardActionArea href={a.url} target='_blank' rel='noopener noreferrer' sx={{ p: 1.5, display: 'flex', alignItems: 'flex-start', gap: 1.5 }}>
                   <ArticleImage src={a.images && a.images[0]?.url} alt={a.title} sx={{ width: 112, height: 76, borderRadius: 1.5, flexShrink: 0 }} />
                   <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column', gap: 0.75 }}>
                     <Typography variant="subtitle2" fontWeight={600} sx={{ lineHeight: 1.25 }}>{a.title}</Typography>
@@ -699,69 +891,102 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
             <Stack spacing={2}>
               {activeIntelList.map(intel => {
                 const storyCount = coverageMap[intel.code] || 0;
+                const baseCurrency = intel.currencyRates.base || intel.currency;
                 return (
-                  <Card key={intel.code} sx={{ p: 2.2, borderRadius: 2.5, background: 'linear-gradient(165deg, rgba(241,245,249,0.85) 0%, rgba(226,232,240,0.75) 100%)', border: '1px solid rgba(148,163,184,0.35)' }}>
-                    <Stack direction='row' justifyContent='space-between' alignItems='flex-start' spacing={1}>
-                      <Box>
-                        <Typography variant='subtitle1' fontWeight={700} sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                          {intel.flag && <span>{intel.flag}</span>}{intel.name}
-                        </Typography>
-                        <Typography variant='caption' color='text.secondary'>{intel.region} • {intel.languages.join(', ')}</Typography>
-                      </Box>
-                      <Chip size='small' label={intel.currencyRates.base || intel.currency} color='primary' variant='outlined' />
-                    </Stack>
-                    <Divider sx={{ my: 1.5 }} />
-                    <Stack direction='row' spacing={2} alignItems='center'>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.1 }}>
-                        {intel.weather.loading ? (
-                          <Skeleton variant='circular' width={46} height={46} />
-                        ) : (
-                          <Box sx={{ fontSize: 34, lineHeight: 1 }}>{renderWeatherGlyph(intel.weather.icon)}</Box>
-                        )}
+                  <Card key={intel.code} sx={{
+                    p: 0, borderRadius: 3, overflow: 'hidden',
+                    background: 'linear-gradient(145deg, #0d1f3c 0%, #102040 50%, #0b1930 100%)',
+                    border: '1px solid rgba(255,255,255,0.1)',
+                    boxShadow: '0 12px 40px rgba(5,12,30,0.45)',
+                    color: '#f8fafc'
+                  }}>
+                    {/* Card header strip */}
+                    <Box sx={{ px: 2.2, pt: 2, pb: 1.5 }}>
+                      <Stack direction='row' justifyContent='space-between' alignItems='flex-start'>
                         <Box>
+                          <Typography variant='subtitle1' fontWeight={800} sx={{ display: 'flex', alignItems: 'center', gap: 0.6, lineHeight: 1.2 }}>
+                            {intel.flag && <span style={{ fontSize: 18 }}>{intel.flag}</span>}{intel.name}
+                          </Typography>
+                          <Typography variant='caption' sx={{ opacity: .55 }}>{intel.region} • {intel.languages.join(', ')}</Typography>
+                        </Box>
+                        <Box sx={{ px: 1.2, py: 0.4, borderRadius: 999, bgcolor: 'rgba(59,130,246,0.2)', border: '1px solid rgba(59,130,246,0.4)' }}>
+                          <Typography variant='caption' sx={{ fontWeight: 700, color: '#93c5fd', letterSpacing: .5 }}>{baseCurrency}</Typography>
+                        </Box>
+                      </Stack>
+                    </Box>
+
+                    <Divider sx={{ borderColor: 'rgba(255,255,255,0.08)' }} />
+
+                    {/* Weather + FX */}
+                    <Box sx={{ px: 2.2, py: 1.8 }}>
+                      <Stack direction='row' spacing={2} alignItems='flex-start'>
+                        {/* Weather */}
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.2, minWidth: 0 }}>
                           {intel.weather.loading ? (
-                            <Skeleton width={70} />
+                            <Skeleton variant='circular' width={44} height={44} sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} />
                           ) : (
-                            <Typography variant='h6' sx={{ fontWeight: 700 }}>{intel.weather.temperatureC != null ? `${intel.weather.temperatureC.toFixed(0)}°C` : '—'}</Typography>
+                            <Box sx={{ width: 44, height: 44, borderRadius: '50%', bgcolor: 'rgba(255,255,255,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 22, flexShrink: 0, border: '1px solid rgba(255,255,255,0.12)' }}>
+                              {renderWeatherGlyph(intel.weather.icon)}
+                            </Box>
                           )}
-                          {intel.weather.loading ? (
-                            <Skeleton width={110} />
+                          <Box sx={{ minWidth: 0 }}>
+                            {intel.weather.loading ? <Skeleton width={60} sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} /> : (
+                              <Typography variant='h6' sx={{ fontWeight: 700, lineHeight: 1 }}>{intel.weather.temperatureC != null ? `${intel.weather.temperatureC.toFixed(0)}°C` : '—'}</Typography>
+                            )}
+                            {intel.weather.loading ? <Skeleton width={100} sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} /> : (
+                              <Typography variant='caption' sx={{ opacity: .6, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                                {intel.weather.conditionText || '—'}{intel.weather.windKph != null ? ` • ${intel.weather.windKph.toFixed(0)} km/h wind` : ''}
+                              </Typography>
+                            )}
+                          </Box>
+                        </Box>
+                        {/* FX rates */}
+                        <Box sx={{ flex: 1, minWidth: 0 }}>
+                          <Typography variant='caption' sx={{ opacity: .5, letterSpacing: .6, textTransform: 'uppercase', fontSize: 10 }}>Currency pulse</Typography>
+                          {intel.currencyRates.loading ? (
+                            <Box sx={{ mt: 0.5 }}><Skeleton width='90%' height={14} sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} /><Skeleton width='70%' height={14} sx={{ bgcolor: 'rgba(255,255,255,0.1)', mt: 0.4 }} /></Box>
                           ) : (
-                            <Typography variant='caption' color='text.secondary'>
-                              {intel.weather.conditionText || '—'}{intel.weather.windKph != null ? ` • ${intel.weather.windKph.toFixed(0)} km/h wind` : ''}
-                            </Typography>
+                            <Stack spacing={0.3} sx={{ mt: 0.5 }}>
+                              {MAJOR_FX.filter(cur => cur !== baseCurrency).map(cur => (
+                                <Box key={`${intel.code}-${cur}`} sx={{ display: 'flex', justifyContent: 'space-between' }}>
+                                  <Typography variant='caption' sx={{ opacity: .55 }}>1 {baseCurrency} =</Typography>
+                                  <Typography variant='caption' sx={{ fontWeight: 700, color: '#93c5fd' }}>{formatFxRate(intel.currencyRates.rates[cur])} {cur}</Typography>
+                                </Box>
+                              ))}
+                            </Stack>
                           )}
                         </Box>
-                      </Box>
-                      <Box sx={{ flex: 1 }}>
-                        <Typography variant='caption' color='text.secondary'>Currency pulse</Typography>
-                        {intel.currencyRates.loading ? (
-                          <Skeleton width='90%' />
-                        ) : (
-                          <Stack spacing={0.4} sx={{ mt: 0.4 }}>
-                            {MAJOR_FX.filter(cur => cur !== (intel.currencyRates.base || intel.currency)).map(cur => (
-                              <Typography key={`${intel.code}-${cur}`} variant='body2' sx={{ fontWeight: 500 }}>
-                                1 {intel.currencyRates.base || intel.currency} = {formatFxRate(intel.currencyRates.rates[cur])} {cur}
-                              </Typography>
-                            ))}
-                          </Stack>
+                      </Stack>
+                    </Box>
+
+                    {/* Footer badges */}
+                    <Box sx={{ px: 2.2, pb: 1.8 }}>
+                      <Stack direction='row' spacing={0.8} useFlexGap flexWrap='wrap'>
+                        {intel.weather.severity !== 'normal' && (
+                          <Chip size='small' color={severityColorMap[intel.weather.severity]}
+                            label={`${intel.weather.severity.charAt(0).toUpperCase()}${intel.weather.severity.slice(1)} alert`}
+                          />
                         )}
-                      </Box>
-                    </Stack>
-                    <Stack direction='row' spacing={1} useFlexGap flexWrap='wrap' sx={{ mt: 1.5 }}>
-                      {intel.weather.severity !== 'normal' && (
-                        <Chip size='small' color={severityColorMap[intel.weather.severity]} label={`${intel.weather.severity.charAt(0).toUpperCase()}${intel.weather.severity.slice(1)} alert`} />
-                      )}
-                      <Chip size='small' variant='outlined' label={`${storyCount} stories`} />
-                      <Chip size='small' variant='outlined' label={intel.languages.join(', ')} />
-                    </Stack>
+                        <Chip size='small' label={`${storyCount} stories`}
+                          sx={{ bgcolor: 'rgba(255,255,255,0.08)', color: '#e2e8f0', border: '1px solid rgba(255,255,255,0.15)', '& .MuiChip-label': { fontWeight: 600 } }}
+                        />
+                        {intel.languages.slice(0, 2).map(lang => (
+                          <Chip key={lang} size='small' label={lang}
+                            sx={{ bgcolor: 'rgba(255,255,255,0.06)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.1)' }}
+                          />
+                        ))}
+                      </Stack>
+                    </Box>
                   </Card>
                 );
               })}
             </Stack>
 
-            <Card variant='outlined' sx={{ p: 2, borderRadius: 2 }}>
-              <Typography variant='subtitle1' fontWeight={600} sx={{ mb: 1 }}>Global Trending</Typography>
+            {/* ── Active Alerts Panel ── */}
+            <AlertsPanel articles={activeArticles} loading={loading} classifyImpact={classifyImpact} formatDate={formatDate} />
+
+            <Card variant='outlined' sx={{ p: 2, borderRadius: 2.5 }}>
+              <Typography variant='subtitle1' fontWeight={800} sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 0.8 }}>🔥 Global Trending</Typography>
               {loading && trending.length === 0 ? (
                 <Box>
                   {Array.from({ length: TRENDING_COUNT }).map((_, i) => (
@@ -787,8 +1012,8 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
               )}
             </Card>
 
-            <Card variant='outlined' sx={{ p: 2, borderRadius: 2 }}>
-              <Typography variant='subtitle2' fontWeight={600} sx={{ mb: 1 }}>Coverage diagnostics</Typography>
+            <Card variant='outlined' sx={{ p: 2, borderRadius: 2.5 }}>
+              <Typography variant='subtitle2' fontWeight={700} sx={{ mb: 1.5, textTransform: 'uppercase', letterSpacing: .8, fontSize: 11, opacity: .65 }}>Coverage Diagnostics</Typography>
               <Stack spacing={0.75}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between' }}>
                   <Typography variant='caption' color='text.secondary'>Stories surfaced</Typography>
@@ -810,10 +1035,7 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
               <Button size='small' sx={{ mt: 2, alignSelf: 'flex-start' }} onClick={() => dispatch(loadNews({ locations: targetLocations }))}>Refresh now</Button>
             </Card>
 
-            <Card variant='outlined' sx={{ p: 2, textAlign: 'center', borderRadius: 2 }}>
-              <Typography variant='subtitle1' sx={{ fontWeight: 500, mb: 0.5 }}>Sponsored</Typography>
-              <Typography variant='caption' color='text.secondary'>Ad space</Typography>
-            </Card>
+
           </Box>
         </Box>
       </Box>

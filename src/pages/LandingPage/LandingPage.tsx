@@ -1,4 +1,4 @@
-import { useLayoutEffect } from 'react';
+﻿import { useLayoutEffect, useState, useEffect } from 'react';
 import { KalaGeometric, KalaLotus } from '../../components/DecorativeComponents/KalaDecor';
 import { useNavigate } from 'react-router-dom';
 import gsap from 'gsap';
@@ -16,6 +16,11 @@ import {
   Users,
   Star,
   Check,
+  Bot,
+  Shield,
+  Zap,
+  Activity,
+  Sparkles,
 } from 'lucide-react';
 import '../../assets/css/LandingPage.css';
 
@@ -23,6 +28,18 @@ gsap.registerPlugin(ScrollTrigger);
 
 /* ─── STATIC DATA ────────────────────────────────────────────────── */
 const FEATURES = [
+  {
+    icon: <Bot size={26} />,
+    title: 'Agentic AI Planner',
+    desc: 'Navia autonomously builds your full trip — flights, hotels, day plans — from a single prompt. No other platform does this.',
+    accent: '#FF385C',
+  },
+  {
+    icon: <Shield size={26} />,
+    title: 'Live Risk Monitor',
+    desc: 'Real-time travel advisories, severe weather, currency shifts and breaking news auto-mapped to each destination you visit.',
+    accent: '#e53935',
+  },
   {
     icon: <Brain size={26} />,
     title: 'AI Trip Assistant',
@@ -138,6 +155,88 @@ const TICKER_ITEMS = [
   '🌅 Santorini', '🌴 Phuket', '🗼 Tokyo', '🎭 Barcelona', '🌋 Iceland',
   '🏜 Sahara', '🐘 Kenya', '🌺 Hawaii', '🏯 Kyoto', '🛶 Amazon',
 ];
+
+type AgentStepType = 'user' | 'think' | 'ai' | 'alert' | 'plan' | 'done';
+interface AgentStep { type: AgentStepType; text?: string; days?: string[]; }
+
+const AGENT_STEPS: AgentStep[] = [
+  { type: 'user',  text: 'Plan a 10-day Japan trip for 2. Budget $3,000.' },
+  { type: 'think', text: 'Processing 12M+ data points — flights, hotels, activities...' },
+  { type: 'ai',    text: '✈️  Optimal routes found · Tokyo → Kyoto → Osaka · $1,240/person' },
+  { type: 'alert', text: '⚠️  Risk Monitor: Typhoon advisory near Mt. Fuji (moderate)' },
+  { type: 'ai',    text: '🏨  14 hotels matched · avg. ¥18,000/night · Budget on track' },
+  { type: 'ai',    text: '📅  Building your 10-day itinerary · 32 curated stops added' },
+  { type: 'plan',  days: ['Day 1–3 · Tokyo Arrival & Shinjuku Nights', 'Day 4 · Mt. Fuji — safe alternate route', 'Day 5–7 · Kyoto Temples & Arashiyama', 'Day 8 · Nara Deer Park Day Trip', 'Day 9–10 · Osaka Street Food & Farewell'] },
+  { type: 'done',  text: '✅  Trip ready — $2,847 / person · $153 saved vs. average' },
+];
+
+function AgentDemoWidget() {
+  const [visible, setVisible] = useState(0);
+  useEffect(() => {
+    const DELAYS = [0, 900, 1800, 2600, 3400, 4200, 5100, 6000];
+    const timers: ReturnType<typeof setTimeout>[] = [];
+    function cycle() {
+      setVisible(0);
+      DELAYS.forEach((d, i) => timers.push(setTimeout(() => setVisible(i + 1), d + 300)));
+      timers.push(setTimeout(cycle, 10800));
+    }
+    const init = setTimeout(cycle, 600);
+    timers.push(init);
+    return () => timers.forEach(clearTimeout);
+  }, []);
+
+  return (
+    <div className="lp-agent-window">
+      <div className="lp-agent-window__bar">
+        <span className="lp-agent-window__dot" style={{ background: '#ff5f57' }} />
+        <span className="lp-agent-window__dot" style={{ background: '#febc2e' }} />
+        <span className="lp-agent-window__dot" style={{ background: '#28c840' }} />
+        <span className="lp-agent-window__title"><Sparkles size={11} /> Navia — AI Trip Agent</span>
+      </div>
+      <div className="lp-agent-window__body">
+        {AGENT_STEPS.map((step, i) => (
+          <div key={i} className={`lp-agent-msg lp-agent-msg--${step.type}${i < visible ? ' lp-agent-msg--in' : ''}`}>
+            {step.type === 'user' && (
+              <div className="lp-agent-bubble lp-agent-bubble--user">
+                <span className="lp-agent-avatar lp-agent-avatar--you">You</span>
+                <span>{step.text}</span>
+              </div>
+            )}
+            {(step.type === 'ai' || step.type === 'done') && (
+              <div className="lp-agent-bubble lp-agent-bubble--ai">
+                <span className="lp-agent-avatar lp-agent-avatar--n">N</span>
+                <span>{step.text}</span>
+              </div>
+            )}
+            {step.type === 'think' && (
+              <div className="lp-agent-bubble lp-agent-bubble--think">
+                <span className="lp-agent-avatar lp-agent-avatar--n">N</span>
+                <span className="lp-agent-dots"><span /><span /><span /></span>
+                <span style={{ opacity: .7, fontSize: 12 }}>{step.text}</span>
+              </div>
+            )}
+            {step.type === 'alert' && (
+              <div className="lp-agent-bubble lp-agent-bubble--alert">
+                <span>{step.text}</span>
+              </div>
+            )}
+            {step.type === 'plan' && (
+              <div className="lp-agent-plan-card">
+                <div className="lp-agent-plan-card__head">📍 10-Day Japan Itinerary</div>
+                {step.days?.map((d, j) => (
+                  <div key={j} className="lp-agent-plan-card__day">
+                    <span className="lp-agent-plan-card__dot" />
+                    {d}
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
 
 /* ─── COMPONENT ─────────────────────────────────────────────────── */
 export default function LandingPage() {
@@ -307,6 +406,32 @@ export default function LandingPage() {
         y: 62, opacity: 0, duration: 1, ease: 'power3.out',
         scrollTrigger: { trigger: '.lp-cta', start: 'top 78%', toggleActions: 'play none none reverse' },
       });
+
+      /* ── New section animations ────────────────────────────────────── */
+      gsap.from('.lp-ai-agent__text > *', {
+        y: 40, opacity: 0, duration: 0.75, stagger: 0.12,
+        scrollTrigger: { trigger: '.lp-ai-agent__text', start: 'top 80%', toggleActions: 'play none none reverse' },
+      });
+      gsap.from('.lp-agent-window', {
+        y: 55, opacity: 0, scale: 0.97, duration: 0.85, ease: 'power3.out',
+        scrollTrigger: { trigger: '.lp-agent-window', start: 'top 82%', toggleActions: 'play none none reverse' },
+      });
+      gsap.from('.lp-bento__header', {
+        y: 42, opacity: 0, duration: 0.8,
+        scrollTrigger: { trigger: '.lp-bento', start: 'top 82%', toggleActions: 'play none none reverse' },
+      });
+      gsap.from('.lp-bento-card', {
+        y: 50, opacity: 0, scale: 0.95, duration: 0.68, stagger: 0.09,
+        scrollTrigger: { trigger: '.lp-bento__grid', start: 'top 80%', toggleActions: 'play none none reverse' },
+      });
+      gsap.from('.lp-risk-preview__card', {
+        y: 60, opacity: 0, duration: 0.9, ease: 'power3.out',
+        scrollTrigger: { trigger: '.lp-risk-preview', start: 'top 80%', toggleActions: 'play none none reverse' },
+      });
+      gsap.from('.lp-risk-preview__kala', {
+        scale: 0.85, opacity: 0, rotation: -15, duration: 1.4, ease: 'power2.out',
+        scrollTrigger: { trigger: '.lp-risk-preview', start: 'top 80%', toggleActions: 'play none none reverse' },
+      });
     });
 
     return () => ctx.revert();
@@ -325,9 +450,10 @@ export default function LandingPage() {
           }
         </div>
         <div className="lp-nav__links">
+          <a href="#ai-agent">AI Agent</a>
           <a href="#features">Features</a>
+          <a href="#why-different">Why Us</a>
           <a href="#how-it-works">How it works</a>
-          <a href="#explore">Explore</a>
         </div>
         <div className="lp-nav__actions">
           <button className="lp-btn lp-btn--ghost" onClick={() => navigate('/signin')}>Sign in</button>
@@ -393,7 +519,34 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* ── STATS ─────────────────────────────────────────────── */}
+      {/* ── AGENTIC AI DEMO ───────────────────────────────────── */}
+      <section className="lp-ai-agent" id="ai-agent">
+        <div className="lp-ai-agent__inner">
+          <div className="lp-ai-agent__text">
+            <span className="lp-section-eyebrow">The only AI that truly plans for you</span>
+            <h2 className="lp-section-title">Meet Navia,<br />your AI Trip Agent</h2>
+            <p className="lp-ai-agent__desc">
+              Most travel AI gives you a list of suggestions. Navia <em>acts</em> — autonomously
+              sifting millions of options, flagging real-time risks, and assembling your complete
+              itinerary end-to-end. You just show up.
+            </p>
+            <ul className="lp-ai-agent__bullets">
+              <li><Bot size={15} /> Autonomously plans full trips from one prompt</li>
+              <li><Shield size={15} /> Integrated live risk &amp; weather monitoring</li>
+              <li><Zap size={15} /> Adapts instantly when budget or dates change</li>
+              <li><Activity size={15} /> Watches live events while you travel</li>
+            </ul>
+            <button className="lp-btn lp-btn--hero-primary" onClick={() => navigate('/signup')}>
+              Try Navia for Free <ArrowRight size={16} />
+            </button>
+          </div>
+          <div className="lp-ai-agent__widget">
+            <AgentDemoWidget />
+          </div>
+        </div>
+      </section>
+
+      {/* ── STATS ─────────────────────────────────────────────────── */}
       <section className="lp-stats">
         <div className="lp-stats__grid">
           {[
@@ -443,7 +596,118 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── HOW IT WORKS ──────────────────────────────────────── */}
+      {/* ── WHY DIFFERENT BENTO ──────────────────────────────── */}
+      <section className="lp-bento" id="why-different">
+        <div className="lp-bento__header">
+          <span className="lp-section-eyebrow">What makes us different</span>
+          <h2 className="lp-section-title">Features no other<br />travel platform has</h2>
+          <p className="lp-section-sub">We built the capabilities that were missing from every tool we tried.</p>
+        </div>
+        <div className="lp-bento__grid">
+          {/* Risk - dark navy, span 6 */}
+          <div className="lp-bento-card lp-bento-card--risk">
+            {/* Corner glow blob */}
+            <span className="lp-bento-risk__glow" aria-hidden="true" />
+            {/* Header row */}
+            <div className="lp-bento-risk__header">
+              <span className="lp-bento-card__tag">
+                <span className="lp-bento-risk__pulse" />
+                Exclusive
+              </span>
+              <span className="lp-bento-risk__live">
+                <span className="lp-bento-risk__live-dot" />
+                LIVE
+              </span>
+            </div>
+            {/* Icon + Title */}
+            <div className="lp-bento-risk__title-row">
+              <span className="lp-bento-risk__icon-wrap">
+                <Shield size={20} />
+              </span>
+              <h3>Live Travel Risk Monitor</h3>
+            </div>
+            <p>Breaking news, typhoons, travel bans, strikes &amp; currency shifts {"\u2014"} auto-cross-referenced with every destination in your plan.</p>
+            {/* Country rows */}
+            <div className="lp-bento-risk-table">
+              <div className="lp-bento-risk-row-mini">
+                <span className="lp-risk-flag">{String.fromCodePoint(0x1F1EF,0x1F1F5)}</span>
+                <span className="lp-risk-name">Japan</span>
+                <div className="lp-risk-bar-wrap"><div className="lp-risk-bar" style={{ width: "22%", background: "#22c55e" }} /></div>
+                <span className="lp-risk-badge" style={{ color: "#22c55e", borderColor: "rgba(34,197,94,0.3)" }}>Low Risk</span>
+              </div>
+              <div className="lp-bento-risk-row-mini">
+                <span className="lp-risk-flag">{String.fromCodePoint(0x1F1EB,0x1F1F7)}</span>
+                <span className="lp-risk-name">France</span>
+                <div className="lp-risk-bar-wrap"><div className="lp-risk-bar" style={{ width: "54%", background: "#f59e0b" }} /></div>
+                <span className="lp-risk-badge" style={{ color: "#f59e0b", borderColor: "rgba(245,158,11,0.3)" }}>Watch</span>
+              </div>
+              <div className="lp-bento-risk-row-mini">
+                <span className="lp-risk-flag">{String.fromCodePoint(0x1F1F9,0x1F1ED)}</span>
+                <span className="lp-risk-name">Thailand</span>
+                <div className="lp-risk-bar-wrap"><div className="lp-risk-bar" style={{ width: "78%", background: "#ef4444" }} /></div>
+                <span className="lp-risk-badge" style={{ color: "#ef4444", borderColor: "rgba(239,68,68,0.3)" }}>Advisory</span>
+              </div>
+            </div>
+            {/* Footer */}
+            <div className="lp-bento-risk__footer">
+              <span>3 destinations monitored</span>
+              <span>Updated just now</span>
+            </div>
+          </div>
+          {/* Agent - violet, span 3 */}
+          <div className="lp-bento-card lp-bento-card--agent">
+            <span className="lp-bento-card__tag">AI-Powered</span>
+            <h3>Agentic AI Planner</h3>
+            <p>Navia doesn't wait for instructions {"\u2014"} it autonomously builds, adjusts, and optimizes your entire itinerary from a single prompt.</p>
+            <div className="lp-bento-agent-preview">
+              <div className="lp-bento-agent-msg lp-bento-agent-msg--user">Plan 10-day Japan trip under $2k</div>
+              <div className="lp-bento-agent-msg lp-bento-agent-msg--ai">{"\u2713"} Drafting your itinerary{"\u2026"}</div>
+            </div>
+            <span className="lp-bento-card__deco-icon" aria-hidden="true"><Bot size={100} /></span>
+          </div>
+          {/* Collab - blue, span 3 */}
+          <div className="lp-bento-card lp-bento-card--collab">
+            <span className="lp-bento-card__tag">Social</span>
+            <h3>Real-time Co-Planning</h3>
+            <p>Multiple travelers plan simultaneously {"\u2014"} like Google Docs, purpose-built for adventure. Everyone sees updates live.</p>
+            <div className="lp-bento-collab-row">
+              <div className="lp-bento-avatars">
+                <span>AJ</span><span>MK</span><span>TS</span>
+              </div>
+              <span className="lp-bento-live-badge">{"\u25cf"} Live</span>
+            </div>
+            <span className="lp-bento-card__deco-icon" aria-hidden="true"><Users size={100} /></span>
+          </div>
+          {/* Canvas - orange, span 6 */}
+          <div className="lp-bento-card lp-bento-card--canvas">
+            <span className="lp-bento-card__tag">Unique</span>
+            <h3>Draw on Live Maps</h3>
+            <p>Sketch routes, highlight regions and annotate directly on your interactive map. Zero other planners offer this.</p>
+            <svg className="lp-bento-route-svg" viewBox="0 0 280 60" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+              <path d="M14 46 C50 10 88 54 128 26 S210 4 266 24" stroke="#EA580C" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="7 4" />
+              <circle cx="14" cy="46" r="5" fill="#EA580C" />
+              <circle cx="266" cy="24" r="5" fill="#EA580C" />
+            </svg>
+            <span className="lp-bento-card__deco-icon" aria-hidden="true"><Map size={100} /></span>
+          </div>
+          {/* Passport - emerald, span 6 */}
+          <div className="lp-bento-card lp-bento-card--passport">
+            <span className="lp-bento-card__tag">Gamified</span>
+            <h3>Visual Trip Passport</h3>
+            <p>Every trip earns destination stamps &amp; badges. Your history becomes a beautiful shareable travel passport.</p>
+            <div className="lp-bento-stamps">
+              <span title="Japan">{String.fromCodePoint(0x1F1EF, 0x1F1F5)}</span>
+              <span title="France">{String.fromCodePoint(0x1F1EB, 0x1F1F7)}</span>
+              <span title="Brazil">{String.fromCodePoint(0x1F1E7, 0x1F1F7)}</span>
+              <span title="Thailand">{String.fromCodePoint(0x1F1F9, 0x1F1ED)}</span>
+              <span className="lp-bento-stamps-more">+36</span>
+            </div>
+            <span className="lp-bento-card__deco-icon" aria-hidden="true"><Globe size={100} /></span>
+          </div>
+        </div>
+      </section>
+
+      {/* ── HOW IT WORKS ─────────────────────────────────────── */}
       <section className="lp-steps" id="how-it-works">
         <div className="lp-steps__header">
           <span className="lp-section-eyebrow">How it works</span>
@@ -489,7 +753,43 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
-
+      {/* ── RISK MONITOR TEASER ─────────────────────────────── */}
+      <section className="lp-risk-preview">
+        <div className="lp-risk-preview__card">
+          <div className="lp-risk-preview__live">
+            <span className="lp-live-pulse" />
+            LIVE INTELLIGENCE
+          </div>
+          <h2 className="lp-risk-preview__title">
+            Know before you go.<br /><em>Know while you’re there.</em>
+          </h2>
+          <p className="lp-risk-preview__desc">
+            Our Travel Risk Monitor watches breaking news, severe weather, border closures,
+            flight strikes, and currency volatility — all automatically cross-referenced
+            against every destination in your active trip.
+          </p>
+          <div className="lp-risk-preview__rows">
+            {[
+              { flag: '🇯🇵', name: 'Japan',    status: 'Low Risk',  statusColor: '#22c55e', detail: '☀️ Clear skies · ¥ stable · 0 advisories' },
+              { flag: '🇫🇷', name: 'France',   status: 'Watch',     statusColor: '#f59e0b', detail: '🚇 Transport strike · EUR −0.3% today' },
+              { flag: '🇹🇭', name: 'Thailand', status: 'Advisory',  statusColor: '#ef4444', detail: '🌧️ Monsoon season · Active travel advisory' },
+            ].map((r, i) => (
+              <div key={i} className="lp-risk-row">
+                <span className="lp-risk-row__flag">{r.flag}</span>
+                <span className="lp-risk-row__name">{r.name}</span>
+                <span className="lp-risk-row__status" style={{ color: r.statusColor }}>{r.status}</span>
+                <span className="lp-risk-row__detail">{r.detail}</span>
+              </div>
+            ))}
+          </div>
+          <button className="lp-btn lp-btn--cta-primary" onClick={() => navigate('/signup')}>
+            Start Risk-Free Planning <ArrowRight size={16} />
+          </button>
+        </div>
+        <div className="lp-risk-preview__kala" aria-hidden="true">
+          <KalaGeometric size={560} color="#FF385C" opacity={0.07} />
+        </div>
+      </section>
       {/* ── SOCIAL PROOF ──────────────────────────────────────── */}
       <section className="lp-social-proof">
         <div className="lp-social-proof__inner">
