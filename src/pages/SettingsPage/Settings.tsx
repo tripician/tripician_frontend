@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Typography } from '@mui/material';
+import { KalaMandala } from '../../components/DecorativeComponents/KalaDecor';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import ProfileSettings from './ProfileSettings';
 import SettingsTopNav from './SettingsTopNav';
@@ -11,7 +12,11 @@ const Settings: React.FC = () => {
   const [selectedSettingsMenuItem, setSelectedSettingsMenuItem] = useState('Profile');
 
   return (
-    <Box sx={{ width: '100%', backgroundColor: 'background.default', minHeight: '100vh' }}>
+    <Box sx={{ width: '100%', backgroundColor: 'background.default', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
+      {/* Indian kala mandala — top-right page-level watermark, subtle on light bg */}
+      <KalaMandala size={480} color="#C41E3A" opacity={0.035} style={{ position: 'absolute', top: -100, right: -100, zIndex: 0, pointerEvents: 'none' }} />
+      {/* Indian kala mandala — bottom-left, small corner accent */}
+      <KalaMandala size={320} color="#C41E3A" opacity={0.05} style={{ position: 'absolute', bottom: 0, left: -80, zIndex: 0, pointerEvents: 'none' }} />
       <TopBar />
       <Box
         sx={{

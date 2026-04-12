@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import '../../assets/css/Signin.css';
+import { KalaLotus } from '../../components/DecorativeComponents/KalaDecor';
 import GoogleIcon from '@mui/icons-material/Google';
 import AppleIcon from '@mui/icons-material/Apple';
 import { Eye, EyeOff, Plane, MapPin, Globe, Brain } from 'lucide-react';
@@ -144,6 +145,10 @@ const Signin = () => {
 
       {/* ── Right form pane ─────────────────────────────────────── */}
       <div className="auth-right">
+        {/* Indian kala lotus — top-right corner */}
+        <KalaLotus size={380} color="#FF385C" opacity={0.07} style={{ position: 'absolute', top: -90, right: -90, zIndex: 0 }} />
+        {/* Indian kala lotus — bottom-left accent */}
+        <KalaLotus size={260} color="#FF6B8A" opacity={0.055} style={{ position: 'absolute', bottom: -65, left: -65, zIndex: 0 }} />
         <div className="auth-card">
           {/* <div className="auth-card__logo">
             {logoUrl

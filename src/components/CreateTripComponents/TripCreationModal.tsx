@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, type ChangeEvent } from "react";
+import { KalaMandala } from '../DecorativeComponents/KalaDecor';
 import {
   Modal,
   Box,
@@ -659,9 +660,14 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
                 overflow: 'hidden',
               }}
             >
-              {/* Decorative blobs */}
+              {/* Ambient blobs */}
               <Box sx={{ position: 'absolute', width: 220, height: 220, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,56,92,0.08) 0%, transparent 70%)', top: -60, right: -60, pointerEvents: 'none' }} />
               <Box sx={{ position: 'absolute', width: 160, height: 160, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,56,92,0.05) 0%, transparent 70%)', bottom: 40, left: -40, pointerEvents: 'none' }} />
+
+              {/* Indian Kala mandala — large, bottom-right */}
+              <KalaMandala size={340} opacity={0.07} style={{ position: 'absolute', bottom: -90, right: -90, zIndex: 0 }} />
+              {/* Indian Kala mandala — small, top-left */}
+              <KalaMandala size={200} opacity={0.055} style={{ position: 'absolute', top: -50, left: -50, zIndex: 0 }} />
 
               <Typography sx={{ fontFamily: "'Playfair Display', serif", fontWeight: 800, fontSize: '1.35rem', color: '#111', letterSpacing: '-0.02em', mb: 0.5, position: 'relative' }}>Bring your crew</Typography>
               <Typography sx={{ fontSize: '0.78rem', color: '#AAAAAA', fontFamily: "'Inter', sans-serif", mb: 3, position: 'relative' }}>Invite friends to co-plan this trip.</Typography>

@@ -1,4 +1,5 @@
 import { useLayoutEffect } from 'react';
+import { KalaGeometric, KalaLotus } from '../../components/DecorativeComponents/KalaDecor';
 import { useNavigate } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -193,6 +194,17 @@ export default function LandingPage() {
       gsap.to('.lp-hero__orb--2', { y: 22,  x: -14, repeat: -1, yoyo: true, duration: 11, ease: 'sine.inOut', delay: 2 });
       gsap.to('.lp-hero__orb--3', { y: -18, x:  8,  repeat: -1, yoyo: true, duration: 7.5, ease: 'sine.inOut', delay: 4 });
 
+      /* Kala lotus — entrance transition then infinite wheel roll */
+      gsap.set('.lp-hero__kala-lotus', { opacity: 0, scale: 0.4, rotation: -30, transformOrigin: '50% 50%' });
+      gsap.timeline({
+        onComplete: () => {
+          gsap.to('.lp-hero__kala-lotus', { rotation: '+=360', repeat: -1, ease: 'none', duration: 80, transformOrigin: '50% 50%' });
+        }
+      }).to('.lp-hero__kala-lotus', {
+        opacity: 1, scale: 1, rotation: 0,
+        duration: 2.8, ease: 'power3.out', delay: 0.6,
+      });
+
       /* ── 2. NAVBAR SHRINKS ON SCROLL ────────────────────────── */
       ScrollTrigger.create({
         start: 'top -55',
@@ -325,6 +337,10 @@ export default function LandingPage() {
 
       {/* ── HERO ──────────────────────────────────────────────── */}
       <section className="lp-hero">
+      {/* Kala lotus — top-left corner watermark, slow wheel spin */}
+        <div className="lp-hero__kala-lotus" style={{ position: 'absolute', top: -320, left: -300, zIndex: 1, pointerEvents: 'none' }}>
+          <KalaLotus size={920} color="#FF6B8A" opacity={0.07} />
+        </div>
         <div
           className="lp-hero__bg"
           style={heroImageUrl ? { backgroundImage: `url(${heroImageUrl})` } : undefined}
@@ -524,7 +540,9 @@ export default function LandingPage() {
         </div>
         <div className="lp-cta__orb lp-cta__orb--1" />
         <div className="lp-cta__orb lp-cta__orb--2" />
-      </section>
+        {/* Indian kala geometric — bottom-left */}
+        <KalaGeometric size={480} color="#FF385C" opacity={0.06} style={{ position: 'absolute', bottom: -130, right: -110 }} />
+        </section>
 
       {/* ── FOOTER ────────────────────────────────────────────── */}
       <footer className="lp-footer">

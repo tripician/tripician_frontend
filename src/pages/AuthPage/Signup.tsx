@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import '../../assets/css/Signin.css';
 import '../../assets/css/Signup.css';
+import { KalaMandala } from '../../components/DecorativeComponents/KalaDecor';
 import { Eye, EyeOff, Plane, MapPin, Globe, Brain, Check } from 'lucide-react';
 import { authAPI } from '../../services/APIs/Auth/auth';
 import { useNavigate } from 'react-router-dom';
@@ -121,6 +122,10 @@ const Signup = () => {
 
       {/* ── Right form pane ─────────────────────────────────────── */}
       <div className="auth-right">
+        {/* Indian kala mandala — top-right corner */}
+        <KalaMandala size={380} color="#FF385C" opacity={0.07} style={{ position: 'absolute', top: -90, right: -90, zIndex: 0 }} />
+        {/* Indian kala mandala — bottom-left accent */}
+        <KalaMandala size={240} color="#D91A50" opacity={0.05} style={{ position: 'absolute', bottom: -60, left: -60, zIndex: 0 }} />
         <div className="auth-card auth-card--signup">
           {/* <div className="auth-card__logo">
             {logoUrl

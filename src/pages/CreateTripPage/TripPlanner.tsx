@@ -1,6 +1,7 @@
 ﻿// TripPlanner main page component (formerly CreateTrip)
 import React from 'react';
 import { Box, Tabs, Tab, Typography, Divider, Button, Chip, Menu, MenuItem, Avatar, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Snackbar, Alert, useTheme } from '@mui/material';
+import { KalaMandala } from '../../components/DecorativeComponents/KalaDecor';
 // Props-based TripPlanner; tripId + optional initialTrip provided by route wrapper
 import DownloadIcon from '@mui/icons-material/Download';
 import PushPinIcon from '@mui/icons-material/PushPin';
@@ -422,11 +423,14 @@ interface TripViewPanelProps {
 	endDate: string | null;
 	totalNights: number;
 	destinationCount: number;
+	showEditAction?: boolean;
+	onRequestEdit?: () => void;
 }
 
 const TripViewPanel: React.FC<TripViewPanelProps> = ({
 	title, description, bannerUrl, countries, tripUsers, ownerInfo,
 	startDate, endDate, totalNights, destinationCount,
+	showEditAction = false, onRequestEdit,
 }) => {
 	const theme = useTheme();
 	const isLight = theme.palette.mode === 'light';
@@ -473,7 +477,10 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 			background: bg,
 			fontFamily: "'Inter', system-ui, sans-serif",
 			overflow: 'hidden',
+			position: 'relative',
 		}}>
+			{/* Indian kala mandala — empty middle area, above Share button */}
+			<KalaMandala size={280} color="#FF385C" opacity={0.05} style={{ position: 'absolute', bottom: 120, right: -70, zIndex: 0, pointerEvents: 'none' }} />
 			{/* ── Banner + Title header ── */}
 			<Box sx={{ position: 'relative', flexShrink: 0 }}>
 				{bannerUrl ? (
@@ -683,12 +690,29 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 
 			</Box>
 
-			{/* ── Footer: share button ── */}
+			{/* ── Footer: edit + share buttons ── */}
 			<Box sx={{
 				px: 2, py: 1.25, flexShrink: 0,
 				borderTop: `1px solid ${border}`,
 				background: bg,
+				display: 'flex', flexDirection: 'column', gap: 1,
 			}}>
+				{showEditAction && (
+					<Button
+						fullWidth
+						variant="contained"
+						onClick={() => { onRequestEdit?.(); }}
+						sx={{
+							textTransform: 'none', borderRadius: '10px', fontFamily: 'inherit',
+							fontWeight: 600, fontSize: '0.82rem',
+							background: 'linear-gradient(135deg,#FF385C,#D91A50)',
+							color: '#fff', py: 0.9,
+							'&:hover': { background: 'linear-gradient(135deg,#e02d50,#c01545)' },
+						}}
+					>
+						Edit Trip
+					</Button>
+				)}
 				<Button
 					fullWidth
 					variant="outlined"
@@ -1776,17 +1800,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 										)}
 									</>
 								)}
-								{showViewEditAction && (
-									<Button
-										size='small'
-										variant='contained'
-										color='primary'
-										onClick={()=> { onRequestEdit?.(); }}
-										sx={{ textTransform:'none', borderRadius:2 }}
-									>
-										Edit
-									</Button>
-								)}
+
 							</Box>
 						</Box>
 					</Box>
@@ -1813,12 +1827,15 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						endDate={unifiedTrip?.meta.endDate ?? null}
 						totalNights={totalNights}
 						destinationCount={planner.destinations.length}
+						showEditAction={showViewEditAction}
+						onRequestEdit={onRequestEdit}
 					/>
 				) : (
 					<PremiumChatPanel />
 				)}
 		</Box>
-		{/* Drawing dock — fixed overlay on right edge of screen */}
+		{/* Drawing dock — only visible in edit mode, not for view-only visitors */}
+		{!isExternalNonOwner && (
 		<DrawingDock
 			active={drawingActive}
 			onToggle={() => setDrawingActive(v => !v)}
@@ -1831,6 +1848,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			onUndo={() => drawingCanvasRef.current?.undo()}
 			onClear={() => drawingCanvasRef.current?.clear()}
 		/>
+		)}
 		{effectiveCanEdit && (
 			<Menu anchorEl={currencyAnchor} open={Boolean(currencyAnchor)} onClose={closeCurrency} elevation={3}>
 				{(['EUR','USD','GBP'] as const).map(c=> (<MenuItem key={c} selected={c===currency} onClick={()=> selectCurrency(c)}><Avatar sx={{ width:20, height:20, mr:1, fontSize:11 }}>{c==='EUR'?'€': c==='USD'? '$':'£'}</Avatar>{c}</MenuItem>))}

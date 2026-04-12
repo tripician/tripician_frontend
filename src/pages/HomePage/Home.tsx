@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Box, Typography, Button, CircularProgress, Alert, Stack, Avatar } from '@mui/material';
+import { KalaLotus } from '../../components/DecorativeComponents/KalaDecor';
 import { useSelector } from 'react-redux';
 import ExploreIcon from '@mui/icons-material/TravelExplore';
 import PublicIcon from '@mui/icons-material/Public';
@@ -391,6 +392,8 @@ const Home: React.FC = () => {
         overflow: 'hidden',
       }}
     >
+      {/* Indian kala lotus — top-right page root, always visible */}
+      <KalaLotus size={780} color="#FF6B8A" opacity={0.15} style={{ position: 'absolute', top: -80, right: -80, zIndex: 0, pointerEvents: 'none' }} />
       <TopBar />
 
       {/* HERO SECTION */}

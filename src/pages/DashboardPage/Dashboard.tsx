@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
+import { KalaGeometric } from '../../components/DecorativeComponents/KalaDecor';
 import type { RootState } from '../../store';
 import TripCard from './TripCard';
 import '../../assets/css/Dashboard.css';
@@ -188,9 +189,13 @@ const Dashboard: React.FC = () => {
         backgroundColor: 'background.default',
         minHeight: '100vh',
         display: 'flex',
-        flexDirection: 'column'
+        flexDirection: 'column',
+        position: 'relative',
+        overflow: 'hidden',
       }}
     >
+      {/* Indian kala geometric — bottom-left accent */}
+      <KalaGeometric size={420} color="#FF6B8A" opacity={0.04} style={{ position: 'absolute', bottom: 10, right: -120, zIndex: 0, pointerEvents: 'none' }} />
       <TopBar />
       <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
 
