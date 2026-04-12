@@ -86,18 +86,21 @@
 
 .rm-hero__title {
   font-size: 2.6rem;
-  font-weight: 800;
+  font-weight: 700;
+  font-family: 'Playfair Display', serif;
+  font-style: italic;
   color: #f1f5f9;
   margin: 0 0 14px;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.02em;
   line-height: 1.15;
 }
 
 .rm-hero__sub {
-  font-size: 1rem;
+  font-size: 0.97rem;
+  font-family: 'Inter', sans-serif;
   color: rgba(241,245,249,0.52);
   margin: 0 0 36px;
-  line-height: 1.6;
+  line-height: 1.65;
   max-width: 520px;
 }
 
@@ -256,7 +259,7 @@
 
 .rm-dest-bar__left    { display: flex; align-items: center; gap: 14px; }
 .rm-dest-bar__flag    { font-size: 2.4rem; line-height: 1; }
-.rm-dest-bar__name    { font-size: 1.5rem; font-weight: 800; color: #0f172a; margin: 0 0 2px; }
+.rm-dest-bar__name    { font-size: 1.4rem; font-weight: 700; font-family: 'Playfair Display', serif; color: #0f172a; margin: 0 0 2px; }
 .rm-dest-bar__region  { font-size: 0.82rem; color: #64748b; margin: 0; }
 .rm-dest-bar__updated { font-size: 0.75rem; color: #94a3b8; }
 .rm-dest-bar__live {
@@ -378,7 +381,7 @@
 /* Alert count panel */
 .rm-alert-big-num {
   font-size: 3rem;
-  font-weight: 900;
+  font-weight: 700;
   color: #22c55e;
   line-height: 1;
   display: block;
@@ -621,7 +624,8 @@
 
 .rm-stats-strip__num {
   font-size: 1.3rem;
-  font-weight: 900;
+  font-weight: 700;
+  font-family: 'Inter', sans-serif;
   color: #f1f5f9;
   letter-spacing: -0.02em;
   line-height: 1;
@@ -693,7 +697,8 @@
 
 .rm-welcome__heading {
   font-size: 1.05rem;
-  font-weight: 800;
+  font-weight: 700;
+  font-family: 'Playfair Display', serif;
   color: #0f172a;
   margin: 0;
   letter-spacing: -0.01em;
