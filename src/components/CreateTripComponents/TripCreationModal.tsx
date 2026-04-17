@@ -34,7 +34,7 @@ interface FormData {
   selectedCountries: string[];
   startDate: Dayjs | null;
   endDate: Dayjs | null;
-  visibility: "Trip members" | "My followers" | "Everyone";
+  visibility: "Trip members" | "Private";
   inviteEmail: string; // current typed email
   inviteEmails: string[]; // collected valid emails
 }
@@ -300,7 +300,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
     selectedCountries: [],
     startDate: null,
     endDate: null,
-    visibility: "My followers",
+    visibility: "Private",
     inviteEmail: "",
     inviteEmails: [],
   });
@@ -362,12 +362,10 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
     setSubmitting(true);
     setErrorMsg(null);
     try {
-      const visibility: 'TRIP_MEMBERS' | 'FOLLOWERS' | 'EVERYONE' =
+      const visibility: 'TRIP_MEMBERS' | 'PRIVATE' =
         formData.visibility === 'Trip members'
           ? 'TRIP_MEMBERS'
-          : formData.visibility === 'My followers'
-            ? 'FOLLOWERS'
-            : 'EVERYONE';
+          : 'PRIVATE';
       const payload = {
         name: formData.tripName.trim(),
         countries: formData.selectedCountries,
@@ -414,7 +412,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
       selectedCountries: [],
       startDate: null,
       endDate: null,
-      visibility: "My followers",
+      visibility: "Private",
       inviteEmail: "",
       inviteEmails: [],
     });
@@ -588,7 +586,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
             <Box className="gs-modal-field" sx={{ mb: 3.5, mt: 2 }}>
               <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#999', fontFamily: "'Inter', sans-serif", mb: 1.5 }}>Visibility</Typography>
               <Box sx={{ display: 'flex', gap: 1 }}>
-                {(['Trip members', 'My followers', 'Everyone'] as const).map((opt) => (
+                {(['Private', 'Trip members'] as const).map((opt) => (
                   <Box
                     key={opt}
                     onClick={() => setFormData(p => ({ ...p, visibility: opt }))}

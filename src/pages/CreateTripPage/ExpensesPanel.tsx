@@ -3,6 +3,7 @@
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Box, Typography, Paper, Button, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Divider, Chip, Tooltip, InputAdornment, ToggleButtonGroup, ToggleButton, Collapse } from '@mui/material';
+import { motion, AnimatePresence } from 'framer-motion';
 import AddIcon from '@mui/icons-material/Add';
 import SettingsIcon from '@mui/icons-material/Settings';
 import GroupIcon from '@mui/icons-material/Group';
@@ -134,10 +135,18 @@ const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ readOnly=false }) => {
           {sortedExpenses.length === 0 && (
             <Typography variant='body2' color='text.secondary' sx={{ p:2 }}>No expenses added yet.</Typography>
           )}
-          {sortedExpenses.map(e=> {
+          <AnimatePresence initial={false}>
+          {sortedExpenses.map((e, i)=> {
             const catColor = 'default';
             return (
-              <Box key={e.id} sx={(t)=>({ display:'flex', alignItems:'center', gap:1.5, px:2, py:1.25, borderBottom:`1px solid ${t.palette.divider}`, '&:last-of-type':{ borderBottom:'none' } })}>
+              <motion.div
+                key={e.id}
+                initial={{ opacity: 0, x: -12 }}
+                animate={{ opacity: 1, x: 0 }}
+                exit={{ opacity: 0, x: 20 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 25, delay: i * 0.03 }}
+              >
+              <Box sx={(t)=>({ display:'flex', alignItems:'center', gap:1.5, px:2, py:1.25, borderBottom:`1px solid ${t.palette.divider}`, '&:last-of-type':{ borderBottom:'none' } })}>
                 <Box sx={{ width:34, height:34, borderRadius:'50%', bgcolor:'action.hover', display:'flex', alignItems:'center', justifyContent:'center', fontSize:12, fontWeight:600 }}>{e.label.charAt(0).toUpperCase()}</Box>
                 <Box sx={{ flex:1, minWidth:0 }}>
                   <Typography variant='body2' fontWeight={600} noWrap>{e.label}</Typography>
@@ -159,8 +168,10 @@ const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ readOnly=false }) => {
                   </>
                 )}
               </Box>
+              </motion.div>
             );
           })}
+          </AnimatePresence>
         </Box>
       </Paper>
 

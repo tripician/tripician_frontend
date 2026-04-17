@@ -11,6 +11,7 @@ import {
   Box, Stack, Typography, Fade, Paper, InputBase, Dialog, DialogTitle, DialogContent, DialogActions,
   Button, IconButton, Chip, Tabs, Tab, Checkbox, LinearProgress
 } from '@mui/material';
+import { AnimatePresence } from 'framer-motion';
 import SearchIcon from '@mui/icons-material/Search';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
@@ -245,6 +246,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
             <Box sx={(t)=>({ mt:3, p:5, border:'2px dashed rgba(255,56,92,0.2)', borderRadius:3, textAlign:'center', fontSize:14, color:t.palette.text.secondary })}>Search above to add your first destination.</Box>
           )}
           <Stack spacing={1}>
+            <AnimatePresence initial={false}>
             {destinations.map(d=> (
               <Box key={d.id} ref={el=> { cardRefs.current[d.id]=el as HTMLDivElement | null; }}>
                 <DestinationCard
@@ -262,6 +264,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
                 />
               </Box>
             ))}
+            </AnimatePresence>
           </Stack>
         </Box>
 

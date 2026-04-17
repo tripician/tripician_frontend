@@ -1,6 +1,7 @@
 import React from "react";
 import { Box } from "@mui/material";
 import { User, Bell, Shield, Globe } from "lucide-react";
+import { motion, AnimatePresence } from 'framer-motion';
 
 interface SettingsTopNavProps {
   selectedSettingsMenuItem: string;
@@ -20,7 +21,11 @@ const SettingsTopNav: React.FC<SettingsTopNavProps> = ({ selectedSettingsMenuIte
       const active = selectedSettingsMenuItem.toLowerCase() === value;
       return (
         <Box
+          component={motion.div}
           key={value}
+          whileHover={{ x: 4 }}
+          whileTap={{ scale: 0.97 }}
+          transition={{ type: 'spring', stiffness: 400, damping: 25 }}
           onClick={() => onChange(label)}
           sx={{
             display: 'flex', alignItems: 'center', gap: 1.5,

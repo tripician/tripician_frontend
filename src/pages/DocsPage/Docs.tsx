@@ -5,6 +5,8 @@ import { addDocument, removeDocument, selectDocument, togglePin, updateSearch, r
 import { useDispatch as useReduxDispatch } from 'react-redux';
 import { pinDoc, unpinDoc, addGlobalDoc, removeVisaDoc, removeGlobalDoc } from '../../store/plannerSlice';
 import { Box, Button, Typography, TextField, IconButton, Tooltip, Divider, Chip } from '@mui/material';
+import { motion } from 'framer-motion';
+import { fadeInLeft, fadeInRight } from '../../utils/animations';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import CheckIcon from '@mui/icons-material/Check';
 import WarningAmberOutlinedIcon from '@mui/icons-material/WarningAmberOutlined';
@@ -142,7 +144,7 @@ const Docs: React.FC = () => {
   return (
     <Box sx={{ display:'flex', height:'100%', minHeight:'calc(100vh - 80px)', p:2, gap:2 }}>
       {/* Left explorer */}
-      <Box sx={{ width:340, flexShrink:0, display:'flex', flexDirection:'column', gap:1.5, border:'1px solid', borderColor:'divider', borderRadius:2, p:1.5, background:'background.paper', overflow:'hidden' }}>
+      <Box component={motion.div} variants={fadeInLeft} initial='hidden' animate='visible' sx={{ width:340, flexShrink:0, display:'flex', flexDirection:'column', gap:1.5, border:'1px solid', borderColor:'divider', borderRadius:2, p:1.5, background:'background.paper', overflow:'hidden' }}>
         <Box sx={{ display:'flex', alignItems:'center', justifyContent:'space-between', mb:.5 }}>
           <Typography variant='h6' fontWeight={600}>Docs</Typography>
           <Button size='small' variant='contained' onClick={triggerUpload} sx={{ textTransform:'none', borderRadius:2 }}>Upload</Button>
@@ -225,7 +227,7 @@ const Docs: React.FC = () => {
         </Box>
       </Box>
       {/* Right preview */}
-      <Box sx={{ flex:1, minWidth:0, border:'1px solid', borderColor:'divider', borderRadius:2, p:2, display:'flex', flexDirection:'column', gap:1.5, background:'background.paper' }}>
+      <Box component={motion.div} variants={fadeInRight} initial='hidden' animate='visible' sx={{ flex:1, minWidth:0, border:'1px solid', borderColor:'divider', borderRadius:2, p:2, display:'flex', flexDirection:'column', gap:1.5, background:'background.paper' }}>
         {!selected && (
           <Box sx={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center', flexDirection:'column', gap:1 }}>
             <DescriptionIcon sx={{ fontSize:64, opacity:.25 }} />

@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import '../../assets/css/Signin.css';
 import { KalaLotus } from '../../components/DecorativeComponents/KalaDecor';
 import GoogleIcon from '@mui/icons-material/Google';
@@ -9,6 +10,7 @@ import { useNavigate } from 'react-router-dom';
 import { fetchUserProfile } from '../../store/userSlice';
 import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../store';
+import { fadeInLeft, fadeInRight, staggerContainer, staggerItem } from '../../utils/animations';
 
 const Signin = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -116,40 +118,60 @@ const Signin = () => {
   return (
     <div className="auth-root">
       {/* ── Left brand pane ─────────────────────────────────────── */}
-      <div className="auth-left">
+      <motion.div
+        className="auth-left"
+        variants={fadeInLeft}
+        initial="hidden"
+        animate="visible"
+      >
         <div
           className="auth-left__bg"
           style={loginBackground ? { backgroundImage: `url(${loginBackground})` } : undefined}
         />
         <div className="auth-left__overlay" />
-        <div className="auth-left__content">
-          <div className="auth-left__logo">
+        <motion.div
+          className="auth-left__content"
+          variants={staggerContainer(0.12, 0.3)}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.div className="auth-left__logo" variants={staggerItem}>
             {logoUrl
               ? <img src={logoUrl} alt="Tripician" className="auth-left__logo-img" />
               : <><Plane size={20} /><span>Tripician</span></>
             }
-          </div>
-          <h2 className="auth-left__title">
+          </motion.div>
+          <motion.h2 className="auth-left__title" variants={staggerItem}>
             Plan Smarter.<br /><em>Travel Further.</em>
-          </h2>
-          <p className="auth-left__sub">
+          </motion.h2>
+          <motion.p className="auth-left__sub" variants={staggerItem}>
             Your AI-powered companion for every adventure.
-          </p>
-          <ul className="auth-left__perks">
-            <li><MapPin size={14} /> Day-by-day itinerary planner</li>
-            <li><Globe size={14} /> 150+ destinations covered</li>
-            <li><Brain size={14} /> Smart AI trip suggestions</li>
-          </ul>
-        </div>
-      </div>
+          </motion.p>
+          <motion.ul className="auth-left__perks" variants={staggerContainer(0.08, 0)}>
+            <motion.li variants={staggerItem}><MapPin size={14} /> Day-by-day itinerary planner</motion.li>
+            <motion.li variants={staggerItem}><Globe size={14} /> 150+ destinations covered</motion.li>
+            <motion.li variants={staggerItem}><Brain size={14} /> Smart AI trip suggestions</motion.li>
+          </motion.ul>
+        </motion.div>
+      </motion.div>
 
       {/* ── Right form pane ─────────────────────────────────────── */}
-      <div className="auth-right">
+      <motion.div
+        className="auth-right"
+        variants={fadeInRight}
+        initial="hidden"
+        animate="visible"
+      >
         {/* Indian kala lotus — top-right corner */}
         <KalaLotus size={380} color="#FF385C" opacity={0.07} style={{ position: 'absolute', top: -90, right: -90, zIndex: 0 }} />
         {/* Indian kala lotus — bottom-left accent */}
         <KalaLotus size={260} color="#FF6B8A" opacity={0.055} style={{ position: 'absolute', bottom: -65, left: -65, zIndex: 0 }} />
-        <div className="auth-card">
+        <motion.div
+          className="auth-card"
+          initial={{ opacity: 0, y: 30, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 28, delay: 0.15 }}
+        >
           {/* <div className="auth-card__logo">
             {logoUrl
               ? <img src={logoUrl} alt="Tripician" className="auth-card__logo-img" />
@@ -157,14 +179,30 @@ const Signin = () => {
             }
           </div> */}
 
-          <h1 className="auth-card__heading">Welcome back</h1>
-          <p className="auth-card__subheading">Sign in to your account to continue</p>
+          <motion.h1
+            className="auth-card__heading"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25, duration: 0.4 }}
+          >Welcome back</motion.h1>
+          <motion.p
+            className="auth-card__subheading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.35, duration: 0.4 }}
+          >Sign in to your account to continue</motion.p>
 
           {error && <div className="auth-alert auth-alert--error">{error}</div>}
           {success && <div className="auth-alert auth-alert--success">{success}</div>}
 
-          <form className="auth-form" onSubmit={handleSubmit}>
-            <div className="auth-field">
+          <motion.form
+            className="auth-form"
+            onSubmit={handleSubmit}
+            variants={staggerContainer(0.08, 0.3)}
+            initial="hidden"
+            animate="visible"
+          >
+            <motion.div className="auth-field" variants={staggerItem}>
               <label className="auth-field__label">Email Address</label>
               <input
                 className="auth-field__input"
@@ -175,9 +213,9 @@ const Signin = () => {
                 required
                 autoComplete="email"
               />
-            </div>
+            </motion.div>
 
-            <div className="auth-field">
+            <motion.div className="auth-field" variants={staggerItem}>
               <div className="auth-field__label-row">
                 <label className="auth-field__label">Password</label>
                 <a
@@ -207,40 +245,61 @@ const Signin = () => {
                   {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               </div>
-            </div>
+            </motion.div>
 
-            <button className="auth-btn auth-btn--primary" type="submit" disabled={loading}>
+            <motion.button
+              className="auth-btn auth-btn--primary"
+              type="submit"
+              disabled={loading}
+              variants={staggerItem}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+            >
               {loading ? 'Signing In…' : 'Sign In'}
-            </button>
-          </form>
+            </motion.button>
+          </motion.form>
 
-          <p className="auth-switch">
+          <motion.p
+            className="auth-switch"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7 }}
+          >
             Don't have an account?
             <a href="/signup" className="auth-switch__link">Sign up free</a>
-          </p>
+          </motion.p>
 
           <div className="auth-divider"><span>or continue with</span></div>
 
-          <div className="auth-social">
-            <button
+          <motion.div
+            className="auth-social"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.4 }}
+          >
+            <motion.button
               className="auth-social-btn"
               type="button"
               onClick={handleGoogleSignIn}
               disabled={loading}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
             >
               <GoogleIcon style={{ fontSize: 17 }} /> Google
-            </button>
-            <button
+            </motion.button>
+            <motion.button
               className="auth-social-btn"
               type="button"
               onClick={handleAppleSignIn}
               disabled={loading}
+              whileHover={{ scale: 1.03 }}
+              whileTap={{ scale: 0.97 }}
             >
               <AppleIcon style={{ fontSize: 17 }} /> Apple
-            </button>
-          </div>
-        </div>
-      </div>
+            </motion.button>
+          </motion.div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 };

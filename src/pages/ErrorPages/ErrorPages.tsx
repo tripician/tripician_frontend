@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Typography, Button } from '@mui/material';
+import { motion } from 'framer-motion';
 import ErrorPageLayout from './ErrorPageLayout';
 import SentimentDissatisfiedIcon from '@mui/icons-material/SentimentDissatisfied';
 import LockOutlinedIcon from '@mui/icons-material/LockOutlined';
@@ -7,6 +8,7 @@ import ConstructionIcon from '@mui/icons-material/Construction';
 import ReportGmailerrorredIcon from '@mui/icons-material/ReportGmailerrorred';
 import TravelExploreIcon from '@mui/icons-material/TravelExplore';
 import { useNavigate } from 'react-router-dom';
+import { staggerContainer, staggerItem, popIn } from '../../utils/animations';
 
 interface BaseProps { title: string; subtitle: string; icon: React.ReactNode; actionLabel?: string; onAction?: ()=>void; }
 
@@ -14,12 +16,27 @@ const ErrorShell: React.FC<BaseProps> = ({ title, subtitle, icon, actionLabel='G
   const navigate = useNavigate();
   return (
     <ErrorPageLayout>
-      <Box sx={{ textAlign:'center', maxWidth:520 }}>
-        <Box sx={{ mb:2, display:'flex', alignItems:'center', justifyContent:'center' }}>{icon}</Box>
-        <Typography variant='h3' fontWeight={700} gutterBottom>{title}</Typography>
-        <Typography variant='body1' sx={{ opacity:.7, mb:3 }}>{subtitle}</Typography>
-        <Button variant='contained' onClick={()=> onAction? onAction(): navigate('/') } sx={{ borderRadius:2, textTransform:'none', px:3 }}>{actionLabel}</Button>
-      </Box>
+      <motion.div
+        variants={staggerContainer(0.15, 0.1)}
+        initial="hidden"
+        animate="visible"
+        style={{ textAlign: 'center', maxWidth: 520 }}
+      >
+        <motion.div variants={popIn}>
+          <Box sx={{ mb:2, display:'flex', alignItems:'center', justifyContent:'center' }}>{icon}</Box>
+        </motion.div>
+        <motion.div variants={staggerItem}>
+          <Typography variant='h3' fontWeight={700} gutterBottom>{title}</Typography>
+        </motion.div>
+        <motion.div variants={staggerItem}>
+          <Typography variant='body1' sx={{ opacity:.7, mb:3 }}>{subtitle}</Typography>
+        </motion.div>
+        <motion.div variants={staggerItem}>
+          <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
+            <Button variant='contained' onClick={()=> onAction? onAction(): navigate('/') } sx={{ borderRadius:2, textTransform:'none', px:3 }}>{actionLabel}</Button>
+          </motion.div>
+        </motion.div>
+      </motion.div>
     </ErrorPageLayout>
   );
 };

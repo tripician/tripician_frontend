@@ -96,7 +96,7 @@ export const apiServices = {
     countries: string[];
     startDate?: string | null;
     endDate?: string | null;
-    visibility: 'TRIP_MEMBERS' | 'FOLLOWERS' | 'EVERYONE';
+    visibility: 'PRIVATE' | 'TRIP_MEMBERS' | 'FOLLOWERS' | 'EVERYONE';
     invites?: string[];
   }) => apiClient.post('/api/trips', data, {
     headers: { Authorization: `Bearer ${token}` }

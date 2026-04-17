@@ -132,7 +132,7 @@ export default function ProfileDetailsRightCard({
 
         {/* Profile Fields */}
         {filteredRows.length > 0 ? (
-          <Box sx={{ display: "grid", gap: 2 }}>
+          <motion.div variants={staggerContainer(0.08)} initial="hidden" animate="visible" style={{ display: 'grid', gap: 16 }}>
             {filteredRows.map((row, idx) => {
               const icon = getFieldIcon(row.label);
               const formattedValue = formatFieldValue(row.label, row.value!);
@@ -140,6 +140,9 @@ export default function ProfileDetailsRightCard({
 
               return (
                 <Box
+                  component={motion.div}
+                  variants={staggerItem}
+                  whileHover={{ x: 4, transition: { duration: 0.2 } }}
                   key={idx}
                   sx={{
                     display: "flex",
@@ -189,7 +192,7 @@ export default function ProfileDetailsRightCard({
                 </Box>
               );
             })}
-          </Box>
+          </motion.div>
         ) : (
           <Box sx={{ textAlign: "center", py: 4, color: "text.disabled" }}>
             <Person sx={{ fontSize: 42, mb: 1, opacity: 0.5 }} />

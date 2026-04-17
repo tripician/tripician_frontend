@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import CheckCircleIcon from '@mui/icons-material/CheckCircle';
+import { motion, AnimatePresence } from 'framer-motion';
 
 // Dispatch helper: window.dispatchEvent(new CustomEvent('app:success',{ detail:{ message:'Saved!' }}));
 
@@ -21,11 +22,15 @@ const SuccessOverlay: React.FC = () => {
     return () => window.removeEventListener('app:success', handler as EventListener);
   }, []);
 
-  if (!open) return null;
-
   return (
-    <Box
-      sx={{
+    <AnimatePresence>
+    {open && (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.2 }}
+      style={{
         position: 'fixed',
         inset: 0,
         zIndex: 1400,
@@ -43,6 +48,12 @@ const SuccessOverlay: React.FC = () => {
           inset: 0,
         }}
       />
+      <motion.div
+        initial={{ opacity: 0, scale: 0.7, y: 20 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        exit={{ opacity: 0, scale: 0.85, y: -10 }}
+        transition={{ type: 'spring', stiffness: 400, damping: 25 }}
+      >
       <Box
         sx={{
           position: 'relative',
@@ -56,11 +67,6 @@ const SuccessOverlay: React.FC = () => {
           alignItems: 'center',
           gap: 1,
           minWidth: 280,
-          animation: 'fadeInScale 0.35s ease',
-          '@keyframes fadeInScale': {
-            from: { opacity: 0, transform: 'scale(.85)' },
-            to: { opacity: 1, transform: 'scale(1)' },
-          },
         }}
       >
         <CheckCircleIcon color='success' sx={{ fontSize: 48 }} />
@@ -71,7 +77,10 @@ const SuccessOverlay: React.FC = () => {
           Your action completed successfully.
         </Typography>
       </Box>
-    </Box>
+      </motion.div>
+    </motion.div>
+    )}
+    </AnimatePresence>
   );
 };
 

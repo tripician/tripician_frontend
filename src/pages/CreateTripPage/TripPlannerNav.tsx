@@ -7,6 +7,7 @@ import ImportExportIcon from '@mui/icons-material/ImportExport';
 import SoonTag from '../../components/CommonComponents/SoonTag';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
 import NewspaperIcon from '@mui/icons-material/Newspaper';
+import { motion } from 'framer-motion';
 
 // Custom lightweight T-shirt icon (since Material baseline set lacks a direct Tshirt glyph)
 const TshirtIcon: React.FC<{ fontSize?: 'small' | 'medium' | 'large' }> = ({ fontSize = 'small' }) => {
@@ -85,6 +86,10 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
         return (
           <Tooltip key={item.id} title={isDisabled ? `${item.label} (Coming Soon)` : item.label} placement='right' arrow>
             <Box
+              component={motion.div}
+              whileHover={isDisabled ? {} : { scale: 1.08, y: -2 }}
+              whileTap={isDisabled ? {} : { scale: 0.92 }}
+              transition={{ type: 'spring', stiffness: 400, damping: 20 }}
               role='button'
               tabIndex={0}
               aria-pressed={selected}

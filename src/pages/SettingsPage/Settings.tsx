@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Typography } from '@mui/material';
+import { motion, AnimatePresence } from 'framer-motion';
 import { KalaMandala } from '../../components/DecorativeComponents/KalaDecor';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import ProfileSettings from './ProfileSettings';
@@ -7,6 +8,7 @@ import SettingsTopNav from './SettingsTopNav';
 import NotificationsSettings from './NotificationsSettings';
 import PrivacySettings from './PrivacySettings';
 import PreferencesSettings from './PreferencesSettings';
+import { staggerContainer, staggerItem, tabContent } from '../../utils/animations';
 
 const Settings: React.FC = () => {
   const [selectedSettingsMenuItem, setSelectedSettingsMenuItem] = useState('Profile');
@@ -18,6 +20,11 @@ const Settings: React.FC = () => {
       {/* Indian kala mandala — bottom-left, small corner accent */}
       <KalaMandala size={320} color="#C41E3A" opacity={0.05} style={{ position: 'absolute', bottom: 0, left: -80, zIndex: 0, pointerEvents: 'none' }} />
       <TopBar />
+      <motion.div
+        initial="hidden"
+        animate="visible"
+        variants={staggerContainer(0.1, 0.1)}
+      >
       <Box
         sx={{
           maxWidth: 1100,
@@ -31,6 +38,7 @@ const Settings: React.FC = () => {
         }}
       >
         {/* Sidebar */}
+        <motion.div variants={staggerItem}>
         <Box sx={{ width: { xs: '100%', md: 210 }, flexShrink: 0, position: { md: 'sticky' }, top: 88 }}>
           <Typography sx={{
             fontFamily: "'Playfair Display', serif",
@@ -50,15 +58,28 @@ const Settings: React.FC = () => {
             onChange={setSelectedSettingsMenuItem}
           />
         </Box>
+        </motion.div>
 
-        {/* Content area */}
+        {/* Content area with animated tab transitions */}
         <Box sx={{ flex: 1, minWidth: 0, width: '100%' }}>
-          {selectedSettingsMenuItem === 'Profile'       && <ProfileSettings />}
-          {selectedSettingsMenuItem === 'Notifications' && <NotificationsSettings />}
-          {selectedSettingsMenuItem === 'Privacy'       && <PrivacySettings />}
-          {selectedSettingsMenuItem === 'Preferences'   && <PreferencesSettings />}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={selectedSettingsMenuItem}
+              variants={tabContent}
+              initial="initial"
+              animate="animate"
+              exit="exit"
+              inherit={false}
+            >
+              {selectedSettingsMenuItem === 'Profile'       && <ProfileSettings />}
+              {selectedSettingsMenuItem === 'Notifications' && <NotificationsSettings />}
+              {selectedSettingsMenuItem === 'Privacy'       && <PrivacySettings />}
+              {selectedSettingsMenuItem === 'Preferences'   && <PreferencesSettings />}
+            </motion.div>
+          </AnimatePresence>
         </Box>
       </Box>
+      </motion.div>
     </Box>
   );
 };

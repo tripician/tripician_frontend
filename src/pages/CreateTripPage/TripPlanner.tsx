@@ -26,11 +26,10 @@ import TripComments from './TripComments';
 import PackingPanel from './PackingPanel';
 // ChatAssistant replaced by inline PremiumChatPanel
 import MapDrawer from './MapDrawer';
-import DrawingCanvas, { type DrawingCanvasHandle } from './DrawingCanvas';
-import DrawingDock from './DrawingDock';
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
+import PublishRoundedIcon from '@mui/icons-material/PublishRounded';
 import StarRoundedIcon from '@mui/icons-material/StarRounded';
 import StarBorderRoundedIcon from '@mui/icons-material/StarBorderRounded';
 import ShareRoundedIcon from '@mui/icons-material/ShareRounded';
@@ -1145,11 +1144,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		return ()=> { active = false; };
 	}, [authToken, tripId]);
 	const [mapDrawerOpen, setMapDrawerOpen] = React.useState(false);
-	const [drawingActive, setDrawingActive] = React.useState(false);
-	const [drawingTool, setDrawingTool] = React.useState<'pen' | 'eraser'>('pen');
-	const [drawingColor, setDrawingColor] = React.useState('#111111');
-	const [drawingWidth, setDrawingWidth] = React.useState(4);
-	const drawingCanvasRef = React.useRef<DrawingCanvasHandle | null>(null);
 	const containerRef = React.useRef<HTMLDivElement|null>(null);
 	const [visaErrors, setVisaErrors] = React.useState<string[]>([]);
 
@@ -1433,10 +1427,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	}, [planner.destinations, tripId, title, privacy, currency, tripStartDate, tripEndDate, targetNights, totalNights, geocodedCount, importantNotes]);
 
 	// Persist helper (debounced save)
-	const persistToBackend = React.useCallback(async (payload:any) => {
-		if(!authToken){ openToast('error','Not signed in'); return; }
+	const persistToBackend = React.useCallback(async (payload:any): Promise<boolean> => {
+		if(!authToken){ openToast('error','Not signed in'); return false; }
 		const now = Date.now();
-		if(saving || (now - lastSaveTs) < 1200) return;
+		if(saving || (now - lastSaveTs) < 1200) return false;
 		setSaving(true);
 		setLastSaveTs(now);
 		try {
@@ -1445,8 +1439,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			setRemoteTrip({ trip: payload.trip, itinerary: payload.itinerary });
 			setLastSavedDisplay(new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' }));
 			openToast('success', payload.trip.status==='DRAFT'? 'Draft saved':'Trip updated');
+			return true;
 		} catch(err:any){
 			openToast('error','Save failed');
+			return false;
 		} finally {
 			setSaving(false);
 		}
@@ -1458,9 +1454,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			// Build enriched published payload (draft=false)
 			const payload = buildPersistPayload(false);
 			persistedPayloadRef.current = payload;
-			// Persist first, then commit snapshot to update dirty signature
-			persistToBackend(payload);
-			commitSnapshot(false);
+			// Persist first, then commit snapshot only on success
+			persistToBackend(payload).then(ok => { if(ok) commitSnapshot(false); });
 		} else {
 			// Unpublish -> revert to draft
 			commitSnapshot(true);
@@ -1478,8 +1473,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			if(isDirty && effectiveCanEdit){
 				const payload = buildPersistPayload(true);
 				persistedPayloadRef.current = payload;
-				await persistToBackend(payload);
-				commitSnapshot(true);
+				const ok = await persistToBackend(payload);
+				if(ok) commitSnapshot(true);
+				if(!ok){ setExiting(false); return; }
 			}
 			redirectDashboard();
 		} finally { setExiting(false); }
@@ -1723,6 +1719,35 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 								</span>
 							</Tooltip>
 							)}
+							{!readOnly && effectiveCanEdit && (
+							<Tooltip arrow placement='top' title={!isDraft ? 'Trip is published' : 'Publish trip'}>
+								<span>
+									<Button
+										size='small'
+										variant='contained'
+										disabled={!isDraft}
+										startIcon={saving ? <CircularProgress size={14} thickness={5} sx={{ color: 'inherit' }} /> : <PublishRoundedIcon fontSize='small' />}
+										onClick={() => {
+											if (isDraft) {
+												handlePublish();
+												requestAnimationFrame(() => { lastCommittedRef.current = computeSignature(); });
+											}
+										}}
+										sx={{
+											ml: .5, textTransform: 'none', borderRadius: 2, px: 1.5, fontSize: 12, fontWeight: 600, minWidth: 0,
+											...(!isDraft ? {
+												bgcolor: '#2e7d32',
+												color: '#fff',
+												boxShadow: '0 0 12px 3px rgba(46,125,50,0.45)',
+												'&.Mui-disabled': { bgcolor: '#2e7d32', color: '#fff', opacity: 1, boxShadow: '0 0 12px 3px rgba(46,125,50,0.45)' },
+											} : {}),
+										}}
+									>
+										{!isDraft ? 'Published' : 'Publish'}
+									</Button>
+								</span>
+							</Tooltip>
+							)}
 						</Box>
 						)}
 						<Divider />
@@ -1762,21 +1787,17 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 												if(!isDraft){
 													const payload = buildPersistPayload(false);
 													persistedPayloadRef.current = payload;
-													persistToBackend(payload);
-													commitSnapshot(false);
-																				// Dev logging removed (post-save update)
+													persistToBackend(payload).then(ok => { if(ok) commitSnapshot(false); });
 												} else {
 													const payload = buildPersistPayload(true);
 													persistedPayloadRef.current = payload;
-													persistToBackend(payload);
-													commitSnapshot(true);
-																				// Dev logging removed (post-save draft)
+													persistToBackend(payload).then(ok => { if(ok) commitSnapshot(true); });
 												}
 											}}
 													disabled={!effectiveCanEdit || !isDirty || saving || !isHydrated}
 											sx={{ textTransform:'none', borderRadius:2 }}
 										>
-											{isDraft ? 'Save as Draft' : 'Update'}{saving && <CircularProgress size={16} thickness={5} sx={{ ml:1 }} />}
+											{isDraft ? 'Save' : 'Update'}{saving && <CircularProgress size={16} thickness={5} sx={{ ml:1 }} />}
 										</Button>
 											{currentUserIsOwner && (
 											<Button
@@ -1811,14 +1832,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						</Box>
 					</Box>
 					)}
-					{/* Drawing canvas overlay — sits on top of all board content when active */}
-					<DrawingCanvas
-						ref={drawingCanvasRef}
-						tool={drawingTool}
-						color={drawingColor}
-						lineWidth={drawingWidth}
-						active={drawingActive}
-					/>
 					</Box>{/* end centre column */}
 				{/* Right panel — Navia for owners/editors, trip info for public viewers */}
 				{isExternalNonOwner ? (
@@ -1840,29 +1853,14 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					<PremiumChatPanel />
 				)}
 		</Box>
-		{/* Drawing dock — only visible in edit mode, not for view-only visitors */}
-		{!isExternalNonOwner && (
-		<DrawingDock
-			active={drawingActive}
-			onToggle={() => setDrawingActive(v => !v)}
-			tool={drawingTool}
-			onTool={setDrawingTool}
-			color={drawingColor}
-			onColor={setDrawingColor}
-			lineWidth={drawingWidth}
-			onLineWidth={setDrawingWidth}
-			onUndo={() => drawingCanvasRef.current?.undo()}
-			onClear={() => drawingCanvasRef.current?.clear()}
-		/>
-		)}
 		{effectiveCanEdit && (
 			<Menu anchorEl={currencyAnchor} open={Boolean(currencyAnchor)} onClose={closeCurrency} elevation={3}>
 				{(['EUR','USD','GBP'] as const).map(c=> (<MenuItem key={c} selected={c===currency} onClick={()=> selectCurrency(c)}><Avatar sx={{ width:20, height:20, mr:1, fontSize:11 }}>{c==='EUR'?'€': c==='USD'? '$':'£'}</Avatar>{c}</MenuItem>))}
 			</Menu>
 		)}
 		{effectiveCanEdit && (
-				<Menu anchorEl={privacyAnchor} open={Boolean(privacyAnchor)} onClose={closePrivacy} elevation={3}>
-					{(['Private','Trip Members','My Followers','Everyone'] as const).map(p=> (<MenuItem key={p} selected={p===privacy} onClick={()=> selectPrivacy(p)}>{p}</MenuItem>))}
+					<Menu anchorEl={privacyAnchor} open={Boolean(privacyAnchor)} onClose={closePrivacy} elevation={3}>
+					{(['Private','Trip Members'] as const).map(p=> (<MenuItem key={p} selected={p===privacy} onClick={()=> selectPrivacy(p)}>{p}</MenuItem>))}
 				</Menu>
 				)}
 				{canAccessDocs && ENABLE_DOC_UPLOAD && (

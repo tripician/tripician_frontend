@@ -1,5 +1,6 @@
 ﻿import React from 'react';
 import '../../assets/css/TripCard.css';
+import { motion } from 'framer-motion';
 import ShareRoundedIcon from '@mui/icons-material/ShareRounded';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
 import StarRoundedIcon from '@mui/icons-material/StarRounded';
@@ -69,6 +70,12 @@ const TripCard: React.FC<TripCardProps> = ({
   };
 
   return (
+    <motion.div
+      initial={{ opacity: 0, y: 16, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={{ type: 'spring', stiffness: 260, damping: 22 }}
+      whileHover={{ y: -6, transition: { type: 'spring', stiffness: 300, damping: 18 } }}
+    >
     <div
       className="trip-card"
       role={onClick ? 'button' : undefined}
@@ -214,6 +221,7 @@ const TripCard: React.FC<TripCardProps> = ({
         )}
       </div>
     </div>
+    </motion.div>
   );
 };
 

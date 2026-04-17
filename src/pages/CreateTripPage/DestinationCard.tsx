@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Card, CardContent, Typography, IconButton, Tooltip, Chip, Menu, MenuItem, InputBase } from '@mui/material';
+import { motion } from 'framer-motion';
 import MoreVertIcon from '@mui/icons-material/MoreVert';
 import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import DeleteIcon from '@mui/icons-material/Delete';
@@ -60,6 +61,8 @@ export interface DestinationCardProps {
   onDragEnd?: () => void;
 }
 
+const MotionCard = motion.create(Card);
+
 const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled, onRename, onToggleComplete, onDuplicate, onRemove, onOpenNotes, onOpenDiscover, onOpenDocs, onOpenStay, onChangeNights }) => {
   const { id, name, startDate, endDate, nights, category='general', completed, notes, spots, foods, stay, stays, docs } = destination as any;
   const [editing, setEditing] = React.useState(false);
@@ -79,7 +82,13 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
   const dateFmt = (iso?: string) => { if(!iso) return ''; try { const d = new Date(iso + 'T00:00:00'); return d.toLocaleDateString(undefined, { month:'short', day:'2-digit' }); } catch { return iso || ''; } };
 
   return (
-    <Card
+    <MotionCard
+      layout
+      initial={{ opacity: 0, y: 12, scale: 0.97 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      exit={{ opacity: 0, x: 20, scale: 0.95 }}
+      transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+      whileHover={{ y: -2, boxShadow: '0 8px 28px rgba(255,56,92,0.15)' }}
       elevation={0}
       sx={(t)=>({
         position:'relative', overflow:'hidden', opacity: disabled? .6:1,
@@ -90,8 +99,6 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
         boxShadow: t.palette.mode==='dark'? '0 1px 4px rgba(0,0,0,0.5)':'0 1px 4px rgba(0,0,0,0.05)',
         '&:hover': {
           borderColor:'rgba(255,56,92,0.35)',
-          boxShadow: t.palette.mode==='dark'? '0 6px 24px rgba(0,0,0,0.5)':'0 4px 20px rgba(255,56,92,0.12)',
-          transform:'translateY(-1px)',
         }
       })}
     >
@@ -193,7 +200,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
         <MenuItem dense onClick={()=>{ closeMenu(); onToggleComplete?.(id); }}>{completed?'Mark Incomplete':'Mark Complete'}</MenuItem>
         <MenuItem dense onClick={()=>{ closeMenu(); onRemove?.(id); }} sx={{ color:'error.main' }}>Delete</MenuItem>
       </Menu>
-    </Card>
+    </MotionCard>
   );
 };
 

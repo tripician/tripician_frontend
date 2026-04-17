@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Typography, TextField, Button, IconButton, Avatar, CircularProgress, Fade, Divider, Chip, Collapse } from '@mui/material';
+import { motion } from 'framer-motion';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import EditIcon from '@mui/icons-material/Edit';
 import ThumbUpAltOutlinedIcon from '@mui/icons-material/ThumbUpAltOutlined';
@@ -121,8 +122,9 @@ const TripComments: React.FC = () => {
                 <Chip label={group.day} size='small' sx={{ fontSize:11, fontWeight:500 }} />
                 <Divider sx={{ flex:1 }} />
               </Box>
-              {group.items.filter(c=> !c.parentId).map(c=> { const mine = c.userId === CURRENT_USER.id; const replies = group.items.filter(r=> r.parentId===c.id).sort((a,b)=> new Date(a.createdAt).getTime()-new Date(b.createdAt).getTime()); const expanded = expandedThreads[c.id]; const upCount = c.upvoterIds?.length || 0; return (
-                <Box key={c.id} sx={{ display:'flex', alignItems:'flex-start', gap:1.75, position:'relative', '&:hover .comment-inline-actions':{ opacity:1 } }}>
+              {group.items.filter(c=> !c.parentId).map((c, ci)=> { const mine = c.userId === CURRENT_USER.id; const replies = group.items.filter(r=> r.parentId===c.id).sort((a,b)=> new Date(a.createdAt).getTime()-new Date(b.createdAt).getTime()); const expanded = expandedThreads[c.id]; const upCount = c.upvoterIds?.length || 0; return (
+                <motion.div key={c.id} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ type: 'spring', stiffness: 300, damping: 25, delay: ci * 0.04 }}>
+                <Box sx={{ display:'flex', alignItems:'flex-start', gap:1.75, position:'relative', '&:hover .comment-inline-actions':{ opacity:1 } }}>
                   <Avatar src={c.avatarUrl} sx={{ width:38, height:38, fontSize:15 }}>{c.displayName.charAt(0)}</Avatar>
                   <Box sx={{ flex:1, minWidth:0 }}>
                     <Box sx={{ display:'flex', alignItems:'baseline', gap:1, flexWrap:'wrap' }}>
@@ -192,6 +194,7 @@ const TripComments: React.FC = () => {
                     )}
                   </Box>
                 </Box>
+                </motion.div>
               ); })}
             </Box>
           ))}

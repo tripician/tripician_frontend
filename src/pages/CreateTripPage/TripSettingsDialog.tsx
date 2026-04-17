@@ -41,7 +41,7 @@ interface TripSettingsDialogProps {
 }
 
 // Align with planner's internal privacy state values for correct highlighting
-const PRIVACY_OPTIONS = ['Private','Trip Members','My Followers','Everyone'];
+const PRIVACY_OPTIONS = ['Private','Trip Members'];
 
 import { flagEmojiFromName, flagPngUrl, countryCodeFromName, COUNTRY_NAMES } from '../../utils/countryFlags';
 import { apiServices } from '../../services/APIs/apiServices';

@@ -1,5 +1,6 @@
 import React from 'react';
 import IconButton from '@mui/material/IconButton';
+import { motion } from 'framer-motion';
 import FacebookIcon from '@mui/icons-material/Facebook';
 import TwitterIcon from '@mui/icons-material/Twitter';
 import InstagramIcon from '@mui/icons-material/Instagram';
@@ -14,7 +15,8 @@ interface SocialMedias {
 
 const SocialMediaButtons : React.FC<SocialMedias> = ({ facebook, twitter, instagram, website}) => {
 return (
-<div style={{display:"flex", justifyContent:"center" }}>
+<motion.div style={{display:"flex", justifyContent:"center" }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ duration: 0.4, delay: 0.2 }}>
+  <motion.div whileHover={{ scale: 1.15, rotate: 5 }} whileTap={{ scale: 0.9 }}>
   <IconButton
     color="primary"
     aria-label="Facebook"
@@ -22,7 +24,9 @@ return (
   >
     <FacebookIcon />
   </IconButton>
+  </motion.div>
 
+  <motion.div whileHover={{ scale: 1.15, rotate: -5 }} whileTap={{ scale: 0.9 }}>
   <IconButton
     color="primary"
     aria-label="Twitter"
@@ -30,7 +34,9 @@ return (
   >
     <TwitterIcon />
   </IconButton>
+  </motion.div>
 
+  <motion.div whileHover={{ scale: 1.15, rotate: 5 }} whileTap={{ scale: 0.9 }}>
   <IconButton
     color="primary"
     aria-label="Instagram"
@@ -38,6 +44,9 @@ return (
   >
     <InstagramIcon />
   </IconButton>
+  </motion.div>
+
+  <motion.div whileHover={{ scale: 1.15, rotate: -5 }} whileTap={{ scale: 0.9 }}>
   <IconButton
     color="primary"
     aria-label="Website"
@@ -45,7 +54,8 @@ return (
   >
     <LanguageIcon />
   </IconButton>
-</div>
+  </motion.div>
+</motion.div>
 );
 };
 

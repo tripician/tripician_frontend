@@ -1,10 +1,12 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
 import '../../assets/css/Signin.css';
 import '../../assets/css/Signup.css';
 import { KalaMandala } from '../../components/DecorativeComponents/KalaDecor';
 import { Eye, EyeOff, Plane, MapPin, Globe, Brain, Check } from 'lucide-react';
 import { authAPI } from '../../services/APIs/Auth/auth';
 import { useNavigate } from 'react-router-dom';
+import { fadeInLeft, fadeInRight, staggerContainer, staggerItem } from '../../utils/animations';
 
 const Signup = () => {
     const [showPassword, setShowPassword] = useState(false);
@@ -92,41 +94,61 @@ const Signup = () => {
   return (
     <div className="auth-root">
       {/* ── Left brand pane ─────────────────────────────────────── */}
-      <div className="auth-left">
+      <motion.div
+        className="auth-left"
+        variants={fadeInLeft}
+        initial="hidden"
+        animate="visible"
+      >
         <div
           className="auth-left__bg"
           style={signupBackground ? { backgroundImage: `url(${signupBackground})` } : undefined}
         />
         <div className="auth-left__overlay" />
-        <div className="auth-left__content">
-          <div className="auth-left__logo">
+        <motion.div
+          className="auth-left__content"
+          variants={staggerContainer(0.12, 0.3)}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.div className="auth-left__logo" variants={staggerItem}>
             {logoUrl
               ? <img src={logoUrl} alt="Tripician" className="auth-left__logo-img" />
               : <><Plane size={20} /><span>Tripician</span></>
             }
-          </div>
-          <h2 className="auth-left__title">
+          </motion.div>
+          <motion.h2 className="auth-left__title" variants={staggerItem}>
             Your journey<br /><em>begins here.</em>
-          </h2>
-          <p className="auth-left__sub">
+          </motion.h2>
+          <motion.p className="auth-left__sub" variants={staggerItem}>
             Join thousands of explorers planning smarter with Tripician.
-          </p>
-          <ul className="auth-left__perks">
-            <li><Check size={14} /> Free forever — no credit card needed</li>
-            <li><MapPin size={14} /> Unlimited trip itineraries</li>
-            <li><Globe size={14} /> 150+ destinations covered</li>
-            <li><Brain size={14} /> AI-powered trip suggestions</li>
-          </ul>
-        </div>
-      </div>
+          </motion.p>
+          <motion.ul className="auth-left__perks" variants={staggerContainer(0.08, 0)}>
+            <motion.li variants={staggerItem}><Check size={14} /> Free forever — no credit card needed</motion.li>
+            <motion.li variants={staggerItem}><MapPin size={14} /> Unlimited trip itineraries</motion.li>
+            <motion.li variants={staggerItem}><Globe size={14} /> 150+ destinations covered</motion.li>
+            <motion.li variants={staggerItem}><Brain size={14} /> AI-powered trip suggestions</motion.li>
+          </motion.ul>
+        </motion.div>
+      </motion.div>
 
       {/* ── Right form pane ─────────────────────────────────────── */}
-      <div className="auth-right">
+      <motion.div
+        className="auth-right"
+        variants={fadeInRight}
+        initial="hidden"
+        animate="visible"
+      >
         {/* Indian kala mandala — top-right corner */}
         <KalaMandala size={380} color="#FF385C" opacity={0.07} style={{ position: 'absolute', top: -90, right: -90, zIndex: 0 }} />
         {/* Indian kala mandala — bottom-left accent */}
         <KalaMandala size={240} color="#D91A50" opacity={0.05} style={{ position: 'absolute', bottom: -60, left: -60, zIndex: 0 }} />
-        <div className="auth-card auth-card--signup">
+        <motion.div
+          className="auth-card auth-card--signup"
+          initial={{ opacity: 0, y: 30, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 28, delay: 0.15 }}
+        >
           {/* <div className="auth-card__logo">
             {logoUrl
               ? <img src={logoUrl} alt="Tripician" className="auth-card__logo-img" />
@@ -134,14 +156,30 @@ const Signup = () => {
             }
           </div> */}
 
-          <h1 className="auth-card__heading">Create account</h1>
-          <p className="auth-card__subheading">Start planning your next adventure</p>
+          <motion.h1
+            className="auth-card__heading"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25, duration: 0.4 }}
+          >Create account</motion.h1>
+          <motion.p
+            className="auth-card__subheading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.35, duration: 0.4 }}
+          >Start planning your next adventure</motion.p>
 
           {error && <div className="auth-alert auth-alert--error">{error}</div>}
           {success && <div className="auth-alert auth-alert--success">{success}</div>}
 
-          <form className="auth-form" onSubmit={handleSubmit}>
-            <div className="auth-field-row">
+          <motion.form
+            className="auth-form"
+            onSubmit={handleSubmit}
+            variants={staggerContainer(0.07, 0.3)}
+            initial="hidden"
+            animate="visible"
+          >
+            <motion.div className="auth-field-row" variants={staggerItem}>
               <div className="auth-field">
                 <label className="auth-field__label">First Name</label>
                 <input
@@ -164,9 +202,9 @@ const Signup = () => {
                   required
                 />
               </div>
-            </div>
+            </motion.div>
 
-            <div className="auth-field">
+            <motion.div className="auth-field" variants={staggerItem}>
               <label className="auth-field__label">Email Address</label>
               <input
                 className="auth-field__input"
@@ -177,9 +215,9 @@ const Signup = () => {
                 required
                 autoComplete="email"
               />
-            </div>
+            </motion.div>
 
-            <div className="auth-field">
+            <motion.div className="auth-field" variants={staggerItem}>
               <label className="auth-field__label">Password</label>
               <div className="auth-field__password-wrap">
                 <input
@@ -202,9 +240,9 @@ const Signup = () => {
                   {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               </div>
-            </div>
+            </motion.div>
 
-            <div className="auth-field">
+            <motion.div className="auth-field" variants={staggerItem}>
               <label className="auth-field__label">Confirm Password</label>
               <div className="auth-field__password-wrap">
                 <input
@@ -226,19 +264,31 @@ const Signup = () => {
                   {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
                 </button>
               </div>
-            </div>
+            </motion.div>
 
-            <button className="auth-btn auth-btn--primary" type="submit" disabled={loading}>
+            <motion.button
+              className="auth-btn auth-btn--primary"
+              type="submit"
+              disabled={loading}
+              variants={staggerItem}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+            >
               {loading ? 'Creating Account…' : 'Create Account'}
-            </button>
-          </form>
+            </motion.button>
+          </motion.form>
 
-          <p className="auth-switch">
+          <motion.p
+            className="auth-switch"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.8 }}
+          >
             Already have an account?
             <a href="/signin" className="auth-switch__link">Sign in</a>
-          </p>
-        </div>
-      </div>
+          </motion.p>
+        </motion.div>
+      </motion.div>
     </div>
   );
 };

@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import { loadNews, setLocations, type NewsArticle } from '../../store/newsSlice';
 import { Box, Typography, Card, CardActionArea, Skeleton, Chip, Divider, Button, Stack, Accordion, AccordionSummary, AccordionDetails, Collapse, IconButton } from '@mui/material';
+import { motion } from 'framer-motion';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
 import WarningAmberRoundedIcon from '@mui/icons-material/WarningAmberRounded';
@@ -647,6 +648,7 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
   }
 
   return (
+    <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4, ease: 'easeOut' }}>
     <Box sx={{ p: { xs: 2, md: 3 }, width: '100%', boxSizing: 'border-box' }}>
       {error && (
         <Box sx={{ mb: 2 }}>
@@ -1040,6 +1042,7 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
         </Box>
       </Box>
     </Box>
+    </motion.div>
   );
 };
 

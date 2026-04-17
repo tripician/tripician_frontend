@@ -23,6 +23,7 @@ import {
   Zoom,
   useTheme
 } from '@mui/material';
+import { motion, AnimatePresence } from 'framer-motion';
 import ChatIcon from '@mui/icons-material/Chat';
 import CloseIcon from '@mui/icons-material/Close';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
@@ -186,20 +187,24 @@ const ChatAssistant: React.FC = () => {
       </Zoom>
 
       {/* Chat Window */}
+      <AnimatePresence>
       {open && (
+        <motion.div
+          initial={{ opacity: 0, y: 30, scale: 0.92 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          exit={{ opacity: 0, y: 20, scale: 0.95 }}
+          transition={{ type: 'spring', stiffness: 350, damping: 28 }}
+          style={{ position: 'fixed', right: 24, bottom: 100, zIndex: 1700 }}
+        >
         <Paper
           elevation={0}
           sx={{
-            position: 'fixed',
-            right: 24,
-            bottom: 100,
             width: { xs: '88vw', sm: 370 },
             height: 520,
             borderRadius: '20px',
             display: 'flex',
             flexDirection: 'column',
             overflow: 'hidden',
-            zIndex: 1700,
             border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
             boxShadow: isLight
               ? '0 24px 64px rgba(0,0,0,0.14), 0 4px 16px rgba(255,56,92,0.08)'
@@ -344,7 +349,9 @@ const ChatAssistant: React.FC = () => {
             </IconButton>
           </Box>
         </Paper>
+        </motion.div>
       )}
+      </AnimatePresence>
 
       <Dialog open={versionDialogOpen} onClose={() => setVersionDialogOpen(false)}>
         <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
