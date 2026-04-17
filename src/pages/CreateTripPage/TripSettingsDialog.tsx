@@ -186,31 +186,28 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth='sm' fullWidth TransitionComponent={Fade} keepMounted
-      PaperProps={{ sx:(t:any)=>({ borderRadius:4, overflow:'hidden', background: t.palette.mode==='dark'?'#141414':'#fff', boxShadow:'0 32px 96px rgba(0,0,0,0.22)' }) }}
+      PaperProps={{ sx:(t:any)=>({
+        borderRadius:4,
+        overflow:'hidden',
+        background: t.palette.mode==='dark'?'#141414':'#fff',
+        boxShadow:'0 32px 96px rgba(0,0,0,0.22)',
+        maxHeight: '92vh',
+        '::-webkit-scrollbar': { display: 'none' },
+        scrollbarWidth: 'none',
+      }) }}
     >
       {/* Header */}
-      <Box sx={(t:any)=>({ display:'flex', alignItems:'center', gap:1, px:3, pt:2.5, pb:2, borderBottom:`1px solid ${t.palette.divider}` })}>
-        {view==='invite' && (
+      {view==='invite' && (
+        <Box sx={(t:any)=>({ display:'flex', alignItems:'center', gap:1, px:3, pt:2, pb:1.5, borderBottom:`1px solid ${t.palette.divider}` })}>
           <IconButton size='small' onClick={()=> setView('main')} aria-label='Back to settings' sx={{ mr:.5 }}><ArrowBackIcon fontSize='small' /></IconButton>
-        )}
-        <Box sx={{ flex:1 }}>
-          <Typography sx={{
-            fontFamily: view==='main' ? "'Playfair Display', Georgia, serif" : "'Inter', system-ui, sans-serif",
-            fontWeight: 700,
-            fontSize: view==='main' ? 22 : 18,
-            fontStyle: view==='main' ? 'italic' : 'normal',
-            letterSpacing: '-0.4px',
-            lineHeight: 1.1,
-          }}>
-            {view==='main' ? 'Trip' : 'Invite'}&nbsp;
-            <Box component='span' sx={{ fontStyle: view==='main' ? 'normal' : 'normal', fontWeight: 800 }}>
-              {view==='main' ? 'settings' : 'members'}
-            </Box>
+          <Typography sx={{ fontFamily:"'Inter', system-ui, sans-serif", fontWeight:700, fontSize:17, letterSpacing:'-0.3px' }}>
+            Invite <Box component='span' sx={{ fontWeight:800 }}>members</Box>
           </Typography>
+          <Box sx={{ flex:1 }} />
+          <IconButton onClick={onClose} size='small' aria-label='Close' sx={{ color:'text.disabled', '&:hover':{ color:'text.primary' } }}><CloseIcon sx={{ fontSize:18 }} /></IconButton>
         </Box>
-        <IconButton onClick={onClose} size='small' aria-label='Close' sx={{ color:'text.disabled', '&:hover':{ color:'text.primary' } }}><CloseIcon sx={{ fontSize:18 }} /></IconButton>
-      </Box>
-      <DialogContent sx={{ p:3, display:'flex', flexDirection:'column', gap:3 }}>
+      )}
+      <DialogContent sx={{ p:0, display:'flex', flexDirection:'column', overflow:'visible', maxHeight:'none' }}>
         {view==='invite' && (
           <Box sx={{ display:'flex', flexDirection:'column', gap:3 }}>
             <Box sx={{ display:'flex', flexDirection:'column', gap:1.5 }}>
@@ -301,78 +298,99 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
         )}
         {view==='main' && (
         <>
-        {/* Banner & Countries side-by-side */}
-        <Box sx={{ display:'flex', gap:2.5, flexWrap:'wrap' }}>
-          {/* Banner */}
-          <Box sx={{ flex:'0 0 200px' }}>
-            <Typography sx={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.6px', color:'text.secondary', mb:.75 }}>Banner image</Typography>
-            <Box sx={(t:any)=>({ position:'relative', width:'100%', height:280, borderRadius:3, overflow:'hidden', background:t.palette.mode==='dark'?'#1e1e1e':'#f0f0f0' })}>
-              <Box component='img'
-                src={bannerUrl || covers[(countries?.length && covers.hasOwnProperty(countries[0].toLowerCase()) ? (countries[0].toLowerCase() as keyof typeof covers) : 'default') as keyof typeof covers]}
-                alt='Trip banner' sx={{ width:'100%', height:'100%', objectFit:'cover' }}
-                onError={(e:any)=>{ e.currentTarget.style.opacity='0.3'; }}
-              />
-              <Box sx={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,0.55) 0%, transparent 55%)', pointerEvents:'none' }} />
-              <Box sx={{ position:'absolute', bottom:10, left:'50%', transform:'translateX(-50%)', display:'flex', gap:.75 }}>
-                <Button size='small' onClick={()=>{
-                  const input=document.createElement('input'); input.type='file'; input.accept='image/*';
-                  input.onchange=async()=>{ const f=input.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ const url=typeof r.result==='string'?r.result:''; onChangeBanner?.({url,file:f}); }; r.readAsDataURL(f); };
-                  input.click();
-                }} sx={{ textTransform:'none', borderRadius:20, fontWeight:700, fontSize:12, px:2, background:'rgba(255,255,255,0.92)', color:'#111', backdropFilter:'blur(6px)', '&:hover':{ background:'#fff' } }}>Change</Button>
-                {bannerUrl && (
-                  <Button size='small' onClick={()=>onChangeBanner?.({url:'',file:undefined})} sx={{ textTransform:'none', borderRadius:20, fontWeight:700, fontSize:12, px:1.5, background:'rgba(220,38,38,0.85)', color:'#fff', '&:hover':{ background:'rgba(220,38,38,1)' } }}>Remove</Button>
-                )}
-              </Box>
+        {/* ─── Hero Banner ─── */}
+        <Box sx={{ position:'relative', width:'100%', height:160, overflow:'hidden', cursor:'pointer', flexShrink:0,
+          '&:hover .banner-hover':{ opacity:1 }
+        }} onClick={()=>{
+          const input=document.createElement('input'); input.type='file'; input.accept='image/*';
+          input.onchange=async()=>{ const f=input.files?.[0]; if(!f) return; const r=new FileReader(); r.onload=()=>{ const url=typeof r.result==='string'?r.result:''; onChangeBanner?.({url,file:f}); }; r.readAsDataURL(f); };
+          input.click();
+        }}>
+          <Box component='img'
+            src={bannerUrl || covers[(countries?.length && covers.hasOwnProperty(countries[0].toLowerCase()) ? (countries[0].toLowerCase() as keyof typeof covers) : 'default') as keyof typeof covers]}
+            alt='Trip banner' sx={{ width:'100%', height:'100%', objectFit:'cover' }}
+            onError={(e:any)=>{ e.currentTarget.style.opacity='0.3'; }}
+          />
+          <Box sx={{ position:'absolute', inset:0, background:'linear-gradient(to top, rgba(0,0,0,0.6) 0%, rgba(0,0,0,0.1) 40%, transparent 100%)', pointerEvents:'none' }} />
+          {/* Removed close button from banner */}
+          {/* Hover overlay */}
+          <Box className='banner-hover' sx={{ position:'absolute', inset:0, background:'rgba(0,0,0,0.35)', display:'flex', alignItems:'center', justifyContent:'center',
+            opacity:0, transition:'opacity .2s ease', backdropFilter:'blur(2px)' }}>
+            <Box sx={{ display:'flex', alignItems:'center', gap:.75, px:2, py:.75, borderRadius:20, background:'rgba(255,255,255,0.92)', color:'#222' }}>
+              <Box sx={{ fontSize:14 }}>📷</Box>
+              <Typography sx={{ fontSize:12, fontWeight:700 }}>Change cover</Typography>
             </Box>
           </Box>
-          {/* Countries – chip multi-select */}
-          <Box sx={{ flex:1, minWidth:200, display:'flex', flexDirection:'column', gap:1 }}>
-            <Typography sx={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.6px', color:'text.secondary', mb:.25 }}>Trip countries</Typography>
+          {/* Title overlay on banner */}
+          <Box sx={{ position:'absolute', bottom:14, left:20, right:20 }}>
+            <Typography sx={{ fontFamily:"'Playfair Display', Georgia, serif", fontWeight:700, fontSize:22, color:'#fff', textShadow:'0 2px 12px rgba(0,0,0,0.5)', letterSpacing:'-0.5px' }}>
+              {title || 'Untitled Trip'}
+            </Typography>
+          </Box>
+        </Box>
 
-            {/* Tag input box */}
+        {/* ─── Form Body ─── */}
+        <Box sx={{ px:3, py:2.5, display:'flex', flexDirection:'column', gap:2.5 }}>
+
+          {/* Trip Name */}
+          <Box>
+            <Typography sx={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'1px', color:'text.disabled', mb:.75 }}>Trip name</Typography>
+            <TextField
+              value={title}
+              fullWidth
+              onChange={e=> onChangeTitle?.(e.target.value)}
+              size='small'
+              placeholder='Give your trip a name'
+              inputProps={{ maxLength:80 }}
+              sx={(t:any)=>({ '& .MuiOutlinedInput-root':{ borderRadius:2, fontWeight:600, fontSize:15, background: t.palette.mode==='dark'?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.02)',
+                '&:hover fieldset':{ borderColor:'#FF385C' }, '&.Mui-focused fieldset':{ borderColor:'#FF385C' } } })}
+            />
+          </Box>
+
+          {/* Countries */}
+          <Box>
+            <Typography sx={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'1px', color:'text.disabled', mb:.75 }}>Countries</Typography>
             <Box ref={countryAnchorRef} sx={{ position:'relative' }}>
               <Box
-                sx={(t:any)=>({ display:'flex', flexWrap:'wrap', alignItems:'center', gap:.5, px:1, py:.65, borderRadius:2,
+                sx={(t:any)=>({ display:'flex', flexWrap:'wrap', alignItems:'center', gap:.5, px:1.25, py:.75, borderRadius:2,
                   border:`1.5px solid ${countryDropOpen?'#FF385C':t.palette.divider}`,
                   background: t.palette.mode==='dark'?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.02)',
-                  cursor:'text', transition:'border-color .15s', minHeight:38 })}
+                  cursor:'text', transition:'border-color .2s', minHeight:42 })}
                 onClick={()=>setCountryDropOpen(true)}
               >
-                {/* Selected chips */}
                 {countries.map(c=>{
                   const code = countryCodeFromName(c);
                   const png = flagPngUrl(code, 16);
                   const emoji = flagEmojiFromName(c);
                   return (
-                    <Box key={c} sx={(t:any)=>({ display:'flex', alignItems:'center', gap:.4, pl:.6, pr:.4, py:.2,
+                    <Box key={c} sx={(t:any)=>({ display:'flex', alignItems:'center', gap:.4, pl:.75, pr:.5, py:.3,
                       borderRadius:20, fontSize:12, fontWeight:600,
-                      background: t.palette.mode==='dark'?'rgba(255,56,92,0.18)':'rgba(255,56,92,0.1)',
-                      border:'1px solid rgba(255,56,92,0.25)', color:'#FF385C', flexShrink:0 })}>
+                      background: t.palette.mode==='dark'?'rgba(255,56,92,0.15)':'rgba(255,56,92,0.08)',
+                      border:'1px solid rgba(255,56,92,0.2)', color:'#FF385C', flexShrink:0 })}>
                       {png
                         ? <Box component='img' src={png} alt='' sx={{ width:16, height:12, borderRadius:'2px', objectFit:'cover' }} />
-                        : <Box sx={{ fontSize:13, lineHeight:1 }}>{emoji||'🌍'}</Box>}
+                        : <Box sx={{ fontSize:14, lineHeight:1 }}>{emoji||'🌍'}</Box>}
                       {c}
                       <Box component='span' onClick={(e:any)=>{ e.stopPropagation(); onRemoveCountry?.(c); }}
-                        sx={{ display:'flex', alignItems:'center', ml:.25, cursor:'pointer', opacity:.6, '&:hover':{ opacity:1 }, fontSize:14, lineHeight:1 }}>×</Box>
+                        sx={{ display:'flex', alignItems:'center', ml:.2, cursor:'pointer', opacity:.5, '&:hover':{ opacity:1 }, fontSize:15, lineHeight:1 }}>×</Box>
                     </Box>
                   );
                 })}
                 <InputBase
-                  placeholder={countries.length===0 ? 'Search countries…' : ''}
+                  placeholder={countries.length===0 ? 'Search and add countries…' : ''}
                   value={countrySearch}
                   onChange={e=>{ setCountrySearch(e.target.value); setCountryDropOpen(true); }}
                   onFocus={()=>setCountryDropOpen(true)}
                   sx={{ minWidth:80, flex:1, fontSize:13, '& input':{ p:0 } }}
                 />
               </Box>
-              {/* Dropdown */}
               {countryDropOpen && (
                 <Box
                   sx={(t:any)=>({ position:'absolute', top:'calc(100% + 4px)', left:0, right:0, zIndex:1400,
-                    borderRadius:2, border:`1px solid ${t.palette.divider}`,
+                    borderRadius:2.5, border:`1px solid ${t.palette.divider}`,
                     background: t.palette.mode==='dark'?'#1e1e1e':'#fff',
-                    boxShadow:'0 8px 32px rgba(0,0,0,0.14)',
-                    maxHeight:180, overflowY:'auto' })}
+                    boxShadow:'0 12px 40px rgba(0,0,0,0.15)',
+                    maxHeight:200, overflowY:'auto' })}
                   onMouseDown={e=>e.preventDefault()}
                 >
                   {filteredCountries.length===0
@@ -383,7 +401,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
                         const emoji = flagEmojiFromName(name);
                         return (
                           <Box key={name} onClick={()=>{ onAddCountry?.(name); setCountrySearch(''); setCountryDropOpen(false); }}
-                            sx={(t:any)=>({ display:'flex', alignItems:'center', gap:1, px:1.5, py:.75, fontSize:13, cursor:'pointer',
+                            sx={(t:any)=>({ display:'flex', alignItems:'center', gap:1, px:1.5, py:.85, fontSize:13, cursor:'pointer',
                               '&:hover':{ background: t.palette.mode==='dark'?'rgba(255,255,255,0.06)':'rgba(0,0,0,0.04)' } })}>
                             {png
                               ? <Box component='img' src={png} alt='' sx={{ width:20, height:15, borderRadius:'2px', objectFit:'cover', flexShrink:0 }} />
@@ -398,150 +416,178 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
               {countryDropOpen && <Box sx={{ position:'fixed', inset:0, zIndex:1399 }} onClick={()=>{ setCountryDropOpen(false); setCountrySearch(''); }} />}
             </Box>
           </Box>
-        </Box>
-        {/* Title, Description & Dates */}
-        <Box sx={{ display:'flex', flexDirection:'column', gap:2 }}>
-          <Box sx={{ display:'flex', gap:2 }}>
-            <Box sx={{ flex:1 }}>
-              <Typography sx={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.6px', color:'text.secondary', mb:.75 }}>Trip name</Typography>
-              <TextField
-                value={title}
-                fullWidth
-                onChange={e=> onChangeTitle?.(e.target.value)}
-                size='small'
-                inputProps={{ maxLength:80 }}
-                sx={(t:any)=>({ '& .MuiOutlinedInput-root':{ borderRadius:2, fontWeight:700, fontSize:16, letterSpacing:'-0.2px', background: t.palette.mode==='dark'?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.02)' } })}
-              />
+
+          {/* Dates Row */}
+          <Box>
+            <Typography sx={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'1px', color:'text.disabled', mb:.75 }}>Dates</Typography>
+            <Box sx={{ display:'flex', gap:1.5 }}>
+              <LocalizationProvider dateAdapter={AdapterDayjs}>
+                {(() => { const sanitize = (d:string) => (d && d.length >= 10 ? d.slice(0,10) : d); const sd = dayjs(sanitize(startDate)); const ed = dayjs(sanitize(endDate)); return (
+                  <>
+                    <DatePicker
+                      label="Start"
+                      value={sd.isValid()? sd : null}
+                      onChange={(v)=> { const iso = v? v.format('YYYY-MM-DD') : ''; onChangeStartDate?.(iso); }}
+                      slotProps={{ textField: { size:'small', sx:{ flex:1, '& .MuiOutlinedInput-root':{ borderRadius:2, fontSize:13, '&:hover fieldset':{ borderColor:'#FF385C' }, '&.Mui-focused fieldset':{ borderColor:'#FF385C' } } } } }}
+                    />
+                    <DatePicker
+                      label="End"
+                      value={ed.isValid()? ed : null}
+                      minDate={sd.isValid()? sd : undefined}
+                      onChange={(v)=> { const iso = v? v.format('YYYY-MM-DD') : ''; onChangeEndDate?.(iso); }}
+                      slotProps={{ textField: { size:'small', sx:{ flex:1, '& .MuiOutlinedInput-root':{ borderRadius:2, fontSize:13, '&:hover fieldset':{ borderColor:'#FF385C' }, '&.Mui-focused fieldset':{ borderColor:'#FF385C' } } } } }}
+                    />
+                  </>
+                ); })()}
+              </LocalizationProvider>
             </Box>
           </Box>
+
+          {/* Description */}
           <Box>
-            <Typography sx={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.6px', color:'text.secondary', mb:.75 }}>Description</Typography>
+            <Typography sx={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'1px', color:'text.disabled', mb:.75 }}>Description</Typography>
             <TextField
               value={description}
               fullWidth
               multiline
               minRows={2}
-              maxRows={4}
+              maxRows={3}
               onChange={e=> onChangeDescription?.(e.target.value)}
-              placeholder='A short description of your trip…'
+              placeholder='Describe your trip…'
               inputProps={{ maxLength:400 }}
-              sx={(t:any)=>({ '& .MuiOutlinedInput-root':{ borderRadius:2, fontSize:14, lineHeight:1.65, background: t.palette.mode==='dark'?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.02)' } })}
+              sx={(t:any)=>({ '& .MuiOutlinedInput-root':{ borderRadius:2, fontSize:13, lineHeight:1.6, background: t.palette.mode==='dark'?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.02)',
+                '&:hover fieldset':{ borderColor:'#FF385C' }, '&.Mui-focused fieldset':{ borderColor:'#FF385C' } } })}
             />
           </Box>
-          <Box sx={{ display:'flex', gap:2, flexWrap:'wrap' }}>
-            <LocalizationProvider dateAdapter={AdapterDayjs}>
-              {(() => { const sanitize = (d:string) => (d && d.length >= 10 ? d.slice(0,10) : d); const sd = dayjs(sanitize(startDate)); const ed = dayjs(sanitize(endDate)); return (
-                <>
-                  <DatePicker
-                    label="Start date"
-                    value={sd.isValid()? sd : null}
-                    onChange={(v)=> { const iso = v? v.format('YYYY-MM-DD') : ''; onChangeStartDate?.(iso); }}
-                    slotProps={{ textField: { size:'small', sx:{ flex:1, minWidth:160 } } }}
-                  />
-                  <DatePicker
-                    label="End date"
-                    value={ed.isValid()? ed : null}
-                    minDate={sd.isValid()? sd : undefined}
-                    onChange={(v)=> { const iso = v? v.format('YYYY-MM-DD') : ''; onChangeEndDate?.(iso); }}
-                    slotProps={{ textField: { size:'small', sx:{ flex:1, minWidth:160 } } }}
-                  />
-                </>
-              ); })()}
-            </LocalizationProvider>
-          </Box>
-        </Box>
 
-        {/* Share link */}
-        <Box>
-          <Typography sx={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.6px', color:'text.secondary', mb:.75 }}>Share your trip</Typography>
-          <Box sx={(t:any)=>({ display:'flex', alignItems:'center', gap:1, px:1.5, py:.9, borderRadius:2.5, border:`1px solid ${t.palette.divider}`, background: t.palette.mode==='dark'?'rgba(255,255,255,0.03)':'rgba(0,0,0,0.02)' })}>
-            <LinkIcon sx={{ fontSize:15, color:'text.disabled', flexShrink:0 }} />
-            <Typography sx={{ flex:1, fontSize:12, fontFamily:'monospace', color:'text.secondary', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{shareUrl}</Typography>
-            <IconButton size='small' onClick={()=> copy(shareUrl)} sx={{ color: copyMain?'success.main':'text.disabled', '&:hover':{ color: copyMain?'success.main':'#FF385C' }, transition:'color .2s' }}>
-              <ContentCopyIcon sx={{ fontSize:15 }} />
-            </IconButton>
-            <Box onClick={()=>setView('invite')} sx={{ display:'flex', alignItems:'center', gap:.4, fontSize:12, fontWeight:600, color:'#FF385C', cursor:'pointer', px:1.25, py:.5, borderRadius:20, border:'1px solid rgba(255,56,92,0.25)', '&:hover':{ background:'rgba(255,56,92,0.06)' } }}>
-              <EmailIcon sx={{ fontSize:13 }}/> Invite
+          {/* ─── Divider ─── */}
+          <Box sx={(t:any)=>({ height:'1px', background:t.palette.divider, mx:-0.5 })} />
+
+          {/* Sharing & Privacy */}
+          <Box>
+            <Typography sx={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'1px', color:'text.disabled', mb:1 }}>Sharing & Privacy</Typography>
+            {/* Share link */}
+            <Box sx={(t:any)=>({ display:'flex', alignItems:'center', gap:.75, px:1.5, py:1, borderRadius:2, border:`1px solid ${t.palette.divider}`,
+              background: t.palette.mode==='dark'?'rgba(255,255,255,0.03)':'rgba(0,0,0,0.015)', mb:1.25 })}>
+              <LinkIcon sx={{ fontSize:17, color:'text.disabled', flexShrink:0 }} />
+              <Typography sx={{ flex:1, fontSize:12, fontFamily:"'JetBrains Mono', 'Fira Code', monospace", color:'text.secondary', overflow:'hidden', textOverflow:'ellipsis', whiteSpace:'nowrap' }}>{shareUrl}</Typography>
+              <IconButton size='small' onClick={()=> copy(shareUrl)}
+                sx={{ color: copyMain?'success.main':'text.disabled', '&:hover':{ color: copyMain?'success.main':'#FF385C' }, transition:'color .2s' }}>
+                <ContentCopyIcon sx={{ fontSize:15 }} />
+              </IconButton>
+              <Box onClick={()=>setView('invite')}
+                sx={{ display:'flex', alignItems:'center', gap:.4, fontSize:11, fontWeight:700, color:'#FF385C', cursor:'pointer',
+                  px:1.25, py:.45, borderRadius:16, border:'1px solid rgba(255,56,92,0.25)', flexShrink:0,
+                  '&:hover':{ background:'rgba(255,56,92,0.06)' }, transition:'background .15s' }}>
+                <EmailIcon sx={{ fontSize:13 }}/> Invite
+              </Box>
+            </Box>
+            {/* Privacy toggle */}
+            <Box sx={{ display:'flex', gap:.75 }}>
+              {PRIVACY_OPTIONS.map(p=> {
+                const selected = privacy === p;
+                return (
+                  <Box key={p} onClick={()=> onChangePrivacy?.(p)} sx={{
+                    px:2, py:.65, borderRadius:20, fontSize:12.5, fontWeight:600, cursor:'pointer', userSelect:'none', transition:'all .2s',
+                    background: selected ? 'linear-gradient(135deg,#FF385C,#E31C5F)' : 'transparent',
+                    color: selected ? '#fff' : 'text.secondary',
+                    border: selected ? '1.5px solid transparent' : (t:any)=> `1.5px solid ${t.palette.divider}`,
+                    boxShadow: selected ? '0 2px 12px rgba(255,56,92,0.25)' : 'none',
+                    '&:hover': selected ? {} : { borderColor:'#FF385C', color:'#FF385C' },
+                  }}>{p}</Box>
+                );
+              })}
             </Box>
           </Box>
-        </Box>
 
-        {/* Privacy */}
-        <Box>
-          <Typography sx={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.6px', color:'text.secondary', mb:.75 }}>Who can view your trip?</Typography>
-          <Box sx={{ display:'flex', gap:.75, flexWrap:'wrap' }}>
-            {PRIVACY_OPTIONS.map(p=> {
-              const selected = privacy === p;
-              return (
-                <Box key={p} onClick={()=> onChangePrivacy?.(p)} sx={{
-                  px:1.75, py:.65, borderRadius:20, fontSize:13.5, fontWeight:600, cursor:'pointer', userSelect:'none', transition:'all .15s',
-                  background: selected ? 'linear-gradient(135deg,#FF385C,#E31C5F)' : 'transparent',
-                  color: selected ? '#fff' : 'text.secondary',
-                  border: selected ? '1px solid transparent' : '1px solid rgba(0,0,0,0.13)',
-                  boxShadow: selected ? '0 4px 14px rgba(255,56,92,0.3)' : 'none',
-                  '&:hover': selected ? {} : { borderColor:'#FF385C', color:'#FF385C' },
-                }}>{p}</Box>
-              );
-            })}
-          </Box>
-        </Box>
+          {/* ─── Divider ─── */}
+          <Box sx={(t:any)=>({ height:'1px', background:t.palette.divider, mx:-0.5 })} />
 
-        {/* Invite section removed as per updated design instructions */}
-
-        {/* Members */}
-        <Box>
-          <Box sx={{ display:'flex', alignItems:'center', justifyContent:'space-between', mb:1 }}>
-            <Typography sx={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'.6px', color:'text.secondary' }}>Trip members</Typography>
-            {canManageMembers && (
-              <Box onClick={()=>setView('invite')} sx={{ display:'flex', alignItems:'center', gap:.4, fontSize:12, fontWeight:600, color:'#FF385C', cursor:'pointer', '&:hover':{ opacity:.75 } }}>
-                <EmailIcon sx={{ fontSize:14 }}/> Add member
-              </Box>
-            )}
-          </Box>
-          <Box sx={{ display:'flex', flexDirection:'column', gap:.75 }}>
-            {orderedMembers.map(m=> {
-              const isOwner = m.role==='Owner';
-              const roleColor = isOwner?'#FF385C': m.role==='Editor'?'#3b82f6':'#6b7280';
-              return (
-                <Box key={m.id} sx={(t:any)=>({
-                  display:'flex', alignItems:'center', gap:1.5, px:1.5, py:1,
-                  borderRadius:2.5,
-                  border:`1px solid ${t.palette.mode==='dark'?'rgba(255,255,255,0.07)':'rgba(0,0,0,0.06)'}`,
-                  background: t.palette.mode==='dark'?'rgba(255,255,255,0.03)':'rgba(0,0,0,0.015)',
-                  transition:'border-color .15s',
-                  '&:hover':{ borderColor:'rgba(255,56,92,0.25)' },
-                })}>
-                  <Avatar src={m.avatar} sx={{ width:36, height:36, fontSize:14, fontWeight:700, bgcolor: isOwner?'#FF385C':'#6b7280' }}>
-                    {!m.avatar && m.name?.[0]}
-                  </Avatar>
-                  <Box sx={{ flex:1, minWidth:0 }}>
-                    <Typography sx={{ fontSize:14, fontWeight:700, lineHeight:1.3, letterSpacing:'-0.1px' }} noWrap>
-                      {isOwner && <Box component='span' sx={{ fontSize:13, mr:.5 }}>👑</Box>}{m.name}
-                    </Typography>
-                    <Typography sx={{ fontSize:12, color:'text.disabled', lineHeight:1.3 }} noWrap>{m.email||m.handle}</Typography>
-                  </Box>
-                  <Box sx={{ flexShrink:0, px:1.25, py:.3, borderRadius:20, fontSize:11, fontWeight:700, color:roleColor, border:`1px solid ${roleColor}44`, background:`${roleColor}11` }}>
-                    {m.role}
-                  </Box>
+          {/* Members */}
+          <Box>
+            <Box sx={{ display:'flex', alignItems:'center', justifyContent:'space-between', mb:1 }}>
+              <Typography sx={{ fontSize:11, fontWeight:700, textTransform:'uppercase', letterSpacing:'1px', color:'text.disabled' }}>
+                Members ({orderedMembers.length})
+              </Typography>
+              {canManageMembers && (
+                <Box onClick={()=>setView('invite')} sx={{ display:'flex', alignItems:'center', gap:.4, fontSize:12, fontWeight:600, color:'#FF385C', cursor:'pointer', '&:hover':{ opacity:.75 }, transition:'opacity .15s' }}>
+                  <EmailIcon sx={{ fontSize:14 }}/> Add member
                 </Box>
-              );
-            })}
-            {orderedMembers.length===0 && <Typography sx={{ fontSize:13, color:'text.disabled' }}>No members yet.</Typography>}
+              )}
+            </Box>
+            <Box sx={{ display:'flex', gap:1.5, alignItems:'center', minHeight:48 }}>
+              {orderedMembers.map(m => {
+                const isOwner = m.role === 'Owner';
+                return (
+                  <Box key={m.id} sx={{ position:'relative', display:'inline-flex', alignItems:'center' }}>
+                    <Box
+                      sx={{ cursor:'pointer', borderRadius:'50%', boxShadow:'0 2px 8px rgba(0,0,0,0.10)', transition:'box-shadow .18s', '&:hover':{ boxShadow:'0 4px 16px rgba(255,56,92,0.18)' } }}
+                    >
+                      <Avatar src={m.avatar} sx={{ width:38, height:38, fontSize:15, fontWeight:700, bgcolor: isOwner?'#FF385C':'#6b7280', border: isOwner?'2.5px solid #FF385C':'2px solid #fff' }}>
+                        {!m.avatar && m.name?.[0]}
+                      </Avatar>
+                    </Box>
+                    {/* Name tooltip on hover */}
+                    <Box
+                      sx={{
+                        pointerEvents:'none',
+                        opacity:0,
+                        position:'absolute',
+                        left:'50%',
+                        bottom:-2,
+                        transform:'translateX(-50%) translateY(100%)',
+                        minWidth:90,
+                        bgcolor:'#222',
+                        color:'#fff',
+                        px:1.5,
+                        py:.5,
+                        borderRadius:1.5,
+                        fontSize:13,
+                        fontWeight:600,
+                        whiteSpace:'nowrap',
+                        zIndex:10,
+                        boxShadow:'0 4px 16px rgba(0,0,0,0.18)',
+                        transition:'opacity .18s',
+                      }}
+                      className="member-name-tooltip"
+                    >
+                      {isOwner && <Box component='span' sx={{ fontSize:14, mr:.5 }}>👑</Box>}{m.name}
+                    </Box>
+                    <style>{`
+                      .member-name-tooltip {
+                        pointer-events: none;
+                      }
+                      [data-member-avatar]:hover + .member-name-tooltip,
+                      .member-name-tooltip:hover {
+                        opacity: 1 !important;
+                        pointer-events: auto;
+                      }
+                    `}</style>
+                  </Box>
+                );
+              })}
+              {orderedMembers.length === 0 && (
+                <Typography sx={{ fontSize:13, color:'text.disabled', py:1 }}>No members yet. Invite someone to collaborate!</Typography>
+              )}
+            </Box>
           </Box>
-        </Box>
 
-        {/* Actions */}
-        <Box sx={{ display:'flex', justifyContent:'space-between', alignItems:'center', pt:.5 }}>
-          {canManageMembers
-            ? <Box onClick={onDeleteTrip} sx={{ display:'flex', alignItems:'center', gap:.5, fontSize:13.5, fontWeight:600, color:'text.disabled', cursor:'pointer', '&:hover':{ color:'error.main' }, transition:'color .15s' }}>
-                <DeleteOutlineIcon sx={{ fontSize:16 }}/> Delete trip
-              </Box>
-            : <Box />}
-          <Button variant='contained' onClick={()=>{ window.dispatchEvent(new CustomEvent('trip:settings:save')); }}
-            sx={{ textTransform:'none', fontWeight:700, fontSize:14, borderRadius:20, px:3.5, py:.85,
-              background:'linear-gradient(135deg,#FF385C,#E31C5F)', boxShadow:'none',
-              '&:hover':{ background:'linear-gradient(135deg,#e02d50,#c91855)', boxShadow:'0 4px 16px rgba(255,56,92,0.35)' } }}
-          >Save settings</Button>
+          {/* ─── Actions ─── */}
+          <Box sx={(t:any)=>({ display:'flex', justifyContent:'space-between', alignItems:'center', pt:1.5, mt:.5, borderTop:`1px solid ${t.palette.divider}` })}>            {canManageMembers
+              ? <Box onClick={onDeleteTrip} sx={{ display:'flex', alignItems:'center', gap:.5, fontSize:12, fontWeight:600, color:'text.disabled', cursor:'pointer',
+                  px:1.5, py:.6, borderRadius:8, '&:hover':{ color:'error.main', background:'rgba(220,38,38,0.06)' }, transition:'all .15s' }}>
+                  <DeleteOutlineIcon sx={{ fontSize:16 }}/> Delete trip
+                </Box>
+              : <Box />}
+            <Button variant='contained' onClick={()=>{ window.dispatchEvent(new CustomEvent('trip:settings:save')); }}
+              sx={{ textTransform:'none', fontWeight:700, fontSize:13, borderRadius:20, px:3.5, py:.75,
+                background:'linear-gradient(135deg,#FF385C,#E31C5F)', boxShadow:'0 4px 14px rgba(255,56,92,0.3)',
+                '&:hover':{ background:'linear-gradient(135deg,#e02d50,#c91855)', boxShadow:'0 6px 20px rgba(255,56,92,0.4)' },
+                transition:'all .2s',
+                mb: 3
+              }}
+            >Save settings</Button>
+          </Box>
         </Box>
         </>
         )}

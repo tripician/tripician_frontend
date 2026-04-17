@@ -34,6 +34,7 @@ import SoonTag from '../../components/CommonComponents/SoonTag';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
 import { DEFAULT_DOC_RULE } from '../../utils/fileValidation';
 import AiActionButton from '../../components/CommonComponents/AiActionButton';
+import { fetchDestinationAlerts, type DestinationAlerts } from '../../services/APIs/alerts/alertService';
 
 interface DestinationCardsPanelProps { maxed: boolean; readOnly?: boolean; canAccessDocs?: boolean; canEdit?: boolean }
 
@@ -185,6 +186,19 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
   const onAcceptDocs = (files: File[]) => { if(!docsFor) return; files.forEach((f,idx)=>{ const id=f.name+'_'+Date.now().toString(36)+'_'+idx; const url=URL.createObjectURL(f); dispatch(addDestinationDoc({ destinationId: docsFor, doc:{ id, originalName:f.name, mimeType:f.type, url } })); }); };
   const removeDoc = (docId:string) => { if(!docsFor) return; dispatch(removeDestinationDoc({ destinationId: docsFor, docId })); };
 
+  /* ------------------------------ Destination alerts ----------------------------- */
+  const [alertsMap, setAlertsMap] = React.useState<Record<string, DestinationAlerts>>({});
+  React.useEffect(() => {
+    if (destinations.length === 0) { setAlertsMap({}); return; }
+    let cancelled = false;
+    destinations.forEach(d => {
+      fetchDestinationAlerts(d.id, d.name).then(result => {
+        if (!cancelled) setAlertsMap(prev => ({ ...prev, [d.id]: result }));
+      });
+    });
+    return () => { cancelled = true; };
+  }, [destinations.map(d => d.id + ':' + d.name).join(',')]);
+
   /* --------------------------- Timeline rail geometry -------------------------- */
   const cardRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
   const containerRef = React.useRef<HTMLDivElement | null>(null);
@@ -197,6 +211,12 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
   }, [destinations]);
   React.useLayoutEffect(()=> { recompute(); }, [recompute]);
   React.useEffect(()=> { const onResize=()=> recompute(); window.addEventListener('resize', onResize); return ()=> window.removeEventListener('resize', onResize); }, [recompute]);
+  // Observe card height changes (e.g. notes expand/collapse) to keep timeline rail in sync
+  React.useEffect(()=> {
+    const ro = new ResizeObserver(()=> recompute());
+    Object.values(cardRefs.current).forEach(el => { if(el) ro.observe(el); });
+    return ()=> ro.disconnect();
+  }, [destinations, recompute]);
 
   /* --------------------------------- Render --------------------------------- */
   return (
@@ -257,10 +277,13 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
                   onDuplicate={readOnly? undefined : (id)=> dispatch(duplicateDestination({ id }))}
                   onRemove={readOnly? undefined : (id)=> dispatch(removeDestination(id))}
                   onOpenNotes={readOnly? undefined : ()=> openNotes(d.id)}
+                  onChangeNotes={readOnly? undefined : (id,text)=> dispatch(setDestinationNotes({ id, notes:text }))}
                   onOpenDocs={(!canAccessDocs /* docs globally inaccessible */)? undefined : undefined /* disabled docs feature (Coming Soon) */}
                   onOpenStay={readOnly? undefined : ()=> openStay(d.id)}
                   onOpenDiscover={readOnly? undefined : ()=> { setDiscoverFor(d.id); setDiscoverTab('spots'); }}
                   onChangeNights={readOnly? undefined : (id,delta)=> dispatch(updateDestinationNights({ id, delta }))}
+                  alertCount={alertsMap[d.id]?.alerts.length ?? 0}
+                  alerts={alertsMap[d.id]?.alerts ?? []}
                 />
               </Box>
             ))}

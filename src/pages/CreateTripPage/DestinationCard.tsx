@@ -1,19 +1,16 @@
 import React from 'react';
-import { Box, Card, CardContent, Typography, IconButton, Tooltip, Chip, Menu, MenuItem, InputBase } from '@mui/material';
+import { Box, Card, CardContent, Typography, IconButton, Tooltip, Chip, Collapse, TextField, InputBase, Popover } from '@mui/material';
 import { motion } from 'framer-motion';
-import MoreVertIcon from '@mui/icons-material/MoreVert';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
-import DeleteIcon from '@mui/icons-material/Delete';
-import CheckCircleOutlineIcon from '@mui/icons-material/CheckCircleOutline';
-import RadioButtonUncheckedIcon from '@mui/icons-material/RadioButtonUnchecked';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
-import NotesIcon from '@mui/icons-material/Notes';
+import KeyboardArrowDownIcon from '@mui/icons-material/KeyboardArrowDown';
 import HotelIcon from '@mui/icons-material/Hotel';
 import AttractionsIcon from '@mui/icons-material/Attractions';
 import LabelIcon from '@mui/icons-material/Label';
 import ExploreIcon from '@mui/icons-material/Explore';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
+import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import type { PlannerDestination } from '../../store/plannerSlice';
+import { type DestinationAlert, ALERT_META } from '../../services/APIs/alerts/alertService';
 
 // New category mapping
 const CATEGORY_COLORS: Record<NonNullable<PlannerDestination['category']>, { bg: string; fg: string; icon: React.ReactNode; label: string; }> = {
@@ -49,6 +46,7 @@ export interface DestinationCardProps {
   onDuplicate?: (id: string) => void;
   onRemove?: (id: string) => void;
   onOpenNotes?: (id: string) => void;
+  onChangeNotes?: (id: string, notes: string) => void;
   onSuggestAI?: (id: string) => void; // Placeholder for AI suggestions
   onOpenDiscover?: (id: string) => void; // Open spots/foods discover dialog
   onOpenDocs?: (id: string) => void; // Open documents dialog
@@ -59,20 +57,20 @@ export interface DestinationCardProps {
   onDragStart?: (id: string) => void;
   onDragEnter?: (id: string) => void;
   onDragEnd?: () => void;
+  alertCount?: number;
+  alerts?: DestinationAlert[];
 }
 
 const MotionCard = motion.create(Card);
 
-const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled, onRename, onToggleComplete, onDuplicate, onRemove, onOpenNotes, onOpenDiscover, onOpenDocs, onOpenStay, onChangeNights }) => {
+const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled, onRename, onToggleComplete, onDuplicate, onRemove, onOpenNotes, onChangeNotes, onOpenDiscover, onOpenDocs, onOpenStay, onChangeNights, alertCount = 0, alerts = [] }) => {
   const { id, name, startDate, endDate, nights, category='general', completed, notes, spots, foods, stay, stays, docs } = destination as any;
   const [editing, setEditing] = React.useState(false);
-  const [menuAnchor, setMenuAnchor] = React.useState<HTMLElement | null>(null);
   const [localName, setLocalName] = React.useState(name);
+  const [notesOpen, setNotesOpen] = React.useState(false);
+  const [alertAnchor, setAlertAnchor] = React.useState<HTMLElement | null>(null);
 
   React.useEffect(()=> setLocalName(name), [name]);
-
-  const openMenu = (e: React.MouseEvent<HTMLElement>) => { e.stopPropagation(); setMenuAnchor(e.currentTarget); };
-  const closeMenu = () => setMenuAnchor(null);
 
   const commitName = () => { if(localName.trim() && localName !== name) onRename?.(id, localName.trim()); setEditing(false); };
   const handleKey: React.KeyboardEventHandler<HTMLInputElement> = (e) => { if(e.key==='Enter') { commitName(); } else if(e.key==='Escape'){ setLocalName(name); setEditing(false);} };
@@ -144,22 +142,22 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
             { key:'discover', icon:<ExploreIcon sx={{fontSize:13}}/>,    tip:'Discover',  count:discoverCount, onClick:()=>onOpenDiscover?.(id), active:discoverCount>0, warn:false, disabled:true  },
             { key:'stay',     icon:<HotelIcon sx={{fontSize:13}}/>,       tip:'Stay',      count:stayCount,    onClick:()=>onOpenStay?.(id),     active:stayCount>0,    warn:false, disabled:true  },
             { key:'docs',     icon:<UploadFileIcon sx={{fontSize:13}}/>,   tip:'Docs',      count:docsCount,    onClick:()=>onOpenDocs?.(id),     active:docsCount>0,    warn:false, disabled:true  },
-            { key:'notes',    icon:<NotesIcon sx={{fontSize:13}}/>,       tip:'Notes',     count:0,            onClick:()=>onOpenNotes?.(id),    active:!!notes, warn:false, disabled:false },
-            { key:'alerts',   icon:<WarningAmberIcon sx={{fontSize:13}}/>, tip:'Alerts',   count:0,            onClick:()=>{},                   active:true,           warn:true,  disabled:false },
+            { key:'alerts',   icon:<WarningAmberIcon sx={{fontSize:13}}/>, tip:alertCount>0?`${alertCount} alert${alertCount>1?'s':''}  — click to view`:'No alerts',   count:alertCount,            onClick:(e: React.MouseEvent<HTMLElement>)=>{ if(alertCount>0) setAlertAnchor(e.currentTarget); },                   active:alertCount>0,           warn:true,  disabled:false },
           ];
           return (
             <Box onClick={e=>e.stopPropagation()} sx={{ display:'flex', alignItems:'center', gap:.1, borderLeft:(t)=>`1px solid ${t.palette.divider}`, pl:.75, mr:.25 }}>
               {strip.map(s=>(
                 <Tooltip key={s.key} title={s.tip} enterDelay={400}>
-                  <Box onClick={s.disabled?undefined:(e)=>{ e.stopPropagation(); s.onClick(); }} sx={(t)=>({
+                  <Box onClick={s.disabled?undefined:(e: any)=>{ e.stopPropagation(); s.onClick(e); }} sx={(t)=>({
                     position:'relative', display:'flex', alignItems:'center', justifyContent:'center',
                     width:28, height:28, borderRadius:'8px', cursor:s.disabled?'default':'pointer',
-                    color: s.warn?(t.palette.mode==='dark'?'#fbbf24':'#d97706'):s.active?'#FF385C':t.palette.text.disabled,
+                    color: s.warn&&s.count>0?'#ef4444':s.warn?(t.palette.mode==='dark'?'#fbbf24':'#d97706'):s.active?'#FF385C':t.palette.text.disabled,
                     transition:'background .12s, color .12s',
-                    '&:hover': s.disabled?{}:{ background:s.warn?'rgba(217,119,6,0.1)':'rgba(255,56,92,0.08)', color:s.warn?'#b45309':'#E31C5F' }
+                    '&:hover': s.disabled?{}:{ background:s.warn?'rgba(217,119,6,0.1)':'rgba(255,56,92,0.08)', color:s.warn?'#b45309':'#E31C5F' },
+                    ...(s.warn&&s.count>0?{ '@keyframes alertPulse':{ '0%,100%':{ filter:'drop-shadow(0 0 3px rgba(239,68,68,0.6))' }, '50%':{ filter:'drop-shadow(0 0 8px rgba(239,68,68,0.9))' } }, animation:'alertPulse 1.8s ease-in-out infinite' }:{})
                   })}>
                     {s.icon}
-                    {s.count>0 && <Box sx={{ position:'absolute', top:3, right:3, background:s.warn?'#d97706':'#FF385C', color:'#fff', borderRadius:'50%', width:8, height:8, fontSize:0 }} />}
+                    {s.count>0 && <Box sx={{ position:'absolute', top:3, right:3, background:s.warn?'#ef4444':'#FF385C', color:'#fff', borderRadius:'50%', width:8, height:8, fontSize:0, ...(s.warn?{ '@keyframes alertDot':{ '0%,100%':{ opacity:1 }, '50%':{ opacity:.3 } }, animation:'alertDot 1.2s ease-in-out infinite' }:{}) }} />}
                   </Box>
                 </Tooltip>
               ))}
@@ -167,39 +165,80 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
           );
         })()}
 
-        {/* ── Management icons ── */}
-        <Box onClick={e=>e.stopPropagation()} sx={{ display:'flex', alignItems:'center', borderLeft:(t)=>`1px solid ${t.palette.divider}`, pl:.5 }}>
-          <Tooltip title={completed?'Mark incomplete':'Mark complete'}>
-            <IconButton size='small' onClick={(e)=>{ e.stopPropagation(); onToggleComplete?.(id); }} sx={{ p:.45, color:'text.disabled', '&:hover':{ color:'success.main' } }}>
-              {completed?<CheckCircleOutlineIcon sx={{fontSize:15}} color='success'/>:<RadioButtonUncheckedIcon sx={{fontSize:15}}/>}
+        {/* ── Dropdown arrow for notes ── */}
+        <Tooltip title={notesOpen ? 'Hide notes' : (notes ? 'Show notes' : 'Add notes')} enterDelay={400}>
+          <IconButton size='small' onClick={(e) => { e.stopPropagation(); setNotesOpen(v => !v); }} sx={{ p: .45, color: notes ? '#FF385C' : 'text.disabled', transition: 'transform .2s, color .15s', transform: notesOpen ? 'rotate(180deg)' : 'rotate(0deg)', '&:hover': { color: '#FF385C' } }}>
+            <KeyboardArrowDownIcon sx={{ fontSize: 16 }} />
+          </IconButton>
+        </Tooltip>
+
+        {/* ── Delete (visible on hover) ── */}
+        {onRemove && (
+          <Tooltip title='Remove destination' enterDelay={400}>
+            <IconButton size='small' onClick={(e) => { e.stopPropagation(); onRemove(id); }} sx={{ p: .45, opacity: 0, transition: 'opacity .15s, color .15s', color: 'text.disabled', '.MuiCard-root:hover &': { opacity: 1 }, '&:hover': { color: '#ef4444' } }}>
+              <DeleteOutlineIcon sx={{ fontSize: 14 }} />
             </IconButton>
           </Tooltip>
-          <Tooltip title='Duplicate'>
-            <IconButton size='small' onClick={(e)=>{ e.stopPropagation(); onDuplicate?.(id); }} sx={{ p:.45, color:'text.disabled', '&:hover':{ color:'text.secondary' } }}>
-              <ContentCopyIcon sx={{fontSize:13}}/>
-            </IconButton>
-          </Tooltip>
-          <Tooltip title='Delete'>
-            <IconButton size='small' onClick={(e)=>{ e.stopPropagation(); onRemove?.(id); }} sx={{ p:.45, color:'text.disabled', '&:hover':{ color:'error.main' } }}>
-              <DeleteIcon sx={{fontSize:14}}/>
-            </IconButton>
-          </Tooltip>
-          <Tooltip title='More'>
-            <IconButton size='small' onClick={(e)=>{ e.stopPropagation(); openMenu(e); }} sx={{ p:.45, color:'text.disabled', '&:hover':{ color:'text.secondary' } }}>
-              <MoreVertIcon sx={{fontSize:15}}/>
-            </IconButton>
-          </Tooltip>
-        </Box>
+        )}
 
       </CardContent>
-      {/* Overflow Menu */}
-      <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={closeMenu} elevation={3} PaperProps={{ sx:{ borderRadius:2, minWidth:160 } }}>
-        <MenuItem disabled dense sx={{ fontSize:12, opacity:.6, fontWeight:600 }}>Actions</MenuItem>
-        <MenuItem dense onClick={()=>{ closeMenu(); setEditing(true); }}>Rename</MenuItem>
-        <MenuItem dense onClick={()=>{ closeMenu(); onDuplicate?.(id); }}>Duplicate</MenuItem>
-        <MenuItem dense onClick={()=>{ closeMenu(); onToggleComplete?.(id); }}>{completed?'Mark Incomplete':'Mark Complete'}</MenuItem>
-        <MenuItem dense onClick={()=>{ closeMenu(); onRemove?.(id); }} sx={{ color:'error.main' }}>Delete</MenuItem>
-      </Menu>
+
+      {/* ── Alerts popover ── */}
+      <Popover
+        open={!!alertAnchor}
+        anchorEl={alertAnchor}
+        onClose={() => setAlertAnchor(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'center' }}
+        slotProps={{ paper: { sx: { mt: 1, borderRadius: '12px', maxWidth: 340, minWidth: 260, boxShadow: '0 8px 32px rgba(0,0,0,0.18)', overflow: 'hidden' } } }}
+      >
+        <Box sx={{ px: 2, py: 1.5, borderBottom: '1px solid', borderColor: 'divider', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <WarningAmberIcon sx={{ fontSize: 16, color: '#ef4444' }} />
+          <Typography sx={{ fontSize: 13, fontWeight: 700 }}>{alertCount} Alert{alertCount !== 1 ? 's' : ''}</Typography>
+        </Box>
+        <Box sx={{ maxHeight: 280, overflowY: 'auto' }}>
+          {alerts.map((a) => {
+            const meta = ALERT_META[a.type];
+            return (
+              <Box key={a.id} sx={{ px: 2, py: 1.2, borderBottom: '1px solid', borderColor: 'divider', '&:last-child': { borderBottom: 'none' }, '&:hover': { bgcolor: 'action.hover' } }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: .75, mb: .4 }}>
+                  <Box sx={{ fontSize: 12 }}>{meta.emoji}</Box>
+                  <Typography sx={{ fontSize: 10, fontWeight: 700, color: meta.color, textTransform: 'uppercase', letterSpacing: .5 }}>{a.type}</Typography>
+                </Box>
+                <Typography sx={{ fontSize: 12, fontWeight: 600, lineHeight: 1.35, mb: .3 }}>{a.title}</Typography>
+                {a.summary && <Typography sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.4, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>{a.summary}</Typography>}
+              </Box>
+            );
+          })}
+        </Box>
+      </Popover>
+
+      {/* ── Expandable notes section ── */}
+      <Collapse in={notesOpen} timeout={200} unmountOnExit>
+        <Box sx={{ px: 2, pb: 1.5, pt: 0.5 }}>
+          <TextField
+            multiline
+            minRows={2}
+            maxRows={6}
+            fullWidth
+            placeholder='Write notes for this destination...'
+            value={notes || ''}
+            onChange={(e) => onChangeNotes?.(id, e.target.value)}
+            variant='outlined'
+            size='small'
+            sx={{
+              '& .MuiOutlinedInput-root': {
+                fontSize: 12,
+                borderRadius: '8px',
+                bgcolor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.02)',
+                '& fieldset': { borderColor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' },
+                '&:hover fieldset': { borderColor: 'rgba(255,56,92,0.3)' },
+                '&.Mui-focused fieldset': { borderColor: '#FF385C', borderWidth: '1.5px' },
+              },
+            }}
+          />
+        </Box>
+      </Collapse>
     </MotionCard>
   );
 };
