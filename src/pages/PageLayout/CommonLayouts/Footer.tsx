@@ -61,7 +61,51 @@ const Footer: React.FC<FooterProps> = ({ fixed = false }) => {
             >
               Terms & Conditions
             </Link>
-            
+            <Link
+              href="/privacy-policy"
+              sx={{
+                color: 'text.primary',
+                textDecoration: 'none',
+                fontSize: '0.9rem',
+                '&:hover': {
+                  textDecoration: 'underline',
+                  color: 'primary.main',
+                },
+                transition: 'color 0.2s ease',
+              }}
+            >
+              Privacy Policy
+            </Link>
+            <Link
+              href="/get-help"
+              sx={{
+                color: 'text.primary',
+                textDecoration: 'none',
+                fontSize: '0.9rem',
+                '&:hover': {
+                  textDecoration: 'underline',
+                  color: 'primary.main',
+                },
+                transition: 'color 0.2s ease',
+              }}
+            >
+              Get Help
+            </Link>
+            <Link
+              href="/contact-us"
+              sx={{
+                color: 'text.primary',
+                textDecoration: 'none',
+                fontSize: '0.9rem',
+                '&:hover': {
+                  textDecoration: 'underline',
+                  color: 'primary.main',
+                },
+                transition: 'color 0.2s ease',
+              }}
+            >
+              Contact Us
+            </Link>
             <Link
               href="/about-us"
               sx={{

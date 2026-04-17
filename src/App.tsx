@@ -16,6 +16,11 @@ import RiskMonitor from './pages/RiskMonitorPage/RiskMonitor';
 import AuthenticatedLayout from './pages/PageLayout/AuthenticatedLayout';
 import { NotFound404, InternalError500, UnauthorizedAccess, UnderConstruction, SomethingWentWrong, DynamicErrorPage } from './pages/ErrorPages/ErrorPages';
 import SuccessOverlay from './components/CommonComponents/SuccessOverlay';
+import TermsPage from './pages/InfoPages/TermsPage';
+import PrivacyPage from './pages/InfoPages/PrivacyPage';
+import HelpPage from './pages/InfoPages/HelpPage';
+import ContactPage from './pages/InfoPages/ContactPage';
+import AboutPage from './pages/InfoPages/AboutPage';
 
 // Import debug utilities for development
 if (import.meta.env.DEV) {
@@ -56,6 +61,13 @@ function App() {
         
         {/* Default redirect */}
         {/* <Route path="/" element={<Navigate to="/home" replace />} /> */}
+        
+        {/* Info pages */}
+        <Route path="/terms-and-conditions" element={<TermsPage />} />
+        <Route path="/privacy-policy" element={<PrivacyPage />} />
+        <Route path="/get-help" element={<HelpPage />} />
+        <Route path="/contact-us" element={<ContactPage />} />
+        <Route path="/about-us" element={<AboutPage />} />
         
   {/* Final catch-all -> 404 page */}
   <Route path="*" element={<NotFound404 />} />

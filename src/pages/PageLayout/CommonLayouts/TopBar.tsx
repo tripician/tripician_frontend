@@ -89,7 +89,6 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
             : 'rgba(255,255,255,0.07)',
           px: 2,
           boxShadow: 'none',
-          position: 'relative',
         }}
       >        
         {centerNode && (
@@ -230,20 +229,26 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
 
         {/* Links */}
         <List dense disablePadding sx={{ py: 1, px: 1 }}>
-          {[
-            { icon: <HelpOutlineIcon sx={{ fontSize: 17 }} />, label: 'Get Help' },
-            { icon: <ShieldIcon sx={{ fontSize: 17 }} />, label: 'Privacy Policy' },
-            { icon: <GavelIcon sx={{ fontSize: 17 }} />, label: 'Terms of Service' },
-            { icon: <ContactSupportIcon sx={{ fontSize: 17 }} />, label: 'Contact Us' },
-          ].map(({ icon, label }) => (
-            <ListItemButton key={label} sx={{
-              px: 1.5, py: 0.9, borderRadius: '10px',
-              color: 'text.secondary',
-              '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
-              transition: 'all 0.15s',
-            }}>
+          { [
+            { icon: <HelpOutlineIcon sx={{ fontSize: 17 }} />, label: 'Get Help', href: '/get-help' },
+            { icon: <ShieldIcon sx={{ fontSize: 17 }} />, label: 'Privacy Policy', href: '/privacy-policy' },
+            { icon: <GavelIcon sx={{ fontSize: 17 }} />, label: 'Terms & Conditions', href: '/terms-and-conditions' },
+            { icon: <ContactSupportIcon sx={{ fontSize: 17 }} />, label: 'Contact Us', href: '/contact-us' },
+            { icon: <ShieldIcon sx={{ fontSize: 17, transform: 'rotate(180deg)' }} />, label: 'About Us', href: '/about-us' },
+          ].map(({ icon, label, href }) => (
+            <ListItemButton
+              key={label}
+              component="a"
+              href={href}
+              sx={{
+                px: 1.5, py: 0.9, borderRadius: '10px',
+                color: 'text.secondary',
+                '&:hover': { bgcolor: 'action.hover', color: 'text.primary' },
+                transition: 'all 0.15s',
+              }}
+            >
               <ListItemIcon sx={{ minWidth: 32, color: 'inherit' }}>{icon}</ListItemIcon>
-              <ListItemText primary={label} primaryTypographyProps={{ fontSize: 13, fontWeight: 500, fontFamily:"'Inter',sans-serif" }} />
+              <ListItemText primary={label} primaryTypographyProps={{ fontSize: 13, fontWeight: 500, fontFamily: "'Inter',sans-serif" }} />
             </ListItemButton>
           ))}
         </List>

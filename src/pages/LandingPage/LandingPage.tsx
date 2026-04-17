@@ -848,14 +848,14 @@ export default function LandingPage() {
         </section>
 
       {/* ── FOOTER ────────────────────────────────────────────── */}
+
       <footer className="lp-footer">
         <div className="lp-footer__inner">
           <div className="lp-footer__brand">
             <div className="lp-footer__logo">
               {logoFullWhiteUrl
                 ? <img src={logoFullWhiteUrl} alt="Tripician" className="lp-logo-img lp-logo-img--footer" />
-                : (<><Plane size={18} /><span>Tripician</span></>)
-              }
+                : (<><Plane size={18} /><span>Tripician</span></>)}
             </div>
             <p>Plan smarter. Travel further.<br />Your AI-powered journey starts here.</p>
           </div>
@@ -868,15 +868,14 @@ export default function LandingPage() {
             </div>
             <div className="lp-footer__col">
               <h4>Company</h4>
-              <a href="#">About</a>
-              <a href="#">Blog</a>
-              <a href="#">Careers</a>
+              <a href="/about-us">About Us</a>
+              <a href="/get-help">Get Help</a>
+              <a href="/contact-us">Contact Us</a>
             </div>
             <div className="lp-footer__col">
               <h4>Legal</h4>
-              <a href="#">Privacy</a>
-              <a href="#">Terms</a>
-              <a href="#">Cookies</a>
+              <a href="/privacy-policy">Privacy Policy</a>
+              <a href="/terms-and-conditions">Terms & Conditions</a>
             </div>
           </div>
         </div>
