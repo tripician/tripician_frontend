@@ -827,7 +827,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	// notesRef removed (notes moved to trip settings)
 	const notesRef = React.useRef<HTMLTextAreaElement | null>(null); // retained to avoid large refactor
 	void notesRef;
-	const [privacy, setPrivacy] = React.useState<'Private'|'Trip Members'|'My Followers'|'Everyone'>('Private');
+	const [privacy, setPrivacy] = React.useState<'Private'|'Trip Members'|'Everyone'>('Private');
 	const [tripStartDate, setTripStartDate] = React.useState<string|null>(normalizedInitial?.meta.startDate ? sanitizeDateString(normalizedInitial.meta.startDate) : null);
 	const [tripEndDate, setTripEndDate] = React.useState<string|null>(normalizedInitial?.meta.endDate ? sanitizeDateString(normalizedInitial.meta.endDate) : null);
 	// Draft flag: derive from raw initialTrip.trip.status if provided; fallback to true
@@ -929,10 +929,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		} catch {}
 		setPrivacy((() => {
 			const v = (meta.visibility||'').toLowerCase();
-			if (v.startsWith('every')) return 'Everyone';
-			if (v.startsWith('trip')) return 'Trip Members';
-			if (v.startsWith('my')) return 'My Followers';
-			return 'Private';
+			   if (v.startsWith('every')) return 'Everyone';
+			   if (v.startsWith('trip')) return 'Trip Members';
+			   return 'Private';
 		})());
 		const metaStart = sanitizeDateString(meta.startDate) || null;
 		const metaEnd = sanitizeDateString(meta.endDate) || null;
@@ -1063,7 +1062,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		const settingsSaveHandler = async () => {
 			if(!authToken || !tripId) { openToast('error','Cannot save settings'); return; }
 			try {
-				const visibilityEnum = privacy==='Private' ? 'PRIVATE' : privacy==='Trip Members' ? 'TRIP_MEMBERS' : privacy==='My Followers' ? 'FOLLOWERS' : 'EVERYONE';
+				   const visibilityEnum = privacy==='Private' ? 'PRIVATE' : privacy==='Trip Members' ? 'TRIP_MEMBERS' : 'EVERYONE';
 				const sd = sanitizeDateString(tripStartDate) || undefined;
 				const ed = sanitizeDateString(tripEndDate) || undefined;
 				// Immediately reflect updated date span in nights ring before waiting for refetch
@@ -1093,7 +1092,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						if(Array.isArray(meta.countries)) setCountries(normalizeCountryList(meta.countries));
 						if(typeof meta.visibility==='string') {
 							const vis = meta.visibility.toLowerCase();
-							setPrivacy(vis.startsWith('every')? 'Everyone' : vis.startsWith('trip')? 'Trip Members' : vis.startsWith('my')? 'My Followers' : 'Private');
+							   setPrivacy(vis.startsWith('every')? 'Everyone' : vis.startsWith('trip')? 'Trip Members' : 'Private');
 						}
 						if(typeof meta.startDate==='string') setTripStartDate(sanitizeDateString(meta.startDate));
 						if(typeof meta.endDate==='string') setTripEndDate(sanitizeDateString(meta.endDate));
@@ -1221,7 +1220,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const selectCurrency = (c: 'EUR'|'USD'|'GBP') => { dispatch(setCurrencyAction(c)); closeCurrency(); };
 	const openPrivacy = (e: React.MouseEvent<HTMLButtonElement>) => setPrivacyAnchor(e.currentTarget);
 	const closePrivacy = () => setPrivacyAnchor(null);
-	const selectPrivacy = (p:'Private'|'Trip Members'|'My Followers'|'Everyone') => { setPrivacy(p); closePrivacy(); };
+	const selectPrivacy = (p:'Private'|'Trip Members'|'Everyone') => { setPrivacy(p); closePrivacy(); };
 	const handleTabChange = (_:any,v:number)=> setTab(v);
 	const handleChangeNights = (id:string, delta:number)=> dispatch(updateDestinationNights({ id, delta }));
 	const handleChangeTransport = (id:string, mode:string)=> dispatch(setTransport({ id, transport: mode }));
@@ -1290,8 +1289,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	//  - Added startDate/endDate fields to trip meta (derived from explicit state or
 	//    first/last destination) so backend can compute duration without relying on
 	//    itinerary scan.
-	//  - Privacy string currently uses UI values (Private, Trip Members, My Followers, Everyone).
-	//    Server may map these to enum values (PRIVATE, TRIP_MEMBERS, FOLLOWERS, EVERYONE).
+	//  - Privacy string currently uses UI values (Private, Trip Members, Everyone).
+	//    Server may map these to enum values (PRIVATE, TRIP_MEMBERS, EVERYONE).
 	//    Adjust mapping here if a strict enum is later required.
 	//  - Legs, docs, expenses, comments are included for forward compatibility; backend
 	//    can ignore unknown properties safely.
@@ -1798,33 +1797,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 											sx={{ textTransform:'none', borderRadius:2 }}
 										>
 											{isDraft ? 'Save' : 'Update'}{saving && <CircularProgress size={16} thickness={5} sx={{ ml:1 }} />}
-										</Button>
-											{currentUserIsOwner && (
-											<Button
-												size='small'
-												variant='contained'
-												color={isDraft? 'primary':'warning'}
-												onClick={()=> {
-																if(!isHydrated){ openToast('error','Trip data still loading'); return; }
-															// Dev logging removed (publish pre-save)
-													if(isDraft){
-														// Publish commit
-														handlePublish();
-														requestAnimationFrame(()=> { lastCommittedRef.current = computeSignature(); });
-																	// Dev logging removed (post-publish)
-													} else {
-														// Unpublish -> return to draft
-														commitSnapshot(true);
-														openToast('info','Trip reverted to draft');
-																	// Dev logging removed (reverted to draft)
-													}
-												}}
-														sx={{ textTransform:'none', borderRadius:2, opacity: isDraft? 1 : 0.7 }}
-														disabled={!currentUserIsOwner || !isDirty || saving || !isHydrated}
-											>
-												{isDraft? 'Publish' : 'Unpublish'}{saving && <CircularProgress size={16} thickness={5} sx={{ ml:1 }} />}
-											</Button>
-										)}
+										</Button>											
 									</>
 								)}
 
@@ -1834,7 +1807,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					)}
 					</Box>{/* end centre column */}
 				{/* Right panel — Navia for owners/editors, trip info for public viewers */}
-				{isExternalNonOwner ? (
+				{(!readOnly && effectiveCanEdit) ? (
+					<PremiumChatPanel />
+				) : (
 					<TripViewPanel
 						title={title}
 						description={tripDescription}
@@ -1849,8 +1824,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						showEditAction={showViewEditAction}
 						onRequestEdit={onRequestEdit}
 					/>
-				) : (
-					<PremiumChatPanel />
 				)}
 		</Box>
 		{effectiveCanEdit && (

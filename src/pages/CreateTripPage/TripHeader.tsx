@@ -17,7 +17,7 @@ import VisibilityOutlinedIcon from '@mui/icons-material/VisibilityOutlined';
 const PRIVACY_ICON: Record<string, React.ReactNode> = {
   Private: <LockOutlinedIcon sx={{ fontSize: 12 }} />,
   'Trip Members': <PeopleOutlineIcon sx={{ fontSize: 12 }} />,
-  'My Followers': <VisibilityOutlinedIcon sx={{ fontSize: 12 }} />,
+  // 'My Followers': <VisibilityOutlinedIcon sx={{ fontSize: 12 }} />,
   Everyone: <PublicIcon sx={{ fontSize: 12 }} />,
 };
 

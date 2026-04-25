@@ -155,7 +155,7 @@ export const apiServices = {
   }),
 
   // PATCH /api/trips/{tripId}/visibility
-  changeTripVisibility: (token: string, tripId: string, data: { visibility: 'TRIP_MEMBERS' | 'FOLLOWERS' | 'EVERYONE' }) =>
+  changeTripVisibility: (token: string, tripId: string, data: { visibility: 'TRIP_MEMBERS' | 'PRIVATE' | 'EVERYONE' }) =>
     apiClient.patch(`/api/trips/${tripId}/visibility`, data, {
       headers: { Authorization: `Bearer ${token}` }
     }),

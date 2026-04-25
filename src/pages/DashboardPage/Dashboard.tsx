@@ -168,18 +168,23 @@ const Dashboard: React.FC = () => {
   };
 
   const private_plans = allPlans.filter(plan => plan.members.length <= 1);
-  const group_plans = allPlans.filter(plan => plan.members.length > 1);
-  const in_progress_plans = allPlans.filter(plan => plan.progress < 100);
-  const completed_plans = allPlans.filter(plan => plan.progress === 100);
+  const creator = allPlans.filter(plan => plan.members.length > 1);
+  const co_creator = allPlans.filter(plan => plan.progress < 100);
+  const traveller = allPlans.filter(plan => plan.progress === 100);
+  const published = allPlans.filter(plan => plan.progress > 0);
+  
+
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
+    debugger;
     setTabValue(newValue);
     switch(newValue){
       case 0: setPlans(allPlans); break;
       case 1: setPlans(private_plans); break;
-      case 2: setPlans(group_plans); break;
-      case 3: setPlans(completed_plans); break;
-      case 4: setPlans(in_progress_plans); break;
+      case 2: setPlans(creator); break;
+      case 3: setPlans(co_creator); break;
+      case 4: setPlans(traveller); break;
+      case 5: setPlans(published); break;
     }
   };
   return (
@@ -385,11 +390,12 @@ const Dashboard: React.FC = () => {
               },
             }}
           >
-            <Tab label="All Plans" />
+            <Tab label="All Trips" />
             <Tab label="Private" />
-            <Tab label="Group" />
-            <Tab label="Completed" />
-            <Tab label="In Progress" />
+            <Tab label="Creator" />
+            <Tab label="Co-Creator" />
+            <Tab label="Traveller" />
+            <Tab label="Published" />
           </Tabs>
           <div ref={cardsRef} className="trip-cards-container" style={{ marginBottom: '32px' }}>
             {loading && (
