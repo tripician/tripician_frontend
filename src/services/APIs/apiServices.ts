@@ -74,14 +74,17 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
+
   // Trip endpoints (updated to match new TripController)
   // GET /api/trips/dashboard - user dashboard trips
+  // Response: array of Trip objects, each includes description?: string | null, rating?: number | null
   getDashboardTrips: (token: string) => 
     apiClient.get('/api/trips/dashboard', {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
   // GET /api/trips/public - public trips (no auth required but we allow optional token)
+  // Response: array of Trip objects, each includes description?: string | null, rating?: number | null
   getPublicTrips: (token?: string) => 
     apiClient.get('/api/trips/public', {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined
@@ -91,6 +94,7 @@ export const apiServices = {
   pingPublicTrips: () => apiClient.get('/api/trips/public').then(r => ({ ok: true, status: r.status })).catch(e => ({ ok: false, error: e.message })),
 
   // POST /api/trips - create trip
+  // Request: include description (optional, ≤ 300 chars). Do NOT send rating (server-calculated/read-only).
   createTrip: (token: string, data: {
     name: string;
     countries: string[];
@@ -98,26 +102,35 @@ export const apiServices = {
     endDate?: string | null;
     visibility: 'PRIVATE' | 'TRIP_MEMBERS' | 'FOLLOWERS' | 'EVERYONE';
     invites?: string[];
-  }) => apiClient.post('/api/trips', data, {
-    headers: { Authorization: `Bearer ${token}` }
-  }),
+    description?: string | null;
+  }) => {
+    // Validate description length if present
+    if (data.description && data.description.length > 300) {
+      throw new Error('Description must be 300 characters or less.');
+    }
+    // Never send rating from client
+    return apiClient.post('/api/trips', data, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  },
 
   // GET /api/trips/{tripId}
+  // Response: Trip object with description?: string | null, rating?: number | null
   getTripById: (token: string, tripId: string) => apiClient.get(`/api/trips/${tripId}`, {
     headers: { Authorization: `Bearer ${token}` }
   }),
 
   // PUT /api/trips/{tripId} - update trip core + itinerary + docs/meta
-  // TripUpdateDto should match backend expected shape; we map from front-end payload built in TripPlanner (buildPersistPayload)
+  // TripUpdateDto: include description if updating. Do NOT send rating (server-calculated/read-only).
   updateTrip: (token: string, tripId: string, data: {
     trip: {
       id: string;
       name: string;
       status: 'DRAFT' | 'PUBLISHED';
-      privacy: string; // backend enum e.g. TRIP_MEMBERS | FOLLOWERS | EVERYONE | PRIVATE mapped server-side
+      privacy: string;
       currency: string;
-      startDate: string; // added to align with TripPlanImportDto expectations
-      endDate: string;   // added to align with TripPlanImportDto expectations
+      startDate: string;
+      endDate: string;
       generatedAt: string;
       targetNights: number;
       totalNights: number;
@@ -127,6 +140,8 @@ export const apiServices = {
       importantNotes?: string;
       photoUrl?: string;
       countries?: string[];
+      description?: string | null;
+      // rating?: number | null; // Do NOT send rating from client
     };
     itinerary: Array<{
       id: string;
@@ -142,17 +157,26 @@ export const apiServices = {
       docs: Array<{ id:string; originalName:string; mimeType:string }>;
     }>;
     legs: Array<{ fromId:string; toId:string; mode:string; distanceKm:number|null; from:{lat?:number; lng?:number}; to:{lat?:number; lng?:number} }>;
-    expenses: any[]; // refine when expense DTO known
+    expenses: any[];
     budget: number | null | undefined;
-    comments: any[]; // refine when comment DTO known
+    comments: any[];
     pinnedDocIds: string[];
     globalDocs: Array<{ id:string; originalName:string; mimeType:string }>;
     visaDocs: Array<{ id:string; originalName:string; mimeType:string }>;
     destinationDocsCount: number;
     version: number;
-  }) => apiClient.put(`/api/trips/${tripId}`, data, {
-    headers: { Authorization: `Bearer ${token}` }
-  }),
+    description?: string | null;
+    // rating?: number | null; // Do NOT send rating from client
+  }) => {
+    // Validate description length if present
+    if (data.trip?.description && data.trip.description.length > 300) {
+      throw new Error('Description must be 300 characters or less.');
+    }
+    // Never send rating from client
+    return apiClient.put(`/api/trips/${tripId}`, data, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  },
 
   // PATCH /api/trips/{tripId}/visibility
   changeTripVisibility: (token: string, tripId: string, data: { visibility: 'TRIP_MEMBERS' | 'PRIVATE' | 'EVERYONE' }) =>
@@ -165,20 +189,38 @@ export const apiServices = {
     headers: { Authorization: `Bearer ${token}` }
   }),
 
-  // PUT /api/trips/{tripId}/settings - settings update (DTO-compatible: name, visibility, dates, countries, bannerPhotoId)
+  // PUT /api/trips/{tripId}/settings - settings update (DTO-compatible: name, visibility, dates, countries, bannerPhotoId, description)
+  // Do NOT send rating from client
   updateTripSettings: (token: string, tripId: string, data: {
     name?: string;
-    visibility?: string; // e.g., PRIVATE | TRIP_MEMBERS | FOLLOWERS | EVERYONE
-    startDate?: string; // ISO date (yyyy-MM-dd)
-    endDate?: string;   // ISO date (yyyy-MM-dd)
+    description?: string | null;
+    visibility?: string;
+    startDate?: string;
+    endDate?: string;
     countries?: string[];
-    bannerPhotoId?: string; // GUID as string if available
-    // Backward compatibility
+    bannerPhotoId?: string;
     privacy?: string;
     photoUrl?: string;
-  }) => apiClient.put(`/api/trips/${tripId}/settings`, data, {
-    headers: { Authorization: `Bearer ${token}` }
-  }),
+    // rating?: number | null; // Do NOT send rating from client
+  }) => {
+    if (data.description && data.description.length > 300) {
+      throw new Error('Description must be 300 characters or less.');
+    }
+    // Never send rating from client
+    return apiClient.put(`/api/trips/${tripId}/settings`, data, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  },
+// --- Trip TypeScript interface suggestion ---
+// Use this for all Trip objects received from the backend:
+//
+// export interface Trip {
+//   id: string;
+//   name: string;
+//   description?: string | null; // validate length <= 300 when sending
+//   rating?: number | null;      // treat null/undefined as "no rating"; never send from client
+//   ...other fields...
+// }
 
   // GET /user-profiles/{userEmail} - search user by email
   getUserProfileByEmail: (token: string, userEmail: string) =>

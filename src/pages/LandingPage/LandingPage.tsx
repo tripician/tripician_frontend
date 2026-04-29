@@ -479,22 +479,22 @@ export default function LandingPage() {
           </span>
 
           <h1 className="lp-hero__title">
-            {['Plan', 'Smarter.', 'Travel', 'Further.'].map((word, i) => (
+            {['Go', 'Where', 'You', 'Feel', 'Alive.'].map((word, i) => (
               <span key={i} className="word">{word}</span>
             ))}
           </h1>
 
           <p className="lp-hero__subtitle">
-            Create beautiful trip itineraries, discover hidden destinations,<br />
-            and travel with complete confidence.
+            Craft journeys that feel right, discover hidden places,<br />
+            and travel with people who match your vibe.
           </p>
 
           <div className="lp-hero__cta-group">
             <button className="lp-btn lp-btn--hero-primary" onClick={() => navigate('/signup')}>
-              Start Planning Free <ArrowRight size={17} />
+              Find Your Travel Tribe <ArrowRight size={17} />
             </button>
             <button className="lp-btn lp-btn--hero-ghost" onClick={() => navigate('/signin')}>
-              Sign In
+              Start Planning
             </button>
           </div>
         </div>

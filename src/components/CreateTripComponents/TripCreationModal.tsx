@@ -31,6 +31,7 @@ interface TripCreationModalProps {
 
 interface FormData {
   tripName: string;
+  tripDescription: string;
   selectedCountries: string[];
   startDate: Dayjs | null;
   endDate: Dayjs | null;
@@ -297,6 +298,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
   const apiBase = import.meta.env.VITE_API_BASE_URL;
   const [formData, setFormData] = useState<FormData>({
     tripName: "",
+    tripDescription: "",
     selectedCountries: [],
     startDate: null,
     endDate: null,
@@ -308,7 +310,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
   const [showInviteSection, setShowInviteSection] = useState(true);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
-  const [fieldErrors, setFieldErrors] = useState<{ name?: string; countries?: string; dates?: string }>({});
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; description?: string; countries?: string; dates?: string }>({});
   const { token } = useAuthToken();
   const navigate = useNavigate();
 
@@ -318,9 +320,13 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
   const handleInputChange =
     (field: keyof FormData) =>
     (event: ChangeEvent<HTMLInputElement>) => {
+      let value = event.target.value;
+      if (field === 'tripDescription') {
+        value = value.slice(0, 300); // Enforce max length
+      }
       setFormData((prev) => ({
         ...prev,
-        [field]: event.target.value,
+        [field]: value,
       }));
     };
 
@@ -345,8 +351,9 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
   };
 
   const validate = () => {
-    const errs: { name?: string; countries?: string; dates?: string } = {};
+    const errs: { name?: string; description?: string; countries?: string; dates?: string } = {};
     if(!formData.tripName.trim()) errs.name = 'Trip name is required';
+    if(formData.tripDescription.length > 300) errs.description = 'Description must be 300 characters or less';
     if(formData.selectedCountries.length === 0) errs.countries = 'Select at least one country';
     if(formData.startDate && formData.endDate && formData.endDate.isBefore(formData.startDate,'day')) errs.dates = 'End date must be after start date';
     setFieldErrors(errs);
@@ -368,6 +375,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
           : 'PRIVATE';
       const payload = {
         name: formData.tripName.trim(),
+        description: formData.tripDescription.trim(),
         countries: formData.selectedCountries,
         startDate: formData.startDate ? formData.startDate.format('YYYY-MM-DD') : null,
         endDate: formData.endDate ? formData.endDate.format('YYYY-MM-DD') : null,
@@ -409,6 +417,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
   const resetForm = () => {
     setFormData({
       tripName: "",
+      tripDescription: "",
       selectedCountries: [],
       startDate: null,
       endDate: null,
@@ -522,6 +531,24 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
                 variant="outlined"
                 error={!!fieldErrors.name}
                 helperText={fieldErrors.name}
+                sx={fieldSx}
+              />
+            </Box>
+            {/* Trip description */}
+            <Box className="gs-modal-field" sx={{ mb: 2.5 }}>
+              <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#999', fontFamily: "'Inter', sans-serif", mb: 1 }}>Trip description</Typography>
+              <TextField
+                placeholder="Tell a little more about your trip…"
+                value={formData.tripDescription}
+                onChange={handleInputChange('tripDescription')}
+                fullWidth
+                variant="outlined"
+                multiline
+                minRows={2}
+                maxRows={4}
+                inputProps={{ maxLength: 300 }}
+                error={!!fieldErrors.description}
+                helperText={fieldErrors.description || `${formData.tripDescription.length}/300`}
                 sx={fieldSx}
               />
             </Box>

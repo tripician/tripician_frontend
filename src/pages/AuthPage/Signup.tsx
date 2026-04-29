@@ -167,7 +167,7 @@ const Signup = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.35, duration: 0.4 }}
-          >Start planning your next adventure</motion.p>
+          >Discover journeys that match your vibe</motion.p>
 
           {error && <div className="auth-alert auth-alert--error">{error}</div>}
           {success && <div className="auth-alert auth-alert--success">{success}</div>}

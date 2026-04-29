@@ -454,7 +454,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
               maxRows={3}
               onChange={e=> onChangeDescription?.(e.target.value)}
               placeholder='Describe your trip…'
-              inputProps={{ maxLength:400 }}
+              inputProps={{ maxLength:300 }}
               sx={(t:any)=>({ '& .MuiOutlinedInput-root':{ borderRadius:2, fontSize:13, lineHeight:1.6, background: t.palette.mode==='dark'?'rgba(255,255,255,0.04)':'rgba(0,0,0,0.02)',
                 '&:hover fieldset':{ borderColor:'#FF385C' }, '&.Mui-focused fieldset':{ borderColor:'#FF385C' } } })}
             />

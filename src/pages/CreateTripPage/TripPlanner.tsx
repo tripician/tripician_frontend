@@ -1077,6 +1077,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				}
 				await apiServices.updateTripSettings(authToken, tripId, {
 					name: title,
+					description: tripDescription,
 					visibility: visibilityEnum,
 					startDate: sd,
 					endDate: ed,
