@@ -493,7 +493,7 @@ const Home: React.FC = () => {
                 <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 1.5, py: 0.5, borderRadius: '50px', background: 'rgba(255,56,92,0.14)', border: '1px solid rgba(255,56,92,0.28)', mb: 2 }}>
                   <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: '#FF385C', boxShadow: '0 0 8px rgba(255,56,92,0.7)' }} />
                   <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: 'rgba(255,56,92,0.9)', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'Inter',sans-serif" }}>
-                    Find your travel tribe
+                    Your next adventure
                   </Typography>
                 </Box>
 

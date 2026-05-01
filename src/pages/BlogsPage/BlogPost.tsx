@@ -9,7 +9,6 @@ import NavigationPannel from '../PageLayout/CommonLayouts/NavigationPanel';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 import AccessTimeRoundedIcon from '@mui/icons-material/AccessTimeRounded';
 import PlaceRoundedIcon from '@mui/icons-material/PlaceRounded';
-import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import PersonAddAltRoundedIcon from '@mui/icons-material/PersonAddAltRounded';
 
 type BlogEntry = typeof blogsData[0];
@@ -29,6 +28,7 @@ const BlogPost: React.FC = () => {
   const navigate = useNavigate();
   const profile = useSelector((state: any) => state.user?.profile);
   const isAuthenticated = !!profile;
+  const logoFullBlackUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_BLACK_2_URL as string | undefined;
 
   const blog = blogsData.find((b) => b.slug === slug) as BlogEntry | undefined;
 
@@ -315,7 +315,9 @@ const BlogPost: React.FC = () => {
                   border: '1px solid rgba(255,56,92,0.18)',
                   display: 'flex', gap: 1.5, alignItems: 'flex-start',
                 }}>
-                  <AutoAwesomeRoundedIcon sx={{ color: '#FF385C', fontSize: 20, mt: 0.3, flexShrink: 0 }} />
+                  {logoFullBlackUrl
+                    ? <Box component="img" src={logoFullBlackUrl} alt="Tripician" sx={{ height: 20, width: 'auto', mt: 0.3, flexShrink: 0, display: 'block' }} />
+                    : <Box sx={{ width: 20, height: 20, borderRadius: '6px', background: 'linear-gradient(135deg,#FF385C,#D91A50)', flexShrink: 0, mt: 0.3 }} />}
                   <Typography sx={{
                     fontSize: '0.95rem',
                     color: '#333',

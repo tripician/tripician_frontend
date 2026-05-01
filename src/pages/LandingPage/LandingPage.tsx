@@ -36,8 +36,8 @@ const FEATURES = [
   },
   {
     icon: <Users size={26} />,
-    title: 'Tribe Discovery',
-    desc: 'Browse upcoming group trips filtered by travel personality. Join adventures planned by like-minded travelers — or publish your plan and attract your ideal co-travelers.',
+    title: 'Crew Discovery',
+    desc: 'Browse upcoming group trips filtered by travel personality. Join adventures built by travelers who move like you — or publish your plan and bring the right people in.',
     accent: '#FF385C',
   },
   {
@@ -93,14 +93,14 @@ const STEPS = [
   },
   {
     num: '03',
-    title: 'Find your tribe',
-    desc: 'Browse upcoming trips and groups that match your vibe. Join a plan from like-minded travelers or invite them to yours — no WhatsApp chaos required.',
+    title: 'Find your people',
+    desc: 'Browse upcoming trips that match your vibe. Join a plan from travelers who move like you, or invite them to yours — no WhatsApp chaos required.',
     tag: 'Community',
   },
   {
     num: '04',
-    title: 'Travel together',
-    desc: 'Hit the road with people who actually get you. Share memories, build real travel reputation, and grow a history no other platform can replicate.',
+    title: 'Go, your way',
+    desc: 'Solo, duo, or full crew — hit the road exactly how you want. Share memories, build real travel reputation, and grow a history no other platform can replicate.',
     tag: 'Real trips',
   },
 ];
@@ -598,22 +598,22 @@ export default function LandingPage() {
           </span>
 
           <h1 className="lp-hero__title">
-            {['Stop', 'Traveling', 'Alone.'].map((word, i) => (
+            {['Find', 'your', 'travel', 'tribe.'].map((word, i) => (
               <span key={i} className="word">{word}</span>
             ))}
           </h1>
 
           <p className="lp-hero__subtitle">
-            Define your travel personality. Get matched with like-minded adventurers.<br />
-            Co-plan and travel with people who actually travel like you do.
+            Or create your own. Solo, duo, crew &mdash; however you move,<br />
+            Tripician shapes itself around the way you travel.
           </p>
 
           <div className="lp-hero__cta-group">
             <button className="lp-btn lp-btn--hero-primary" onClick={() => navigate('/signup')}>
-              Find Your Travel Tribe <ArrowRight size={17} />
+              Start your journey <ArrowRight size={17} />
             </button>
             <button className="lp-btn lp-btn--hero-ghost" onClick={() => navigate('/signin')}>
-              Start Planning
+              Sign in
             </button>
           </div>
         </div>
@@ -833,7 +833,7 @@ export default function LandingPage() {
       <section className="lp-steps" id="how-it-works">
         <div className="lp-steps__header">
           <span className="lp-section-eyebrow">How it works</span>
-          <h2 className="lp-section-title">Go from solo traveler<br />to travel tribe in 4 steps</h2>
+          <h2 className="lp-section-title">From idea to adventure<br />in 4 simple steps</h2>
         </div>
         <div className="lp-steps__list">
           <div className="lp-steps__line" />
@@ -944,20 +944,20 @@ export default function LandingPage() {
       {/* ── CTA ───────────────────────────────────────────────── */}
       <section className="lp-cta">
         <div className="lp-cta__content">
-          <span className="lp-section-eyebrow lp-section-eyebrow--light">Your tribe is out there</span>
+          <span className="lp-section-eyebrow lp-section-eyebrow--light">Your next adventure starts here</span>
           <h2 className="lp-cta__title">
-            Stop traveling alone.<br /><em>Start traveling together.</em>
+            Find your travel tribe.<br /><em>Or create your own.</em>
           </h2>
           <p className="lp-cta__sub">
-            Join Tripician free. Define your vibe, get matched with like-minded adventurers,
-            and build your next adventure — with people who actually travel like you do.
+            Join Tripician free. Solo explorer, duo, or full crew — plan your next trip
+            exactly the way you travel, with tools built for the way you actually move.
           </p>
           <div className="lp-cta__actions">
             <button className="lp-btn lp-btn--cta-primary" onClick={() => navigate('/signup')}>
-              Find Your Travel Tribe <ArrowRight size={17} />
+              Start your journey <ArrowRight size={17} />
             </button>
             <div className="lp-cta__checks">
-              {['No credit card required', 'Free forever', 'Vibe-matched from day one'].map((item, i) => (
+              {['No credit card required', 'Free forever', 'Built around your vibe'].map((item, i) => (
                 <span key={i}><Check size={13} /> {item}</span>
               ))}
             </div>

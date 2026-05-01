@@ -29,6 +29,7 @@ const BlogsList: React.FC = () => {
   const navigate = useNavigate();
   const profile = useSelector((state: any) => state.user?.profile);
   const isAuthenticated = !!profile;
+  const logoFullBlackUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_BLACK_2_URL as string | undefined;
 
   const [images, setImages] = useState<Record<number, string>>({});
   const [activeTag, setActiveTag] = useState('All');
@@ -73,12 +74,10 @@ const BlogsList: React.FC = () => {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 1, textDecoration: 'none' }}>
-            <Box sx={{ width: 28, height: 28, borderRadius: '8px', background: 'linear-gradient(135deg,#FF385C,#D91A50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <AutoAwesomeRoundedIcon sx={{ fontSize: 16, color: '#fff' }} />
-            </Box>
-            <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#111', fontFamily: "'Inter',sans-serif", letterSpacing: '-0.02em' }}>
-              Tripician <Box component="span" sx={{ fontWeight: 400, color: '#888' }}>/ Blog</Box>
-            </Typography>
+            {logoFullBlackUrl
+              ? <Box component="img" src={logoFullBlackUrl} alt="Tripician" sx={{ height: 28, width: 'auto', display: 'block' }} />
+              : <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#111', fontFamily: "'Inter',sans-serif", letterSpacing: '-0.02em' }}>Tripician</Typography>
+            }
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button size="small" component={Link} to="/signin" variant="outlined"

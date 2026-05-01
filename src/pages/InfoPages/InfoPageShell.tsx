@@ -5,7 +5,6 @@ import { useSelector } from 'react-redux';
 import NavigationPannel from '../PageLayout/CommonLayouts/NavigationPanel';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
-import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 
 interface Props { children: React.ReactNode }
 
@@ -13,6 +12,7 @@ const InfoPageShell: React.FC<Props> = ({ children }) => {
   const navigate = useNavigate();
   const profile = useSelector((state: any) => state.user?.profile);
   const isAuthenticated = !!profile;
+  const logoFullBlackUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_BLACK_2_URL as string | undefined;
 
   const pageContent = (
     <Box sx={{ minHeight: '100vh', background: '#FAFAFA', fontFamily: "'Inter', sans-serif" }}>
@@ -39,12 +39,10 @@ const InfoPageShell: React.FC<Props> = ({ children }) => {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 1, textDecoration: 'none' }}>
-            <Box sx={{ width: 28, height: 28, borderRadius: '8px', background: 'linear-gradient(135deg,#FF385C,#D91A50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <AutoAwesomeRoundedIcon sx={{ fontSize: 16, color: '#fff' }} />
-            </Box>
-            <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#111', fontFamily: "'Inter',sans-serif", letterSpacing: '-0.02em' }}>
-              Tripician
-            </Typography>
+            {logoFullBlackUrl
+              ? <Box component="img" src={logoFullBlackUrl} alt="Tripician" sx={{ height: 28, width: 'auto', display: 'block' }} />
+              : <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#111', fontFamily: "'Inter',sans-serif", letterSpacing: '-0.02em' }}>Tripician</Typography>
+            }
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button size="small" component={Link} to="/signin" variant="outlined"
