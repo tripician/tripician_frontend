@@ -573,7 +573,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
             </Box>
             {/* Trip description */}
             <Box className="gs-modal-field" sx={{ mb: 1.5 }}>
-              <Typography sx={labelSx}>Tell a little more about your trip</Typography>
+              <Typography sx={labelSx}>What's coming in your mind about the trip?</Typography>
               <TextField
                 placeholder="Tell a little more about your trip…"
                 value={formData.tripDescription}

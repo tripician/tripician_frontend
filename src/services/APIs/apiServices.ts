@@ -77,14 +77,14 @@ export const apiServices = {
 
   // Trip endpoints (updated to match new TripController)
   // GET /api/trips/dashboard - user dashboard trips
-  // Response: array of Trip objects, each includes description?: string | null, rating?: number | null
+  // Response: array of Trip objects, each includes description?: string | null, vibe?: string | null, rating?: number | null
   getDashboardTrips: (token: string) => 
     apiClient.get('/api/trips/dashboard', {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
   // GET /api/trips/public - public trips (no auth required but we allow optional token)
-  // Response: array of Trip objects, each includes description?: string | null, rating?: number | null
+  // Response: array of Trip objects, each includes description?: string | null, vibe?: string | null, rating?: number | null
   getPublicTrips: (token?: string) => 
     apiClient.get('/api/trips/public', {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined
@@ -103,10 +103,15 @@ export const apiServices = {
     visibility: 'PRIVATE' | 'TRIP_MEMBERS' | 'FOLLOWERS' | 'EVERYONE';
     invites?: string[];
     description?: string | null;
+    vibe?: string | null;
   }) => {
     // Validate description length if present
     if (data.description && data.description.length > 300) {
       throw new Error('Description must be 300 characters or less.');
+    }
+    // Validate vibe length if present (same limits as description)
+    if (data.vibe && data.vibe.length > 300) {
+      throw new Error('Vibe must be 300 characters or less.');
     }
     // Never send rating from client
     return apiClient.post('/api/trips', data, {
@@ -115,7 +120,7 @@ export const apiServices = {
   },
 
   // GET /api/trips/{tripId}
-  // Response: Trip object with description?: string | null, rating?: number | null
+  // Response: Trip object with description?: string | null, vibe?: string | null, rating?: number | null
   getTripById: (token: string, tripId: string) => apiClient.get(`/api/trips/${tripId}`, {
     headers: { Authorization: `Bearer ${token}` }
   }),
@@ -141,6 +146,7 @@ export const apiServices = {
       photoUrl?: string;
       countries?: string[];
       description?: string | null;
+      vibe?: string | null;
       // rating?: number | null; // Do NOT send rating from client
     };
     itinerary: Array<{
@@ -166,11 +172,16 @@ export const apiServices = {
     destinationDocsCount: number;
     version: number;
     description?: string | null;
+    vibe?: string | null;
     // rating?: number | null; // Do NOT send rating from client
   }) => {
     // Validate description length if present
     if (data.trip?.description && data.trip.description.length > 300) {
       throw new Error('Description must be 300 characters or less.');
+    }
+    // Validate vibe length if present (same limits as description)
+    if (data.trip?.vibe && data.trip.vibe.length > 300) {
+      throw new Error('Vibe must be 300 characters or less.');
     }
     // Never send rating from client
     return apiClient.put(`/api/trips/${tripId}`, data, {
@@ -194,6 +205,7 @@ export const apiServices = {
   updateTripSettings: (token: string, tripId: string, data: {
     name?: string;
     description?: string | null;
+    vibe?: string | null;
     visibility?: string;
     startDate?: string;
     endDate?: string;
@@ -205,6 +217,9 @@ export const apiServices = {
   }) => {
     if (data.description && data.description.length > 300) {
       throw new Error('Description must be 300 characters or less.');
+    }
+    if (data.vibe && data.vibe.length > 300) {
+      throw new Error('Vibe must be 300 characters or less.');
     }
     // Never send rating from client
     return apiClient.put(`/api/trips/${tripId}/settings`, data, {
@@ -218,6 +233,7 @@ export const apiServices = {
 //   id: string;
 //   name: string;
 //   description?: string | null; // validate length <= 300 when sending
+//   vibe?: string | null;        // optional vibe string (e.g. 'adventure', 'relax')
 //   rating?: number | null;      // treat null/undefined as "no rating"; never send from client
 //   ...other fields...
 // }

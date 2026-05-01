@@ -30,9 +30,8 @@ import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
 import PublishRoundedIcon from '@mui/icons-material/PublishRounded';
-import StarRoundedIcon from '@mui/icons-material/StarRounded';
-import StarBorderRoundedIcon from '@mui/icons-material/StarBorderRounded';
 import ShareRoundedIcon from '@mui/icons-material/ShareRounded';
+import { fetchUnsplashImage } from '../../services/unsplashService';
 import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
 import NightsStayRoundedIcon from '@mui/icons-material/NightsStayRounded';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
@@ -434,14 +433,14 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 }) => {
 	const theme = useTheme();
 	const isLight = theme.palette.mode === 'light';
-	const [userRating, setUserRating] = React.useState(0);
-	const [hoverRating, setHoverRating] = React.useState(0);
-	const [ratingSubmitted, setRatingSubmitted] = React.useState(false);
-
-	const handleRate = (star: number) => {
-		setUserRating(star);
-		setRatingSubmitted(true);
-	};
+	const [sideBarBanner, setSideBarBanner] = React.useState<string | null>(null);
+	React.useEffect(() => {
+		if (bannerUrl && bannerUrl.trim()) { setSideBarBanner(null); return; }
+		const query = (countries && countries[0]) || 'travel';
+		let cancelled = false;
+		fetchUnsplashImage(query).then(url => { if (!cancelled && url) setSideBarBanner(url); });
+		return () => { cancelled = true; };
+	}, [bannerUrl, countries && countries[0]]);
 
 	const bg = isLight ? '#ffffff' : '#0e1012';
 	const border = isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.07)';
@@ -483,18 +482,18 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 			<KalaMandala size={280} color="#FF385C" opacity={0.05} style={{ position: 'absolute', bottom: 120, right: -70, zIndex: 0, pointerEvents: 'none' }} />
 			{/* ── Banner + Title header ── */}
 			<Box sx={{ position: 'relative', flexShrink: 0 }}>
-				{bannerUrl ? (
+				{(bannerUrl || sideBarBanner) ? (
 					<Box
-						component="img" src={bannerUrl} alt={title}
+						component="img" src={bannerUrl || sideBarBanner!} alt={title}
 						sx={{ width: '100%', height: 110, objectFit: 'cover', display: 'block' }}
 					/>
 				) : (
 					<Box sx={{
 						width: '100%', height: 110,
-						background: 'linear-gradient(135deg, #FF385C 0%, #C2185B 100%)',
+						background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
 						display: 'flex', alignItems: 'center', justifyContent: 'center',
 					}}>
-						<Typography sx={{ fontSize: '2.5rem', opacity: 0.25 }}>✈</Typography>
+						<Typography sx={{ fontSize: '2.5rem', opacity: 0.12 }}>🌍</Typography>
 					</Box>
 				)}
 				{/* Gradient overlay */}
@@ -523,42 +522,6 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 				'&::-webkit-scrollbar': { width: 4 },
 				'&::-webkit-scrollbar-thumb': { borderRadius: 3, background: isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.10)' },
 			}}>
-
-				{/* ── Rate this trip ── */}
-				<Box sx={{ borderRadius: '12px', background: sectionBg, border: `1px solid ${border}`, p: '12px 14px' }}>
-					<Typography sx={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: textMuted, fontFamily: 'inherit', mb: 1 }}>
-						Rate this trip
-					</Typography>
-					<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
-						{[1, 2, 3, 4, 5].map(star => {
-							const active = (hoverRating || userRating) >= star;
-							return (
-								<Box
-									key={star}
-									onMouseEnter={() => !ratingSubmitted && setHoverRating(star)}
-									onMouseLeave={() => !ratingSubmitted && setHoverRating(0)}
-									onClick={() => handleRate(star)}
-									sx={{ cursor: ratingSubmitted ? 'default' : 'pointer', lineHeight: 0, transition: 'transform 0.15s', '&:hover': { transform: ratingSubmitted ? 'none' : 'scale(1.2)' } }}
-								>
-									{active
-										? <StarRoundedIcon sx={{ fontSize: 28, color: '#FFD700', filter: 'drop-shadow(0 1px 4px rgba(255,200,0,0.45))' }} />
-										: <StarBorderRoundedIcon sx={{ fontSize: 28, color: isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.22)' }} />
-									}
-								</Box>
-							);
-						})}
-						{ratingSubmitted && (
-							<Typography sx={{ ml: 0.75, fontSize: '0.75rem', fontWeight: 600, color: '#FF385C', fontFamily: 'inherit' }}>
-								Thanks!
-							</Typography>
-						)}
-					</Box>
-					{!ratingSubmitted && (
-						<Typography sx={{ fontSize: '0.65rem', color: textMuted, mt: 0.6, fontFamily: 'inherit' }}>
-							Tap a star to rate
-						</Typography>
-					)}
-				</Box>
 
 				{/* ── Description ── */}
 				{description && (
@@ -612,6 +575,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 									<Tooltip key={u.id ?? i} title={getMemberLabel(u)} arrow placement="top">
 										<Avatar
 											src={avatarSrc ?? undefined}
+											imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any}
 											sx={{
 												width: 36, height: 36, fontSize: '0.72rem', fontWeight: 800,
 												ml: i === 0 ? 0 : '-10px',
@@ -650,6 +614,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 									<Box key={u.id ?? i} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
 										<Avatar
 											src={avatarSrc ?? undefined}
+											imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any}
 											sx={{
 												width: 24, height: 24, fontSize: '0.58rem', fontWeight: 800,
 												background: isOwnerMember
@@ -786,7 +751,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 
 	// Core meta state
 	const [title, setTitle] = React.useState<string>(normalizedInitial?.meta.name || 'Untitled Trip');
-	const [tripDescription, setTripDescription] = React.useState<string>((normalizedInitial?.meta as any)?.description || '');
+	const [tripDescription, setTripDescription] = React.useState<string>(normalizedInitial?.meta.description || '');
+	const [vibe, setVibe] = React.useState<string | null>(normalizedInitial?.meta.vibe ?? null);
 	const [editingTitle, setEditingTitle] = React.useState(false);
 	// Notes field (plain text, auto-grow) seeded from normalized initial trip meta if present
 	const [importantNotes, setImportantNotes] = React.useState<string>(
@@ -797,6 +763,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	// Banner image (trip card photo) – store as URL (existing backend-provided or newly selected object URL / base64)
 	const [bannerUrl, setBannerUrl] = React.useState<string>(() => {
 		try {
+			// Prefer normalizedInitial (already extracted photoUrl), fall back to raw
+			const fromNormalized = normalizedInitial?.meta.photoUrl;
+			if (fromNormalized) return fromNormalized;
 			const root = earlyRawTrip || (initialTrip?.trip) || initialTrip;
 			const existing = root && typeof root.photoUrl === 'string' ? root.photoUrl : undefined;
 			return existing || (import.meta.env.VITE_TRIP_DEFAULT_IMAGE || '');
@@ -1078,6 +1047,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				await apiServices.updateTripSettings(authToken, tripId, {
 					name: title,
 					description: tripDescription,
+					vibe: vibe ?? undefined,
 					visibility: visibilityEnum,
 					startDate: sd,
 					endDate: ed,
@@ -1091,6 +1061,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						if(typeof meta.name==='string') setTitle(meta.name);
 						if(typeof meta.photoUrl==='string') setBannerUrl(meta.photoUrl);
 						if(Array.isArray(meta.countries)) setCountries(normalizeCountryList(meta.countries));
+						if(typeof meta.description==='string') setTripDescription(meta.description);
+						if(typeof meta.vibe==='string') setVibe(meta.vibe);
+						else if(meta.vibe===null) setVibe(null);
 						if(typeof meta.visibility==='string') {
 							const vis = meta.visibility.toLowerCase();
 							   setPrivacy(vis.startsWith('every')? 'Everyone' : vis.startsWith('trip')? 'Trip Members' : 'Private');
@@ -1413,9 +1386,11 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				legCount: legs.length,
 				routeDistanceKm: Number(routeDistanceKm.toFixed(2)),
 				importantNotes: notesClean, // always include (empty string signifies clear)
-				notes: notesClean // legacy fallback so clearing propagates
-				,photoUrl: bannerUrl || (import.meta.env.VITE_TRIP_DEFAULT_IMAGE || ''),
-				countries: countries
+				notes: notesClean, // legacy fallback so clearing propagates
+				photoUrl: bannerUrl || (import.meta.env.VITE_TRIP_DEFAULT_IMAGE || ''),
+				countries: countries,
+				description: tripDescription || null,
+				vibe: vibe ?? null
 			},
 			itinerary,
 			legs,
@@ -1424,7 +1399,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			comments: [],
 			version: 1
 		};
-	}, [planner.destinations, tripId, title, privacy, currency, tripStartDate, tripEndDate, targetNights, totalNights, geocodedCount, importantNotes]);
+	}, [planner.destinations, tripId, title, privacy, currency, tripStartDate, tripEndDate, targetNights, totalNights, geocodedCount, importantNotes, vibe, tripDescription, bannerUrl]);
 
 	// Persist helper (debounced save)
 	const persistToBackend = React.useCallback(async (payload:any): Promise<boolean> => {
@@ -2009,7 +1984,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					onChangeEndDate={(d)=> setTripEndDate(d)}
 				onChangePrivacy={(p)=> setPrivacy(p as any)}
 				description={tripDescription}
-				onChangeDescription={(d)=> setTripDescription(d)}
+					onChangeDescription={(d)=> setTripDescription(d)}
+					vibe={vibe ?? ''}
+					onChangeVibe={(v)=> setVibe(v)}
 				onDeleteTrip={()=> { setConfirmDeleteOpen(true); }}
 					onInviteEmail={async(_)=> { /* invite email placeholder */ }}
 			/>

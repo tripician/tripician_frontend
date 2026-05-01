@@ -3,9 +3,6 @@ import '../../assets/css/TripCard.css';
 import { motion } from 'framer-motion';
 import ShareRoundedIcon from '@mui/icons-material/ShareRounded';
 import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
-import StarRoundedIcon from '@mui/icons-material/StarRounded';
-import StarHalfRoundedIcon from '@mui/icons-material/StarHalfRounded';
-import StarBorderRoundedIcon from '@mui/icons-material/StarBorderRounded';
 import FavoriteRoundedIcon from '@mui/icons-material/FavoriteRounded';
 import FavoriteBorderRoundedIcon from '@mui/icons-material/FavoriteBorderRounded';
 
@@ -57,7 +54,6 @@ interface TripCardProps {
   edited?: string;
   members?: { name: string; profilePic: string; id?: string }[];
   countries?: string[];
-  rating?: number;
   likes?: number;
   owner?: string;
   onClick?: () => void;
@@ -66,7 +62,7 @@ interface TripCardProps {
 }
 
 const TripCard: React.FC<TripCardProps> = ({
-  title, image, description, progress, edited, members, countries, rating, likes, owner, onClick, onShare, onDelete
+  title, image, description, progress, edited, members, countries, likes, owner, onClick, onShare, onDelete
 }) => {
   const countryDisplay = React.useMemo(() => {
     if (!countries || countries.length === 0) return null;
@@ -81,20 +77,6 @@ const TripCard: React.FC<TripCardProps> = ({
     if (unique.length === 0) return null;
     return { list: unique.slice(0, 3), extra: Math.max(0, unique.length - 3), total: unique.length };
   }, [countries]);
-
-  const stars = React.useMemo<('full' | 'half' | 'empty')[] | null>(() => {
-    if (rating === undefined) return null;
-    const r = Math.min(5, Math.max(0, rating));
-    const full = Math.floor(r);
-    const half = (r - full) >= 0.25 && (r - full) < 0.75;
-    const result: ('full' | 'half' | 'empty')[] = [];
-    for (let i = 0; i < 5; i++) {
-      if (i < full) result.push('full');
-      else if (i === full && half) result.push('half');
-      else result.push('empty');
-    }
-    return result;
-  }, [rating]);
 
   const pct = typeof progress === 'number' ? Math.min(100, Math.max(0, progress)) : 0;
   const isComplete = pct >= 100;
@@ -200,25 +182,6 @@ const TripCard: React.FC<TripCardProps> = ({
             {edited && <span className="tc-badge-info">{edited}</span>}
           </div>
         )}
-
-        {/* 3. Rating row */}
-        <div className="tc-rating-row">
-          {stars && (
-            <div className="tc-stars-wrap">
-              <span className="tc-rating-value">{(rating as number).toFixed(1)}</span>
-              <div className="tc-stars">
-                {stars.map((type, i) =>
-                  type === 'full'
-                    ? <StarRoundedIcon key={i} style={{ fontSize: 13, color: '#FBBF24' }} />
-                    : type === 'half'
-                    ? <StarHalfRoundedIcon key={i} style={{ fontSize: 13, color: '#FBBF24' }} />
-                    : <StarBorderRoundedIcon key={i} style={{ fontSize: 13, color: 'rgba(255,255,255,0.3)' }} />
-                )}
-              </div>
-            </div>
-          )}
-
-        </div>
 
         {/* 4. Owner + likes row */}
         {(owner || likes !== undefined) && (
