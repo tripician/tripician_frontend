@@ -21,6 +21,8 @@ import PrivacyPage from './pages/InfoPages/PrivacyPage';
 import HelpPage from './pages/InfoPages/HelpPage';
 import ContactPage from './pages/InfoPages/ContactPage';
 import AboutPage from './pages/InfoPages/AboutPage';
+import BlogsList from './pages/BlogsPage/BlogsList';
+import BlogPost from './pages/BlogsPage/BlogPost';
 
 // Import debug utilities for development
 if (import.meta.env.DEV) {
@@ -68,6 +70,10 @@ function App() {
         <Route path="/get-help" element={<HelpPage />} />
         <Route path="/contact-us" element={<ContactPage />} />
         <Route path="/about-us" element={<AboutPage />} />
+        
+        {/* Blog routes — public, no auth required (SEO) */}
+        <Route path="/blog" element={<BlogsList />} />
+        <Route path="/blog/:slug" element={<BlogPost />} />
         
   {/* Final catch-all -> 404 page */}
   <Route path="*" element={<NotFound404 />} />

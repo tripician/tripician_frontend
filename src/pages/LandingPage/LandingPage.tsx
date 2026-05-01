@@ -1,6 +1,7 @@
 ﻿import { useLayoutEffect, useState, useEffect } from 'react';
 import { KalaGeometric, KalaLotus } from '../../components/DecorativeComponents/KalaDecor';
 import { useNavigate } from 'react-router-dom';
+import { fetchUnsplashImage } from '../../services/unsplashService';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import {
@@ -10,7 +11,6 @@ import {
   Brain,
   ArrowRight,
   ChevronDown,
-  MapPin,
   Globe,
   Plane,
   Users,
@@ -29,73 +29,79 @@ gsap.registerPlugin(ScrollTrigger);
 /* ─── STATIC DATA ────────────────────────────────────────────────── */
 const FEATURES = [
   {
+    icon: <Sparkles size={26} />,
+    title: 'Vibe Matching',
+    desc: 'Every trip, group, and profile is tagged with a travel personality. Culture seekers find culture seekers. Spiritual explorers find monastery routes. You never settle.',
+    accent: '#FF385C',
+  },
+  {
+    icon: <Users size={26} />,
+    title: 'Tribe Discovery',
+    desc: 'Browse upcoming group trips filtered by travel personality. Join adventures planned by like-minded travelers — or publish your plan and attract your ideal co-travelers.',
+    accent: '#FF385C',
+  },
+  {
     icon: <Bot size={26} />,
     title: 'Agentic AI Planner',
-    desc: 'Navia autonomously builds your full trip — flights, hotels, day plans — from a single prompt. No other platform does this.',
+    desc: 'Navia builds your full trip end-to-end from a single prompt — then opens the plan so your entire group can co-plan live on one shared board.',
     accent: '#FF385C',
   },
   {
     icon: <Shield size={26} />,
     title: 'Live Risk Monitor',
-    desc: 'Real-time travel advisories, severe weather, currency shifts and breaking news auto-mapped to each destination you visit.',
+    desc: 'Real-time travel advisories, severe weather, currency shifts and breaking news auto-mapped to every destination in your active plan.',
     accent: '#e53935',
   },
   {
     icon: <Brain size={26} />,
     title: 'AI Trip Assistant',
-    desc: 'Get personalised suggestions powered by AI. Discover hidden gems and build smarter routes automatically.',
+    desc: 'Get personalised suggestions powered by AI — tailored to your travel vibe. Discover hidden gems, local experiences, and smarter routes.',
     accent: '#007ddc',
   },
   {
     icon: <Map size={26} />,
     title: 'Interactive Maps',
-    desc: 'Visualise your entire journey on a live map. Pin destinations, draw routes, and explore at a glance.',
+    desc: 'Visualise your entire journey on a live map. Pin destinations, draw routes, and explore at a glance — solo or with your group.',
     accent: '#008bbd',
   },
   {
     icon: <DollarSign size={26} />,
-    title: 'Budget Tracker',
-    desc: 'Track expenses across categories and currencies. Stay on budget without sacrificing the experience.',
+    title: 'Group Budget Tracker',
+    desc: 'Track shared and individual expenses across categories and currencies. Everyone stays on budget — no spreadsheets, no confusion.',
     accent: '#00a8d4',
   },
   {
     icon: <Compass size={26} />,
     title: 'Day-by-Day Planner',
-    desc: 'Organise every day with timed activities, notes, and flexible drag-and-drop reordering.',
+    desc: 'Organise every day with timed activities, notes, and drag-and-drop reordering. Your group sees every update in real time.',
     accent: '#29587a',
-  },
-  {
-    icon: <Globe size={26} />,
-    title: 'Destination Discovery',
-    desc: 'Browse curated destination cards with landmark guides and up-to-date local insights.',
-    accent: '#007ddc',
-  },
-  {
-    icon: <Users size={26} />,
-    title: 'Community & Sharing',
-    desc: 'Share itineraries with your travel crew and let others discover your best trips.',
-    accent: '#008bbd',
   },
 ];
 
 const STEPS = [
   {
     num: '01',
-    title: 'Create your trip',
-    desc: 'Give your adventure a name, pick your destination, and set your dates. Tripician scaffolds everything instantly.',
-    tag: 'Free forever',
+    title: 'Set your travel vibe',
+    desc: 'Define your travel personality — culture seeker, adventure junkie, spiritual explorer, luxury traveler. Your vibe shapes every trip and person you discover.',
+    tag: 'Your identity',
   },
   {
     num: '02',
-    title: 'Build your itinerary',
-    desc: 'Add day-by-day activities, stops, and notes. Let our AI fill gaps and surface the best local experiences.',
+    title: 'Build your trip plan',
+    desc: 'Use the AI-powered collaborative planning board. Build your itinerary day by day, then publish your plan to attract the right co-travelers.',
     tag: 'AI-powered',
   },
   {
     num: '03',
-    title: 'Travel & track',
-    desc: 'Access your plan on any device. Log expenses, capture moments, and share your journey with the world.',
-    tag: 'Cross-device',
+    title: 'Find your tribe',
+    desc: 'Browse upcoming trips and groups that match your vibe. Join a plan from like-minded travelers or invite them to yours — no WhatsApp chaos required.',
+    tag: 'Community',
+  },
+  {
+    num: '04',
+    title: 'Travel together',
+    desc: 'Hit the road with people who actually get you. Share memories, build real travel reputation, and grow a history no other platform can replicate.',
+    tag: 'Real trips',
   },
 ];
 
@@ -104,24 +110,28 @@ const SHOWCASE = [
     title: 'Mediterranean Coast',
     days: '10 days',
     places: 8,
+    query: 'Mediterranean coast Greece',
     gradient: 'linear-gradient(145deg, #005f8a 0%, #00aad4 100%)',
   },
   {
     title: 'Southeast Asia Loop',
     days: '21 days',
     places: 12,
+    query: 'Southeast Asia Bali temple',
     gradient: 'linear-gradient(145deg, #0d5c38 0%, #1ea865 100%)',
   },
   {
     title: 'Patagonia Expedition',
     days: '14 days',
     places: 6,
+    query: 'Patagonia mountains landscape',
     gradient: 'linear-gradient(145deg, #1e2e5c 0%, #4a6bb5 100%)',
   },
   {
     title: 'Japan in Autumn',
     days: '12 days',
     places: 9,
+    query: 'Japan autumn Kyoto',
     gradient: 'linear-gradient(145deg, #6e1428 0%, #d44460 100%)',
   },
 ];
@@ -129,23 +139,23 @@ const SHOWCASE = [
 const REVIEWS = [
   {
     quote:
-      'Tripician made planning our honeymoon to Italy effortless. The day-by-day planner is absolutely gorgeous.',
-    name: 'Sarah M.',
-    place: 'Traveled to Italy',
+      'I always traveled alone because nobody I knew shared my travel style. Tripician matched me with three people planning the exact same Japan trip. We went together last spring — best decision I ever made.',
+    name: 'Priya K.',
+    place: 'Found her tribe · Japan 🗾',
     rating: 5,
   },
   {
     quote:
-      'Finally a travel tool that gets how spontaneous trips work. The AI suggestions are consistently spot-on.',
+      'Five people across three countries, zero confusion, no duplicate bookings. The vibe matching meant we all had the same expectations before we even arrived. This is what group travel should feel like.',
     name: 'James L.',
-    place: 'Backpacked SE Asia',
+    place: 'Group trip · SE Asia 🌏',
     rating: 5,
   },
   {
     quote:
-      'The expense tracker saved us on our 3-week road trip. We always knew exactly where we stood financially.',
-    name: 'Emma & Tom',
-    place: 'Road-tripped across USA',
+      'Matched with a culture-seeker group for Istanbul. Same vibe, same pace, same priorities. Never once felt like I was compromising. Best trip I have ever taken.',
+    name: 'Sofia R.',
+    place: 'Culture trip · Istanbul 🕌',
     rating: 5,
   },
 ];
@@ -238,11 +248,120 @@ function AgentDemoWidget() {
   );
 }
 
+/* ─── FAQ ────────────────────────────────────────────────────────── */
+const LP_FAQS = [
+  {
+    q: 'What exactly is Tripician?',
+    a: "Tripician is a travel planning and community platform. You can build detailed trip itineraries, track expenses, manage packing lists, monitor travel risks, and connect with travellers who share your travel vibe. We are not a travel agency — we don't book flights or accommodation.",
+  },
+  {
+    q: 'Is Tripician free?',
+    a: 'Yes. Tripician is completely free to use. We may introduce optional premium features in the future, but core trip planning and community features will always remain free.',
+  },
+  {
+    q: 'What is "vibe matching"?',
+    a: 'Every traveller and trip on Tripician is tagged with a travel personality — Adventure, Culture, Luxury, Spiritual, Urban, Scenic, or Romantic. Vibe matching surfaces trips, groups, and community members whose style fits yours, so you stop scrolling and start connecting.',
+  },
+  {
+    q: 'Can I plan a trip with friends or family?',
+    a: 'Absolutely. You can collaborate on any trip — invite co-planners, build the itinerary together, split expenses, and share notes in real time.',
+  },
+  {
+    q: 'How does the Risk Monitor work?',
+    a: "Our Risk Monitor aggregates publicly available safety and travel advisories for destination countries. This is for general awareness only — always verify with your government's official travel advisory before making decisions.",
+  },
+  {
+    q: 'Is my data safe?',
+    a: 'Yes. Authentication is handled by Auth0, an industry-leading identity provider. We never sell your personal data to any third party. Read our Privacy Policy for full details.',
+  },
+  {
+    q: 'How do I get support?',
+    a: 'Email us at support@tripician.com or visit our Help page for FAQs and answers to common questions.',
+  },
+];
+
+function LandingFAQ() {
+  const [open, setOpen] = useState<number | null>(null);
+  return (
+    <section style={{ background: 'var(--lp-dark)', padding: '80px 0' }}>
+      <div style={{ maxWidth: 'var(--lp-max-w)', margin: '0 auto', padding: '0 24px' }}>
+        {/* Header */}
+        <div style={{ textAlign: 'center', marginBottom: 52 }}>
+          <div style={{ display: 'inline-flex', alignItems: 'center', gap: 8, background: 'rgba(255,56,92,0.08)', border: '1px solid rgba(255,56,92,0.18)', borderRadius: 999, padding: '5px 14px', marginBottom: 18 }}>
+            <span style={{ fontSize: 11, fontWeight: 700, color: 'var(--lp-primary)', letterSpacing: '0.1em', textTransform: 'uppercase' }}>FAQ</span>
+          </div>
+          <h2 style={{ fontSize: 'clamp(1.8rem, 3.5vw, 2.6rem)', fontWeight: 800, color: 'var(--lp-text)', letterSpacing: '-0.03em', lineHeight: 1.15, margin: '0 0 14px' }}>
+            Questions? We've got answers.
+          </h2>
+          <p style={{ fontSize: '1.05rem', color: 'var(--lp-text-muted)', maxWidth: 500, margin: '0 auto' }}>
+            Can&apos;t find what you&apos;re looking for?{' '}
+            <a href="/get-help" style={{ color: 'var(--lp-primary)', fontWeight: 600, textDecoration: 'none' }}>Visit our Help Centre →</a>
+          </p>
+        </div>
+
+        {/* Accordion */}
+        <div style={{ maxWidth: 760, margin: '0 auto', display: 'flex', flexDirection: 'column', gap: 10 }}>
+          {LP_FAQS.map((faq, i) => (
+            <div
+              key={i}
+              style={{
+                background: 'var(--lp-dark-card)',
+                border: `1px solid ${open === i ? 'rgba(255,56,92,0.25)' : 'var(--lp-border)'}`,
+                borderRadius: 14,
+                overflow: 'hidden',
+                boxShadow: open === i ? '0 4px 24px rgba(255,56,92,0.08)' : '0 1px 6px rgba(0,0,0,0.04)',
+                transition: 'border-color 0.2s, box-shadow 0.2s',
+              }}
+            >
+              <button
+                onClick={() => setOpen(open === i ? null : i)}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+                  padding: '18px 22px', background: 'transparent', border: 'none', cursor: 'pointer',
+                  textAlign: 'left', gap: 12,
+                }}
+              >
+                <span style={{ fontWeight: 600, fontSize: '0.97rem', color: 'var(--lp-text)', lineHeight: 1.4 }}>{faq.q}</span>
+                <ChevronDown
+                  size={18}
+                  style={{
+                    flexShrink: 0, color: 'var(--lp-primary)',
+                    transform: open === i ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.25s ease',
+                  }}
+                />
+              </button>
+              {open === i && (
+                <div style={{ padding: '0 22px 18px', borderTop: '1px solid var(--lp-border)' }}>
+                  <p style={{ margin: '14px 0 0', fontSize: '0.92rem', color: 'var(--lp-text-muted)', lineHeight: 1.8 }}>
+                    {faq.a}
+                  </p>
+                </div>
+              )}
+            </div>
+          ))}
+        </div>
+      </div>
+    </section>
+  );
+}
+
 /* ─── COMPONENT ─────────────────────────────────────────────────── */
 export default function LandingPage() {
   const navigate = useNavigate();
   const heroImageUrl = import.meta.env.VITE_LANDING_HERO_IMAGE_URL as string | undefined;
   const logoFullWhiteUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_2_URL as string | undefined;
+
+  const [showcaseImages, setShowcaseImages] = useState<Record<number, string>>({});
+  useEffect(() => {
+    Promise.all(
+      SHOWCASE.map(async (card, i) => ({ i, url: await fetchUnsplashImage(card.query) }))
+    ).then(results => {
+      const imgs: Record<number, string> = {};
+      results.forEach(({ i, url }) => { if (url) imgs[i] = url; });
+      setShowcaseImages(imgs);
+    });
+  }, []);
 
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
@@ -475,18 +594,18 @@ export default function LandingPage() {
 
         <div className="lp-hero__content">
           <span className="lp-hero__eyebrow">
-            <MapPin size={13} /> AI-Powered Travel Planning
+            <Users size={13} /> Vibe-Based Travel Community
           </span>
 
           <h1 className="lp-hero__title">
-            {['Go', 'Where', 'You', 'Feel', 'Alive.'].map((word, i) => (
+            {['Stop', 'Traveling', 'Alone.'].map((word, i) => (
               <span key={i} className="word">{word}</span>
             ))}
           </h1>
 
           <p className="lp-hero__subtitle">
-            Craft journeys that feel right, discover hidden places,<br />
-            and travel with people who match your vibe.
+            Define your travel personality. Get matched with like-minded adventurers.<br />
+            Co-plan and travel with people who actually travel like you do.
           </p>
 
           <div className="lp-hero__cta-group">
@@ -512,7 +631,6 @@ export default function LandingPage() {
       {/* ── DESTINATION TICKER ────────────────────────────────── */}
       <div className="lp-ticker">
         <div className="lp-ticker__track">
-          {/* Duplicate for seamless loop */}
           {[...TICKER_ITEMS, ...TICKER_ITEMS].map((dest, i) => (
             <span key={i} className="lp-ticker__item">{dest}</span>
           ))}
@@ -574,9 +692,9 @@ export default function LandingPage() {
       <section className="lp-features" id="features">
         <div className="lp-features__header">
           <span className="lp-section-eyebrow">Everything you need</span>
-          <h2 className="lp-section-title">Built for every kind of traveler</h2>
+          <h2 className="lp-section-title">Built around your travel personality</h2>
           <p className="lp-section-sub">
-            From weekend escapes to round-the-world adventures — Tripician adapts to your journey.
+            From solo explorers to group adventures — every feature is designed around who you are as a traveler, not just where you're going.
           </p>
         </div>
         <div className="lp-features__grid">
@@ -668,18 +786,19 @@ export default function LandingPage() {
             </div>
             <span className="lp-bento-card__deco-icon" aria-hidden="true"><Bot size={100} /></span>
           </div>
-          {/* Collab - blue, span 3 */}
+          {/* Vibe Matching - blue/accent, span 3 */}
           <div className="lp-bento-card lp-bento-card--collab">
-            <span className="lp-bento-card__tag">Social</span>
-            <h3>Real-time Co-Planning</h3>
-            <p>Multiple travelers plan simultaneously {"\u2014"} like Google Docs, purpose-built for adventure. Everyone sees updates live.</p>
+            <span className="lp-bento-card__tag" style={{ background: 'rgba(255,56,92,0.18)', color: '#FF385C', borderColor: 'rgba(255,56,92,0.35)' }}>Signature Feature</span>
+            <h3>Vibe Matching</h3>
+            <p>Every plan, group, and profile is tagged with a travel personality. Culture seekers find culture seekers — you never compromise your experience again.</p>
             <div className="lp-bento-collab-row">
-              <div className="lp-bento-avatars">
-                <span>AJ</span><span>MK</span><span>TS</span>
+              <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
+                <span style={{ fontSize: 11, padding: '4px 11px', borderRadius: 20, background: '#FF385C', color: '#fff', fontWeight: 700 }}>🎭 Culture</span>
+                <span style={{ fontSize: 11, padding: '4px 11px', borderRadius: 20, background: '#8B5CF6', color: '#fff', fontWeight: 700 }}>🧘 Spiritual</span>
+                <span style={{ fontSize: 11, padding: '4px 11px', borderRadius: 20, background: '#10B981', color: '#fff', fontWeight: 700 }}>🏔️ Adventure</span>
               </div>
-              <span className="lp-bento-live-badge">{"\u25cf"} Live</span>
             </div>
-            <span className="lp-bento-card__deco-icon" aria-hidden="true"><Users size={100} /></span>
+            <span className="lp-bento-card__deco-icon" aria-hidden="true"><Sparkles size={100} /></span>
           </div>
           {/* Canvas - orange, span 6 */}
           <div className="lp-bento-card lp-bento-card--canvas">
@@ -714,7 +833,7 @@ export default function LandingPage() {
       <section className="lp-steps" id="how-it-works">
         <div className="lp-steps__header">
           <span className="lp-section-eyebrow">How it works</span>
-          <h2 className="lp-section-title">Start your trip in 3 steps</h2>
+          <h2 className="lp-section-title">Go from solo traveler<br />to travel tribe in 4 steps</h2>
         </div>
         <div className="lp-steps__list">
           <div className="lp-steps__line" />
@@ -740,7 +859,10 @@ export default function LandingPage() {
         <div className="lp-showcase__grid">
           {SHOWCASE.map((card, i) => (
             <div key={i} className="lp-showcase__card">
-              <div className="lp-showcase__card-bg" style={{ background: card.gradient }} />
+              {showcaseImages[i]
+                ? <img src={showcaseImages[i]} alt={card.title} className="lp-showcase__card-bg" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
+                : <div className="lp-showcase__card-bg" style={{ background: card.gradient }} />
+              }
               <div className="lp-showcase__card-overlay" />
               <div className="lp-showcase__card-content">
                 <div className="lp-showcase__card-meta">
@@ -822,20 +944,20 @@ export default function LandingPage() {
       {/* ── CTA ───────────────────────────────────────────────── */}
       <section className="lp-cta">
         <div className="lp-cta__content">
-          <span className="lp-section-eyebrow lp-section-eyebrow--light">Ready to explore?</span>
+          <span className="lp-section-eyebrow lp-section-eyebrow--light">Your tribe is out there</span>
           <h2 className="lp-cta__title">
-            Your next adventure<br /><em>starts here.</em>
+            Stop traveling alone.<br /><em>Start traveling together.</em>
           </h2>
           <p className="lp-cta__sub">
-            Join thousands of travelers who plan smarter with Tripician.
-            Free to start, powerful to grow.
+            Join Tripician free. Define your vibe, get matched with like-minded adventurers,
+            and build your next adventure — with people who actually travel like you do.
           </p>
           <div className="lp-cta__actions">
             <button className="lp-btn lp-btn--cta-primary" onClick={() => navigate('/signup')}>
-              Create Free Account <ArrowRight size={17} />
+              Find Your Travel Tribe <ArrowRight size={17} />
             </button>
             <div className="lp-cta__checks">
-              {['No credit card required', 'Unlimited trips', 'Cancel anytime'].map((item, i) => (
+              {['No credit card required', 'Free forever', 'Vibe-matched from day one'].map((item, i) => (
                 <span key={i}><Check size={13} /> {item}</span>
               ))}
             </div>
@@ -847,6 +969,9 @@ export default function LandingPage() {
         <KalaGeometric size={480} color="#FF385C" opacity={0.06} style={{ position: 'absolute', bottom: -130, right: -110 }} />
         </section>
 
+      {/* ── FAQ ───────────────────────────────────────────────── */}
+      <LandingFAQ />
+
       {/* ── FOOTER ────────────────────────────────────────────── */}
 
       <footer className="lp-footer">
@@ -857,7 +982,7 @@ export default function LandingPage() {
                 ? <img src={logoFullWhiteUrl} alt="Tripician" className="lp-logo-img lp-logo-img--footer" />
                 : (<><Plane size={18} /><span>Tripician</span></>)}
             </div>
-            <p>Plan smarter. Travel further.<br />Your AI-powered journey starts here.</p>
+            <p>Find your tribe. Travel your way.<br />The community no other platform can build.</p>
           </div>
           <div className="lp-footer__links">
             <div className="lp-footer__col">

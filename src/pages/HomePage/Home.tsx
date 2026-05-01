@@ -26,13 +26,17 @@ import iconCity from '../../assets/icons/city.png';
 import iconForest from '../../assets/icons/forest.png';
 import iconMountains from '../../assets/icons/mountains.png';
 import gsap from 'gsap';
+import blogsData from '../../assets/blogs/blogs.json';
 
-const FEATURED_DESTINATIONS_BASE = [
-  { id: 1, title: 'Santorini, Greece', query: 'Santorini Greece', description: 'Experience the stunning sunsets and white-washed buildings of this iconic Greek island.', trending: true, badge: '🔥 Hot' },
-  { id: 2, title: 'Kyoto, Japan', query: 'Kyoto Japan', description: "Discover the ancient temples and traditional culture of Japan's former capital.", trending: true, badge: '🗿 Explore' },
-  { id: 3, title: 'Paris, France', query: 'Paris France', description: 'Explore the city of lights and its romantic charm.', trending: true, badge: '❤️ Romantic' },
-  { id: 4, title: 'Dubai UAE', query: 'Dubai UAE', description: 'Experience luxury and modern architecture in the desert.', trending: true, badge: '🏙️ Modern' },
-];
+const FEATURED_DESTINATIONS_BASE = blogsData.slice(0, 4).map(b => ({
+  id: b.id,
+  title: `${b.city}, ${b.country}`,
+  query: `${b.city} ${b.country}`,
+  description: b.description,
+  trending: true,
+  badge: b.badge,
+  slug: b.slug,
+}));
 
 // Matches the palette used in TripCard's MemberAvatar for visual consistency
 const AVATAR_COLORS = [
@@ -121,11 +125,14 @@ const Home: React.FC = () => {
           const trips = response.data || [];
           setPublicTrips(trips);
           // Kick off Unsplash fetches for trips without a user-uploaded photo
-          const needsImage = trips.filter((t: any) => !(typeof t.photoUrl === 'string' && t.photoUrl.trim()) && Array.isArray(t.countries) && t.countries[0]);
+          const needsImage = trips.filter((t: any) => !(typeof t.photoUrl === 'string' && t.photoUrl.trim()));
           if (needsImage.length > 0) {
             Promise.all(
               needsImage.map(async (t: any) => {
-                const url = await fetchUnsplashImage(t.countries[0]);
+                // Use first country, then trip name as search query
+                const query = (Array.isArray(t.countries) && t.countries[0])
+                  || t.name || t.title || 'travel destination';
+                const url = await fetchUnsplashImage(query);
                 return { id: t.id || t.Id, url };
               })
             ).then((results) => {
@@ -408,6 +415,7 @@ const Home: React.FC = () => {
 
   const [, setCurrentStatusMessages] = useState(() => statusMessages[0] ?? { title: '', subtitle: '' });
   const [currentMotivation, setCurrentMotivation] = useState(() => ({ title: motivationalQuotes[0] }));
+  const [selectedVibe, setSelectedVibe] = useState<string | null>(null);
 
   useEffect(() => {
     if (!statusMessages.length) return;
@@ -450,114 +458,759 @@ const Home: React.FC = () => {
       {/* HERO SECTION */}
       <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 2, md: 3 }, pb: 2, position: 'relative', zIndex: 2 }}>
 
-      {/* ── No upcoming trip: premium "Plan Your Next Journey" banner ── */}
+      {/* ── No upcoming trip: full discovery experience ── */}
       {userTripsLoading ? (
         <Box sx={{ height: { xs: 220, md: 260 }, borderRadius: '20px' }} />
       ) : !nextUpcomingTrip && (
-        <Box ref={heroRef} className="gs-hero" style={{ opacity: 0, transform: 'translateY(56px)' }} sx={{
-          position: 'relative',
-          borderRadius: '20px',
-          overflow: 'hidden',
-          minHeight: { xs: 220, md: 260 },
-          display: 'flex',
-          alignItems: 'stretch',
-          background: 'linear-gradient(135deg, #0D0D14 0%, #1A0A14 50%, #0D0D14 100%)',
-          boxShadow: '0 2px 4px rgba(0,0,0,0.06), 0 12px 32px rgba(0,0,0,0.18), 0 32px 72px rgba(0,0,0,0.22)',
-          border: '1px solid rgba(255,255,255,0.06)',
+        <Box sx={{ 
+          flex: 1, 
+          display: 'flex', 
+          flexDirection: 'row', 
+          position: 'relative', 
+          pb: 6, 
+          gap: 3, 
+          zIndex: 2,
+          mt: 1,
         }}>
-          {/* Rose glow blob */}
-          <Box sx={{
-            position: 'absolute', top: '-30%', left: '-8%',
-            width: '55%', height: '200%',
-            background: 'radial-gradient(ellipse at center, rgba(255,56,92,0.18) 0%, transparent 65%)',
-            pointerEvents: 'none',
-          }} />
-          {/* Right subtle glow */}
-          <Box sx={{
-            position: 'absolute', top: '20%', right: '-5%',
-            width: '45%', height: '120%',
-            background: 'radial-gradient(ellipse at center, rgba(195,30,100,0.12) 0%, transparent 70%)',
-            pointerEvents: 'none',
-          }} />
-
-          {/* Left accent stripe */}
-          <Box sx={{
-            width: 7, flexShrink: 0,
-            background: 'linear-gradient(180deg, #FF6B6B 0%, #FF385C 35%, #C2185B 100%)',
-          }} />
-
-          {/* Content */}
-          <Box sx={{
-            flex: 1,
-            p: { xs: '28px 24px', sm: '36px 44px', md: '40px 52px' },
-            display: 'flex', flexDirection: 'column', justifyContent: 'center',
-            position: 'relative', zIndex: 1,
+          {/* LEFT CONTENT */}
+          <Box sx={{ 
+            flexGrow: 1, 
+            width: '100%',
+            overflow: 'auto' 
           }}>
-            {/* Label */}
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-              <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: '#FF385C', boxShadow: '0 0 8px rgba(255,56,92,0.7)' }} />
-              <Typography sx={{
-                fontSize: '0.52rem', fontWeight: 800, letterSpacing: '0.25em',
-                color: 'rgba(255,56,92,0.85)', textTransform: 'uppercase',
-                fontFamily: "'Inter', sans-serif",
-              }}>No Upcoming Trip</Typography>
+            {/* ── VIBE HERO ────────────────────────────────────────── */}
+            <Box sx={{ mb: 4, p: { xs: '28px 24px', md: '36px 40px' }, borderRadius: '20px', position: 'relative', overflow: 'hidden',
+              background: 'linear-gradient(135deg, #0D0D14 0%, #130A1A 55%, #0D0D14 100%)',
+              border: '1px solid rgba(255,255,255,0.07)',
+              boxShadow: '0 2px 4px rgba(0,0,0,0.06), 0 12px 32px rgba(0,0,0,0.18)',
+            }}>
+              {/* Ambient glow */}
+              <Box sx={{ position: 'absolute', top: '-40%', left: '-5%', width: '50%', height: '200%', background: 'radial-gradient(ellipse, rgba(255,56,92,0.14) 0%, transparent 65%)', pointerEvents: 'none' }} />
+              <Box sx={{ position: 'absolute', bottom: '-30%', right: '-5%', width: '45%', height: '160%', background: 'radial-gradient(ellipse, rgba(139,92,246,0.10) 0%, transparent 70%)', pointerEvents: 'none' }} />
+
+              <Box sx={{ position: 'relative', zIndex: 1 }}>
+                {/* Eyebrow */}
+                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 1.5, py: 0.5, borderRadius: '50px', background: 'rgba(255,56,92,0.14)', border: '1px solid rgba(255,56,92,0.28)', mb: 2 }}>
+                  <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: '#FF385C', boxShadow: '0 0 8px rgba(255,56,92,0.7)' }} />
+                  <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: 'rgba(255,56,92,0.9)', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'Inter',sans-serif" }}>
+                    Find your travel tribe
+                  </Typography>
+                </Box>
+
+                {/* Headline */}
+                <Typography sx={{ fontFamily: "'Playfair Display', serif", fontSize: { xs: '1.65rem', md: '2.2rem' }, fontWeight: 800, color: '#fff', lineHeight: 1.15, letterSpacing: '-0.02em', mb: 0.75 }}>
+                  Travel with people<br />who <Box component="em" sx={{ color: '#FF385C', fontStyle: 'italic' }}>get you.</Box>
+                </Typography>
+                <Typography sx={{ fontSize: '0.9rem', color: 'rgba(255,255,255,0.45)', fontFamily: "'Inter',sans-serif", mb: 3, lineHeight: 1.6, maxWidth: 480 }}>
+                  Plan trips around your vibe. Find your crew. Go somewhere that actually feels like you.
+                </Typography>
+
+                {/* Vibe selector */}
+                <Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: 'rgba(255,255,255,0.35)', letterSpacing: '0.06em', textTransform: 'uppercase', fontFamily: "'Inter',sans-serif", mb: 1.25 }}>
+                  What kind of traveler are you?
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 3.5 }}>
+                  {[
+                    { label: 'Culture seeker',    emoji: '🎭' },
+                    { label: 'Party lover',        emoji: '🎉' },
+                    { label: 'Spiritual explorer', emoji: '🧘' },
+                    { label: 'Adventure junkie',   emoji: '🏔️' },
+                    { label: 'Slow traveler',      emoji: '🌴' },
+                    { label: 'Urban explorer',     emoji: '🏙️' },
+                  ].map(({ label, emoji }) => {
+                    const active = selectedVibe === label;
+                    return (
+                      <Box
+                        key={label}
+                        component="button"
+                        onClick={() => setSelectedVibe(prev => prev === label ? null : label)}
+                        sx={{
+                          px: 1.8, py: 0.8, borderRadius: '50px', cursor: 'pointer',
+                          fontFamily: "'Inter',sans-serif", fontSize: '0.8rem', fontWeight: 600,
+                          border: active ? '1.5px solid #FF385C' : '1.5px solid rgba(255,255,255,0.14)',
+                          background: active ? 'rgba(255,56,92,0.18)' : 'rgba(255,255,255,0.05)',
+                          color: active ? '#FF385C' : 'rgba(255,255,255,0.65)',
+                          transition: 'all 0.18s ease',
+                          outline: 'none',
+                          '&:hover': { borderColor: active ? '#FF385C' : 'rgba(255,255,255,0.35)', color: active ? '#FF385C' : '#fff', background: active ? 'rgba(255,56,92,0.22)' : 'rgba(255,255,255,0.09)' },
+                        }}
+                      >
+                        {emoji} {label}
+                      </Box>
+                    );
+                  })}
+                </Box>
+
+                {/* CTAs */}
+                <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                  <Box component="button" onClick={() => navigate('/dashboard')}
+                    sx={{ px: 2.8, py: 1.1, borderRadius: '50px', cursor: 'pointer', fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.86rem', border: 'none', background: 'linear-gradient(135deg,#FF385C,#D91A50)', color: '#fff', boxShadow: '0 4px 18px rgba(255,56,92,0.38)', transition: 'all 0.2s', outline: 'none', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 8px 28px rgba(255,56,92,0.52)' } }}>
+                    Start planning free
+                  </Box>
+                  <Box component="button" onClick={() => navigate('/community')}
+                    sx={{ px: 2.8, py: 1.1, borderRadius: '50px', cursor: 'pointer', fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: '0.86rem', border: '1.5px solid rgba(255,255,255,0.18)', background: 'transparent', color: 'rgba(255,255,255,0.7)', transition: 'all 0.2s', outline: 'none', '&:hover': { borderColor: 'rgba(255,255,255,0.4)', color: '#fff', background: 'rgba(255,255,255,0.06)' } }}>
+                    Explore trips
+                  </Box>
+                </Box>
+              </Box>
             </Box>
 
-            {/* Headline */}
-            <Typography sx={{
-              fontFamily: "'Playfair Display', serif",
-              fontSize: { xs: '1.5rem', md: '2.1rem' },
-              fontWeight: 800, fontStyle: 'italic',
-              color: '#FFFFFF',
-              lineHeight: 1.15, letterSpacing: '-0.5px',
-              mb: 1.2,
-            }}>
-              Where will you go next?
-            </Typography>
+            {/* ── HAPPENING RIGHT NOW ───────────────────────────── */}
+            {publicTrips.length > 0 && (
+              <Box sx={{ mb: 5 }}>
+                {/* Header */}
+                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                    <Box sx={{ width: 4, height: 22, borderRadius: 2, background: 'linear-gradient(180deg,#FF385C,#D91A50)' }} />
+                    <Typography fontWeight={800} sx={{ fontFamily: "'Inter',sans-serif", letterSpacing: '-0.03em', fontSize: { xs: '1.1rem', md: '1.3rem' }, color: 'text.primary' }}>
+                      Happening right now
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 1.5, py: 0.5, borderRadius: '50px', background: 'rgba(255,56,92,0.10)', border: '1px solid rgba(255,56,92,0.22)' }}>
+                    <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: '#FF385C', boxShadow: '0 0 6px rgba(255,56,92,0.7)' }} />
+                    <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#FF385C', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'Inter',sans-serif" }}>Live</Typography>
+                  </Box>
+                </Box>
 
-            {/* Sub */}
-            <Typography sx={{
-              fontSize: { xs: '0.88rem', md: '0.95rem' },
-              color: 'rgba(255,255,255,0.45)',
-              fontFamily: "'Inter', sans-serif",
-              mb: 3.5, maxWidth: 460, lineHeight: 1.65,
-            }}>
-              Your boarding pass is waiting. Plan a trip now and we'll fill in the details — dates, destinations, itineraries and more.
-            </Typography>
+                {/* Cards grid */}
+                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4,1fr)' }, gap: 2 }}>
+                  {publicTrips.slice(0, 4).map((trip: any, i: number) => {
+                    const tripId = trip.id || trip.Id;
+                    const dest = (Array.isArray(trip.countries) && trip.countries[0]) || trip.name || trip.title || 'Unknown';
+                    const tripName = trip.name || trip.title || dest;
+                    const days = trip.durationDays || trip.duration ||
+                      (trip.startDate && trip.endDate ? Math.max(1, Math.round((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / 86400000)) : null);
+                    const rawMembers: any[] = trip.members || trip.invitedUsers || [];
+                    const maxSpots = trip.maxMembers || trip.maxParticipants || 8;
+                    const spotsLeft = Math.max(0, maxSpots - rawMembers.length);
+                    const vibeLabel = trip.travelPersonality || trip.vibe || trip.travelStyle || null;
+                    const coverImg = (typeof trip.photoUrl === 'string' && trip.photoUrl.trim())
+                      ? trip.photoUrl
+                      : (tripId && publicTripImages[tripId]) || '';
+                    const ACOLORS = ['#FF385C','#8B5CF6','#10B981','#0EA5E9','#F59E0B','#EC4899'];
+                    const aColor = (s: string) => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return ACOLORS[h % ACOLORS.length]; };
+                    // fun fallback gradients when no image yet
+                    const FALLBACKS = [
+                      'linear-gradient(145deg,#FF385C 0%,#7C2D7C 100%)',
+                      'linear-gradient(145deg,#0EA5E9 0%,#6366F1 100%)',
+                      'linear-gradient(145deg,#10B981 0%,#0EA5E9 100%)',
+                      'linear-gradient(145deg,#F59E0B 0%,#EF4444 100%)',
+                    ];
+                    return (
+                      <Box
+                        key={tripId || i}
+                        onClick={() => navigate(`/trip/${tripId}`)}
+                        sx={{
+                          position: 'relative',
+                          borderRadius: '18px',
+                          overflow: 'hidden',
+                          cursor: 'pointer',
+                          height: { xs: 200, md: 240 },
+                          boxShadow: '0 4px 24px rgba(0,0,0,0.22)',
+                          transition: 'transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease',
+                          '&:hover': {
+                            transform: 'translateY(-6px) scale(1.02)',
+                            boxShadow: '0 16px 48px rgba(0,0,0,0.35)',
+                          },
+                          '&:hover .hn-img': { transform: 'scale(1.08)' },
+                          '&:hover .hn-join': { opacity: 1, transform: 'translateY(0)' },
+                        }}
+                      >
+                        {/* Background image or gradient */}
+                        {coverImg ? (
+                          <Box
+                            className="hn-img"
+                            component="img"
+                            src={coverImg}
+                            alt={dest}
+                            sx={{
+                              position: 'absolute', inset: 0,
+                              width: '100%', height: '100%',
+                              objectFit: 'cover',
+                              transition: 'transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94)',
+                            }}
+                          />
+                        ) : (
+                          <Box
+                            className="hn-img"
+                            sx={{
+                              position: 'absolute', inset: 0,
+                              background: FALLBACKS[i % FALLBACKS.length],
+                              transition: 'transform 0.5s ease',
+                            }}
+                          />
+                        )}
+
+                        {/* Dark gradient overlay */}
+                        <Box sx={{
+                          position: 'absolute', inset: 0,
+                          background: 'linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.28) 50%, rgba(0,0,0,0.08) 100%)',
+                        }} />
+
+                        {/* LIVE pulse dot top-left */}
+                        <Box sx={{
+                          position: 'absolute', top: 12, left: 12,
+                          display: 'flex', alignItems: 'center', gap: 0.5,
+                          px: 1, py: 0.4,
+                          borderRadius: '50px',
+                          backdropFilter: 'blur(10px)',
+                          background: 'rgba(0,0,0,0.45)',
+                          border: '1px solid rgba(255,255,255,0.15)',
+                        }}>
+                          <Box sx={{
+                            width: 6, height: 6, borderRadius: '50%', background: '#FF385C',
+                            boxShadow: '0 0 0 0 rgba(255,56,92,0.7)',
+                            animation: 'livePulse 1.5s infinite',
+                            '@keyframes livePulse': {
+                              '0%': { boxShadow: '0 0 0 0 rgba(255,56,92,0.7)' },
+                              '70%': { boxShadow: '0 0 0 6px rgba(255,56,92,0)' },
+                              '100%': { boxShadow: '0 0 0 0 rgba(255,56,92,0)' },
+                            },
+                          }} />
+                          <Typography sx={{ fontSize: '0.58rem', fontWeight: 800, color: '#fff', letterSpacing: '0.1em', fontFamily: "'Inter',sans-serif" }}>LIVE</Typography>
+                        </Box>
+
+                        {/* Spots badge top-right */}
+                        <Box sx={{
+                          position: 'absolute', top: 12, right: 12,
+                          px: 1, py: 0.4, borderRadius: '50px',
+                          backdropFilter: 'blur(10px)',
+                          background: spotsLeft === 0 ? 'rgba(255,56,92,0.85)' : 'rgba(0,0,0,0.45)',
+                          border: `1px solid ${spotsLeft === 0 ? 'rgba(255,56,92,0.6)' : 'rgba(255,255,255,0.15)'}`,
+                        }}>
+                          <Typography sx={{ fontSize: '0.58rem', fontWeight: 700, color: '#fff', fontFamily: "'Inter',sans-serif", letterSpacing: '0.04em' }}>
+                            {spotsLeft === 0 ? '🔥 Full' : `${spotsLeft} spot${spotsLeft !== 1 ? 's' : ''} left`}
+                          </Typography>
+                        </Box>
+
+                        {/* Hover CTA */}
+                        <Box
+                          className="hn-join"
+                          sx={{
+                            position: 'absolute', top: '50%', left: '50%',
+                            transform: 'translate(-50%, calc(-50% + 8px))',
+                            opacity: 0,
+                            transition: 'opacity 0.2s ease, transform 0.2s ease',
+                            px: 2.2, py: 0.8, borderRadius: '50px',
+                            background: 'linear-gradient(135deg,#FF385C,#D91A50)',
+                            boxShadow: '0 6px 20px rgba(255,56,92,0.55)',
+                            pointerEvents: 'none',
+                          }}
+                        >
+                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: '#fff', fontFamily: "'Inter',sans-serif", letterSpacing: '0.02em' }}>
+                            View Trip →
+                          </Typography>
+                        </Box>
+
+                        {/* Bottom content */}
+                        <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, p: '14px 16px' }}>
+                          {/* Vibe + days */}
+                          {(vibeLabel || days) && (
+                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.6, flexWrap: 'wrap' }}>
+                              {vibeLabel && (
+                                <Box sx={{ px: 0.9, py: 0.25, borderRadius: '50px', background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(6px)' }}>
+                                  <Typography sx={{ fontSize: '0.6rem', fontWeight: 600, color: '#fff', fontFamily: "'Inter',sans-serif" }}>{vibeLabel}</Typography>
+                                </Box>
+                              )}
+                              {days && (
+                                <Box sx={{ px: 0.9, py: 0.25, borderRadius: '50px', background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(6px)' }}>
+                                  <Typography sx={{ fontSize: '0.6rem', fontWeight: 600, color: '#fff', fontFamily: "'Inter',sans-serif" }}>{days}d</Typography>
+                                </Box>
+                              )}
+                            </Box>
+                          )}
+
+                          <Typography sx={{
+                            fontFamily: "'Inter',sans-serif", fontWeight: 800, fontSize: '0.95rem',
+                            color: '#fff', lineHeight: 1.25, mb: 1,
+                            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                            textShadow: '0 1px 4px rgba(0,0,0,0.4)',
+                          }}>
+                            {tripName}
+                          </Typography>
+
+                          {/* Stacked avatars */}
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                            <Box sx={{ display: 'flex' }}>
+                              {(rawMembers.length > 0 ? rawMembers : [{}]).slice(0, 5).map((m: any, j: number) => {
+                                const u = m.user || m.User || m;
+                                const fn = u.fname || u.firstName || u.name || '?';
+                                const pic = u.profilePic || u.profilepicture || u.profilePicture || u.avatar || '';
+                                const initial = String(fn).charAt(0).toUpperCase();
+                                return (
+                                  <Box key={j} sx={{
+                                    width: 22, height: 22, borderRadius: '50%',
+                                    border: '2px solid rgba(0,0,0,0.6)',
+                                    ml: j > 0 ? '-7px' : 0,
+                                    background: aColor(fn),
+                                    overflow: 'hidden',
+                                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                    fontSize: '0.5rem', fontWeight: 800, color: '#fff',
+                                    zIndex: 5 - j,
+                                    fontFamily: "'Inter',sans-serif",
+                                  }}>
+                                    {pic ? <img src={pic} alt={fn} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : initial}
+                                  </Box>
+                                );
+                              })}
+                            </Box>
+                            {rawMembers.length > 0 && (
+                              <Typography sx={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.7)', fontFamily: "'Inter',sans-serif", fontWeight: 500 }}>
+                                {rawMembers.length} going
+                              </Typography>
+                            )}
+                          </Box>
+                        </Box>
+                      </Box>
+                    );
+                  })}
+                </Box>
+              </Box>
+            )}
+
+            {/* ── BROWSE BY VIBE ────────────────────────────────── */}
+            <Box sx={{ mb: 4 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2.5 }}>
+                <Box sx={{ width: 4, height: 22, borderRadius: 2, background: 'linear-gradient(180deg, #FF385C, #D91A50)' }} />
+                <Typography variant="h5" fontWeight={700} sx={{ fontFamily: "'Inter', sans-serif", letterSpacing: '-0.025em', fontSize: { xs: '1.1rem', md: '1.3rem' } }}>
+                  Browse by Vibe
+                </Typography>
+              </Box>
+              <Box sx={{ display: 'flex', gap: { xs: 3, md: 4 }, overflowX: 'auto', pb: 1.5, '&::-webkit-scrollbar': { display: 'none' } }}>
+                {[
+                  { label: 'Timeless', icon: iconArchitecture, glow: 'rgba(168,85,247,0.55)',  accent: '#ffc400' },
+                  { label: 'Coastal',  icon: iconBeaches,      glow: 'rgba(56,189,248,0.55)',  accent: '#0EA5E9' },
+                  { label: 'Urban',    icon: iconCity,         glow: 'rgba(251,191,36,0.55)',  accent: '#F59E0B' },
+                  { label: 'Wild',     icon: iconForest,       glow: 'rgba(52,211,153,0.55)',  accent: '#10B981' },
+                  { label: 'Summit',   icon: iconMountains,    glow: 'rgba(129,140,248,0.55)', accent: '#00afe4' },
+                ].map((cat) => (
+                  <Box key={cat.label} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, cursor: 'pointer', flexShrink: 0, py: 1.5, px: 1, background: 'transparent', border: 'none', transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)', '&:hover': { transform: 'translateY(-6px)', '& .cat-icon-img': { filter: `drop-shadow(0 0 10px ${cat.glow}) drop-shadow(0 0 22px ${cat.glow})`, transform: 'scale(1.15)' }, '& .cat-label': { color: cat.accent } } }}>
+                    <img className="cat-icon-img" src={cat.icon} alt={cat.label} style={{ width: 80, height: 80, objectFit: 'contain', display: 'block', transition: 'filter 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.15))' }} />
+                    <Typography className="cat-label" sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'text.secondary', fontFamily: "'Inter', sans-serif", letterSpacing: '0.01em', transition: 'color 0.25s ease', userSelect: 'none' }}>{cat.label}</Typography>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+
+            {/* FEATURED DESTINATIONS */}
+            <Box sx={{ pb: 6 }}>
+              {/* Section header */}
+              <Box sx={{ mb: 3.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box sx={{ width: 4, height: 22, borderRadius: 2, background: 'linear-gradient(180deg, #FF385C, #D91A50)' }} />
+                  <Typography fontWeight={800} sx={{
+                    fontFamily: "'Inter', sans-serif",
+                    letterSpacing: '-0.03em',
+                    fontSize: { xs: '1.3rem', md: '1.5rem' },
+                    color: 'text.primary',
+                  }}>
+                    Trending Destinations
+                  </Typography>
+                </Box>
+                <Typography onClick={() => navigate('/blog')} sx={{
+                  fontSize: '0.78rem', fontWeight: 600, color: '#FF385C',
+                  fontFamily: "'Inter', sans-serif", cursor: 'pointer',
+                  letterSpacing: '0.01em',
+                  '&:hover': { textDecoration: 'underline' },
+                }}>View all →</Typography>
+              </Box>
+
+              {/* Cards grid */}
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 2.5 }}>
+                {featuredDestinations.map((destination) => (
+                  <Box
+                    key={destination.id}
+                    onClick={() => navigate(`/blog/${(destination as any).slug}`)}
+                    sx={{
+                      position: 'relative',
+                      borderRadius: '16px',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      minHeight: { xs: 260, md: 320 },
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.10)',
+                      transition: 'transform 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.32s ease',
+                      '&:hover': {
+                        transform: 'translateY(-6px) scale(1.012)',
+                        boxShadow: '0 20px 48px rgba(0,0,0,0.20)',
+                      },
+                      '&:hover .dest-overlay': { opacity: 1 },
+                      '&:hover .dest-img': { transform: 'scale(1.06)' },
+                    }}
+                  >
+                    {/* Image */}
+                    {destination.image ? (
+                      <Box
+                        className="dest-img"
+                        component="img"
+                        src={destination.image}
+                        alt={destination.title}
+                        sx={{
+                          width: '100%', height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                          transition: 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                        }}
+                      />
+                    ) : (
+                      <Box className="dest-img" sx={{ width: '100%', height: '100%', background: 'linear-gradient(145deg, #1c1c2e 0%, #2d1b3d 40%, #1a2a40 100%)', transition: 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)' }} />
+                    )}
+
+                    {/* Permanent gradient overlay bottom */}
+                    <Box sx={{
+                      position: 'absolute', inset: 0,
+                      background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 45%, transparent 100%)',
+                    }} />
+
+                    {/* Hover tint overlay */}
+                    <Box className="dest-overlay" sx={{
+                      position: 'absolute', inset: 0,
+                      background: 'linear-gradient(135deg, rgba(255,56,92,0.18) 0%, transparent 60%)',
+                      opacity: 0, transition: 'opacity 0.3s ease',
+                    }} />
+
+                    {/* Badge top-right */}
+                    <Box sx={{
+                      position: 'absolute', top: 14, right: 14,
+                      px: 1.25, py: 0.45,
+                      background: 'rgba(255,255,255,0.92)',
+                      backdropFilter: 'blur(12px)',
+                      borderRadius: '50px',
+                      fontSize: '0.7rem', fontWeight: 700,
+                      fontFamily: "'Inter', sans-serif",
+                      color: '#111',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.14)',
+                      lineHeight: 1.4,
+                    }}>
+                      {destination.badge}
+                    </Box>
+
+                    {/* Text bottom */}
+                    <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, p: '18px 20px 20px' }}>
+                      <Typography sx={{
+                        color: '#FFFFFF', fontWeight: 700,
+                        fontSize: '1rem',
+                        fontFamily: "'Inter', sans-serif",
+                        lineHeight: 1.3, mb: 0.5,
+                        letterSpacing: '-0.01em',
+                      }}>
+                        {destination.title}
+                      </Typography>
+                      <Typography sx={{
+                        color: 'rgba(255,255,255,0.72)', fontSize: '0.72rem',
+                        fontFamily: "'Inter', sans-serif",
+                        lineHeight: 1.5,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                      }}>
+                        {destination.description}
+                      </Typography>
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
+            </Box>
+
+            {/* Community Adventures */}
+            <Box sx={{ mt: 2, mb: 6 }}>
+              {/* ── Section master header ── */}
+              <Box sx={{ mb: 4, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
+                <Box>
+                  <Typography sx={{
+                    fontFamily: "'Inter', sans-serif",
+                    fontWeight: 900,
+                    fontSize: { xs: '1.55rem', md: '1.85rem' },
+                    letterSpacing: '-0.04em',
+                    lineHeight: 1,
+                    background: 'linear-gradient(135deg, #111 40%, #555)',
+                    WebkitBackgroundClip: 'text',
+                    WebkitTextFillColor: 'transparent',
+                  }}>Community Adventures</Typography>
+                  <Typography sx={{ fontSize: '0.78rem', color: '#999', fontFamily: "'Inter', sans-serif", mt: 0.6, letterSpacing: '0.01em' }}>
+                    Real trip plans from the Tripician community
+                  </Typography>
+                </Box>
+                <Typography onClick={() => navigate('/community')} sx={{
+                  fontSize: '0.78rem', fontWeight: 600, color: '#FF385C',
+                  fontFamily: "'Inter', sans-serif", cursor: 'pointer',
+                  '&:hover': { textDecoration: 'underline' },
+                }}>Browse all →</Typography>
+              </Box>
+
+              {loadingPublic && (
+                <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
+                  <CircularProgress size={32} sx={{ color: '#FF385C' }} />
+                </Box>
+              )}
+              {publicError && !loadingPublic && <Alert severity="error" sx={{ mb: 2 }}>{publicError}</Alert>}
+              {!loadingPublic && !publicError && publicTrips.length === 0 && (
+                <Typography variant="body2" color="text.secondary">No public trips yet.</Typography>
+              )}
+
+              {!loadingPublic && !publicError && publicTrips.length > 0 && (() => {
+                const getCover = (t: typeof publicTrips[0]): string => {
+                  if (typeof t.photoUrl === 'string' && t.photoUrl.trim()) return t.photoUrl;
+                  const id = t.id || t.Id;
+                  return (id && publicTripImages[id]) ? publicTripImages[id] : '';
+                };
+                const ownerToMember = (owner: unknown): { id: string; name: string; profilePic: string } => {
+                  const o = (owner && typeof owner === 'object') ? owner as Record<string, any> : null;
+                  const u = o?.user || o?.User || o || {};
+                  const firstName = u.fname || u.firstName || u.FirstName || '';
+                  const lastName = u.lname || u.lastName || u.LastName || '';
+                  const rawName = u.name || u.Name || u.fullName || u.displayName ||
+                    [firstName, lastName].filter(Boolean).join(' ').trim() ||
+                    (u.email ? u.email.split('@')[0] : null) ||
+                    (typeof owner === 'string' ? owner : 'Traveler');
+                  const name = typeof rawName === 'string' && rawName
+                    ? rawName.replace(/[._-]/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()).trim()
+                    : 'Traveler';
+                  const ownerId = String(u.id || u.Id || '');
+                  const myId = String(userProfile?.id || '');
+                  const picFromBackend = u.profilePic || u.ProfilePic ||
+                    u.profilePicture || u.ProfilePicture || u.profilepicture ||
+                    u.avatar || u.Avatar || u.photoUrl || '';
+                  const profilePic = picFromBackend ||
+                    (myId && ownerId === myId ? (userProfile?.profilepicture as string) || '' : '');
+                  return { id: ownerId, name, profilePic };
+                };
+
+                const userId = userProfile?.id || userProfile?.email;
+                const recommended = publicTrips.slice(0, 3);
+                const alsoCheckout = publicTrips.slice(3, 11);
+
+                return (
+                  <>
+                    {/* ══ ROW 1: Tripician Recommended ══ */}
+                    <Box sx={{ mb: 4 }}>
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                        <Box sx={{
+                          display: 'flex', alignItems: 'center', gap: 0.6,
+                          px: 1.25, py: 0.45,
+                          background: 'linear-gradient(135deg, #FF385C 0%, #D91A50 100%)',
+                          borderRadius: '50px',
+                          boxShadow: '0 4px 14px rgba(255,56,92,0.35)',
+                        }}>
+                          <VerifiedRoundedIcon sx={{ fontSize: 13, color: '#fff' }} />
+                          <Typography sx={{ fontSize: '0.65rem', fontWeight: 800, color: '#fff', letterSpacing: '0.1em', fontFamily: "'Inter', sans-serif" }}>
+                            TRIPICIAN RECOMMENDED
+                          </Typography>
+                        </Box>
+                        <Box sx={{ flex: 1, height: '1px', background: 'linear-gradient(to right, rgba(255,56,92,0.15), transparent)' }} />
+                      </Box>
+
+                      <Box sx={{
+                        display: 'grid',
+                        gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)', lg: 'repeat(5, 1fr)' },
+                        gap: 2,
+                      }}>
+                        {recommended.map((t, tIdx) => {
+                          const coverImg = getCover(t);
+                          const tripName = t.name || t.title || 'Untitled Trip';
+                          const countriesList: string[] = Array.isArray(t.countries) ? t.countries : [];
+                          const tripRating = parseFloat((3.5 + (tIdx * 7 + 3) % 15 / 10).toFixed(1));
+                          const ownerMember = ownerToMember(t.owner);
+
+                          return (
+                            <Box key={t.id || t.Id}>
+                              <TripCard
+                                title={tripName}
+                                image={coverImg}
+                                countries={countriesList}
+                                rating={tripRating}
+                                members={[ownerMember]}
+                                onClick={() => navigate(`/trip/${t.id || t.Id}`)}
+                              />
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    </Box>
+
+                    {/* ══ ROW 2: Also Check Out ══ */}
+                    {alsoCheckout.length > 0 && (
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
+                          <Box sx={{
+                            display: 'flex', alignItems: 'center', gap: 0.6,
+                            px: 1.25, py: 0.45,
+                            background: '#F5F5F5',
+                            border: '1px solid rgba(0,0,0,0.08)',
+                            borderRadius: '50px',
+                          }}>
+                            <ExploreIcon sx={{ fontSize: 13, color: '#555' }} />
+                            <Typography sx={{ fontSize: '0.65rem', fontWeight: 800, color: '#555', letterSpacing: '0.1em', fontFamily: "'Inter', sans-serif" }}>
+                              ALSO CHECK OUT
+                            </Typography>
+                          </Box>
+                          <Box sx={{ flex: 1, height: '1px', background: 'rgba(0,0,0,0.07)' }} />
+                        </Box>
+
+                        <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4, 1fr)' }, gap: 1.5, overflow: 'hidden' }}>
+                          {alsoCheckout.map((t, tIdx) => {
+                            const coverImg = getCover(t);
+                            const tripName = t.name || t.title || 'Untitled Trip';
+                            const countriesList: string[] = Array.isArray(t.countries) ? t.countries : [];
+                            const tripRating = parseFloat((3.4 + (tIdx * 9 + 2) % 16 / 10).toFixed(1));
+                            const ownerMember = ownerToMember(t.owner);
+                            const isOwner = t.owner && userId && t.owner === userId;
+                            const isMember = Array.isArray(t.members) && userId && t.members.includes(userId);
+
+                            return (
+                              <Box
+                                key={t.id || t.Id}
+                                onClick={() => navigate(`/trip/${t.id || t.Id}`)}
+                                sx={{
+                                  position: 'relative',
+                                  borderRadius: '14px',
+                                  overflow: 'hidden',
+                                  cursor: 'pointer',
+                                  aspectRatio: '4 / 3',
+                                  boxShadow: '0 2px 12px rgba(0,0,0,0.10)',
+                                  transition: 'transform 0.26s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.26s ease',
+                                  '&:hover': { transform: 'translateY(-4px) scale(1.01)', boxShadow: '0 10px 28px rgba(0,0,0,0.16)' },
+                                  '&:hover .co-img': { transform: 'scale(1.06)' },
+                                }}
+                              >
+                                {coverImg ? (
+                                  <Box
+                                    className="co-img"
+                                    component="img"
+                                    src={coverImg}
+                                    alt={tripName}
+                                    sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
+                                  />
+                                ) : (
+                                  <Box className="co-img" sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(145deg, #1c1c2e 0%, #2d1b3d 40%, #1a2a40 100%)', transition: 'transform 0.5s ease' }} />
+                                )}
+
+                                <Box sx={{
+                                  position: 'absolute', inset: 0,
+                                  background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.15) 55%, transparent 100%)',
+                                }} />
+
+                                {(isOwner || isMember) && (
+                                  <Box
+                                    onClick={e => { e.stopPropagation(); navigate(`/trip/${t.id || t.Id}/edit`); }}
+                                    sx={{
+                                      position: 'absolute', top: 10, right: 10,
+                                      width: 28, height: 28, borderRadius: '50%',
+                                      backdropFilter: 'blur(8px)',
+                                      background: 'rgba(255,255,255,0.22)',
+                                      border: '1px solid rgba(255,255,255,0.35)',
+                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                      '&:hover': { background: '#FF385C', border: 'none' },
+                                      transition: 'all 0.18s',
+                                    }}
+                                  >
+                                    <EditRoundedIcon sx={{ fontSize: 12, color: '#fff' }} />
+                                  </Box>
+                                )}
+
+                                <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, p: '12px 14px' }}>
+                                  {countriesList.length > 0 && (
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, mb: 0.5 }}>
+                                      <PlaceRoundedIcon sx={{ fontSize: 10, color: '#FF385C' }} />
+                                      <Typography sx={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.75)', fontFamily: "'Inter',sans-serif", fontWeight: 500, letterSpacing: '0.02em', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 120 }}>
+                                        {countriesList.join(' · ')}
+                                      </Typography>
+                                    </Box>
+                                  )}
+                                  <Typography sx={{
+                                    fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '0.82rem',
+                                    color: '#fff', letterSpacing: '-0.01em', lineHeight: 1.3, mb: 1,
+                                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                                  }}>{tripName}</Typography>
+
+                                  <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+                                      <AlsoCheckoutAvatar member={ownerMember} />
+                                      <Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.75)', fontFamily: "'Inter',sans-serif", fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 80 }}>{ownerMember.name}</Typography>
+                                    </Box>
+                                    <Box sx={{
+                                      display: 'flex', alignItems: 'center', gap: 0.35,
+                                      px: 0.9, py: 0.35, borderRadius: '50px',
+                                      backdropFilter: 'blur(6px)',
+                                      background: 'rgba(255,255,255,0.15)',
+                                      border: '1px solid rgba(255,255,255,0.2)',
+                                    }}>
+                                      <StarRoundedIcon sx={{ fontSize: 10, color: '#FFD700' }} />
+                                      <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: '#fff', fontFamily: "'Inter',sans-serif" }}>{tripRating}</Typography>
+                                    </Box>
+                                  </Box>
+                                </Box>
+                              </Box>
+                            );
+                          })}
+                        </Box>
+                      </Box>
+                    )}
+                  </>
+                );
+              })()}
+            </Box>
 
             {/* CTA */}
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
+            <Box sx={{
+              textAlign: 'center',
+              py: 8,
+              px: { xs: 3, md: 6 },
+              background: 'linear-gradient(145deg, #3d0014 0%, #1e0009 45%, #100005 100%)',
+              borderRadius: 4,
+              mb: 4,
+              position: 'relative',
+              overflow: 'hidden',
+              '&::before': {
+                content: '""',
+                position: 'absolute',
+                width: 400,
+                height: 400,
+                borderRadius: '50%',
+                background: 'rgba(255,56,92,0.12)',
+                filter: 'blur(80px)',
+                top: -160,
+                left: -120,
+                pointerEvents: 'none',
+              }
+            }}>
+              <Typography variant="h4" fontWeight={700} gutterBottom sx={{
+                fontFamily: "'Playfair Display', serif",
+                fontSize: { xs: '1.8rem', md: '2.4rem' },
+                color: '#FFFFFF',
+                letterSpacing: '-0.03em',
+                position: 'relative',
+                zIndex: 1,
+              }}>
+                Ready to Start Planning?
+              </Typography>
+              <Typography variant="body1" sx={{ mb: 4, color: 'rgba(255,255,255,0.58)', fontSize: { xs: '0.9rem', md: '1rem' }, position: 'relative', zIndex: 1 }}>
+                Create your first trip and invite your friends.
+              </Typography>
               <Button
-                variant="contained" size="large" startIcon={<ExploreIcon />} onClick={handleExploreTrips}
+                variant="contained"
+                size="large"
+                onClick={handleExploreTrips}
                 sx={{
-                  px: 3.5, py: 1.35, borderRadius: '50px', textTransform: 'none',
-                  fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '0.92rem',
-                  background: 'linear-gradient(135deg, #FF385C 0%, #D91A50 100%)',
-                  boxShadow: '0 6px 24px rgba(255,56,92,0.45)',
-                  '&:hover': { background: 'linear-gradient(135deg, #E31C5F 0%, #B01550 100%)', boxShadow: '0 12px 36px rgba(255,56,92,0.6)', transform: 'translateY(-2px)' },
-                  transition: 'all 0.25s ease', width: { xs: '100%', sm: 'auto' },
+                  fontWeight: 700,
+                  px: 5,
+                  py: 1.6,
+                  borderRadius: '50px',
+                  textTransform: 'none',
+                  fontFamily: "'Inter', sans-serif",
+                  fontSize: '1rem',
+                  background: '#FFFFFF',
+                  color: '#222222',
+                  boxShadow: '0 8px 32px rgba(0,0,0,0.35)',
+                  position: 'relative',
+                  zIndex: 1,
+                  '&:hover': { background: 'rgba(255,255,255,0.92)', transform: 'translateY(-2px)', boxShadow: '0 16px 48px rgba(0,0,0,0.45)' },
+                  transition: 'all 0.25s ease',
                 }}
-              >Plan Your Next Trip</Button>
-              <Button
-                variant="outlined" size="large" startIcon={<PublicIcon />} onClick={handleExploreDashboard}
-                sx={{
-                  px: 3.5, py: 1.35, borderRadius: '50px', textTransform: 'none',
-                  fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '0.92rem',
-                  borderColor: 'rgba(255,255,255,0.15)', color: 'rgba(255,255,255,0.65)',
-                  '&:hover': { borderColor: 'rgba(255,56,92,0.45)', color: '#FF6B8A', backgroundColor: 'rgba(255,56,92,0.07)', transform: 'translateY(-1px)' },
-                  transition: 'all 0.25s ease', width: { xs: '100%', sm: 'auto' },
-                }}
-              >View Dashboard</Button>
-            </Stack>
-          </Box>
-
-          {/* Right ghost plane decoration */}
-          <Box sx={{
-            display: { xs: 'none', md: 'flex' },
-            alignItems: 'center', justifyContent: 'center',
-            pr: 6, pl: 2, opacity: 0.07, pointerEvents: 'none', flexShrink: 0,
-          }}>
-            <ConnectingAirportsIcon sx={{ fontSize: '13rem', color: '#FFFFFF' }} />
+              >
+                Get Started Free
+              </Button>
+            </Box>
           </Box>
         </Box>
       )}
@@ -867,76 +1520,8 @@ const Home: React.FC = () => {
 
       </Box>
 
-      {/* CATEGORIES ROW */}
-      <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 3, md: 4 }, pb: 5, zIndex: 2 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
-          <Box sx={{ width: 4, height: 22, borderRadius: 2, background: 'linear-gradient(180deg, #FF385C, #D91A50)' }} />
-          <Typography variant="h5" fontWeight={700} sx={{
-            fontFamily: "'Inter', sans-serif",
-            letterSpacing: '-0.025em',
-            fontSize: { xs: '1.1rem', md: '1.3rem' },
-          }}>
-            Browse by Vibe
-          </Typography>
-        </Box>
-        <Box sx={{ display: 'flex', gap: { xs: 3, md: 4 }, overflowX: 'auto', pb: 1.5, '&::-webkit-scrollbar': { display: 'none' } }}>
-          {[
-            { label: 'Timeless', icon: iconArchitecture, glow: 'rgba(168,85,247,0.55)',  accent: '#ffc400' },
-            { label: 'Coastal',  icon: iconBeaches,      glow: 'rgba(56,189,248,0.55)',  accent: '#0EA5E9' },
-            { label: 'Urban',    icon: iconCity,         glow: 'rgba(251,191,36,0.55)',  accent: '#F59E0B' },
-            { label: 'Wild',     icon: iconForest,       glow: 'rgba(52,211,153,0.55)',  accent: '#10B981' },
-            { label: 'Summit',   icon: iconMountains,    glow: 'rgba(129,140,248,0.55)', accent: '#00afe4' },
-          ].map((cat) => (
-            <Box
-              key={cat.label}
-              sx={{
-                display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5,
-                cursor: 'pointer', flexShrink: 0,
-                py: 1.5, px: 1,
-                background: 'transparent',
-                border: 'none',
-                transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                '&:hover': {
-                  transform: 'translateY(-6px)',
-                  '& .cat-icon-img': {
-                    filter: `drop-shadow(0 0 10px ${cat.glow}) drop-shadow(0 0 22px ${cat.glow})`,
-                    transform: 'scale(1.15)',
-                  },
-                  '& .cat-label': { color: cat.accent },
-                },
-              }}
-            >
-              <img
-                className="cat-icon-img"
-                src={cat.icon}
-                alt={cat.label}
-                style={{
-                  width: 100, height: 100,
-                  objectFit: 'contain',
-                  display: 'block',
-                  transition: 'filter 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)',
-                  filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.15))',
-                }}
-              />
-              <Typography
-                className="cat-label"
-                sx={{
-                  fontSize: '0.8rem', fontWeight: 600,
-                  color: 'text.secondary',
-                  fontFamily: "'Inter', sans-serif",
-                  letterSpacing: '0.01em',
-                  transition: 'color 0.25s ease',
-                  userSelect: 'none',
-                }}
-              >
-                {cat.label}
-              </Typography>
-            </Box>
-          ))}
-        </Box>
-      </Box>
-
-      {/* MAIN BODY */}
+      {/* MAIN BODY — users with upcoming trip still see community content */}
+      {!userTripsLoading && nextUpcomingTrip && (
       <Box sx={{ 
         flex: 1, 
         display: 'flex', 
@@ -1385,6 +1970,7 @@ const Home: React.FC = () => {
           </Box>
         </Box>
       </Box>
+      )}
       <TripCreationModal open={createTripOpen} onClose={() => setCreateTripOpen(false)} />
     </Box>
   );
