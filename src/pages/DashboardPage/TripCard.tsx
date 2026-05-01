@@ -9,9 +9,50 @@ import StarBorderRoundedIcon from '@mui/icons-material/StarBorderRounded';
 import FavoriteRoundedIcon from '@mui/icons-material/FavoriteRounded';
 import FavoriteBorderRoundedIcon from '@mui/icons-material/FavoriteBorderRounded';
 
+// Deterministic avatar colour from name/id — cycles through a warm palette
+const AVATAR_COLORS = [
+  'linear-gradient(135deg,#FF385C,#D91A50)',
+  'linear-gradient(135deg,#0EA5E9,#0369A1)',
+  'linear-gradient(135deg,#10B981,#047857)',
+  'linear-gradient(135deg,#F59E0B,#B45309)',
+  'linear-gradient(135deg,#8B5CF6,#6D28D9)',
+  'linear-gradient(135deg,#EC4899,#BE185D)',
+  'linear-gradient(135deg,#14B8A6,#0F766E)',
+  'linear-gradient(135deg,#F97316,#C2410C)',
+];
+const avatarColor = (seed: string) => {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+};
+
+const MemberAvatar: React.FC<{ member: { id?: string; name: string; profilePic: string }; zIndex: number }> = ({ member, zIndex }) => {
+  const [imgFailed, setImgFailed] = React.useState(false);
+  const initial = member.name?.charAt(0).toUpperCase() || '?';
+  const color = avatarColor(member.id || member.name || initial);
+  const showImg = !imgFailed && !!member.profilePic;
+  return (
+    <div
+      className="tc-member-avatar"
+      style={{ zIndex, background: showImg ? undefined : color }}
+      title={member.name}
+    >
+      {showImg ? (
+        <img
+          src={member.profilePic}
+          alt={member.name}
+          className="tc-member-avatar-img"
+          onError={() => setImgFailed(true)}
+        />
+      ) : initial}
+    </div>
+  );
+};
+
 interface TripCardProps {
   title: string;
-  image: string;
+  image?: string;
+  description?: string;
   progress?: number;
   edited?: string;
   members?: { name: string; profilePic: string; id?: string }[];
@@ -25,7 +66,7 @@ interface TripCardProps {
 }
 
 const TripCard: React.FC<TripCardProps> = ({
-  title, image, progress, edited, members, countries, rating, likes, owner, onClick, onShare, onDelete
+  title, image, description, progress, edited, members, countries, rating, likes, owner, onClick, onShare, onDelete
 }) => {
   const countryDisplay = React.useMemo(() => {
     if (!countries || countries.length === 0) return null;
@@ -85,7 +126,11 @@ const TripCard: React.FC<TripCardProps> = ({
     >
       {/* Full-bleed image + gradient overlay */}
       <div className="tc-image-wrap">
-        <img src={image} alt={title} className="tc-image" />
+        {image ? (
+          <img src={image} alt={title} className="tc-image" />
+        ) : (
+          <div className="tc-image-placeholder" />
+        )}
         <div className="tc-overlay" />
         <div className="tc-blur-layer" />
       </div>
@@ -130,11 +175,12 @@ const TripCard: React.FC<TripCardProps> = ({
           )}
         </div>
 
-        {/* 2. Description — countries as subtitle */}
-        {countryDisplay && (
+        {/* 2. Description — trip description, fallback to countries */}
+        {(description || countryDisplay) && (
           <p className="tc-description">
-            {countryDisplay.list.join(', ')}
-            {countryDisplay.extra > 0 && `, +${countryDisplay.extra} more`}
+            {description
+              ? description
+              : (countryDisplay!.list.join(', ') + (countryDisplay!.extra > 0 ? `, +${countryDisplay!.extra} more` : ''))}
           </p>
         )}
 
@@ -143,16 +189,7 @@ const TripCard: React.FC<TripCardProps> = ({
           <div className="tc-members-row">
             <div className="tc-members-avatars">
               {members && members.slice(0, 5).map((m, i) => (
-                <div
-                  key={m.id ?? i}
-                  className="tc-member-avatar"
-                  style={{ zIndex: 5 - i }}
-                  title={m.name}
-                >
-                  {m.profilePic
-                    ? <img src={m.profilePic} alt={m.name} className="tc-member-avatar-img" />
-                    : m.name?.charAt(0).toUpperCase()}
-                </div>
+                <MemberAvatar key={m.id ?? i} member={m} zIndex={5 - i} />
               ))}
               {members && members.length > 5 && (
                 <div className="tc-member-avatar tc-member-avatar--more" style={{ zIndex: 0 }}>

@@ -1,5 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Typography, Button, CircularProgress, Alert, Stack, Avatar, Skeleton } from '@mui/material';
+import { Box, Typography, Button, CircularProgress, Alert, Stack, Skeleton } from '@mui/material';
 import { KalaLotus } from '../../components/DecorativeComponents/KalaDecor';
 import { useSelector } from 'react-redux';
 import ExploreIcon from '@mui/icons-material/TravelExplore';
@@ -14,7 +14,7 @@ import ConnectingAirportsIcon from '@mui/icons-material/ConnectingAirports';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import { useNavigate } from 'react-router-dom';
 import { apiServices } from '../../services/APIs/apiServices';
-import covers from '../../assets/covers.json';
+import { fetchUnsplashImage } from '../../services/unsplashService';
 import TripCreationModal from '../../components/CreateTripComponents/TripCreationModal';
 import TripCard from '../DashboardPage/TripCard';
 import { useAuthToken } from '../../hooks/useAuth0Token';
@@ -27,48 +27,64 @@ import iconForest from '../../assets/icons/forest.png';
 import iconMountains from '../../assets/icons/mountains.png';
 import gsap from 'gsap';
 
+const FEATURED_DESTINATIONS_BASE = [
+  { id: 1, title: 'Santorini, Greece', query: 'Santorini Greece', description: 'Experience the stunning sunsets and white-washed buildings of this iconic Greek island.', trending: true, badge: '🔥 Hot' },
+  { id: 2, title: 'Kyoto, Japan', query: 'Kyoto Japan', description: "Discover the ancient temples and traditional culture of Japan's former capital.", trending: true, badge: '🗿 Explore' },
+  { id: 3, title: 'Paris, France', query: 'Paris France', description: 'Explore the city of lights and its romantic charm.', trending: true, badge: '❤️ Romantic' },
+  { id: 4, title: 'Dubai UAE', query: 'Dubai UAE', description: 'Experience luxury and modern architecture in the desert.', trending: true, badge: '🏙️ Modern' },
+];
+
+// Matches the palette used in TripCard's MemberAvatar for visual consistency
+const AVATAR_COLORS = [
+  'linear-gradient(135deg,#FF385C,#D91A50)',
+  'linear-gradient(135deg,#0EA5E9,#0369A1)',
+  'linear-gradient(135deg,#10B981,#047857)',
+  'linear-gradient(135deg,#F59E0B,#B45309)',
+  'linear-gradient(135deg,#8B5CF6,#6D28D9)',
+  'linear-gradient(135deg,#EC4899,#BE185D)',
+  'linear-gradient(135deg,#14B8A6,#0F766E)',
+  'linear-gradient(135deg,#F97316,#C2410C)',
+];
+const avatarColor = (seed: string) => {
+  let h = 0;
+  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
+  return AVATAR_COLORS[h % AVATAR_COLORS.length];
+};
+
+const AlsoCheckoutAvatar: React.FC<{ member: { id: string; name: string; profilePic: string } }> = ({ member }) => {
+  const [imgFailed, setImgFailed] = React.useState(false);
+  const showImg = !imgFailed && !!member.profilePic;
+  const color = avatarColor(member.id || member.name || '?');
+  const initial = member.name?.charAt(0).toUpperCase() || '?';
+  return (
+    <Box sx={{
+      width: 20, height: 20, borderRadius: '50%',
+      background: showImg ? undefined : color,
+      border: '1.5px solid rgba(255,255,255,0.5)',
+      overflow: 'hidden', flexShrink: 0,
+      display: 'flex', alignItems: 'center', justifyContent: 'center',
+      fontSize: '0.5rem', fontWeight: 800, color: '#fff',
+      fontFamily: "'Inter',sans-serif",
+    }}>
+      {showImg
+        ? <img src={member.profilePic} alt={member.name} onError={() => setImgFailed(true)}
+            style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+        : initial}
+    </Box>
+  );
+};
+
 const Home: React.FC = () => {
   const navigate = useNavigate();
 
   const pageRef      = useRef<HTMLDivElement>(null);
   const heroRef      = useRef<HTMLDivElement>(null);
 
-  const featuredDestinations = [
-    {
-      id: 1,
-      title: 'Santorini, Greece',
-      description: 'Experience the stunning sunsets and white-washed buildings of this iconic Greek island.',
-      image: covers['greece'],
-      trending: true,
-      badge: '🔥 Hot',
-    },
-    {
-      id: 2,
-      title: 'Kyoto, Japan',
-      description: 'Discover the ancient temples and traditional culture of Japan\'s former capital.',
-      image: covers['japan'],
-      trending: true,
-      badge: '🗿 Explore',
-    },
-    {
-      id: 3,
-      title: 'Paris, France',
-      description: 'Explore the city of lights and its romantic charm.',
-      image: covers['france'],
-      trending: true,
-      badge: '❤️ Romantic',
-    },
-    {
-      id: 4,
-      title: 'Dubai, UAE',
-      description: 'Experience luxury and modern architecture in the desert.',
-      image: covers['uae'],
-      trending: true,
-      badge: '🏙️ Modern',
-    },
-  ];
+  const [featuredImages, setFeaturedImages] = useState<Record<number, string>>({});
+  const featuredDestinations = FEATURED_DESTINATIONS_BASE.map(d => ({ ...d, image: featuredImages[d.id] || '' }));
 
   const [publicTrips, setPublicTrips] = useState<any[]>([]);
+  const [publicTripImages, setPublicTripImages] = useState<Record<string, string>>({});
   const [loadingPublic, setLoadingPublic] = useState(false);
   const [publicError, setPublicError] = useState<string | null>(null);
   const [createTripOpen, setCreateTripOpen] = useState(false);
@@ -77,6 +93,24 @@ const Home: React.FC = () => {
   const [userTripsLoading, setUserTripsLoading] = useState(true);
   const [, setUserTripsError] = useState<string | null>(null);
 
+  // Fetch featured destination images from Unsplash on mount
+  useEffect(() => {
+    let cancelled = false;
+    Promise.all(
+      FEATURED_DESTINATIONS_BASE.map(async (d) => {
+        const url = await fetchUnsplashImage(d.query);
+        return { id: d.id, url };
+      })
+    ).then((results) => {
+      if (cancelled) return;
+      const updates: Record<number, string> = {};
+      results.forEach(({ id, url }) => { if (url) updates[id] = url; });
+      if (Object.keys(updates).length > 0) setFeaturedImages(updates);
+    });
+    return () => { cancelled = true; };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     let active = true;
     const fetchPublic = async () => {
@@ -84,7 +118,23 @@ const Home: React.FC = () => {
       try {
         const response = await apiServices.getPublicTrips();
         if (active) {
-          setPublicTrips(response.data || []);
+          const trips = response.data || [];
+          setPublicTrips(trips);
+          // Kick off Unsplash fetches for trips without a user-uploaded photo
+          const needsImage = trips.filter((t: any) => !(typeof t.photoUrl === 'string' && t.photoUrl.trim()) && Array.isArray(t.countries) && t.countries[0]);
+          if (needsImage.length > 0) {
+            Promise.all(
+              needsImage.map(async (t: any) => {
+                const url = await fetchUnsplashImage(t.countries[0]);
+                return { id: t.id || t.Id, url };
+              })
+            ).then((results) => {
+              if (!active) return;
+              const updates: Record<string, string> = {};
+              results.forEach(({ id, url }) => { if (url) updates[id] = url; });
+              if (Object.keys(updates).length > 0) setPublicTripImages(prev => ({ ...prev, ...updates }));
+            });
+          }
         }
       } catch (err: any) {
         if (active) {
@@ -948,18 +998,22 @@ const Home: React.FC = () => {
                   }}
                 >
                   {/* Image */}
-                  <Box
-                    className="dest-img"
-                    component="img"
-                    src={destination.image}
-                    alt={destination.title}
-                    sx={{
-                      width: '100%', height: '100%',
-                      objectFit: 'cover',
-                      display: 'block',
-                      transition: 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-                    }}
-                  />
+                  {destination.image ? (
+                    <Box
+                      className="dest-img"
+                      component="img"
+                      src={destination.image}
+                      alt={destination.title}
+                      sx={{
+                        width: '100%', height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                        transition: 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                      }}
+                    />
+                  ) : (
+                    <Box className="dest-img" sx={{ width: '100%', height: '100%', background: 'linear-gradient(145deg, #1c1c2e 0%, #2d1b3d 40%, #1a2a40 100%)', transition: 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)' }} />
+                  )}
 
                   {/* Permanent gradient overlay bottom */}
                   <Box sx={{
@@ -1056,21 +1110,34 @@ const Home: React.FC = () => {
             )}
 
             {!loadingPublic && !publicError && publicTrips.length > 0 && (() => {
-              // Helper: resolve cover image for a trip
+              // Helper: resolve cover image for a trip (user-uploaded first, then Unsplash, then empty)
               const getCover = (t: typeof publicTrips[0]): string => {
-                if (typeof t.cover === 'string' && Object.prototype.hasOwnProperty.call(covers, t.cover))
-                  return covers[t.cover as keyof typeof covers];
-                if (Array.isArray(t.countries) && t.countries.length > 0 && typeof t.countries[0] === 'string' && Object.prototype.hasOwnProperty.call(covers, t.countries[0].toLowerCase()))
-                  return covers[t.countries[0].toLowerCase() as keyof typeof covers];
-                return covers['default'] || (Object.values(covers)[0] as string);
+                if (typeof t.photoUrl === 'string' && t.photoUrl.trim()) return t.photoUrl;
+                const id = t.id || t.Id;
+                return (id && publicTripImages[id]) ? publicTripImages[id] : '';
               };
-              // Helper: extract display name from owner (may be string, object, or number)
-              const ownerName = (owner: unknown): string => {
-                if (!owner) return 'Traveler';
-                const str = typeof owner === 'string' ? owner : typeof owner === 'object' && owner !== null && 'name' in owner ? String((owner as Record<string, unknown>).name) : typeof owner === 'object' && owner !== null && 'email' in owner ? String((owner as Record<string, unknown>).email) : String(owner);
-                if (!str || str === 'undefined') return 'Traveler';
-                const base = str.includes('@') ? str.split('@')[0] : str;
-                return base.replace(/[._-]/g, ' ').replace(/\b\w/g, c => c.toUpperCase()).trim() || 'Traveler';
+              // Helper: normalise owner (string | object) into a members-shaped entry
+              const ownerToMember = (owner: unknown): { id: string; name: string; profilePic: string } => {
+                const o = (owner && typeof owner === 'object') ? owner as Record<string, any> : null;
+                const u = o?.user || o?.User || o || {};
+                const firstName = u.fname || u.firstName || u.FirstName || '';
+                const lastName = u.lname || u.lastName || u.LastName || '';
+                const rawName = u.name || u.Name || u.fullName || u.displayName ||
+                  [firstName, lastName].filter(Boolean).join(' ').trim() ||
+                  (u.email ? u.email.split('@')[0] : null) ||
+                  (typeof owner === 'string' ? owner : 'Traveler');
+                const name = typeof rawName === 'string' && rawName
+                  ? rawName.replace(/[._-]/g, ' ').replace(/\b\w/g, (c: string) => c.toUpperCase()).trim()
+                  : 'Traveler';
+                const ownerId = String(u.id || u.Id || '');
+                const myId = String(userProfile?.id || '');
+                const picFromBackend = u.profilePic || u.ProfilePic ||
+                  u.profilePicture || u.ProfilePicture || u.profilepicture ||
+                  u.avatar || u.Avatar || u.photoUrl || '';
+                // Fall back to Redux profile pic when the owner is the logged-in user and backend omits the URL
+                const profilePic = picFromBackend ||
+                  (myId && ownerId === myId ? (userProfile?.profilepicture as string) || '' : '');
+                return { id: ownerId, name, profilePic };
               };
 
               const userId = userProfile?.id || userProfile?.email;
@@ -1109,7 +1176,7 @@ const Home: React.FC = () => {
                         const tripName = t.name || t.title || 'Untitled Trip';
                         const countriesList: string[] = Array.isArray(t.countries) ? t.countries : [];
                         const tripRating = parseFloat((3.5 + (tIdx * 7 + 3) % 15 / 10).toFixed(1));
-                        const author = ownerName(t.owner);
+                        const ownerMember = ownerToMember(t.owner);
 
                         return (
                           <Box key={t.id || t.Id}>
@@ -1118,7 +1185,7 @@ const Home: React.FC = () => {
                               image={coverImg}
                               countries={countriesList}
                               rating={tripRating}
-                              owner={author}
+                              members={[ownerMember]}
                               onClick={() => navigate(`/trip/${t.id || t.Id}`)}
                             />
                           </Box>
@@ -1154,8 +1221,7 @@ const Home: React.FC = () => {
                           const tripName = t.name || t.title || 'Untitled Trip';
                           const countriesList: string[] = Array.isArray(t.countries) ? t.countries : [];
                           const tripRating = parseFloat((3.4 + (tIdx * 9 + 2) % 16 / 10).toFixed(1));
-                          const author = ownerName(t.owner);
-                          const authorInitial = author[0].toUpperCase();
+                          const ownerMember = ownerToMember(t.owner);
                           const isOwner = t.owner && userId && t.owner === userId;
                           const isMember = Array.isArray(t.members) && userId && t.members.includes(userId);
 
@@ -1176,13 +1242,17 @@ const Home: React.FC = () => {
                               }}
                             >
                               {/* Cover photo */}
-                              <Box
-                                className="co-img"
-                                component="img"
-                                src={coverImg}
-                                alt={tripName}
-                                sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
-                              />
+                              {coverImg ? (
+                                <Box
+                                  className="co-img"
+                                  component="img"
+                                  src={coverImg}
+                                  alt={tripName}
+                                  sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s ease' }}
+                                />
+                              ) : (
+                                <Box className="co-img" sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(145deg, #1c1c2e 0%, #2d1b3d 40%, #1a2a40 100%)', transition: 'transform 0.5s ease' }} />
+                              )}
 
                               {/* Gradient overlay */}
                               <Box sx={{
@@ -1227,8 +1297,8 @@ const Home: React.FC = () => {
 
                                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
-                                    <Avatar sx={{ width: 20, height: 20, fontSize: '0.5rem', fontWeight: 800, bgcolor: '#FF385C', border: '1.5px solid rgba(255,255,255,0.5)' }}>{authorInitial}</Avatar>
-                                    <Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.75)', fontFamily: "'Inter',sans-serif", fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 80 }}>{author}</Typography>
+                                    <AlsoCheckoutAvatar member={ownerMember} />
+                                    <Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.75)', fontFamily: "'Inter',sans-serif", fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 80 }}>{ownerMember.name}</Typography>
                                   </Box>
                                   <Box sx={{
                                     display: 'flex', alignItems: 'center', gap: 0.35,

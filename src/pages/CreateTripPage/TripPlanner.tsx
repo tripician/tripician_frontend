@@ -1647,7 +1647,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 								handleTabChange(e,v);
 							}} variant='scrollable' allowScrollButtonsMobile sx={{ flex:1, minHeight:40, '& .MuiTab-root':{ minHeight:40, fontSize:14, fontWeight:600, textTransform:'none', fontFamily:"'Inter', system-ui, sans-serif", letterSpacing:'-0.1px' }, '& .Mui-selected':{ color:'#FF385C !important', fontWeight:700 }, '& .MuiTabs-indicator':{ backgroundColor:'#FF385C', height:2.5, borderRadius:2 } }}>
 								<Tab label='Planning' />
-								<Tab label={
+								{/* <Tab label={
 									<Box sx={{ display:'flex', alignItems:'center', gap:.75 }}>
 										<span>Expenses</span>
 										{!ENABLE_EXPENSES && <SoonTag />}
@@ -1658,7 +1658,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 										<span>Comments</span>
 										{!ENABLE_COMMENTS && <SoonTag />}
 									</Box>
-								} disabled={!ENABLE_COMMENTS} />
+								} disabled={!ENABLE_COMMENTS} /> */}
 							</Tabs>
 							{/* Budget + Privacy compact */}
 							<Box sx={{ display:'flex', alignItems:'center', gap:1, mr:.5 }}>

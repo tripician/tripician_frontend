@@ -9,7 +9,7 @@ import { Tabs, Tab, Box, CircularProgress, Typography, Alert, Dialog, DialogTitl
 import { useNavigate } from 'react-router-dom';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
-import covers from '../../assets/covers.json';
+import { fetchUnsplashImage } from '../../services/unsplashService';
 import gsap from 'gsap';
 import TripCreationModal from '../../components/CreateTripComponents/TripCreationModal';
 
@@ -39,6 +39,7 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [allPlans, setAllPlans] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
+  const [tripImages, setTripImages] = useState<Record<string, string>>({});
   const [tabValue, setTabValue] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -50,6 +51,7 @@ const Dashboard: React.FC = () => {
   const [createTripOpen, setCreateTripOpen] = useState(false);
 
   useSelector((state: RootState) => state.user);
+  const userProfile = useSelector((state: RootState) => state.user.profile);
 
   // Page entrance animation (banner + tabs + cards)
   useEffect(() => {
@@ -92,25 +94,99 @@ const Dashboard: React.FC = () => {
         const mapped = (resp.data || []).map((t: any) => ({
           id: t.id || t.Id,
           title: t.name || t.title || 'Untitled trip',
-          // naive country -> location mapping (first country) fallback
+          description: typeof t.description === 'string' ? t.description.trim() : '',
           location: Array.isArray(t.countries) && t.countries.length ? t.countries[0] : 'Unknown',
           countries: Array.isArray(t.countries) ? t.countries : [],
-          image: covers[
-            (
-              t.countries && t.countries.length && covers.hasOwnProperty(String(t.countries[0].toLowerCase()))
-                ? covers[t.countries[0].toLowerCase() as keyof typeof covers].length > 0 ? (t.countries[0].toLowerCase() as keyof typeof covers) : 'default'
-                : 'default'
-            ) as keyof typeof covers
-          ], // placeholder; could map by country later
+          // Use user-uploaded photoUrl if present; Unsplash fetch happens after mount
+          image: (typeof t.photoUrl === 'string' && t.photoUrl.trim()) ? t.photoUrl : '',
           progress: typeof t.progress === 'number' ? t.progress : 0,
           edited: formatRelativeTime(t.updatedDate),
-          members: t.members || t.invitedUsers || [],
+          members: (() => {
+            const rawMembers = t.members || t.invitedUsers || [];
+            // Log ALL members of first trip so we can diagnose field names + profile pic URLs
+            if (t === (resp.data || [])[0]) {
+              console.debug('[Dashboard] raw trip sample:', JSON.parse(JSON.stringify({
+                owner: t.owner || t.Owner,
+                members: rawMembers,
+              })));
+            }
+            const normalizeMember = (m: any) => {
+              // Flatten nested user sub-object if present (e.g. { userId, user: { fname, profilepicture } })
+              const u = m.user || m.User || m;
+              const firstName = u.fname || u.Fname || u.firstName || u.FirstName || m.fname || m.firstName || '';
+              const lastName = u.lname || u.Lname || u.lastName || u.LastName || m.lname || m.lastName || '';
+              const name =
+                u.name || u.Name || u.fullName || u.displayName ||
+                m.name || m.Name || m.fullName || m.displayName ||
+                [firstName, lastName].filter(Boolean).join(' ').trim() ||
+                (u.email ? u.email.split('@')[0] : null) ||
+                (m.email ? m.email.split('@')[0] : 'Member');
+              const profilePic =
+                u.profilePic || u.ProfilePic ||
+                u.profilePicture || u.ProfilePicture ||
+                u.profilepicture ||
+                u.avatar || u.Avatar ||
+                u.photoUrl || u.PhotoUrl ||
+                m.profilePic || m.ProfilePic ||
+                m.profilePicture || m.ProfilePicture ||
+                m.profilepicture ||
+                m.avatar || m.Avatar ||
+                m.photoUrl || '';
+              return {
+                id: String(m.id || m.userId || m.Id || m.UserId || u.id || u.Id || ''),
+                name,
+                profilePic,
+              };
+            };
+            const normalized = rawMembers.map(normalizeMember);
+            // Patch: if any member is the logged-in user and their profilePic is empty,
+            // fill it from Redux — backend member lists often omit the picture URL
+            const myId = String(userProfile?.id || '');
+            const patched = normalized.map((m: { id: string; name: string; profilePic: string }) => {
+              if (m.profilePic) return m;
+              if (myId && m.id === myId) return { ...m, profilePic: (userProfile?.profilepicture as string) || '' };
+              return m;
+            });
+            // If backend returned no members (solo trip), synthesise one from t.owner or the logged-in user
+            if (normalized.length === 0) {
+              const o = t.owner || t.Owner || null;
+              const firstName = (o?.fname || o?.Fname || o?.firstName || o?.FirstName ||
+                userProfile?.fname || '') as string;
+              const lastName = (o?.lname || o?.Lname || o?.lastName || o?.LastName ||
+                userProfile?.lname || '') as string;
+              const name = (o?.name || o?.Name || o?.displayName ||
+                [firstName, lastName].filter(Boolean).join(' ').trim() ||
+                (o?.email ? o.email.split('@')[0] : null) ||
+                (userProfile?.email ? (userProfile.email as string).split('@')[0] : 'Me')) as string;
+              const profilePic = (o?.profilePic || o?.profilePicture || o?.profilepicture ||
+                o?.avatar || o?.Avatar || o?.photoUrl ||
+                userProfile?.profilepicture || '') as string;
+              return [{ id: String(o?.id || o?.Id || userProfile?.id || ''), name, profilePic }];
+            }
+            return patched;
+          })(),
           startDate: t.startDate || t.start_date || null,
           endDate: t.endDate || t.end_date || null,
         }));
         if(active){
           setAllPlans(mapped);
           setPlans(mapped);
+          // Kick off Unsplash fetches immediately — runs concurrently with state flush,
+          // so images arrive with minimal extra delay (or instantly from localStorage cache).
+          const tripsNeedingImage = mapped.filter((p: any) => !p.image && p.countries?.[0]);
+          if (tripsNeedingImage.length > 0) {
+            Promise.all(
+              tripsNeedingImage.map(async (p: any) => {
+                const url = await fetchUnsplashImage(p.countries[0]);
+                return { id: p.id, url };
+              })
+            ).then((results) => {
+              if (!active) return;
+              const updates: Record<string, string> = {};
+              results.forEach(({ id, url }) => { if (url) updates[id] = url; });
+              if (Object.keys(updates).length > 0) setTripImages(prev => ({ ...prev, ...updates }));
+            });
+          }
         }
       } catch(err: any){
         if(active){
@@ -277,12 +353,14 @@ const Dashboard: React.FC = () => {
                 }}
               >
                 {/* Full-bleed destination image */}
-                <Box
-                  component="img"
-                  src={nextUpcoming?.image || ''}
-                  alt=""
-                  sx={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', display:'block' }}
-                />
+                {(nextUpcoming?.image || (nextUpcoming?.id && tripImages[nextUpcoming.id])) && (
+                  <Box
+                    component="img"
+                    src={nextUpcoming?.image || tripImages[nextUpcoming!.id]}
+                    alt=""
+                    sx={{ position:'absolute', inset:0, width:'100%', height:'100%', objectFit:'cover', display:'block' }}
+                  />
+                )}
                 {/* Dark gradient — left to right, heavily cover left for text legibility */}
                 <Box sx={{ position:'absolute', inset:0, background:'linear-gradient(100deg, rgba(6,6,10,0.92) 0%, rgba(6,6,10,0.78) 38%, rgba(6,6,10,0.30) 68%, rgba(6,6,10,0.05) 100%)', zIndex:1 }} />
                 {/* Subtle rose glow bottom-left */}
@@ -462,7 +540,8 @@ const Dashboard: React.FC = () => {
               <TripCard
                 title={plan.title}
                 countries={plan.countries}
-                image={plan.image}
+                description={plan.description}
+                image={plan.image || tripImages[plan.id] || ''}
                 progress={plan.progress}
                 edited={plan.edited}                
                 members={plan.members}

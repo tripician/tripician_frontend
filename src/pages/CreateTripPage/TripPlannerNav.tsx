@@ -148,39 +148,39 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
           </Tooltip>
         );
       })}
+      
       {/* Import/Export and Settings pinned to bottom */}
       <Box sx={{ position: 'absolute', bottom: 12, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
-      <Tooltip title={importExport? 'Import / Export':'Import / Export (Coming Soon)'} placement='right' arrow>
-        <Box
-          aria-disabled={!importExport}
-          onClick={()=> { if(!importExport) return; /* future: open import/export */ }}
-          sx={(theme) => ({
-            position: 'relative',
-            cursor: importExport? 'pointer':'not-allowed',
-            display: 'flex',
-            alignItems: 'center',
-            justifyContent: 'center',
-            width: 48,
-            height: 48,
-            borderRadius: 2,
-            border: theme.palette.mode === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)',
-            background: importExport
-              ? (theme.palette.mode === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.07)')
-              : 'transparent',
-            color: theme.palette.mode === 'light' ? '#717171' : 'rgba(255,255,255,0.45)',
-            opacity: importExport? 1 : 0.45,
-            userSelect: 'none',
-            transition: 'background .2s ease, color .2s ease',
-            '&:hover': importExport ? {
-              background: theme.palette.mode === 'light' ? 'rgba(255,56,92,0.07)' : 'rgba(255,56,92,0.13)',
-              color: '#FF385C',
-            } : {}
-          })}
-        >
-          <ImportExportIcon fontSize='small' />
-          {!importExport && <SoonTag sx={{ position:'absolute', bottom:6, right:6 }} />}
-        </Box>
-      </Tooltip>
+      {importExport && (
+        <Tooltip title='Import / Export' placement='right' arrow>
+          <Box
+            aria-disabled={!importExport}
+            onClick={()=> { /* future: open import/export */ }}
+            sx={(theme) => ({
+              position: 'relative',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              width: 48,
+              height: 48,
+              borderRadius: 2,
+              border: theme.palette.mode === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)',
+              background: theme.palette.mode === 'light' ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.07)',
+              color: theme.palette.mode === 'light' ? '#717171' : 'rgba(255,255,255,0.45)',
+              userSelect: 'none',
+              transition: 'background .2s ease, color .2s ease',
+              '&:hover': {
+                background: theme.palette.mode === 'light' ? 'rgba(255,56,92,0.07)' : 'rgba(255,56,92,0.13)',
+                color: '#FF385C',
+              }
+            })}
+          >
+            <ImportExportIcon fontSize='small' />
+          </Box>
+        </Tooltip>
+      )}
+      
       <Tooltip title='Settings' placement='right' arrow>
         <Box
           onClick={onSettingsClick}
