@@ -4,7 +4,7 @@ import '../../assets/css/Signin.css';
 import { KalaLotus } from '../../components/DecorativeComponents/KalaDecor';
 import GoogleIcon from '@mui/icons-material/Google';
 import AppleIcon from '@mui/icons-material/Apple';
-import { Eye, EyeOff, Plane, MapPin, Globe, Brain } from 'lucide-react';
+import { Eye, EyeOff, Plane, MapPin, Globe, Brain, ArrowLeft } from 'lucide-react';
 import { authAPI } from '../../services/APIs/Auth/auth';
 import { useNavigate } from 'react-router-dom';
 import { fetchUserProfile } from '../../store/userSlice';
@@ -162,6 +162,11 @@ const Signin = () => {
         initial="hidden"
         animate="visible"
       >
+        {/* Back to landing */}
+        <button className="auth-back-btn" onClick={() => navigate('/')}>
+          <ArrowLeft size={15} />
+          Back
+        </button>
         {/* Indian kala lotus — top-right corner */}
         <KalaLotus size={380} color="#FF385C" opacity={0.07} style={{ position: 'absolute', top: -90, right: -90, zIndex: 0 }} />
         {/* Indian kala lotus — bottom-left accent */}

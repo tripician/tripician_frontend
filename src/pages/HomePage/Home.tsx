@@ -1018,7 +1018,6 @@ const Home: React.FC = () => {
                                 title={tripName}
                                 image={coverImg}
                                 countries={countriesList}
-                                rating={tripRating}
                                 members={[ownerMember]}
                                 onClick={() => navigate(`/trip/${t.id || t.Id}`)}
                               />
@@ -1238,14 +1237,14 @@ const Home: React.FC = () => {
           {/* Main ticket body */}
           <Box sx={{
             flex: 1,
-            p: { xs: '20px 18px', sm: '26px 32px', md: '28px 40px' },
+            p: { xs: '14px 14px', sm: '26px 32px', md: '28px 40px' },
             display: 'flex', flexDirection: 'column', justifyContent: 'space-between',
             // Subtle dot-pattern texture
             backgroundImage: 'radial-gradient(rgba(0,0,0,0.04) 1px, transparent 1px)',
             backgroundSize: '20px 20px',
           }}>
             {/* ── Row 1: Branding + status pill ── */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3.5 }}>
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: { xs: 1.25, sm: 3.5 } }}>
               <Box>
                 <Typography sx={{
                   fontSize: '0.52rem', fontWeight: 700, letterSpacing: '0.22em',
@@ -1273,7 +1272,7 @@ const Home: React.FC = () => {
             </Box>
 
             {/* ── Row 2: Passenger name + route ── */}
-            <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: { xs: 2, md: 4 }, mb: 2.5, flexWrap: 'wrap' }}>
+            <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: { xs: 1.5, md: 4 }, mb: { xs: 1, sm: 2.5 }, flexWrap: 'wrap' }}>
               {/* Passenger */}
               <Box>
                 <Typography sx={{
@@ -1283,7 +1282,7 @@ const Home: React.FC = () => {
                 }}>Passenger</Typography>
                 <Typography sx={{
                   fontFamily: "'Playfair Display', serif",
-                  fontSize: { xs: '1.8rem', md: '2.6rem' },
+                  fontSize: { xs: '1.25rem', sm: '1.8rem', md: '2.6rem' },
                   fontWeight: 800, color: '#111111',
                   lineHeight: 1, letterSpacing: '-0.5px',
                   animation: 'fadeInUp 0.5s cubic-bezier(0.22,1,0.36,1) 0.1s both',
@@ -1293,17 +1292,17 @@ const Home: React.FC = () => {
               {/* Route: HME → DEST */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: { xs: 2, md: 3 }, pb: 0.5 }}>
                 <Box sx={{ textAlign: 'center' }}>
-                  <Typography sx={{ fontSize: '0.52rem', fontWeight: 700, letterSpacing: '0.16em', color: '#C8C8C8', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif", mb: 0.5 }}>From</Typography>
-                  <Typography sx={{ fontSize: { xs: '1.25rem', md: '1.7rem' }, fontWeight: 900, color: '#1A1A1A', fontFamily: "'Inter', sans-serif", letterSpacing: '-0.5px', lineHeight: 1 }}>{homeCountryCode}</Typography>
+                  <Typography sx={{ fontSize: '0.48rem', fontWeight: 700, letterSpacing: '0.16em', color: '#C8C8C8', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif", mb: 0.4 }}>From</Typography>
+                  <Typography sx={{ fontSize: { xs: '0.9rem', sm: '1.2rem', md: '1.65rem' }, fontWeight: 800, color: '#1A1A1A', fontFamily: "'Inter', sans-serif", letterSpacing: '0.04em', lineHeight: 1 }}>{homeCountryCode}</Typography>
                 </Box>
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', px: { xs: 0.5, md: 1 } }}>
-                  <Typography sx={{ color: '#FF385C', fontSize: '1.1rem', lineHeight: 1, mb: 0.75 }}>✈</Typography>
-                  <Box sx={{ width: { xs: 36, md: 60 }, height: 2, background: 'linear-gradient(90deg, #FF6B6B, #C2185B)', borderRadius: 1 }} />
-                  <Typography sx={{ fontSize: '0.48rem', fontWeight: 700, color: '#CCCCCC', fontFamily: "'Inter', sans-serif", letterSpacing: '0.12em', mt: 0.75 }}>NONSTOP</Typography>
+                  <Typography sx={{ color: '#FF385C', fontSize: { xs: '0.85rem', md: '1.05rem' }, lineHeight: 1, mb: 0.6 }}>✈</Typography>
+                  <Box sx={{ width: { xs: 28, md: 52 }, height: '1.5px', background: 'linear-gradient(90deg, #FF6B6B, #C2185B)', borderRadius: 1 }} />
+                  <Typography sx={{ fontSize: '0.42rem', fontWeight: 700, color: '#CCCCCC', fontFamily: "'Inter', sans-serif", letterSpacing: '0.14em', mt: 0.6 }}>NONSTOP</Typography>
                 </Box>
                 <Box sx={{ textAlign: 'center' }}>
-                  <Typography sx={{ fontSize: '0.52rem', fontWeight: 700, letterSpacing: '0.16em', color: '#C8C8C8', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif", mb: 0.5 }}>To</Typography>
-                  <Typography sx={{ fontSize: { xs: '1.25rem', md: '1.7rem' }, fontWeight: 900, color: '#FF385C', fontFamily: "'Inter', sans-serif", letterSpacing: '-0.5px', lineHeight: 1 }}>
+                  <Typography sx={{ fontSize: '0.48rem', fontWeight: 700, letterSpacing: '0.16em', color: '#C8C8C8', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif", mb: 0.4 }}>To</Typography>
+                  <Typography sx={{ fontSize: { xs: '0.9rem', sm: '1.2rem', md: '1.65rem' }, fontWeight: 800, color: '#FF385C', fontFamily: "'Inter', sans-serif", letterSpacing: '0.04em', lineHeight: 1 }}>
                     {nextDestinationLabel.replace(/[,\s].*/,'').slice(0,3).toUpperCase()}
                   </Typography>
                 </Box>
@@ -1326,10 +1325,10 @@ const Home: React.FC = () => {
             </Box>
 
             {/* ── Dashed tear line ── */}
-            <Box sx={{ borderTop: '1.5px dashed rgba(0,0,0,0.11)', mx: -1, mb: 3 }} />
+            <Box sx={{ borderTop: '1.5px dashed rgba(0,0,0,0.11)', mx: -1, mb: { xs: 1.5, sm: 3 } }} />
 
             {/* ── Row 3: Ticket info fields ── */}
-            <Box sx={{ display: 'flex', gap: { xs: 3, md: 4.5 }, mb: 3, flexWrap: 'wrap' }}>
+            <Box sx={{ display: 'flex', gap: { xs: 2, md: 4.5 }, mb: { xs: 0, sm: 3 }, flexWrap: 'wrap' }}>
               {[
                 { label: 'Date',      value: new Date(nextUpcomingTrip!.startMs).toLocaleDateString('en-US', { month: 'short', day: '2-digit', year: 'numeric' }) },
                 { label: 'Class',     value: 'Explorer' },
@@ -1338,14 +1337,15 @@ const Home: React.FC = () => {
                 { label: 'Next Stop', value: nextDestinationLabel },
               ].map((f) => (
                 <Box key={f.label}>
-                  <Typography sx={{ fontSize: '0.5rem', fontWeight: 700, letterSpacing: '0.18em', color: '#C8C8C8', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif", mb: 0.4 }}>{f.label}</Typography>
-                  <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: '#1A1A1A', fontFamily: "'Inter', sans-serif", letterSpacing: '-0.01em' }}>{f.value}</Typography>
+                  <Typography sx={{ fontSize: '0.44rem', fontWeight: 700, letterSpacing: '0.20em', color: '#C4C4C4', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif", mb: 0.35 }}>{f.label}</Typography>
+                  <Typography sx={{ fontSize: { xs: '0.65rem', sm: '0.78rem', md: '0.85rem' }, fontWeight: 600, color: '#1A1A1A', fontFamily: "'Inter', sans-serif", letterSpacing: '0.01em' }}>{f.value}</Typography>
                 </Box>
               ))}
             </Box>
 
             {/* ── Quote ── */}
             <Typography sx={{
+              display: { xs: 'none', sm: 'block' },
               fontStyle: 'italic', color: '#B0B0B0',
               fontSize: '0.86rem', lineHeight: 1.7,
               mb: 3.5,
@@ -1355,8 +1355,8 @@ const Home: React.FC = () => {
               {currentMotivation.title}
             </Typography>
 
-            {/* ── CTA Buttons ── */}
-            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2}>
+            {/* ── CTA Buttons — desktop/tablet only (shown below card on mobile) ── */}
+            <Stack direction={{ xs: 'column', sm: 'row' }} spacing={2} sx={{ display: { xs: 'none', sm: 'flex' } }}>
               <Button
                 variant="contained" size="large" startIcon={<ExploreIcon />} onClick={handleExploreTrips}
                 sx={{
@@ -1379,6 +1379,33 @@ const Home: React.FC = () => {
                 }}
               >Explore Dashboard</Button>
             </Stack>
+          </Box>
+
+          {/* ── Mobile bottom stub — replaces right stub on xs/sm ── */}
+          <Box sx={{
+            display: { xs: 'flex', lg: 'none' },
+            flexDirection: 'row',
+            background: 'linear-gradient(90deg, #FF385C 0%, #D4104A 55%, #8B0D3F 100%)',
+            px: 2, py: 1.25,
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            gap: 2,
+            position: 'relative',
+            overflow: 'hidden',
+          }}>
+            {/* Watermark */}
+            <Typography sx={{ position: 'absolute', left: '50%', top: '50%', transform: 'translate(-50%,-50%)', fontSize: '0.38rem', fontWeight: 900, letterSpacing: '0.55em', color: 'rgba(255,255,255,0.06)', pointerEvents: 'none', textTransform: 'uppercase', whiteSpace: 'nowrap', fontFamily: "'Inter',sans-serif" }}>PASSENGER STUB</Typography>
+            {/* Stats */}
+            {[
+              { label: 'Countries', value: visitedCount },
+              { label: 'Trips',     value: plannedCount },
+              { label: 'Upcoming',  value: upcomingCount },
+            ].map((s) => (
+              <Box key={s.label} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', flex: 1 }}>
+                <Typography sx={{ color: '#fff', fontFamily: "'Playfair Display',serif", fontSize: '1.1rem', fontWeight: 900, lineHeight: 1, letterSpacing: '-0.04em' }}>{s.value}</Typography>
+                <Typography sx={{ color: 'rgba(255,255,255,0.50)', fontFamily: "'Inter',sans-serif", fontSize: '0.42rem', fontWeight: 700, letterSpacing: '0.20em', textTransform: 'uppercase', mt: 0.2 }}>{s.label}</Typography>
+              </Box>
+            ))}
           </Box>
 
           {/* ── Perforated tear strip ── */}
@@ -1499,6 +1526,32 @@ const Home: React.FC = () => {
             </Box>
           </Box>
         </Box>
+
+        {/* ── Mobile CTAs — below card on xs ── */}
+        <Stack direction="row" spacing={1.25} sx={{ display: { xs: 'flex', sm: 'none' }, mt: 2 }}>
+          <Button
+            variant="contained" size="large" startIcon={<ExploreIcon />} onClick={handleExploreTrips}
+            sx={{
+              px: 2, py: 1.1, borderRadius: '50px', textTransform: 'none',
+              fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '0.82rem',
+              background: 'linear-gradient(135deg, #FF385C 0%, #D91A50 100%)',
+              boxShadow: '0 6px 20px rgba(255,56,92,0.38)',
+              '&:hover': { background: 'linear-gradient(135deg, #E31C5F 0%, #B01550 100%)', transform: 'translateY(-1px)' },
+              transition: 'all 0.25s ease', flex: 1,
+            }}
+          >Start Planning</Button>
+          <Button
+            variant="outlined" size="large" startIcon={<PublicIcon />} onClick={handleExploreDashboard}
+            sx={{
+              px: 2, py: 1.1, borderRadius: '50px', textTransform: 'none',
+              fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '0.82rem',
+              borderColor: 'rgba(255,56,92,0.35)', color: '#FF385C',
+              '&:hover': { borderColor: '#FF385C', backgroundColor: 'rgba(255,56,92,0.05)' },
+              transition: 'all 0.25s ease', flex: 1,
+            }}
+          >Explore Dashboard</Button>
+        </Stack>
+
         {/* ── Logo strip below boarding pass ── */}
         <Box sx={{
           display: 'flex',
@@ -1769,7 +1822,6 @@ const Home: React.FC = () => {
                               title={tripName}
                               image={coverImg}
                               countries={countriesList}
-                              rating={tripRating}
                               members={[ownerMember]}
                               onClick={() => navigate(`/trip/${t.id || t.Id}`)}
                             />

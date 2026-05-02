@@ -160,6 +160,54 @@
   transform: translateY(-2px);
 }
 
+/* PWA install — always visible on mobile/tablet */
+.lp-install-wrap {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  position: relative;
+}
+@media (max-width: 1024px) {
+  .lp-install-wrap { display: flex; width: 100%; }
+}
+.lp-btn--hero-install {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  background: transparent;
+  color: rgba(255, 255, 255, 0.55);
+  padding: 13px 24px;
+  font-size: 0.82rem;
+  font-weight: 500;
+  border-radius: 50px;
+  border: 1px solid rgba(255, 255, 255, 0.14);
+  letter-spacing: 0.01em;
+  transition: color 0.2s, border-color 0.2s;
+  width: 100%;
+  justify-content: center;
+}
+.lp-btn--hero-install:hover {
+  color: rgba(255, 255, 255, 0.85);
+  border-color: rgba(255, 255, 255, 0.32);
+}
+/* Hide Sign in on mobile & tablet */
+@media (max-width: 1024px) {
+  .lp-btn--hide-mobile { display: none !important; }
+}
+.lp-install-hint {
+  font-size: 0.75rem;
+  color: rgba(255, 255, 255, 0.5);
+  text-align: center;
+  line-height: 1.5;
+  padding: 8px 12px;
+  background: rgba(255,255,255,0.08);
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,0.12);
+  backdrop-filter: blur(8px);
+  animation: fadeInUp 0.25s ease both;
+}
+
 .lp-btn--cta-primary {
   background: #fff;
   color: #050810;
@@ -1046,7 +1094,7 @@
 
 @media (max-width: 480px) {
   .lp-hero__cta-group { flex-direction: column; width: 100%; max-width: 320px; }
-  .lp-btn--hero-primary, .lp-btn--hero-ghost { width: 100%; justify-content: center; }
+  .lp-btn--hero-primary, .lp-btn--hero-ghost, .lp-btn--hero-install { width: 100%; justify-content: center; }
   .lp-showcase__grid { grid-template-columns: 1fr; }
   .lp-stats__grid    { grid-template-columns: 1fr 1fr; }
   .lp-cta__title     { font-size: 2.4rem; }

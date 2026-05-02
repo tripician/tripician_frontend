@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import '../../assets/css/Signin.css';
 import '../../assets/css/Signup.css';
 import { KalaMandala } from '../../components/DecorativeComponents/KalaDecor';
-import { Eye, EyeOff, Plane, MapPin, Globe, Brain, Check } from 'lucide-react';
+import { Eye, EyeOff, Plane, MapPin, Globe, Brain, Check, ArrowLeft } from 'lucide-react';
 import { authAPI } from '../../services/APIs/Auth/auth';
 import { useNavigate } from 'react-router-dom';
 import { fadeInLeft, fadeInRight, staggerContainer, staggerItem } from '../../utils/animations';
@@ -139,6 +139,11 @@ const Signup = () => {
         initial="hidden"
         animate="visible"
       >
+        {/* Back to landing */}
+        <button className="auth-back-btn" onClick={() => navigate('/')}>
+          <ArrowLeft size={15} />
+          Back
+        </button>
         {/* Indian kala mandala — top-right corner */}
         <KalaMandala size={380} color="#FF385C" opacity={0.07} style={{ position: 'absolute', top: -90, right: -90, zIndex: 0 }} />
         {/* Indian kala mandala — bottom-left accent */}

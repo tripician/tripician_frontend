@@ -1,4 +1,4 @@
-﻿import { useLayoutEffect, useState, useEffect } from 'react';
+﻿import { useLayoutEffect, useState, useEffect, useRef } from 'react';
 import { KalaGeometric, KalaLotus } from '../../components/DecorativeComponents/KalaDecor';
 import { useNavigate } from 'react-router-dom';
 import { fetchUnsplashImage } from '../../services/unsplashService';
@@ -21,6 +21,7 @@ import {
   Zap,
   Activity,
   Sparkles,
+  Download,
 } from 'lucide-react';
 import '../../assets/css/LandingPage.css';
 
@@ -353,6 +354,8 @@ export default function LandingPage() {
   const logoFullWhiteUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_2_URL as string | undefined;
 
   const [showcaseImages, setShowcaseImages] = useState<Record<number, string>>({});
+  const deferredInstallPrompt = useRef<(Event & { prompt: () => Promise<void> }) | null>(null);
+  const [showInstallBtn, setShowInstallBtn] = useState(false);
   useEffect(() => {
     Promise.all(
       SHOWCASE.map(async (card, i) => ({ i, url: await fetchUnsplashImage(card.query) }))
@@ -362,6 +365,24 @@ export default function LandingPage() {
       setShowcaseImages(imgs);
     });
   }, []);
+
+  // Capture PWA install prompt
+  useEffect(() => {
+    const handler = (e: Event) => {
+      e.preventDefault();
+      deferredInstallPrompt.current = e as Event & { prompt: () => Promise<void> };
+      setShowInstallBtn(true);
+    };
+    window.addEventListener('beforeinstallprompt', handler);
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const handleInstallApp = async () => {
+    if (!deferredInstallPrompt.current) return;
+    await deferredInstallPrompt.current.prompt();
+    deferredInstallPrompt.current = null;
+    setShowInstallBtn(false);
+  };
 
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
@@ -612,9 +633,14 @@ export default function LandingPage() {
             <button className="lp-btn lp-btn--hero-primary" onClick={() => navigate('/signup')}>
               Start your journey <ArrowRight size={17} />
             </button>
-            <button className="lp-btn lp-btn--hero-ghost" onClick={() => navigate('/signin')}>
+            <button className="lp-btn lp-btn--hero-ghost lp-btn--hide-mobile" onClick={() => navigate('/signin')}>
               Sign in
             </button>
+            {showInstallBtn && (
+              <button className="lp-btn lp-btn--hero-install" onClick={handleInstallApp}>
+                <Download size={15} /> Add to Home Screen
+              </button>
+            )}
           </div>
         </div>
 

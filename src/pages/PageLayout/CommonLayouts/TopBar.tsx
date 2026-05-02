@@ -100,7 +100,7 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
 
         {/* Left Section - Search or Logo */}
         <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', pr: 2, gap: 1 }}>
-          {/* Burger — mobile only */}
+          {/* Burger — mobile/tablet only */}
           <IconButton
             size="small"
             onClick={() => window.dispatchEvent(new CustomEvent('nav:toggleMobile'))}
