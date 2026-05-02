@@ -359,6 +359,13 @@ const Signup = () => {
               <RedditSVG /> Reddit
             </motion.button>
           </motion.div>
+
+          <p className="auth-legal">
+            By signing up, you agree to the{' '}
+            <a href="/terms" className="auth-legal__link">Terms of Service</a>{' '}and{' '}
+            <a href="/privacy" className="auth-legal__link">Privacy Policy</a>,
+            including Cookie Use.
+          </p>
         </motion.div>
       </motion.div>
     </div>
