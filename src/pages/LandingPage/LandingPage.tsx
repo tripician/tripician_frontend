@@ -66,12 +66,6 @@ const FEATURES = [
     accent: '#008bbd',
   },
   {
-    icon: <DollarSign size={26} />,
-    title: 'Group Budget Tracker',
-    desc: 'Track shared and individual expenses across categories and currencies. Everyone stays on budget — no spreadsheets, no confusion.',
-    accent: '#00a8d4',
-  },
-  {
     icon: <Compass size={26} />,
     title: 'Day-by-Day Planner',
     desc: 'Organise every day with timed activities, notes, and drag-and-drop reordering. Your group sees every update in real time.',
@@ -826,32 +820,7 @@ export default function LandingPage() {
             </div>
             <span className="lp-bento-card__deco-icon" aria-hidden="true"><Sparkles size={100} /></span>
           </div>
-          {/* Canvas - orange, span 6 */}
-          <div className="lp-bento-card lp-bento-card--canvas">
-            <span className="lp-bento-card__tag">Unique</span>
-            <h3>Draw on Live Maps</h3>
-            <p>Sketch routes, highlight regions and annotate directly on your interactive map. Zero other planners offer this.</p>
-            <svg className="lp-bento-route-svg" viewBox="0 0 280 60" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M14 46 C50 10 88 54 128 26 S210 4 266 24" stroke="#EA580C" strokeWidth="2.5" strokeLinecap="round" strokeDasharray="7 4" />
-              <circle cx="14" cy="46" r="5" fill="#EA580C" />
-              <circle cx="266" cy="24" r="5" fill="#EA580C" />
-            </svg>
-            <span className="lp-bento-card__deco-icon" aria-hidden="true"><Map size={100} /></span>
-          </div>
-          {/* Passport - emerald, span 6 */}
-          <div className="lp-bento-card lp-bento-card--passport">
-            <span className="lp-bento-card__tag">Gamified</span>
-            <h3>Visual Trip Passport</h3>
-            <p>Every trip earns destination stamps &amp; badges. Your history becomes a beautiful shareable travel passport.</p>
-            <div className="lp-bento-stamps">
-              <span title="Japan">{String.fromCodePoint(0x1F1EF, 0x1F1F5)}</span>
-              <span title="France">{String.fromCodePoint(0x1F1EB, 0x1F1F7)}</span>
-              <span title="Brazil">{String.fromCodePoint(0x1F1E7, 0x1F1F7)}</span>
-              <span title="Thailand">{String.fromCodePoint(0x1F1F9, 0x1F1ED)}</span>
-              <span className="lp-bento-stamps-more">+36</span>
-            </div>
-            <span className="lp-bento-card__deco-icon" aria-hidden="true"><Globe size={100} /></span>
-          </div>
+          {/** Removed: Draw on Live Maps & Visual Trip Passport (feature retired) */}
         </div>
       </section>
 
