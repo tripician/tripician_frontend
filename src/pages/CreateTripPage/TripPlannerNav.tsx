@@ -100,7 +100,7 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
                 cursor: isDisabled? 'not-allowed':'pointer',
                 width: 48,
                 mx: 0,
-                display: 'flex',
+                display: isDisabled ? 'none' : 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
                 height: 48,

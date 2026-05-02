@@ -458,3 +458,72 @@
   border-radius: 3px;
   transition: width 0.4s ease;
 }
+
+/* ══════════════════════════════════════════════════════════
+   MOBILE — compact, premium, flawless
+══════════════════════════════════════════════════════════ */
+@media (max-width: 600px) {
+  .trip-card {
+    border-radius: 16px;
+  }
+
+  /* Tighter blurred panel */
+  .tc-body {
+    padding: 11px 12px 13px;
+    gap: 6px;
+  }
+
+  /* Fade handle: shorter */
+  .tc-body::before {
+    top: -72px;
+    height: 72px;
+  }
+
+  /* Single-line title, slightly smaller */
+  .tc-title {
+    font-size: 0.90rem;
+    -webkit-line-clamp: 1;
+  }
+
+  /* One-line description */
+  .tc-description {
+    font-size: 0.68rem;
+    -webkit-line-clamp: 1;
+  }
+
+  /* Smaller member avatars */
+  .tc-member-avatar {
+    width: 20px;
+    height: 20px;
+    margin-left: -6px;
+  }
+
+  /* Badge — tighter */
+  .tc-badge-info {
+    font-size: 0.60rem;
+    padding: 3px 8px;
+  }
+
+  /* Hide owner/likes row — redundant with avatar stack on small screens */
+  .tc-meta-row {
+    display: none;
+  }
+
+  /* Explore button hidden — card tap navigates directly */
+  .tc-open-btn {
+    display: none;
+  }
+
+  /* Always show delete action (no hover on touch) */
+  .tc-actions {
+    opacity: 1;
+    transform: none;
+    pointer-events: auto;
+  }
+
+  /* Smaller progress ring */
+  .tc-ring-wrap {
+    top: 8px;
+    left: 8px;
+  }
+}

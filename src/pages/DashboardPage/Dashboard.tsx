@@ -442,6 +442,7 @@ const Dashboard: React.FC = () => {
             variant="fullWidth"
             aria-label="trip tabs"
             sx={{
+              display: { xs: 'none', sm: 'flex' },
               pl: 0,
               mt: "1%",
               ml: "2%",

@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Typography, IconButton, Avatar, Tooltip, Popover, Divider, List, ListItemButton, ListItemText, ListItemIcon, Button, Badge } from "@mui/material";
 import { styled } from '@mui/material/styles';
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
+import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import LogoutIcon from '@mui/icons-material/Logout';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import ShieldIcon from '@mui/icons-material/PrivacyTip';
@@ -98,7 +99,19 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
         )}
 
         {/* Left Section - Search or Logo */}
-        <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', pr: 2 }}>
+        <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', pr: 2, gap: 1 }}>
+          {/* Burger — mobile only */}
+          <IconButton
+            size="small"
+            onClick={() => window.dispatchEvent(new CustomEvent('nav:toggleMobile'))}
+            sx={{
+              display: { xs: 'flex', md: 'none' },
+              width: 34, height: 34, borderRadius: '10px', flexShrink: 0,
+              '&:hover': { backgroundColor: 'rgba(255,56,92,0.07)' },
+            }}
+          >
+            <MenuRoundedIcon sx={{ fontSize: 22, color: 'text.secondary' }} />
+          </IconButton>
           {showSearch ? (
             <Box sx={{ maxWidth: 380, width: '100%' }}>
               <SearchBar />

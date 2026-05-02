@@ -1,7 +1,7 @@
 ﻿// TripPlanner main page component (formerly CreateTrip)
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { Box, Tabs, Tab, Typography, Divider, Button, Chip, Menu, MenuItem, Avatar, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Snackbar, Alert, useTheme } from '@mui/material';
+import { Box, Tabs, Tab, Typography, Divider, Button, Avatar, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Snackbar, Alert, useTheme, Drawer, Fab } from '@mui/material';
 import { KalaMandala } from '../../components/DecorativeComponents/KalaDecor';
 // Props-based TripPlanner; tripId + optional initialTrip provided by route wrapper
 import DownloadIcon from '@mui/icons-material/Download';
@@ -10,11 +10,10 @@ import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
-import { setCurrency as setCurrencyAction, updateDestinationNights, setTransport, addDestination, removeDestination, reorderChainExact, addVisaDoc, removeVisaDoc, removeGlobalDoc, pinDoc, unpinDoc, loadState, resetPlanner, setTripDates, setTargetNights } from '../../store/plannerSlice';
+import { updateDestinationNights, setTransport, addDestination, removeDestination, reorderChainExact, addVisaDoc, removeVisaDoc, removeGlobalDoc, pinDoc, unpinDoc, loadState, resetPlanner, setTripDates, setTargetNights } from '../../store/plannerSlice';
 import { togglePin as togglePinDocSlice, removeDocument as removeDocsSliceDocument } from '../../store/docsSlice';
 import { DEFAULT_DOC_RULE } from '../../utils/fileValidation'; // legacy use (validateFiles removed after refactor)
 import ValidatedFileInput from '../../components/CommonComponents/ValidatedFileInput';
-import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import CreateTripNav from './TripPlannerNav';
 import NewsPanel from './NewsPanel';
 import TripSettingsDialog from './TripSettingsDialog';
@@ -30,22 +29,25 @@ import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
 import PublishRoundedIcon from '@mui/icons-material/PublishRounded';
-import ShareRoundedIcon from '@mui/icons-material/ShareRounded';
+import ChatRoundedIcon from '@mui/icons-material/ChatRounded';
+import CloseIcon from '@mui/icons-material/Close';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import { fetchUnsplashImage } from '../../services/unsplashService';
-import CalendarMonthRoundedIcon from '@mui/icons-material/CalendarMonthRounded';
+import confetti from 'canvas-confetti';
+import ShareRoundedIcon from '@mui/icons-material/ShareRounded';
 import NightsStayRoundedIcon from '@mui/icons-material/NightsStayRounded';
+import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
-// Removed useLocation to allow TripPlanner usage outside Router context.
-import EditIcon from '@mui/icons-material/Edit';
-import CheckIcon from '@mui/icons-material/Check';
+// EditIcon removed — inline title editing removed
+// CheckIcon removed — inline title editing removed
 import Docs from '../DocsPage/Docs';
 import SoonTag from '../../components/CommonComponents/SoonTag';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { normalizeTrip, type NormalizedTrip } from '../../utils/normalizeTrip';
-import { countryNameFromCode, flagEmojiFromName } from '../../utils/countryFlags';
+import { countryNameFromCode } from '../../utils/countryFlags';
 import { differenceInDays } from 'date-fns';
 
 type OwnerInfo = { id?: string; email?: string; name?: string; handle?: string; avatar?: string };
@@ -212,6 +214,37 @@ const PremiumChatPanel: React.FC = () => {
 	const [input, setInput] = React.useState('');
 	const endRef = React.useRef<HTMLDivElement | null>(null);
 
+	/* ── Resize & collapse ── */
+	const [panelWidth, setPanelWidth] = React.useState(420);
+	const [collapsed, setCollapsed] = React.useState(false);
+	const panelRef = React.useRef<HTMLDivElement>(null);
+	const isResizing = React.useRef(false);
+	const resizeStartX = React.useRef(0);
+	const resizeStartWidth = React.useRef(420);
+
+	const handleResizeMouseDown = (e: React.MouseEvent) => {
+		e.preventDefault();
+		isResizing.current = true;
+		resizeStartX.current = e.clientX;
+		resizeStartWidth.current = panelRef.current?.offsetWidth || panelWidth;
+	};
+
+	React.useEffect(() => {
+		const onMove = (e: MouseEvent) => {
+			if (!isResizing.current) return;
+			const dx = resizeStartX.current - e.clientX;
+			const newWidth = Math.max(320, Math.min(760, resizeStartWidth.current + dx));
+			setPanelWidth(newWidth);
+		};
+		const onUp = () => { isResizing.current = false; };
+		document.addEventListener('mousemove', onMove);
+		document.addEventListener('mouseup', onUp);
+		return () => {
+			document.removeEventListener('mousemove', onMove);
+			document.removeEventListener('mouseup', onUp);
+		};
+	}, []);
+
 	const send = (text: string) => {
 		if (!text.trim()) return;
 		const trimmed = text.trim();
@@ -222,190 +255,254 @@ const PremiumChatPanel: React.FC = () => {
 				id: Date.now() + 'a', role: 'assistant',
 				content: 'AI agent response coming soon — I\'m being connected to your trip data now.',
 			}]);
+			window.dispatchEvent(new CustomEvent('navia:response'));
 		}, 480);
 	};
 
 	React.useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
 
+	React.useEffect(() => {
+		const handler = (e: Event) => { send((e as CustomEvent<{ message: string }>).detail.message); };
+		window.addEventListener('navia:send', handler);
+		return () => window.removeEventListener('navia:send', handler);
+	}, []);
+
 	return (
-		<Box sx={{
-			width: 420,
+		<Box ref={panelRef} sx={{
+			width: collapsed ? 44 : panelWidth,
 			flexShrink: 0,
+			height: '100%',
 			display: 'flex',
 			flexDirection: 'column',
 			borderLeft: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.07)'}`,
 			background: isLight ? '#ffffff' : '#0e1012',
 			fontFamily: "'Inter', system-ui, sans-serif",
 			overflow: 'hidden',
+			position: 'relative',
+			transition: 'width 0.22s cubic-bezier(.4,0,.2,1)',
 		}}>
-			{/* Header */}
-			<Box sx={{
-				px: 2, py: 1.25,
-				display: 'flex', alignItems: 'center', gap: 1.25,
-				borderBottom: `1px solid ${isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.06)'}`,
-				background: isLight ? 'rgba(255,255,255,0.98)' : 'rgba(14,16,18,0.98)',
-				backdropFilter: 'blur(8px)',
-				flexShrink: 0,
-			}}>
-				{/* AI avatar */}
-				<Box sx={{
-					width: 32, height: 32, borderRadius: '10px', flexShrink: 0,
-					background: 'linear-gradient(135deg,#FF385C 0%,#D91A50 100%)',
-					display: 'flex', alignItems: 'center', justifyContent: 'center',
-					boxShadow: '0 3px 12px rgba(255,56,92,0.40)',
-				}}>
-					<Box component='svg' viewBox='0 0 24 24' sx={{ width: 16, height: 16 }}>
-						<path fill='#fff' d='M12 2a10 10 0 110 20A10 10 0 0112 2zm0 2a8 8 0 100 16A8 8 0 0012 4zm0 12a1 1 0 110 2 1 1 0 010-2zm.5-8v6h-1V8h1z'/>
-					</Box>
-				</Box>
-				<Box sx={{ flex: 1, minWidth: 0 }}>
-					<Typography sx={{ fontWeight: 800, fontSize: 14, lineHeight: 1, color: isLight ? '#0d0d0d' : '#f0f0f0', fontFamily: 'inherit', letterSpacing: -0.3 }}>
-						Navia
-					</Typography>
-					<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.3 }}>
-						<Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'rgba(255,56,92,0.7)', boxShadow: '0 0 5px rgba(255,56,92,0.6)' }} />
-						<Typography sx={{ fontSize: 10.5, color: 'rgba(255,56,92,0.85)', fontWeight: 600, fontFamily: 'inherit', letterSpacing: 0.4 }}>
-							AI PREVIEW
-						</Typography>
-					</Box>
-				</Box>
-			</Box>
+			{/* ── Resize drag handle (left edge) ── */}
+			{!collapsed && (
+				<Box
+					onMouseDown={handleResizeMouseDown}
+					sx={{
+						position: 'absolute', top: 0, left: 0, bottom: 0, width: 5,
+						cursor: 'col-resize', zIndex: 10,
+						'&:hover': { background: 'rgba(255,56,92,0.22)' },
+						transition: 'background 0.15s',
+					}}
+				/>
+			)}
 
-			{/* Messages area */}
-			<Box sx={{
-				flex: 1, overflowY: 'auto', px: 1.75, py: 1.5,
-				display: 'flex', flexDirection: 'column', gap: 1.25,
-				'&::-webkit-scrollbar': { width: 4 },
-				'&::-webkit-scrollbar-thumb': { borderRadius: 3, background: isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.10)' },
-				'&::-webkit-scrollbar-track': { background: 'transparent' },
-			}}>
-				{messages.map(m => (
-					<Box key={m.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
-						{m.role === 'assistant' && (
-							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.4 }}>
-								<Box sx={{
-									width: 16, height: 16, borderRadius: '5px',
-									background: 'linear-gradient(135deg,#FF385C,#D91A50)',
-									display: 'flex', alignItems: 'center', justifyContent: 'center',
-								}}>
-									<Box component='svg' viewBox='0 0 24 24' sx={{ width: 9, height: 9 }}>
-										<path fill='#fff' d='M12 2a10 10 0 110 20A10 10 0 0112 2zm0 2a8 8 0 100 16A8 8 0 0012 4zm0 12a1 1 0 110 2 1 1 0 010-2zm.5-8v6h-1V8h1z'/>
+			{collapsed ? (
+				/* ── Collapsed strip ── */
+				<Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, pt: 1.5 }}>
+					<Box sx={{
+						width: 28, height: 28, borderRadius: '8px', flexShrink: 0,
+						background: 'linear-gradient(135deg,#FF385C 0%,#D91A50 100%)',
+						display: 'flex', alignItems: 'center', justifyContent: 'center',
+						boxShadow: '0 2px 8px rgba(255,56,92,0.35)',
+						cursor: 'pointer',
+					}} onClick={() => setCollapsed(false)}>
+						<ChevronRightIcon sx={{ fontSize: 16, color: '#fff' }} />
+					</Box>
+					<Box sx={{ mt: 1.5, cursor: 'pointer' }} onClick={() => setCollapsed(false)}>
+						<Typography sx={{
+							writingMode: 'vertical-rl', textOrientation: 'mixed',
+							fontSize: 10, fontWeight: 800, letterSpacing: '0.18em',
+							color: isLight ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)',
+							fontFamily: 'inherit', textTransform: 'uppercase',
+							userSelect: 'none',
+						}}>NAVIA AI</Typography>
+					</Box>
+				</Box>
+			) : (
+				<>
+					{/* ── Header ── */}
+					<Box sx={{
+						px: 2, py: 1.25,
+						display: 'flex', alignItems: 'center', gap: 1.25,
+						borderBottom: `1px solid ${isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.06)'}`,
+						background: isLight ? 'rgba(255,255,255,0.98)' : 'rgba(14,16,18,0.98)',
+						backdropFilter: 'blur(8px)',
+						flexShrink: 0,
+					}}>
+						{/* AI avatar */}
+						<Box sx={{
+							width: 32, height: 32, borderRadius: '10px', flexShrink: 0,
+							background: 'linear-gradient(135deg,#FF385C 0%,#D91A50 100%)',
+							display: 'flex', alignItems: 'center', justifyContent: 'center',
+							boxShadow: '0 3px 12px rgba(255,56,92,0.40)',
+						}}>
+							<Box component='svg' viewBox='0 0 24 24' sx={{ width: 16, height: 16 }}>
+								<path fill='#fff' d='M12 2a10 10 0 110 20A10 10 0 0112 2zm0 2a8 8 0 100 16A8 8 0 0012 4zm0 12a1 1 0 110 2 1 1 0 010-2zm.5-8v6h-1V8h1z'/>
+							</Box>
+						</Box>
+						<Box sx={{ flex: 1, minWidth: 0 }}>
+							<Typography sx={{ fontWeight: 800, fontSize: 14, lineHeight: 1, color: isLight ? '#0d0d0d' : '#f0f0f0', fontFamily: 'inherit', letterSpacing: -0.3 }}>
+								Navia
+							</Typography>
+							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.3 }}>
+								<Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'rgba(255,56,92,0.7)', boxShadow: '0 0 5px rgba(255,56,92,0.6)' }} />
+								<Typography sx={{ fontSize: 10.5, color: 'rgba(255,56,92,0.85)', fontWeight: 600, fontFamily: 'inherit', letterSpacing: 0.4 }}>
+									AI PREVIEW
+								</Typography>
+							</Box>
+						</Box>
+						{/* Collapse button */}
+						<Tooltip title='Collapse panel' enterDelay={600}>
+							<IconButton size='small' onClick={() => setCollapsed(true)} sx={{ p: 0.5, color: 'text.disabled', '&:hover': { color: '#FF385C' }, mr: -0.5 }}>
+								<ChevronRightIcon sx={{ fontSize: 16 }} />
+							</IconButton>
+						</Tooltip>
+					</Box>
+
+					{/* ── Messages area ── */}
+					<Box sx={{
+						flex: 1, overflowY: 'auto', px: 1.75, py: 1.5,
+						display: 'flex', flexDirection: 'column', gap: 1.25,
+						'&::-webkit-scrollbar': { width: 4 },
+						'&::-webkit-scrollbar-thumb': { borderRadius: 3, background: isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.10)' },
+						'&::-webkit-scrollbar-track': { background: 'transparent' },
+					}}>
+						{messages.map(m => (
+							<Box key={m.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
+								{m.role === 'assistant' && (
+									<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.4 }}>
+										<Box sx={{
+											width: 16, height: 16, borderRadius: '5px',
+											background: 'linear-gradient(135deg,#FF385C,#D91A50)',
+											display: 'flex', alignItems: 'center', justifyContent: 'center',
+										}}>
+											<Box component='svg' viewBox='0 0 24 24' sx={{ width: 9, height: 9 }}>
+												<path fill='#fff' d='M12 2a10 10 0 110 20A10 10 0 0112 2zm0 2a8 8 0 100 16A8 8 0 0012 4zm0 12a1 1 0 110 2 1 1 0 010-2zm.5-8v6h-1V8h1z'/>
+											</Box>
+										</Box>
+										<Typography sx={{ fontSize: 9.5, fontWeight: 700, color: '#FF385C', fontFamily: 'inherit', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+											Navia
+										</Typography>
 									</Box>
+								)}
+								<Box sx={{
+									px: 1.5, py: 0.9,
+									maxWidth: '88%',
+									borderRadius: m.role === 'user' ? '14px 14px 4px 14px' : '4px 14px 14px 14px',
+									fontSize: 13, lineHeight: 1.65, fontFamily: 'inherit',
+									background: m.role === 'user'
+										? 'linear-gradient(135deg,#FF385C,#D91A50)'
+										: (isLight ? '#f4f4f4' : 'rgba(255,255,255,0.06)'),
+									color: m.role === 'user' ? '#fff' : (isLight ? '#1a1a1a' : 'rgba(255,255,255,0.88)'),
+									boxShadow: m.role === 'user' ? '0 2px 12px rgba(255,56,92,0.28)' : 'none',
+									border: m.role === 'user' ? 'none' : `1px solid ${isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)'}`,
+								}}>
+									{m.content}
 								</Box>
-								<Typography sx={{ fontSize: 9.5, fontWeight: 700, color: '#FF385C', fontFamily: 'inherit', letterSpacing: 0.5, textTransform: 'uppercase' }}>
-									Navia
+							</Box>
+						))}
+						{messages.length === 1 && (
+							<Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.5, pb: 2, mt: 2 }}>
+								<Box component='svg' viewBox='0 0 40 40' sx={{ width: 40, height: 40, opacity: 0.28, color: isLight ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.35)' }}>
+									<circle cx='20' cy='20' r='18' fill='none' stroke='currentColor' strokeWidth='1.5'/>
+									<circle cx='20' cy='20' r='2' fill='currentColor'/>
+									<path d='M20 4 L22 18 L20 16 L18 18 Z' fill='currentColor'/>
+									<path d='M20 36 L22 22 L20 24 L18 22 Z' fill='currentColor' opacity='0.5'/>
+									<path d='M4 20 L18 22 L16 20 L18 18 Z' fill='currentColor' opacity='0.5'/>
+									<path d='M36 20 L22 22 L24 20 L22 18 Z' fill='currentColor'/>
+								</Box>
+								<Typography sx={{ fontSize: 12, color: isLight ? 'rgba(0,0,0,0.40)' : 'rgba(255,255,255,0.30)', textAlign: 'center', maxWidth: 200, lineHeight: 1.6, fontFamily: 'inherit' }}>
+									Your trip story starts here. Ask Navia anything — routes, hidden gems, packing tips, local culture.
 								</Typography>
 							</Box>
 						)}
+						<div ref={endRef} />
+					</Box>
+
+					{/* ── Suggested prompts ── */}
+					<Box sx={{
+						px: 1.5, py: 0.75,
+						display: 'flex', flexDirection: 'column', gap: 0.5,
+						borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)'}`,
+						flexShrink: 0,
+					}}>
+						<Typography sx={{ fontSize: 10.5, fontWeight: 600, color: isLight ? 'rgba(0,0,0,0.38)' : 'rgba(255,255,255,0.30)', fontFamily: 'inherit', mb: 0.3 }}>
+							Suggested
+						</Typography>
+						{SUGGESTED_PROMPTS.slice(0, 3).map(p => (
+							<Box
+								key={p}
+								onClick={() => send(p)}
+								sx={{
+									px: 1.25, py: 0.6, borderRadius: '8px',
+									border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
+									background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.03)',
+									fontSize: 11.5, color: isLight ? '#444' : 'rgba(255,255,255,0.65)',
+									cursor: 'pointer', fontFamily: 'inherit',
+									transition: 'background .15s, border-color .15s, color .15s',
+									'&:hover': {
+										background: isLight ? 'rgba(255,56,92,0.06)' : 'rgba(255,56,92,0.10)',
+										borderColor: 'rgba(255,56,92,0.30)',
+										color: '#FF385C',
+									},
+								}}
+							>
+								{p}
+							</Box>
+						))}
+					</Box>
+
+					{/* ── Input ── */}
+					<Box sx={{
+						px: 1.5, pb: 1.5, pt: 0.75,
+						borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.06)'}`,
+						flexShrink: 0,
+					}}>
 						<Box sx={{
-							px: 1.5, py: 0.9,
-							maxWidth: '88%',
-							borderRadius: m.role === 'user' ? '14px 14px 4px 14px' : '4px 14px 14px 14px',
-							fontSize: 13, lineHeight: 1.65, fontFamily: 'inherit',
-							background: m.role === 'user'
-								? 'linear-gradient(135deg,#FF385C,#D91A50)'
-								: (isLight ? '#f4f4f4' : 'rgba(255,255,255,0.06)'),
-							color: m.role === 'user' ? '#fff' : (isLight ? '#1a1a1a' : 'rgba(255,255,255,0.88)'),
-							boxShadow: m.role === 'user' ? '0 2px 12px rgba(255,56,92,0.28)' : 'none',
-							border: m.role === 'user' ? 'none' : `1px solid ${isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)'}`,
-						}}>
-							{m.content}
-						</Box>
-					</Box>
-				))}
-				<div ref={endRef} />
-			</Box>
-
-			{/* Suggested prompts */}
-			<Box sx={{
-				px: 1.5, py: 0.75,
-				display: 'flex', flexDirection: 'column', gap: 0.5,
-				borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)'}`,
-				flexShrink: 0,
-			}}>
-				<Typography sx={{ fontSize: 10.5, fontWeight: 600, color: isLight ? 'rgba(0,0,0,0.38)' : 'rgba(255,255,255,0.30)', fontFamily: 'inherit', mb: 0.3 }}>
-					Suggested
-				</Typography>
-				{SUGGESTED_PROMPTS.slice(0, 3).map(p => (
-					<Box
-						key={p}
-						onClick={() => send(p)}
-						sx={{
-							px: 1.25, py: 0.6, borderRadius: '8px',
-							border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
-							background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.03)',
-							fontSize: 11.5, color: isLight ? '#444' : 'rgba(255,255,255,0.65)',
-							cursor: 'pointer', fontFamily: 'inherit',
-							transition: 'background .15s, border-color .15s, color .15s',
-							'&:hover': {
-								background: isLight ? 'rgba(255,56,92,0.06)' : 'rgba(255,56,92,0.10)',
-								borderColor: 'rgba(255,56,92,0.30)',
-								color: '#FF385C',
+							display: 'flex', alignItems: 'flex-end', gap: 0.75,
+							border: `1.5px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)'}`,
+							borderRadius: '12px', px: 1.5, py: 0.75,
+							background: isLight ? '#fafafa' : 'rgba(255,255,255,0.03)',
+							transition: 'border-color .2s, box-shadow .2s',
+							'&:focus-within': {
+								borderColor: 'rgba(255,56,92,0.60)',
+								boxShadow: '0 0 0 3px rgba(255,56,92,0.10)',
 							},
-						}}
-					>
-						{p}
-					</Box>
-				))}
-			</Box>
-
-			{/* Input */}
-			<Box sx={{
-				px: 1.5, pb: 1.5, pt: 0.75,
-				borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.06)'}`,
-				flexShrink: 0,
-			}}>
-				<Box sx={{
-					display: 'flex', alignItems: 'flex-end', gap: 0.75,
-					border: `1.5px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)'}`,
-					borderRadius: '12px', px: 1.5, py: 0.75,
-					background: isLight ? '#fafafa' : 'rgba(255,255,255,0.03)',
-					transition: 'border-color .2s, box-shadow .2s',
-					'&:focus-within': {
-						borderColor: 'rgba(255,56,92,0.60)',
-						boxShadow: '0 0 0 3px rgba(255,56,92,0.10)',
-					},
-				}}>
-					<InputBase
-						value={input}
-						onChange={e => setInput(e.target.value)}
-						onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); } }}
-						placeholder='Ask Navia anything…'
-						multiline
-						maxRows={4}
-						sx={{
-							flex: 1, fontSize: 13, lineHeight: 1.5,
-							fontFamily: "'Inter', system-ui, sans-serif",
-							'& textarea': { padding: 0, color: isLight ? '#1a1a1a' : 'rgba(255,255,255,0.88)', resize: 'none' },
-							'& textarea::placeholder': { color: isLight ? 'rgba(0,0,0,0.32)' : 'rgba(255,255,255,0.25)', opacity: 1 },
-						}}
-					/>
-					<IconButton
-						size='small'
-						onClick={() => send(input)}
-						disabled={!input.trim()}
-						sx={{
-							width: 32, height: 32, borderRadius: '9px', flexShrink: 0, mb: 0.1,
-							background: input.trim() ? 'linear-gradient(135deg,#FF385C,#D91A50)' : 'transparent',
-							color: input.trim() ? '#fff' : (isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.20)'),
-							boxShadow: input.trim() ? '0 2px 10px rgba(255,56,92,0.35)' : 'none',
-							transition: 'background .18s, color .18s, box-shadow .18s',
-							'&:hover': { background: input.trim() ? '#D91A50' : undefined },
-							'&.Mui-disabled': { background: 'transparent', color: isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.15)' },
-						}}
-					>
-						<Box component='svg' viewBox='0 0 24 24' sx={{ width: 14, height: 14 }}>
-							<path fill='currentColor' d='M2.01 21L23 12 2.01 3 2 10l15 2-15 2z'/>
+						}}>
+							<InputBase
+								value={input}
+								onChange={e => setInput(e.target.value)}
+								onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); } }}
+								placeholder='Ask Navia anything…'
+								multiline
+								maxRows={4}
+								sx={{
+									flex: 1, fontSize: 13, lineHeight: 1.5,
+									fontFamily: "'Inter', system-ui, sans-serif",
+									'& textarea': { padding: 0, color: isLight ? '#1a1a1a' : 'rgba(255,255,255,0.88)', resize: 'none' },
+									'& textarea::placeholder': { color: isLight ? 'rgba(0,0,0,0.32)' : 'rgba(255,255,255,0.25)', opacity: 1 },
+								}}
+							/>
+							<IconButton
+								size='small'
+								onClick={() => send(input)}
+								disabled={!input.trim()}
+								sx={{
+									width: 32, height: 32, borderRadius: '9px', flexShrink: 0, mb: 0.1,
+									background: input.trim() ? 'linear-gradient(135deg,#FF385C,#D91A50)' : 'transparent',
+									color: input.trim() ? '#fff' : (isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.20)'),
+									boxShadow: input.trim() ? '0 2px 10px rgba(255,56,92,0.35)' : 'none',
+									transition: 'background .18s, color .18s, box-shadow .18s',
+									'&:hover': { background: input.trim() ? '#D91A50' : undefined },
+									'&.Mui-disabled': { background: 'transparent', color: isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.15)' },
+								}}
+							>
+								<Box component='svg' viewBox='0 0 24 24' sx={{ width: 14, height: 14 }}>
+									<path fill='currentColor' d='M2.01 21L23 12 2.01 3 2 10l15 2-15 2z'/>
+								</Box>
+							</IconButton>
 						</Box>
-					</IconButton>
-				</Box>
-				<Typography sx={{ fontSize: 10, color: isLight ? 'rgba(0,0,0,0.28)' : 'rgba(255,255,255,0.20)', mt: 0.6, textAlign: 'center', fontFamily: 'inherit' }}>
-					Navia · AI travel agent · coming soon
-				</Typography>
-				<Typography sx={{ fontSize: 9.5, color: isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.15)', mt: 0.3, textAlign: 'center', fontFamily: 'inherit', letterSpacing: 0.2 }}>
-					Powered by GPT-5
-				</Typography>
-			</Box>
+					</Box>
+				</>
+			)}
 		</Box>
 	);
 };
@@ -428,7 +525,7 @@ interface TripViewPanelProps {
 
 const TripViewPanel: React.FC<TripViewPanelProps> = ({
 	title, description, bannerUrl, countries, tripUsers, ownerInfo,
-	startDate, endDate, totalNights, destinationCount,
+	totalNights, destinationCount,
 	showEditAction = false, onRequestEdit,
 }) => {
 	const theme = useTheme();
@@ -447,12 +544,6 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 	const textPrimary = isLight ? '#111111' : '#f0f0f0';
 	const textMuted = isLight ? 'rgba(0,0,0,0.44)' : 'rgba(255,255,255,0.38)';
 	const sectionBg = isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.04)';
-
-	const formatDate = (raw: string | null) => {
-		if (!raw) return '—';
-		const d = new Date(raw);
-		return isNaN(d.getTime()) ? '—' : d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
-	};
 
 	const ownerDisplayName = ownerInfo.name || ownerInfo.handle || ownerInfo.email?.split('@')[0] || 'Unknown';
 
@@ -735,6 +826,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		return normalizedInitial || (remoteTrip ? normalizeTrip(remoteTrip) : null);
 	}, [normalizedInitial, remoteTrip]); // naming retained for downstream references
 	const hydratedRef = React.useRef<string | null>(null);
+	const cleanedNotesRef = React.useRef(false);
 	// Preserve original creation start/end dates (first hydration) so itinerary edits don't implicitly adjust them.
 	const originalDatesRef = React.useRef<{ start:string|null; end:string|null }|null>(null);
 	// Seed originalDatesRef from earlyRawTrip if available and not yet set (pre-hydration reload safeguard)
@@ -746,14 +838,11 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		}
 	}
 
-	console.log('info from trip view: ', { showViewEditAction, isOwnerExternal, isExternalNonOwner });
-	debugger;
-
 	// Core meta state
 	const [title, setTitle] = React.useState<string>(normalizedInitial?.meta.name || 'Untitled Trip');
 	const [tripDescription, setTripDescription] = React.useState<string>(normalizedInitial?.meta.description || '');
 	const [vibe, setVibe] = React.useState<string | null>(normalizedInitial?.meta.vibe ?? null);
-	const [editingTitle, setEditingTitle] = React.useState(false);
+	// editingTitle removed — title editing moved to Settings dialog
 	// Notes field (plain text, auto-grow) seeded from normalized initial trip meta if present
 	const [importantNotes, setImportantNotes] = React.useState<string>(
 		(normalizedInitial?.meta.importantNotes && typeof normalizedInitial.meta.importantNotes === 'string')
@@ -882,8 +971,13 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	React.useEffect(() => {
 		if (!unifiedTrip) return;
 		const { meta, itinerary } = unifiedTrip;
-		if (hydratedRef.current === meta.id) return;
-		if (title === 'Untitled Trip' && !editingTitle) setTitle(meta.name);
+		// Allow re-hydration if the incoming data has more stops than what was previously loaded
+		// (e.g. Dashboard passes no itinerary, then remoteTrip arrives with the full list)
+		if (hydratedRef.current && hydratedRef.current.startsWith(meta.id + ':')) {
+			const prevCount = parseInt(hydratedRef.current.split(':')[1] || '0', 10);
+			if (prevCount >= itinerary.length) return;
+		}
+		if (title === 'Untitled Trip') setTitle(meta.name);
 		// hydrate notes (fallback to meta.importantNotes or meta.notes if present)
 		try {
 			const candidate = (meta as any).importantNotes || (meta as any).notes;
@@ -962,6 +1056,16 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				stay: it.stay || undefined
 			};
 		});
+		// If any stop had notes='general' (category placeholder leaked into notes field), clear it
+		let notesWereCleaned = false;
+		const cleanedDestinations = hydratedDestinations.map((d) => {
+			if (typeof d.notes === 'string' && d.notes.trim().toLowerCase() === 'general') {
+				notesWereCleaned = true;
+				return { ...d, notes: '' };
+			}
+			return d;
+		});
+		if (notesWereCleaned) cleanedNotesRef.current = true;
 		// Backend target nights preference
 		const metaTarget = (meta as any).targetNights;
 		const computedTotal = hydratedDestinations.reduce((a,d)=> a + (d.nights||0),0);
@@ -991,7 +1095,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		}
 		dispatch(resetPlanner({ tripId: meta.id }));
 		dispatch(loadState({
-			destinations: hydratedDestinations,
+			destinations: cleanedDestinations,
 			currency: normalizedCurrency,
 			targetNights: effectiveTarget,
 			targetLocked: lockTarget,
@@ -1006,18 +1110,16 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			expenseVisibilityEmails: [],
 			comments: []
 		}));
-		hydratedRef.current = meta.id;
+		hydratedRef.current = `${meta.id}:${itinerary.length}`;
 		// Commit initial snapshot after first hydration
 		requestAnimationFrame(()=> { lastCommittedRef.current = computeSignature(); });
-	}, [unifiedTrip, title, editingTitle, dispatch, planner.targetNights, computeSignature]);
+	}, [unifiedTrip, title, dispatch, planner.targetNights, computeSignature]);
 
 	// Centralized feature flags
 	const ENABLE_EXPENSES = FEATURE_FLAGS.expenses;
 	const ENABLE_COMMENTS = FEATURE_FLAGS.comments;
 	const ENABLE_DOC_UPLOAD = FEATURE_FLAGS.docsUpload;
 	// (moved earlier)
-	const [currencyAnchor, setCurrencyAnchor] = React.useState<null | HTMLElement>(null);
-	const [privacyAnchor, setPrivacyAnchor] = React.useState<null | HTMLElement>(null);
 	const [settingsOpen, setSettingsOpen] = React.useState(false);
 	const [optimizingRoute, setOptimizingRoute] = React.useState(false);
 	const [saving, setSaving] = React.useState(false);
@@ -1123,6 +1225,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const [visaOpen, setVisaOpen] = React.useState(false);
 	const [pinnedOpen, setPinnedOpen] = React.useState(false);
 	const [exitConfirmOpen, setExitConfirmOpen] = React.useState(false);
+	const [showCelebration, setShowCelebration] = React.useState(false);
+	const [naviaDrawerOpen, setNaviaDrawerOpen] = React.useState(false);
 	const [exiting, setExiting] = React.useState(false);
 	const [deletingTrip, setDeletingTrip] = React.useState(false);
 	const [confirmDeleteOpen, setConfirmDeleteOpen] = React.useState(false);
@@ -1189,12 +1293,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		id:d.id, name:d.name, start:dateFormatter(d.startDate), end:dateFormatter(d.endDate), nights:d.nights, transport:d.transport||'', todo:''
 	})), [planner.destinations, dateFormatter]);
 	const ENABLE_CARD_LAYOUT = true;
-	const openCurrency = (e: React.MouseEvent<HTMLButtonElement>) => setCurrencyAnchor(e.currentTarget);
-	const closeCurrency = () => setCurrencyAnchor(null);
-	const selectCurrency = (c: 'EUR'|'USD'|'GBP') => { dispatch(setCurrencyAction(c)); closeCurrency(); };
-	const openPrivacy = (e: React.MouseEvent<HTMLButtonElement>) => setPrivacyAnchor(e.currentTarget);
-	const closePrivacy = () => setPrivacyAnchor(null);
-	const selectPrivacy = (p:'Private'|'Trip Members'|'Everyone') => { setPrivacy(p); closePrivacy(); };
 	const handleTabChange = (_:any,v:number)=> setTab(v);
 	const handleChangeNights = (id:string, delta:number)=> dispatch(updateDestinationNights({ id, delta }));
 	const handleChangeTransport = (id:string, mode:string)=> dispatch(setTransport({ id, transport: mode }));
@@ -1423,6 +1521,18 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		}
 	}, [authToken, saving, lastSaveTs, tripId, openToast]);
 
+	// If notes were silently cleaned on hydration (category 'general' leaked into notes field),
+	// persist the corrected value automatically so the backend stays in sync.
+	React.useEffect(() => {
+		if (!isHydrated || !cleanedNotesRef.current || !effectiveCanEdit || !authToken) return;
+		cleanedNotesRef.current = false;
+		const timer = setTimeout(() => {
+			const payload = buildPersistPayload(isDraft);
+			persistToBackend(payload).then(ok => { if (ok) commitSnapshot(isDraft); });
+		}, 800);
+		return () => clearTimeout(timer);
+	}, [isHydrated, effectiveCanEdit, authToken, buildPersistPayload, persistToBackend, isDraft, commitSnapshot]);
+
 	const handlePublish = () => {
 		if(!currentUserIsOwner) return; // safety
 		if(isDraft){
@@ -1430,7 +1540,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			const payload = buildPersistPayload(false);
 			persistedPayloadRef.current = payload;
 			// Persist first, then commit snapshot only on success
-			persistToBackend(payload).then(ok => { if(ok) commitSnapshot(false); });
+			persistToBackend(payload).then(ok => { if(ok) { commitSnapshot(false); setShowCelebration(true); } });
 		} else {
 			// Unpublish -> revert to draft
 			commitSnapshot(true);
@@ -1574,20 +1684,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						</IconButton>
 					</Tooltip>
 				} centerNode={
-					<Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
-						{editingTitle ? (
-							<Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
-								<InputBase value={title} onChange={e=> setTitle(e.target.value)} autoFocus onBlur={()=> setEditingTitle(false)} disabled={isExternalNonOwner} sx={{ px:1.2, py:.5, borderRadius:1.5, fontWeight:600, fontSize:18, border:(t)=>`1px solid ${t.palette.divider}`, background:(t)=> t.palette.mode==='dark'? '#1e2936':'#f5f7f9', minWidth:180, opacity:isExternalNonOwner? .6:1 }} />
-								{!isExternalNonOwner && <IconButton size='small' onClick={()=> setEditingTitle(false)}><CheckIcon fontSize='small' /></IconButton>}
-							</Box>
-						) : (
-							<Box sx={{ display:'flex', alignItems:'center', gap:1 }}>
-								<Typography noWrap sx={{ fontFamily:"'Playfair Display', Georgia, serif", fontWeight:700, fontStyle:'italic', fontSize:'1.2rem', letterSpacing:'-0.35px', lineHeight:1.15, cursor:isDraft && !isExternalNonOwner ? 'text':'default' }} onClick={()=> { if(isDraft && !isExternalNonOwner) setEditingTitle(true); }}>{title}</Typography>
-								{isDraft && !isExternalNonOwner && <IconButton size='small' onClick={()=> setEditingTitle(true)} sx={{ ml:-.5 }}><EditIcon fontSize='small' /></IconButton>}
-							</Box>
-						)}
-						<Chip size='small' label={isDraft? 'Draft':'Published'} color={isDraft? 'default':'success'} sx={{ fontSize:11, fontWeight:600, letterSpacing:'0.2px', ml:1 }} />
-					</Box>
+					<Typography noWrap sx={{ fontFamily:"'Playfair Display', Georgia, serif", fontWeight:700, fontStyle:'italic', fontSize:'1.2rem', letterSpacing:'-0.35px', lineHeight:1.15 }}>{title}</Typography>
 				} />
 				<Box ref={containerRef} sx={{ flex:1, display:'flex', position:'relative', minHeight:0 }}>
 					{/* Centre content column */}
@@ -1605,7 +1702,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 							<PackingPanel />
 						</Box>
 					) : (
-					<Box sx={(theme)=>({ flex:1, minWidth:0, display:'flex', flexDirection:'column',
+					<Box sx={(theme)=>({ flex:1, minWidth:0, minHeight:0, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative',
 						/* Premium board background — dot grid pattern */
 						backgroundColor: theme.palette.mode==='light' ? '#f9fafb' : '#111315',
 						backgroundImage: theme.palette.mode==='light'
@@ -1635,73 +1732,40 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 									</Box>
 								} disabled={!ENABLE_COMMENTS} /> */}
 							</Tabs>
-							{/* Budget + Privacy compact */}
-							<Box sx={{ display:'flex', alignItems:'center', gap:1, mr:.5 }}>
-								<Tooltip title='Budget currency'>
-									<Button size='small' variant='text' onClick={readOnly? undefined : openCurrency} disabled={readOnly} endIcon={<ExpandMoreIcon sx={{ fontSize:14 }} />} sx={{ textTransform:'none', fontWeight:700, fontSize:13, px:.75, minWidth:0, color:'text.primary', fontFamily:"'Inter', sans-serif", letterSpacing:'-0.1px' }}>
-										{(planner.tripBudget!=null ? planner.tripBudget : 0).toFixed(0)} {currency}
-									</Button>
-								</Tooltip>
-								<Tooltip title='Privacy'>
-									<Button size='small' variant='text' onClick={readOnly? undefined: openPrivacy} disabled={readOnly} endIcon={<ExpandMoreIcon sx={{ fontSize:14 }} />} sx={{ textTransform:'none', fontWeight:700, fontSize:13, px:.75, minWidth:0, color:'text.primary', fontFamily:"'Inter', sans-serif", letterSpacing:'-0.1px' }}>
-										{privacy}
-									</Button>
-								</Tooltip>
-							</Box>
-							<Box sx={{ display:'flex', alignItems:'center', gap:.75 }}>
-								<Box sx={{ position:'relative', width:38, height:38 }}>
-									<CircularProgress
-										variant='determinate'
-										value={100}
-										size={38}
-										thickness={4.5}
-										sx={(t)=>({ color: t.palette.mode==='dark'? t.palette.grey[800] : t.palette.grey[300] })}
-									/>
-									<CircularProgress
-										variant='determinate'
-										value={targetNights? Math.min(100,(totalNights/targetNights)*100):0}
-										size={38}
-										thickness={4.5}
-										sx={{
-											position:'absolute',
-											left:0,
-											top:0,
-											color:'#FF385C',
-											transition:'color .3s'
-										}}
-									/>
-									<Box sx={{ position:'absolute', inset:0, display:'flex', alignItems:'center', justifyContent:'center' }}>
-										<Typography variant='caption' fontWeight={700} sx={{ fontSize:10 }}>{totalNights}/{targetNights}</Typography>
-									</Box>
+							<Tooltip title={`${totalNights} of ${targetNights} nights planned`} arrow placement='bottom'>
+							<Box sx={(t) => ({
+								position: 'relative', display: 'flex', alignItems: 'center', gap: .55,
+								px: 1.1, height: 32, borderRadius: '20px', overflow: 'hidden', cursor: 'default', flexShrink: 0,
+								border: `1px solid ${totalNights >= targetNights && targetNights > 0 ? 'rgba(255,56,92,0.45)' : t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
+								bgcolor: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
+								transition: 'border-color .3s',
+							})}>
+								{/* Filling progress background */}
+								<Box sx={{
+									position: 'absolute', left: 0, top: 0, bottom: 0,
+									width: `${targetNights ? Math.min(100, (totalNights / targetNights) * 100) : 0}%`,
+									bgcolor: 'rgba(255,56,92,0.09)',
+									transition: 'width .45s cubic-bezier(.4,0,.2,1)',
+									pointerEvents: 'none',
+								}} />
+								<NightsStayRoundedIcon sx={{ fontSize: 13, color: '#FF385C', position: 'relative', zIndex: 1, flexShrink: 0 }} />
+								<Box sx={{ display: 'flex', alignItems: 'baseline', gap: .3, position: 'relative', zIndex: 1 }}>
+									<Typography sx={{ fontSize: 13, fontWeight: 700, lineHeight: 1, color: 'text.primary' }}>
+										{totalNights}
+									</Typography>
+									<Typography sx={{ fontSize: 11, fontWeight: 500, lineHeight: 1, color: 'text.secondary' }}>
+										/ {targetNights} nights
+									</Typography>
 								</Box>
-								<Typography variant='caption' fontWeight={600} sx={{ fontSize:11 }}>Nights</Typography>
 							</Box>
-							<Tooltip title='View map'>
-								<IconButton size='small' onClick={()=> setMapDrawerOpen(true)} sx={{ bgcolor:'background.paper', border:(t)=>`1px solid ${t.palette.divider}`, '&:hover':{ bgcolor:'rgba(255,56,92,0.07)', borderColor:'rgba(255,56,92,0.4)', color:'#FF385C' }, mr:.25, color:'text.secondary' }}>
-									<MapOutlinedIcon fontSize='small' />
-								</IconButton>
-							</Tooltip>
-							{!isExternalNonOwner && (
-							<Tooltip arrow placement='top' title={geocodedCount < 3 ? 'Add at least 3 destinations with coordinates to optimize' : optimizingRoute ? 'Optimizing route...' : 'Optimize route'}>
-								<span>
-									<IconButton aria-label='Optimize route' onClick={handleOptimizeRouteClick} disabled={geocodedCount < 3 || optimizingRoute} sx={{ ml:.5, bgcolor:'primary.main', color:'primary.contrastText', borderRadius:2, position:'relative', '&:hover':{ bgcolor:'primary.dark' }, '&.Mui-disabled':{ bgcolor:'action.disabledBackground', color:'text.disabled' } }}>
-										{optimizingRoute ? (
-											<Box sx={{ width:16, height:16, border:'2px solid rgba(255,255,255,0.4)', borderTopColor:'#fff', borderRadius:'50%', animation:'spin 0.8s linear infinite', '@keyframes spin':{ to:{ transform:'rotate(360deg)' } } }} />
-										) : (
-											<AltRouteIcon fontSize='small' />
-										)}
-									</IconButton>
-								</span>
-							</Tooltip>
-							)}
+						</Tooltip>
 							{!readOnly && effectiveCanEdit && (
-							<Tooltip arrow placement='top' title={!isDraft ? 'Trip is published' : 'Publish trip'}>
+							<Tooltip arrow placement='bottom' title={!isDraft ? 'Your trip is live — visible to everyone' : saving ? 'Publishing...' : 'Make your trip public'}>
 								<span>
 									<Button
 										size='small'
 										variant='contained'
-										disabled={!isDraft}
-										startIcon={saving ? <CircularProgress size={14} thickness={5} sx={{ color: 'inherit' }} /> : <PublishRoundedIcon fontSize='small' />}
+										disabled={!isDraft || saving}
 										onClick={() => {
 											if (isDraft) {
 												handlePublish();
@@ -1709,16 +1773,55 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 											}
 										}}
 										sx={{
-											ml: .5, textTransform: 'none', borderRadius: 2, px: 1.5, fontSize: 12, fontWeight: 600, minWidth: 0,
-											...(!isDraft ? {
-												bgcolor: '#2e7d32',
+											ml: .5,
+											textTransform: 'none',
+											borderRadius: '20px',
+											px: isDraft ? 1.6 : 1.4,
+											height: 32,
+											fontSize: 12,
+											fontWeight: 700,
+											minWidth: 0,
+											letterSpacing: '-0.1px',
+											gap: .4,
+											flexShrink: 0,
+											transition: 'all .25s cubic-bezier(.4,0,.2,1)',
+											...(isDraft ? {
+												background: 'linear-gradient(135deg, #FF385C 0%, #E31C5F 55%, #c91855 100%)',
 												color: '#fff',
-												boxShadow: '0 0 12px 3px rgba(46,125,50,0.45)',
-												'&.Mui-disabled': { bgcolor: '#2e7d32', color: '#fff', opacity: 1, boxShadow: '0 0 12px 3px rgba(46,125,50,0.45)' },
-											} : {}),
+												boxShadow: '0 2px 10px rgba(255,56,92,0.40), 0 1px 3px rgba(0,0,0,0.15)',
+												border: '1px solid rgba(255,255,255,0.15)',
+												'&:hover': {
+													background: 'linear-gradient(135deg, #ff4d6d 0%, #E31C5F 55%, #b5144c 100%)',
+													boxShadow: '0 4px 18px rgba(255,56,92,0.55), 0 1px 4px rgba(0,0,0,0.18)',
+													transform: 'translateY(-1px)',
+												},
+												'&:active': { transform: 'translateY(0)', boxShadow: '0 2px 8px rgba(255,56,92,0.4)' },
+												'&.Mui-disabled': {
+													background: 'linear-gradient(135deg, #FF385C, #E31C5F)',
+													color: 'rgba(255,255,255,0.7)',
+													boxShadow: 'none',
+												},
+											} : {
+												background: 'linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%)',
+												color: '#fff',
+												boxShadow: '0 0 14px 2px rgba(46,125,50,0.4)',
+												border: '1px solid rgba(255,255,255,0.12)',
+												'&.Mui-disabled': {
+													background: 'linear-gradient(135deg, #1b5e20, #2e7d32)',
+													color: '#fff',
+													opacity: 1,
+													boxShadow: '0 0 14px 2px rgba(46,125,50,0.4)',
+												},
+											}),
 										}}
 									>
-										{!isDraft ? 'Published' : 'Publish'}
+										{saving ? (
+											<><CircularProgress size={12} thickness={5} sx={{ color: 'inherit', mr: .4 }} />Publishing…</>
+										) : isDraft ? (
+											<><PublishRoundedIcon sx={{ fontSize: 13 }} /> Publish</>
+										) : (
+											<><ShareRoundedIcon sx={{ fontSize: 13 }} /> Published</>
+										)}
 									</Button>
 								</span>
 							</Tooltip>
@@ -1726,11 +1829,81 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						</Box>
 						)}
 						<Divider />
-						<Box sx={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column'}}>
+						{/* ── Floating board tools: Map + Optimize ── */}
+						{section === 'plan' && (
+							<Box sx={{ position: 'absolute', bottom: 72, left: 16, zIndex: 10, display: 'flex', flexDirection: 'column', gap: .85 }}>
+								<Tooltip title='View map' placement='right' arrow>
+									<IconButton
+										onClick={() => setMapDrawerOpen(true)}
+										sx={(t) => ({
+											width: 40, height: 40, borderRadius: '13px',
+											bgcolor: t.palette.mode === 'dark' ? 'rgba(18,20,24,0.88)' : 'rgba(255,255,255,0.90)',
+											border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.09)'}`,
+											color: 'text.secondary', backdropFilter: 'blur(10px)',
+											boxShadow: '0 2px 12px rgba(0,0,0,0.13)',
+											transition: 'all .15s',
+											'&:hover': { bgcolor: 'rgba(255,56,92,0.08)', borderColor: 'rgba(255,56,92,0.38)', color: '#FF385C', boxShadow: '0 4px 18px rgba(255,56,92,0.18)', transform: 'translateY(-1px)' },
+										})}
+									>
+										<MapOutlinedIcon sx={{ fontSize: 18 }} />
+									</IconButton>
+								</Tooltip>
+								{!isExternalNonOwner && (
+									<Tooltip
+										placement='right' arrow
+										title={geocodedCount < 3 ? 'Add at least 3 destinations with coordinates to optimize' : optimizingRoute ? 'Optimizing…' : 'Optimize route order'}
+									>
+										<span>
+											<IconButton
+												aria-label='Optimize route'
+												onClick={handleOptimizeRouteClick}
+												disabled={geocodedCount < 3 || optimizingRoute}
+												sx={(t) => ({
+													width: 40, height: 40, borderRadius: '13px',
+													bgcolor: t.palette.mode === 'dark' ? 'rgba(18,20,24,0.88)' : 'rgba(255,255,255,0.90)',
+													border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.09)'}`,
+													color: 'text.secondary', backdropFilter: 'blur(10px)',
+													boxShadow: '0 2px 12px rgba(0,0,0,0.13)',
+													transition: 'all .15s',
+													'&:hover': { bgcolor: 'rgba(99,102,241,0.08)', borderColor: 'rgba(99,102,241,0.38)', color: '#6366f1', boxShadow: '0 4px 18px rgba(99,102,241,0.18)', transform: 'translateY(-1px)' },
+													'&.Mui-disabled': { bgcolor: t.palette.mode === 'dark' ? 'rgba(18,20,24,0.5)' : 'rgba(255,255,255,0.55)', color: 'text.disabled', boxShadow: 'none', border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'}` },
+												})}
+											>
+												{optimizingRoute
+													? <Box sx={{ width: 16, height: 16, border: '2px solid rgba(99,102,241,0.3)', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.8s linear infinite', '@keyframes spin': { to: { transform: 'rotate(360deg)' } } }} />
+													: <AltRouteIcon sx={{ fontSize: 18 }} />
+												}
+											</IconButton>
+										</span>
+									</Tooltip>
+								)}
+							{/* Settings — mobile only (desktop uses sidebar) */}
+							{(!readOnly && effectiveCanEdit) && (
+								<Tooltip title='Trip settings' placement='right' arrow>
+									<IconButton
+										onClick={() => setSettingsOpen(true)}
+										sx={(t) => ({
+											display: { xs: 'flex', md: 'none' },
+											width: 40, height: 40, borderRadius: '13px',
+											bgcolor: t.palette.mode === 'dark' ? 'rgba(18,20,24,0.88)' : 'rgba(255,255,255,0.90)',
+											border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.09)'}`,
+											color: 'text.secondary', backdropFilter: 'blur(10px)',
+											boxShadow: '0 2px 12px rgba(0,0,0,0.13)',
+											transition: 'all .15s',
+											'&:hover': { bgcolor: 'rgba(255,56,92,0.08)', borderColor: 'rgba(255,56,92,0.38)', color: '#FF385C', boxShadow: '0 4px 18px rgba(255,56,92,0.18)', transform: 'translateY(-1px)' },
+										})}
+									>
+										<TuneRoundedIcon sx={{ fontSize: 18 }} />
+									</IconButton>
+								</Tooltip>
+							)}
+						</Box>
+					)}
+					<Box sx={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column'}}>
 							{section==='plan' && tab===0 && (
 								<Box sx={{ px:0 }}>
 									{ENABLE_CARD_LAYOUT ? (
-										<DestinationCardsPanel maxed={totalNights >= targetNights} readOnly={readOnly || !effectiveCanEdit} canAccessDocs={canAccessDocs} canEdit={effectiveCanEdit} />
+										<DestinationCardsPanel maxed={totalNights >= targetNights} readOnly={readOnly || !effectiveCanEdit} canAccessDocs={canAccessDocs} canEdit={effectiveCanEdit} isPublished={!isDraft} onRequestNaviaTip={(msg) => window.dispatchEvent(new CustomEvent('navia:send', { detail: { message: msg } }))} />
 									) : (
 										<DestinationsPanel
 											destinations={panelDestinations}
@@ -1784,8 +1957,11 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					</Box>{/* end centre column */}
 				{/* Right panel — Navia for owners/editors, trip info for public viewers */}
 				{(!readOnly && effectiveCanEdit) ? (
-					<PremiumChatPanel />
+					<Box sx={{ display: { xs: 'none', lg: 'flex' }, alignSelf: 'stretch', overflow: 'hidden', flexShrink: 0 }}>
+						<PremiumChatPanel />
+					</Box>
 				) : (
+					<Box sx={{ display: { xs: 'none', lg: 'flex' }, flexDirection: 'column', flex: '0 0 auto' }}>
 					<TripViewPanel
 						title={title}
 						description={tripDescription}
@@ -1800,18 +1976,44 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						showEditAction={showViewEditAction}
 						onRequestEdit={onRequestEdit}
 					/>
+					</Box>
 				)}
 		</Box>
-		{effectiveCanEdit && (
-			<Menu anchorEl={currencyAnchor} open={Boolean(currencyAnchor)} onClose={closeCurrency} elevation={3}>
-				{(['EUR','USD','GBP'] as const).map(c=> (<MenuItem key={c} selected={c===currency} onClick={()=> selectCurrency(c)}><Avatar sx={{ width:20, height:20, mr:1, fontSize:11 }}>{c==='EUR'?'€': c==='USD'? '$':'£'}</Avatar>{c}</MenuItem>))}
-			</Menu>
+		{/* Mobile Navia FAB (visible only on xs/sm) */}
+		{(!readOnly && effectiveCanEdit) && (
+			<Fab
+				onClick={() => setNaviaDrawerOpen(true)}
+				sx={{
+					position: 'fixed', bottom: 86, right: 20,
+					display: { xs: 'flex', lg: 'none' },
+					background: 'linear-gradient(135deg,#FF385C,#E31C5F)',
+					color: '#fff', width: 56, height: 56,
+					boxShadow: '0 6px 24px rgba(255,56,92,0.45)',
+					zIndex: 1200,
+					'&:hover': { background: 'linear-gradient(135deg,#E31C5F,#c91855)' },
+				}}
+			>
+				<ChatRoundedIcon />
+			</Fab>
 		)}
-		{effectiveCanEdit && (
-					<Menu anchorEl={privacyAnchor} open={Boolean(privacyAnchor)} onClose={closePrivacy} elevation={3}>
-					{(['Private','Trip Members'] as const).map(p=> (<MenuItem key={p} selected={p===privacy} onClick={()=> selectPrivacy(p)}>{p}</MenuItem>))}
-				</Menu>
-				)}
+		{/* Mobile Navia bottom sheet */}
+		<Drawer
+			anchor='bottom'
+			open={naviaDrawerOpen}
+			onClose={() => setNaviaDrawerOpen(false)}
+			sx={{ display: { xs: 'block', lg: 'none' } }}
+			slotProps={{ paper: { sx: { height: '75vh', borderRadius: '16px 16px 0 0', overflow: 'hidden', background: 'transparent', boxShadow: 'none' } } }}
+		>
+			<Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: 'background.paper', borderRadius: '16px 16px 0 0' }}>
+				<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1.25, borderBottom: '1px solid', borderColor: 'divider' }}>
+					<Typography sx={{ fontWeight: 700, fontSize: 15 }}>Ask Navia</Typography>
+					<IconButton size='small' onClick={() => setNaviaDrawerOpen(false)}><CloseIcon fontSize='small' /></IconButton>
+				</Box>
+				<Box sx={{ flex: 1, overflow: 'hidden' }}>
+					<PremiumChatPanel />
+				</Box>
+			</Box>
+		</Drawer>
 				{canAccessDocs && ENABLE_DOC_UPLOAD && (
 				<Dialog open={visaOpen} onClose={()=> setVisaOpen(false)} fullWidth maxWidth='sm'>
 					<DialogTitle>Visa Documents</DialogTitle>
@@ -1991,16 +2193,37 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					onInviteEmail={async(_)=> { /* invite email placeholder */ }}
 			/>
 
-			<Dialog open={exitConfirmOpen} onClose={()=> setExitConfirmOpen(false)} maxWidth='xs' fullWidth>
-				<DialogTitle>Unsaved Changes</DialogTitle>
+			<Dialog
+				open={exitConfirmOpen}
+				onClose={()=> setExitConfirmOpen(false)}
+				maxWidth='xs'
+				fullWidth
+				slotProps={{ paper: { sx: { borderRadius: { xs: '16px', sm: '12px' }, mx: { xs: 2, sm: 'auto' } } } }}
+			>
+				<DialogTitle sx={{ fontSize: { xs: 17, sm: 20 }, fontWeight: 700, pb: .5 }}>Unsaved Changes</DialogTitle>
 				<DialogContent dividers>
 					<Typography variant='body2'>You have unsaved changes. Save them as a draft before leaving, or discard changes?</Typography>
 				</DialogContent>
-				<DialogActions sx={{ justifyContent:'space-between' }}>
-					<Button onClick={()=> setExitConfirmOpen(false)} disabled={exiting}>Cancel</Button>
-					<Box sx={{ display:'flex', gap:1 }}>
-						<Button variant='outlined' onClick={()=> { setExitConfirmOpen(false); performSaveDraftAndExit(); }} disabled={exiting}>{exiting? 'Saving...' : 'Save Draft & Exit'}</Button>
-						<Button variant='contained' color='error' onClick={()=> { setExitConfirmOpen(false); redirectDashboard(); }} disabled={exiting}>Discard & Exit</Button>
+				<DialogActions sx={{ flexDirection: { xs: 'column-reverse', sm: 'row' }, justifyContent: { xs: 'stretch', sm: 'space-between' }, p: { xs: 2, sm: 1 }, gap: { xs: .75, sm: 0 } }}>
+					<Button
+						onClick={()=> setExitConfirmOpen(false)}
+						disabled={exiting}
+						sx={{ width: { xs: '100%', sm: 'auto' } }}
+					>Cancel</Button>
+					<Box sx={{ display:'flex', gap:1, flexDirection: { xs: 'column-reverse', sm: 'row' }, width: { xs: '100%', sm: 'auto' } }}>
+						<Button
+							variant='outlined'
+							onClick={()=> { setExitConfirmOpen(false); performSaveDraftAndExit(); }}
+							disabled={exiting}
+							sx={{ width: { xs: '100%', sm: 'auto' } }}
+						>{exiting? 'Saving...' : 'Save Draft & Exit'}</Button>
+						<Button
+							variant='contained'
+							color='error'
+							onClick={()=> { setExitConfirmOpen(false); redirectDashboard(); }}
+							disabled={exiting}
+							sx={{ width: { xs: '100%', sm: 'auto' } }}
+						>Discard & Exit</Button>
 					</Box>
 				</DialogActions>
 			</Dialog>
@@ -2043,6 +2266,54 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			travelMode={planner.destinations[0]?.transport || 'car'}
 			tripId={tripId}
 		/>
+		{/* ── Publish celebration overlay (Feature 6) ── */}
+		{showCelebration && (
+			<Box
+				component='div'
+				ref={(el: HTMLDivElement | null) => {
+					if (el) {
+						confetti({ particleCount: 180, spread: 90, origin: { y: 0.55 }, colors: ['#e8436a', '#FF385C', '#fff', '#fbbf24', '#f0abfc'] });
+						setTimeout(() => confetti({ particleCount: 80, spread: 60, origin: { y: 0.5, x: 0.2 }, angle: 60, colors: ['#e8436a', '#fff'] }), 350);
+						setTimeout(() => confetti({ particleCount: 80, spread: 60, origin: { y: 0.5, x: 0.8 }, angle: 120, colors: ['#FF385C', '#fbbf24'] }), 500);
+						setTimeout(() => setShowCelebration(false), 4500);
+					}
+				}}
+				onClick={() => setShowCelebration(false)}
+				sx={{
+					position: 'fixed', inset: 0, zIndex: 9999,
+					background: 'rgba(13,13,13,0.97)',
+					display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
+					cursor: 'pointer',
+					'@keyframes celebFadeIn': { from: { opacity: 0, transform: 'scale(0.96)' }, to: { opacity: 1, transform: 'scale(1)' } },
+					animation: 'celebFadeIn 0.35s ease forwards',
+				}}
+			>
+				{/* Tripician logo mark */}
+				<Box sx={{ width: 56, height: 56, borderRadius: '16px', background: 'linear-gradient(135deg,#FF385C,#E31C5F)', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5, boxShadow: '0 8px 32px rgba(255,56,92,0.45)' }}>
+					<Typography sx={{ fontSize: 26, color: '#fff', fontWeight: 800, fontFamily: "'Playfair Display', serif", fontStyle: 'italic', lineHeight: 1 }}>T</Typography>
+				</Box>
+				<Typography sx={{ fontSize: { xs: '1.6rem', sm: '2.2rem' }, fontWeight: 700, color: '#fff', textAlign: 'center', fontFamily: "'Playfair Display', serif", lineHeight: 1.15 }}>
+					Your adventure is ready.
+				</Typography>
+				<Typography sx={{ fontSize: { xs: '1.1rem', sm: '1.4rem' }, fontWeight: 600, color: '#e8436a', fontStyle: 'italic', textAlign: 'center', fontFamily: "'Playfair Display', serif", lineHeight: 1.2, maxWidth: 400, px: 2 }}>
+					{title}
+				</Typography>
+				<Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', mt: 2 }}>Click anywhere to dismiss</Typography>
+				<Box sx={{ display: 'flex', gap: 1.5, mt: 1 }} onClick={e => e.stopPropagation()}>
+					<Button
+						variant='contained'
+						startIcon={<ShareRoundedIcon />}
+						onClick={() => { setShowCelebration(false); }}
+						sx={{ borderRadius: '40px', px: 3, py: 1, textTransform: 'none', fontWeight: 700, fontSize: 14, background: 'linear-gradient(135deg,#FF385C,#E31C5F)', boxShadow: '0 4px 16px rgba(255,56,92,0.40)', '&:hover': { background: 'linear-gradient(135deg,#E31C5F,#c91855)' } }}
+					>Share this plan</Button>
+					<Button
+						variant='outlined'
+						onClick={() => setShowCelebration(false)}
+						sx={{ borderRadius: '40px', px: 3, py: 1, textTransform: 'none', fontWeight: 700, fontSize: 14, color: '#fff', borderColor: 'rgba(255,255,255,0.35)', '&:hover': { borderColor: '#fff', background: 'rgba(255,255,255,0.08)' } }}
+					>Back to board</Button>
+				</Box>
+			</Box>
+		)}
 		<Snackbar open={toast.open} autoHideDuration={3000} onClose={closeToast} anchorOrigin={{ vertical:'bottom', horizontal:'right' }}>
 			<Alert onClose={closeToast} severity={toast.type} variant='filled' sx={{ boxShadow:2 }}>
 				{toast.msg}

@@ -60,6 +60,14 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
     return match?.text ?? (location.pathname === '/profile' ? 'Profile' : 'Home');
   });
   const [createTripOpen, setCreateTripOpen] = useState(false);
+  const [mobileOpen, setMobileOpen] = useState(false);
+
+  // Listen for burger button event from TopBar
+  useEffect(() => {
+    const handler = () => setMobileOpen(prev => !prev);
+    window.addEventListener('nav:toggleMobile', handler);
+    return () => window.removeEventListener('nav:toggleMobile', handler);
+  }, []);
 
   const dispatch = useDispatch<AppDispatch>();
   const { profile } = useSelector((state: RootState) => state.user);
@@ -137,11 +145,12 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
   return (
     <Box sx={{ display: 'flex', height: '100vh', maxWidth: '100vw', overflow: 'hidden' }}>
 
-      {/* ── Sidebar ─────────────────────────────────────────────────────────── */}
+      {/* ── Sidebar — desktop only ─────────────────────────────────────────── */}
       <Drawer
         variant="permanent"
         anchor="left"
         sx={{
+          display: { xs: 'none', md: 'block' },
           width: DRAWER_WIDTH,
           flexShrink: 0,
           '& .MuiDrawer-paper': {
@@ -269,10 +278,91 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
         </Box>
       </Drawer>
 
-      {/* ── Main content ────────────────────────────────────────────────────── */}
+      {/* ── Mobile drawer — slides in from left on xs/sm ──────────────────── */}
+      <Drawer
+        variant="temporary"
+        anchor="left"
+        open={mobileOpen}
+        onClose={() => setMobileOpen(false)}
+        sx={{
+          display: { xs: 'block', md: 'none' },
+          '& .MuiDrawer-paper': {
+            width: 220,
+            boxSizing: 'border-box',
+            display: 'flex',
+            flexDirection: 'column',
+            alignItems: 'center',
+            py: 3,
+            gap: 0,
+            background: isLight ? 'rgba(255,255,255,0.97)' : 'rgba(14,14,14,0.97)',
+            backdropFilter: 'blur(24px)',
+            WebkitBackdropFilter: 'blur(24px)',
+            borderRight: 'none',
+            boxShadow: isLight ? '4px 0 32px rgba(0,0,0,0.10)' : '4px 0 32px rgba(0,0,0,0.6)',
+          },
+        }}
+      >
+        {/* Nav items */}
+        <List disablePadding sx={{ display: 'flex', flexDirection: 'column', gap: '4px', px: 1.5, width: '100%' }}>
+          {NAV_ITEMS.map(item => {
+            const active = selectedItem === item.text;
+            return (
+              <ListItem
+                key={item.text}
+                component="button"
+                disabled={item.disabled}
+                onClick={() => { if (!item.disabled) { handleMenuItemClick(item.text); setMobileOpen(false); } }}
+                sx={{
+                  width: '100%', height: 48, borderRadius: '12px', px: 2, gap: 1.5,
+                  justifyContent: 'flex-start', alignItems: 'center',
+                  background: active
+                    ? (isLight ? 'linear-gradient(135deg,rgba(255,56,92,0.10),rgba(217,26,80,0.06))' : 'linear-gradient(135deg,rgba(255,56,92,0.22),rgba(217,26,80,0.14))')
+                    : 'transparent',
+                  border: `1px solid ${active ? `rgba(255,56,92,${isLight ? '0.22' : '0.35'})` : 'transparent'}`,
+                  opacity: item.disabled ? 0.36 : 1,
+                  cursor: item.disabled ? 'not-allowed' : 'pointer',
+                  transition: 'background 0.2s ease',
+                  '&:hover': item.disabled ? {} : { background: isLight ? 'rgba(0,0,0,0.04)' : 'rgba(255,255,255,0.06)' },
+                }}
+              >
+                <Box sx={{ color: active ? '#FF385C' : (isLight ? '#999' : 'rgba(255,255,255,0.38)'), display: 'flex', alignItems: 'center' }}>
+                  <item.Icon sx={{ fontSize: 20 }} />
+                </Box>
+                <Box component="span" sx={{ fontSize: '0.875rem', fontWeight: active ? 700 : 500, color: active ? '#FF385C' : 'text.primary', fontFamily: "'Inter',sans-serif", letterSpacing: '-0.01em' }}>
+                  {item.text}{item.comingSoon ? ' → Soon' : ''}
+                </Box>
+              </ListItem>
+            );
+          })}
+        </List>
+
+        <Box sx={{ flex: 1 }} />
+
+        {/* Create Trip button */}
+        <Box sx={{ px: 1.5, width: '100%', pb: 1 }}>
+          <Box
+            component="button"
+            onClick={() => { setCreateTripOpen(true); setMobileOpen(false); }}
+            sx={{
+              width: '100%', height: 46, borderRadius: '12px',
+              background: 'linear-gradient(135deg,#FF385C 0%,#D91A50 100%)',
+              border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1,
+              color: '#fff', fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.875rem',
+              boxShadow: '0 4px 22px rgba(255,56,92,0.40)',
+              transition: 'box-shadow 0.2s ease',
+              '&:active': { transform: 'scale(0.97)' },
+            }}
+          >
+            <AddIcon sx={{ fontSize: 20 }} />
+            Create Trip
+          </Box>
+        </Box>
+      </Drawer>
+
       <Box sx={{
         display: 'flex', flexDirection: 'column', flexGrow: 1,
-        width: `calc(100vw - ${DRAWER_WIDTH}px)`, height: '100vh',
+        width: { xs: '100vw', md: `calc(100vw - ${DRAWER_WIDTH}px)` }, height: '100vh',
         overflow: 'visible', position: 'relative',
       }}>
         <Box component="main" sx={{

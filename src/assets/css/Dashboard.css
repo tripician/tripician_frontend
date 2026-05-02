@@ -44,8 +44,8 @@
 @media (max-width: 600px) {
   .trip-cards-container {
     grid-template-columns: repeat(2, 1fr);
-    gap: 10px;
-    padding: 10px 10px 32px;
+    gap: 9px;
+    padding: 8px 10px 80px; /* extra bottom clearance for FABs */
   }
 }
 
