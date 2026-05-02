@@ -8,6 +8,26 @@ import { authAPI } from '../../services/APIs/Auth/auth';
 import { useNavigate } from 'react-router-dom';
 import { fadeInLeft, fadeInRight, staggerContainer, staggerItem } from '../../utils/animations';
 
+const GoogleSVG = () => (
+  <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.29-8.16 2.29-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+  </svg>
+);
+const FacebookSVG = () => (
+  <svg width="18" height="18" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path d="M24 12.073C24 5.405 18.627 0 12 0S0 5.405 0 12.073C0 18.1 4.388 23.094 10.125 24v-8.437H7.078v-3.49h3.047V9.41c0-3.025 1.792-4.697 4.533-4.697 1.313 0 2.686.236 2.686.236v2.97h-1.513c-1.491 0-1.956.93-1.956 1.887v2.267h3.328l-.532 3.49h-2.796V24C19.612 23.094 24 18.1 24 12.073z" fill="#1877F2"/>
+  </svg>
+);
+const RedditSVG = () => (
+  <svg width="18" height="18" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <circle cx="10" cy="10" r="10" fill="#FF4500"/>
+    <path fill="#fff" d="M16.67 10a1.46 1.46 0 00-2.47-1 7.12 7.12 0 00-3.85-1.23l.65-3.07 2.13.45a1 1 0 101.07-1 1 1 0 00-.96.68l-2.38-.5a.27.27 0 00-.32.2l-.73 3.43a7.14 7.14 0 00-3.89 1.23 1.46 1.46 0 10-1.61 2.39 2.87 2.87 0 000 .44c0 2.24 2.61 4.06 5.83 4.06s5.83-1.82 5.83-4.06a2.87 2.87 0 000-.44 1.46 1.46 0 00.6-1.58zM7.27 11a1 1 0 111 1 1 1 0 01-1-1zm5.6 2.71a3.58 3.58 0 01-2.84.83 3.58 3.58 0 01-2.84-.83.22.22 0 01.31-.31 3.15 3.15 0 002.53.67 3.15 3.15 0 002.53-.67.22.22 0 01.31.31zm-.22-1.71a1 1 0 111-1 1 1 0 01-1 1z"/>
+  </svg>
+);
+
 const Signup = () => {
     const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
@@ -90,6 +110,10 @@ const Signup = () => {
         setLoading(false);
       }
     };
+
+    const handleGoogleSignUp = () => { /* TODO: wire up Google OAuth */ };
+    const handleFacebookSignUp = () => { /* TODO: wire up Facebook OAuth */ };
+    const handleRedditSignUp = () => { /* TODO: wire up Reddit OAuth */ };
 
   return (
     <div className="auth-root">
@@ -292,6 +316,49 @@ const Signup = () => {
             Already have an account?
             <a href="/signin" className="auth-switch__link">Sign in</a>
           </motion.p>
+
+          <div className="auth-divider"><span>or sign up with</span></div>
+
+          <motion.div
+            className="auth-social"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.9, duration: 0.4 }}
+          >
+            <motion.button
+              className="auth-social-btn auth-social-btn--google"
+              type="button"
+              onClick={handleGoogleSignUp}
+              disabled={loading}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              aria-label="Sign up with Google"
+            >
+              <GoogleSVG /> Google
+            </motion.button>
+            <motion.button
+              className="auth-social-btn auth-social-btn--facebook"
+              type="button"
+              onClick={handleFacebookSignUp}
+              disabled={loading}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              aria-label="Sign up with Facebook"
+            >
+              <FacebookSVG /> Facebook
+            </motion.button>
+            <motion.button
+              className="auth-social-btn auth-social-btn--reddit"
+              type="button"
+              onClick={handleRedditSignUp}
+              disabled={loading}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+              aria-label="Sign up with Reddit"
+            >
+              <RedditSVG /> Reddit
+            </motion.button>
+          </motion.div>
         </motion.div>
       </motion.div>
     </div>
