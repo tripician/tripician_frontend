@@ -341,4 +341,27 @@ export const apiServices = {
     apiClient.patch('/api/profile/settings/preference', model, {
       headers: { Authorization: `Bearer ${token}` }
     }),
+
+  // ------------------------------------------------------------
+  // Profile Photo Upload / Remove (Cloudinary signed upload)
+  // POST /api/uploads/get-profile-upload-url
+  // Returns Cloudinary signed upload params + direct upload URL + final fileUrl
+  getProfileUploadUrl: (token: string, userId: string) =>
+    apiClient.post('/api/uploads/get-profile-upload-url', { UserId: userId }, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // DELETE /api/uploads/profile-photo/{userId}
+  // Deletes the avatar from Cloudinary and clears ProfilePicture in DB
+  removeProfilePhoto: (token: string, userId: number) =>
+    apiClient.delete(`/api/uploads/profile-photo/${userId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // PATCH /api/profile/settings/profile-picture
+  // Persists the Cloudinary URL to the DB after a direct upload
+  saveProfilePictureUrl: (token: string, profilePictureUrl: string) =>
+    apiClient.patch('/api/profile/settings/profile-picture', { ProfilePictureUrl: profilePictureUrl }, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
 };

@@ -2,6 +2,7 @@ import React from "react";
 import { Box, Typography, IconButton, Avatar, Tooltip, Popover, Divider, List, ListItemButton, ListItemText, ListItemIcon, Button, Badge } from "@mui/material";
 import { styled } from '@mui/material/styles';
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
+import NotificationsOffOutlinedIcon from "@mui/icons-material/NotificationsOffOutlined";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
 import LogoutIcon from '@mui/icons-material/Logout';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
@@ -25,12 +26,16 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
+  const [notifAnchorEl, setNotifAnchorEl] = React.useState<HTMLElement | null>(null);
 
   const displayName = profile ? `${profile.fname ?? ''} ${profile.lname ?? ''}`.trim() || 'T' : 'T';
   const initials = displayName.charAt(0).toUpperCase();
 
   const open = Boolean(anchorEl);
   const id = open ? 'profile-popover' : undefined;
+
+  const notifOpen = Boolean(notifAnchorEl);
+  const notifId = notifOpen ? 'notifications-popover' : undefined;
 
   const handleAvatarClick = (e: React.MouseEvent<HTMLElement>) => {
     setAnchorEl(e.currentTarget);
@@ -126,7 +131,9 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
           {/* Notifications */}
           <Tooltip title="Notifications" arrow>
             <IconButton
+              aria-describedby={notifId}
               size="small"
+              onClick={(e) => setNotifAnchorEl(e.currentTarget)}
               sx={{
                 width: 34, height: 34,
                 borderRadius: '10px',
@@ -137,24 +144,7 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
                 },
               }}
             >
-              <Badge
-                variant="dot"
-                sx={{
-                  '& .MuiBadge-dot': {
-                    backgroundColor: '#FF385C',
-                    width: 7,
-                    height: 7,
-                    borderRadius: '50%',
-                    border: '1.5px solid',
-                    borderColor: 'background.paper',
-                    top: 1,
-                    right: 1,
-                    minWidth: 'unset',
-                  },
-                }}
-              >
-                <NotificationsNoneIcon sx={{ color: "text.secondary", fontSize: 20 }} />
-              </Badge>
+              <NotificationsNoneIcon sx={{ color: "text.secondary", fontSize: 20 }} />
             </IconButton>
           </Tooltip>
 
@@ -194,6 +184,43 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
           </Tooltip>
         </Box>
       </Box>
+
+      {/* Notifications Popover */}
+      <Popover
+        id={notifId}
+        open={notifOpen}
+        anchorEl={notifAnchorEl}
+        onClose={() => setNotifAnchorEl(null)}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+        PaperProps={{
+          sx: {
+            mt: 1.5,
+            width: 320,
+            borderRadius: '16px',
+            boxShadow: '0 16px 48px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08)',
+            border: '1px solid',
+            borderColor: 'divider',
+            overflow: 'hidden',
+          }
+        }}
+      >
+        <Box sx={{ px: 2.5, pt: 2, pb: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', color: 'text.primary' }}>
+            Notifications
+          </Typography>
+        </Box>
+        <Divider />
+        <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 5, px: 3, gap: 1.5 }}>
+          <NotificationsOffOutlinedIcon sx={{ fontSize: 38, color: 'text.disabled' }} />
+          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: '0.875rem', color: 'text.secondary' }}>
+            No notifications
+          </Typography>
+          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontSize: '0.78rem', color: 'text.disabled', textAlign: 'center' }}>
+            You're all caught up! Check back later.
+          </Typography>
+        </Box>
+      </Popover>
 
       <Popover
         id={id}

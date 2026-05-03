@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState, useEffect, useRef } from "react";
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { apiServices } from '../../services/APIs/apiServices';
 import {
@@ -36,6 +36,9 @@ const ProfileSettings: React.FC = () => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
+  const [isRemovingPhoto, setIsRemovingPhoto] = useState(false);
+  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false); // initial fetch
   const [saving, setSaving] = useState(false);   // personal info save
   const [contactSaving, setContactSaving] = useState(false); // contact info save
@@ -114,31 +117,145 @@ const ProfileSettings: React.FC = () => {
             >
               {!profilePicture && (fname?.[0]?.toUpperCase() || 'U')}
             </Avatar>
+            {/* Hidden file picker — accepts jpg/png/webp up to 5 MB */}
+            <input
+              ref={fileInputRef}
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              style={{ display: 'none' }}
+              onChange={async (e) => {
+                console.log('[Upload] onChange fired');
+                const file = e.target.files?.[0];
+                console.log('[Upload] file:', file?.name, file?.size, '| authToken:', !!authToken, '| userId:', currentProfile?.id);
+                // Reset input so the same file can be re-selected after an error
+                e.target.value = '';
+                if (!file) { console.log('[Upload] STOPPED: no file'); return; }
+
+                if (!authToken) {
+                  console.log('[Upload] STOPPED: no authToken');
+                  setError('You must be logged in to upload a photo.');
+                  return;
+                }
+
+                const userId = currentProfile?.id;
+                if (!userId) {
+                  console.log('[Upload] STOPPED: no userId, currentProfile =', currentProfile);
+                  setError('Cannot upload: user ID not available');
+                  return;
+                }
+
+                if (file.size > 5 * 1024 * 1024) {
+                  console.log('[Upload] STOPPED: file too large');
+                  window.dispatchEvent(new CustomEvent('app:error', {
+                    detail: { message: 'Image is too large. Please upload a photo smaller than 5 MB.' }
+                  }));
+                  return;
+                }
+
+                setIsUploadingPhoto(true);
+                setError(null);
+                try {
+                  // 1. Get signed Cloudinary upload params from our backend
+                  console.log('[Upload] calling getProfileUploadUrl with userId:', userId);
+                  const { data: uploadData } = await apiServices.getProfileUploadUrl(authToken, userId);
+                  console.log('[Upload] got uploadData:', uploadData);
+
+                  // 2. Upload directly to Cloudinary using the signed params
+                  const formData = new FormData();
+                  formData.append('file', file);
+                  formData.append('api_key', uploadData.apiKey);
+                  formData.append('timestamp', String(uploadData.timestamp));
+                  formData.append('signature', uploadData.signature);
+                  formData.append('folder', uploadData.folder);
+                  formData.append('public_id', uploadData.public_id);
+                  // Note: do NOT append 'overwrite' here unless it is included
+
+                  const cloudRes = await fetch(uploadData.uploadUrl, {
+                    method: 'POST',
+                    body: formData,
+                  });
+                  if (!cloudRes.ok) {
+                    const errBody = await cloudRes.text();
+                    throw new Error(`Cloudinary upload failed: ${errBody}`);
+                  }
+
+                  // 3. Persist the URL to DB (non-fatal — endpoint may not exist yet)
+                  const newUrl = `${uploadData.fileUrl}?v=${uploadData.timestamp}`;
+                  try {
+                    await apiServices.saveProfilePictureUrl(authToken, uploadData.fileUrl);
+                  } catch (saveErr: any) {
+                    console.warn('[Upload] saveProfilePictureUrl failed (non-fatal):', saveErr?.response?.status, saveErr?.message);
+                  }
+
+                  setProfilePicture(newUrl);
+
+                  // 4. Push the new URL into Redux + localStorage
+                  try {
+                    const optimisticProfile = {
+                      ...(currentProfile ?? {}),
+                      profilepicture: newUrl,
+                    } as any;
+                    dispatch(setUserProfile(optimisticProfile));
+                    await dispatch(fetchUserProfile({ force: true })).unwrap();
+                  } catch {}
+
+                  window.dispatchEvent(new CustomEvent('app:success', { detail: { message: 'Profile photo updated' } }));
+                } catch (err: any) {
+                  console.error('[Upload] FAILED:', err?.response?.status, err?.response?.data, err?.message);
+                  setError('Failed to upload photo. Please try again.');
+                  window.dispatchEvent(new CustomEvent('app:error', { detail: { message: 'Photo upload failed' } }));
+                } finally {
+                  setIsUploadingPhoto(false);
+                }
+              }}
+            />
+
             <Box sx={{ display: "flex", gap: 2 }}>
               <Button
                 variant="contained"
                 size="small"
+                disabled={isUploadingPhoto}
                 onClick={() => {
-                  window.dispatchEvent(
-                    new CustomEvent("app:success", { detail: { message: "Photo uploaded" } })
-                  );
+                  console.log('[Upload] button clicked, ref:', fileInputRef.current);
+                  fileInputRef.current?.click();
                 }}
                 sx={{ textTransform: "none", fontWeight: 600, px: 2.5, py: 1, borderRadius: '50px', background: 'linear-gradient(135deg,#FF385C,#D91A50)', boxShadow: '0 4px 12px rgba(255,56,92,0.28)', '&:hover': { background: 'linear-gradient(135deg,#E31C5F,#B01550)' } }}
               >
-                Upload New Photo
+                {isUploadingPhoto ? <><CircularProgress size={14} sx={{ color: '#fff', mr: 1 }} />Uploading…</> : 'Upload New Photo'}
               </Button>
               <Button
                 variant="text"
                 color="error"
                 size="small"
-                onClick={() => {
-                  window.dispatchEvent(
-                    new CustomEvent("app:success", { detail: { message: "Photo removed" } })
-                  );
+                onClick={async () => {
+                  if (!authToken) return;
+                  const userId = currentProfile?.id;
+                  if (!userId) { setError('Cannot remove: user ID not available'); return; }
+                  setIsRemovingPhoto(true);
+                  setError(null);
+                  try {
+                    // DELETE /api/uploads/profile-photo/{userId} — removes from Cloudinary + clears DB
+                    await apiServices.removeProfilePhoto(authToken, Number(userId));
+
+                    setProfilePicture(null);
+                    try {
+                      const optimisticProfile = { ...(currentProfile ?? {}), profilepicture: undefined } as any;
+                      dispatch(setUserProfile(optimisticProfile));
+                      await dispatch(fetchUserProfile({ force: true })).unwrap();
+                    } catch {}
+
+                    window.dispatchEvent(new CustomEvent('app:success', { detail: { message: 'Photo removed' } }));
+                  } catch (e: any) {
+                    console.error('Remove photo failed', e);
+                    setError('Failed to remove photo');
+                    window.dispatchEvent(new CustomEvent('app:error', { detail: { message: 'Failed to remove photo' } }));
+                  } finally {
+                    setIsRemovingPhoto(false);
+                  }
                 }}
                 sx={{ textTransform: "none", fontWeight: 500, px: 2, py: 1 }}
               >
-                Remove Photo
+                {isRemovingPhoto ? 'Removing…' : 'Remove Photo'}
               </Button>
             </Box>
           </Box>
@@ -150,7 +267,7 @@ const ProfileSettings: React.FC = () => {
               fontSize: "0.875rem",
             }}
           >
-            Recommended: Square image, at least 400x400px
+            Recommended: Square image, at least 400×400px · Max 5 MB (JPG, PNG, WebP)
           </Typography>
         </CardContent>
       </Card>
