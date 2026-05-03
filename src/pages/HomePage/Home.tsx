@@ -1606,7 +1606,8 @@ const Home: React.FC = () => {
                   Trending Destinations
                 </Typography>
               </Box>
-              <Typography sx={{
+              <Typography onClick={() => navigate('/blog')} sx={
+                {
                 fontSize: '0.78rem', fontWeight: 600, color: '#FF385C',
                 fontFamily: "'Inter', sans-serif", cursor: 'pointer',
                 letterSpacing: '0.01em',
@@ -1619,6 +1620,7 @@ const Home: React.FC = () => {
               {featuredDestinations.map((destination) => (
                 <Box
                   key={destination.id}
+                  onClick={() => navigate(`/blog/${(destination as any).slug}`)}
                   sx={{
                     position: 'relative',
                     borderRadius: '16px',
