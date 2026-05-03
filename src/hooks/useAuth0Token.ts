@@ -100,10 +100,12 @@ export const useAuthToken = () => {
       console.error('Logout API call failed:', error);
       // Continue with client-side cleanup even if API call fails
     } finally {
-      // Always clear local storage and update state
+      // Always clear all auth-related local storage and update state
       localStorage.removeItem('accessToken');
       localStorage.removeItem('refreshToken');
-      
+      localStorage.removeItem('userProfile');
+      sessionStorage.clear();
+
       setAuthState({
         isAuthenticated: false,
         token: null,

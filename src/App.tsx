@@ -9,6 +9,7 @@ import Home from './pages/HomePage/Home'
 import Community from './pages/CommunityPage/Community'
 import Settings from './pages/SettingsPage/Settings'
 import ProtectedRoute from './services/APIs/Auth/ProtectedRoute'
+import GuestRoute from './services/APIs/Auth/GuestRoute'
 import TripPlannerRoute from './pages/CreateTripPage/TripPlannerRoute.tsx'
 import TripPlannerEntry from './pages/CreateTripPage/TripPlannerEntry.tsx'
 import TripView from './pages/TripViewPage/TripView';
@@ -33,9 +34,9 @@ function App() {
   return (
     <div className="App">
       <Routes>
-        <Route path="/signup" element={<Signup />} />
-        <Route path="/signin" element={<Signin />} />
-        <Route path="/" element={<Landingpage/>} />
+        <Route path="/signup" element={<GuestRoute><Signup /></GuestRoute>} />
+        <Route path="/signin" element={<GuestRoute><Signin /></GuestRoute>} />
+        <Route path="/" element={<GuestRoute><Landingpage /></GuestRoute>} />
         
         {/* Protected Routes grouped under persistent layout */}
         <Route element={<ProtectedRoute><AuthenticatedLayout /></ProtectedRoute>}>

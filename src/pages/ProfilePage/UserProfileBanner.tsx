@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import EditIcon from '@mui/icons-material/Edit';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useNavigate } from 'react-router-dom';
+import { useAuth0 } from '@auth0/auth0-react';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import type { BioHighlight } from '../../store/userSlice';
 import { staggerContainer, staggerItem } from '../../utils/animations';
@@ -188,17 +189,19 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
 }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { logout } = useAuthToken();
+  const { logout: auth0Logout } = useAuth0();
   const navigate = useNavigate();
-  
+
   const onLogoutClick = async () => {
     setIsLoggingOut(true);
     try {
-      await logout();
-  navigate('/signin');
+      await logout(); // clears localStorage tokens + userProfile + sessionStorage
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {
       setIsLoggingOut(false);
+      // Kill Auth0 session (removes Auth0 cookie) and redirect to landing
+      auth0Logout({ logoutParams: { returnTo: window.location.origin } });
     }
   };
 
