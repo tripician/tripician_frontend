@@ -46,6 +46,8 @@ import SoonTag from '../../components/CommonComponents/SoonTag';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
+import { useNavia, type UseNaviaReturn } from '../../navia/useNavia';
+import NaviaMessage from '../../navia/NaviaMessage';
 import { normalizeTrip, type NormalizedTrip } from '../../utils/normalizeTrip';
 import { countryNameFromCode } from '../../utils/countryFlags';
 import { differenceInDays } from 'date-fns';
@@ -203,16 +205,15 @@ const SUGGESTED_PROMPTS = [
 	'Best local food near my stops?',
 ];
 
-interface PanelMessage { id: string; role: 'user' | 'assistant'; content: string; }
+interface PremiumChatPanelProps { naviaHook: UseNaviaReturn; }
 
-const PremiumChatPanel: React.FC = () => {
+const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
+	const { messages, isStreaming, sendMessage } = naviaHook;
 	const theme = useTheme();
 	const isLight = theme.palette.mode === 'light';
-	const [messages, setMessages] = React.useState<PanelMessage[]>([
-		{ id: 'welcome', role: 'assistant', content: "Hi! I'm Navia, your AI trip assistant. Ask me anything about your plan — routes, packing, local tips and more." },
-	]);
 	const [input, setInput] = React.useState('');
 	const endRef = React.useRef<HTMLDivElement | null>(null);
+	const inputRef = React.useRef<HTMLInputElement | null>(null);
 
 	/* ── Resize & collapse ── */
 	const [panelWidth, setPanelWidth] = React.useState(420);
@@ -245,27 +246,15 @@ const PremiumChatPanel: React.FC = () => {
 		};
 	}, []);
 
-	const send = (text: string) => {
-		if (!text.trim()) return;
-		const trimmed = text.trim();
-		setMessages(prev => [...prev, { id: Date.now() + 'u', role: 'user', content: trimmed }]);
+	const send = () => {
+		if (!input.trim() || isStreaming) return;
+		const text = input;
 		setInput('');
-		setTimeout(() => {
-			setMessages(prev => [...prev, {
-				id: Date.now() + 'a', role: 'assistant',
-				content: 'AI agent response coming soon — I\'m being connected to your trip data now.',
-			}]);
-			window.dispatchEvent(new CustomEvent('navia:response'));
-		}, 480);
+		sendMessage(text);
+		setTimeout(() => inputRef.current?.focus(), 0);
 	};
 
 	React.useEffect(() => { endRef.current?.scrollIntoView({ behavior: 'smooth' }); }, [messages]);
-
-	React.useEffect(() => {
-		const handler = (e: Event) => { send((e as CustomEvent<{ message: string }>).detail.message); };
-		window.addEventListener('navia:send', handler);
-		return () => window.removeEventListener('navia:send', handler);
-	}, []);
 
 	return (
 		<Box ref={panelRef} sx={{
@@ -343,9 +332,9 @@ const PremiumChatPanel: React.FC = () => {
 								Navia
 							</Typography>
 							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.3 }}>
-								<Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: 'rgba(255,56,92,0.7)', boxShadow: '0 0 5px rgba(255,56,92,0.6)' }} />
-								<Typography sx={{ fontSize: 10.5, color: 'rgba(255,56,92,0.85)', fontWeight: 600, fontFamily: 'inherit', letterSpacing: 0.4 }}>
-									AI PREVIEW
+								<Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#22c55e', boxShadow: '0 0 5px rgba(34,197,94,0.7)' }} />
+								<Typography sx={{ fontSize: 10.5, color: isLight ? 'rgba(0,0,0,0.50)' : 'rgba(255,255,255,0.45)', fontWeight: 500, fontFamily: 'inherit', letterSpacing: 0.2 }}>
+									AI Travel Assistant
 								</Typography>
 							</Box>
 						</Box>
@@ -365,42 +354,8 @@ const PremiumChatPanel: React.FC = () => {
 						'&::-webkit-scrollbar-thumb': { borderRadius: 3, background: isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.10)' },
 						'&::-webkit-scrollbar-track': { background: 'transparent' },
 					}}>
-						{messages.map(m => (
-							<Box key={m.id} sx={{ display: 'flex', flexDirection: 'column', alignItems: m.role === 'user' ? 'flex-end' : 'flex-start' }}>
-								{m.role === 'assistant' && (
-									<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.4 }}>
-										<Box sx={{
-											width: 16, height: 16, borderRadius: '5px',
-											background: 'linear-gradient(135deg,#FF385C,#D91A50)',
-											display: 'flex', alignItems: 'center', justifyContent: 'center',
-										}}>
-											<Box component='svg' viewBox='0 0 24 24' sx={{ width: 9, height: 9 }}>
-												<path fill='#fff' d='M12 2a10 10 0 110 20A10 10 0 0112 2zm0 2a8 8 0 100 16A8 8 0 0012 4zm0 12a1 1 0 110 2 1 1 0 010-2zm.5-8v6h-1V8h1z'/>
-											</Box>
-										</Box>
-										<Typography sx={{ fontSize: 9.5, fontWeight: 700, color: '#FF385C', fontFamily: 'inherit', letterSpacing: 0.5, textTransform: 'uppercase' }}>
-											Navia
-										</Typography>
-									</Box>
-								)}
-								<Box sx={{
-									px: 1.5, py: 0.9,
-									maxWidth: '88%',
-									borderRadius: m.role === 'user' ? '14px 14px 4px 14px' : '4px 14px 14px 14px',
-									fontSize: 13, lineHeight: 1.65, fontFamily: 'inherit',
-									background: m.role === 'user'
-										? 'linear-gradient(135deg,#FF385C,#D91A50)'
-										: (isLight ? '#f4f4f4' : 'rgba(255,255,255,0.06)'),
-									color: m.role === 'user' ? '#fff' : (isLight ? '#1a1a1a' : 'rgba(255,255,255,0.88)'),
-									boxShadow: m.role === 'user' ? '0 2px 12px rgba(255,56,92,0.28)' : 'none',
-									border: m.role === 'user' ? 'none' : `1px solid ${isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)'}`,
-								}}>
-									{m.content}
-								</Box>
-							</Box>
-						))}
-						{messages.length === 1 && (
-							<Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.5, pb: 2, mt: 2 }}>
+						{messages.length === 0 && (
+							<Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.5, pb: 2, mt: 4 }}>
 								<Box component='svg' viewBox='0 0 40 40' sx={{ width: 40, height: 40, opacity: 0.28, color: isLight ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.35)' }}>
 									<circle cx='20' cy='20' r='18' fill='none' stroke='currentColor' strokeWidth='1.5'/>
 									<circle cx='20' cy='20' r='2' fill='currentColor'/>
@@ -414,41 +369,46 @@ const PremiumChatPanel: React.FC = () => {
 								</Typography>
 							</Box>
 						)}
+						{messages.map(m => (
+							<NaviaMessage key={m.id} message={m} isLight={isLight} />
+						))}
 						<div ref={endRef} />
 					</Box>
 
-					{/* ── Suggested prompts ── */}
-					<Box sx={{
-						px: 1.5, py: 0.75,
-						display: 'flex', flexDirection: 'column', gap: 0.5,
-						borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)'}`,
-						flexShrink: 0,
-					}}>
-						<Typography sx={{ fontSize: 10.5, fontWeight: 600, color: isLight ? 'rgba(0,0,0,0.38)' : 'rgba(255,255,255,0.30)', fontFamily: 'inherit', mb: 0.3 }}>
-							Suggested
-						</Typography>
-						{SUGGESTED_PROMPTS.slice(0, 3).map(p => (
-							<Box
-								key={p}
-								onClick={() => send(p)}
-								sx={{
-									px: 1.25, py: 0.6, borderRadius: '8px',
-									border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
-									background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.03)',
-									fontSize: 11.5, color: isLight ? '#444' : 'rgba(255,255,255,0.65)',
-									cursor: 'pointer', fontFamily: 'inherit',
-									transition: 'background .15s, border-color .15s, color .15s',
-									'&:hover': {
-										background: isLight ? 'rgba(255,56,92,0.06)' : 'rgba(255,56,92,0.10)',
-										borderColor: 'rgba(255,56,92,0.30)',
-										color: '#FF385C',
-									},
-								}}
-							>
-								{p}
-							</Box>
-						))}
-					</Box>
+					{/* ── Suggested prompts (hidden once conversation starts) ── */}
+					{messages.length === 0 && (
+						<Box sx={{
+							px: 1.5, py: 0.75,
+							display: 'flex', flexDirection: 'column', gap: 0.5,
+							borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)'}`,
+							flexShrink: 0,
+						}}>
+							<Typography sx={{ fontSize: 10.5, fontWeight: 600, color: isLight ? 'rgba(0,0,0,0.38)' : 'rgba(255,255,255,0.30)', fontFamily: 'inherit', mb: 0.3 }}>
+								Suggested
+							</Typography>
+							{SUGGESTED_PROMPTS.slice(0, 3).map(p => (
+								<Box
+									key={p}
+									onClick={() => { sendMessage(p); }}
+									sx={{
+										px: 1.25, py: 0.6, borderRadius: '8px',
+										border: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.08)'}`,
+										background: isLight ? 'rgba(0,0,0,0.02)' : 'rgba(255,255,255,0.03)',
+										fontSize: 11.5, color: isLight ? '#444' : 'rgba(255,255,255,0.65)',
+										cursor: 'pointer', fontFamily: 'inherit',
+										transition: 'background .15s, border-color .15s, color .15s',
+										'&:hover': {
+											background: isLight ? 'rgba(255,56,92,0.06)' : 'rgba(255,56,92,0.10)',
+											borderColor: 'rgba(255,56,92,0.30)',
+											color: '#FF385C',
+										},
+									}}
+								>
+									{p}
+								</Box>
+							))}
+						</Box>
+					)}
 
 					{/* ── Input ── */}
 					<Box sx={{
@@ -468,9 +428,10 @@ const PremiumChatPanel: React.FC = () => {
 							},
 						}}>
 							<InputBase
+								inputRef={inputRef}
 								value={input}
 								onChange={e => setInput(e.target.value)}
-								onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(input); } }}
+								onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
 								placeholder='Ask Navia anything…'
 								multiline
 								maxRows={4}
@@ -483,21 +444,25 @@ const PremiumChatPanel: React.FC = () => {
 							/>
 							<IconButton
 								size='small'
-								onClick={() => send(input)}
-								disabled={!input.trim()}
+								onClick={send}
+								disabled={!input.trim() || isStreaming}
 								sx={{
 									width: 32, height: 32, borderRadius: '9px', flexShrink: 0, mb: 0.1,
-									background: input.trim() ? 'linear-gradient(135deg,#FF385C,#D91A50)' : 'transparent',
-									color: input.trim() ? '#fff' : (isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.20)'),
-									boxShadow: input.trim() ? '0 2px 10px rgba(255,56,92,0.35)' : 'none',
+									background: (input.trim() && !isStreaming) ? 'linear-gradient(135deg,#FF385C,#D91A50)' : 'transparent',
+									color: (input.trim() && !isStreaming) ? '#fff' : (isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.20)'),
+									boxShadow: (input.trim() && !isStreaming) ? '0 2px 10px rgba(255,56,92,0.35)' : 'none',
 									transition: 'background .18s, color .18s, box-shadow .18s',
-									'&:hover': { background: input.trim() ? '#D91A50' : undefined },
+									'&:hover': { background: (input.trim() && !isStreaming) ? '#D91A50' : undefined },
 									'&.Mui-disabled': { background: 'transparent', color: isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.15)' },
 								}}
 							>
-								<Box component='svg' viewBox='0 0 24 24' sx={{ width: 14, height: 14 }}>
-									<path fill='currentColor' d='M2.01 21L23 12 2.01 3 2 10l15 2-15 2z'/>
-								</Box>
+								{isStreaming ? (
+									<CircularProgress size={12} sx={{ color: 'inherit' }} />
+								) : (
+									<Box component='svg' viewBox='0 0 24 24' sx={{ width: 14, height: 14 }}>
+										<path fill='currentColor' d='M2.01 21L23 12 2.01 3 2 10l15 2-15 2z'/>
+									</Box>
+								)}
 							</IconButton>
 						</Box>
 					</Box>
@@ -772,6 +737,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const docsState = useSelector((s:RootState)=> s.docs);
 		const auth = useAuthToken();
 		const authToken = auth.token; // string | null
+	const naviaHook = useNavia(tripId, authToken);
 
 	// Normalize initial trip (stable backend shape: { trip, itinerary })
 		const normalizedInitial = React.useMemo<NormalizedTrip | null>(() => initialTrip ? normalizeTrip(initialTrip) : null, [initialTrip]);
@@ -1932,7 +1898,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				{/* Right panel — Navia for owners/editors, trip info for public viewers */}
 				{(!readOnly && effectiveCanEdit) ? (
 					<Box sx={{ display: { xs: 'none', lg: 'flex' }, alignSelf: 'stretch', overflow: 'hidden', flexShrink: 0 }}>
-						<PremiumChatPanel />
+						<PremiumChatPanel naviaHook={naviaHook} />
 					</Box>
 				) : (
 					<Box sx={{ display: { xs: 'none', lg: 'flex' }, flexDirection: 'column', flex: '0 0 auto' }}>
@@ -1984,7 +1950,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					<IconButton size='small' onClick={() => setNaviaDrawerOpen(false)}><CloseIcon fontSize='small' /></IconButton>
 				</Box>
 				<Box sx={{ flex: 1, overflow: 'hidden' }}>
-					<PremiumChatPanel />
+					<PremiumChatPanel naviaHook={naviaHook} />
 				</Box>
 			</Box>
 		</Drawer>
