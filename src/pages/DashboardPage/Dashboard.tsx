@@ -167,6 +167,24 @@ const Dashboard: React.FC = () => {
           })(),
           startDate: t.startDate || t.start_date || null,
           endDate: t.endDate || t.end_date || null,
+          isOwner: (() => {
+            const myId = String(userProfile?.id || '');
+            if (!myId) return true; // assume owner if we can't tell
+            const o = t.owner || t.Owner;
+            const ownerId = String(
+              t.OwnerUserId || t.ownerUserId || t.ownerId || t.OwnerId ||
+              o?.id || o?.Id || o?.userId || o?.UserId || ''
+            );
+            return ownerId ? ownerId === myId : true;
+          })(),
+          isPublished: (t.status || t.Status || '').toString().toUpperCase() === 'PUBLISHED',
+          ownerId: (() => {
+            const o = t.owner || t.Owner;
+            return String(
+              t.OwnerUserId || t.ownerUserId || t.ownerId || t.OwnerId ||
+              o?.id || o?.Id || o?.userId || o?.UserId || ''
+            );
+          })(),
         }));
         if(active){
           setAllPlans(mapped);
@@ -243,24 +261,17 @@ const Dashboard: React.FC = () => {
     return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
   };
 
-  const private_plans = allPlans.filter(plan => plan.members.length <= 1);
-  const creator = allPlans.filter(plan => plan.members.length > 1);
-  const co_creator = allPlans.filter(plan => plan.progress < 100);
-  const traveller = allPlans.filter(plan => plan.progress === 100);
-  const published = allPlans.filter(plan => plan.progress > 0);
-  
-
+  const myTrips = allPlans.filter(plan => plan.isOwner);
+  const sharedTrips = allPlans.filter(plan => !plan.isOwner);
+  const publishedTrips = allPlans.filter(plan => plan.isPublished);
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
-    debugger;
     setTabValue(newValue);
     switch(newValue){
       case 0: setPlans(allPlans); break;
-      case 1: setPlans(private_plans); break;
-      case 2: setPlans(creator); break;
-      case 3: setPlans(co_creator); break;
-      case 4: setPlans(traveller); break;
-      case 5: setPlans(published); break;
+      case 1: setPlans(myTrips); break;
+      case 2: setPlans(sharedTrips); break;
+      case 3: setPlans(publishedTrips); break;
     }
   };
   return (
@@ -470,10 +481,8 @@ const Dashboard: React.FC = () => {
             }}
           >
             <Tab label="All Trips" />
-            <Tab label="Private" />
-            <Tab label="Creator" />
-            <Tab label="Co-Creator" />
-            <Tab label="Traveller" />
+            <Tab label="My Trips" />
+            <Tab label="Shared with Me" />
             <Tab label="Published" />
           </Tabs>
           <div ref={cardsRef} className="trip-cards-container" style={{ marginBottom: '32px' }}>

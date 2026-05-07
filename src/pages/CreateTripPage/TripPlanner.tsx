@@ -653,46 +653,8 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 				{tripUsers.length > 0 && (
 					<Box sx={{ borderRadius: '12px', background: sectionBg, border: `1px solid ${border}`, p: '12px 14px' }}>
 						<Typography sx={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: textMuted, fontFamily: 'inherit', mb: 1.25 }}>
-							Members · {tripUsers.length}
-						</Typography>
-						{/* Avatar stack row */}
-						<Box sx={{ display: 'flex', alignItems: 'center', mb: 1.5 }}>
-							{shownUsers.map((u, i) => {
-								const initial = getMemberInitial(u);
-								const avatarSrc = getMemberAvatar(u);
-								const role = u.role || u.Role || '';
-								const isOwnerMember = role.toLowerCase() === 'owner';
-								return (
-									<Tooltip key={u.id ?? i} title={getMemberLabel(u)} arrow placement="top">
-										<Avatar
-											src={avatarSrc ?? undefined}
-											imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any}
-											sx={{
-												width: 36, height: 36, fontSize: '0.72rem', fontWeight: 800,
-												ml: i === 0 ? 0 : '-10px',
-												zIndex: shownUsers.length - i,
-												background: isOwnerMember
-													? 'linear-gradient(135deg,#FF385C,#D91A50)'
-													: (isLight ? '#e0e0e0' : 'rgba(255,255,255,0.14)'),
-												color: isOwnerMember ? '#fff' : textPrimary,
-												border: `2.5px solid ${isLight ? '#fff' : '#0e1012'}`,
-												boxShadow: isOwnerMember ? '0 0 0 1.5px rgba(255,56,92,0.45)' : 'none',
-												cursor: 'default',
-											}}
-										>{initial}</Avatar>
-									</Tooltip>
-								);
-							})}
-							{extraUsers > 0 && (
-								<Avatar sx={{
-									width: 36, height: 36, fontSize: '0.65rem', fontWeight: 700,
-									ml: '-10px', zIndex: 0,
-									background: isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.10)',
-									color: textMuted,
-									border: `2.5px solid ${isLight ? '#fff' : '#0e1012'}`,
-								}}>+{extraUsers}</Avatar>
-							)}
-						</Box>
+							Trip Members · {tripUsers.length}
+						</Typography>						
 						{/* Name list below */}
 						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.6 }}>
 							{shownUsers.map((u, i) => {
@@ -1225,6 +1187,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const [visaOpen, setVisaOpen] = React.useState(false);
 	const [pinnedOpen, setPinnedOpen] = React.useState(false);
 	const [exitConfirmOpen, setExitConfirmOpen] = React.useState(false);
+	const [savePermissionDenied, setSavePermissionDenied] = React.useState(false);
 	const [showCelebration, setShowCelebration] = React.useState(false);
 	const [naviaDrawerOpen, setNaviaDrawerOpen] = React.useState(false);
 	const [exiting, setExiting] = React.useState(false);
@@ -1492,12 +1455,17 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			},
 			itinerary,
 			legs,
-			expenses: [],
+			expenses: planner.expenses || [],
+			budget: planner.tripBudget ?? null,
 			docs: [],
 			comments: [],
+			pinnedDocIds: planner.pinnedDocIds || [],
+			globalDocs: (planner.globalDocs || []).map(doc => ({ id: doc.id, originalName: doc.originalName, mimeType: doc.mimeType })),
+			visaDocs: (planner.visaDocs || []).map(doc => ({ id: doc.id, originalName: doc.originalName, mimeType: doc.mimeType })),
+			destinationDocsCount: planner.destinations.reduce((sum, d) => sum + (d.docs?.length || 0), 0),
 			version: 1
 		};
-	}, [planner.destinations, tripId, title, privacy, currency, tripStartDate, tripEndDate, targetNights, totalNights, geocodedCount, importantNotes, vibe, tripDescription, bannerUrl]);
+	}, [planner.destinations, planner.expenses, planner.tripBudget, planner.pinnedDocIds, planner.globalDocs, planner.visaDocs, tripId, title, privacy, currency, tripStartDate, tripEndDate, targetNights, totalNights, geocodedCount, importantNotes, vibe, tripDescription, bannerUrl]);
 
 	// Persist helper (debounced save)
 	const persistToBackend = React.useCallback(async (payload:any): Promise<boolean> => {
@@ -1511,10 +1479,16 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			// Update in-memory remoteTrip so navigation without initialTrip still reflects latest
 			setRemoteTrip({ trip: payload.trip, itinerary: payload.itinerary });
 			setLastSavedDisplay(new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' }));
-			openToast('success', payload.trip.status==='DRAFT'? 'Draft saved':'Trip updated');
+			openToast('success', payload.trip.status==='DRAFT'? 'Saved':'Trip updated');
 			return true;
 		} catch(err:any){
-			openToast('error','Save failed');
+			const status = err?.response?.status;
+			if(status === 403 || status === 401 || status === 404) {
+				setSavePermissionDenied(true);
+				openToast('error', "You don't have permission to save");
+			} else {
+				openToast('error','Save failed');
+			}
 			return false;
 		} finally {
 			setSaving(false);
@@ -1567,7 +1541,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	}, [isDirty, effectiveCanEdit, buildPersistPayload, persistToBackend, commitSnapshot, redirectDashboard, exiting]);
 
 	const handleBackHomeClick = () => {
-		if(readOnly || !effectiveCanEdit){
+		if(readOnly || !effectiveCanEdit || savePermissionDenied){
 			redirectDashboard();
 			return;
 		}

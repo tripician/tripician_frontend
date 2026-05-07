@@ -157,13 +157,16 @@ const TripCard: React.FC<TripCardProps> = ({
           )}
         </div>
 
-        {/* 2. Description — trip description, fallback to countries */}
-        {(description || countryDisplay) && (
-          <p className="tc-description">
-            {description
-              ? description
-              : (countryDisplay!.list.join(', ') + (countryDisplay!.extra > 0 ? `, +${countryDisplay!.extra} more` : ''))}
+        {/* 2. Countries */}
+        {countryDisplay && (
+          <p className="tc-description" style={{ opacity: 0.75, marginBottom: description ? 2 : undefined }}>
+            {countryDisplay.list.join(', ')}{countryDisplay.extra > 0 ? `, +${countryDisplay.extra} more` : ''}
           </p>
+        )}
+
+        {/* 2b. Description */}
+        {description && (
+          <p className="tc-description">{description}</p>
         )}
 
         {/* 2b. Member avatars (max 5) + last-edited badge */}
@@ -209,9 +212,11 @@ const TripCard: React.FC<TripCardProps> = ({
         )}
 
         {/* 5. Explore button */}
-        <button className="tc-open-btn" onClick={onClick} tabIndex={-1}>
-          Explore
-        </button>
+        <div className="tc-open-btn-wrap">
+          <button className="tc-open-btn" onClick={onClick} tabIndex={-1}>
+            Explore
+          </button>
+        </div>
 
         {/* Progress bar (in-progress trips only) */}
         {pct > 0 && !isComplete && (
