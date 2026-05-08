@@ -75,16 +75,6 @@ const TripView: React.FC = () => {
         console.log('TripView: fetched trip data', resp);
         const data = resp?.data;
         if (data) {
-          // Minimal meta normalization with defaults
-          // const meta: TripDTO = {
-          //   id: data.trip?.id || data.id || tripId,
-          //   name: data.trip?.name || data.trip?.title || data.name || 'Untitled Trip',
-          //   visibility: data.trip?.privacy || data.trip?.visibility || data.visibility || 'PRIVATE',
-          //   endDate: data.trip?.endDate, 
-          //   startDate: data.trip?.startDate,
-          //   ownerId: data.trip?.ownerId || data.ownerId,
-          //   memberIds: Array.isArray(data.trip?.memberIds) ? data.trip.memberIds : Array.isArray(data.memberIds)? data.memberIds : [],
-          // };
           setTrip(data);
           setHasFetched(true);
         } else {

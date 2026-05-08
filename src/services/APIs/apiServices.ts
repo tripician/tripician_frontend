@@ -253,18 +253,6 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     });
   },
-// --- Trip TypeScript interface suggestion ---
-// Use this for all Trip objects received from the backend:
-//
-// export interface Trip {
-//   id: string;
-//   name: string;
-//   description?: string | null; // validate length <= 300 when sending
-//   vibe?: string | null;        // optional vibe string (e.g. 'adventure', 'relax')
-//   rating?: number | null;      // treat null/undefined as "no rating"; never send from client
-//   ...other fields...
-// }
-
   // GET /user-profiles/{userEmail} - search user by email
   getUserProfileByEmail: (token: string, userEmail: string) =>
     apiClient.get(`/search/user-profiles/${encodeURIComponent(userEmail)}`, {
