@@ -3,6 +3,7 @@ import {
   Alert, Button, Container
 } from "@mui/material";
 import { Person } from "@mui/icons-material";
+import { motion } from "framer-motion";
 import UserProfileBanner from "./UserProfileBanner";
 import { useEffect } from "react";
 import TopBar from "../PageLayout/CommonLayouts/TopBar";
@@ -11,6 +12,7 @@ import { useSelector, useDispatch } from "react-redux";
 import type { RootState, AppDispatch } from "../../store";
 import { fetchUserProfile } from "../../store/userSlice";
 import ProfileDashboard from "../PageLayout/ProfileLayouts/ProfileDashboard";
+import { fadeInUp, fadeInLeft, fadeInRight } from "../../utils/animations";
 
 const Profile: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -141,6 +143,11 @@ const Profile: React.FC = () => {
       <TopBar />
 
         {/* Banner */}
+        <motion.div
+          variants={fadeInUp}
+          initial="hidden"
+          animate="visible"
+        >
         <UserProfileBanner
           name={`${profile.fname ?? ""} ${profile.lname ?? ""}`}
           bio={profile.bio}
@@ -151,12 +158,7 @@ const Profile: React.FC = () => {
           backgroundUrl={profile.coverpicture}
           tintColor={profile.bannertint}
         />
-        {/* Badges */}
-        {/* <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 } }}>
-          <Box sx={{ mt: 2, mb: 3 }}>
-            <ProfileBadges />
-          </Box>
-        </Container> */}
+        </motion.div>
 
         <Container maxWidth="xl" sx={{ px: { xs: 2, sm: 3 }, pb: 4 }}>
           <Box 
@@ -168,11 +170,22 @@ const Profile: React.FC = () => {
             }}
           >
             {/* Left: Dashboard (contains its own nav) */}
-            <Box sx={{ flex: 1, minWidth: 0, width: '100%' }}>
+            <motion.div
+              variants={fadeInLeft}
+              initial="hidden"
+              animate="visible"
+              style={{ flex: 1, minWidth: 0, width: '100%' }}
+            >
               <ProfileDashboard />
-            </Box>
+            </motion.div>
 
             {/* Right: Profile details */}
+            <motion.div
+              variants={fadeInRight}
+              initial="hidden"
+              animate="visible"
+              style={{ flexShrink: 0 }}
+            >
             <Box sx={{ width: { xs: '100%', lg: '25vw' }, flexShrink: 0 }}>
               <ProfileDetailsRightCard
                 title="Profile Details"
@@ -189,6 +202,7 @@ const Profile: React.FC = () => {
                 ]}
               />
             </Box>
+            </motion.div>
           </Box>
         </Container>
     </Box>

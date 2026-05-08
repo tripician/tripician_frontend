@@ -1,19 +1,25 @@
 import React from 'react';
 import { IconButton, Tooltip, Paper } from '@mui/material';
+import { motion } from 'framer-motion';
 import ChatIcon from '@mui/icons-material/Chat';
 import MapIcon from '@mui/icons-material/Map';
 import AddLocationAltIcon from '@mui/icons-material/AddLocationAlt';
+import { floatIn, staggerContainer, staggerItem } from '../utils/animations';
+
+const MotionPaper = motion.create(Paper);
+const MotionIconButton = motion.create(IconButton);
 
 /**
  * FloatingDock
  * A small floating action dock that can host quick-access buttons.
- * Currently implemented as a minimalist placeholder after the source file was empty.
- * Extend by passing children or by wiring onClick handlers below.
  */
 const FloatingDock: React.FC = () => {
 	return (
-		<Paper
+		<MotionPaper
 			elevation={6}
+			variants={floatIn}
+			initial="hidden"
+			animate="visible"
 			sx={(t)=>({
 				position:'fixed',
 				right:18,
@@ -31,22 +37,38 @@ const FloatingDock: React.FC = () => {
 			})}
 		>
 			<Tooltip title='Open Chat Assistant' placement='left'>
-				<IconButton size='small' color='primary'>
+				<MotionIconButton
+					size='small'
+					color='primary'
+					whileHover={{ scale: 1.18, rotate: 5 }}
+					whileTap={{ scale: 0.9 }}
+					transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+				>
 					<ChatIcon fontSize='small' />
-				</IconButton>
+				</MotionIconButton>
 			</Tooltip>
 			<Tooltip title='Show Map' placement='left'>
-				<IconButton size='small'>
+				<MotionIconButton
+					size='small'
+					whileHover={{ scale: 1.18, rotate: -5 }}
+					whileTap={{ scale: 0.9 }}
+					transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+				>
 					<MapIcon fontSize='small' />
-				</IconButton>
+				</MotionIconButton>
 			</Tooltip>
 			<Tooltip title='Add Destination' placement='left'>
-				<IconButton size='small' color='secondary'>
+				<MotionIconButton
+					size='small'
+					color='secondary'
+					whileHover={{ scale: 1.18, rotate: 5 }}
+					whileTap={{ scale: 0.9 }}
+					transition={{ type: 'spring', stiffness: 400, damping: 17 }}
+				>
 					<AddLocationAltIcon fontSize='small' />
-				</IconButton>
+				</MotionIconButton>
 			</Tooltip>
-			{/* Future: Accept props/onClick callbacks or dynamic actions */}
-		</Paper>
+		</MotionPaper>
 	);
 };
 

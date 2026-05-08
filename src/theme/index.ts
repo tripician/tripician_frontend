@@ -6,15 +6,15 @@ const colors = {
   // Light theme colors (based on the image)
   light: {
     primary: {
-      main: '#007ddcff',
-      light: '#007ddcff',
-      dark: '#29587aff',
+      main: '#FF385C',
+      light: '#FF8A9F',
+      dark: '#E31C5F',
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#008bbdff',
-      light: '#00a8d4',
-      dark: '#006d94',
+      main: '#E31C5F',
+      light: '#FF8A9F',
+      dark: '#B01550',
       contrastText: '#ffffff',
     },
     success: {
@@ -30,13 +30,13 @@ const colors = {
       contrastText: '#ffffff',
     },
     background: {
-      default: '#f5f5f5', // Light beige background from image
+      default: '#F7F7F7',
       paper: '#ffffff',
-      sidebar: '#f8f8f8', // Slightly darker beige for sidebar
+      sidebar: '#F4F6F8',
     },
     text: {
-      primary: '#2c2c2c', // Dark gray text
-      secondary: '#666666',
+      primary: '#222222',
+      secondary: '#717171',
       disabled: '#999999',
     },
     divider: 'rgba(0, 0, 0, 0.08)',
@@ -56,15 +56,15 @@ const colors = {
   // Dark theme colors
   dark: {
     primary: {
-      main: '#a8a8a8ff',
-      light: '#a8a8a8ff',
-      dark: '#262626ff',
+      main: '#FF385C',
+      light: '#FF8A9F',
+      dark: '#E31C5F',
       contrastText: '#ffffff',
     },
     secondary: {
-      main: '#00a8d4',
-      light: '#4fc3f7',
-      dark: '#008bbdff',
+      main: '#FF8A9F',
+      light: '#FFB3C1',
+      dark: '#E31C5F',
       contrastText: '#ffffff',
     },
     success: {
@@ -114,30 +114,59 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
       ...colorPalette,
     },
     typography: {
-      fontFamily: '"system-ui", "Avenir", "Helvetica", "Arial", sans-serif',
+      fontFamily: "'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif",
       h1: {
         fontWeight: 700,
         fontSize: '2.5rem',
+        letterSpacing: '-0.5px',
       },
       h2: {
         fontWeight: 700,
         fontSize: '2rem',
+        letterSpacing: '-0.4px',
       },
       h3: {
         fontWeight: 600,
         fontSize: '1.75rem',
+        letterSpacing: '-0.3px',
       },
       h4: {
         fontWeight: 600,
         fontSize: '1.5rem',
+        letterSpacing: '-0.2px',
       },
       h5: {
         fontWeight: 600,
         fontSize: '1.25rem',
+        letterSpacing: '-0.1px',
       },
       h6: {
         fontWeight: 600,
         fontSize: '1rem',
+      },
+      body1: {
+        fontSize: '0.9375rem',
+        lineHeight: 1.6,
+      },
+      body2: {
+        fontSize: '0.875rem',
+        lineHeight: 1.55,
+      },
+      subtitle1: {
+        fontWeight: 600,
+        fontSize: '0.9375rem',
+      },
+      subtitle2: {
+        fontWeight: 600,
+        fontSize: '0.8125rem',
+      },
+      caption: {
+        fontSize: '0.75rem',
+        lineHeight: 1.4,
+      },
+      button: {
+        fontWeight: 600,
+        letterSpacing: '0',
       },
     },
     shape: {
@@ -189,7 +218,7 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
         styleOverrides: {
           paper: {
             background: mode === 'light' 
-              ? 'linear-gradient(180deg, #000000 0%, #0052a1 100%)'
+              ? 'linear-gradient(180deg, #3d0014 0%, #1e0009 100%)'
               : 'linear-gradient(180deg, #2d3748 0%, #1a202c 100%)',
             color: 'white',
             '& .MuiListItem-root': {

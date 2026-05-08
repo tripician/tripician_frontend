@@ -1,11 +1,14 @@
 import React, { useState } from 'react';
 import { Box, Avatar, Typography, IconButton, Button } from '@mui/material';
 import { styled } from '@mui/material/styles';
+import { motion } from 'framer-motion';
 import EditIcon from '@mui/icons-material/Edit';
 import LogoutIcon from '@mui/icons-material/Logout';
 import { useNavigate } from 'react-router-dom';
+import { useAuth0 } from '@auth0/auth0-react';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import type { BioHighlight } from '../../store/userSlice';
+import { staggerContainer, staggerItem } from '../../utils/animations';
 
 interface UserProfileBannerProps {
   name?: string;
@@ -186,17 +189,19 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
 }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { logout } = useAuthToken();
+  const { logout: auth0Logout } = useAuth0();
   const navigate = useNavigate();
-  
+
   const onLogoutClick = async () => {
     setIsLoggingOut(true);
     try {
-      await logout();
-  navigate('/signin');
+      await logout(); // clears localStorage tokens + userProfile + sessionStorage
     } catch (error) {
       console.error('Logout failed:', error);
     } finally {
       setIsLoggingOut(false);
+      // Kill Auth0 session (removes Auth0 cookie) and redirect to landing
+      auth0Logout({ logoutParams: { returnTo: window.location.origin } });
     }
   };
 
@@ -248,6 +253,11 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
 
         {/* Profile Details */}
   <ProfileContent>
+          <motion.div
+            initial={{ opacity: 0, scale: 0.8 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ type: 'spring', stiffness: 300, damping: 22, delay: 0.2 }}
+          >
           <ProfileAvatarWrapper>
             <ProfileAvatar src={avatarUrl} alt={`${name}'s profile`} />
             <AvatarEditOverlay
@@ -258,8 +268,14 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
               <EditIcon fontSize="small" />
             </AvatarEditOverlay>
           </ProfileAvatarWrapper>
+          </motion.div>
 
           <Box sx={{ flex: 1 }}>
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.5, delay: 0.3 }}
+            >
             <Typography
               variant="h3"
               sx={{
@@ -271,10 +287,23 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
             >
               {name}
             </Typography>
+            </motion.div>
 
+            <motion.div
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ duration: 0.4, delay: 0.4 }}
+            >
             {renderBio()}
+            </motion.div>
 
+            <motion.div
+              variants={staggerContainer(0.1, 0.5)}
+              initial="hidden"
+              animate="visible"
+            >
             <StatsContainer>
+              <motion.div variants={staggerItem}>
               <StatItem>
                 <Typography variant="h5" sx={{ fontWeight: 700 }}>
                   {following}
@@ -283,7 +312,9 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
                   Following
                 </Typography>
               </StatItem>
+              </motion.div>
 
+              <motion.div variants={staggerItem}>
               <StatItem>
                 <Typography variant="h5" sx={{ fontWeight: 700 }}>
                   {followers}
@@ -292,7 +323,9 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
                   Followers
                 </Typography>
               </StatItem>
+              </motion.div>
 
+              <motion.div variants={staggerItem}>
               <StatItem>
                 <Typography variant="h5" sx={{ fontWeight: 700 }}>
                   {countries}
@@ -301,7 +334,9 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
                   Countries
                 </Typography>
               </StatItem>
+              </motion.div>
             </StatsContainer>
+            </motion.div>
           </Box>
         </ProfileContent>
       </ProfileContainer>

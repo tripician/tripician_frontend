@@ -1,5 +1,7 @@
-// Lightweight client for Twingly News Search API
-// Never store API key in repo; use VITE_TWINGLY_API_KEY at runtime.
+// Travel news service using The Guardian Open Platform API
+// The 'test' API key is officially provided by The Guardian for development use.
+// For production register at https://bonobo.capi.gutools.co.uk/register/developer for a free key (4000 req/day).
+// Optional: set VITE_GUARDIAN_API_KEY in .env for production.
 
 export interface TwinglyImage { url: string; caption?: string; }
 export interface TwinglyDocument {
@@ -33,73 +35,119 @@ export interface TwinglySearchResponse {
   documents: TwinglyDocument[];
 }
 
-const DIRECT_API_URL = "https://data.twingly.net/news/b/search/v1/search";
-// When running dev with VITE_NEWS_PROXY=1, vite proxy rewrites /twingly-news/news/b/search/v1/search
-const PROXY_API_URL = "/twingly-news/news/b/search/v1/search";
+// ─── Guardian implementation ───────────────────────────────────────────────
+
+const GUARDIAN_BASE = 'https://content.guardianapis.com';
+
+const COUNTRY_NAMES: Record<string, string> = {
+  us: 'United States', gb: 'United Kingdom', fr: 'France', de: 'Germany',
+  es: 'Spain', it: 'Italy', jp: 'Japan', cn: 'China', in: 'India', ca: 'Canada',
+  au: 'Australia', nz: 'New Zealand', sg: 'Singapore', ae: 'United Arab Emirates',
+  br: 'Brazil', mx: 'Mexico', za: 'South Africa', th: 'Thailand'
+};
+
+const TRAVEL_KEYWORDS =
+  'travel OR tourism OR "travel ban" OR visa OR hurricane OR cyclone OR typhoon OR ' +
+  'earthquake OR flood OR wildfire OR storm OR tsunami OR "travel warning" OR ' +
+  'safety OR security OR protest OR strike OR "health alert" OR outbreak OR ' +
+  'airport OR airline OR "border closure" OR curfew OR advisory';
+
+interface GuardianField { headline?: string; trailText?: string; thumbnail?: string; byline?: string; }
+interface GuardianResult {
+  id: string; webTitle: string; webUrl: string;
+  webPublicationDate: string; sectionName: string; fields?: GuardianField;
+}
+
+function detectLocationCode(title: string, trail: string, candidates: string[]): string {
+  const hay = `${title} ${trail}`.toLowerCase();
+  for (const code of candidates) {
+    if (hay.includes((COUNTRY_NAMES[code] || code).toLowerCase())) return code;
+  }
+  return candidates[0];
+}
+
+function toDocument(r: GuardianResult, idx: number, locationCode: string): TwinglyDocument {
+  return {
+    article_id: Date.now() + idx,
+    url: r.webUrl,
+    title: (r.fields?.headline || r.webTitle).replace(/<[^>]*>/g, ''),
+    summary: r.fields?.trailText?.replace(/<[^>]*>/g, '') || undefined,
+    author: r.fields?.byline || undefined,
+    timestamp: r.webPublicationDate,
+    location_code: locationCode,
+    language_code: 'en',
+    site_name: 'The Guardian',
+    site_url: 'https://www.theguardian.com',
+    section_name: r.sectionName,
+    images: r.fields?.thumbnail ? [{ url: r.fields.thumbnail }] : [],
+    article_is_paywalled: false,
+    readership: { number_of_potential_readers: 12_500_000 }
+  };
+}
+
+interface CacheEntry { data: TwinglySearchResponse; expires: number; }
+const CACHE: Record<string, CacheEntry> = {};
+const TTL_MS = 10 * 60 * 1000;
 
 export interface FetchNewsParams {
   locations?: string[]; // list of country codes e.g. ['us','jp']
   location?: string; // legacy single country input
-  queryAll?: string[]; // optional additional terms
+  queryAll?: string[];
   size?: number;
-  sinceIso?: string; // ISO timestamp since param
+  sinceIso?: string;
 }
 
-export async function fetchNews(params: FetchNewsParams, apiKey?: string): Promise<TwinglySearchResponse> {
-  const key = apiKey || import.meta.env.VITE_TWINGLY_API_KEY;
-  if(!key) throw new Error("Missing Twingly API key (VITE_TWINGLY_API_KEY)");
-  // Twingly requires at least one query dimension (all/any/url/domains/authors/site_id/select_articles_by_ids)
-  // Provide a safe default list of broad travel-related keywords if none supplied.
-  const envDefault = (import.meta.env.VITE_NEWS_DEFAULT_TERMS as string | undefined)?.split(',').map(s=> s.trim()).filter(Boolean);
-  const fallbackAll = envDefault && envDefault.length ? envDefault : [
-    'weather','storm','hurricane','flood','earthquake','wildfire','eruption','tsunami',
-    'restriction','travel ban','visa','law change','regulation','strike','protest','safety','alert'
-  ];
-  const allTerms = params.queryAll && params.queryAll.length ? params.queryAll : fallbackAll;
-  const broad = import.meta.env.VITE_NEWS_BROAD === '1';
-  const queryMode = (import.meta.env.VITE_NEWS_QUERY_MODE as string | undefined)?.toLowerCase() === 'any' ? 'any' : 'all';
+export async function fetchNews(params: FetchNewsParams, _apiKey?: string): Promise<TwinglySearchResponse> {
+  const apiKey = (import.meta.env.VITE_GUARDIAN_API_KEY as string | undefined) || 'test';
+
   const normalizedLocations = (() => {
-    const list = params.locations && params.locations.length ? params.locations : (params.location ? [params.location] : []);
-    const sanitized = list
-      .map(loc => String(loc).trim().toLowerCase())
-      .filter(Boolean);
-    if(sanitized.length) return Array.from(new Set(sanitized));
-    return [];
+    const list = params.locations?.length ? params.locations : params.location ? [params.location] : [];
+    return Array.from(new Set(list.map(l => l.trim().toLowerCase()).filter(Boolean)));
   })();
-  if(!normalizedLocations.length) {
+
+  if (!normalizedLocations.length) {
     return { number_of_documents: 0, number_of_documents_estimated_total: 0, documents: [] };
   }
-  const body: Record<string, any> = {
-    locations: normalizedLocations,
-    size: params.size ?? 20,
-    timestamp: params.sinceIso ? { since: params.sinceIso } : undefined
-  };
-  if(!broad) {
-    if(queryMode === 'any') body.any = allTerms; else body.all = allTerms;
-  } else {
-    // Broad mode: attempt minimal query with only location; if API rejects (missing query), caller's error path will surface.
+
+  const cacheKey = normalizedLocations.slice().sort().join(',');
+  const now = Date.now();
+  const cached = CACHE[cacheKey];
+  if (cached && cached.expires > now) return cached.data;
+
+  // Batch in groups of 4 to minimise API calls (test key: 50 req/day, production: 4000/day)
+  const BATCH = 4;
+  const batches: string[][] = [];
+  for (let i = 0; i < normalizedLocations.length; i += BATCH) {
+    batches.push(normalizedLocations.slice(i, i + BATCH));
   }
-  const useProxy = import.meta.env.VITE_NEWS_PROXY === '1' && location.hostname === 'localhost';
-  const url = useProxy ? PROXY_API_URL : DIRECT_API_URL;
-  try {
-    const res = await fetch(url, {
-      method: 'POST',
-      headers: {
-        'Authorization': `apikey ${key}`,
-        'Content-Type': 'application/json; charset=utf-8',
-        'Accept': 'application/json; charset=utf-8'
-      },
-      body: JSON.stringify(body)
-    });
-    if(!res.ok){
-      const text = await res.text();
-      const diagnostic = useProxy && res.status === 404
-        ? ' (Dev proxy 404: ensure VITE_NEWS_PROXY=1 is in .env.local and dev server restarted)'
-        : '';
-      throw new Error(`Twingly error ${res.status}: ${text}${diagnostic}`);
+
+  const pageSize = Math.min(params.size ?? 30, 50);
+  const allDocs: TwinglyDocument[] = [];
+  const seen = new Set<string>();
+
+  await Promise.all(batches.map(async (batch) => {
+    const countryPart = batch.map(c => `"${COUNTRY_NAMES[c] || c}"`).join(' OR ');
+    const q = encodeURIComponent(`(${countryPart}) AND (${TRAVEL_KEYWORDS})`);
+    const url = `${GUARDIAN_BASE}/search?q=${q}&api-key=${apiKey}&show-fields=thumbnail,trailText,headline,byline&page-size=${pageSize}&order-by=newest`;
+    try {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error(`Guardian ${res.status}`);
+      const json = await res.json();
+      (json.response?.results as GuardianResult[] || []).forEach((r, idx) => {
+        if (seen.has(r.webUrl)) return;
+        seen.add(r.webUrl);
+        allDocs.push(toDocument(r, allDocs.length + idx, detectLocationCode(r.webTitle, r.fields?.trailText || '', batch)));
+      });
+    } catch (err) {
+      console.warn('[newsService] Guardian batch failed', batch, err);
     }
-    return res.json();
-  } catch(err){
-    return { number_of_documents:0, number_of_documents_estimated_total:0, documents:[] };
-  }
+  }));
+
+  const result: TwinglySearchResponse = {
+    number_of_documents: allDocs.length,
+    number_of_documents_estimated_total: allDocs.length,
+    documents: allDocs
+  };
+  CACHE[cacheKey] = { data: result, expires: now + TTL_MS };
+  return result;
 }

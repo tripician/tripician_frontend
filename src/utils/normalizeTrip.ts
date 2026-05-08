@@ -14,6 +14,10 @@ export interface NormalizedTripMeta {
   currencyCode?: string | null;
   targetNights?: number | null; // optional planned target nights from backend
   importantNotes?: string | null; // trip-level notes (optional)
+  description?: string | null; // optional trip description
+  vibe?: string | null; // optional trip vibe
+  photoUrl?: string | null; // trip banner/cover photo URL
+  published?: boolean; // whether the trip has been explicitly published (visible to global community)
 }
 
 export interface NormalizedTrip {
@@ -39,8 +43,12 @@ export function normalizeTrip(input: any): NormalizedTrip | null {
     : (typeof tripRoot.notes === 'string' && tripRoot.notes.trim().length ? tripRoot.notes : null);
   const targetNights = typeof targetNightsRaw === 'number' && targetNightsRaw > 0 ? targetNightsRaw
     : (typeof targetNightsRaw === 'string' && targetNightsRaw.trim() && !isNaN(Number(targetNightsRaw)) ? Number(targetNightsRaw) : null);
+  const description = typeof tripRoot.description === 'string' ? tripRoot.description : null;
+  const vibe = typeof tripRoot.vibe === 'string' ? tripRoot.vibe : null;
+  const photoUrl = typeof tripRoot.photoUrl === 'string' && tripRoot.photoUrl.trim().length ? tripRoot.photoUrl : null;
+  const published = typeof tripRoot.published === 'boolean' ? tripRoot.published : false;
   const itinerary = Array.isArray(input.itinerary) ? input.itinerary : (Array.isArray(tripRoot.itinerary) ? tripRoot.itinerary : []);
-  return { meta: { id, name, visibility, startDate, endDate, currencyCode, targetNights, importantNotes }, itinerary, raw: input };
+  return { meta: { id, name, visibility, startDate, endDate, currencyCode, targetNights, importantNotes, description, vibe, photoUrl, published }, itinerary, raw: input };
 }
 
 export default normalizeTrip;

@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box } from '@mui/material';
+import { motion } from 'framer-motion';
 
 /**
  * Modern pill-style feature badge for unreleased functionality.
@@ -22,7 +23,11 @@ const sizeMap = {
 
 const SoonTag: React.FC<SoonTagProps> = ({ label='SOON', size='xs', /* variant unused after white/black override */ sx }) => (
   <Box
-    component='span'
+    component={motion.span}
+    initial={{ opacity: 0, scale: 0.7 }}
+    animate={{ opacity: 1, scale: 1 }}
+    transition={{ type: 'spring', stiffness: 500, damping: 25, delay: 0.3 }}
+    whileHover={{ scale: 1.15, rotate: -3 }}
   sx={(_) => {
   const sz = sizeMap[size];
       // Force white background, black text & black border regardless of theme/variant.
