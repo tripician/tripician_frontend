@@ -2,7 +2,7 @@ import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import { Box, Card, Typography, Chip, IconButton, TextField, InputAdornment, Button, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Divider } from '@mui/material';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
