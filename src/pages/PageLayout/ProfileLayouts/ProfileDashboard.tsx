@@ -5,11 +5,8 @@ import {
   Container,
 } from "@mui/material";
 import ProfileLayoutNav from "./ProfileLayoutNav";
-// import RecentPosts from "../../../components/ProfileComponents/RecentPosts";
-// import TravelMap from "../../../components/ProfileComponents/TravelMap";
 import Statistics from "../../../components/ProfileComponents/Statistics";
 
-// const tabs = ["RecentPosts", "TravelMap", "Statistics"] as const;
 const tabs = ["TravelMap", "Statistics"] as const;
 
 // TabPanel
@@ -59,15 +56,9 @@ const ProfileDashboard: React.FC = () => {
             {/* Panels */}
             {tabs.map((tab, index) => (
               <TabPanel key={index} value={activeTab} index={index}>
-                {/* {tab === "RecentPosts" && <RecentPosts />} */}
                 {tab === "TravelMap" && (
                   <Statistics />
-                  // <TravelMap
-                  //   visited={["IND", "USA", "SGP"]}
-                  //   planned={["FRA", "DEU"]}
-                  //   upcoming={["AUS"]}
-                  // />
-                  )}
+                )}
                 {tab === "Statistics" && (
                   <Statistics />
                 )}

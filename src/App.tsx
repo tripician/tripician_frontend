@@ -64,9 +64,6 @@ function App() {
         <Route path="/error" element={<SomethingWentWrong />} />
         <Route path="/error/:code" element={<DynamicErrorPage />} />
         
-        {/* Default redirect */}
-        {/* <Route path="/" element={<Navigate to="/home" replace />} /> */}
-        
         {/* Info pages */}
         <Route path="/terms-and-conditions" element={<TermsPage />} />
         <Route path="/privacy-policy" element={<PrivacyPage />} />

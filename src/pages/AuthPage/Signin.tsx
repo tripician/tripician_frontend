@@ -189,13 +189,6 @@ const Signin = () => {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ type: 'spring', stiffness: 300, damping: 28, delay: 0.15 }}
         >
-          {/* <div className="auth-card__logo">
-            {logoUrl
-              ? <img src={logoUrl} alt="Tripician" className="auth-card__logo-img" />
-              : <><Plane size={19} /><span>Tripician</span></>
-            }
-          </div> */}
-
           <motion.h1
             className="auth-card__heading"
             initial={{ opacity: 0, y: 12 }}

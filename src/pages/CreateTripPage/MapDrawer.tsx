@@ -10,12 +10,12 @@ import CloseIcon from '@mui/icons-material/Close';
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
 import RouteIcon from '@mui/icons-material/Route';
 import MapPanel from './MapPanel';
-import type { Destination } from '../../store/plannerSlice';
+import type { PlannerDestination } from '../../store/plannerSlice';
 
 interface MapDrawerProps {
   open: boolean;
   onClose: () => void;
-  destinations: Destination[];
+  destinations: PlannerDestination[];
   travelMode: string;
   tripId?: string;
 }

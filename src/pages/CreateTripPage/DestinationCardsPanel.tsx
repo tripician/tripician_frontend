@@ -23,8 +23,6 @@ import type { DestinationCardChecklist } from './DestinationCard';
 import SearchIcon from '@mui/icons-material/Search';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
-import SmartToyIcon from '@mui/icons-material/SmartToy';
-import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import CloseIcon from '@mui/icons-material/Close';
 import NotesIcon from '@mui/icons-material/Notes';
 import HotelIcon from '@mui/icons-material/Hotel';
@@ -42,7 +40,6 @@ import ValidatedFileInput from '../../components/CommonComponents/ValidatedFileI
 import SoonTag from '../../components/CommonComponents/SoonTag';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
 import { DEFAULT_DOC_RULE } from '../../utils/fileValidation';
-import AiActionButton from '../../components/CommonComponents/AiActionButton';
 import { fetchDestinationAlerts, type DestinationAlerts } from '../../services/APIs/alerts/alertService';
 
 interface DestinationCardsPanelProps {
@@ -86,7 +83,7 @@ const SortableCardWrapper: React.FC<{
   );
 };
 
-const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, readOnly=false, canAccessDocs=false, canEdit=false, isPublished=false, onRequestNaviaTip }) => {
+const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, readOnly=false, canEdit=false, isPublished=false, onRequestNaviaTip }) => {
   const dispatch = useDispatch<AppDispatch>();
   const destinations = useSelector((s:RootState)=> s.planner.destinations);
   // completedCount removed with Timeline header
@@ -101,7 +98,6 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
   const [ghostSearchOpen, setGhostSearchOpen] = React.useState(false);
   const ghostInputRef = React.useRef<HTMLInputElement>(null);
   const [searchValue, setSearchValue] = React.useState('');
-  const searchInputRef = ghostInputRef; // alias kept for autocomplete logic
   const [predictions, setPredictions] = React.useState<any[]>([]);
   const [loadingPred, setLoadingPred] = React.useState(false);
   const sessionTokenRef = React.useRef<any | null>(null);
@@ -442,7 +438,6 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
               {centers.map((c, idx) => {
                 const d = destinations[idx];
                 const cl = checklists[d?.id];
-                const hasAlert = (alertsMap[d?.id]?.alerts.length ?? 0) > 0;
                 const allDone = cl?.accommodation && cl?.transport && cl?.activities;
                 return (
                   <Box key={idx} sx={{ position: 'absolute', top: c, left: 6, width: 28, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'translateY(-50%)', zIndex: 3 }}>
