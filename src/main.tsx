@@ -32,7 +32,7 @@ root.render(
     <Auth0Provider
       domain={import.meta.env.VITE_AUTH0_DOMAIN}
       clientId={import.meta.env.VITE_AUTH0_CLIENT_ID}
-      authorizationParams={{ redirect_uri: `${window.location.origin}/callback` }}
+      authorizationParams={{ redirect_uri: `${window.location.origin}/callback`, audience: import.meta.env.VITE_AUTH0_AUDIENCE }}
     >
       <Provider store={store}>
         <ThemeProvider>
