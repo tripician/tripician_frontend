@@ -8,7 +8,7 @@ import { fetchUserProfile } from '../../store/userSlice';
 import { authAPI } from '../../services/APIs/Auth/auth';
 
 const Callback = () => {
-  const { getAccessTokenSilently, isAuthenticated, isLoading, error } = useAuth0();
+  const { getIdTokenClaims, isAuthenticated, isLoading, error } = useAuth0();
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   const didRun = useRef(false);
@@ -31,8 +31,14 @@ const Callback = () => {
 
     const exchange = async () => {
       try {
-        const auth0Token = await getAccessTokenSilently();
-        const response = await authAPI.socialCallback(auth0Token);
+        const claims = await getIdTokenClaims();
+        const idToken = claims?.__raw;
+        if (!idToken) {
+          console.error('[Callback] No ID token available');
+          navigate('/signin');
+          return;
+        }
+        const response = await authAPI.socialCallback(idToken);
 
         if (response.data?.success && response.data?.accessToken) {
           localStorage.setItem('accessToken', response.data.accessToken);
