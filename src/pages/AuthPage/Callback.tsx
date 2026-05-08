@@ -1,0 +1,76 @@
+import { useEffect, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { useAuth0 } from '@auth0/auth0-react';
+import { Box, CircularProgress, Typography } from '@mui/material';
+import { useDispatch } from 'react-redux';
+import type { AppDispatch } from '../../store';
+import { fetchUserProfile } from '../../store/userSlice';
+import { authAPI } from '../../services/APIs/Auth/auth';
+
+const Callback = () => {
+  const { getAccessTokenSilently, isAuthenticated, isLoading, error } = useAuth0();
+  const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
+  const didRun = useRef(false);
+
+  useEffect(() => {
+    if (isLoading) return;
+    if (didRun.current) return;
+    didRun.current = true;
+
+    if (error) {
+      console.error('[Callback] Auth0 error:', error);
+      navigate('/signin');
+      return;
+    }
+
+    if (!isAuthenticated) {
+      navigate('/signin');
+      return;
+    }
+
+    const exchange = async () => {
+      try {
+        const auth0Token = await getAccessTokenSilently();
+        const response = await authAPI.socialCallback(auth0Token);
+
+        if (response.data?.success && response.data?.accessToken) {
+          localStorage.setItem('accessToken', response.data.accessToken);
+          if (response.data.refreshToken) {
+            localStorage.setItem('refreshToken', response.data.refreshToken);
+          }
+          dispatch(fetchUserProfile());
+          navigate('/home', { replace: true });
+        } else {
+          console.error('[Callback] Unexpected response:', response.data);
+          navigate('/signin');
+        }
+      } catch (err) {
+        console.error('[Callback] Token exchange failed:', err);
+        navigate('/signin');
+      }
+    };
+
+    exchange();
+  }, [isAuthenticated, isLoading, error, getAccessTokenSilently, navigate, dispatch]);
+
+  return (
+    <Box
+      display="flex"
+      flexDirection="column"
+      justifyContent="center"
+      alignItems="center"
+      minHeight="100vh"
+      gap={2}
+    >
+      <CircularProgress sx={{ color: '#FF385C' }} />
+      <Typography
+        sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.875rem', color: 'text.secondary' }}
+      >
+        Signing you in…
+      </Typography>
+    </Box>
+  );
+};
+
+export default Callback;

@@ -25,6 +25,7 @@ import ContactPage from './pages/InfoPages/ContactPage';
 import AboutPage from './pages/InfoPages/AboutPage';
 import BlogsList from './pages/BlogsPage/BlogsList';
 import BlogPost from './pages/BlogsPage/BlogPost';
+import Callback from './pages/AuthPage/Callback';
 
 // Import debug utilities for development
 if (import.meta.env.DEV) {
@@ -38,6 +39,7 @@ function App() {
         <Route path="/signup" element={<GuestRoute><Signup /></GuestRoute>} />
         <Route path="/signin" element={<GuestRoute><Signin /></GuestRoute>} />
         <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
+        <Route path="/callback" element={<Callback />} />
         <Route path="/" element={<GuestRoute><Landingpage /></GuestRoute>} />
         
         {/* Protected Routes grouped under persistent layout */}
