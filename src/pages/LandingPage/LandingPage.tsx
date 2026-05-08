@@ -7,11 +7,9 @@ import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import {
   Map,
   Compass,
-  DollarSign,
   Brain,
   ArrowRight,
   ChevronDown,
-  Globe,
   Plane,
   Users,
   Star,
