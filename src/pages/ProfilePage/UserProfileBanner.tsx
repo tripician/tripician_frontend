@@ -189,8 +189,6 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
 }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { logout } = useAuthToken();
-  const { logout: auth0Logout } = useAuth0();
-  const navigate = useNavigate();
 
   const onLogoutClick = async () => {
     setIsLoggingOut(true);
