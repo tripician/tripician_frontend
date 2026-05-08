@@ -6,9 +6,7 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import CloseIcon from '@mui/icons-material/Close';
 import LinkIcon from '@mui/icons-material/Link';
-import ContentCopyIcon from '@mui/icons-material/ContentCopy';
 import CheckIcon from '@mui/icons-material/Check';
-import EmailIcon from '@mui/icons-material/Email';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import CloseIconSmall from '@mui/icons-material/Close';
@@ -62,7 +60,7 @@ import { flagEmojiFromName, flagPngUrl, countryCodeFromName, COUNTRY_NAMES } fro
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 
-const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, title, tripId, startDate, endDate, privacy, members = [], bannerUrl, onChangeBanner, onChangeTitle, onChangeStartDate, onChangeEndDate, onChangePrivacy, onDeleteTrip, onInviteEmail, countries = [], onRemoveCountry, onAddCountry, currentUserIsOwner, description = '', onChangeDescription, vibe = '', onChangeVibe }) => {
+const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, title, tripId, startDate, endDate, privacy: _privacy, members = [], bannerUrl, onChangeBanner, onChangeTitle, onChangeStartDate, onChangeEndDate, onChangePrivacy: _onChangePrivacy, onDeleteTrip, onInviteEmail, countries = [], onRemoveCountry, onAddCountry, currentUserIsOwner, description = '', onChangeDescription, vibe = '', onChangeVibe }) => {
   const [copyMain, setCopyMain] = React.useState(false);
   // Derive username from first owner/editor member handle (strip leading @) or 'user'
   // Share URL now based solely on tripId; member handle retrieval removed.
