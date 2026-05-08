@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import ChatIcon from '@mui/icons-material/Chat';
 import MapIcon from '@mui/icons-material/Map';
 import AddLocationAltIcon from '@mui/icons-material/AddLocationAlt';
-import { floatIn, staggerContainer, staggerItem } from '../utils/animations';
+import { floatIn } from '../utils/animations';
 
 const MotionPaper = motion.create(Paper);
 const MotionIconButton = motion.create(IconButton);

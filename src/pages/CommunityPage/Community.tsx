@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography, Button, alpha } from '@mui/material';
 import { motion } from 'framer-motion';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
-import { fadeInUp, staggerContainer, staggerItem, scaleIn } from '../../utils/animations';
+import { staggerContainer, staggerItem, scaleIn } from '../../utils/animations';
 
 const Community: React.FC = () => {
 
