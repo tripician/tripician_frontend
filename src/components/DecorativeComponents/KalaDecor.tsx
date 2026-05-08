@@ -24,10 +24,6 @@ const R = Math.PI / 180;
 
 // ─── shared micro-helpers ─────────────────────────────────────────────────────
 
-/** x,y on a circle */
-const cx = (r: number, deg: number) => C + r * Math.cos(deg * R);
-const cy = (r: number, deg: number) => C + r * Math.sin(deg * R);
-
 /** Filled almond petal from r1 → r2, width w, at angle deg */
 function petal(r1: number, r2: number, w: number, deg: number, col: string, k: string) {
   const a = deg * R, pp = a + Math.PI / 2;
@@ -81,7 +77,6 @@ function triRing(n: number, r: number, len: number, baseW: number, off: number, 
 /** Ring of n hatched arc segments (radial lines filling an annular band) */
 function hatchBand(n: number, r1: number, r2: number, lineCount: number, off: number, col: string, sw: number, pfx: string) {
   const step = 360 / n;
-  const halfArc = (step * 0.38) * R;
   return Array.from({length: n}, (_, i) => {
     const baseDeg = off + i * step;
     return Array.from({length: lineCount}, (__, j) => {
