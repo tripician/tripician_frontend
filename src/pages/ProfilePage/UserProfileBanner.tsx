@@ -4,7 +4,6 @@ import { styled } from '@mui/material/styles';
 import { motion } from 'framer-motion';
 import EditIcon from '@mui/icons-material/Edit';
 import LogoutIcon from '@mui/icons-material/Logout';
-import { useNavigate } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import type { BioHighlight } from '../../store/userSlice';
@@ -189,6 +188,7 @@ const UserProfileBanner: React.FC<UserProfileBannerProps> = ({
 }) => {
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const { logout } = useAuthToken();
+  const { logout: auth0Logout } = useAuth0();
 
   const onLogoutClick = async () => {
     setIsLoggingOut(true);
