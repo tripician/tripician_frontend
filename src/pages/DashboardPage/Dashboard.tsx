@@ -12,6 +12,7 @@ import { useAuthToken } from '../../hooks/useAuth0Token';
 import { fetchUnsplashImage } from '../../services/unsplashService';
 import gsap from 'gsap';
 import TripCreationModal from '../../components/CreateTripComponents/TripCreationModal';
+import TripShareModal from '../../components/TripShareModal';
 
 const Dashboard: React.FC = () => {
   const formatRelativeTime = (dateStr?: string) => {
@@ -223,13 +224,17 @@ const Dashboard: React.FC = () => {
   const [deleting, setDeleting] = useState(false);
   const [snackbar, setSnackbar] = useState<string | null>(null);
 
+  // Share modal state
+  const [shareTripId, setShareTripId] = useState<string | null>(null);
+  const [shareTripMeta, setShareTripMeta] = useState<{ name: string; destinationCount: number; totalNights: number } | null>(null);
+
   const handleShare = (plan: any) => {
-    const url = `${window.location.origin}/trip/${plan.id}`;
-    if (navigator.share) {
-      navigator.share({ title: plan.title, url }).catch(() => {});
-    } else {
-      navigator.clipboard.writeText(url).then(() => setSnackbar('Link copied to clipboard!'));
-    }
+    setShareTripId(plan.id);
+    setShareTripMeta({
+      name: plan.title || 'My Trip',
+      destinationCount: Array.isArray(plan.countries) ? plan.countries.length : 1,
+      totalNights: typeof plan.totalNights === 'number' ? plan.totalNights : 0,
+    });
   };
 
   const handleDeleteConfirm = async () => {
@@ -608,6 +613,18 @@ const Dashboard: React.FC = () => {
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
       <TripCreationModal open={createTripOpen} onClose={() => setCreateTripOpen(false)} />
+
+      {/* Share modal */}
+      {shareTripId && shareTripMeta && (
+        <TripShareModal
+          open={!!shareTripId}
+          onClose={() => { setShareTripId(null); setShareTripMeta(null); }}
+          tripId={shareTripId}
+          tripName={shareTripMeta.name}
+          destinationCount={shareTripMeta.destinationCount}
+          totalNights={shareTripMeta.totalNights}
+        />
+      )}
     </Box>
   );
 };

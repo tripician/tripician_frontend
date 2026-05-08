@@ -43,6 +43,7 @@ import TopBar from '../PageLayout/CommonLayouts/TopBar';
 // CheckIcon removed — inline title editing removed
 import Docs from '../DocsPage/Docs';
 import SoonTag from '../../components/CommonComponents/SoonTag';
+import TripShareModal from '../../components/TripShareModal';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
@@ -486,12 +487,13 @@ interface TripViewPanelProps {
 	destinationCount: number;
 	showEditAction?: boolean;
 	onRequestEdit?: () => void;
+	onShare?: () => void;
 }
 
 const TripViewPanel: React.FC<TripViewPanelProps> = ({
 	title, description, bannerUrl, countries, tripUsers, ownerInfo,
 	totalNights, destinationCount,
-	showEditAction = false, onRequestEdit,
+	showEditAction = false, onRequestEdit, onShare,
 }) => {
 	const theme = useTheme();
 	const isLight = theme.palette.mode === 'light';
@@ -700,7 +702,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 					fullWidth
 					variant="outlined"
 					startIcon={<ShareRoundedIcon sx={{ fontSize: 16 }} />}
-					onClick={() => { navigator.clipboard.writeText(window.location.href); }}
+					onClick={() => { onShare?.(); }}
 					sx={{
 						textTransform: 'none', borderRadius: '10px', fontFamily: 'inherit',
 						fontWeight: 600, fontSize: '0.82rem',
@@ -1159,6 +1161,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const [exiting, setExiting] = React.useState(false);
 	const [deletingTrip, setDeletingTrip] = React.useState(false);
 	const [confirmDeleteOpen, setConfirmDeleteOpen] = React.useState(false);
+	const [shareModalOpen, setShareModalOpen] = React.useState(false);
 
 	// Auto-close doc-related dialogs when feature disabled to prevent stray popups
 	React.useEffect(()=> {
@@ -1915,6 +1918,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						destinationCount={planner.destinations.length}
 						showEditAction={showViewEditAction}
 						onRequestEdit={onRequestEdit}
+						onShare={() => setShareModalOpen(true)}
 					/>
 					</Box>
 				)}
@@ -2243,7 +2247,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					<Button
 						variant='contained'
 						startIcon={<ShareRoundedIcon />}
-						onClick={() => { setShowCelebration(false); }}
+						onClick={() => { setShowCelebration(false); setShareModalOpen(true); }}
 						sx={{ borderRadius: '40px', px: 3, py: 1, textTransform: 'none', fontWeight: 700, fontSize: 14, background: 'linear-gradient(135deg,#FF385C,#E31C5F)', boxShadow: '0 4px 16px rgba(255,56,92,0.40)', '&:hover': { background: 'linear-gradient(135deg,#E31C5F,#c91855)' } }}
 					>Share this plan</Button>
 					<Button
@@ -2259,6 +2263,14 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				{toast.msg}
 			</Alert>
 		</Snackbar>
+		<TripShareModal
+			open={shareModalOpen}
+			onClose={() => setShareModalOpen(false)}
+			tripId={tripId}
+			tripName={title}
+			destinationCount={planner.destinations.length}
+			totalNights={totalNights}
+		/>
 		</React.Fragment>
 	);
 };
