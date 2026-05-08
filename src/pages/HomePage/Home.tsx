@@ -1,10 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { Box, Typography, Button, CircularProgress, Alert, Stack, Skeleton } from '@mui/material';
+import { Box, Typography, Button, CircularProgress, Alert, Stack } from '@mui/material';
 import { KalaLotus } from '../../components/DecorativeComponents/KalaDecor';
 import { useSelector } from 'react-redux';
 import ExploreIcon from '@mui/icons-material/TravelExplore';
 import PublicIcon from '@mui/icons-material/Public';
-import StarRoundedIcon from '@mui/icons-material/StarRounded';
 import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
 
 import PlaceRoundedIcon from '@mui/icons-material/PlaceRounded';
@@ -1012,7 +1011,6 @@ const Home: React.FC = () => {
                           const coverImg = getCover(t);
                           const tripName = t.name || t.title || 'Untitled Trip';
                           const countriesList: string[] = Array.isArray(t.countries) ? t.countries : [];
-                          const tripRating = parseFloat((3.5 + (tIdx * 7 + 3) % 15 / 10).toFixed(1));
                           const ownerMember = ownerToMember(t.owner);
 
                           return (
@@ -1055,7 +1053,6 @@ const Home: React.FC = () => {
                             const coverImg = getCover(t);
                             const tripName = t.name || t.title || 'Untitled Trip';
                             const countriesList: string[] = Array.isArray(t.countries) ? t.countries : [];
-                            const tripRating = parseFloat((3.4 + (tIdx * 9 + 2) % 16 / 10).toFixed(1));
                             const ownerMember = ownerToMember(t.owner);
                             const isOwner = t.owner && userId && t.owner === userId;
                             const isMember = Array.isArray(t.members) && userId && t.members.includes(userId);
@@ -1820,7 +1817,6 @@ const Home: React.FC = () => {
                         const coverImg = getCover(t);
                         const tripName = t.name || t.title || 'Untitled Trip';
                         const countriesList: string[] = Array.isArray(t.countries) ? t.countries : [];
-                        const tripRating = parseFloat((3.5 + (tIdx * 7 + 3) % 15 / 10).toFixed(1));
                         const ownerMember = ownerToMember(t.owner);
 
                         return (
@@ -1865,7 +1861,6 @@ const Home: React.FC = () => {
                           const coverImg = getCover(t);
                           const tripName = t.name || t.title || 'Untitled Trip';
                           const countriesList: string[] = Array.isArray(t.countries) ? t.countries : [];
-                          const tripRating = parseFloat((3.4 + (tIdx * 9 + 2) % 16 / 10).toFixed(1));
                           const ownerMember = ownerToMember(t.owner);
                           const isOwner = t.owner && userId && t.owner === userId;
                           const isMember = Array.isArray(t.members) && userId && t.members.includes(userId);
