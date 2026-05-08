@@ -373,4 +373,12 @@ export const apiServices = {
     apiClient.patch('/api/profile/settings/profile-picture', { ProfilePictureUrl: profilePictureUrl }, {
       headers: { Authorization: `Bearer ${token}` }
     }),
+
+  // ------------------------------------------------------------
+  // Account Deletion
+  // DELETE /auth/account
+  deleteAccount: (token: string) =>
+    apiClient.delete('/auth/account', {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
 };

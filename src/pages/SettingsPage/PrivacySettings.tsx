@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuthToken } from '../../hooks/useAuth0Token';
+import { useNavigate } from 'react-router-dom';
 import {
   Box,
   Card,
@@ -9,9 +10,16 @@ import {
   Select,
   MenuItem,
   FormControl,
+  Button,
+  Dialog,
+  DialogTitle,
+  DialogContent,
+  DialogContentText,
+  DialogActions,
+  CircularProgress,
   type SelectChangeEvent,
 } from "@mui/material";
-import { KeyboardArrowDown } from "@mui/icons-material";
+import { KeyboardArrowDown, WarningAmberRounded } from "@mui/icons-material";
 
 interface PrivacySetting {
   id: string;
@@ -47,8 +55,14 @@ const PrivacySettings: React.FC = () => {
   const [saving, setSaving] = useState<string | null>(null); // key currently saving
   const [error, setError] = useState<string | null>(null);
 
+  // Delete account state
+  const [deleteDialogOpen, setDeleteDialogOpen] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+
   // Reactive auth token (ensures re-fetch once token resolves after login)
   const { token: authToken } = useAuthToken();
+  const navigate = useNavigate();
 
   // Fetch initial privacy settings from backend
   const fetchPrivacy = useCallback(async () => {
@@ -174,6 +188,25 @@ const PrivacySettings: React.FC = () => {
       ShowContactInfo: find('show_contact_information'),
       AllowDirectMessages: find('allow_direct_messages')
     };
+  };
+
+  const handleDeleteAccount = async () => {
+    if (!authToken) return;
+    setDeleting(true);
+    setDeleteError(null);
+    try {
+      const { apiServices } = await import('../../services/APIs/apiServices');
+      await apiServices.deleteAccount(authToken);
+      // Clear all local auth state and redirect to sign-in
+      localStorage.removeItem('accessToken');
+      localStorage.removeItem('refreshToken');
+      window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: 'account_deleted' } }));
+      navigate('/signin');
+    } catch (err: any) {
+      const msg = err?.response?.data?.message || 'Failed to delete account. Please try again.';
+      setDeleteError(msg);
+      setDeleting(false);
+    }
   };
 
 
@@ -327,6 +360,78 @@ const PrivacySettings: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Danger Zone */}
+      <Card
+        sx={{
+          borderRadius: '16px',
+          mt: 3,
+          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+          border: '1.5px solid',
+          borderColor: 'error.main',
+        }}
+      >
+        <CardContent sx={{ p: 3 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+            <WarningAmberRounded sx={{ color: 'error.main', fontSize: '1.1rem' }} />
+            <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', color: 'error.main', letterSpacing: '-0.01em' }}>
+              Danger Zone
+            </Typography>
+          </Box>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2.5, fontSize: '0.875rem', lineHeight: 1.5 }}>
+            Permanently delete your Tripician account and all associated data. This action is irreversible and cannot be undone.
+          </Typography>
+          <Button
+            variant="outlined"
+            color="error"
+            onClick={() => { setDeleteError(null); setDeleteDialogOpen(true); }}
+            sx={{ borderRadius: '8px', fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: '0.875rem', textTransform: 'none' }}
+          >
+            Delete Account
+          </Button>
+        </CardContent>
+      </Card>
+
+      {/* Delete Account Confirmation Dialog */}
+      <Dialog
+        open={deleteDialogOpen}
+        onClose={() => !deleting && setDeleteDialogOpen(false)}
+        PaperProps={{ sx: { borderRadius: '16px', p: 1 } }}
+      >
+        <DialogTitle sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 1 }}>
+          <WarningAmberRounded sx={{ color: 'error.main' }} />
+          Delete Account
+        </DialogTitle>
+        <DialogContent>
+          <DialogContentText sx={{ fontSize: '0.9rem', lineHeight: 1.6 }}>
+            Are you sure you want to permanently delete your account? All your trips, data, and profile information will be erased and <strong>cannot be recovered</strong>.
+          </DialogContentText>
+          {deleteError && (
+            <Typography variant="caption" color="error" sx={{ display: 'block', mt: 1.5 }}>
+              {deleteError}
+            </Typography>
+          )}
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2, gap: 1 }}>
+          <Button
+            onClick={() => setDeleteDialogOpen(false)}
+            disabled={deleting}
+            sx={{ borderRadius: '8px', fontFamily: "'Inter',sans-serif", fontWeight: 600, textTransform: 'none' }}
+          >
+            Cancel
+          </Button>
+          <Button
+            variant="contained"
+            color="error"
+            onClick={handleDeleteAccount}
+            disabled={deleting}
+            startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : undefined}
+            sx={{ borderRadius: '8px', fontFamily: "'Inter',sans-serif", fontWeight: 600, textTransform: 'none' }}
+          >
+            {deleting ? 'Deleting…' : 'Yes, Delete My Account'}
+          </Button>
+        </DialogActions>
+      </Dialog>
     </Box>
   );
 };
