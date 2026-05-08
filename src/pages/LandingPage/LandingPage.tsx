@@ -37,14 +37,14 @@ const FEATURES = [
   },
   {
     icon: <Users size={26} />,
-    title: 'Crew Discovery',
-    desc: 'Browse upcoming group trips filtered by travel personality. Join adventures built by travelers who move like you — or publish your plan and bring the right people in.',
+    title: 'Trip Sharing & Collaboration',
+    desc: 'Invite friends and family to your trip with shareable links. Assign roles, co-plan the itinerary together, and keep everyone on the same page — no WhatsApp chaos required.',
     accent: '#FF385C',
   },
   {
     icon: <Bot size={26} />,
-    title: 'Agentic AI Planner',
-    desc: 'Navia builds your full trip end-to-end from a single prompt — then opens the plan so your entire group can co-plan live on one shared board.',
+    title: 'AI Trip Assistant',
+    desc: 'Navia is your AI-powered planning companion inside every trip. Ask anything — routes, hidden gems, packing tips, local culture — and get smart, personalised answers instantly.',
     accent: '#FF385C',
   },
   {
@@ -68,8 +68,14 @@ const FEATURES = [
   {
     icon: <Compass size={26} />,
     title: 'Day-by-Day Planner',
-    desc: 'Organise every day with timed activities, notes, and drag-and-drop reordering. Your group sees every update in real time.',
+    desc: 'Organise every day with destinations, stays, activities, and notes. Optimise your route with one click — then publish your trip so others can discover it.',
     accent: '#29587a',
+  },
+  {
+    icon: <Zap size={26} />,
+    title: 'Packing Lists',
+    desc: 'Build smart packing lists directly inside your trip. Check items off as you pack, customise by destination, and never forget essentials again.',
+    accent: '#7c3aed',
   },
 ];
 
@@ -88,14 +94,14 @@ const STEPS = [
   },
   {
     num: '03',
-    title: 'Find your people',
-    desc: 'Browse upcoming trips that match your vibe. Join a plan from travelers who move like you, or invite them to yours — no WhatsApp chaos required.',
-    tag: 'Community',
+    title: 'Share & invite your crew',
+    desc: 'Share your trip with a link. Invite co-planners by role — they can edit destinations, add notes, and build the itinerary together. Or publish your plan to the community feed.',
+    tag: 'Collaboration',
   },
   {
     num: '04',
-    title: 'Go, your way',
-    desc: 'Solo, duo, or full crew — hit the road exactly how you want. Share memories, build real travel reputation, and grow a history no other platform can replicate.',
+    title: 'Travel with confidence',
+    desc: 'Hit the road with your itinerary, packing list, and live risk monitoring at your fingertips. Solo, duo, or full crew — everything in one place, exactly how you planned it.',
     tag: 'Real trips',
   },
 ];
@@ -662,17 +668,16 @@ export default function LandingPage() {
         <div className="lp-ai-agent__inner">
           <div className="lp-ai-agent__text">
             <span className="lp-section-eyebrow">The only AI that truly plans for you</span>
-            <h2 className="lp-section-title">Meet Navia,<br />your AI Trip Agent</h2>
+            <h2 className="lp-section-title">Meet Navia,<br />your AI Trip Assistant</h2>
             <p className="lp-ai-agent__desc">
-              Most travel AI gives you a list of suggestions. Navia <em>acts</em> — autonomously
-              sifting millions of options, flagging real-time risks, and assembling your complete
-              itinerary end-to-end. You just show up.
+              Most travel AI gives you a list of suggestions. Navia <em>converses</em> — ask anything about your trip, your destinations, or your itinerary and get smart, context-aware answers.
+              It flags real-time risks, suggests hidden gems, and helps your whole group make better decisions before and during travel.
             </p>
             <ul className="lp-ai-agent__bullets">
-              <li><Bot size={15} /> Autonomously plans full trips from one prompt</li>
+              <li><Bot size={15} /> Conversational trip planning from a single message</li>
               <li><Shield size={15} /> Integrated live risk &amp; weather monitoring</li>
-              <li><Zap size={15} /> Adapts instantly when budget or dates change</li>
-              <li><Activity size={15} /> Watches live events while you travel</li>
+              <li><Zap size={15} /> Suggests optimised routes &amp; local experiences</li>
+              <li><Activity size={15} /> Available inside every trip you create</li>
             </ul>
             <button className="lp-btn lp-btn--hero-primary" onClick={() => navigate('/signup')}>
               Try Navia for Free <ArrowRight size={16} />

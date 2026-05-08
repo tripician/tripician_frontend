@@ -62,13 +62,16 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
   const [feedback, setFeedback] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const appVersion = import.meta.env.VITE_APP_VERSION || '0.0.0';
+  const appVersion = import.meta.env.VITE_APP_VERSION || '1.0.0';
   const appEnv = import.meta.env.VITE_ENV || 'local';
 
   const updateItems = [
-    { icon: RocketLaunchRoundedIcon, text: 'Personalized home hero driven by your live trip stats.' },
-    { icon: SecurityRoundedIcon, text: 'Dashboard permissions refined so members collaborate safely.' },
-    { icon: SyncRoundedIcon, text: 'Profile edits now refresh instantly across the app.' },
+    { icon: RocketLaunchRoundedIcon, text: 'Trip planner v1.0 — day-by-day itinerary builder with stays, spots & foods.' },
+    { icon: SecurityRoundedIcon,     text: 'Published trips now visible on the Home feed & Community Adventures.' },
+    { icon: SyncRoundedIcon,         text: 'Travel Risk Monitor with live news, weather & currency intel (Beta).' },
+    { icon: RocketLaunchRoundedIcon, text: 'Navia AI assistant — ask anything about your trip inside the planner.' },
+    { icon: SecurityRoundedIcon,     text: 'Trip sharing with shareable links and member role management.' },
+    { icon: SyncRoundedIcon,         text: 'Profile picture upload, preferences settings & theme toggle.' },
   ];
 
   const handleSend = () => {
@@ -238,7 +241,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
                   size={300}
                   color="#FF385C"
                   opacity={isLight ? 0.04 : 0.06}
-                  style={{ position: 'absolute', bottom: -60, right: -60, pointerEvents: 'none', zIndex: 0 }}
+                  style={{ position: 'absolute', bottom: 200, right: -60, pointerEvents: 'none', zIndex: 0 }}
                 />
                 <Box sx={{ position: 'relative', zIndex: 1, p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                   {messages.length === 0 && (
