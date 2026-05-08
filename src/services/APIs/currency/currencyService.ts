@@ -14,8 +14,6 @@ const COUNTRY_CURRENCY: Record<string, string> = {
   nz: 'NZD', sg: 'SGD', ae: 'AED', br: 'BRL', mx: 'MXN', za: 'ZAR', th: 'THB'
 };
 
-const MAJORS = ['USD','EUR','GBP'];
-
 interface CacheEntry { data: CurrencyData; expires: number; }
 const CACHE: Record<string, CacheEntry> = {};
 const TTL_MS = 5 * 60 * 1000; // 5 minutes

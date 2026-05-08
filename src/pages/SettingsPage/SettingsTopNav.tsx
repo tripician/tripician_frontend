@@ -1,7 +1,7 @@
 import React from "react";
 import { Box } from "@mui/material";
 import { User, Bell, Shield, Globe } from "lucide-react";
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 interface SettingsTopNavProps {
   selectedSettingsMenuItem: string;
