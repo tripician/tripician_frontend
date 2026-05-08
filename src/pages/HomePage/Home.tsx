@@ -1008,6 +1008,31 @@ const Home: React.FC = () => {
                         gap: 2,
                       }}>
                         {recommended.map((t, _tIdx) => {
+                          const coverImg = getCover(t);
+                          const tripName = t.name || t.title || 'Untitled Trip';
+                          const countriesList: string[] = Array.isArray(t.countries) ? t.countries : [];
+                          const ownerMember = ownerToMember(t.owner);
+
+                          return (
+                            <Box key={t.id || t.Id}>
+                              <TripCard
+                                title={tripName}
+                                image={coverImg}
+                                description={t.description || t.vibe || undefined}
+                                countries={countriesList}
+                                members={[ownerMember]}
+                                onClick={() => navigate(`/trip/${t.id || t.Id}`)}
+                              />
+                            </Box>
+                          );
+                        })}
+                      </Box>
+                    </Box>
+
+                    {/* ══ ROW 2: Also Check Out ══ */}
+                    {alsoCheckout.length > 0 && (
+                      <Box>
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                           <Box sx={{
                             display: 'flex', alignItems: 'center', gap: 0.6,
                             px: 1.25, py: 0.45,
@@ -1788,7 +1813,33 @@ const Home: React.FC = () => {
                       gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)', lg: 'repeat(5, 1fr)' },
                       gap: 2,
                     }}>
-                        {recommended.map((t, _tIdx) => {
+                      {recommended.map((t, _tIdx) => {
+                        const coverImg = getCover(t);
+                        const tripName = t.name || t.title || 'Untitled Trip';
+                        const countriesList: string[] = Array.isArray(t.countries) ? t.countries : [];
+                        const ownerMember = ownerToMember(t.owner);
+
+                        return (
+                          <Box key={t.id || t.Id}>
+                            <TripCard
+                              title={tripName}
+                              image={coverImg}
+                              description={t.description || t.vibe || undefined}
+                              countries={countriesList}
+                              members={[ownerMember]}
+                              onClick={() => navigate(`/trip/${t.id || t.Id}`)}
+                            />
+                          </Box>
+                        );
+                      })}
+                    </Box>
+                  </Box>
+
+                  {/* ══ ROW 2: Also Check Out ══ */}
+                  {alsoCheckout.length > 0 && (
+                    <Box>
+                      {/* Row label */}
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                         <Box sx={{
                           display: 'flex', alignItems: 'center', gap: 0.6,
                           px: 1.25, py: 0.45,
