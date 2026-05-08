@@ -6,6 +6,8 @@ import {
   Avatar 
 } from "@mui/material";
 import { Person, Email, Phone, Public, Cake, Wc } from "@mui/icons-material";
+import { motion } from 'framer-motion';
+import { staggerContainer, staggerItem } from '../../utils/animations';
 import SocialMediaButtons from "../../components/CommonComponents/SocialMediaButtons";
 
 type KV = { label: string; value?: string | number | null };

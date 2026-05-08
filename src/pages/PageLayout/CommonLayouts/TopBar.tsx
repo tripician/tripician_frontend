@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Typography, IconButton, Avatar, Tooltip, Popover, Divider, List, ListItemButton, ListItemText, ListItemIcon, Button, Badge } from "@mui/material";
+import { Box, Typography, IconButton, Avatar, Tooltip, Popover, Divider, List, ListItemButton, ListItemText, ListItemIcon, Button } from "@mui/material";
 import { styled } from '@mui/material/styles';
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import NotificationsOffOutlinedIcon from "@mui/icons-material/NotificationsOffOutlined";
@@ -56,22 +56,6 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
     }
   };
 
-  const LogoutButton = styled(Button)(({ theme }) => ({
-    position: 'absolute',
-    bottom: 16,
-    padding: '6px 16px',
-    zIndex: 3,
-    backgroundColor: '#FF385C',
-    color: '#fff',
-    fontWeight: 600,
-    textTransform: 'none',
-    borderRadius: '50px',
-    boxShadow: '0 4px 14px rgba(255, 56, 92, 0.35)',
-    '&:hover': {
-      backgroundColor: '#E31C5F',
-      boxShadow: '0 8px 24px rgba(255, 56, 92, 0.50)',
-    },
-  }));
 
   return (
     <>
