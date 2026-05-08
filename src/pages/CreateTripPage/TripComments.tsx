@@ -4,9 +4,15 @@ import { motion } from 'framer-motion';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import EditIcon from '@mui/icons-material/Edit';
 import ThumbUpAltOutlinedIcon from '@mui/icons-material/ThumbUpAltOutlined';
-import { useDispatch, useSelector } from 'react-redux';
-import { type RootState, type AppDispatch } from '../../store';
-import { addComment, updateComment, removeComment, addReply, toggleUpvote } from '../../store/plannerSlice';
+import { useSelector } from 'react-redux';
+import { type RootState } from '../../store';
+import { apiServices } from '../../services/APIs/apiServices';
+import type { TripComment } from '../../store/plannerSlice';
+
+interface TripCommentsProps {
+  tripId: string;
+  authToken: string | null;
+}
 
 // Config
 const PAGE_SIZE = 25;
@@ -31,10 +37,8 @@ function renderMarkdown(md: string): React.ReactNode {
   return <span dangerouslySetInnerHTML={{ __html: html }} />;
 }
 
-const TripComments: React.FC = () => {
-  const dispatch = useDispatch<AppDispatch>();
-  const comments = useSelector((s:RootState)=> s.planner.comments) || [];
-  const userProfile = useSelector((s:RootState) => s.user.profile);
+const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
+  const userProfile = useSelector((s: RootState) => s.user.profile);
 
   // Derive current-user display values from Redux profile
   const myName = userProfile
@@ -44,8 +48,54 @@ const TripComments: React.FC = () => {
   const myAvatar: string | undefined = userProfile?.profilepicture || undefined;
   const myInitial = myName.charAt(0).toUpperCase() || 'Y';
   const myId = String(userProfile?.id || 'me');
-  const canPost = true; // all authenticated users can post
-  const sorted = React.useMemo(()=> [...comments].sort((a,b)=> new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()), [comments]);
+  const canPost = !!authToken;
+
+  // Local comments state (source of truth from backend)
+  const [comments, setComments] = React.useState<TripComment[]>([]);
+  const [loadingComments, setLoadingComments] = React.useState(true);
+
+  // Normalize a single backend comment DTO to TripComment
+  const normalizeComment = (c: any): TripComment => ({
+    id: String(c.id),
+    userId: String(c.userId),
+    displayName: c.displayName || c.userName || c.name || 'Member',
+    avatarUrl: c.avatarUrl || undefined,
+    text: c.content || c.text || '',
+    createdAt: c.createdAt || new Date().toISOString(),
+    editedAt: c.updatedAt || c.editedAt || undefined,
+    parentId: c.parentCommentId ? String(c.parentCommentId) : undefined,
+    upvoterIds: c.upvoterIds || [],
+  });
+
+  // Flatten nested backend response (replies array) into flat list
+  const flattenComments = (raw: any[]): TripComment[] => {
+    const flat: TripComment[] = [];
+    for (const c of raw) {
+      flat.push(normalizeComment(c));
+      if (Array.isArray(c.replies)) {
+        for (const r of c.replies) flat.push(normalizeComment(r));
+      }
+    }
+    return flat;
+  };
+
+  // Fetch comments from backend
+  React.useEffect(() => {
+    if (!tripId || !authToken) { setLoadingComments(false); return; }
+    let active = true;
+    setLoadingComments(true);
+    apiServices.getTripComments(authToken, tripId)
+      .then(resp => {
+        if (!active) return;
+        const data = Array.isArray(resp?.data) ? resp.data : (Array.isArray(resp?.data?.comments) ? resp.data.comments : []);
+        setComments(flattenComments(data));
+      })
+      .catch(() => {})
+      .finally(() => { if (active) setLoadingComments(false); });
+    return () => { active = false; };
+  }, [tripId, authToken]);
+
+  const sorted = React.useMemo(() => [...comments].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()), [comments]);
 
   // Infinite pagination window
   const [visibleCount, setVisibleCount] = React.useState(PAGE_SIZE);
@@ -85,22 +135,60 @@ const TripComments: React.FC = () => {
     }
   };
 
-  const send = () => {
-    const body = text.trim(); if(!body || body.length>MAX_COMMENT_CHARS) return; if(!canPost) return;
-    const now = Date.now(); recentRef.current = recentRef.current.filter(t=> now - t < FLOOD_WINDOW_MS); if(recentRef.current.length >= MAX_IN_WINDOW){ setFloodBlocked(true); setTimeout(()=> setFloodBlocked(false),4000); return; }
+  const send = async () => {
+    const body = text.trim(); if (!body || body.length > MAX_COMMENT_CHARS) return; if (!canPost || !authToken) return;
+    const now = Date.now(); recentRef.current = recentRef.current.filter(t => now - t < FLOOD_WINDOW_MS); if (recentRef.current.length >= MAX_IN_WINDOW) { setFloodBlocked(true); setTimeout(() => setFloodBlocked(false), 4000); return; }
     recentRef.current.push(now);
-    if(editingId){ dispatch(updateComment({ id: editingId, text: body })); setEditingId(null); }
-    else { dispatch(addComment({ userId: myId, displayName: myName, avatarUrl: myAvatar, text: body })); }
-    setText(''); autoStickRef.current = true;
+    if (editingId) {
+      // Optimistic update
+      setComments(prev => prev.map(c => c.id === editingId ? { ...c, text: body, editedAt: new Date().toISOString() } : c));
+      setEditingId(null); setText('');
+      try { await apiServices.updateTripComment(authToken, tripId, editingId, body); } catch { /* revert not needed; UI stays */ }
+    } else {
+      // Optimistic insert
+      const tempId = `tmp_${Date.now()}`;
+      const optimistic: TripComment = { id: tempId, userId: myId, displayName: myName, avatarUrl: myAvatar, text: body, createdAt: new Date().toISOString(), upvoterIds: [] };
+      setComments(prev => [...prev, optimistic]);
+      setText(''); autoStickRef.current = true;
+      try {
+        const resp = await apiServices.createTripComment(authToken, tripId, body);
+        const created = normalizeComment(resp?.data);
+        setComments(prev => prev.map(c => c.id === tempId ? created : c));
+      } catch {
+        setComments(prev => prev.filter(c => c.id !== tempId));
+      }
+    }
   };
-  const startEdit = (id:string, current:string) => { setEditingId(id); setActiveReplyParentId(null); setReplyDraft(''); setText(current); };
-  const openReply = (id:string) => { setActiveReplyParentId(id); setReplyDraft(''); setExpandedThreads(p=> ({ ...p, [id]: true })); };
+  const startEdit = (id: string, current: string) => { setEditingId(id); setActiveReplyParentId(null); setReplyDraft(''); setText(current); };
+  const openReply = (id: string) => { setActiveReplyParentId(id); setReplyDraft(''); setExpandedThreads(p => ({ ...p, [id]: true })); };
   const cancelEdit = () => { setEditingId(null); setText(''); };
   const cancelReply = () => { setActiveReplyParentId(null); setReplyDraft(''); };
-  const sendReply = (parentId:string) => {
-    const body = replyDraft.trim(); if(!body || body.length>MAX_COMMENT_CHARS) return; if(!canPost) return;
-    const now = Date.now(); recentRef.current = recentRef.current.filter(t=> now - t < FLOOD_WINDOW_MS); if(recentRef.current.length >= MAX_IN_WINDOW){ setFloodBlocked(true); setTimeout(()=> setFloodBlocked(false),4000); return; }
-    recentRef.current.push(now); dispatch(addReply({ parentId, userId: myId, displayName: myName, avatarUrl: myAvatar, text: body })); setActiveReplyParentId(null); setReplyDraft(''); autoStickRef.current = true;
+  const deleteComment = async (id: string) => {
+    setComments(prev => prev.filter(c => c.id !== id && c.parentId !== id));
+    try { if (authToken) await apiServices.deleteTripComment(authToken, tripId, id); } catch { /* already removed optimistically */ }
+  };
+  const sendReply = async (parentId: string) => {
+    const body = replyDraft.trim(); if (!body || body.length > MAX_COMMENT_CHARS) return; if (!canPost || !authToken) return;
+    const now = Date.now(); recentRef.current = recentRef.current.filter(t => now - t < FLOOD_WINDOW_MS); if (recentRef.current.length >= MAX_IN_WINDOW) { setFloodBlocked(true); setTimeout(() => setFloodBlocked(false), 4000); return; }
+    recentRef.current.push(now);
+    const tempId = `tmp_${Date.now()}`;
+    const optimistic: TripComment = { id: tempId, userId: myId, displayName: myName, avatarUrl: myAvatar, text: body, createdAt: new Date().toISOString(), parentId, upvoterIds: [] };
+    setComments(prev => [...prev, optimistic]);
+    setActiveReplyParentId(null); setReplyDraft(''); autoStickRef.current = true;
+    try {
+      const resp = await apiServices.createTripComment(authToken, tripId, body, parentId);
+      const created = normalizeComment(resp?.data);
+      setComments(prev => prev.map(c => c.id === tempId ? created : c));
+    } catch {
+      setComments(prev => prev.filter(c => c.id !== tempId));
+    }
+  };
+  const toggleUpvoteLocal = (id: string) => {
+    setComments(prev => prev.map(c => {
+      if (c.id !== id) return c;
+      const already = c.upvoterIds?.includes(myId);
+      return { ...c, upvoterIds: already ? (c.upvoterIds || []).filter(u => u !== myId) : [...(c.upvoterIds || []), myId] };
+    }));
   };
   const toggleThread = (id:string) => setExpandedThreads(p=> ({ ...p, [id]: !p[id] }));
 
@@ -122,7 +210,8 @@ const TripComments: React.FC = () => {
       <Box ref={scrollRef} onScroll={handleScroll} sx={{ flex:1, overflowY:'auto', pb:4 }}>
         <Box sx={{ maxWidth:900, width:'100%', mx:'auto', display:'flex', flexDirection:'column', gap:4 }}>
           {loadingOlder && <Box sx={{ display:'flex', justifyContent:'center' }}><CircularProgress size={18} /></Box>}
-          {visibleSlice.length === 0 && !loadingOlder && <Typography variant='body2' color='text.secondary'>Be the first to start the conversation.</Typography>}
+          {loadingComments && <Box sx={{ display:'flex', justifyContent:'center', pt:4 }}><CircularProgress size={22} /></Box>}
+          {!loadingComments && visibleSlice.length === 0 && !loadingOlder && <Typography variant='body2' color='text.secondary'>Be the first to start the conversation.</Typography>}
           {dayGroups.map(group => (
             <Box key={group.day} sx={{ display:'flex', flexDirection:'column', gap:3 }}>
               <Box sx={{ display:'flex', alignItems:'center', gap:1, opacity:.8 }}>
@@ -141,12 +230,12 @@ const TripComments: React.FC = () => {
                     </Box>
                     <Typography variant='body2' sx={{ mt:.5, lineHeight:1.55, fontSize:14, '& a':{ color:'primary.main', textDecoration:'none', '&:hover':{ textDecoration:'underline' } }, '& code.tc-code':{ background:(t)=> t.palette.mode==='dark'? '#1e2932':'#eceff1', padding:'2px 4px', borderRadius:4 } }}>{renderMarkdown(c.text)}</Typography>
                     <Box className='comment-inline-actions' sx={{ display:'flex', alignItems:'center', gap:1.25, mt:.75, opacity:0, transition:'opacity .2s' }}>
-                      <Button size='small' disabled={!canPost} onClick={()=> dispatch(toggleUpvote({ id: c.id, userId: myId }))} startIcon={<ThumbUpAltOutlinedIcon sx={{ fontSize:14, transform: c.upvoterIds?.includes(myId)?'scale(1.2)':'scale(1)', transition:'transform .15s' }} />} variant='text' sx={{ textTransform:'none', fontSize:12, px:0.5, minWidth:40, color: (c.upvoterIds?.includes(myId)? 'primary.main':'text.secondary'), '&:hover':{ color:'primary.main', background:'transparent' } }}>{upCount? upCount:'Upvote'}</Button>
+                      <Button size='small' disabled={!canPost} onClick={()=> toggleUpvoteLocal(c.id)} startIcon={<ThumbUpAltOutlinedIcon sx={{ fontSize:14, transform: c.upvoterIds?.includes(myId)?'scale(1.2)':'scale(1)', transition:'transform .15s' }} />} variant='text' sx={{ textTransform:'none', fontSize:12, px:0.5, minWidth:40, color: (c.upvoterIds?.includes(myId)? 'primary.main':'text.secondary'), '&:hover':{ color:'primary.main', background:'transparent' } }}>{upCount? upCount:'Upvote'}</Button>
                       <Button size='small' disabled={!canPost} onClick={()=> openReply(c.id)} variant='text' sx={{ textTransform:'none', fontSize:12, px:0.5, minWidth:40, color:'text.secondary', '&:hover':{ color:'text.primary', background:'transparent' } }}>Reply</Button>
                       {replies.length>0 && <Button size='small' onClick={()=> toggleThread(c.id)} variant='text' sx={{ textTransform:'none', fontSize:12, px:0.5, minWidth:54, color:'text.secondary', '&:hover':{ color:'text.primary', background:'transparent' } }}>{expanded? 'Hide replies': `Replies (${replies.length})`}</Button>}
                       {mine && <>
                         <Button size='small' variant='text' onClick={()=> startEdit(c.id, c.text)} sx={{ textTransform:'none', fontSize:12, px:0.5, minWidth:40, color:'text.secondary', '&:hover':{ color:'text.primary', background:'transparent' } }}>Edit</Button>
-                        <Button size='small' variant='text' onClick={()=> dispatch(removeComment({ id: c.id }))} sx={{ textTransform:'none', fontSize:12, px:0.5, minWidth:48, color:'text.secondary', '&:hover':{ color:'error.main', background:'transparent' } }}>Delete</Button>
+                        <Button size='small' variant='text' onClick={()=> deleteComment(c.id)} sx={{ textTransform:'none', fontSize:12, px:0.5, minWidth:48, color:'text.secondary', '&:hover':{ color:'error.main', background:'transparent' } }}>Delete</Button>
                       </>}  
                     </Box>
                     {replies.length>0 && (
@@ -162,10 +251,10 @@ const TripComments: React.FC = () => {
                                 </Box>
                                 <Typography variant='body2' sx={{ mt:.15, fontSize:12.75, lineHeight:1.45, '& a':{ color:'primary.main', textDecoration:'none', '&:hover':{ textDecoration:'underline' } }, '& code.tc-code':{ background:(t)=> t.palette.mode==='dark'? '#1e2932':'#eceff1', padding:'1px 4px', borderRadius:4, fontSize:12 } }}>{renderMarkdown(r.text)}</Typography>
                                 <Box sx={{ display:'flex', gap:1, mt:.35 }}>
-                                  <Button size='small' disabled={!canPost} onClick={()=> dispatch(toggleUpvote({ id: r.id, userId: myId }))} startIcon={<ThumbUpAltOutlinedIcon sx={{ fontSize:11, transform: r.upvoterIds?.includes(myId)?'scale(1.15)':'scale(1)', transition:'transform .15s' }} />} variant='text' sx={{ textTransform:'none', fontSize:10.5, px:0.4, minWidth:32, color: (r.upvoterIds?.includes(myId)? 'primary.main':'text.secondary'), '&:hover':{ color:'primary.main', background:'transparent' } }}>{upCountR? upCountR:'Upvote'}</Button>
+                                  <Button size='small' disabled={!canPost} onClick={()=> toggleUpvoteLocal(r.id)} startIcon={<ThumbUpAltOutlinedIcon sx={{ fontSize:11, transform: r.upvoterIds?.includes(myId)?'scale(1.15)':'scale(1)', transition:'transform .15s' }} />} variant='text' sx={{ textTransform:'none', fontSize:10.5, px:0.4, minWidth:32, color: (r.upvoterIds?.includes(myId)? 'primary.main':'text.secondary'), '&:hover':{ color:'primary.main', background:'transparent' } }}>{upCountR? upCountR:'Upvote'}</Button>
                                   {mineR && <>
                                     <Button size='small' variant='text' onClick={()=> startEdit(r.id, r.text)} sx={{ textTransform:'none', fontSize:10.5, px:0.4, minWidth:30, color:'text.secondary', '&:hover':{ color:'text.primary', background:'transparent' } }}>Edit</Button>
-                                    <Button size='small' variant='text' onClick={()=> dispatch(removeComment({ id: r.id }))} sx={{ textTransform:'none', fontSize:10.5, px:0.4, minWidth:38, color:'text.secondary', '&:hover':{ color:'error.main', background:'transparent' } }}>Delete</Button>
+                                    <Button size='small' variant='text' onClick={()=> deleteComment(r.id)} sx={{ textTransform:'none', fontSize:10.5, px:0.4, minWidth:38, color:'text.secondary', '&:hover':{ color:'error.main', background:'transparent' } }}>Delete</Button>
                                   </>}
                                 </Box>
                               </Box>

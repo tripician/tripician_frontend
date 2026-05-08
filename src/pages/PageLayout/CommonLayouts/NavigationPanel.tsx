@@ -44,7 +44,7 @@ const DRAWER_WIDTH = 72;
 const NAV_ITEMS: NavItem[] = [
   { text: 'Home',      Icon: HomeIcon,       path: '/home'      },
   { text: 'Dashboard',     Icon: DashboardIcon,    path: '/dashboard' },
-  { text: 'Risk Monitor',   Icon: RiskMonitorIcon,  path: '/risk-monitor' },
+  { text: 'Risk Monitor',   Icon: RiskMonitorIcon,  path: '/risk-monitor' },  
   { text: 'Community',     Icon: CommunityIcon,    path: '/community', disabled: true, comingSoon: true },
   { text: 'Settings',  Icon: SettingsIcon,   path: '/settings'  },
 ];
@@ -203,7 +203,7 @@ const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {
                   onMouseEnter={() => !item.disabled && handleIconEnter(item.text)}
                   onMouseLeave={() => !item.disabled && handleIconLeave(item.text)}
                   sx={{
-                    width: 48, height: 48,
+                    width: 48, height: 48, position: 'relative',
                     borderRadius: '14px',
                     p: 0,
                     justifyContent: 'center',

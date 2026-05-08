@@ -83,11 +83,17 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  // GET /api/trips/public - public trips (no auth required but we allow optional token)
-  // Response: array of Trip objects, each includes description?: string | null, vibe?: string | null, rating?: number | null
+  // GET /api/trips/public - trips with Visibility=Everyone (deprecated for feed use)
   getPublicTrips: (token?: string) => 
     apiClient.get('/api/trips/public', {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined
+    }),
+
+  // GET /api/trips/published - all published trips (Published=true, IsArchived=false, any visibility)
+  // Used for Community Adventures feed and the Published tab on Dashboard.
+  getPublishedTrips: (token: string) =>
+    apiClient.get('/api/trips/published', {
+      headers: { Authorization: `Bearer ${token}` }
     }),
 
   // Simple connectivity ping (GET public trips) to help diagnose local server reachability (no auth required).
@@ -204,6 +210,18 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
+  // GET /api/trips/{tripId}/published — check published status
+  getTripPublishedStatus: (token: string, tripId: string) =>
+    apiClient.get(`/api/trips/${tripId}/published`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // PATCH /api/trips/{tripId}/publish — publish or unpublish (owner only)
+  setTripPublished: (token: string, tripId: string, published: boolean) =>
+    apiClient.patch(`/api/trips/${tripId}/publish`, { published }, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
   // DELETE /api/trips/{tripId}
   deleteTrip: (token: string, tripId: string) => apiClient.delete(`/api/trips/${tripId}`, {
     headers: { Authorization: `Bearer ${token}` }
@@ -262,6 +280,29 @@ export const apiServices = {
   // GET /api/trips/{tripId}/users - fetch all users (members) of a trip
   getTripUsers: (token: string, tripId: string) =>
     apiClient.get(`/api/trips/${tripId}/users`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // ------------------------------------------------------------
+  // Trip Comments
+  // GET /api/trips/{tripId}/comments
+  getTripComments: (token: string, tripId: string) =>
+    apiClient.get(`/api/trips/${tripId}/comments`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+  // POST /api/trips/{tripId}/comments
+  createTripComment: (token: string, tripId: string, content: string, parentCommentId?: string) =>
+    apiClient.post(`/api/trips/${tripId}/comments`, { content, parentCommentId: parentCommentId ?? null }, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+  // PUT /api/trips/{tripId}/comments/{commentId}
+  updateTripComment: (token: string, tripId: string, commentId: string, content: string) =>
+    apiClient.put(`/api/trips/${tripId}/comments/${commentId}`, { content }, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+  // DELETE /api/trips/{tripId}/comments/{commentId}
+  deleteTripComment: (token: string, tripId: string, commentId: string) =>
+    apiClient.delete(`/api/trips/${tripId}/comments/${commentId}`, {
       headers: { Authorization: `Bearer ${token}` }
     }),
   // DELETE /api/trips/{tripId}/users/{userId} - remove a single user from trip (owner only)

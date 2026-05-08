@@ -214,10 +214,20 @@ export default function RiskMonitor() {
             LIVE INTELLIGENCE
           </div>
 
-          <h1 className="rm-hero__title">Travel Risk Monitor</h1>
+          <h1 className="rm-hero__title">
+            Travel Risk Monitor
+            <span className="rm-hero__beta">BETA</span>
+          </h1>
           <p className="rm-hero__sub">
             Real-time safety, weather &amp; news intelligence for any destination — before you book.
           </p>
+
+          {/* ── Research caution notice ── */}
+          <div className="rm-hero__caution">
+            <span>
+              <strong>⚠️ For reference only.</strong> Risk data is based on ongoing research and automated sources — it may be incomplete or inaccurate. Always verify with official government travel advisories before making any travel decisions.
+            </span>
+          </div>
 
           {/* Search input */}
           <div className={`rm-search-wrap${dropOpen && suggestions.length > 0 ? ' rm-search-wrap--open' : ''}`}>

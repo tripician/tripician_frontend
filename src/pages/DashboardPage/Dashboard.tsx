@@ -178,7 +178,7 @@ const Dashboard: React.FC = () => {
             );
             return ownerId ? ownerId === myId : true;
           })(),
-          isPublished: (t.status || t.Status || '').toString().toUpperCase() === 'PUBLISHED',
+          isPublished: t.published === true || t.isPublished === true || (typeof t.status === 'string' && t.status.toUpperCase() === 'PUBLISHED'),
           ownerId: (() => {
             const o = t.owner || t.Owner;
             return String(
@@ -269,6 +269,10 @@ const Dashboard: React.FC = () => {
   const myTrips = allPlans.filter(plan => plan.isOwner);
   const sharedTrips = allPlans.filter(plan => !plan.isOwner);
   const publishedTrips = allPlans.filter(plan => plan.isPublished);
+  // DEV: log raw published values to diagnose missing field from backend
+  if (import.meta.env.DEV) {
+    console.debug('[Dashboard] isPublished map:', allPlans.map(p => ({ id: p.id, title: p.title, isPublished: p.isPublished })));
+  }
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);

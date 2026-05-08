@@ -486,6 +486,7 @@ interface TripViewPanelProps {
 	totalNights: number;
 	destinationCount: number;
 	showEditAction?: boolean;
+	isPublished?: boolean;
 	onRequestEdit?: () => void;
 	onShare?: () => void;
 }
@@ -493,7 +494,7 @@ interface TripViewPanelProps {
 const TripViewPanel: React.FC<TripViewPanelProps> = ({
 	title, description, bannerUrl, countries, tripUsers, ownerInfo,
 	totalNights, destinationCount,
-	showEditAction = false, onRequestEdit, onShare,
+	showEditAction = false, isPublished = false, onRequestEdit, onShare,
 }) => {
 	const theme = useTheme();
 	const isLight = theme.palette.mode === 'light';
@@ -530,6 +531,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 			flexShrink: 0,
 			display: 'flex',
 			flexDirection: 'column',
+			height: '100%',
 			borderLeft: `1px solid ${border}`,
 			background: bg,
 			fontFamily: "'Inter', system-ui, sans-serif",
@@ -580,6 +582,24 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 				'&::-webkit-scrollbar': { width: 4 },
 				'&::-webkit-scrollbar-thumb': { borderRadius: 3, background: isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.10)' },
 			}}>
+
+				{/* ── Published badge ── */}
+				{isPublished && (
+					<Box sx={{
+						display: 'flex', alignItems: 'center', gap: 0.6,
+						px: 1.1, py: 0.55, borderRadius: '8px',
+						background: 'linear-gradient(135deg, rgba(34,197,94,0.12) 0%, rgba(16,185,129,0.08) 100%)',
+						border: '1px solid rgba(34,197,94,0.28)',
+					}}>
+						<Box sx={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px rgba(34,197,94,0.7)', flexShrink: 0 }} />
+						<Typography sx={{ fontSize: '0.62rem', fontWeight: 800, color: '#16a34a', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'inherit' }}>
+							Published
+						</Typography>
+						<Typography sx={{ fontSize: '0.62rem', color: '#16a34a', fontFamily: 'inherit', opacity: 0.75, ml: 'auto' }}>
+							Live
+						</Typography>
+					</Box>
+				)}
 
 				{/* ── Description ── */}
 				{description && (
@@ -818,9 +838,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const [privacy, setPrivacy] = React.useState<'Private'|'Trip Members'|'Everyone'>('Private');
 	const [tripStartDate, setTripStartDate] = React.useState<string|null>(normalizedInitial?.meta.startDate ? sanitizeDateString(normalizedInitial.meta.startDate) : null);
 	const [tripEndDate, setTripEndDate] = React.useState<string|null>(normalizedInitial?.meta.endDate ? sanitizeDateString(normalizedInitial.meta.endDate) : null);
-	// Draft flag: derive from raw initialTrip.trip.status if provided; fallback to true
-	const initialStatus = (initialTrip && initialTrip.trip && typeof initialTrip.trip.status === 'string') ? String(initialTrip.trip.status).toUpperCase() : undefined;
-	const [isDraft, setIsDraft] = React.useState<boolean>(initialStatus ? initialStatus !== 'PUBLISHED' : true);
+	// Draft flag: derive from raw initialTrip.trip.published if provided; fallback to true (unpublished)
+	const initialPublished = (initialTrip && initialTrip.trip && typeof initialTrip.trip.published === 'boolean') ? initialTrip.trip.published : false;
+	const [isDraft, setIsDraft] = React.useState<boolean>(!initialPublished);
 
 	// Section + tab UI state — persisted in ?tab= query param so refresh keeps the same panel
 	const VALID_SECTIONS = ['plan', 'news', 'docs', 'packing'] as const;
@@ -848,13 +868,16 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			e:tripEndDate,
 			d:planner.destinations.map(d=> ({ id:d.id, n:d.name, sd:d.startDate, ed:d.endDate, nts:d.nights, lat:d.lat, lng:d.lng, tr:d.transport })),
 			c:currency,
-			dr:isDraft,
 			in:importantNotes.trim(),
 			b:bannerUrl,
 			cs:countries
 		});
-	}, [title, privacy, tripStartDate, tripEndDate, planner.destinations, currency, isDraft, importantNotes, bannerUrl, countries]);
-	const commitSnapshot = React.useCallback((draft:boolean)=> { setIsDraft(draft); lastCommittedRef.current = computeSignature(); }, [computeSignature]);
+	}, [title, privacy, tripStartDate, tripEndDate, planner.destinations, currency, importantNotes, bannerUrl, countries]);
+	// Always keep a ref to the latest computeSignature so rAF callbacks and async
+	// handlers never capture a stale closure (the main cause of false-positive isDirty).
+	const computeSignatureRef = React.useRef(computeSignature);
+	React.useEffect(()=> { computeSignatureRef.current = computeSignature; });
+	const commitSnapshot = React.useCallback((draft:boolean)=> { setIsDraft(draft); lastCommittedRef.current = computeSignatureRef.current(); }, []);
 	React.useEffect(()=> { if(!lastCommittedRef.current) lastCommittedRef.current = computeSignature(); }, [computeSignature]);
 	const isDirty = computeSignature() !== lastCommittedRef.current;
 	// Hydration status flag
@@ -1041,9 +1064,11 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			comments: []
 		}));
 		hydratedRef.current = `${meta.id}:${itinerary.length}`;
-		// Commit initial snapshot after first hydration
-		requestAnimationFrame(()=> { lastCommittedRef.current = computeSignature(); });
-	}, [unifiedTrip, title, dispatch, planner.targetNights, computeSignature]);
+		// Commit initial snapshot after first hydration.
+		// Use computeSignatureRef (not the closure-captured computeSignature) so the rAF
+		// always reads the latest signature AFTER React re-renders from the dispatch above.
+		requestAnimationFrame(()=> { lastCommittedRef.current = computeSignatureRef.current(); });
+	}, [unifiedTrip, title, dispatch, planner.targetNights]);
 
 	// Centralized feature flags
 	const ENABLE_EXPENSES = FEATURE_FLAGS.expenses;
@@ -1335,16 +1360,18 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		// Itinerary (extended fields) – omit empty large text fields
 		const itinerary = planner.destinations.map(d=> {
 			const notesVal: unknown = (d as any).notes;
-			const notesClean = (typeof notesVal === 'string' && notesVal.trim().length>0) ? notesVal : undefined;
-			// Structured stay: include only fields with non-empty trimmed values; omit entirely if all empty
+			const notesClean = (typeof notesVal === 'string' && notesVal.trim().length>0) ? notesVal.trim() : null;
+			// Structured stay: include only fields with non-empty trimmed values; send null if all empty
 			const stayRaw: any = (d as any).stay || {};
 			const stayName = typeof stayRaw.name === 'string' && stayRaw.name.trim() ? stayRaw.name.trim() : undefined;
 			const stayRef = typeof stayRaw.reference === 'string' && stayRaw.reference.trim() ? stayRaw.reference.trim() : undefined;
 			const stayNotes = typeof stayRaw.notes === 'string' && stayRaw.notes.trim() ? stayRaw.notes.trim() : undefined;
-			const stay = (stayName||stayRef||stayNotes) ? { name: stayName, reference: stayRef, notes: stayNotes } : undefined;
-			// Multi stays (new model)
-			const multiStays = Array.isArray((d as any).stays) ? (d as any).stays.filter((s:any)=> (s.name && s.name.trim()) || (s.reference && s.reference.trim())).map((s:any)=> ({ id:s.id, name:s.name?.trim(), reference:s.reference?.trim() })) : undefined;
-			const stayNotesUnified = typeof (d as any).stayNotes === 'string' && (d as any).stayNotes.trim().length>0 ? (d as any).stayNotes.trim() : undefined;
+			const stay = (stayName||stayRef||stayNotes) ? { name: stayName ?? null, reference: stayRef ?? null, notes: stayNotes ?? null } : null;
+			// Multi stays (new model) — always send array, never undefined
+			const multiStays = Array.isArray((d as any).stays)
+				? (d as any).stays.filter((s:any)=> (s.name && s.name.trim()) || (s.reference && s.reference.trim())).map((s:any)=> ({ id:s.id, name:s.name?.trim() ?? null, reference:s.reference?.trim() ?? null }))
+				: [];
+			const stayNotesUnified = typeof (d as any).stayNotes === 'string' && (d as any).stayNotes.trim().length>0 ? (d as any).stayNotes.trim() : null;
 			return {
 				id:d.id,
 				name:d.name,
@@ -1353,18 +1380,18 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				nights:d.nights,
 				lat:d.lat,
 				lng:d.lng,
-				placeId:d.placeId,
+				placeId:d.placeId ?? null,
 				transport:d.transport,
 				budget: d.budget ?? 0,
 				category: d.category || 'general',
 				completed: !!d.completed,
-				photoUrl: d.photoUrl,
+				photoUrl: d.photoUrl ?? null,
 				notes: notesClean,
 				stay, // deprecated single stay (retained for backward compatibility)
 				stays: multiStays,
 				stayNotes: stayNotesUnified,
-				spots:(d.spots||[]).map(s=> ({ id:s.id, name:s.name, placeId:s.placeId, checked:s.checked, photoUrl:s.photoUrl, description:s.description, mapUrl:s.mapUrl, known: !!s.known })),
-				foods:(d.foods||[]).map(f=> ({ id:f.id, name:f.name, checked:f.checked, known: !!(f as any).known })),
+				spots:(d.spots||[]).map(s=> ({ id:s.id, name:s.name, placeId:s.placeId ?? null, checked:!!s.checked, photoUrl:s.photoUrl ?? null, description:s.description ?? null, mapUrl:s.mapUrl ?? null, known: !!s.known })),
+				foods:(d.foods||[]).map(f=> ({ id:f.id, name:f.name, checked:!!f.checked, known: !!(f as any).known })),
 				docs:(d.docs||[]).map(doc=> ({ id:doc.id, originalName:doc.originalName, mimeType:doc.mimeType, url:doc.url }))
 			};
 		});
@@ -1404,7 +1431,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			trip: {
 				id: tripId,
 				name: title,
-				status: draft ? 'DRAFT' : 'PUBLISHED',
 				privacy,
 				currency,
 				startDate: finalStart,
@@ -1476,18 +1502,31 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		return () => clearTimeout(timer);
 	}, [isHydrated, effectiveCanEdit, authToken, buildPersistPayload, persistToBackend, isDraft, commitSnapshot]);
 
-	const handlePublish = () => {
-		if(!currentUserIsOwner) return; // safety
+	const handlePublish = async () => {
+		if(!currentUserIsOwner || !authToken) return; // safety
 		if(isDraft){
-			// Build enriched published payload (draft=false)
-			const payload = buildPersistPayload(false);
-			persistedPayloadRef.current = payload;
-			// Persist first, then commit snapshot only on success
-			persistToBackend(payload).then(ok => { if(ok) { commitSnapshot(false); setShowCelebration(true); } });
+			setSaving(true);
+			try {
+				await apiServices.setTripPublished(authToken, tripId, true);
+				commitSnapshot(false);
+				setShowCelebration(true);
+			} catch {
+				openToast('error', 'Failed to publish trip. Please try again.');
+			} finally {
+				setSaving(false);
+			}
 		} else {
 			// Unpublish -> revert to draft
-			commitSnapshot(true);
-			openToast('info','Trip reverted to draft');
+			setSaving(true);
+			try {
+				await apiServices.setTripPublished(authToken, tripId, false);
+				commitSnapshot(true);
+				openToast('info', 'Trip unpublished');
+			} catch {
+				openToast('error', 'Failed to unpublish trip. Please try again.');
+			} finally {
+				setSaving(false);
+			}
 		}
 	};
 
@@ -1860,7 +1899,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 								</Box>
 							)}
 								{section==='plan' && tab===1 && ENABLE_EXPENSES && <ExpensesPanel readOnly={readOnly} />}
-								{section==='plan' && tab===2 && ENABLE_COMMENTS && <TripComments />}
+								{section==='plan' && tab===2 && ENABLE_COMMENTS && <TripComments tripId={tripId} authToken={authToken} />}
 						</Box>
 						<Box sx={(t)=>({ borderTop:`1px solid ${t.palette.divider}`, px:2.5, py:1.5, background:t.palette.background.paper, display:'flex', alignItems:'center', justifyContent:'space-between' })}>
 							<Typography variant='caption' color='text.secondary'>Last saved: {lastSavedDisplay}</Typography>
@@ -1904,7 +1943,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						<PremiumChatPanel naviaHook={naviaHook} />
 					</Box>
 				) : (
-					<Box sx={{ display: { xs: 'none', lg: 'flex' }, flexDirection: 'column', flex: '0 0 auto' }}>
+					<Box sx={{ display: { xs: 'none', lg: 'flex' }, flexDirection: 'column', alignSelf: 'stretch', flex: '0 0 auto' }}>
 					<TripViewPanel
 						title={title}
 						description={tripDescription}
@@ -1917,6 +1956,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						totalNights={totalNights}
 						destinationCount={planner.destinations.length}
 						showEditAction={showViewEditAction}
+						isPublished={!isDraft}
 						onRequestEdit={onRequestEdit}
 						onShare={() => setShareModalOpen(true)}
 					/>

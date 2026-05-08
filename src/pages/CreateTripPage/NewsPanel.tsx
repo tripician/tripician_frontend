@@ -681,7 +681,20 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
           <Box sx={{ maxWidth: 500 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', mb: 1.2 }}>
               <Box sx={{ width: 38, height: 38, borderRadius: 2, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🛰️</Box>
-              <Typography variant='h5' sx={{ fontWeight: 800, letterSpacing: .3, fontSize: { xs: '1.15rem', md: '1.4rem' } }}>Travel Risk Monitor</Typography>
+              <Typography variant='h5' sx={{ fontWeight: 800, letterSpacing: .3, fontSize: { xs: '1.15rem', md: '1.4rem' } }}>
+                Travel Risk Monitor
+                <Box component='span' sx={{
+                  display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle',
+                  ml: 1, px: 0.7, py: 0.25, borderRadius: '6px',
+                  fontSize: '0.38em', fontWeight: 800, letterSpacing: '0.12em',
+                  textTransform: 'uppercase', lineHeight: 1,
+                  color: '#FF385C',
+                  background: 'rgba(255,56,92,0.13)',
+                  border: '1px solid rgba(255,56,92,0.32)',
+                  fontFamily: "'Inter', system-ui, sans-serif",
+                  position: 'relative', top: '-0.1em',
+                }}>BETA</Box>
+              </Typography>
               {/* Live pulse indicator */}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, px: 1.2, py: 0.45, borderRadius: 999, border: '1px solid rgba(74,222,128,0.5)', bgcolor: 'rgba(20,83,45,0.55)', flexShrink: 0 }}>
                 <Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#4ade80', '@keyframes livePulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.35 } }, animation: 'livePulse 2s ease-in-out infinite' }} />
@@ -691,6 +704,18 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
             <Typography variant='body2' sx={{ opacity: .8, lineHeight: 1.6 }}>
               Curating {filteredCount} essential updates with {alertCount} critical alerts across {coverageCount} active corridors.
             </Typography>
+            {/* Research caution */}
+            <Box sx={{
+              display: 'flex', alignItems: 'flex-start', gap: 1,
+              mt: 1.5, px: 1.5, py: 1.1, borderRadius: '10px',
+              background: 'rgba(251,191,36,0.08)',
+              border: '1px solid rgba(251,191,36,0.28)',
+            }}>
+              <Typography sx={{ fontSize: '0.72rem', lineHeight: 1.55, color: 'rgba(255,255,255,0.72)', fontFamily: "'Inter', system-ui, sans-serif" }}>
+                <Box component='span' sx={{ fontWeight: 700, color: '#fbbf24' }}>⚠️ For reference only. </Box>
+                Risk data is sourced from automated feeds and ongoing research — it may be incomplete or inaccurate. Always check official government travel advisories before making travel decisions.
+              </Typography>
+            </Box>
           </Box>
 
           {/* Right: stat boxes */}

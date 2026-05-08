@@ -118,9 +118,11 @@ const Home: React.FC = () => {
   useEffect(() => {
     let active = true;
     const fetchPublic = async () => {
+      if (authLoading) return;
+      if (!authToken) { setLoadingPublic(false); return; }
       setLoadingPublic(true);
       try {
-        const response = await apiServices.getPublicTrips();
+        const response = await apiServices.getPublishedTrips(authToken);
         if (active) {
           const trips = response.data || [];
           setPublicTrips(trips);
@@ -154,7 +156,7 @@ const Home: React.FC = () => {
     };
     fetchPublic();
     return () => { active = false; };
-  }, []);
+  }, [authToken, authLoading]);
 
   useEffect(() => {
     if (authLoading) return; // auth still resolving
@@ -568,7 +570,7 @@ const Home: React.FC = () => {
                   </Box>
                   <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, px: 1.5, py: 0.5, borderRadius: '50px', background: 'rgba(255,56,92,0.10)', border: '1px solid rgba(255,56,92,0.22)' }}>
                     <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: '#FF385C', boxShadow: '0 0 6px rgba(255,56,92,0.7)' }} />
-                    <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#FF385C', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'Inter',sans-serif" }}>Live</Typography>
+                    <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#FF385C', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'Inter',sans-serif" }}>New!</Typography>
                   </Box>
                 </Box>
 
@@ -580,9 +582,11 @@ const Home: React.FC = () => {
                     const tripName = trip.name || trip.title || dest;
                     const days = trip.durationDays || trip.duration ||
                       (trip.startDate && trip.endDate ? Math.max(1, Math.round((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / 86400000)) : null);
-                    const rawMembers: any[] = trip.members || trip.invitedUsers || [];
-                    const maxSpots = trip.maxMembers || trip.maxParticipants || 8;
-                    const spotsLeft = Math.max(0, maxSpots - rawMembers.length);
+                    const rawMembersRaw: any[] = trip.members || trip.invitedUsers || [];
+                    const rawMembers: any[] = rawMembersRaw.filter((m: any) => {
+                      const u = m.user || m.User || m;
+                      return !!(u.fname || u.firstName || u.name || u.Name || u.profilePicture || u.profilePic || u.avatar);
+                    });
                     const vibeLabel = trip.travelPersonality || trip.vibe || trip.travelStyle || null;
                     const coverImg = (typeof trip.photoUrl === 'string' && trip.photoUrl.trim())
                       ? trip.photoUrl
@@ -667,20 +671,7 @@ const Home: React.FC = () => {
                               '100%': { boxShadow: '0 0 0 0 rgba(255,56,92,0)' },
                             },
                           }} />
-                          <Typography sx={{ fontSize: '0.58rem', fontWeight: 800, color: '#fff', letterSpacing: '0.1em', fontFamily: "'Inter',sans-serif" }}>LIVE</Typography>
-                        </Box>
-
-                        {/* Spots badge top-right */}
-                        <Box sx={{
-                          position: 'absolute', top: 12, right: 12,
-                          px: 1, py: 0.4, borderRadius: '50px',
-                          backdropFilter: 'blur(10px)',
-                          background: spotsLeft === 0 ? 'rgba(255,56,92,0.85)' : 'rgba(0,0,0,0.45)',
-                          border: `1px solid ${spotsLeft === 0 ? 'rgba(255,56,92,0.6)' : 'rgba(255,255,255,0.15)'}`,
-                        }}>
-                          <Typography sx={{ fontSize: '0.58rem', fontWeight: 700, color: '#fff', fontFamily: "'Inter',sans-serif", letterSpacing: '0.04em' }}>
-                            {spotsLeft === 0 ? '🔥 Full' : `${spotsLeft} spot${spotsLeft !== 1 ? 's' : ''} left`}
-                          </Typography>
+                          <Typography sx={{ fontSize: '0.58rem', fontWeight: 800, color: '#fff', letterSpacing: '0.1em', fontFamily: "'Inter',sans-serif" }}>NEW!</Typography>
                         </Box>
 
                         {/* Hover CTA */}
@@ -722,21 +713,32 @@ const Home: React.FC = () => {
 
                           <Typography sx={{
                             fontFamily: "'Inter',sans-serif", fontWeight: 800, fontSize: '0.95rem',
-                            color: '#fff', lineHeight: 1.25, mb: 1,
+                            color: '#fff', lineHeight: 1.25, mb: 0.5,
                             display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                             textShadow: '0 1px 4px rgba(0,0,0,0.4)',
                           }}>
                             {tripName}
                           </Typography>
 
+                          {/* Description */}
+                          {(trip.description || trip.vibe) && (
+                            <Typography sx={{
+                              fontFamily: "'Inter',sans-serif", fontSize: '0.7rem', fontWeight: 400,
+                              color: 'rgba(255,255,255,0.72)', lineHeight: 1.4, mb: 1,
+                              display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                            }}>
+                              {trip.description || trip.vibe}
+                            </Typography>
+                          )}
+
                           {/* Stacked avatars */}
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
                             <Box sx={{ display: 'flex' }}>
-                              {(rawMembers.length > 0 ? rawMembers : [{}]).slice(0, 5).map((m: any, j: number) => {
+                              {rawMembers.slice(0, 5).map((m: any, j: number) => {
                                 const u = m.user || m.User || m;
-                                const fn = u.fname || u.firstName || u.name || '?';
-                                const pic = u.profilePic || u.profilepicture || u.profilePicture || u.avatar || '';
-                                const initial = String(fn).charAt(0).toUpperCase();
+                                const fn = u.fname || u.firstName || u.name || u.Name || '';
+                                const pic = u.profilePic || u.profilepicture || u.profilePicture || u.ProfilePicture || u.avatar || '';
+                                const initial = fn ? String(fn).charAt(0).toUpperCase() : '?';
                                 return (
                                   <Box key={j} sx={{
                                     width: 22, height: 22, borderRadius: '50%',
@@ -977,6 +979,7 @@ const Home: React.FC = () => {
                 };
 
                 const userId = userProfile?.id || userProfile?.email;
+                // /api/trips/public already returns only publicly-visible trips — no need to filter again
                 const recommended = publicTrips.slice(0, 3);
                 const alsoCheckout = publicTrips.slice(3, 11);
 
@@ -1017,6 +1020,7 @@ const Home: React.FC = () => {
                               <TripCard
                                 title={tripName}
                                 image={coverImg}
+                                description={t.description || t.vibe || undefined}
                                 countries={countriesList}
                                 members={[ownerMember]}
                                 onClick={() => navigate(`/trip/${t.id || t.Id}`)}
@@ -1118,24 +1122,24 @@ const Home: React.FC = () => {
                                   )}
                                   <Typography sx={{
                                     fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '0.82rem',
-                                    color: '#fff', letterSpacing: '-0.01em', lineHeight: 1.3, mb: 1,
+                                    color: '#fff', letterSpacing: '-0.01em', lineHeight: 1.3, mb: 0.4,
                                     display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                                   }}>{tripName}</Typography>
+
+                                  {(t.description || t.vibe) && (
+                                    <Typography sx={{
+                                      fontFamily: "'Inter',sans-serif", fontSize: '0.65rem', fontWeight: 400,
+                                      color: 'rgba(255,255,255,0.65)', lineHeight: 1.4, mb: 0.8,
+                                      display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                                    }}>
+                                      {t.description || t.vibe}
+                                    </Typography>
+                                  )}
 
                                   <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
                                       <AlsoCheckoutAvatar member={ownerMember} />
                                       <Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.75)', fontFamily: "'Inter',sans-serif", fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 80 }}>{ownerMember.name}</Typography>
-                                    </Box>
-                                    <Box sx={{
-                                      display: 'flex', alignItems: 'center', gap: 0.35,
-                                      px: 0.9, py: 0.35, borderRadius: '50px',
-                                      backdropFilter: 'blur(6px)',
-                                      background: 'rgba(255,255,255,0.15)',
-                                      border: '1px solid rgba(255,255,255,0.2)',
-                                    }}>
-                                      <StarRoundedIcon sx={{ fontSize: 10, color: '#FFD700' }} />
-                                      <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: '#fff', fontFamily: "'Inter',sans-serif" }}>{tripRating}</Typography>
                                     </Box>
                                   </Box>
                                 </Box>
@@ -1781,6 +1785,7 @@ const Home: React.FC = () => {
               };
 
               const userId = userProfile?.id || userProfile?.email;
+              // /api/trips/public already returns only publicly-visible trips — no need to filter again
               const recommended = publicTrips.slice(0, 3);
               const alsoCheckout = publicTrips.slice(3, 11);
 
@@ -1823,6 +1828,7 @@ const Home: React.FC = () => {
                             <TripCard
                               title={tripName}
                               image={coverImg}
+                              description={t.description || t.vibe || undefined}
                               countries={countriesList}
                               members={[ownerMember]}
                               onClick={() => navigate(`/trip/${t.id || t.Id}`)}
@@ -1930,24 +1936,24 @@ const Home: React.FC = () => {
                                 )}
                                 <Typography sx={{
                                   fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '0.82rem',
-                                  color: '#fff', letterSpacing: '-0.01em', lineHeight: 1.3, mb: 1,
+                                  color: '#fff', letterSpacing: '-0.01em', lineHeight: 1.3, mb: 0.4,
                                   display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                                 }}>{tripName}</Typography>
+
+                                {(t.description || t.vibe) && (
+                                  <Typography sx={{
+                                    fontFamily: "'Inter',sans-serif", fontSize: '0.65rem', fontWeight: 400,
+                                    color: 'rgba(255,255,255,0.65)', lineHeight: 1.4, mb: 0.8,
+                                    display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+                                  }}>
+                                    {t.description || t.vibe}
+                                  </Typography>
+                                )}
 
                                 <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
                                     <AlsoCheckoutAvatar member={ownerMember} />
                                     <Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.75)', fontFamily: "'Inter',sans-serif", fontWeight: 500, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 80 }}>{ownerMember.name}</Typography>
-                                  </Box>
-                                  <Box sx={{
-                                    display: 'flex', alignItems: 'center', gap: 0.35,
-                                    px: 0.9, py: 0.35, borderRadius: '50px',
-                                    backdropFilter: 'blur(6px)',
-                                    background: 'rgba(255,255,255,0.15)',
-                                    border: '1px solid rgba(255,255,255,0.2)',
-                                  }}>
-                                    <StarRoundedIcon sx={{ fontSize: 10, color: '#FFD700' }} />
-                                    <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: '#fff', fontFamily: "'Inter',sans-serif" }}>{tripRating}</Typography>
                                   </Box>
                                 </Box>
                               </Box>
