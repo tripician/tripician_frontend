@@ -2,6 +2,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import './App.css'
 import Signin from './pages/AuthPage/Signin'
 import Signup from './pages/AuthPage/Signup'
+import ForgotPassword from './pages/AuthPage/ForgotPassword'
 import Landingpage from './pages/LandingPage/LandingPage'
 import Dashboard from './pages/DashboardPage/Dashboard'
 import Profile from './pages/ProfilePage/Profile'
@@ -36,6 +37,7 @@ function App() {
       <Routes>
         <Route path="/signup" element={<GuestRoute><Signup /></GuestRoute>} />
         <Route path="/signin" element={<GuestRoute><Signin /></GuestRoute>} />
+        <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
         <Route path="/" element={<GuestRoute><Landingpage /></GuestRoute>} />
         
         {/* Protected Routes grouped under persistent layout */}
