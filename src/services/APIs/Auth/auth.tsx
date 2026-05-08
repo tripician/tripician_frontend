@@ -66,6 +66,8 @@ export const publicAPI = {
   signin: (credentials: SignInData) => apiClient.post('/auth/signin', credentials),
   // Forgot password — always returns success for security (even if email not found)
   forgotPassword: (email: string) => apiClient.post('/auth/forgot-password', { email }),
+  // Social / OAuth sign-in (Google via Auth0)
+  socialCallback: (accessToken: string) => apiClient.post('/auth/social-callback', { accessToken }),
   health: () => apiClient.get('/health'),
 };
 
