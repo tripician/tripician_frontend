@@ -58,7 +58,7 @@ const Callback = () => {
     };
 
     exchange();
-  }, [isAuthenticated, isLoading, error, getAccessTokenSilently, navigate, dispatch]);
+  }, [isAuthenticated, isLoading, error, getIdTokenClaims, navigate, dispatch]);
 
   return (
     <Box
