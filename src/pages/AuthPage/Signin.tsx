@@ -1,30 +1,33 @@
 import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { useAuth0 } from '@auth0/auth0-react';
 import '../../assets/css/Signin.css';
-import TextField from '@mui/material/TextField';
-import FormControl from '@mui/material/FormControl';
-import InputLabel from '@mui/material/InputLabel';
-import OutlinedInput from '@mui/material/OutlinedInput';
-import InputAdornment from '@mui/material/InputAdornment';
-import IconButton from '@mui/material/IconButton';
-import Visibility from '@mui/icons-material/Visibility';
-import VisibilityOff from '@mui/icons-material/VisibilityOff';
-import Stack from '@mui/material/Stack';
-import Button from '@mui/material/Button';
-import GoogleIcon from '@mui/icons-material/Google';
-import AppleIcon from '@mui/icons-material/Apple';
-import Alert from '@mui/material/Alert';
+import { KalaLotus } from '../../components/DecorativeComponents/KalaDecor';
+import { Eye, EyeOff, Plane, MapPin, Globe, Brain, ArrowLeft } from 'lucide-react';
 import { authAPI } from '../../services/APIs/Auth/auth';
 import { useNavigate } from 'react-router-dom';
 import { fetchUserProfile } from '../../store/userSlice';
-import { useDispatch } from "react-redux";
+import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../store';
+import { fadeInLeft, fadeInRight, staggerContainer, staggerItem } from '../../utils/animations';
+
+const GoogleSVG = () => (
+  <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+    <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+    <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+    <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.18 1.48-4.97 2.29-8.16 2.29-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+  </svg>
+);
+
 
 const Signin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const { loginWithRedirect } = useAuth0();
   const dispatch = useDispatch<AppDispatch>();
-  const loginBackground = import.meta.env.VITE_LOGINPAGE_IMAGE_URL;
-  const leftPaneStyle = loginBackground ? { backgroundImage: `url(${loginBackground})` } : undefined;
+  const loginBackground = import.meta.env.VITE_SIGNINPAGE_IMAGE_URL as string | undefined;
+  const logoUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_2_URL as string | undefined;
 
   // Form state
   const [formData, setFormData] = useState({
@@ -36,14 +39,6 @@ const Signin = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
-
-  const handleClickShowPassword = () => setShowPassword((show) => !show);
-  const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-  };
-  const handleMouseUpPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
-    event.preventDefault();
-  };
 
   const handleInputChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
@@ -85,37 +80,25 @@ const Signin = () => {
       const response = await authAPI.signin(signInData);
       console.log('SignIn response:', response);
 
-      // ✅ fetch profile once and store globally
       dispatch(fetchUserProfile());
-      
-      // Check if the response indicates success
+
       if (response.data?.success && response.data?.accessToken) {
-        // Store the token
         localStorage.setItem('accessToken', response.data.accessToken);
         if (response.data.refreshToken) {
           localStorage.setItem('refreshToken', response.data.refreshToken);
         }
-        
+
         setSuccess('Sign in successful! Redirecting to home...');
-        
-        // Clear form data
-        setFormData({
-          email: '',
-          password: ''
-        });
-        
-        // Redirect to home after a short delay
+        setFormData({ email: '', password: '' });
+
         setTimeout(() => {
           navigate('/home');
         }, 1500);
       } else {
         setError('Unexpected response from server. Please try again.');
       }
-
     } catch (err: any) {
       console.error('SignIn error:', err);
-      
-      // Handle different types of errors
       if (err.response?.status === 401) {
         setError('Invalid email or password. Please try again.');
       } else if (err.response?.status === 400) {
@@ -131,128 +114,201 @@ const Signin = () => {
   };
 
   const handleForgotPassword = () => {
-    // You can implement forgot password functionality here
     navigate('/forgot-password');
   };
 
   const handleGoogleSignIn = () => {
-    // TODO: Implement Google Sign In
-    console.log('Google Sign In clicked');
-    // You can integrate with Auth0's social login or Google OAuth
+    loginWithRedirect({
+      authorizationParams: {
+        connection: 'google-oauth2',
+        scope: 'openid profile email'
+      }
+    });
   };
 
-  const handleAppleSignIn = () => {
-    // TODO: Implement Apple Sign In
-    console.log('Apple Sign In clicked');
-    // You can integrate with Auth0's social login or Apple OAuth
-  };
 
   return (
-    <div className="signin-split-root">
-      <div className="signin-split-left" style={leftPaneStyle} />
-      <div className="signin-split-right">
-        <div className="signin-card">
-          <div className="signin-logo">
-            <img style={{ height: 50, maxWidth: '100%' }} src={import.meta.env.VITE_TRIPICIAN_LOGO_FULL_BLACK_URL} alt="Tripician Logo"/>
-          </div>
+    <div className="auth-root">
+      {/* ── Left brand pane ─────────────────────────────────────── */}
+      <motion.div
+        className="auth-left"
+        variants={fadeInLeft}
+        initial="hidden"
+        animate="visible"
+      >
+        <div
+          className="auth-left__bg"
+          style={loginBackground ? { backgroundImage: `url(${loginBackground})` } : undefined}
+        />
+        <div className="auth-left__overlay" />
+        <motion.div
+          className="auth-left__content"
+          variants={staggerContainer(0.12, 0.3)}
+          initial="hidden"
+          animate="visible"
+        >
+          <motion.div className="auth-left__logo" variants={staggerItem}>
+            {logoUrl
+              ? <img src={logoUrl} alt="Tripician" className="auth-left__logo-img" />
+              : <><Plane size={20} /><span>Tripician</span></>
+            }
+          </motion.div>
+          <motion.h2 className="auth-left__title" variants={staggerItem}>
+            Plan Smarter.<br /><em>Travel Further.</em>
+          </motion.h2>
+          <motion.p className="auth-left__sub" variants={staggerItem}>
+            Your AI-powered companion for every adventure.
+          </motion.p>
+          <motion.ul className="auth-left__perks" variants={staggerContainer(0.08, 0)}>
+            <motion.li variants={staggerItem}><MapPin size={14} /> Day-by-day itinerary planner</motion.li>
+            <motion.li variants={staggerItem}><Globe size={14} /> 150+ destinations covered</motion.li>
+            <motion.li variants={staggerItem}><Brain size={14} /> Smart AI trip suggestions</motion.li>
+          </motion.ul>
+        </motion.div>
+      </motion.div>
 
-          {/* Display error message if signin fails */}
-          {error && <Alert severity="error" sx={{mb: 2, mx: 1}}>{error}</Alert>}
-          {/* Display success message if signin is successful*/}
-          {success && <Alert severity="success" sx={{mb: 2, mx: 1}}>{success}</Alert>}
-          
-          <form className="signin-form" onSubmit={handleSubmit}>
-              <TextField
-                id="loginid"
-                label="Email Address"
-                variant="outlined"
-                fullWidth
-                type="text"
+      {/* ── Right form pane ─────────────────────────────────────── */}
+      <motion.div
+        className="auth-right"
+        variants={fadeInRight}
+        initial="hidden"
+        animate="visible"
+      >
+        {/* Back to landing */}
+        <button className="auth-back-btn" onClick={() => navigate('/')}>
+          <ArrowLeft size={15} />
+          Back
+        </button>
+        {/* Indian kala lotus — top-right corner */}
+        <KalaLotus size={380} color="#FF385C" opacity={0.07} style={{ position: 'absolute', top: -90, right: -90, zIndex: 0 }} />
+        {/* Indian kala lotus — bottom-left accent */}
+        <KalaLotus size={260} color="#FF6B8A" opacity={0.055} style={{ position: 'absolute', bottom: -65, left: -65, zIndex: 0 }} />
+        <motion.div
+          className="auth-card"
+          initial={{ opacity: 0, y: 30, scale: 0.97 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 28, delay: 0.15 }}
+        >
+          {/* <div className="auth-card__logo">
+            {logoUrl
+              ? <img src={logoUrl} alt="Tripician" className="auth-card__logo-img" />
+              : <><Plane size={19} /><span>Tripician</span></>
+            }
+          </div> */}
+
+          <motion.h1
+            className="auth-card__heading"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.25, duration: 0.4 }}
+          >Welcome back</motion.h1>
+          <motion.p
+            className="auth-card__subheading"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.35, duration: 0.4 }}
+          >Sign in to your account to continue</motion.p>
+
+          {error && <div className="auth-alert auth-alert--error">{error}</div>}
+          {success && <div className="auth-alert auth-alert--success">{success}</div>}
+
+          <motion.form
+            className="auth-form"
+            onSubmit={handleSubmit}
+            variants={staggerContainer(0.08, 0.3)}
+            initial="hidden"
+            animate="visible"
+          >
+            <motion.div className="auth-field" variants={staggerItem}>
+              <label className="auth-field__label">Email Address</label>
+              <input
+                className="auth-field__input"
+                type="email"
+                placeholder="you@example.com"
                 value={formData.email}
                 onChange={handleInputChange('email')}
                 required
                 autoComplete="email"
-                sx={{ m: 1 }}
               />
+            </motion.div>
 
-              <div className="signin-password-row">
-                <FormControl
-                  variant="outlined"
-                  fullWidth
-                  sx={{ m: 0 }}
+            <motion.div className="auth-field" variants={staggerItem}>
+              <div className="auth-field__label-row">
+                <label className="auth-field__label">Password</label>
+                <a
+                  href="#"
+                  className="auth-forgot"
+                  onClick={e => { e.preventDefault(); handleForgotPassword(); }}
                 >
-                  <InputLabel htmlFor="outlined-adornment-password">Password</InputLabel>
-                  <OutlinedInput
-                    id="outlined-adornment-password"
-                    type={showPassword ? 'text' : 'password'}
-                    value={formData.password}
-                    onChange={handleInputChange('password')}
-                    required
-                    autoComplete="current-password"
-                    endAdornment={
-                      <InputAdornment position="end">
-                        <IconButton
-                          aria-label={showPassword ? 'hide the password' : 'display the password'}
-                          onClick={handleClickShowPassword}
-                          onMouseDown={handleMouseDownPassword}
-                          onMouseUp={handleMouseUpPassword}
-                          edge="end"
-                        >
-                          {showPassword ? <VisibilityOff /> : <Visibility />}
-                        </IconButton>
-                      </InputAdornment>
-                    }
-                    label="Password"
-                  />
-                </FormControl>
-                
+                  Forgot password?
+                </a>
               </div>
-              <a 
-                href="#" 
-                className="signin-forgot"
-                onClick={(e) => {
-                  e.preventDefault();
-                  handleForgotPassword();
-                }}
-              >
-                Forgot password?
-              </a>
-              <Stack spacing={3} direction="column" className="signin-button-stack">
-                <Button 
-                  variant="contained" 
-                  type="submit"
-                  disabled={loading}
+              <div className="auth-field__password-wrap">
+                <input
+                  className="auth-field__input"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="••••••••"
+                  value={formData.password}
+                  onChange={handleInputChange('password')}
+                  required
+                  autoComplete="current-password"
+                />
+                <button
+                  type="button"
+                  className="auth-field__eye"
+                  onClick={() => setShowPassword(v => !v)}
+                  tabIndex={-1}
                 >
-                  {loading ? 'Signing In...' : 'Sign in'}
-                </Button>
-              </Stack>
-          </form>
-          
-          <div className="signin-bottom-text">
-            Don't have an account? 
-            <a href="/signup" className="signin-link">Sign up</a>
-          </div>
-          <div className="signin-divider">
-            <span>or</span>
-          </div>
-          <Button 
-            variant="outlined" 
-            className="signin-social-btn google"
-            onClick={handleGoogleSignIn}
-            disabled={loading}
+                  {showPassword ? <EyeOff size={17} /> : <Eye size={17} />}
+                </button>
+              </div>
+            </motion.div>
+
+            <motion.button
+              className="auth-btn auth-btn--primary"
+              type="submit"
+              disabled={loading}
+              variants={staggerItem}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.97 }}
+            >
+              {loading ? 'Signing In…' : 'Sign In'}
+            </motion.button>
+          </motion.form>
+
+          <motion.p
+            className="auth-switch"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            transition={{ delay: 0.7 }}
           >
-            <GoogleIcon/> Sign in with Google
-          </Button>
-          <Button 
-            variant="outlined" 
-            className="signin-social-btn google"
-            onClick={handleAppleSignIn}
-            disabled={loading}
+            Don't have an account?
+            <a href="/signup" className="auth-switch__link">Sign up free</a>
+          </motion.p>
+
+          <div className="auth-divider"><span>or continue with</span></div>
+
+          <motion.div
+            className="auth-social"
+            initial={{ opacity: 0, y: 12 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.8, duration: 0.4 }}
           >
-            <AppleIcon/> Sign in with Apple
-          </Button>
-        </div>
-      </div>
+            <motion.button
+              className="auth-social-btn auth-social-btn--google"
+              type="button"
+              onClick={handleGoogleSignIn}
+              disabled={loading}
+              whileHover={{ scale: 1.015 }}
+              whileTap={{ scale: 0.975 }}
+              aria-label="Continue with Google"
+            >
+              <GoogleSVG />
+              <span>Continue with Google</span>
+            </motion.button>
+          </motion.div>
+        </motion.div>
+      </motion.div>
     </div>
   );
 };

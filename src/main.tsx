@@ -8,6 +8,7 @@ import 'bootstrap/dist/css/bootstrap.min.css';
 import { Provider } from 'react-redux';
 import { store } from './store';
 import ThemeProvider from './components/ThemeProvider';
+import { Auth0Provider } from '@auth0/auth0-react';
 
 const root = ReactDOM.createRoot(
   document.getElementById('root') as HTMLElement
@@ -28,14 +29,20 @@ if (typeof window !== 'undefined') {
 
 root.render(
   <React.StrictMode>
-    <Provider store={store}>
-      <ThemeProvider>
-        <BrowserRouter>
-          <ErrorBoundary>
-            <App />
-          </ErrorBoundary>
-        </BrowserRouter>
-      </ThemeProvider>
-    </Provider>
+    <Auth0Provider
+      domain={import.meta.env.VITE_AUTH0_DOMAIN}
+      clientId={import.meta.env.VITE_AUTH0_CLIENT_ID}
+      authorizationParams={{ redirect_uri: window.location.origin }}
+    >
+      <Provider store={store}>
+        <ThemeProvider>
+          <BrowserRouter>
+            <ErrorBoundary>
+              <App />
+            </ErrorBoundary>
+          </BrowserRouter>
+        </ThemeProvider>
+      </Provider>
+    </Auth0Provider>
   </React.StrictMode>
 );

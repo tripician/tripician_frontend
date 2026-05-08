@@ -74,50 +74,74 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
+
   // Trip endpoints (updated to match new TripController)
   // GET /api/trips/dashboard - user dashboard trips
+  // Response: array of Trip objects, each includes description?: string | null, vibe?: string | null, rating?: number | null
   getDashboardTrips: (token: string) => 
     apiClient.get('/api/trips/dashboard', {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  // GET /api/trips/public - public trips (no auth required but we allow optional token)
+  // GET /api/trips/public - trips with Visibility=Everyone (deprecated for feed use)
   getPublicTrips: (token?: string) => 
     apiClient.get('/api/trips/public', {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined
+    }),
+
+  // GET /api/trips/published - all published trips (Published=true, IsArchived=false, any visibility)
+  // Used for Community Adventures feed and the Published tab on Dashboard.
+  getPublishedTrips: (token: string) =>
+    apiClient.get('/api/trips/published', {
+      headers: { Authorization: `Bearer ${token}` }
     }),
 
   // Simple connectivity ping (GET public trips) to help diagnose local server reachability (no auth required).
   pingPublicTrips: () => apiClient.get('/api/trips/public').then(r => ({ ok: true, status: r.status })).catch(e => ({ ok: false, error: e.message })),
 
   // POST /api/trips - create trip
+  // Request: include description (optional, ≤ 300 chars). Do NOT send rating (server-calculated/read-only).
   createTrip: (token: string, data: {
     name: string;
     countries: string[];
     startDate?: string | null;
     endDate?: string | null;
-    visibility: 'TRIP_MEMBERS' | 'FOLLOWERS' | 'EVERYONE';
+    visibility: 'PRIVATE' | 'TRIP_MEMBERS' | 'FOLLOWERS' | 'EVERYONE';
     invites?: string[];
-  }) => apiClient.post('/api/trips', data, {
-    headers: { Authorization: `Bearer ${token}` }
-  }),
+    description?: string | null;
+    vibe?: string | null;
+  }) => {
+    // Validate description length if present
+    if (data.description && data.description.length > 300) {
+      throw new Error('Description must be 300 characters or less.');
+    }
+    // Validate vibe length if present (same limits as description)
+    if (data.vibe && data.vibe.length > 300) {
+      throw new Error('Vibe must be 300 characters or less.');
+    }
+    // Never send rating from client
+    return apiClient.post('/api/trips', data, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  },
 
   // GET /api/trips/{tripId}
+  // Response: Trip object with description?: string | null, vibe?: string | null, rating?: number | null
   getTripById: (token: string, tripId: string) => apiClient.get(`/api/trips/${tripId}`, {
     headers: { Authorization: `Bearer ${token}` }
   }),
 
   // PUT /api/trips/{tripId} - update trip core + itinerary + docs/meta
-  // TripUpdateDto should match backend expected shape; we map from front-end payload built in TripPlanner (buildPersistPayload)
+  // TripUpdateDto: include description if updating. Do NOT send rating (server-calculated/read-only).
   updateTrip: (token: string, tripId: string, data: {
     trip: {
       id: string;
       name: string;
       status: 'DRAFT' | 'PUBLISHED';
-      privacy: string; // backend enum e.g. TRIP_MEMBERS | FOLLOWERS | EVERYONE | PRIVATE mapped server-side
+      privacy: string;
       currency: string;
-      startDate: string; // added to align with TripPlanImportDto expectations
-      endDate: string;   // added to align with TripPlanImportDto expectations
+      startDate: string;
+      endDate: string;
       generatedAt: string;
       targetNights: number;
       totalNights: number;
@@ -127,6 +151,9 @@ export const apiServices = {
       importantNotes?: string;
       photoUrl?: string;
       countries?: string[];
+      description?: string | null;
+      vibe?: string | null;
+      // rating?: number | null; // Do NOT send rating from client
     };
     itinerary: Array<{
       id: string;
@@ -136,27 +163,62 @@ export const apiServices = {
       nights: number;
       lat?: number;
       lng?: number;
+      placeId?: string;
       transport?: string;
-      spots: Array<{ id:string; name:string; placeId?:string; checked:boolean }>;
-      foods: Array<{ id:string; name:string; checked:boolean }>;
-      docs: Array<{ id:string; originalName:string; mimeType:string }>;
+      budget?: number;
+      category?: string;
+      completed?: boolean;
+      photoUrl?: string;
+      notes?: string;
+      stay?: { name?: string; reference?: string; notes?: string };
+      stays?: Array<{ id: string; name?: string; reference?: string }>;
+      stayNotes?: string;
+      spots: Array<{ id:string; name:string; placeId?:string; checked:boolean; photoUrl?:string; description?:string; mapUrl?:string; known?:boolean }>;
+      foods: Array<{ id:string; name:string; checked:boolean; known?:boolean }>;
+      docs: Array<{ id:string; originalName:string; mimeType:string; url?:string }>;
     }>;
     legs: Array<{ fromId:string; toId:string; mode:string; distanceKm:number|null; from:{lat?:number; lng?:number}; to:{lat?:number; lng?:number} }>;
-    expenses: any[]; // refine when expense DTO known
+    expenses: any[];
     budget: number | null | undefined;
-    comments: any[]; // refine when comment DTO known
+    comments: any[];
     pinnedDocIds: string[];
     globalDocs: Array<{ id:string; originalName:string; mimeType:string }>;
     visaDocs: Array<{ id:string; originalName:string; mimeType:string }>;
     destinationDocsCount: number;
     version: number;
-  }) => apiClient.put(`/api/trips/${tripId}`, data, {
-    headers: { Authorization: `Bearer ${token}` }
-  }),
+    description?: string | null;
+    vibe?: string | null;
+    // rating?: number | null; // Do NOT send rating from client
+  }) => {
+    // Validate description length if present
+    if (data.trip?.description && data.trip.description.length > 300) {
+      throw new Error('Description must be 300 characters or less.');
+    }
+    // Validate vibe length if present (same limits as description)
+    if (data.trip?.vibe && data.trip.vibe.length > 300) {
+      throw new Error('Vibe must be 300 characters or less.');
+    }
+    // Never send rating from client
+    return apiClient.put(`/api/trips/${tripId}`, data, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  },
 
   // PATCH /api/trips/{tripId}/visibility
-  changeTripVisibility: (token: string, tripId: string, data: { visibility: 'TRIP_MEMBERS' | 'FOLLOWERS' | 'EVERYONE' }) =>
+  changeTripVisibility: (token: string, tripId: string, data: { visibility: 'TRIP_MEMBERS' | 'PRIVATE' | 'EVERYONE' }) =>
     apiClient.patch(`/api/trips/${tripId}/visibility`, data, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // GET /api/trips/{tripId}/published — check published status
+  getTripPublishedStatus: (token: string, tripId: string) =>
+    apiClient.get(`/api/trips/${tripId}/published`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // PATCH /api/trips/{tripId}/publish — publish or unpublish (owner only)
+  setTripPublished: (token: string, tripId: string, published: boolean) =>
+    apiClient.patch(`/api/trips/${tripId}/publish`, { published }, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
@@ -165,20 +227,43 @@ export const apiServices = {
     headers: { Authorization: `Bearer ${token}` }
   }),
 
-  // PUT /api/trips/{tripId}/settings - settings update (DTO-compatible: name, visibility, dates, countries, bannerPhotoId)
+  // PUT /api/trips/{tripId}/settings - settings update (DTO-compatible: name, visibility, dates, countries, bannerPhotoId, description)
+  // Do NOT send rating from client
   updateTripSettings: (token: string, tripId: string, data: {
     name?: string;
-    visibility?: string; // e.g., PRIVATE | TRIP_MEMBERS | FOLLOWERS | EVERYONE
-    startDate?: string; // ISO date (yyyy-MM-dd)
-    endDate?: string;   // ISO date (yyyy-MM-dd)
+    description?: string | null;
+    vibe?: string | null;
+    visibility?: string;
+    startDate?: string;
+    endDate?: string;
     countries?: string[];
-    bannerPhotoId?: string; // GUID as string if available
-    // Backward compatibility
+    bannerPhotoId?: string;
     privacy?: string;
     photoUrl?: string;
-  }) => apiClient.put(`/api/trips/${tripId}/settings`, data, {
-    headers: { Authorization: `Bearer ${token}` }
-  }),
+    // rating?: number | null; // Do NOT send rating from client
+  }) => {
+    if (data.description && data.description.length > 300) {
+      throw new Error('Description must be 300 characters or less.');
+    }
+    if (data.vibe && data.vibe.length > 300) {
+      throw new Error('Vibe must be 300 characters or less.');
+    }
+    // Never send rating from client
+    return apiClient.put(`/api/trips/${tripId}/settings`, data, {
+      headers: { Authorization: `Bearer ${token}` }
+    });
+  },
+// --- Trip TypeScript interface suggestion ---
+// Use this for all Trip objects received from the backend:
+//
+// export interface Trip {
+//   id: string;
+//   name: string;
+//   description?: string | null; // validate length <= 300 when sending
+//   vibe?: string | null;        // optional vibe string (e.g. 'adventure', 'relax')
+//   rating?: number | null;      // treat null/undefined as "no rating"; never send from client
+//   ...other fields...
+// }
 
   // GET /user-profiles/{userEmail} - search user by email
   getUserProfileByEmail: (token: string, userEmail: string) =>
@@ -195,6 +280,29 @@ export const apiServices = {
   // GET /api/trips/{tripId}/users - fetch all users (members) of a trip
   getTripUsers: (token: string, tripId: string) =>
     apiClient.get(`/api/trips/${tripId}/users`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // ------------------------------------------------------------
+  // Trip Comments
+  // GET /api/trips/{tripId}/comments
+  getTripComments: (token: string, tripId: string) =>
+    apiClient.get(`/api/trips/${tripId}/comments`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+  // POST /api/trips/{tripId}/comments
+  createTripComment: (token: string, tripId: string, content: string, parentCommentId?: string) =>
+    apiClient.post(`/api/trips/${tripId}/comments`, { content, parentCommentId: parentCommentId ?? null }, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+  // PUT /api/trips/{tripId}/comments/{commentId}
+  updateTripComment: (token: string, tripId: string, commentId: string, content: string) =>
+    apiClient.put(`/api/trips/${tripId}/comments/${commentId}`, { content }, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+  // DELETE /api/trips/{tripId}/comments/{commentId}
+  deleteTripComment: (token: string, tripId: string, commentId: string) =>
+    apiClient.delete(`/api/trips/${tripId}/comments/${commentId}`, {
       headers: { Authorization: `Bearer ${token}` }
     }),
   // DELETE /api/trips/{tripId}/users/{userId} - remove a single user from trip (owner only)
@@ -281,6 +389,37 @@ export const apiServices = {
     budgetRange?: string;
   }) =>
     apiClient.patch('/api/profile/settings/preference', model, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // ------------------------------------------------------------
+  // Profile Photo Upload / Remove (Cloudinary signed upload)
+  // POST /api/uploads/get-profile-upload-url
+  // Returns Cloudinary signed upload params + direct upload URL + final fileUrl
+  getProfileUploadUrl: (token: string, userId: string) =>
+    apiClient.post('/api/uploads/get-profile-upload-url', { UserId: userId }, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // DELETE /api/uploads/profile-photo/{userId}
+  // Deletes the avatar from Cloudinary and clears ProfilePicture in DB
+  removeProfilePhoto: (token: string, userId: number) =>
+    apiClient.delete(`/api/uploads/profile-photo/${userId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // PATCH /api/profile/settings/profile-picture
+  // Persists the Cloudinary URL to the DB after a direct upload
+  saveProfilePictureUrl: (token: string, profilePictureUrl: string) =>
+    apiClient.patch('/api/profile/settings/profile-picture', { ProfilePictureUrl: profilePictureUrl }, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // ------------------------------------------------------------
+  // Account Deletion
+  // DELETE /auth/account
+  deleteAccount: (token: string) =>
+    apiClient.delete('/auth/account', {
       headers: { Authorization: `Bearer ${token}` }
     }),
 };

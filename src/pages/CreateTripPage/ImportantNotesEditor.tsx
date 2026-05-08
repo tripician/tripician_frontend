@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, IconButton, Tooltip, Typography } from '@mui/material';
+import { motion } from 'framer-motion';
 import FormatListBulletedIcon from '@mui/icons-material/FormatListBulleted';
 import FormatListNumberedIcon from '@mui/icons-material/FormatListNumbered';
 import LinkIcon from '@mui/icons-material/Link';
@@ -127,6 +128,7 @@ const ImportantNotesEditor: React.FC<ImportantNotesEditorProps> = (props) => {
 
   if (compact) {
     return (
+  <motion.div initial={{ opacity: 0, scale: 0.98 }} animate={{ opacity: 1, scale: 1 }} transition={{ duration: 0.3 }}>
   <Box
 	  onClick={()=> { if(readOnly) return; if(!editing){ setEditing(true); if(ref.current && ref.current.innerHTML !== internal){ ref.current.innerHTML = internal; } setTimeout(()=> { ref.current?.focus(); placeCursorAtEnd(ref.current!); }, 0); } }}
         sx={(theme)=>({
@@ -186,6 +188,7 @@ const ImportantNotesEditor: React.FC<ImportantNotesEditorProps> = (props) => {
           {charCount} / {MAX_CHARS}
         </Box>
       </Box>
+      </motion.div>
     );
   }
 

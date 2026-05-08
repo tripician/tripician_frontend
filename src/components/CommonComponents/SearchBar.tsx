@@ -139,7 +139,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
       }}
     >
       <TextField
-        disabled
         fullWidth
         variant={variant}
         placeholder={placeholder}
@@ -147,44 +146,51 @@ const SearchBar: React.FC<SearchBarProps> = ({
         onChange={handleInputChange}
         onKeyDown={handleKeyPress}
         onFocus={() => {
-          if (query.trim() && filteredSuggestions.length > 0) {
-            setIsOpen(true);
-          }
+          if (query.trim() && filteredSuggestions.length > 0) setIsOpen(true);
         }}
         InputProps={{
           startAdornment: (
             <InputAdornment position="start">
-              <SearchIcon sx={{ color: 'text.secondary' }} />
+              <SearchIcon sx={{ color: 'text.disabled', fontSize: 18 }} />
             </InputAdornment>
           ),
-          endAdornment: query && (
+          endAdornment: query ? (
             <InputAdornment position="end">
-              <IconButton
-                onClick={handleClear}
-                edge="end"
-                size="small"
+              <IconButton onClick={handleClear} edge="end" size="small"
                 sx={{ '&:hover': { backgroundColor: 'action.hover' } }}
               >
-                <ClearIcon fontSize="small" />
+                <ClearIcon sx={{ fontSize: 15 }} />
               </IconButton>
             </InputAdornment>
-          ),
+          ) : null,
         }}
         sx={{
           '& .MuiOutlinedInput-root': {
-            height: '40px', // Reduced height
-            borderRadius: 20, // More rounded ends
-            backgroundColor: 'background.paper',
-            fontSize: '0.9rem', // Slightly smaller font
-            '& input': {
-              padding: '8px 14px', // Adjust padding for smaller height
+            height: 36,
+            borderRadius: 999,
+            backgroundColor: (theme) => theme.palette.mode === 'light'
+              ? 'rgba(0,0,0,0.04)'
+              : 'rgba(255,255,255,0.06)',
+            fontSize: '0.82rem',
+            fontFamily: "'Inter', sans-serif",
+            letterSpacing: '0.01em',
+            transition: 'background 0.2s ease, box-shadow 0.2s ease',
+            '& input': { padding: '0 4px', color: 'text.primary' },
+            '& .MuiOutlinedInput-notchedOutline': {
+              borderColor: 'transparent',
             },
             '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'primary.main',
+              borderColor: 'rgba(255,56,92,0.22)',
+            },
+            '&.Mui-focused': {
+              backgroundColor: (theme) => theme.palette.mode === 'light'
+                ? 'rgba(255,255,255,1)'
+                : 'rgba(255,255,255,0.09)',
+              boxShadow: '0 0 0 3px rgba(255,56,92,0.12)',
             },
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'primary.main',
-              borderWidth: 2,
+              borderColor: '#FF385C',
+              borderWidth: '1px',
             },
           },
         }}

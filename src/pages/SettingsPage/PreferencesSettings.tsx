@@ -104,7 +104,7 @@ const PreferencesSettings: React.FC = () => {
       borderColor: '#9ca3af',
     },
     '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-      borderColor: '#3b82f6',
+      borderColor: '#FF385C',
     },
   };
 
@@ -155,21 +155,14 @@ const PreferencesSettings: React.FC = () => {
       <Card
         sx={{
           mb: 3,
-          borderRadius: 2,
-          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-          border: "1px solid #e5e7eb",
+          borderRadius: '16px',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+          border: '1px solid',
+          borderColor: 'divider',
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              fontWeight: 600, 
-              mb: 3,
-              color: "#374151",
-              fontSize: "1.1rem"
-            }}
-          >
+          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
             Language & Region
           </Typography>
 
@@ -222,21 +215,14 @@ const PreferencesSettings: React.FC = () => {
       <Card
         sx={{
           mb: 3,
-          borderRadius: 2,
-          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-          border: "1px solid #e5e7eb",
+          borderRadius: '16px',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+          border: '1px solid',
+          borderColor: 'divider',
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              fontWeight: 600, 
-              mb: 3,
-              color: "#374151",
-              fontSize: "1.1rem"
-            }}
-          >
+          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
             Travel Preferences
           </Typography>
 
@@ -279,14 +265,13 @@ const PreferencesSettings: React.FC = () => {
           disabled={loading || saving}
           sx={{ 
             textTransform: "none",
-            fontWeight: 500,
+            fontWeight: 600,
             px: 3,
             py: 1.5,
-            borderRadius: 1.5,
-            backgroundColor: "#3b82f6",
-            "&:hover": {
-              backgroundColor: "#2563eb",
-            },
+            borderRadius: '50px',
+            background: 'linear-gradient(135deg, #FF385C 0%, #D91A50 100%)',
+            boxShadow: '0 4px 14px rgba(255,56,92,0.3)',
+            "&:hover": { background: 'linear-gradient(135deg, #E31C5F 0%, #B01550 100%)', boxShadow: '0 8px 24px rgba(255,56,92,0.42)' },
           }}
         >
           {saving ? 'Saving...' : 'Save'}

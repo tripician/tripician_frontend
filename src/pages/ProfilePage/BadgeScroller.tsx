@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import { Box } from "@mui/material";
 import CountryBadge from "./CountryBadge";
+import { motion } from 'framer-motion';
 
 const countries = [
   { name: "France", url: "/badges/france.png" },
@@ -60,8 +61,16 @@ const BadgeScroller: React.FC = () => {
         padding: 1,
       }}
     >
-      {countries.map((c) => (
-        <CountryBadge key={c.name} country={c.name} flagUrl={c.url} />
+      {countries.map((c, i) => (
+        <motion.div
+          key={c.name}
+          initial={{ opacity: 0, scale: 0.8, x: 20 }}
+          animate={{ opacity: 1, scale: 1, x: 0 }}
+          transition={{ type: 'spring', stiffness: 300, damping: 22, delay: i * 0.06 }}
+          whileHover={{ scale: 1.1, y: -4 }}
+        >
+          <CountryBadge country={c.name} flagUrl={c.url} />
+        </motion.div>
       ))}
     </Box>
   );

@@ -129,8 +129,8 @@ const NotificationsSettings: React.FC = () => {
             onChange={() => onToggle(item.id)}
             disabled={updatingIds.has(item.id) || loading}
             sx={{
-              '& .MuiSwitch-switchBase.Mui-checked': { color: 'primary.main' },
-              '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: 'primary.main' },
+              '& .MuiSwitch-switchBase.Mui-checked': { color: '#FF385C' },
+              '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#FF385C' },
               '& .MuiSwitch-track': { backgroundColor: 'action.hover' },
             }}
           />
@@ -148,22 +148,14 @@ const NotificationsSettings: React.FC = () => {
       <Card
         sx={{
           mb: 3,
-          borderRadius: 2,
-          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-          border: 1,
+          borderRadius: '16px',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+          border: '1px solid',
           borderColor: 'divider',
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              fontWeight: 600, 
-              mb: 3,
-              color: "text.primary",
-              fontSize: "1.1rem"
-            }}
-          >
+          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
             Email Notifications
           </Typography>
 
@@ -188,22 +180,14 @@ const NotificationsSettings: React.FC = () => {
       {/* Push Notifications Section */}
       <Card
         sx={{
-          borderRadius: 2,
-          boxShadow: "0 1px 3px rgba(0, 0, 0, 0.1)",
-          border: 1,
+          borderRadius: '16px',
+          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
+          border: '1px solid',
           borderColor: 'divider',
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Typography 
-            variant="h6" 
-            sx={{ 
-              fontWeight: 600, 
-              mb: 3,
-              color: "text.primary",
-              fontSize: "1.1rem"
-            }}
-          >
+          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
             Push Notifications
           </Typography>
 

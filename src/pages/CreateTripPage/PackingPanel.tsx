@@ -2,6 +2,7 @@ import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import { Box, Card, Typography, Chip, IconButton, TextField, InputAdornment, Button, Tooltip, Dialog, DialogTitle, DialogContent, DialogActions, Divider } from '@mui/material';
+import { motion, AnimatePresence } from 'framer-motion';
 import AddIcon from '@mui/icons-material/Add';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import SettingsOutlinedIcon from '@mui/icons-material/SettingsOutlined';
@@ -57,16 +58,25 @@ const PackingPanel: React.FC = () => {
           <Box sx={{ position:'absolute', left:0, top:0, bottom:0, width:`${globalProgress}%`, background:(t)=> t.palette.primary.main, transition:'width .35s' }} />
         </Box>
   <Box sx={{ display:'flex', gap:2, flexWrap:'wrap' }}>
-          {categories.map(c=> {
+          {categories.map((c, i)=> {
             const done = c.items.filter(i=> i.checked).length;
             return (
-              <Card key={c.id} onClick={()=> dispatch(setActiveCategory(c.id))} sx={(t)=>({ cursor:'pointer', flex:'1 1 120px', minWidth:140, p:2, borderRadius:2.5, boxShadow:0, border: c.id===active.id? `2px solid ${t.palette.primary.main}`:'1px solid', borderColor: c.id===active.id? t.palette.primary.main:'divider', display:'flex', flexDirection:'column', gap:.6, transition:'all .22s', backgroundColor: t.palette.background.paper, '&:hover':{ boxShadow: c.id===active.id? 4:2 } })}>
+              <motion.div
+                key={c.id}
+                initial={{ opacity: 0, y: 10, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                transition={{ type: 'spring', stiffness: 300, damping: 22, delay: i * 0.05 }}
+                whileHover={{ y: -3 }}
+                style={{ flex: '1 1 120px', minWidth: 140 }}
+              >
+              <Card onClick={()=> dispatch(setActiveCategory(c.id))} sx={(t)=>({ cursor:'pointer', p:2, borderRadius:2.5, boxShadow:0, border: c.id===active.id? `2px solid ${t.palette.primary.main}`:'1px solid', borderColor: c.id===active.id? t.palette.primary.main:'divider', display:'flex', flexDirection:'column', gap:.6, transition:'all .22s', backgroundColor: t.palette.background.paper, '&:hover':{ boxShadow: c.id===active.id? 4:2 } })}>
                 <Box sx={(t)=>({ width:44, height:44, borderRadius:'50%', border:'2px solid', borderColor:'divider', display:'flex', alignItems:'center', justifyContent:'center', fontSize:22, color:t.palette.text.secondary })}>
                   <ListAltOutlinedIcon fontSize='small' />
                 </Box>
                 <Typography variant='subtitle2' fontWeight={600}>{c.name}</Typography>
                 <Typography variant='caption' sx={{ opacity:.55 }}>{done} / {c.items.length}</Typography>
               </Card>
+              </motion.div>
             );
           })}
         </Box>
