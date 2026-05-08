@@ -2,7 +2,7 @@ import React, { useEffect, useMemo } from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import { loadNews, setLocations, type NewsArticle } from '../../store/newsSlice';
-import { Box, Typography, Card, CardActionArea, Skeleton, Chip, Divider, Button, Stack, Accordion, AccordionSummary, AccordionDetails, Collapse, IconButton } from '@mui/material';
+import { Box, Typography, Card, CardActionArea, Skeleton, Chip, Divider, Button, Stack, Collapse } from '@mui/material';
 import { motion } from 'framer-motion';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';

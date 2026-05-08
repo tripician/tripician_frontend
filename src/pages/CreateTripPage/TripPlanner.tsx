@@ -1,4 +1,4 @@
-﻿// TripPlanner main page component (formerly CreateTrip)
+// TripPlanner main page component (formerly CreateTrip)
 import React from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { Box, Tabs, Tab, Typography, Divider, Button, Avatar, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Snackbar, Alert, useTheme, Drawer, Fab } from '@mui/material';
@@ -20,10 +20,8 @@ import TripSettingsDialog from './TripSettingsDialog';
 import DestinationsPanel, { type DestinationRow } from './DestinationsPanel';
 import DestinationCardsPanel from './DestinationCardsPanel';
 import ExpensesPanel from './ExpensesPanel';
-// import ImportantNotesEditor from './ImportantNotesEditor'; // legacy rich editor (temporarily disabled)
 import TripComments from './TripComments';
 import PackingPanel from './PackingPanel';
-// ChatAssistant replaced by inline PremiumChatPanel
 import MapDrawer from './MapDrawer';
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
@@ -39,8 +37,8 @@ import NightsStayRoundedIcon from '@mui/icons-material/NightsStayRounded';
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
-// EditIcon removed — inline title editing removed
-// CheckIcon removed — inline title editing removed
+// EditIcon removed � inline title editing removed
+// CheckIcon removed � inline title editing removed
 import Docs from '../DocsPage/Docs';
 import SoonTag from '../../components/CommonComponents/SoonTag';
 import TripShareModal from '../../components/TripShareModal';
@@ -197,7 +195,7 @@ interface TripPlannerProps {
 	isOwnerExternal?: boolean; // current user owns trip (controls publish)
 }
 
-/* ─── Persistent AI Chat Panel (GitHub Copilot-style right column) ─── */
+/* --- Persistent AI Chat Panel (GitHub Copilot-style right column) --- */
 const SUGGESTED_PROMPTS = [
 	'Suggest the best route for my destinations',
 	'What should I pack for this trip?',
@@ -216,7 +214,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 	const endRef = React.useRef<HTMLDivElement | null>(null);
 	const inputRef = React.useRef<HTMLInputElement | null>(null);
 
-	/* ── Resize & collapse ── */
+	/* -- Resize & collapse -- */
 	const [panelWidth, setPanelWidth] = React.useState(420);
 	const [collapsed, setCollapsed] = React.useState(false);
 	const panelRef = React.useRef<HTMLDivElement>(null);
@@ -271,7 +269,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 			position: 'relative',
 			transition: 'width 0.22s cubic-bezier(.4,0,.2,1)',
 		}}>
-			{/* ── Resize drag handle (left edge) ── */}
+			{/* -- Resize drag handle (left edge) -- */}
 			{!collapsed && (
 				<Box
 					onMouseDown={handleResizeMouseDown}
@@ -285,7 +283,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 			)}
 
 			{collapsed ? (
-				/* ── Collapsed strip ── */
+				/* -- Collapsed strip -- */
 				<Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, pt: 1.5 }}>
 					<Box sx={{
 						width: 28, height: 28, borderRadius: '8px', flexShrink: 0,
@@ -308,7 +306,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 				</Box>
 			) : (
 				<>
-					{/* ── Header ── */}
+					{/* -- Header -- */}
 					<Box sx={{
 						px: 2, py: 1.25,
 						display: 'flex', alignItems: 'center', gap: 1.25,
@@ -347,7 +345,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 						</Tooltip>
 					</Box>
 
-					{/* ── Messages area ── */}
+					{/* -- Messages area -- */}
 					<Box sx={{
 						flex: 1, overflowY: 'auto', px: 1.75, py: 1.5,
 						display: 'flex', flexDirection: 'column', gap: 1.25,
@@ -366,7 +364,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 									<path d='M36 20 L22 22 L24 20 L22 18 Z' fill='currentColor'/>
 								</Box>
 								<Typography sx={{ fontSize: 12, color: isLight ? 'rgba(0,0,0,0.40)' : 'rgba(255,255,255,0.30)', textAlign: 'center', maxWidth: 200, lineHeight: 1.6, fontFamily: 'inherit' }}>
-									Your trip story starts here. Ask Navia anything — routes, hidden gems, packing tips, local culture.
+									Your trip story starts here. Ask Navia anything � routes, hidden gems, packing tips, local culture.
 								</Typography>
 							</Box>
 						)}
@@ -376,7 +374,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 						<div ref={endRef} />
 					</Box>
 
-					{/* ── Suggested prompts (hidden once conversation starts) ── */}
+					{/* -- Suggested prompts (hidden once conversation starts) -- */}
 					{messages.length === 0 && (
 						<Box sx={{
 							px: 1.5, py: 0.75,
@@ -411,7 +409,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 						</Box>
 					)}
 
-					{/* ── Input ── */}
+					{/* -- Input -- */}
 					<Box sx={{
 						px: 1.5, pb: 1.5, pt: 0.75,
 						borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.06)'}`,
@@ -433,7 +431,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 								value={input}
 								onChange={e => setInput(e.target.value)}
 								onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-								placeholder='Ask Navia anything…'
+								placeholder='Ask Navia anything�'
 								multiline
 								maxRows={4}
 								sx={{
@@ -473,7 +471,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 	);
 };
 
-/* ─── Public / View-Mode Info Panel ─── */
+/* --- Public / View-Mode Info Panel --- */
 interface TripViewPanelProps {
 	title: string;
 	description: string;
@@ -538,9 +536,9 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 			overflow: 'hidden',
 			position: 'relative',
 		}}>
-			{/* Indian kala mandala — empty middle area, above Share button */}
+			{/* Indian kala mandala � empty middle area, above Share button */}
 			<KalaMandala size={280} color="#FF385C" opacity={0.05} style={{ position: 'absolute', bottom: 120, right: -70, zIndex: 0, pointerEvents: 'none' }} />
-			{/* ── Banner + Title header ── */}
+			{/* -- Banner + Title header -- */}
 			<Box sx={{ position: 'relative', flexShrink: 0 }}>
 				{(bannerUrl || sideBarBanner) ? (
 					<Box
@@ -553,7 +551,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 						background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
 						display: 'flex', alignItems: 'center', justifyContent: 'center',
 					}}>
-						<Typography sx={{ fontSize: '2.5rem', opacity: 0.12 }}>🌍</Typography>
+						<Typography sx={{ fontSize: '2.5rem', opacity: 0.12 }}>??</Typography>
 					</Box>
 				)}
 				{/* Gradient overlay */}
@@ -575,7 +573,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 				</Box>
 			</Box>
 
-			{/* ── Scrollable body ── */}
+			{/* -- Scrollable body -- */}
 			<Box sx={{
 				flex: 1, overflowY: 'auto', px: 2, py: 1.75,
 				display: 'flex', flexDirection: 'column', gap: 2,
@@ -583,7 +581,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 				'&::-webkit-scrollbar-thumb': { borderRadius: 3, background: isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.10)' },
 			}}>
 
-				{/* ── Published badge ── */}
+				{/* -- Published badge -- */}
 				{isPublished && (
 					<Box sx={{
 						display: 'flex', alignItems: 'center', gap: 0.6,
@@ -601,7 +599,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 					</Box>
 				)}
 
-				{/* ── Description ── */}
+				{/* -- Description -- */}
 				{description && (
 					<Box>
 						<Typography sx={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: textMuted, fontFamily: 'inherit', mb: 0.75 }}>
@@ -613,11 +611,11 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 					</Box>
 				)}
 
-				{/* ── Quick stats ── */}
+				{/* -- Quick stats -- */}
 				<Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
 					{[
-						{ Icon: NightsStayRoundedIcon,  label: 'Nights',       value: totalNights || '—' },
-						{ Icon: GroupsRoundedIcon,       label: 'Destinations', value: destinationCount || '—' },
+						{ Icon: NightsStayRoundedIcon,  label: 'Nights',       value: totalNights || '�' },
+						{ Icon: GroupsRoundedIcon,       label: 'Destinations', value: destinationCount || '�' },
 					].map(({ Icon, label, value }) => (
 						<Box key={label} sx={{
 							borderRadius: '10px', background: sectionBg, border: `1px solid ${border}`,
@@ -636,11 +634,11 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 					))}
 				</Box>
 
-				{/* ── Members ── */}
+				{/* -- Members -- */}
 				{tripUsers.length > 0 && (
 					<Box sx={{ borderRadius: '12px', background: sectionBg, border: `1px solid ${border}`, p: '12px 14px' }}>
 						<Typography sx={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: textMuted, fontFamily: 'inherit', mb: 1.25 }}>
-							Trip Members · {tripUsers.length}
+							Trip Members � {tripUsers.length}
 						</Typography>						
 						{/* Name list below */}
 						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.6 }}>
@@ -695,7 +693,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 
 			</Box>
 
-			{/* ── Footer: edit + share buttons ── */}
+			{/* -- Footer: edit + share buttons -- */}
 			<Box sx={{
 				px: 2, py: 1.25, flexShrink: 0,
 				borderTop: `1px solid ${border}`,
@@ -792,14 +790,14 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const [title, setTitle] = React.useState<string>(normalizedInitial?.meta.name || 'Untitled Trip');
 	const [tripDescription, setTripDescription] = React.useState<string>(normalizedInitial?.meta.description || '');
 	const [vibe, setVibe] = React.useState<string | null>(normalizedInitial?.meta.vibe ?? null);
-	// editingTitle removed — title editing moved to Settings dialog
+	// editingTitle removed � title editing moved to Settings dialog
 	// Notes field (plain text, auto-grow) seeded from normalized initial trip meta if present
 	const [importantNotes, setImportantNotes] = React.useState<string>(
 		(normalizedInitial?.meta.importantNotes && typeof normalizedInitial.meta.importantNotes === 'string')
 			? normalizedInitial.meta.importantNotes
 			: ''
 	);
-	// Banner image (trip card photo) – store as URL (existing backend-provided or newly selected object URL / base64)
+	// Banner image (trip card photo) � store as URL (existing backend-provided or newly selected object URL / base64)
 	const [bannerUrl, setBannerUrl] = React.useState<string>(() => {
 		try {
 			// Prefer normalizedInitial (already extracted photoUrl), fall back to raw
@@ -842,7 +840,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const initialPublished = (initialTrip && initialTrip.trip && typeof initialTrip.trip.published === 'boolean') ? initialTrip.trip.published : false;
 	const [isDraft, setIsDraft] = React.useState<boolean>(!initialPublished);
 
-	// Section + tab UI state — persisted in ?tab= query param so refresh keeps the same panel
+	// Section + tab UI state � persisted in ?tab= query param so refresh keeps the same panel
 	const VALID_SECTIONS = ['plan', 'news', 'docs', 'packing'] as const;
 	const [searchParams, setSearchParams] = useSearchParams();
 	const rawTab = searchParams.get('tab') as typeof VALID_SECTIONS[number] | null;
@@ -1324,7 +1322,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	//  - Legs, docs, expenses, comments are included for forward compatibility; backend
 	//    can ignore unknown properties safely.
 	//  - version field reserved for future optimistic concurrency or schema evolution.
-	const buildPersistPayload = React.useCallback((draft:boolean) => {
+	const buildPersistPayload = React.useCallback((_draft:boolean) => {
 		// ------------------------------------------------------------------
 		// Leg transport semantics
 		// Each destination.transport represents the mode used to DEPART that
@@ -1357,7 +1355,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			});
 		}
 		const routeDistanceKm = legs.reduce((a,l)=> l.distanceKm!=null? a + l.distanceKm : a, 0);
-		// Itinerary (extended fields) – omit empty large text fields
+		// Itinerary (extended fields) � omit empty large text fields
 		const itinerary = planner.destinations.map(d=> {
 			const notesVal: unknown = (d as any).notes;
 			const notesClean = (typeof notesVal === 'string' && notesVal.trim().length>0) ? notesVal.trim() : null;
@@ -1367,7 +1365,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			const stayRef = typeof stayRaw.reference === 'string' && stayRaw.reference.trim() ? stayRaw.reference.trim() : undefined;
 			const stayNotes = typeof stayRaw.notes === 'string' && stayRaw.notes.trim() ? stayRaw.notes.trim() : undefined;
 			const stay = (stayName||stayRef||stayNotes) ? { name: stayName ?? null, reference: stayRef ?? null, notes: stayNotes ?? null } : null;
-			// Multi stays (new model) — always send array, never undefined
+			// Multi stays (new model) � always send array, never undefined
 			const multiStays = Array.isArray((d as any).stays)
 				? (d as any).stays.filter((s:any)=> (s.name && s.name.trim()) || (s.reference && s.reference.trim())).map((s:any)=> ({ id:s.id, name:s.name?.trim() ?? null, reference:s.reference?.trim() ?? null }))
 				: [];
@@ -1685,7 +1683,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						</Box>
 					) : (
 					<Box sx={(theme)=>({ flex:1, minWidth:0, minHeight:0, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative',
-						/* Premium board background — dot grid pattern */
+						/* Premium board background � dot grid pattern */
 						backgroundColor: theme.palette.mode==='light' ? '#f9fafb' : '#111315',
 						backgroundImage: theme.palette.mode==='light'
 							? 'radial-gradient(circle, rgba(0,0,0,0.10) 1px, transparent 1px)'
@@ -1701,18 +1699,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 								handleTabChange(e,v);
 							}} variant='scrollable' allowScrollButtonsMobile sx={{ flex:1, minHeight:40, '& .MuiTab-root':{ minHeight:40, fontSize:14, fontWeight:600, textTransform:'none', fontFamily:"'Inter', system-ui, sans-serif", letterSpacing:'-0.1px' }, '& .Mui-selected':{ color:'#FF385C !important', fontWeight:700 }, '& .MuiTabs-indicator':{ backgroundColor:'#FF385C', height:2.5, borderRadius:2 } }}>
 								<Tab label='Planning' />
-								{/* <Tab label={
-									<Box sx={{ display:'flex', alignItems:'center', gap:.75 }}>
-										<span>Expenses</span>
-										{!ENABLE_EXPENSES && <SoonTag />}
-									</Box>
-								} disabled={!ENABLE_EXPENSES} />
-								<Tab label={
-									<Box sx={{ display:'flex', alignItems:'center', gap:.75 }}>
-										<span>Comments</span>
-										{!ENABLE_COMMENTS && <SoonTag />}
-									</Box>
-								} disabled={!ENABLE_COMMENTS} /> */}
 							</Tabs>
 							<Tooltip title={`${totalNights} of ${targetNights} nights planned`} arrow placement='bottom'>
 							<Box sx={(t) => ({
@@ -1742,7 +1728,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 							</Box>
 						</Tooltip>
 							{!readOnly && effectiveCanEdit && (
-							<Tooltip arrow placement='bottom' title={!isDraft ? 'Your trip is live — visible to everyone' : saving ? 'Publishing...' : 'Make your trip public'}>
+							<Tooltip arrow placement='bottom' title={!isDraft ? 'Your trip is live � visible to everyone' : saving ? 'Publishing...' : 'Make your trip public'}>
 								<span>
 									<Button
 										size='small'
@@ -1798,7 +1784,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 										}}
 									>
 										{saving ? (
-											<><CircularProgress size={12} thickness={5} sx={{ color: 'inherit', mr: .4 }} />Publishing…</>
+											<><CircularProgress size={12} thickness={5} sx={{ color: 'inherit', mr: .4 }} />Publishing�</>
 										) : isDraft ? (
 											<><PublishRoundedIcon sx={{ fontSize: 13 }} /> Publish</>
 										) : (
@@ -1811,7 +1797,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						</Box>
 						)}
 						<Divider />
-						{/* ── Floating board tools: Map + Optimize ── */}
+						{/* -- Floating board tools: Map + Optimize -- */}
 						{section === 'plan' && (
 							<Box sx={{ position: 'absolute', bottom: 72, left: 16, zIndex: 10, display: 'flex', flexDirection: 'column', gap: .85 }}>
 								<Tooltip title='View map' placement='right' arrow>
@@ -1833,7 +1819,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 								{!isExternalNonOwner && (
 									<Tooltip
 										placement='right' arrow
-										title={geocodedCount < 3 ? 'Add at least 3 destinations with coordinates to optimize' : optimizingRoute ? 'Optimizing…' : 'Optimize route order'}
+										title={geocodedCount < 3 ? 'Add at least 3 destinations with coordinates to optimize' : optimizingRoute ? 'Optimizing�' : 'Optimize route order'}
 									>
 										<span>
 											<IconButton
@@ -1859,7 +1845,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 										</span>
 									</Tooltip>
 								)}
-							{/* Settings — mobile only (desktop uses sidebar) */}
+							{/* Settings � mobile only (desktop uses sidebar) */}
 							{(!readOnly && effectiveCanEdit) && (
 								<Tooltip title='Trip settings' placement='right' arrow>
 									<IconButton
@@ -1937,7 +1923,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					</Box>
 					)}
 					</Box>{/* end centre column */}
-				{/* Right panel — Navia for owners/editors, trip info for public viewers */}
+				{/* Right panel � Navia for owners/editors, trip info for public viewers */}
 				{(!readOnly && effectiveCanEdit) ? (
 					<Box sx={{ display: { xs: 'none', lg: 'flex' }, alignSelf: 'stretch', overflow: 'hidden', flexShrink: 0 }}>
 						<PremiumChatPanel naviaHook={naviaHook} />
@@ -2025,7 +2011,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						{visaErrors.length>0 && (
 							<Box sx={{ mb:2, border:'1px solid', borderColor:'error.light', background:(t)=> t.palette.mode==='dark'? '#2a1818':'#fff5f5', p:1, borderRadius:1.5 }}>
 								<Typography variant='caption' sx={{ fontWeight:700, color:'error.main', display:'flex', gap:.5 }}>Upload issues:</Typography>
-								{visaErrors.map((er,i)=>(<Typography key={i} variant='caption' sx={{ display:'block', color:'error.main' }}>• {er}</Typography>))}
+								{visaErrors.map((er,i)=>(<Typography key={i} variant='caption' sx={{ display:'block', color:'error.main' }}>� {er}</Typography>))}
 							</Box>
 						)}
 						{planner.visaDocs && planner.visaDocs.length>0 ? (
@@ -2250,7 +2236,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			travelMode={planner.destinations[0]?.transport || 'car'}
 			tripId={tripId}
 		/>
-		{/* ── Publish celebration overlay (Feature 6) ── */}
+		{/* -- Publish celebration overlay (Feature 6) -- */}
 		{showCelebration && (
 			<Box
 				component='div'
