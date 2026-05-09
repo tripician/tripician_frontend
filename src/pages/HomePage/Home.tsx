@@ -19,11 +19,6 @@ import TripCard from '../DashboardPage/TripCard';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { countryAlpha3FromCode, countryAlpha3FromName, countryNameFromCode, countryCodeFromName } from '../../utils/countryFlags';
 import Barcode from 'react-barcode';
-import iconArchitecture from '../../assets/icons/architecture.png';
-import iconBeaches from '../../assets/icons/beaches.png';
-import iconCity from '../../assets/icons/city.png';
-import iconForest from '../../assets/icons/forest.png';
-import iconMountains from '../../assets/icons/mountains.png';
 import gsap from 'gsap';
 import blogsData from '../../assets/blogs/blogs.json';
 
@@ -768,30 +763,6 @@ const Home: React.FC = () => {
                 </Box>
               </Box>
             )}
-
-            {/* ── BROWSE BY VIBE ────────────────────────────────── */}
-            <Box sx={{ mb: 4 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2.5 }}>
-                <Box sx={{ width: 4, height: 22, borderRadius: 2, background: 'linear-gradient(180deg, #FF385C, #D91A50)' }} />
-                <Typography variant="h5" fontWeight={700} sx={{ fontFamily: "'Inter', sans-serif", letterSpacing: '-0.025em', fontSize: { xs: '1.1rem', md: '1.3rem' } }}>
-                  Browse by Vibe
-                </Typography>
-              </Box>
-              <Box sx={{ display: 'flex', gap: { xs: 3, md: 4 }, overflowX: 'auto', pb: 1.5, '&::-webkit-scrollbar': { display: 'none' } }}>
-                {[
-                  { label: 'Timeless', icon: iconArchitecture, glow: 'rgba(168,85,247,0.55)',  accent: '#ffc400' },
-                  { label: 'Coastal',  icon: iconBeaches,      glow: 'rgba(56,189,248,0.55)',  accent: '#0EA5E9' },
-                  { label: 'Urban',    icon: iconCity,         glow: 'rgba(251,191,36,0.55)',  accent: '#F59E0B' },
-                  { label: 'Wild',     icon: iconForest,       glow: 'rgba(52,211,153,0.55)',  accent: '#10B981' },
-                  { label: 'Summit',   icon: iconMountains,    glow: 'rgba(129,140,248,0.55)', accent: '#00afe4' },
-                ].map((cat) => (
-                  <Box key={cat.label} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, cursor: 'pointer', flexShrink: 0, py: 1.5, px: 1, background: 'transparent', border: 'none', transition: 'all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)', '&:hover': { transform: 'translateY(-6px)', '& .cat-icon-img': { filter: `drop-shadow(0 0 10px ${cat.glow}) drop-shadow(0 0 22px ${cat.glow})`, transform: 'scale(1.15)' }, '& .cat-label': { color: cat.accent } } }}>
-                    <img className="cat-icon-img" src={cat.icon} alt={cat.label} style={{ width: 80, height: 80, objectFit: 'contain', display: 'block', transition: 'filter 0.3s ease, transform 0.3s cubic-bezier(0.34, 1.56, 0.64, 1)', filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.15))' }} />
-                    <Typography className="cat-label" sx={{ fontSize: '0.8rem', fontWeight: 600, color: 'text.secondary', fontFamily: "'Inter', sans-serif", letterSpacing: '0.01em', transition: 'color 0.25s ease', userSelect: 'none' }}>{cat.label}</Typography>
-                  </Box>
-                ))}
-              </Box>
-            </Box>
 
             {/* FEATURED DESTINATIONS */}
             <Box sx={{ pb: 6 }}>
