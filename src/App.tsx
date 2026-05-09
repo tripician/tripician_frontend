@@ -40,7 +40,7 @@ function App() {
         <Route path="/signin" element={<GuestRoute><Signin /></GuestRoute>} />
         <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
         <Route path="/callback" element={<Callback />} />
-        <Route path="/" element={<GuestRoute><Landingpage /></GuestRoute>} />
+        <Route path="/" element={<Landingpage />} />
         
         {/* Protected Routes grouped under persistent layout */}
         <Route element={<ProtectedRoute><AuthenticatedLayout /></ProtectedRoute>}>

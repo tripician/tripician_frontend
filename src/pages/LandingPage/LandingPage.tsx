@@ -1,6 +1,7 @@
 ﻿import { useLayoutEffect, useState, useEffect, useRef } from 'react';
 import { KalaGeometric, KalaLotus } from '../../components/DecorativeComponents/KalaDecor';
 import { useNavigate } from 'react-router-dom';
+import { useAuth0 } from '@auth0/auth0-react';
 import { fetchUnsplashImage } from '../../services/unsplashService';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
@@ -348,7 +349,15 @@ function LandingFAQ() {
 /* ─── COMPONENT ─────────────────────────────────────────────────── */
 export default function LandingPage() {
   const navigate = useNavigate();
+  const { isAuthenticated, isLoading } = useAuth0();
   const heroImageUrl = import.meta.env.VITE_LANDING_HERO_IMAGE_URL as string | undefined;
+
+  // Redirect authenticated users — no spinner, page renders immediately for Googlebot
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      navigate('/home', { replace: true });
+    }
+  }, [isAuthenticated, isLoading, navigate]);
   const logoFullWhiteUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_2_URL as string | undefined;
 
   const [showcaseImages, setShowcaseImages] = useState<Record<number, string>>({});
