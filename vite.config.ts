@@ -6,6 +6,22 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const enableNewsProxy = env.VITE_NEWS_PROXY === '1';
   return {
+    build: {
+      chunkSizeWarningLimit: 600,
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            'vendor-react':  ['react', 'react-dom', 'react-router-dom'],
+            'vendor-auth':   ['@auth0/auth0-react'],
+            'vendor-redux':  ['@reduxjs/toolkit', 'react-redux'],
+            'vendor-ui':     ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
+            'vendor-map':    ['mapbox-gl'],
+            'vendor-motion': ['framer-motion', 'gsap'],
+            'vendor-misc':   ['axios', 'date-fns', 'dayjs', 'lucide-react'],
+          },
+        },
+      },
+    },
     plugins: [react()],
     server: enableNewsProxy ? {
       proxy: {
