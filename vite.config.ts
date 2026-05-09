@@ -17,6 +17,8 @@ export default defineConfig(({ mode }) => {
             'vendor-ui':     ['@mui/material', '@mui/icons-material', '@emotion/react', '@emotion/styled'],
             'vendor-map':    ['mapbox-gl'],
             'vendor-motion': ['framer-motion', 'gsap'],
+            'vendor-query':  ['@tanstack/react-query'],
+            'vendor-media':  ['react-barcode', 'canvas-confetti'],
             'vendor-misc':   ['axios', 'date-fns', 'dayjs', 'lucide-react'],
           },
         },
