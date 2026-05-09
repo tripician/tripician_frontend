@@ -7,31 +7,14 @@
     "dev": "vite",
     "prebuild": "node scripts/generate-sitemap.js",
     "build": "tsc -b && vite build --mode prod",
-    "postbuild": "react-snap",
+    "postbuild": "node scripts/prerender.cjs",
     "lint": "eslint .",
     "preview": "vite preview",
     "preview:prod": "vite preview --mode prod",
     "generate-sitemap": "node scripts/generate-sitemap.js"
   },
-  "reactSnap": {
-    "source": "dist",
-    "include": [
-      "/",
-      "/blog",
-      "/about-us",
-      "/terms-and-conditions",
-      "/privacy-policy",
-      "/get-help",
-      "/contact-us"
-    ],
-    "crawl": true,
-    "puppeteerArgs": ["--no-sandbox", "--disable-setuid-sandbox", "--disable-dev-shm-usage"],
-    "minifyHtml": false,
-    "skipThirdPartyRequests": true,
-    "inlineCss": false
-  },
   "engines": {
-    "node": ">=18.18.0"
+    "node": ">=22.12.0"
   },
   "dependencies": {
     "@auth0/auth0-react": "^2.4.0",
