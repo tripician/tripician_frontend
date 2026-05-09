@@ -16,7 +16,8 @@ import { fetchUserProfile } from '../../store/userSlice';
 interface TripDTO { 
   id: string; 
   name?: string; 
-  visibility?: string; 
+  visibility?: string;
+  privacy?: string;
   ownerId?: string; 
   memberIds?: string[]; 
   targetNights?: number; 
@@ -110,8 +111,18 @@ const TripView: React.FC = () => {
     })
     .filter((email: any): email is string => typeof email === 'string' && email.length > 0);
   const currentUserEmail = userProfile?.email ?? userProfile?.email ?? null;
-  const visibilityRaw = tripRoot?.visibility || tripRoot?.Visibility || rawTrip?.visibility || rawTrip?.Visibility || 'private';
-  const visibility = (visibilityRaw || 'private').toLowerCase();
+  // Visibility can come from either visibility or privacy depending on endpoint/DTO shape.
+  const visibilityRaw =
+    tripRoot?.visibility ||
+    tripRoot?.Visibility ||
+    tripRoot?.privacy ||
+    tripRoot?.Privacy ||
+    rawTrip?.visibility ||
+    rawTrip?.Visibility ||
+    rawTrip?.privacy ||
+    rawTrip?.Privacy ||
+    'private';
+  const visibility = String(visibilityRaw || 'private').toLowerCase();
   const isPrivate = visibility.startsWith('priv');
   const profileResolved = !userLoading; // profile fetch finished (success or fail)
   const isOwner = Boolean(ownerId && currentUserId && String(ownerId) === String(currentUserId));

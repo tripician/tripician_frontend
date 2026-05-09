@@ -1505,7 +1505,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		if(isDraft){
 			setSaving(true);
 			try {
+				// Publishing should always make the trip publicly readable.
+				await apiServices.changeTripVisibility(authToken, tripId, { visibility: 'EVERYONE' });
 				await apiServices.setTripPublished(authToken, tripId, true);
+				setPrivacy('Everyone');
 				commitSnapshot(false);
 				setShowCelebration(true);
 			} catch {
@@ -1518,6 +1521,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			setSaving(true);
 			try {
 				await apiServices.setTripPublished(authToken, tripId, false);
+				// Unpublished trips should default back to trip-members visibility.
+				await apiServices.changeTripVisibility(authToken, tripId, { visibility: 'TRIP_MEMBERS' });
+				setPrivacy('Trip Members');
 				commitSnapshot(true);
 				openToast('info', 'Trip unpublished');
 			} catch {
