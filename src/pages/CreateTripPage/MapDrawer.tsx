@@ -9,7 +9,7 @@ import {
 import CloseIcon from '@mui/icons-material/Close';
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
 import RouteIcon from '@mui/icons-material/Route';
-import MapPanel from './MapPanel';
+const MapPanel = React.lazy(() => import('./MapPanel'));
 import type { PlannerDestination } from '../../store/plannerSlice';
 
 interface MapDrawerProps {
@@ -133,7 +133,9 @@ const MapDrawer: React.FC<MapDrawerProps> = ({ open, onClose, destinations }) =>
 
       {/* Map — fills remaining space */}
       <Box sx={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-        <MapPanel widthFraction={1} />
+        <React.Suspense fallback={<Box sx={{ p: 2, color: 'text.secondary', fontSize: 13 }}>Loading map...</Box>}>
+          <MapPanel widthFraction={1} />
+        </React.Suspense>
       </Box>
     </Drawer>
   );

@@ -23,6 +23,8 @@ const { execSync } = require('child_process');
 const { run } = require('react-snap');
 const fs = require('fs');
 const path = require('path');
+const os = require('os');
+const net = require('net');
 
 function detectChrome() {
   // 1. Explicit override via env var (works on any OS)
@@ -46,8 +48,57 @@ function detectChrome() {
     }
   }
 
-  // 3. Fall back to react-snap's bundled Chromium
+  // 3. Auto-detect common Chrome install paths on Windows
+  if (process.platform === 'win32') {
+    const candidates = [
+      'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
+      'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
+    ];
+    for (const p of candidates) {
+      if (fs.existsSync(p)) return p;
+    }
+  }
+
+  // 4. Fall back to react-snap's bundled Chromium
   return undefined;
+}
+
+function acquireLock(lockPath) {
+  try {
+    const fd = fs.openSync(lockPath, 'wx');
+    fs.writeFileSync(fd, String(process.pid));
+    return fd;
+  } catch {
+    return null;
+  }
+}
+
+function releaseLock(fd, lockPath) {
+  if (typeof fd === 'number') {
+    try { fs.closeSync(fd); } catch {}
+    try { fs.unlinkSync(lockPath); } catch {}
+  }
+}
+
+function isPortFree(port) {
+  return new Promise((resolve) => {
+    const server = net.createServer();
+    server.once('error', () => resolve(false));
+    server.once('listening', () => {
+      server.close(() => resolve(true));
+    });
+    server.listen(port, '0.0.0.0');
+  });
+}
+
+async function findPort(startPort) {
+  let port = startPort;
+  for (let i = 0; i < 25; i += 1) {
+    // eslint-disable-next-line no-await-in-loop
+    if (await isPortFree(port)) return port;
+    port += 1;
+  }
+  return startPort;
 }
 
 // Read blog slugs dynamically from blogs.json
@@ -68,6 +119,13 @@ const ROUTES = [
 ];
 
 async function main() {
+  const lockPath = path.join(os.tmpdir(), 'tripician-react-snap.lock');
+  const lockFd = acquireLock(lockPath);
+  if (lockFd === null) {
+    console.log('\n⚠️ prerender already running (lock present); skipping duplicate invocation\n');
+    process.exit(0);
+  }
+
   const executablePath = detectChrome();
 
   if (executablePath) {
@@ -78,87 +136,33 @@ async function main() {
 
   console.log(`📄 Prerendering ${ROUTES.length} routes (${blogRoutes.length} blog posts + 7 static)\n`);
 
-  await run({
-    source: 'dist',
-    include: ROUTES,
-    crawl: false, // all routes are explicit — don't rely on link crawling
-    puppeteerArgs: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-    ],
-    waitFor: 2000, // give React + Auth0 time to render
-    minifyHtml: false,
-    skipThirdPartyRequests: true,
-    inlineCss: false,
-    // react-snap's option name is puppeteerExecutablePath (NOT executablePath)
-    ...(executablePath ? { puppeteerExecutablePath: executablePath } : {}),
-  });
-}
+  const port = await findPort(45679);
 
-main().catch((err) => {
-  console.error('❌ react-snap failed:', err);
-  process.exit(1);
-});
-
-function detectChrome() {
-  // 1. Explicit override via env var (works on any OS)
-  if (process.env.CHROME_PATH) return process.env.CHROME_PATH;
-
-  // 2. Auto-detect on Linux CI (GitHub Actions ubuntu-latest has Chrome pre-installed)
-  if (process.platform === 'linux') {
-    const candidates = [
-      'google-chrome-stable',
-      'google-chrome',
-      'chromium-browser',
-      'chromium',
-    ];
-    for (const bin of candidates) {
-      try {
-        const path = execSync(`which ${bin} 2>/dev/null`).toString().trim();
-        if (path) return path;
-      } catch {
-        // not found, try next
-      }
-    }
+  if (port !== 45679) {
+    console.log(`⚠️ Port 45679 busy, using ${port} for prerender\n`);
   }
 
-  // 3. Fall back to react-snap's bundled Chromium
-  return undefined;
-}
-
-async function main() {
-  const executablePath = detectChrome();
-
-  if (executablePath) {
-    console.log(`\n🌐 react-snap using Chrome at: ${executablePath}\n`);
-  } else {
-    console.log('\n🌐 react-snap using bundled Chromium\n');
+  try {
+    await run({
+      source: 'dist',
+      port,
+      include: ROUTES,
+      crawl: false, // all routes are explicit — don't rely on link crawling
+      puppeteerArgs: [
+        '--no-sandbox',
+        '--disable-setuid-sandbox',
+        '--disable-dev-shm-usage',
+      ],
+      waitFor: 2000, // give React + Auth0 time to render
+      minifyHtml: false,
+      skipThirdPartyRequests: true,
+      inlineCss: false,
+      // react-snap's option name is puppeteerExecutablePath (NOT executablePath)
+      ...(executablePath ? { puppeteerExecutablePath: executablePath } : {}),
+    });
+  } finally {
+    releaseLock(lockFd, lockPath);
   }
-
-  await run({
-    source: 'dist',
-    include: [
-      '/',
-      '/blog',
-      '/about-us',
-      '/terms-and-conditions',
-      '/privacy-policy',
-      '/get-help',
-      '/contact-us',
-    ],
-    crawl: true,
-    puppeteerArgs: [
-      '--no-sandbox',
-      '--disable-setuid-sandbox',
-      '--disable-dev-shm-usage',
-    ],
-    minifyHtml: false,
-    skipThirdPartyRequests: true,
-    inlineCss: false,
-    // react-snap's option name is puppeteerExecutablePath (NOT executablePath)
-    ...(executablePath ? { puppeteerExecutablePath: executablePath } : {}),
-  });
 }
 
 main().catch((err) => {
