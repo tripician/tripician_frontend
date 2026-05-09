@@ -38,9 +38,9 @@ const navItems: NavItem[] = [
   { id: 'docs', label: 'Docs', icon: <InsertDriveFileIcon fontSize='small' /> }
 ];
 
-interface TripPlannerNavProps { active?: string; onChange?: (id: string) => void; onSettingsClick?:()=>void; hideSections?: string[]; canAccessDocs?: boolean; docsEnabled?: boolean }
+interface TripPlannerNavProps { active?: string; onChange?: (id: string) => void; onSettingsClick?:()=>void; hideSections?: string[]; canAccessDocs?: boolean; docsEnabled?: boolean; settingsDisabled?: boolean }
 
-const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChange, onSettingsClick, hideSections=[], canAccessDocs=true, docsEnabled=true }) => {
+const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChange, onSettingsClick, hideSections=[], canAccessDocs=true, docsEnabled=true, settingsDisabled=false }) => {
   const { importExport, docsSection } = FEATURE_FLAGS;
   return (
     <Box
@@ -181,11 +181,12 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
         </Tooltip>
       )}
       
-      <Tooltip title='Settings' placement='right' arrow>
+      <Tooltip title={settingsDisabled ? 'Settings (Owner only)' : 'Settings'} placement='right' arrow>
         <Box
-          onClick={onSettingsClick}
+          onClick={() => { if(!settingsDisabled) onSettingsClick?.(); }}
+          aria-disabled={settingsDisabled}
           sx={(theme) => ({
-            cursor: 'pointer',
+            cursor: settingsDisabled ? 'not-allowed' : 'pointer',
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
@@ -195,8 +196,9 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
             border: theme.palette.mode === 'light' ? '1px solid rgba(0,0,0,0.08)' : '1px solid rgba(255,255,255,0.08)',
             background: theme.palette.mode === 'light' ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.06)',
             color: theme.palette.mode === 'light' ? '#717171' : 'rgba(255,255,255,0.5)',
+            opacity: settingsDisabled ? 0.45 : 1,
             transition: 'background .2s ease, color .2s ease',
-            '&:hover': {
+            '&:hover': settingsDisabled ? {} : {
               background: theme.palette.mode === 'light' ? 'rgba(255,56,92,0.07)' : 'rgba(255,56,92,0.13)',
               color: '#FF385C',
             }
