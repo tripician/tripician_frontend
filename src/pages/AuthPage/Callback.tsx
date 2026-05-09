@@ -32,7 +32,10 @@ const Callback = () => {
     const exchange = async () => {
       try {
         const accessToken = await getAccessTokenSilently({
-          authorizationParams: { audience: import.meta.env.VITE_AUTH0_AUDIENCE },
+          authorizationParams: {
+            audience: 'https://tripician-production-api',
+            scope: 'openid profile email',
+          },
         });
         const response = await authAPI.socialCallback(accessToken);
 
