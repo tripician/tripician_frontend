@@ -621,11 +621,11 @@ const BlogPost: React.FC = () => {
       <Helmet>
         <title>{blog.title} — Tripician Travel Blog</title>
         <meta name="description" content={blog.description} />
-        <link rel="canonical" href={`https://www.tripician.com/blog/${blog.slug}`} />
+        <link rel="canonical" href={`https://tripician.com/blog/${blog.slug}`} />
         <meta property="og:title" content={blog.title} />
         <meta property="og:description" content={blog.description} />
-        <meta property="og:image" content={heroImage || 'https://www.tripician.com/og-cover.jpg'} />
-        <meta property="og:url" content={`https://www.tripician.com/blog/${blog.slug}`} />
+        <meta property="og:image" content={heroImage || 'https://tripician.com/og-cover.jpg'} />
+        <meta property="og:url" content={`https://tripician.com/blog/${blog.slug}`} />
         <meta property="og:type" content="article" />
         <meta name="twitter:card" content="summary_large_image" />
         <meta name="twitter:title" content={blog.title} />
