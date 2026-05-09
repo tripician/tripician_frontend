@@ -836,9 +836,28 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const [privacy, setPrivacy] = React.useState<'Private'|'Trip Members'|'Everyone'>('Private');
 	const [tripStartDate, setTripStartDate] = React.useState<string|null>(normalizedInitial?.meta.startDate ? sanitizeDateString(normalizedInitial.meta.startDate) : null);
 	const [tripEndDate, setTripEndDate] = React.useState<string|null>(normalizedInitial?.meta.endDate ? sanitizeDateString(normalizedInitial.meta.endDate) : null);
-	// Draft flag: derive from raw initialTrip.trip.published if provided; fallback to true (unpublished)
-	const initialPublished = (initialTrip && initialTrip.trip && typeof initialTrip.trip.published === 'boolean') ? initialTrip.trip.published : false;
+	// Draft flag: derive published from multiple possible payload shapes; fallback to unpublished.
+	const rawInitialTrip: any = (initialTrip as any)?.trip || initialTrip || null;
+	const initialPublished =
+		typeof rawInitialTrip?.published === 'boolean'
+			? rawInitialTrip.published
+			: typeof rawInitialTrip?.isPublished === 'boolean'
+				? rawInitialTrip.isPublished
+				: typeof rawInitialTrip?.status === 'string'
+					? String(rawInitialTrip.status).toUpperCase() === 'PUBLISHED'
+					: false;
 	const [isDraft, setIsDraft] = React.useState<boolean>(!initialPublished);
+	const derivePrivacyFromDraft = React.useCallback((draft: boolean): 'Trip Members' | 'Everyone' => (
+		draft ? 'Trip Members' : 'Everyone'
+	), []);
+	const deriveVisibilityEnumFromDraft = React.useCallback((draft: boolean): 'TRIP_MEMBERS' | 'EVERYONE' => (
+		draft ? 'TRIP_MEMBERS' : 'EVERYONE'
+	), []);
+
+	// Visibility/Privacy is derived from published state; user can't set it independently.
+	React.useEffect(() => {
+		setPrivacy(derivePrivacyFromDraft(isDraft));
+	}, [isDraft, derivePrivacyFromDraft]);
 
 	// Section + tab UI state � persisted in ?tab= query param so refresh keeps the same panel
 	const VALID_SECTIONS = ['plan', 'news', 'docs', 'packing'] as const;
@@ -941,12 +960,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				setCountries([]);
 			}
 		} catch {}
-		setPrivacy((() => {
-			const v = (meta.visibility||'').toLowerCase();
-			   if (v.startsWith('every')) return 'Everyone';
-			   if (v.startsWith('trip')) return 'Trip Members';
-			   return 'Private';
-		})());
+		setPrivacy(derivePrivacyFromDraft(isDraft));
 		const metaStart = sanitizeDateString(meta.startDate) || null;
 		const metaEnd = sanitizeDateString(meta.endDate) || null;
 		setTripStartDate(metaStart);
@@ -1066,7 +1080,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		// Use computeSignatureRef (not the closure-captured computeSignature) so the rAF
 		// always reads the latest signature AFTER React re-renders from the dispatch above.
 		requestAnimationFrame(()=> { lastCommittedRef.current = computeSignatureRef.current(); });
-	}, [unifiedTrip, title, dispatch, planner.targetNights]);
+	}, [unifiedTrip, title, dispatch, planner.targetNights, derivePrivacyFromDraft, isDraft]);
 
 	// Centralized feature flags
 	const ENABLE_EXPENSES = FEATURE_FLAGS.expenses;
@@ -1086,7 +1100,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		const settingsSaveHandler = async () => {
 			if(!authToken || !tripId) { openToast('error','Cannot save settings'); return; }
 			try {
-				   const visibilityEnum = privacy==='Private' ? 'PRIVATE' : privacy==='Trip Members' ? 'TRIP_MEMBERS' : 'EVERYONE';
+				   const visibilityEnum = deriveVisibilityEnumFromDraft(isDraft);
 				const sd = sanitizeDateString(tripStartDate) || undefined;
 				const ed = sanitizeDateString(tripEndDate) || undefined;
 				// Immediately reflect updated date span in nights ring before waiting for refetch
@@ -1119,10 +1133,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						if(typeof meta.description==='string') setTripDescription(meta.description);
 						if(typeof meta.vibe==='string') setVibe(meta.vibe);
 						else if(meta.vibe===null) setVibe(null);
-						if(typeof meta.visibility==='string') {
-							const vis = meta.visibility.toLowerCase();
-							   setPrivacy(vis.startsWith('every')? 'Everyone' : vis.startsWith('trip')? 'Trip Members' : 'Private');
-						}
+						setPrivacy(derivePrivacyFromDraft(isDraft));
 						if(typeof meta.startDate==='string') setTripStartDate(sanitizeDateString(meta.startDate));
 						if(typeof meta.endDate==='string') setTripEndDate(sanitizeDateString(meta.endDate));
 						setRemoteTrip(refreshed.data);
@@ -1156,7 +1167,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			window.removeEventListener('trip:settings:save', settingsSaveHandler);
 			window.removeEventListener('trip:members:updated', membersUpdatedHandler);
 		};
-	}, [authToken, tripId, title, privacy, countries, bannerUrl, openToast]);
+	}, [authToken, tripId, title, countries, bannerUrl, openToast, deriveVisibilityEnumFromDraft, derivePrivacyFromDraft, isDraft]);
 
 	// Initial fetch of trip users (when token & tripId available)
 	React.useEffect(()=> {
@@ -1429,7 +1440,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			trip: {
 				id: tripId,
 				name: title,
-				privacy,
+				privacy: derivePrivacyFromDraft(_draft),
 				currency,
 				startDate: finalStart,
 				endDate: finalEnd,
@@ -1458,7 +1469,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			destinationDocsCount: planner.destinations.reduce((sum, d) => sum + (d.docs?.length || 0), 0),
 			version: 1
 		};
-	}, [planner.destinations, planner.expenses, planner.tripBudget, planner.pinnedDocIds, planner.globalDocs, planner.visaDocs, tripId, title, privacy, currency, tripStartDate, tripEndDate, targetNights, totalNights, geocodedCount, importantNotes, vibe, tripDescription, bannerUrl]);
+	}, [planner.destinations, planner.expenses, planner.tripBudget, planner.pinnedDocIds, planner.globalDocs, planner.visaDocs, tripId, title, currency, tripStartDate, tripEndDate, targetNights, totalNights, geocodedCount, importantNotes, vibe, tripDescription, bannerUrl, derivePrivacyFromDraft]);
 
 	// Persist helper (debounced save)
 	const persistToBackend = React.useCallback(async (payload:any): Promise<boolean> => {
@@ -1505,7 +1516,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		if(isDraft){
 			setSaving(true);
 			try {
+				// Publishing should always make the trip publicly readable.
+				await apiServices.changeTripVisibility(authToken, tripId, { visibility: 'EVERYONE' });
 				await apiServices.setTripPublished(authToken, tripId, true);
+				setPrivacy('Everyone');
 				commitSnapshot(false);
 				setShowCelebration(true);
 			} catch {
@@ -1518,6 +1532,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			setSaving(true);
 			try {
 				await apiServices.setTripPublished(authToken, tripId, false);
+				// Unpublished trips should default back to trip-members visibility.
+				await apiServices.changeTripVisibility(authToken, tripId, { visibility: 'TRIP_MEMBERS' });
+				setPrivacy('Trip Members');
 				commitSnapshot(true);
 				openToast('info', 'Trip unpublished');
 			} catch {
@@ -1644,7 +1661,15 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	return (
 		<React.Fragment>
 		<Box sx={{ display:'flex', flexDirection:'row', height:'100vh', overflow:'hidden' }}>
-		<CreateTripNav active={section} onChange={(id)=> setSectionDebug(id as any)} onSettingsClick={()=> setSettingsOpen(true)} hideSections={hideSectionsArr} canAccessDocs={canAccessDocs} docsEnabled={ENABLE_DOC_UPLOAD} />
+		<CreateTripNav
+			active={section}
+			onChange={(id)=> setSectionDebug(id as any)}
+			onSettingsClick={()=> setSettingsOpen(true)}
+			hideSections={hideSectionsArr}
+			canAccessDocs={canAccessDocs}
+			docsEnabled={ENABLE_DOC_UPLOAD}
+			settingsDisabled={readOnly || !effectiveCanEdit}
+		/>
 			<Box sx={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, minHeight:0 }}>
 				<TopBar showSearch={false} logo={
 					<Tooltip title='Back to Home'>
@@ -1792,6 +1817,36 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 										)}
 									</Button>
 								</span>
+							</Tooltip>
+							)}
+							{!isDraft && (
+							<Tooltip arrow placement='bottom' title='Share this published trip'>
+								<Button
+									size='small'
+									variant='outlined'
+									onClick={() => setShareModalOpen(true)}
+									sx={{
+										ml: .5,
+										textTransform: 'none',
+										borderRadius: '20px',
+										px: 1.25,
+										height: 32,
+										fontSize: 12,
+										fontWeight: 700,
+										minWidth: 0,
+										letterSpacing: '-0.1px',
+										gap: .35,
+										flexShrink: 0,
+										borderColor: 'rgba(255,56,92,0.45)',
+										color: '#FF385C',
+										'&:hover': {
+											borderColor: '#FF385C',
+											background: 'rgba(255,56,92,0.08)',
+										},
+									}}
+								>
+									<ShareRoundedIcon sx={{ fontSize: 13 }} /> Share
+								</Button>
 							</Tooltip>
 							)}
 						</Box>
@@ -2154,7 +2209,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					onChangeTitle={(t)=> setTitle(t)}
 					onChangeStartDate={(d)=> setTripStartDate(d)}
 					onChangeEndDate={(d)=> setTripEndDate(d)}
-				onChangePrivacy={(p)=> setPrivacy(p as any)}
+				onChangePrivacy={()=> { /* privacy is derived from published state */ }}
 				description={tripDescription}
 					onChangeDescription={(d)=> setTripDescription(d)}
 					vibe={vibe ?? ''}
