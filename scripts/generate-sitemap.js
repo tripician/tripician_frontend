@@ -8,7 +8,7 @@ const blogs = JSON.parse(
   fs.readFileSync(path.join(__dirname, '../src/assets/blogs/blogs.json'), 'utf-8')
 );
 
-const base = 'https://www.tripician.com';
+const base = 'https://tripician.com';
 const today = new Date().toISOString().split('T')[0];
 
 const staticRoutes = [
