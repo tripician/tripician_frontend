@@ -374,10 +374,10 @@ const BlogsList: React.FC = () => {
       <Helmet>
         <title>Travel Blog — Tips, Guides &amp; Destinations | Tripician</title>
         <meta name="description" content="Explore travel guides, destination tips, packing advice, and trip inspiration from the Tripician community." />
-        <link rel="canonical" href="https://www.tripician.com/blog" />
+        <link rel="canonical" href="https://tripician.com/blog" />
         <meta property="og:title" content="Tripician Travel Blog" />
         <meta property="og:description" content="Explore travel guides, destination tips, packing advice, and trip inspiration from the Tripician community." />
-        <meta property="og:url" content="https://www.tripician.com/blog" />
+        <meta property="og:url" content="https://tripician.com/blog" />
         <meta name="robots" content="index, follow" />
       </Helmet>
       {isAuthenticated ? (
