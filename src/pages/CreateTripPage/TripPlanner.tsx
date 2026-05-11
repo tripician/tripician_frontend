@@ -1,6 +1,6 @@
 // TripPlanner main page component (formerly CreateTrip)
 import React from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Box, Tabs, Tab, Typography, Divider, Button, Avatar, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Snackbar, Alert, useTheme, Drawer, Fab } from '@mui/material';
 import { KalaMandala } from '../../components/DecorativeComponents/KalaDecor';
 // Props-based TripPlanner; tripId + optional initialTrip provided by route wrapper
@@ -753,6 +753,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	// Selectors & dispatch
 	// ---------------------------------------------------------------------------
 	const dispatch = useDispatch<AppDispatch>();
+	const navigate = useNavigate();
 	const planner = useSelector((s:RootState)=> s.planner);
 	const docsState = useSelector((s:RootState)=> s.docs);
 		const auth = useAuthToken();
@@ -1545,9 +1546,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		}
 	};
 
-	const redirectDashboard = React.useCallback(() => {
-		try { window.location.href = '/dashboard'; } catch {}
-	}, []);
+	const redirectToTripView = React.useCallback(() => {
+		try { navigate(`/trip/${tripId}`, { replace: true }); } catch { try { window.location.href = `/trip/${tripId}`; } catch {} }
+	}, [navigate, tripId]);
 
 	const performSaveDraftAndExit = React.useCallback(async () => {
 		if(exiting) return; setExiting(true);
@@ -1559,16 +1560,22 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				if(ok) commitSnapshot(true);
 				if(!ok){ setExiting(false); return; }
 			}
-			redirectDashboard();
+			redirectToTripView();
 		} finally { setExiting(false); }
-	}, [isDirty, effectiveCanEdit, buildPersistPayload, persistToBackend, commitSnapshot, redirectDashboard, exiting]);
+	}, [isDirty, effectiveCanEdit, buildPersistPayload, persistToBackend, commitSnapshot, redirectToTripView, exiting]);
 
 	const handleBackHomeClick = () => {
-		if(readOnly || !effectiveCanEdit || savePermissionDenied){
-			redirectDashboard();
+		if(readOnly){
+			// On the read-only TripView page, go back in history instead of
+			// re-navigating to the same /trip/:id URL (which is a no-op).
+			if(window.history.length > 1){ window.history.back(); } else { navigate('/dashboard'); }
 			return;
 		}
-		if(!isDirty){ redirectDashboard(); return; }
+		if(!effectiveCanEdit || savePermissionDenied){
+			redirectToTripView();
+			return;
+		}
+		if(!isDirty){ redirectToTripView(); return; }
 		setExitConfirmOpen(true);
 	};
 
@@ -1942,40 +1949,36 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 								{section==='plan' && tab===1 && ENABLE_EXPENSES && <ExpensesPanel readOnly={readOnly} />}
 								{section==='plan' && tab===2 && ENABLE_COMMENTS && <TripComments tripId={tripId} authToken={authToken} />}
 						</Box>
-						<Box sx={(t)=>({ borderTop:`1px solid ${t.palette.divider}`, px:2.5, py:1.5, background:t.palette.background.paper, display:'flex', alignItems:'center', justifyContent:'space-between' })}>
+					</Box>
+					)}
+					{/* Save/Update footer — always visible on all sections */}
+					{showPlannerActions && (
+						<Box sx={(t)=>({ borderTop:`1px solid ${t.palette.divider}`, px:2.5, py:1.5, background:t.palette.background.paper, display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 })}>
 							<Typography variant='caption' color='text.secondary'>Last saved: {lastSavedDisplay}</Typography>
 							<Box sx={{ display:'flex', gap:1.2 }}>
-								{showPlannerActions && (
-									<>
-										{/* Primary draft/update button (only in planner mode) */}
-										<Button
-											size='small'
-											variant='outlined'
-											onClick={()=> {
-												if(!effectiveCanEdit){ openToast('error','Trip is read only'); return; }
-												if(!isHydrated){ openToast('error','Trip data still loading'); return; }
-																									// Dev logging removed (pre-save)
-												if(!isDraft){
-													const payload = buildPersistPayload(false);
-													persistedPayloadRef.current = payload;
-													persistToBackend(payload).then(ok => { if(ok) commitSnapshot(false); });
-												} else {
-													const payload = buildPersistPayload(true);
-													persistedPayloadRef.current = payload;
-													persistToBackend(payload).then(ok => { if(ok) commitSnapshot(true); });
-												}
-											}}
-													disabled={!effectiveCanEdit || !isDirty || saving || !isHydrated}
-											sx={{ textTransform:'none', borderRadius:2 }}
-										>
-											{isDraft ? 'Save' : 'Update'}{saving && <CircularProgress size={16} thickness={5} sx={{ ml:1 }} />}
-										</Button>											
-									</>
-								)}
-
+								<Button
+									size='small'
+									variant='outlined'
+									onClick={()=> {
+										if(!effectiveCanEdit){ openToast('error','Trip is read only'); return; }
+										if(!isHydrated){ openToast('error','Trip data still loading'); return; }
+										if(!isDraft){
+											const payload = buildPersistPayload(false);
+											persistedPayloadRef.current = payload;
+											persistToBackend(payload).then(ok => { if(ok) commitSnapshot(false); });
+										} else {
+											const payload = buildPersistPayload(true);
+											persistedPayloadRef.current = payload;
+											persistToBackend(payload).then(ok => { if(ok) commitSnapshot(true); });
+										}
+									}}
+									disabled={!effectiveCanEdit || !isDirty || saving || !isHydrated}
+									sx={{ textTransform:'none', borderRadius:2 }}
+								>
+									{isDraft ? 'Save' : 'Update'}{saving && <CircularProgress size={16} thickness={5} sx={{ ml:1 }} />}
+								</Button>
 							</Box>
 						</Box>
-					</Box>
 					)}
 					</Box>{/* end centre column */}
 				{/* Right panel � Navia for owners/editors, trip info for public viewers */}
@@ -2216,8 +2219,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					onChangeVibe={(v)=> setVibe(v)}
 				onDeleteTrip={()=> { setConfirmDeleteOpen(true); }}
 					onInviteEmail={async(_)=> { /* invite email placeholder */ }}
+				importantNotes={importantNotes}
+				onChangeImportantNotes={setImportantNotes}
 			/>
-
 			<Dialog
 				open={exitConfirmOpen}
 				onClose={()=> setExitConfirmOpen(false)}
@@ -2245,7 +2249,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						<Button
 							variant='contained'
 							color='error'
-							onClick={()=> { setExitConfirmOpen(false); redirectDashboard(); }}
+							onClick={()=> { setExitConfirmOpen(false); redirectToTripView(); }}
 							disabled={exiting}
 							sx={{ width: { xs: '100%', sm: 'auto' } }}
 						>Discard & Exit</Button>
