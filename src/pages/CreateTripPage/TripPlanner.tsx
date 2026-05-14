@@ -1270,7 +1270,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const computeShortestRoute = () => {
 		const pts = planner.destinations.filter(d=> d.lat!=null && d.lng!=null);
 		if(pts.length < 3){
-			if(import.meta.env.DEV){ console.warn('[RouteOptimize] Need at least 3 geocoded destinations. Found:', pts.length); }
+			if(import.meta.env.development){ console.warn('[RouteOptimize] Need at least 3 geocoded destinations. Found:', pts.length); }
 			return;
 		}
 		// Haversine distance for better geographic accuracy
@@ -1424,7 +1424,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		// If start exists but end is missing, keep end equal to start (single-day trip invariant)
 		if(finalStart && !finalEnd) finalEnd = finalStart;
 		// Dev diagnostic: surface any scenario where dates are still null post-hydration
-		if(import.meta.env.DEV && isHydrated) {
+		if(import.meta.env.development && isHydrated) {
 			if(!finalStart || !finalEnd) {
 				console.warn('[TripPersist] Missing trip dates at save. start=', finalStart, 'end=', finalEnd, 'originalRef=', originalDatesRef.current);
 			}

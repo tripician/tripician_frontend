@@ -35,7 +35,7 @@ const SomethingWentWrong = lazy(() => import('./pages/ErrorPages/ErrorPages').th
 const DynamicErrorPage = lazy(() => import('./pages/ErrorPages/ErrorPages').then((m) => ({ default: m.DynamicErrorPage })))
 
 // Import debug utilities for development
-if (import.meta.env.DEV) {
+if (import.meta.env.development) {
   import('./utils/authDebug');
 }
 

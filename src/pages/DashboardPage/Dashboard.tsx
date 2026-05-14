@@ -271,7 +271,7 @@ const Dashboard: React.FC = () => {
   const sharedTrips = allPlans.filter(plan => !plan.isOwner);
   const publishedTrips = allPlans.filter(plan => plan.isPublished);
   // DEV: log raw published values to diagnose missing field from backend
-  if (import.meta.env.DEV) {
+  if (import.meta.env.development) {
     console.debug('[Dashboard] isPublished map:', allPlans.map(p => ({ id: p.id, title: p.title, isPublished: p.isPublished })));
   }
 
