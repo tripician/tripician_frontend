@@ -68,6 +68,10 @@ export const useAuthToken = () => {
   }, []);
 
   const login = useCallback((token: string, refreshToken?: string) => {
+    try {
+      // eslint-disable-next-line no-console
+      console.debug('[useAuthToken] Storing accessToken (masked):', token ? `${token.slice(0,8)}...` : '<none>');
+    } catch {}
     localStorage.setItem('accessToken', token);
     if (refreshToken) {
       localStorage.setItem('refreshToken', refreshToken);

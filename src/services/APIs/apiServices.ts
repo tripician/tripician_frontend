@@ -16,6 +16,25 @@ const apiClient = axios.create({
   },
 });
 
+// Helper to mask tokens when logging
+const mask = (s?: string | null) => {
+  if (!s) return '<none>';
+  try { return `${s.slice(0,8)}...${s.slice(-4)}`; } catch { return '<masked>'; }
+};
+
+// Log outgoing requests (helps diagnose missing Authorization header in prod)
+apiClient.interceptors.request.use((config) => {
+  try {
+    const authHeader = (config.headers as any)?.Authorization || (config.headers as any)?.authorization || '<none>';
+    // eslint-disable-next-line no-console
+    console.debug('[apiServices] Request ->', config.method, config.url, 'baseURL=', config.baseURL, 'Authorization=', typeof authHeader === 'string' ? (authHeader.startsWith('Bearer ') ? `Bearer ${mask(authHeader.replace(/^Bearer\s*/i, ''))}` : mask(authHeader)) : authHeader);
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('[apiServices] Request logging failed', e);
+  }
+  return config;
+});
+
 // Add response interceptor to handle 401 errors globally
 apiClient.interceptors.response.use(
   (response) => response,
