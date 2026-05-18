@@ -33,7 +33,7 @@ const Callback = () => {
       try {
         const accessToken = await getAccessTokenSilently({
           authorizationParams: {
-            audience: 'https://tripician-production-api',
+            audience: import.meta.env.VITE_AUTH0_AUDIENCE ?? 'https://tripician-production-api',
             scope: 'openid profile email',
           },
         });

@@ -32,6 +32,20 @@ apiClient.interceptors.request.use((config) => {
     // eslint-disable-next-line no-console
     console.warn('[apiServices] Request logging failed', e);
   }
+  try {
+    // Attach token from localStorage if not already present on the request
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('accessToken');
+      const headersAny = config.headers as any;
+      if (token && !headersAny?.Authorization && !headersAny?.authorization) {
+        headersAny.Authorization = `Bearer ${token}`;
+      }
+    }
+  } catch (attachErr) {
+    // eslint-disable-next-line no-console
+    console.warn('[apiServices] Failed to attach Authorization token', attachErr);
+  }
+
   return config;
 });
 
