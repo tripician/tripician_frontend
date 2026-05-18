@@ -63,7 +63,16 @@ const Callback = () => {
           if (response.data.refreshToken) {
             localStorage.setItem('refreshToken', response.data.refreshToken);
           }
-          dispatch(fetchUserProfile());
+          try {
+            // Ensure profile is loaded using the exact token we just received to avoid races
+            // eslint-disable-next-line @typescript-eslint/no-floating-promises
+            await dispatch(fetchUserProfile({ token: response.data.accessToken })).unwrap();
+          } catch (e) {
+            // If profile fetch fails, still navigate to signin for now
+            console.error('[Callback] fetchUserProfile failed after token exchange', e);
+            navigate('/signin');
+            return;
+          }
           navigate('/home', { replace: true });
         } else {
           console.error('[Callback] Unexpected response:', response.data);

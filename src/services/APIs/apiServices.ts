@@ -53,16 +53,40 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    // 401 handling (auth expiry)
+    // Centralize original config for possible retry logic
+    const originalConfig = error.config;
+
+    // 401 handling (don't immediately clear tokens while debugging)
     if (error.response?.status === 401) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: 'token_expired' } }));
+      try {
+        const reqUrl = originalConfig?.url;
+        const hadAuth = !!((originalConfig?.headers as any)?.Authorization || (originalConfig?.headers as any)?.authorization);
+        // eslint-disable-next-line no-console
+        console.warn('[apiServices] Received 401 for', reqUrl, 'hadAuthorization=', hadAuth);
+
+        // If this request hasn't been retried yet, try to attach token from storage and retry once
+        if (!originalConfig?._retried) {
+          (originalConfig as any)._retried = true;
+          const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+          if (token && !hadAuth) {
+            // Attach token and retry
+            originalConfig.headers = { ...(originalConfig.headers || {}), Authorization: `Bearer ${token}` };
+            // eslint-disable-next-line no-console
+            console.debug('[apiServices] Retrying request with attached token for', reqUrl);
+            return apiClient.request(originalConfig);
+          }
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('[apiServices] Error handling 401', e);
+      }
+
+      // Emit event for visibility but do not clear tokens here to avoid race-driven logout
+      try { window.dispatchEvent(new CustomEvent('auth:401', { detail: { url: originalConfig?.url, status: 401 } })); } catch {}
     }
 
     // Protocol fallback: If HTTPS localhost refuses connection, retry once over HTTP.
     // Guards: only for ERR_NETWORK / connection refused, only localhost, only once.
-    const originalConfig = error.config;
     const isNetworkRefused = !error.response && (error.code === 'ERR_NETWORK' || /ECONNREFUSED|ENOTFOUND|ERR_CONNECTION_REFUSED/i.test(error.message || ''));
     const isLocalHttps = typeof originalConfig?.baseURL === 'string' && /^https:\/\/localhost[:\d]*/i.test(originalConfig.baseURL || '');
     const alreadyRetried = originalConfig?._protocolRetry;
