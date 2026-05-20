@@ -378,13 +378,21 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
     setSubmitting(true);
     setErrorMsg(null);
     try {
+      const VISIBILITY_MAP: Record<string, number> = {
+        PRIVATE: 0,
+        TRIP_MEMBERS: 1,
+        EVERYONE: 2,
+        PUBLIC: 2,
+      };
+
       const payload = {
         name: formData.tripName.trim(),
         description: formData.tripDescription.trim(),
         countries: formData.selectedCountries,
         startDate: formData.startDate ? formData.startDate.format('YYYY-MM-DD') : null,
         endDate: formData.endDate ? formData.endDate.format('YYYY-MM-DD') : null,
-        visibility: 'PRIVATE' as const,
+        visibility: VISIBILITY_MAP['PRIVATE'], // default to 0 (Private)
+        currencyCode: 'USD',
         vibe: formData.vibe,
         invites: formData.inviteEmails,
       };

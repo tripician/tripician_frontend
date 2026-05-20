@@ -163,7 +163,8 @@ export const apiServices = {
     countries: string[];
     startDate?: string | null;
     endDate?: string | null;
-    visibility: 'PRIVATE' | 'TRIP_MEMBERS' | 'FOLLOWERS' | 'EVERYONE';
+    visibility: number; // enum: 0=Private,1=Members,2=Public
+    currencyCode?: string;
     invites?: string[];
     description?: string | null;
     vibe?: string | null;
