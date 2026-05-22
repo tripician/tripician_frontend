@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { Helmet } from 'react-helmet-async';
 import { useNavigate, Link } from 'react-router-dom';
 import { Box, Typography, Button, Chip } from '@mui/material';
 import { useSelector } from 'react-redux';
@@ -368,9 +369,22 @@ const BlogsList: React.FC = () => {
     </Box>
   );
 
-  return isAuthenticated ? (
-    <NavigationPannel>{pageContent}</NavigationPannel>
-  ) : pageContent;
+  return (
+    <>
+      <Helmet>
+        <title>Travel Blog — Tips, Guides &amp; Destinations | Tripician</title>
+        <meta name="description" content="Explore travel guides, destination tips, packing advice, and trip inspiration from the Tripician community." />
+        <link rel="canonical" href="https://tripician.com/blog" />
+        <meta property="og:title" content="Tripician Travel Blog" />
+        <meta property="og:description" content="Explore travel guides, destination tips, packing advice, and trip inspiration from the Tripician community." />
+        <meta property="og:url" content="https://tripician.com/blog" />
+        <meta name="robots" content="index, follow" />
+      </Helmet>
+      {isAuthenticated ? (
+        <NavigationPannel>{pageContent}</NavigationPannel>
+      ) : pageContent}
+    </>
+  );
 };
 
 export default BlogsList;

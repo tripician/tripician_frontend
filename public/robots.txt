@@ -1,0 +1,19 @@
+User-agent: *
+Allow: /
+Allow: /blog
+Allow: /blog/
+Allow: /about-us
+Allow: /terms-and-conditions
+Allow: /privacy-policy
+Allow: /get-help
+Allow: /contact-us
+Disallow: /home
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /settings
+Disallow: /tripplanner
+Disallow: /community
+Disallow: /risk-monitor
+Disallow: /callback
+
+Sitemap: https://www.tripician.com/sitemap.xml

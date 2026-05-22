@@ -96,6 +96,7 @@ const Dashboard: React.FC = () => {
           id: t.id || t.Id,
           title: t.name || t.title || 'Untitled trip',
           description: typeof t.description === 'string' ? t.description.trim() : '',
+          visibility: t.visibility || t.Visibility || t.privacy || t.Privacy || 'PRIVATE',
           location: Array.isArray(t.countries) && t.countries.length ? t.countries[0] : 'Unknown',
           countries: Array.isArray(t.countries) ? t.countries : [],
           // Use user-uploaded photoUrl if present; Unsplash fetch happens after mount
@@ -270,7 +271,7 @@ const Dashboard: React.FC = () => {
   const sharedTrips = allPlans.filter(plan => !plan.isOwner);
   const publishedTrips = allPlans.filter(plan => plan.isPublished);
   // DEV: log raw published values to diagnose missing field from backend
-  if (import.meta.env.DEV) {
+  if (import.meta.env.development) {
     console.debug('[Dashboard] isPublished map:', allPlans.map(p => ({ id: p.id, title: p.title, isPublished: p.isPublished })));
   }
 

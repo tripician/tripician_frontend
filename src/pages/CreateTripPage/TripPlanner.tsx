@@ -836,9 +836,57 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const [privacy, setPrivacy] = React.useState<'Private'|'Trip Members'|'Everyone'>('Private');
 	const [tripStartDate, setTripStartDate] = React.useState<string|null>(normalizedInitial?.meta.startDate ? sanitizeDateString(normalizedInitial.meta.startDate) : null);
 	const [tripEndDate, setTripEndDate] = React.useState<string|null>(normalizedInitial?.meta.endDate ? sanitizeDateString(normalizedInitial.meta.endDate) : null);
-	// Draft flag: derive from raw initialTrip.trip.published if provided; fallback to true (unpublished)
-	const initialPublished = (initialTrip && initialTrip.trip && typeof initialTrip.trip.published === 'boolean') ? initialTrip.trip.published : false;
+	// Draft flag: derive published from multiple possible payload shapes; fallback to unpublished.
+	const rawInitialTrip: any = (initialTrip as any)?.trip || initialTrip || null;
+	const initialPublished =
+		typeof rawInitialTrip?.published === 'boolean'
+			? rawInitialTrip.published
+			: typeof rawInitialTrip?.isPublished === 'boolean'
+				? rawInitialTrip.isPublished
+				: typeof rawInitialTrip?.status === 'string'
+					? String(rawInitialTrip.status).toUpperCase() === 'PUBLISHED'
+					: false;
 	const [isDraft, setIsDraft] = React.useState<boolean>(!initialPublished);
+	const derivePrivacyFromDraft = React.useCallback((draft: boolean): 'Trip Members' | 'Everyone' => (
+		draft ? 'Trip Members' : 'Everyone'
+	), []);
+
+	// Map UI privacy values to server-expected privacy strings.
+	// UI values: 'Private' | 'Trip Members' | 'Everyone'
+	// Server expects: 'private' | 'members' | 'everyone' (case-insensitive; prefer lowercase)
+	const mapPrivacyForServer = React.useCallback((uiPrivacy: string | null | undefined): 'private' | 'members' | 'everyone' => {
+		if (!uiPrivacy) return 'private';
+		const v = String(uiPrivacy).trim().toLowerCase();
+		if (v === 'trip members' || v === 'trip_members' || v === 'members' || v === 'tripmembers') return 'members';
+		if (v === 'everyone' || v === 'public') return 'everyone';
+		// default to private for any unknown value
+		return 'private';
+	}, []);
+
+	// Convert a date string (YYYY-MM-DD or ISO) to full ISO8601 UTC timestamp
+	// If input is already an ISO datetime, return it unchanged. If it's date-only
+	// (YYYY-MM-DD) convert to YYYY-MM-DDT00:00:00Z.
+	const formatDateToIsoUtc = React.useCallback((d: string | null | undefined): string | null => {
+		if (!d) return null;
+		// already ISO datetime
+		if (/\d{4}-\d{2}-\d{2}T/.test(d)) return d;
+		// date-only -> append midnight UTC
+		if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return `${d}T00:00:00Z`;
+		// try to parse and emit ISO
+		try {
+			const parsed = new Date(d);
+			if (!isNaN(parsed.getTime())) return parsed.toISOString();
+		} catch {}
+		return d;
+	}, []);
+	const deriveVisibilityEnumFromDraft = React.useCallback((draft: boolean): 'TRIP_MEMBERS' | 'EVERYONE' => (
+		draft ? 'TRIP_MEMBERS' : 'EVERYONE'
+	), []);
+
+	// Visibility/Privacy is derived from published state; user can't set it independently.
+	React.useEffect(() => {
+		setPrivacy(derivePrivacyFromDraft(isDraft));
+	}, [isDraft, derivePrivacyFromDraft]);
 
 	// Section + tab UI state � persisted in ?tab= query param so refresh keeps the same panel
 	const VALID_SECTIONS = ['plan', 'news', 'docs', 'packing'] as const;
@@ -941,12 +989,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				setCountries([]);
 			}
 		} catch {}
-		setPrivacy((() => {
-			const v = (meta.visibility||'').toLowerCase();
-			   if (v.startsWith('every')) return 'Everyone';
-			   if (v.startsWith('trip')) return 'Trip Members';
-			   return 'Private';
-		})());
+		setPrivacy(derivePrivacyFromDraft(isDraft));
 		const metaStart = sanitizeDateString(meta.startDate) || null;
 		const metaEnd = sanitizeDateString(meta.endDate) || null;
 		setTripStartDate(metaStart);
@@ -1066,7 +1109,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		// Use computeSignatureRef (not the closure-captured computeSignature) so the rAF
 		// always reads the latest signature AFTER React re-renders from the dispatch above.
 		requestAnimationFrame(()=> { lastCommittedRef.current = computeSignatureRef.current(); });
-	}, [unifiedTrip, title, dispatch, planner.targetNights]);
+	}, [unifiedTrip, title, dispatch, planner.targetNights, derivePrivacyFromDraft, isDraft]);
 
 	// Centralized feature flags
 	const ENABLE_EXPENSES = FEATURE_FLAGS.expenses;
@@ -1086,7 +1129,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		const settingsSaveHandler = async () => {
 			if(!authToken || !tripId) { openToast('error','Cannot save settings'); return; }
 			try {
-				   const visibilityEnum = privacy==='Private' ? 'PRIVATE' : privacy==='Trip Members' ? 'TRIP_MEMBERS' : 'EVERYONE';
+				   const visibilityEnum = deriveVisibilityEnumFromDraft(isDraft);
 				const sd = sanitizeDateString(tripStartDate) || undefined;
 				const ed = sanitizeDateString(tripEndDate) || undefined;
 				// Immediately reflect updated date span in nights ring before waiting for refetch
@@ -1099,15 +1142,24 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						dispatch(setTripDates({ startDate: sd, endDate: ed }));
 					} catch {}
 				}
+				// Prepare settings payload matching backend expectations
+				const visibilityForServer = (visibilityEnum === 'TRIP_MEMBERS') ? 'Members' : (visibilityEnum === 'EVERYONE' ? 'Everyone' : 'Private');
+				const startIso = formatDateToIsoUtc(sd) || undefined;
+				const endIso = formatDateToIsoUtc(ed) || undefined;
+				const safeDescription = typeof tripDescription === 'string' ? tripDescription.slice(0, 300) : undefined;
+				const safeVibe = typeof vibe === 'string' ? (vibe.length > 300 ? vibe.slice(0,300) : vibe) : undefined;
+				// bannerPhotoId must be a GUID or omitted; we don't have an id yet so omit it (undefined)
+				const bannerPhotoId: string | undefined = undefined;
+
 				await apiServices.updateTripSettings(authToken, tripId, {
 					name: title,
-					description: tripDescription,
-					vibe: vibe ?? undefined,
-					visibility: visibilityEnum,
-					startDate: sd,
-					endDate: ed,
+					description: safeDescription,
+					vibe: safeVibe,
+					visibility: visibilityForServer,
+					startDate: startIso,
+					endDate: endIso,
 					countries,
-					photoUrl: bannerUrl || undefined // fallback until bannerPhotoId flow is implemented
+					bannerPhotoId
 				});
 				try {
 					const refreshed = await apiServices.getTripById(authToken, tripId);
@@ -1119,10 +1171,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						if(typeof meta.description==='string') setTripDescription(meta.description);
 						if(typeof meta.vibe==='string') setVibe(meta.vibe);
 						else if(meta.vibe===null) setVibe(null);
-						if(typeof meta.visibility==='string') {
-							const vis = meta.visibility.toLowerCase();
-							   setPrivacy(vis.startsWith('every')? 'Everyone' : vis.startsWith('trip')? 'Trip Members' : 'Private');
-						}
+						setPrivacy(derivePrivacyFromDraft(isDraft));
 						if(typeof meta.startDate==='string') setTripStartDate(sanitizeDateString(meta.startDate));
 						if(typeof meta.endDate==='string') setTripEndDate(sanitizeDateString(meta.endDate));
 						setRemoteTrip(refreshed.data);
@@ -1156,7 +1205,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			window.removeEventListener('trip:settings:save', settingsSaveHandler);
 			window.removeEventListener('trip:members:updated', membersUpdatedHandler);
 		};
-	}, [authToken, tripId, title, privacy, countries, bannerUrl, openToast]);
+	}, [authToken, tripId, title, countries, bannerUrl, openToast, deriveVisibilityEnumFromDraft, derivePrivacyFromDraft, isDraft]);
 
 	// Initial fetch of trip users (when token & tripId available)
 	React.useEffect(()=> {
@@ -1259,7 +1308,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const computeShortestRoute = () => {
 		const pts = planner.destinations.filter(d=> d.lat!=null && d.lng!=null);
 		if(pts.length < 3){
-			if(import.meta.env.DEV){ console.warn('[RouteOptimize] Need at least 3 geocoded destinations. Found:', pts.length); }
+			if(import.meta.env.development){ console.warn('[RouteOptimize] Need at least 3 geocoded destinations. Found:', pts.length); }
 			return;
 		}
 		// Haversine distance for better geographic accuracy
@@ -1413,7 +1462,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		// If start exists but end is missing, keep end equal to start (single-day trip invariant)
 		if(finalStart && !finalEnd) finalEnd = finalStart;
 		// Dev diagnostic: surface any scenario where dates are still null post-hydration
-		if(import.meta.env.DEV && isHydrated) {
+		if(import.meta.env.development && isHydrated) {
 			if(!finalStart || !finalEnd) {
 				console.warn('[TripPersist] Missing trip dates at save. start=', finalStart, 'end=', finalEnd, 'originalRef=', originalDatesRef.current);
 			}
@@ -1429,10 +1478,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			trip: {
 				id: tripId,
 				name: title,
-				privacy,
+				privacy: mapPrivacyForServer(derivePrivacyFromDraft(_draft)),
 				currency,
-				startDate: finalStart,
-				endDate: finalEnd,
+				startDate: formatDateToIsoUtc(finalStart),
+				endDate: formatDateToIsoUtc(finalEnd),
 				generatedAt: new Date().toISOString(),
 				targetNights,
 				totalNights,
@@ -1458,7 +1507,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			destinationDocsCount: planner.destinations.reduce((sum, d) => sum + (d.docs?.length || 0), 0),
 			version: 1
 		};
-	}, [planner.destinations, planner.expenses, planner.tripBudget, planner.pinnedDocIds, planner.globalDocs, planner.visaDocs, tripId, title, privacy, currency, tripStartDate, tripEndDate, targetNights, totalNights, geocodedCount, importantNotes, vibe, tripDescription, bannerUrl]);
+	}, [planner.destinations, planner.expenses, planner.tripBudget, planner.pinnedDocIds, planner.globalDocs, planner.visaDocs, tripId, title, currency, tripStartDate, tripEndDate, targetNights, totalNights, geocodedCount, importantNotes, vibe, tripDescription, bannerUrl, derivePrivacyFromDraft]);
 
 	// Persist helper (debounced save)
 	const persistToBackend = React.useCallback(async (payload:any): Promise<boolean> => {
@@ -1468,17 +1517,44 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		setSaving(true);
 		setLastSaveTs(now);
 		try {
+			// Detailed logging for debugging prod 500s
+			try {
+				const maskedToken = authToken ? `${authToken.slice(0,8)}...${authToken.slice(-4)}` : '<none>';
+				// Log high-level info and a truncated payload preview
+				console.debug('[TripPersist] Persisting payload for tripId=', tripId, 'maskedToken=', maskedToken, 'saving=', saving);
+				try {
+					const preview = JSON.stringify(payload, null, 2).slice(0, 10000);
+					console.debug('[TripPersist] Payload preview:', preview);
+				} catch (e) {
+					console.debug('[TripPersist] Failed to stringify payload preview', e);
+				}
+			} catch (logErr) {
+				console.warn('[TripPersist] Logging preparation failed', logErr);
+			}
 			await apiServices.updateTrip(authToken, tripId, payload);
+			// success log
+			console.info('[TripPersist] updateTrip succeeded for', tripId);
 			// Update in-memory remoteTrip so navigation without initialTrip still reflects latest
 			setRemoteTrip({ trip: payload.trip, itinerary: payload.itinerary });
 			setLastSavedDisplay(new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' }));
 			openToast('success', payload.trip.status==='DRAFT'? 'Saved':'Trip updated');
 			return true;
 		} catch(err:any){
+			// Enhanced error logging
+			try {
+				console.error('[TripPersist] updateTrip failed for', tripId, 'error=', err);
+				console.debug('[TripPersist] error.response.data=', err?.response?.data);
+				console.debug('[TripPersist] error.response.status=', err?.response?.status);
+				console.debug('[TripPersist] error.response.headers=', err?.response?.headers);
+			} catch (logErr) {
+				console.warn('[TripPersist] Failed to log error details', logErr);
+			}
 			const status = err?.response?.status;
 			if(status === 403 || status === 401 || status === 404) {
 				setSavePermissionDenied(true);
 				openToast('error', "You don't have permission to save");
+			} else if (status === 500) {
+				openToast('error','Save failed (server error). Check server logs for stack trace.');
 			} else {
 				openToast('error','Save failed');
 			}
@@ -1505,7 +1581,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		if(isDraft){
 			setSaving(true);
 			try {
+				// Publishing should always make the trip publicly readable.
+				await apiServices.changeTripVisibility(authToken, tripId, { visibility: 'EVERYONE' });
 				await apiServices.setTripPublished(authToken, tripId, true);
+				setPrivacy('Everyone');
 				commitSnapshot(false);
 				setShowCelebration(true);
 			} catch {
@@ -1518,6 +1597,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			setSaving(true);
 			try {
 				await apiServices.setTripPublished(authToken, tripId, false);
+				// Unpublished trips should default back to trip-members visibility.
+				await apiServices.changeTripVisibility(authToken, tripId, { visibility: 'TRIP_MEMBERS' });
+				setPrivacy('Trip Members');
 				commitSnapshot(true);
 				openToast('info', 'Trip unpublished');
 			} catch {
@@ -1644,7 +1726,15 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	return (
 		<React.Fragment>
 		<Box sx={{ display:'flex', flexDirection:'row', height:'100vh', overflow:'hidden' }}>
-		<CreateTripNav active={section} onChange={(id)=> setSectionDebug(id as any)} onSettingsClick={()=> setSettingsOpen(true)} hideSections={hideSectionsArr} canAccessDocs={canAccessDocs} docsEnabled={ENABLE_DOC_UPLOAD} />
+		<CreateTripNav
+			active={section}
+			onChange={(id)=> setSectionDebug(id as any)}
+			onSettingsClick={()=> setSettingsOpen(true)}
+			hideSections={hideSectionsArr}
+			canAccessDocs={canAccessDocs}
+			docsEnabled={ENABLE_DOC_UPLOAD}
+			settingsDisabled={readOnly || !effectiveCanEdit}
+		/>
 			<Box sx={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, minHeight:0 }}>
 				<TopBar showSearch={false} logo={
 					<Tooltip title='Back to Home'>
@@ -1792,6 +1882,36 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 										)}
 									</Button>
 								</span>
+							</Tooltip>
+							)}
+							{!isDraft && (
+							<Tooltip arrow placement='bottom' title='Share this published trip'>
+								<Button
+									size='small'
+									variant='outlined'
+									onClick={() => setShareModalOpen(true)}
+									sx={{
+										ml: .5,
+										textTransform: 'none',
+										borderRadius: '20px',
+										px: 1.25,
+										height: 32,
+										fontSize: 12,
+										fontWeight: 700,
+										minWidth: 0,
+										letterSpacing: '-0.1px',
+										gap: .35,
+										flexShrink: 0,
+										borderColor: 'rgba(255,56,92,0.45)',
+										color: '#FF385C',
+										'&:hover': {
+											borderColor: '#FF385C',
+											background: 'rgba(255,56,92,0.08)',
+										},
+									}}
+								>
+									<ShareRoundedIcon sx={{ fontSize: 13 }} /> Share
+								</Button>
 							</Tooltip>
 							)}
 						</Box>
@@ -2154,7 +2274,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					onChangeTitle={(t)=> setTitle(t)}
 					onChangeStartDate={(d)=> setTripStartDate(d)}
 					onChangeEndDate={(d)=> setTripEndDate(d)}
-				onChangePrivacy={(p)=> setPrivacy(p as any)}
+				onChangePrivacy={()=> { /* privacy is derived from published state */ }}
 				description={tripDescription}
 					onChangeDescription={(d)=> setTripDescription(d)}
 					vibe={vibe ?? ''}

@@ -16,20 +16,77 @@ const apiClient = axios.create({
   },
 });
 
+// Helper to mask tokens when logging
+const mask = (s?: string | null) => {
+  if (!s) return '<none>';
+  try { return `${s.slice(0,8)}...${s.slice(-4)}`; } catch { return '<masked>'; }
+};
+
+// Log outgoing requests (helps diagnose missing Authorization header in prod)
+apiClient.interceptors.request.use((config) => {
+  try {
+    const authHeader = (config.headers as any)?.Authorization || (config.headers as any)?.authorization || '<none>';
+    // eslint-disable-next-line no-console
+    console.debug('[apiServices] Request ->', config.method, config.url, 'baseURL=', config.baseURL, 'Authorization=', typeof authHeader === 'string' ? (authHeader.startsWith('Bearer ') ? `Bearer ${mask(authHeader.replace(/^Bearer\s*/i, ''))}` : mask(authHeader)) : authHeader);
+  } catch (e) {
+    // eslint-disable-next-line no-console
+    console.warn('[apiServices] Request logging failed', e);
+  }
+  try {
+    // Attach token from localStorage if not already present on the request
+    if (typeof window !== 'undefined') {
+      const token = localStorage.getItem('accessToken');
+      const headersAny = config.headers as any;
+      if (token && !headersAny?.Authorization && !headersAny?.authorization) {
+        headersAny.Authorization = `Bearer ${token}`;
+      }
+    }
+  } catch (attachErr) {
+    // eslint-disable-next-line no-console
+    console.warn('[apiServices] Failed to attach Authorization token', attachErr);
+  }
+
+  return config;
+});
+
 // Add response interceptor to handle 401 errors globally
 apiClient.interceptors.response.use(
   (response) => response,
   async (error) => {
-    // 401 handling (auth expiry)
+    // Centralize original config for possible retry logic
+    const originalConfig = error.config;
+
+    // 401 handling (don't immediately clear tokens while debugging)
     if (error.response?.status === 401) {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: 'token_expired' } }));
+      try {
+        const reqUrl = originalConfig?.url;
+        const hadAuth = !!((originalConfig?.headers as any)?.Authorization || (originalConfig?.headers as any)?.authorization);
+        // eslint-disable-next-line no-console
+        console.warn('[apiServices] Received 401 for', reqUrl, 'hadAuthorization=', hadAuth);
+
+        // If this request hasn't been retried yet, try to attach token from storage and retry once
+        if (!originalConfig?._retried) {
+          (originalConfig as any)._retried = true;
+          const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
+          if (token && !hadAuth) {
+            // Attach token and retry
+            originalConfig.headers = { ...(originalConfig.headers || {}), Authorization: `Bearer ${token}` };
+            // eslint-disable-next-line no-console
+            console.debug('[apiServices] Retrying request with attached token for', reqUrl);
+            return apiClient.request(originalConfig);
+          }
+        }
+      } catch (e) {
+        // eslint-disable-next-line no-console
+        console.warn('[apiServices] Error handling 401', e);
+      }
+
+      // Emit event for visibility but do not clear tokens here to avoid race-driven logout
+      try { window.dispatchEvent(new CustomEvent('auth:401', { detail: { url: originalConfig?.url, status: 401 } })); } catch {}
     }
 
     // Protocol fallback: If HTTPS localhost refuses connection, retry once over HTTP.
     // Guards: only for ERR_NETWORK / connection refused, only localhost, only once.
-    const originalConfig = error.config;
     const isNetworkRefused = !error.response && (error.code === 'ERR_NETWORK' || /ECONNREFUSED|ENOTFOUND|ERR_CONNECTION_REFUSED/i.test(error.message || ''));
     const isLocalHttps = typeof originalConfig?.baseURL === 'string' && /^https:\/\/localhost[:\d]*/i.test(originalConfig.baseURL || '');
     const alreadyRetried = originalConfig?._protocolRetry;
@@ -106,7 +163,8 @@ export const apiServices = {
     countries: string[];
     startDate?: string | null;
     endDate?: string | null;
-    visibility: 'PRIVATE' | 'TRIP_MEMBERS' | 'FOLLOWERS' | 'EVERYONE';
+    visibility: number; // enum: 0=Private,1=Members,2=Public
+    currencyCode?: string;
     invites?: string[];
     description?: string | null;
     vibe?: string | null;

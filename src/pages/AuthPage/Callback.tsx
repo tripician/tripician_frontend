@@ -33,18 +33,46 @@ const Callback = () => {
       try {
         const accessToken = await getAccessTokenSilently({
           authorizationParams: {
-            audience: 'https://tripician-production-api',
+            audience: import.meta.env.VITE_AUTH0_AUDIENCE ?? 'https://tripician-production-api',
             scope: 'openid profile email',
           },
         });
+
+        // Mask and log token info for debugging
+        try {
+          // eslint-disable-next-line no-console
+          console.debug('[Callback] Auth0 accessToken (masked):', accessToken ? `${accessToken.slice(0,8)}...` : '<none>');
+        } catch {}
+
         const response = await authAPI.socialCallback(accessToken);
+
+        // Log backend response (mask server token)
+        try {
+          // eslint-disable-next-line no-console
+          console.debug('[Callback] socialCallback response:', {
+            status: response.status,
+            data: {
+              success: response.data?.success,
+              accessToken: response.data?.accessToken ? `${response.data.accessToken.slice(0,8)}...` : null,
+            }
+          });
+        } catch {}
 
         if (response.data?.success && response.data?.accessToken) {
           localStorage.setItem('accessToken', response.data.accessToken);
           if (response.data.refreshToken) {
             localStorage.setItem('refreshToken', response.data.refreshToken);
           }
-          dispatch(fetchUserProfile());
+          try {
+            // Ensure profile is loaded using the exact token we just received to avoid races
+            // eslint-disable-next-line @typescript-eslint/no-floating-promises
+            await dispatch(fetchUserProfile({ token: response.data.accessToken })).unwrap();
+          } catch (e) {
+            // If profile fetch fails, still navigate to signin for now
+            console.error('[Callback] fetchUserProfile failed after token exchange', e);
+            navigate('/signin');
+            return;
+          }
           navigate('/home', { replace: true });
         } else {
           console.error('[Callback] Unexpected response:', response.data);

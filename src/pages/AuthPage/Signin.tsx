@@ -80,12 +80,20 @@ const Signin = () => {
       const response = await authAPI.signin(signInData);
       console.log('SignIn response:', response);
 
-      dispatch(fetchUserProfile());
-
       if (response.data?.success && response.data?.accessToken) {
         localStorage.setItem('accessToken', response.data.accessToken);
         if (response.data.refreshToken) {
           localStorage.setItem('refreshToken', response.data.refreshToken);
+        }
+
+        // Ensure profile is fetched using this exact token before navigating to avoid race
+        try {
+          await dispatch(fetchUserProfile({ token: response.data.accessToken })).unwrap();
+        } catch (e) {
+          console.error('[Signin] fetchUserProfile failed after signin', e);
+          setError('Failed to load user profile after sign in. Please try again.');
+          setLoading(false);
+          return;
         }
 
         setSuccess('Sign in successful! Redirecting to home...');

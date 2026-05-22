@@ -22,7 +22,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 18
+          node-version: 22
           cache: npm
 
       # 3️⃣ Install dependencies
@@ -56,7 +56,21 @@ jobs:
             --content-type "text/html" \
             --metadata-directive REPLACE
 
-      # 8️⃣ Invalidate CloudFront
+      # 8️⃣ Override cache for SEO files so Google always gets fresh sitemap/robots
+      - name: Set short cache for robots.txt and sitemap.xml
+        run: |
+          aws s3 cp dist/robots.txt \
+            s3://tripician-frontend-prod/robots.txt \
+            --cache-control "max-age=86400,public" \
+            --content-type "text/plain" \
+            --metadata-directive REPLACE
+          aws s3 cp dist/sitemap.xml \
+            s3://tripician-frontend-prod/sitemap.xml \
+            --cache-control "max-age=86400,public" \
+            --content-type "application/xml" \
+            --metadata-directive REPLACE
+
+      # 9️⃣ Invalidate CloudFront
       - name: Invalidate CloudFront cache
         run: |
           aws cloudfront create-invalidation \
