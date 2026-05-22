@@ -850,6 +850,35 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const derivePrivacyFromDraft = React.useCallback((draft: boolean): 'Trip Members' | 'Everyone' => (
 		draft ? 'Trip Members' : 'Everyone'
 	), []);
+
+	// Map UI privacy values to server-expected privacy strings.
+	// UI values: 'Private' | 'Trip Members' | 'Everyone'
+	// Server expects: 'private' | 'members' | 'everyone' (case-insensitive; prefer lowercase)
+	const mapPrivacyForServer = React.useCallback((uiPrivacy: string | null | undefined): 'private' | 'members' | 'everyone' => {
+		if (!uiPrivacy) return 'private';
+		const v = String(uiPrivacy).trim().toLowerCase();
+		if (v === 'trip members' || v === 'trip_members' || v === 'members' || v === 'tripmembers') return 'members';
+		if (v === 'everyone' || v === 'public') return 'everyone';
+		// default to private for any unknown value
+		return 'private';
+	}, []);
+
+	// Convert a date string (YYYY-MM-DD or ISO) to full ISO8601 UTC timestamp
+	// If input is already an ISO datetime, return it unchanged. If it's date-only
+	// (YYYY-MM-DD) convert to YYYY-MM-DDT00:00:00Z.
+	const formatDateToIsoUtc = React.useCallback((d: string | null | undefined): string | null => {
+		if (!d) return null;
+		// already ISO datetime
+		if (/\d{4}-\d{2}-\d{2}T/.test(d)) return d;
+		// date-only -> append midnight UTC
+		if (/^\d{4}-\d{2}-\d{2}$/.test(d)) return `${d}T00:00:00Z`;
+		// try to parse and emit ISO
+		try {
+			const parsed = new Date(d);
+			if (!isNaN(parsed.getTime())) return parsed.toISOString();
+		} catch {}
+		return d;
+	}, []);
 	const deriveVisibilityEnumFromDraft = React.useCallback((draft: boolean): 'TRIP_MEMBERS' | 'EVERYONE' => (
 		draft ? 'TRIP_MEMBERS' : 'EVERYONE'
 	), []);
@@ -1113,15 +1142,24 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						dispatch(setTripDates({ startDate: sd, endDate: ed }));
 					} catch {}
 				}
+				// Prepare settings payload matching backend expectations
+				const visibilityForServer = (visibilityEnum === 'TRIP_MEMBERS') ? 'Members' : (visibilityEnum === 'EVERYONE' ? 'Everyone' : 'Private');
+				const startIso = formatDateToIsoUtc(sd) || undefined;
+				const endIso = formatDateToIsoUtc(ed) || undefined;
+				const safeDescription = typeof tripDescription === 'string' ? tripDescription.slice(0, 300) : undefined;
+				const safeVibe = typeof vibe === 'string' ? (vibe.length > 300 ? vibe.slice(0,300) : vibe) : undefined;
+				// bannerPhotoId must be a GUID or omitted; we don't have an id yet so omit it (undefined)
+				const bannerPhotoId: string | undefined = undefined;
+
 				await apiServices.updateTripSettings(authToken, tripId, {
 					name: title,
-					description: tripDescription,
-					vibe: vibe ?? undefined,
-					visibility: visibilityEnum,
-					startDate: sd,
-					endDate: ed,
+					description: safeDescription,
+					vibe: safeVibe,
+					visibility: visibilityForServer,
+					startDate: startIso,
+					endDate: endIso,
 					countries,
-					photoUrl: bannerUrl || undefined // fallback until bannerPhotoId flow is implemented
+					bannerPhotoId
 				});
 				try {
 					const refreshed = await apiServices.getTripById(authToken, tripId);
@@ -1440,10 +1478,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			trip: {
 				id: tripId,
 				name: title,
-				privacy: derivePrivacyFromDraft(_draft),
+				privacy: mapPrivacyForServer(derivePrivacyFromDraft(_draft)),
 				currency,
-				startDate: finalStart,
-				endDate: finalEnd,
+				startDate: formatDateToIsoUtc(finalStart),
+				endDate: formatDateToIsoUtc(finalEnd),
 				generatedAt: new Date().toISOString(),
 				targetNights,
 				totalNights,
@@ -1479,17 +1517,44 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		setSaving(true);
 		setLastSaveTs(now);
 		try {
+			// Detailed logging for debugging prod 500s
+			try {
+				const maskedToken = authToken ? `${authToken.slice(0,8)}...${authToken.slice(-4)}` : '<none>';
+				// Log high-level info and a truncated payload preview
+				console.debug('[TripPersist] Persisting payload for tripId=', tripId, 'maskedToken=', maskedToken, 'saving=', saving);
+				try {
+					const preview = JSON.stringify(payload, null, 2).slice(0, 10000);
+					console.debug('[TripPersist] Payload preview:', preview);
+				} catch (e) {
+					console.debug('[TripPersist] Failed to stringify payload preview', e);
+				}
+			} catch (logErr) {
+				console.warn('[TripPersist] Logging preparation failed', logErr);
+			}
 			await apiServices.updateTrip(authToken, tripId, payload);
+			// success log
+			console.info('[TripPersist] updateTrip succeeded for', tripId);
 			// Update in-memory remoteTrip so navigation without initialTrip still reflects latest
 			setRemoteTrip({ trip: payload.trip, itinerary: payload.itinerary });
 			setLastSavedDisplay(new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' }));
 			openToast('success', payload.trip.status==='DRAFT'? 'Saved':'Trip updated');
 			return true;
 		} catch(err:any){
+			// Enhanced error logging
+			try {
+				console.error('[TripPersist] updateTrip failed for', tripId, 'error=', err);
+				console.debug('[TripPersist] error.response.data=', err?.response?.data);
+				console.debug('[TripPersist] error.response.status=', err?.response?.status);
+				console.debug('[TripPersist] error.response.headers=', err?.response?.headers);
+			} catch (logErr) {
+				console.warn('[TripPersist] Failed to log error details', logErr);
+			}
 			const status = err?.response?.status;
 			if(status === 403 || status === 401 || status === 404) {
 				setSavePermissionDenied(true);
 				openToast('error', "You don't have permission to save");
+			} else if (status === 500) {
+				openToast('error','Save failed (server error). Check server logs for stack trace.');
 			} else {
 				openToast('error','Save failed');
 			}
