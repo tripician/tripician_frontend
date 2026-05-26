@@ -140,12 +140,16 @@ const initialState: UserState = {
 };
 
 // 🔹 Async thunk to fetch user profile
-export const fetchUserProfile = createAsyncThunk<UserProfile, { force?: boolean } | undefined, { rejectValue: string }>(
+export const fetchUserProfile = createAsyncThunk<
+  UserProfile,
+  { token?: string; force?: boolean } | undefined,
+  { rejectValue: string }
+>(
   "user/fetchProfile",
   async (arg, { rejectWithValue }) => {
     try {
-      const token = localStorage.getItem("accessToken");
-      if (!token) throw new Error("No token available");
+      const tokenToUse = arg?.token ?? localStorage.getItem("accessToken");
+      if (!tokenToUse) throw new Error("No token available");
 
       const force = Boolean(arg?.force);
 
@@ -167,12 +171,14 @@ export const fetchUserProfile = createAsyncThunk<UserProfile, { force?: boolean 
         }
       }
 
-      // Fallback to API
-      const response = await apiServices.getUserProfile(token);
+      // Fallback to API using the provided token (or the one from storage)
+      const response = await apiServices.getUserProfile(tokenToUse);
       const normalized = normalizeProfile(response.data);
       if (!normalized) throw new Error('Invalid profile data');
       if (normalized.id) {
-        localStorage.setItem('userProfile', JSON.stringify(normalized));
+        try {
+          localStorage.setItem('userProfile', JSON.stringify(normalized));
+        } catch {}
       }
       return normalized;
     } catch (err: any) {

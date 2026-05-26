@@ -166,8 +166,8 @@ const ImportantNotesEditor: React.FC<ImportantNotesEditorProps> = (props) => {
           {!readOnly && <Tooltip title='Increase font size'><span><IconButton size='small' onClick={(e)=> { e.stopPropagation(); changeFontSize(2); }}><TextIncreaseIcon fontSize='small' /></IconButton></span></Tooltip>}
           {!readOnly && <Tooltip title='Decrease font size'><span><IconButton size='small' onClick={(e)=> { e.stopPropagation(); changeFontSize(-2); }}><TextDecreaseIcon fontSize='small' /></IconButton></span></Tooltip>}
           <Box sx={{ flexGrow:1 }} />
-          {!readOnly && <Tooltip title='Cancel (Esc)'><span><IconButton size='small' onClick={(e)=> { e.stopPropagation(); setInternal(saved); if(ref.current) ref.current.innerHTML = saved; setEditing(false); }}>✕</IconButton></span></Tooltip>}
-          {!readOnly && <Tooltip title='Save (Enter)'><span><IconButton color='primary' size='small' onClick={(e)=> { e.stopPropagation(); setSaved(internal); if(isControlled){ prevValueRef.current = internal; } setEditing(false); }}>✓</IconButton></span></Tooltip>}
+          {!readOnly && <Tooltip title='Cancel (Esc)'><span><IconButton size='small' onClick={(e)=> { e.stopPropagation(); setInternal(saved); if(ref.current) ref.current.innerHTML = saved; setEditing(false); onChange?.(saved); }}>✕</IconButton></span></Tooltip>}
+          {!readOnly && <Tooltip title='Save (Enter)'><span><IconButton color='primary' size='small' onClick={(e)=> { e.stopPropagation(); setSaved(internal); if(isControlled){ prevValueRef.current = internal; } setEditing(false); onChange?.(internal); }}>✓</IconButton></span></Tooltip>}
         </Box>
         {/* Content area */}
         <Box
@@ -178,8 +178,8 @@ const ImportantNotesEditor: React.FC<ImportantNotesEditorProps> = (props) => {
           onInput={readOnly? undefined : handleInput}
           onKeyDown={(e)=> {
             if(readOnly) { e.preventDefault(); return; }
-            if(editing && e.key==='Escape'){ e.preventDefault(); setInternal(saved); if(ref.current) ref.current.innerHTML=saved; setEditing(false); }
-            if(editing && e.key==='Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); setSaved(internal); if(isControlled){ prevValueRef.current = internal; } setEditing(false); }
+            if(editing && e.key==='Escape'){ e.preventDefault(); setInternal(saved); if(ref.current) ref.current.innerHTML=saved; setEditing(false); onChange?.(saved); }
+            if(editing && e.key==='Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); setSaved(internal); if(isControlled){ prevValueRef.current = internal; } setEditing(false); onChange?.(internal); }
           }}
           sx={{ flex:1, px:1.25, py:.6, outline:'none', fontSize:13, lineHeight:1.5, overflow:'hidden', whiteSpace:'pre-wrap', wordBreak:'break-word', userSelect: editing? 'text':'none', opacity: readOnly? .75:1, '&:empty:before':{ content: 'attr(data-placeholder)', color:'text.secondary', opacity:.7, fontStyle:'italic' }, ...(editing? { overflowY:'auto', maxHeight:140 } : { display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical' }) }}
           data-placeholder='Pin your important notes here'

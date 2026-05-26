@@ -18,7 +18,7 @@ const AuthenticatedLayout = lazy(() => import('./pages/PageLayout/AuthenticatedL
 const SuccessOverlay = lazy(() => import('./components/CommonComponents/SuccessOverlay'))
 const Home = lazy(() => import('./pages/HomePage/Home'))
 const Dashboard = lazy(() => import('./pages/DashboardPage/Dashboard'))
-const Profile = lazy(() => import('./pages/ProfilePage/Profile'))
+// const Profile = lazy(() => import('./pages/ProfilePage/Profile')) // blocked
 const Community = lazy(() => import('./pages/CommunityPage/Community'))
 const Settings = lazy(() => import('./pages/SettingsPage/Settings'))
 const RiskMonitor = lazy(() => import('./pages/RiskMonitorPage/RiskMonitor'))
@@ -35,7 +35,7 @@ const SomethingWentWrong = lazy(() => import('./pages/ErrorPages/ErrorPages').th
 const DynamicErrorPage = lazy(() => import('./pages/ErrorPages/ErrorPages').then((m) => ({ default: m.DynamicErrorPage })))
 
 // Import debug utilities for development
-if (import.meta.env.DEV) {
+if (import.meta.env.development) {
   import('./utils/authDebug');
 }
 
@@ -54,7 +54,7 @@ function App() {
           <Route element={<ProtectedRoute><AuthenticatedLayout /></ProtectedRoute>}>
             <Route path="/home" element={<Home />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/profile" element={<Profile />} />
+            <Route path="/profile" element={<Navigate to="/home" replace />} />
             <Route path="/community" element={<Community />} />
             <Route path="/risk-monitor" element={<RiskMonitor />} />
             <Route path="/settings" element={<Settings />} />

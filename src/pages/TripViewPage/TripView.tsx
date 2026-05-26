@@ -185,7 +185,8 @@ const TripView: React.FC = () => {
   const handleEdit = () => {
     // Navigate to full planner for editing (reuse planner route)
     // Pass current `trip` meta under `trip` key for planner hydration.
-    navigate(`/tripplanner/${tripId}`, { state: { tripId, trip, isOwner, isMember, canEdit: isOwner || isMember } });
+    // Use replace: true to avoid adding extra history entry
+    navigate(`/tripplanner/${tripId}`, { state: { tripId, trip, isOwner, isMember, canEdit: isOwner || isMember }, replace: true });
   };
 
   return (
