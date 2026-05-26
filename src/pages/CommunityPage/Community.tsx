@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Box, Typography, Chip, CircularProgress, Alert, Avatar,
+  Box, Typography, Chip, Alert, Avatar,
   InputBase, useTheme, useMediaQuery, Skeleton, Tooltip,
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -200,7 +200,7 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
               </Typography>
             </Box>
             <Box
-              onClick={e => { e.stopPropagation(); setLiked(v => !v); setLikeCount(v => liked ? v - 1 : v + 1); }}
+              onClick={(e: React.MouseEvent<HTMLDivElement>) => { e.stopPropagation(); setLiked((v: boolean) => !v); setLikeCount((v: number) => liked ? v - 1 : v + 1); }}
               sx={{
                 display: 'flex', alignItems: 'center', gap: .4,
                 px: 1, py: .35, borderRadius: '50px', cursor: 'pointer',
@@ -416,9 +416,11 @@ const Community: React.FC = () => {
           return (
             <Tooltip key={cat.id} title={cat.label} enterDelay={600} placement='bottom'>
               <Chip
-                icon={React.cloneElement(cat.icon as React.ReactElement, {
-                  sx: { fontSize: 15, color: active ? '#fff !important' : 'text.secondary' },
-                })}
+                icon={React.isValidElement(cat.icon)
+                  ? React.cloneElement(cat.icon as React.ReactElement<any>, active
+                    ? { sx: { fontSize: 15, color: '#fff !important' } }
+                    : { sx: { fontSize: 15, color: 'text.secondary' } })
+                  : cat.icon}
                 label={isMobile ? '' : cat.label}
                 onClick={() => setActiveCategory(cat.id)}
                 sx={{

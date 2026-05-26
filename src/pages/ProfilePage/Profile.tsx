@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useMemo } from 'react';
 import {
   Box, Typography, CircularProgress, Alert, Button, Container,
-  Avatar, Divider, Chip, Skeleton, useTheme, useMediaQuery,
+  Avatar, Divider, Chip, Skeleton, useTheme,
   IconButton, Tooltip,
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -31,7 +31,7 @@ import LanguageIcon from '@mui/icons-material/Language';
 import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import EmojiEventsRoundedIcon from '@mui/icons-material/EmojiEventsRounded';
 import AddCircleOutlineRoundedIcon from '@mui/icons-material/AddCircleOutlineRounded';
-import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
+
 import StarRoundedIcon from '@mui/icons-material/StarRounded';
 import LocationOnRoundedIcon from '@mui/icons-material/LocationOnRounded';
 import FlightTakeoffRoundedIcon from '@mui/icons-material/FlightTakeoffRounded';
@@ -339,7 +339,7 @@ const Profile: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
-  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  // const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const { token, logout } = useAuthToken();
   const { logout: auth0Logout } = useAuth0();
   const { profile, loading, error } = useSelector((state: RootState) => state.user);
