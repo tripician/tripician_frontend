@@ -97,7 +97,11 @@ const Signup = () => {
         }, 2000);
       } catch (err: any) {
         console.error('Signup error:', err);
-        setError(err.response?.data?.message || 'An error occurred during signup. Please try again.');
+        const errData = err.response?.data;
+        const errMsg = typeof errData === 'string' ? errData
+          : errData?.message || errData?.title || errData?.error
+          || 'An error occurred during signup. Please try again.';
+        setError(errMsg);
       } finally {
         setLoading(false);
       }

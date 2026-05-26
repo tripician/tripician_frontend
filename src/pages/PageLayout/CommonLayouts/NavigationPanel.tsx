@@ -42,11 +42,11 @@ interface NavItem {
 const DRAWER_WIDTH = 72;
 
 const NAV_ITEMS: NavItem[] = [
-  { text: 'Home',      Icon: HomeIcon,       path: '/home'      },
-  { text: 'Dashboard',     Icon: DashboardIcon,    path: '/dashboard' },
-  { text: 'Risk Monitor',   Icon: RiskMonitorIcon,  path: '/risk-monitor' },  
-  { text: 'Community',     Icon: CommunityIcon,    path: '/community', disabled: true, comingSoon: true },
-  { text: 'Settings',  Icon: SettingsIcon,   path: '/settings'  },
+  { text: 'Home',         Icon: HomeIcon,        path: '/home'         },
+  { text: 'Dashboard',    Icon: DashboardIcon,   path: '/dashboard'    },
+  { text: 'Risk Monitor', Icon: RiskMonitorIcon, path: '/risk-monitor' },
+  { text: 'Community',    Icon: CommunityIcon,   path: '/community'    },
+  { text: 'Settings',     Icon: SettingsIcon,    path: '/settings'     },
 ];
 
 const NavigationPannel: React.FC<Props> = ({ children, onMenuItemChange }) => {

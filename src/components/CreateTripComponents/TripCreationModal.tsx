@@ -331,7 +331,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
     (event: ChangeEvent<HTMLInputElement>) => {
       let value = event.target.value;
       if (field === 'tripDescription') {
-        value = value.slice(0, 300); // Enforce max length
+        value = value.slice(0, 300);
       }
       setFormData((prev) => ({
         ...prev,

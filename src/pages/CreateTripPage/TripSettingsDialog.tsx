@@ -1,5 +1,6 @@
 import React from 'react';
 import { Dialog, DialogContent, Box, Typography, IconButton, TextField, Button, Chip, Avatar, Fade, InputBase, Tooltip } from '@mui/material';
+import ImportantNotesEditor from './ImportantNotesEditor';
 import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import { DatePicker } from '@mui/x-date-pickers/DatePicker';
@@ -52,6 +53,8 @@ interface TripSettingsDialogProps {
   onRemoveCountry?: (country:string)=>void; // removal callback
   onAddCountry?: (country:string)=>void; // add callback
   currentUserIsOwner?: boolean; // allow member removal in invite view
+  importantNotes?: string; // trip-level important notes
+  onChangeImportantNotes?: (notes: string) => void;
 }
 
 
@@ -60,7 +63,7 @@ import { flagEmojiFromName, flagPngUrl, countryCodeFromName, COUNTRY_NAMES } fro
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 
-const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, title, tripId, startDate, endDate, privacy: _privacy, members = [], bannerUrl, onChangeBanner, onChangeTitle, onChangeStartDate, onChangeEndDate, onChangePrivacy: _onChangePrivacy, onDeleteTrip, onInviteEmail, countries = [], onRemoveCountry, onAddCountry, currentUserIsOwner, description = '', onChangeDescription, vibe = '', onChangeVibe }) => {
+const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, title, tripId, startDate, endDate, privacy: _privacy, members = [], bannerUrl, onChangeBanner, onChangeTitle, onChangeStartDate, onChangeEndDate, onChangePrivacy: _onChangePrivacy, onDeleteTrip, onInviteEmail, countries = [], onRemoveCountry, onAddCountry, currentUserIsOwner, description = '', onChangeDescription, vibe = '', onChangeVibe, importantNotes = '', onChangeImportantNotes }) => {
   const [copyMain, setCopyMain] = React.useState(false);
   // Derive username from first owner/editor member handle (strip leading @) or 'user'
   // Share URL now based solely on tripId; member handle retrieval removed.
@@ -617,6 +620,15 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({ open, onClose, 
                     })()}
                   </Box>
                 </LocalizationProvider>
+              </FieldBlock>
+
+              {/* ── Important Notes ── */}
+              <FieldBlock label='Important Notes'>
+                <ImportantNotesEditor
+                  value={importantNotes}
+                  onChange={onChangeImportantNotes}
+                  compact
+                />
               </FieldBlock>
 
               {/* ── Vibe image cards ── */}

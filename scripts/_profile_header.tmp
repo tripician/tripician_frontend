@@ -1,0 +1,37 @@
+﻿import React, { useEffect, useState, useMemo } from 'react';
+import {
+  Box, Typography, CircularProgress, Alert, Button, Container,
+  Avatar, Divider, Chip, Skeleton, useTheme, useMediaQuery,
+  IconButton, Tooltip,
+} from '@mui/material';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useSelector, useDispatch } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
+import TopBar from '../PageLayout/CommonLayouts/TopBar';
+import type { RootState, AppDispatch } from '../../store';
+import { fetchUserProfile } from '../../store/userSlice';
+import { apiServices } from '../../services/APIs/apiServices';
+import { useAuthToken } from '../../hooks/useAuth0Token';
+import { useAuth0 } from '@auth0/auth0-react';
+import { fetchUnsplashImage } from '../../services/unsplashService';
+import EditRoundedIcon from '@mui/icons-material/EditRounded';
+import LogoutRoundedIcon from '@mui/icons-material/LogoutRounded';
+import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
+import EmailRoundedIcon from '@mui/icons-material/EmailRounded';
+import PhoneRoundedIcon from '@mui/icons-material/PhoneRounded';
+import CakeRoundedIcon from '@mui/icons-material/CakeRounded';
+import WcRoundedIcon from '@mui/icons-material/WcRounded';
+import NightsStayRoundedIcon from '@mui/icons-material/NightsStayRounded';
+import ExploreRoundedIcon from '@mui/icons-material/ExploreRounded';
+import TravelExploreRoundedIcon from '@mui/icons-material/TravelExploreRounded';
+import InstagramIcon from '@mui/icons-material/Instagram';
+import TwitterIcon from '@mui/icons-material/Twitter';
+import FacebookIcon from '@mui/icons-material/Facebook';
+import LanguageIcon from '@mui/icons-material/Language';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import EmojiEventsRoundedIcon from '@mui/icons-material/EmojiEventsRounded';
+import AddCircleOutlineRoundedIcon from '@mui/icons-material/AddCircleOutlineRounded';
+import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
+import StarRoundedIcon from '@mui/icons-material/StarRounded';
+import LocationOnRoundedIcon from '@mui/icons-material/LocationOnRounded';
+import FlightTakeoffRoundedIcon from '@mui/icons-material/FlightTakeoffRounded';
