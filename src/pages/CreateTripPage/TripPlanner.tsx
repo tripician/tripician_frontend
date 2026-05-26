@@ -1,6 +1,6 @@
 // TripPlanner main page component (formerly CreateTrip)
 import React from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Box, Tabs, Tab, Typography, Divider, Button, Avatar, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Snackbar, Alert, useTheme, Drawer, Fab } from '@mui/material';
 import { KalaMandala } from '../../components/DecorativeComponents/KalaDecor';
 // Props-based TripPlanner; tripId + optional initialTrip provided by route wrapper
@@ -30,6 +30,12 @@ import PublishRoundedIcon from '@mui/icons-material/PublishRounded';
 import ChatRoundedIcon from '@mui/icons-material/ChatRounded';
 import CloseIcon from '@mui/icons-material/Close';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
+import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
+import FavoriteIcon from '@mui/icons-material/Favorite';
+import BookmarkBorderIcon from '@mui/icons-material/BookmarkBorder';
+import BookmarkIcon from '@mui/icons-material/Bookmark';
+import ReportProblemOutlinedIcon from '@mui/icons-material/ReportProblemOutlined';
+import ReportProblemRoundedIcon from '@mui/icons-material/ReportProblemRounded';
 import { fetchUnsplashImage } from '../../services/unsplashService';
 import confetti from 'canvas-confetti';
 import ShareRoundedIcon from '@mui/icons-material/ShareRounded';
@@ -473,6 +479,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 
 /* --- Public / View-Mode Info Panel --- */
 interface TripViewPanelProps {
+	tripId?: string;
 	title: string;
 	description: string;
 	bannerUrl: string;
@@ -490,7 +497,7 @@ interface TripViewPanelProps {
 }
 
 const TripViewPanel: React.FC<TripViewPanelProps> = ({
-	title, description, bannerUrl, countries, tripUsers, ownerInfo,
+	tripId, title, description, bannerUrl, countries, tripUsers, ownerInfo,
 	totalNights, destinationCount,
 	showEditAction = false, isPublished = false, onRequestEdit, onShare,
 }) => {
@@ -510,6 +517,50 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 	const textPrimary = isLight ? '#111111' : '#f0f0f0';
 	const textMuted = isLight ? 'rgba(0,0,0,0.44)' : 'rgba(255,255,255,0.38)';
 	const sectionBg = isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.04)';
+
+	// Premium action toggles (local UI state) -- persisted in localStorage per tripId when available
+	const [liked, setLiked] = React.useState(false);
+	const [saved, setSaved] = React.useState(false);
+	const [needsImprovement, setNeedsImprovement] = React.useState(false);
+
+	// Counts (persisted alongside toggle state)
+	const [likesCount, setLikesCount] = React.useState<number>(0);
+	const [savesCount, setSavesCount] = React.useState<number>(0);
+	const [needsImprovementCount, setNeedsImprovementCount] = React.useState<number>(0);
+
+	// Load persisted state for this trip (if tripId provided)
+	React.useEffect(() => {
+		if (!tripId) return;
+		try {
+			const raw = localStorage.getItem(`tripActions:${tripId}`);
+			if (!raw) return;
+			const parsed = JSON.parse(raw);
+			if (typeof parsed === 'object' && parsed) {
+				if (typeof parsed.liked === 'boolean') setLiked(parsed.liked);
+				if (typeof parsed.saved === 'boolean') setSaved(parsed.saved);
+				if (typeof parsed.needsImprovement === 'boolean') setNeedsImprovement(parsed.needsImprovement);
+				if (typeof parsed.likesCount === 'number') setLikesCount(parsed.likesCount);
+				if (typeof parsed.savesCount === 'number') setSavesCount(parsed.savesCount);
+				if (typeof parsed.needsImprovementCount === 'number') setNeedsImprovementCount(parsed.needsImprovementCount);
+			}
+		} catch {}
+	}, [tripId]);
+
+	// Persist changes
+	React.useEffect(() => {
+		if (!tripId) return;
+		try {
+			localStorage.setItem(`tripActions:${tripId}`, JSON.stringify({
+				liked, saved, needsImprovement,
+				likesCount, savesCount, needsImprovementCount,
+			}));
+		} catch {}
+	}, [tripId, liked, saved, needsImprovement]);
+
+	// Debug: log render to help verify toolbar visibility in browser console
+	React.useEffect(() => {
+		console.log('[TripViewPanel] mount/update', { tripId, isPublished, liked, saved, needsImprovement });
+	}, [tripId, isPublished, liked, saved, needsImprovement]);
 
 	const ownerDisplayName = ownerInfo.name || ownerInfo.handle || ownerInfo.email?.split('@')[0] || 'Unknown';
 
@@ -599,6 +650,9 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 					</Box>
 				)}
 
+				{/* Premium actions toolbar (icons only) */}
+			{/* Premium actions toolbar was moved below the About section */}
+
 				{/* -- Description -- */}
 				{description && (
 					<Box>
@@ -610,6 +664,8 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 						</Typography>
 					</Box>
 				)}
+
+
 
 				{/* -- Quick stats -- */}
 				<Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
@@ -633,6 +689,97 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 						</Box>
 					))}
 				</Box>
+
+				{/* Premium actions toolbar placed under Nights & Destinations */}
+				{isPublished && (
+					<Box id='trip-premium-toolbar' title='Premium actions' sx={{ display: 'flex', gap: 1.25, alignItems: 'center', mt: 0 }}>
+						{/* Like */}
+						<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+							<Tooltip title='Like'>
+								<IconButton
+								size='small'
+								aria-label='like'
+								onClick={(e:any) => {
+									e.stopPropagation?.();
+									console.log('[TripViewPanel] like clicked', { liked, likesCount, needsImprovement });
+									setLiked(v => {
+										const next = !v;
+										if (next && needsImprovement) {
+											setNeedsImprovement(false);
+											setNeedsImprovementCount(c => Math.max(0, c - 1));
+										}
+										setLikesCount(c => Math.max(0, c + (next ? 1 : -1)));
+										return next;
+									});
+								}}
+								sx={{
+									width: 36, height: 36, p: 0.5, borderRadius: '8px',
+									color: liked ? '#FF385C' : textMuted,
+									background: liked ? 'rgba(255,56,92,0.08)' : 'transparent',
+									'&:hover': { background: liked ? 'rgba(255,56,92,0.12)' : 'rgba(0,0,0,0.04)' }
+								}}
+								>
+									{liked ? <FavoriteIcon fontSize='medium' /> : <FavoriteBorderIcon fontSize='medium' />}
+								</IconButton>
+							</Tooltip>
+							<Typography sx={{ fontSize: '0.72rem', color: textMuted }}>{likesCount}</Typography>
+						</Box>
+
+						{/* Save */}
+						<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+							<IconButton
+								size='small'
+								aria-label='save'
+								onClick={(e:any) => {
+									e.stopPropagation?.();
+									console.log('[TripViewPanel] save clicked', { saved, savesCount });
+									setSaved(v => { const next = !v; setSavesCount(c => Math.max(0, c + (next ? 1 : -1))); return next; });
+								}}
+								sx={{
+									width: 36, height: 36, p: 0.5, borderRadius: '8px',
+									color: saved ? '#0EA5E9' : textMuted,
+									background: saved ? 'rgba(14,165,233,0.08)' : 'transparent',
+									'&:hover': { background: saved ? 'rgba(14,165,233,0.12)' : 'rgba(0,0,0,0.04)' }
+								}}
+								>
+									{saved ? <BookmarkIcon fontSize='medium' /> : <BookmarkBorderIcon fontSize='medium' />}
+								</IconButton>
+								<Typography sx={{ fontSize: '0.72rem', color: textMuted }}>{savesCount}</Typography>
+							</Box>
+
+						{/* Need improvement */}
+						<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+							<Tooltip title='Need improvement'>
+								<IconButton
+								size='small'
+								aria-label='need-improvement'
+								onClick={(e:any) => {
+									e.stopPropagation?.();
+									console.log('[TripViewPanel] need-improvement clicked', { needsImprovement, needsImprovementCount, liked });
+									setNeedsImprovement(v => {
+										const next = !v;
+										if (next && liked) {
+											setLiked(false);
+											setLikesCount(c => Math.max(0, c - 1));
+										}
+										setNeedsImprovementCount(c => Math.max(0, c + (next ? 1 : -1)));
+										return next;
+									});
+								}}
+								sx={{
+									width: 36, height: 36, p: 0.5, borderRadius: '8px',
+									color: needsImprovement ? '#F59E0B' : textMuted,
+									background: needsImprovement ? 'rgba(245,158,11,0.08)' : 'transparent',
+									'&:hover': { background: needsImprovement ? 'rgba(245,158,11,0.12)' : 'rgba(0,0,0,0.04)' }
+								}}
+								>
+									{needsImprovement ? <ReportProblemRoundedIcon fontSize='medium' /> : <ReportProblemOutlinedIcon fontSize='medium' />}
+								</IconButton>
+							</Tooltip>
+							<Typography sx={{ fontSize: '0.72rem', color: textMuted }}>{needsImprovementCount}</Typography>
+						</Box>
+					</Box>
+				)}
 
 				{/* -- Members -- */}
 				{tripUsers.length > 0 && (
@@ -753,6 +900,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	// Selectors & dispatch
 	// ---------------------------------------------------------------------------
 	const dispatch = useDispatch<AppDispatch>();
+	const navigate = useNavigate();
 	const planner = useSelector((s:RootState)=> s.planner);
 	const docsState = useSelector((s:RootState)=> s.docs);
 		const auth = useAuthToken();
@@ -887,6 +1035,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	React.useEffect(() => {
 		setPrivacy(derivePrivacyFromDraft(isDraft));
 	}, [isDraft, derivePrivacyFromDraft]);
+
 
 	// Section + tab UI state � persisted in ?tab= query param so refresh keeps the same panel
 	const VALID_SECTIONS = ['plan', 'news', 'docs', 'packing'] as const;
@@ -1220,6 +1369,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		})();
 		return ()=> { active = false; };
 	}, [authToken, tripId]);
+	
 	const [mapDrawerOpen, setMapDrawerOpen] = React.useState(false);
 	const containerRef = React.useRef<HTMLDivElement|null>(null);
 	const [visaErrors, setVisaErrors] = React.useState<string[]>([]);
@@ -1610,9 +1760,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		}
 	};
 
-	const redirectDashboard = React.useCallback(() => {
-		try { window.location.href = '/dashboard'; } catch {}
-	}, []);
+	const redirectToTripView = React.useCallback(() => {
+		try { navigate(`/trip/${tripId}`, { replace: true }); } catch { try { window.location.href = `/trip/${tripId}`; } catch {} }
+	}, [navigate, tripId]);
 
 	const performSaveDraftAndExit = React.useCallback(async () => {
 		if(exiting) return; setExiting(true);
@@ -1624,16 +1774,22 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				if(ok) commitSnapshot(true);
 				if(!ok){ setExiting(false); return; }
 			}
-			redirectDashboard();
+			redirectToTripView();
 		} finally { setExiting(false); }
-	}, [isDirty, effectiveCanEdit, buildPersistPayload, persistToBackend, commitSnapshot, redirectDashboard, exiting]);
+	}, [isDirty, effectiveCanEdit, buildPersistPayload, persistToBackend, commitSnapshot, redirectToTripView, exiting]);
 
 	const handleBackHomeClick = () => {
-		if(readOnly || !effectiveCanEdit || savePermissionDenied){
-			redirectDashboard();
+		if(readOnly){
+			// On the read-only TripView page, go back in history instead of
+			// re-navigating to the same /trip/:id URL (which is a no-op).
+			if(window.history.length > 1){ window.history.back(); } else { navigate('/dashboard'); }
 			return;
 		}
-		if(!isDirty){ redirectDashboard(); return; }
+		if(!effectiveCanEdit || savePermissionDenied){
+			redirectToTripView();
+			return;
+		}
+		if(!isDirty){ redirectToTripView(); return; }
 		setExitConfirmOpen(true);
 	};
 
@@ -2007,40 +2163,36 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 								{section==='plan' && tab===1 && ENABLE_EXPENSES && <ExpensesPanel readOnly={readOnly} />}
 								{section==='plan' && tab===2 && ENABLE_COMMENTS && <TripComments tripId={tripId} authToken={authToken} />}
 						</Box>
-						<Box sx={(t)=>({ borderTop:`1px solid ${t.palette.divider}`, px:2.5, py:1.5, background:t.palette.background.paper, display:'flex', alignItems:'center', justifyContent:'space-between' })}>
+					</Box>
+					)}
+					{/* Save/Update footer — always visible on all sections */}
+					{showPlannerActions && (
+						<Box sx={(t)=>({ borderTop:`1px solid ${t.palette.divider}`, px:2.5, py:1.5, background:t.palette.background.paper, display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 })}>
 							<Typography variant='caption' color='text.secondary'>Last saved: {lastSavedDisplay}</Typography>
 							<Box sx={{ display:'flex', gap:1.2 }}>
-								{showPlannerActions && (
-									<>
-										{/* Primary draft/update button (only in planner mode) */}
-										<Button
-											size='small'
-											variant='outlined'
-											onClick={()=> {
-												if(!effectiveCanEdit){ openToast('error','Trip is read only'); return; }
-												if(!isHydrated){ openToast('error','Trip data still loading'); return; }
-																									// Dev logging removed (pre-save)
-												if(!isDraft){
-													const payload = buildPersistPayload(false);
-													persistedPayloadRef.current = payload;
-													persistToBackend(payload).then(ok => { if(ok) commitSnapshot(false); });
-												} else {
-													const payload = buildPersistPayload(true);
-													persistedPayloadRef.current = payload;
-													persistToBackend(payload).then(ok => { if(ok) commitSnapshot(true); });
-												}
-											}}
-													disabled={!effectiveCanEdit || !isDirty || saving || !isHydrated}
-											sx={{ textTransform:'none', borderRadius:2 }}
-										>
-											{isDraft ? 'Save' : 'Update'}{saving && <CircularProgress size={16} thickness={5} sx={{ ml:1 }} />}
-										</Button>											
-									</>
-								)}
-
+								<Button
+									size='small'
+									variant='outlined'
+									onClick={()=> {
+										if(!effectiveCanEdit){ openToast('error','Trip is read only'); return; }
+										if(!isHydrated){ openToast('error','Trip data still loading'); return; }
+										if(!isDraft){
+											const payload = buildPersistPayload(false);
+											persistedPayloadRef.current = payload;
+											persistToBackend(payload).then(ok => { if(ok) commitSnapshot(false); });
+										} else {
+											const payload = buildPersistPayload(true);
+											persistedPayloadRef.current = payload;
+											persistToBackend(payload).then(ok => { if(ok) commitSnapshot(true); });
+										}
+									}}
+									disabled={!effectiveCanEdit || !isDirty || saving || !isHydrated}
+									sx={{ textTransform:'none', borderRadius:2 }}
+								>
+									{isDraft ? 'Save' : 'Update'}{saving && <CircularProgress size={16} thickness={5} sx={{ ml:1 }} />}
+								</Button>
 							</Box>
 						</Box>
-					</Box>
 					)}
 					</Box>{/* end centre column */}
 				{/* Right panel � Navia for owners/editors, trip info for public viewers */}
@@ -2051,6 +2203,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				) : (
 					<Box sx={{ display: { xs: 'none', lg: 'flex' }, flexDirection: 'column', alignSelf: 'stretch', flex: '0 0 auto' }}>
 					<TripViewPanel
+						tripId={tripId}
 						title={title}
 						description={tripDescription}
 						bannerUrl={bannerUrl}
@@ -2281,8 +2434,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					onChangeVibe={(v)=> setVibe(v)}
 				onDeleteTrip={()=> { setConfirmDeleteOpen(true); }}
 					onInviteEmail={async(_)=> { /* invite email placeholder */ }}
+				importantNotes={importantNotes}
+				onChangeImportantNotes={setImportantNotes}
 			/>
-
 			<Dialog
 				open={exitConfirmOpen}
 				onClose={()=> setExitConfirmOpen(false)}
@@ -2310,7 +2464,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						<Button
 							variant='contained'
 							color='error'
-							onClick={()=> { setExitConfirmOpen(false); redirectDashboard(); }}
+							onClick={()=> { setExitConfirmOpen(false); redirectToTripView(); }}
 							disabled={exiting}
 							sx={{ width: { xs: '100%', sm: 'auto' } }}
 						>Discard & Exit</Button>
