@@ -48,7 +48,7 @@ const Callback = () => {
           console.debug('[Callback] Auth0 id_token (masked):', idToken ? `${idToken.slice(0,8)}...` : '<none>');
         } catch {}
 
-        // Send id_token as AccessToken to backend
+        // Send id_token as AccessToken (PascalCase) to backend
         const response = await authAPI.socialCallback(idToken);
 
         // Log backend response (mask server token)
