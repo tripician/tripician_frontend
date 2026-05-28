@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
 import { Box, CircularProgress, Typography } from '@mui/material';
@@ -8,10 +8,11 @@ import { fetchUserProfile } from '../../store/userSlice';
 import { authAPI } from '../../services/APIs/Auth/auth';
 
 const Callback = () => {
-  const { getAccessTokenSilently, isAuthenticated, isLoading, error } = useAuth0();
+  const { getIdTokenClaims, isAuthenticated, isLoading, error } = useAuth0();
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   const didRun = useRef(false);
+  const [callbackError, setCallbackError] = useState<string | null>(null);
 
   useEffect(() => {
     if (isLoading) return;
@@ -20,31 +21,35 @@ const Callback = () => {
 
     if (error) {
       console.error('[Callback] Auth0 error:', error);
-      navigate('/signin');
+      setCallbackError('Authentication failed. Please try again.');
+      setTimeout(() => navigate('/signin'), 2000);
       return;
     }
 
     if (!isAuthenticated) {
-      navigate('/signin');
+      setCallbackError('Not authenticated. Please sign in.');
+      setTimeout(() => navigate('/signin'), 2000);
       return;
     }
 
     const exchange = async () => {
       try {
-        const accessToken = await getAccessTokenSilently({
-          authorizationParams: {
-            audience: import.meta.env.VITE_AUTH0_AUDIENCE ?? 'https://tripician-production-api',
-            scope: 'openid profile email',
-          },
-        });
+        const idTokenClaims = await getIdTokenClaims();
+        const idToken = idTokenClaims?.__raw;
+        if (!idToken) {
+          setCallbackError('Missing id_token from Auth0.');
+          setTimeout(() => navigate('/signin'), 2000);
+          return;
+        }
 
         // Mask and log token info for debugging
         try {
           // eslint-disable-next-line no-console
-          console.debug('[Callback] Auth0 accessToken (masked):', accessToken ? `${accessToken.slice(0,8)}...` : '<none>');
+          console.debug('[Callback] Auth0 id_token (masked):', idToken ? `${idToken.slice(0,8)}...` : '<none>');
         } catch {}
 
-        const response = await authAPI.socialCallback(accessToken);
+        // Send id_token as AccessToken to backend
+        const response = await authAPI.socialCallback(idToken);
 
         // Log backend response (mask server token)
         try {
@@ -70,22 +75,25 @@ const Callback = () => {
           } catch (e) {
             // If profile fetch fails, still navigate to signin for now
             console.error('[Callback] fetchUserProfile failed after token exchange', e);
-            navigate('/signin');
+            setCallbackError('Failed to load user profile.');
+            setTimeout(() => navigate('/signin'), 2000);
             return;
           }
           navigate('/home', { replace: true });
         } else {
           console.error('[Callback] Unexpected response:', response.data);
-          navigate('/signin');
+          setCallbackError('Unexpected response from server.');
+          setTimeout(() => navigate('/signin'), 2000);
         }
       } catch (err) {
         console.error('[Callback] Token exchange failed:', err);
-        navigate('/signin');
+        setCallbackError('Token exchange failed. Please try again.');
+        setTimeout(() => navigate('/signin'), 2000);
       }
     };
 
     exchange();
-  }, [isAuthenticated, isLoading, error, getAccessTokenSilently, navigate, dispatch]);
+  }, [isAuthenticated, isLoading, error, getIdTokenClaims, navigate, dispatch]);
 
   return (
     <Box
@@ -100,7 +108,7 @@ const Callback = () => {
       <Typography
         sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.875rem', color: 'text.secondary' }}
       >
-        Signing you in…
+        {callbackError ? callbackError : 'Signing you in…'}
       </Typography>
     </Box>
   );
