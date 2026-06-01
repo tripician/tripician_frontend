@@ -1,10 +1,8 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useSelector } from 'react-redux';
-import { KalaGeometric } from '../../components/DecorativeComponents/KalaDecor';
 import type { RootState } from '../../store';
 import TripCard from './TripCard';
 import '../../assets/css/Dashboard.css';
-import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import { Tabs, Tab, Box, CircularProgress, Typography, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, Snackbar } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { apiServices } from '../../services/APIs/apiServices';
@@ -297,9 +295,6 @@ const Dashboard: React.FC = () => {
         overflow: 'hidden',
       }}
     >
-      {/* Indian kala geometric — bottom-left accent */}
-      <KalaGeometric size={420} color="#FF6B8A" opacity={0.04} style={{ position: 'absolute', bottom: 10, right: -120, zIndex: 0, pointerEvents: 'none' }} />
-      <TopBar />
       <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
 
         {/* ── Boarding pass / Welcome banner ── */}

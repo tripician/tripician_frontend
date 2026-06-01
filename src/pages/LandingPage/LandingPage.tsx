@@ -21,6 +21,8 @@ import {
   Activity,
   Sparkles,
   Download,
+  MapPin,
+  Search,
 } from 'lucide-react';
 import '../../assets/css/LandingPage.css';
 
@@ -360,6 +362,7 @@ export default function LandingPage() {
   }, [isAuthenticated, isLoading, navigate]);
   const logoFullWhiteUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_2_URL as string | undefined;
 
+  const [heroVibe, setHeroVibe] = useState<string | null>(null);
   const [showcaseImages, setShowcaseImages] = useState<Record<number, string>>({});
   const deferredInstallPrompt = useRef<(Event & { prompt: () => Promise<void> }) | null>(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);
@@ -587,9 +590,11 @@ export default function LandingPage() {
   /* ─── JSX ──────────────────────────────────────────────────────── */
   return (
     <div className="lp-root">
+      {/* ── SKIP TO CONTENT ───────────────────────────────────── */}
+      <a href="#lp-main-content" className="lp-skip-to-content">Skip to main content</a>
 
       {/* ── NAVBAR ────────────────────────────────────────────── */}
-      <nav className="lp-nav">
+      <nav className="lp-nav" aria-label="Main navigation">
         <div className="lp-nav__logo" onClick={() => navigate('/')}>
           {logoFullWhiteUrl
             ? <img src={logoFullWhiteUrl} alt="Tripician" className="lp-logo-img lp-logo-img--nav" />
@@ -597,10 +602,20 @@ export default function LandingPage() {
           }
         </div>
         <div className="lp-nav__links">
-          <a href="#ai-agent">AI Agent</a>
           <a href="#features">Features</a>
-          <a href="#why-different">Why Us</a>
+          <a href="#ai-agent">AI Agent</a>
+          <a href="/community">Community</a>
           <a href="#how-it-works">How it works</a>
+        </div>
+        <div className="lp-nav__search">
+          <Search size={15} className="lp-nav__search-icon" aria-hidden="true" />
+          <input
+            className="lp-nav__search-input"
+            type="search"
+            placeholder="Where do you want to go?"
+            aria-label="Search destinations"
+          />
+          <MapPin size={15} className="lp-nav__search-pin" aria-hidden="true" />
         </div>
         <div className="lp-nav__actions">
           <button className="lp-btn lp-btn--ghost" onClick={() => navigate('/signin')}>Sign in</button>
@@ -609,7 +624,7 @@ export default function LandingPage() {
       </nav>
 
       {/* ── HERO ──────────────────────────────────────────────── */}
-      <section className="lp-hero">
+      <section className="lp-hero" id="lp-main-content">
       {/* Kala lotus — top-left corner watermark, slow wheel spin */}
         <div className="lp-hero__kala-lotus" style={{ position: 'absolute', top: -320, left: -300, zIndex: 1, pointerEvents: 'none' }}>
           <KalaLotus size={920} color="#FF6B8A" opacity={0.07} />
@@ -620,55 +635,135 @@ export default function LandingPage() {
         />
         <div className="lp-hero__overlay" />
 
-        <div className="lp-hero__content">
-          <span className="lp-hero__eyebrow">
-            <Users size={13} /> Vibe-Based Travel Community
-          </span>
+        <div className="lp-hero__content lp-hero__content--split">
+          {/* ── LEFT: copy + vibe tags + CTAs ── */}
+          <div className="lp-hero__left">
+            <span className="lp-hero__eyebrow">
+              <span className="lp-hero__eyebrow-dot" aria-hidden="true" />
+              <Users size={13} aria-hidden="true" /> YOUR NEXT ADVENTURE
+            </span>
 
-          <h1 className="lp-hero__title">
-            {['Find', 'your', 'travel', 'tribe.'].map((word, i) => (
-              <span key={i} className="word">{word}</span>
-            ))}
-          </h1>
+            <h1 className="lp-hero__title">
+              {['Travel', 'with', 'people', 'who'].map((word, i) => (
+                <span key={i} className="word">{word}</span>
+              ))}
+              <em className="word lp-hero__em">get&nbsp;you.</em>
+            </h1>
 
-          <p className="lp-hero__subtitle">
-            Or create your own. Solo, duo, crew &mdash; however you move,<br />
-            Tripician shapes itself around the way you travel.
-          </p>
+            <p className="lp-hero__subtitle">
+              Join 40,000+ travelers. Find your vibe, build your crew, go somewhere that actually feels like you.
+            </p>
 
-          <div className="lp-hero__cta-group">
-            <button className="lp-btn lp-btn--hero-primary" onClick={() => navigate('/signup')}>
-              Start your journey <ArrowRight size={17} />
-            </button>
-            <button className="lp-btn lp-btn--hero-ghost lp-btn--hide-mobile" onClick={() => navigate('/signin')}>
-              Sign in
-            </button>
-            {showInstallBtn && (
-              <button className="lp-btn lp-btn--hero-install" onClick={handleInstallApp}>
-                <Download size={15} /> Add to Home Screen
+            {/* Traveler type tags — functional filters */}
+            <div className="lp-hero__vibe-tags" role="group" aria-label="Filter by travel vibe">
+              {[
+                { label: 'Culture seeker',    emoji: '🎭' },
+                { label: 'Party lover',        emoji: '🎉' },
+                { label: 'Spiritual explorer', emoji: '🧘' },
+                { label: 'Adventure junkie',   emoji: '🏔️' },
+                { label: 'Slow traveler',      emoji: '🌴' },
+                { label: 'Urban explorer',     emoji: '🏙️' },
+              ].map(({ label, emoji }) => (
+                <button
+                  key={label}
+                  className={`lp-hero__vibe-tag${heroVibe === label ? ' lp-hero__vibe-tag--active' : ''}`}
+                  onClick={() => setHeroVibe(prev => prev === label ? null : label)}
+                  role="button"
+                  tabIndex={0}
+                  aria-pressed={heroVibe === label}
+                >
+                  <span aria-hidden="true">{emoji}</span> {label}
+                </button>
+              ))}
+            </div>
+
+            <div className="lp-hero__cta-group">
+              <button className="lp-btn lp-btn--hero-primary" onClick={() => navigate('/signup')} aria-label="Find your travel crew — sign up">
+                Find Your Crew <ArrowRight size={17} aria-hidden="true" />
               </button>
-            )}
+              <button className="lp-btn lp-btn--hero-ghost lp-btn--hide-mobile" onClick={() => navigate('/community')} aria-label="Browse community trips">
+                Browse trips
+              </button>
+              {showInstallBtn && (
+                <button className="lp-btn lp-btn--hero-install" onClick={handleInstallApp} aria-label="Add Tripician to Home Screen">
+                  <Download size={15} aria-hidden="true" /> Add to Home Screen
+                </button>
+              )}
+            </div>
+          </div>
+
+          {/* ── RIGHT: live stats card ── */}
+          <div className="lp-hero__right" aria-hidden="true">
+            <div className="lp-hero__stats-card">
+              <div className="lp-hero__stats-item">
+                <span className="lp-hero__stats-emoji">🌍</span>
+                <span><strong>2,847 travelers</strong> online now</span>
+              </div>
+              <div className="lp-hero__stats-divider" />
+              <div className="lp-hero__stats-item">
+                <span className="lp-hero__stats-emoji">✈️</span>
+                <span><strong>143 trips</strong> happening this week</span>
+              </div>
+              <div className="lp-hero__stats-divider" />
+              <div className="lp-hero__stats-item">
+                <span className="lp-hero__stats-emoji">📍</span>
+                <span>Top destination: <strong>Bali, Indonesia</strong></span>
+              </div>
+              <div className="lp-hero__stats-divider" />
+              <div className="lp-hero__avatar-row">
+                <div className="lp-hero__avatar-stack">
+                  {['M', 'A', 'S', 'J', 'P', 'R', 'K', 'L'].map((initial, i) => (
+                    <div key={i} className={`lp-hero__avatar lp-hero__avatar--${i + 1}`}>{initial}</div>
+                  ))}
+                </div>
+                <span className="lp-hero__avatar-caption">Maya, Arjun + 12 others joined this week</span>
+              </div>
+            </div>
           </div>
         </div>
 
-        <div className="lp-hero__scroll-indicator">
-          <ChevronDown size={26} />
+        <div className="lp-hero__scroll-indicator" role="presentation">
+          <ChevronDown size={26} aria-hidden="true" />
         </div>
 
         {/* Ambient orbs */}
-        <div className="lp-hero__orb lp-hero__orb--1" />
-        <div className="lp-hero__orb lp-hero__orb--2" />
-        <div className="lp-hero__orb lp-hero__orb--3" />
+        <div className="lp-hero__orb lp-hero__orb--1" aria-hidden="true" />
+        <div className="lp-hero__orb lp-hero__orb--2" aria-hidden="true" />
+        <div className="lp-hero__orb lp-hero__orb--3" aria-hidden="true" />
       </section>
 
       {/* ── DESTINATION TICKER ────────────────────────────────── */}
-      <div className="lp-ticker">
+      <div className="lp-ticker" aria-hidden="true">
         <div className="lp-ticker__track">
           {[...TICKER_ITEMS, ...TICKER_ITEMS].map((dest, i) => (
             <span key={i} className="lp-ticker__item">{dest}</span>
           ))}
         </div>
       </div>
+
+      {/* ── SOCIAL PROOF TRUST BAR ────────────────────────────── */}
+      <section className="lp-trust-bar" aria-label="Community trust signals">
+        <div className="lp-trust-bar__inner">
+          <div className="lp-trust-bar__item">
+            <div className="lp-trust-bar__avatars" aria-hidden="true">
+              {['P', 'J', 'S', 'M', 'R', 'L', 'K', 'D'].map((initial, i) => (
+                <div key={i} className="lp-trust-bar__avatar">{initial}</div>
+              ))}
+            </div>
+            <span>Joined by <strong>40,000+</strong> travelers from 120 countries</span>
+          </div>
+          <div className="lp-trust-bar__item">
+            <div className="lp-trust-bar__stars" aria-label="5 out of 5 stars">
+              {Array.from({ length: 5 }).map((_, i) => <Star key={i} size={14} fill="currentColor" aria-hidden="true" />)}
+            </div>
+            <span>"Best travel community I've found" — rated <strong>4.9/5</strong></span>
+          </div>
+          <div className="lp-trust-bar__item">
+            <Shield size={18} className="lp-trust-bar__shield" aria-hidden="true" />
+            <span>Verified profiles · Safe messaging · <strong>24/7 support</strong></span>
+          </div>
+        </div>
+      </section>
 
       {/* ── AGENTIC AI DEMO ───────────────────────────────────── */}
       <section className="lp-ai-agent" id="ai-agent">

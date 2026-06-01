@@ -5,7 +5,6 @@ import {
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { apiServices } from '../../services/APIs/apiServices';
 import SearchIcon from '@mui/icons-material/Search';
@@ -326,7 +325,6 @@ const Community: React.FC = () => {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: bg, display: 'flex', flexDirection: 'column' }}>
-      <TopBar />
 
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
       <Box sx={{

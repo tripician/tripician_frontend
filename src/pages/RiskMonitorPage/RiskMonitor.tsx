@@ -8,7 +8,6 @@ import { fetchWeather, type WeatherData } from '../../services/APIs/weather/weat
 import { fetchCurrency, type CurrencyData } from '../../services/APIs/currency/currencyService';
 import { fetchNews, type TwinglyDocument, type FetchNewsParams } from '../../services/APIs/news/newsService';
 import { flagEmojiFromCode } from '../../utils/countryFlags';
-import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import '../../assets/css/RiskMonitor.css';
 
 // ─── Destination catalogue ────────────────────────────────────────────────────
@@ -201,7 +200,6 @@ export default function RiskMonitor() {
 
   return (
     <div className="rm-page">
-      <TopBar />
 
       {/* ── HERO ────────────────────────────────────── */}
       <div className="rm-hero" ref={heroRef}>

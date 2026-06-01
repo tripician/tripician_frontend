@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -92,7 +92,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
         sx={{
           position: 'fixed',
           right: 32,
-          bottom: 100,
+          bottom: { xs: 168, lg: 100 },
           zIndex: 1700,
           display: 'flex',
           flexDirection: 'column',
@@ -155,7 +155,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
         <Fab
           color="primary"
           onClick={() => setOpen(o => !o)}
-          sx={{ position: 'fixed', right: 24, bottom: 24, zIndex: 1700, boxShadow: 4, '&:hover': { boxShadow: 8 } }}
+          sx={{ position: 'fixed', right: 24, bottom: { xs: 88, lg: 24 }, zIndex: 1700, boxShadow: 4, '&:hover': { boxShadow: 8 } }}
         >
           <ChatIcon />
         </Fab>
@@ -169,7 +169,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-            style={{ position: 'fixed', right: 24, bottom: 100, zIndex: 1700 }}
+            style={{ position: 'fixed', right: 24, bottom: 168, zIndex: 1700 }}
           >
             <Paper
               elevation={0}

@@ -1,5 +1,4 @@
 import React, { useState, useRef, useEffect, type ChangeEvent } from "react";
-import { KalaMandala } from '../DecorativeComponents/KalaDecor';
 import {
   Modal,
   Box,
@@ -18,7 +17,6 @@ import { useAuthToken } from '../../hooks/useAuth0Token';
 import { useNavigate } from 'react-router-dom';
 import {
   Close as CloseIcon,
-  Add as AddIcon,
   ArrowForward as ArrowForwardIcon,
 } from "@mui/icons-material";
 import Alert from '@mui/material/Alert';
@@ -291,15 +289,17 @@ const COUNTRIES = [
   "Zimbabwe"
 ];
 
-const VIBES: { id: string; label: string; img: string; desc: string; bg: string; activeBg: string; activeColor: string; activeBorder: string }[] = [
-  { id: 'adventure', label: 'Adventure Junkie', img: 'https://images.unsplash.com/photo-1464822759023-fed622ff2c3b?auto=format&fit=crop&w=400&q=75', desc: 'Trails, peaks & thrills',      bg: '#F0FDF4', activeBg: 'linear-gradient(135deg,#059669,#047857)', activeColor: '#fff', activeBorder: '#059669' },
-  { id: 'culture',   label: 'Culture Seeker',   img: 'https://images.unsplash.com/photo-1513635269975-59663e0ac1ad?auto=format&fit=crop&w=400&q=75', desc: 'History, art & local life',    bg: '#F5F3FF', activeBg: 'linear-gradient(135deg,#7C3AED,#5B21B6)', activeColor: '#fff', activeBorder: '#7C3AED' },
-  { id: 'romantic',  label: 'Party Lover',       img: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=400&q=75', desc: 'Vibes, music & movement',     bg: '#FFF1F2', activeBg: 'linear-gradient(135deg,#FF385C,#D91A50)', activeColor: '#fff', activeBorder: '#FF385C' },
-  { id: 'luxury',    label: 'Slow Traveler',     img: 'https://images.unsplash.com/photo-1527631746610-bca00a040d60?auto=format&fit=crop&w=400&q=75', desc: 'Wander, rest, repeat',         bg: '#FFFBEB', activeBg: 'linear-gradient(135deg,#D97706,#B45309)', activeColor: '#fff', activeBorder: '#D97706' },
-  { id: 'spiritual', label: 'Spiritual Explorer',img: 'https://images.unsplash.com/photo-1544367567-0f2fcb009e0b?auto=format&fit=crop&w=400&q=75', desc: 'Temples, peace & purpose',    bg: '#FEFCE8', activeBg: 'linear-gradient(135deg,#CA8A04,#A16207)', activeColor: '#fff', activeBorder: '#CA8A04' },
-  { id: 'urban',     label: 'Urban',             img: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?auto=format&fit=crop&w=400&q=75', desc: 'City breaks & nightlife',      bg: '#EFF6FF', activeBg: 'linear-gradient(135deg,#2563EB,#1D4ED8)', activeColor: '#fff', activeBorder: '#2563EB' },
-  { id: 'scenic',    label: 'Scenic',            img: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?auto=format&fit=crop&w=400&q=75', desc: 'Landscapes & golden hours',   bg: '#ECFDF5', activeBg: 'linear-gradient(135deg,#10B981,#059669)', activeColor: '#fff', activeBorder: '#10B981' },
+const VIBES: { id: string; label: string; emoji: string; desc: string; bg: string; activeBg: string; activeColor: string; activeBorder: string; tagline: string }[] = [
+  { id: 'adventure', label: 'Adventure Junkie', emoji: '🏔️', desc: 'Trails, peaks & adrenaline',     tagline: 'Born for the wild',          bg: '#F0FDF4', activeBg: 'linear-gradient(135deg,#059669,#047857)', activeColor: '#fff', activeBorder: '#059669' },
+  { id: 'culture',   label: 'Culture Seeker',   emoji: '🏛️', desc: 'History, art & local stories',   tagline: 'Every place has a tale',     bg: '#F5F3FF', activeBg: 'linear-gradient(135deg,#7C3AED,#5B21B6)', activeColor: '#fff', activeBorder: '#7C3AED' },
+  { id: 'romantic',  label: 'Party Lover',       emoji: '🎉', desc: 'Vibes, music & movement',         tagline: 'Life is a dance floor',      bg: '#FFF1F2', activeBg: 'linear-gradient(135deg,#FF385C,#D91A50)', activeColor: '#fff', activeBorder: '#FF385C' },
+  { id: 'luxury',    label: 'Slow Traveler',     emoji: '🌸', desc: 'Wander without a rush',           tagline: 'The journey is the goal',    bg: '#FFFBEB', activeBg: 'linear-gradient(135deg,#D97706,#B45309)', activeColor: '#fff', activeBorder: '#D97706' },
+  { id: 'spiritual', label: 'Spiritual Explorer',emoji: '🕌', desc: 'Temples, peace & inner purpose',  tagline: 'Travel as transformation',   bg: '#FEFCE8', activeBg: 'linear-gradient(135deg,#CA8A04,#A16207)', activeColor: '#fff', activeBorder: '#CA8A04' },
+  { id: 'urban',     label: 'Urban Explorer',    emoji: '🌆', desc: 'City breaks & hidden gems',       tagline: 'The city never sleeps',      bg: '#EFF6FF', activeBg: 'linear-gradient(135deg,#2563EB,#1D4ED8)', activeColor: '#fff', activeBorder: '#2563EB' },
+  { id: 'scenic',    label: 'Scenic Chaser',     emoji: '🌅', desc: 'Landscapes & golden hours',       tagline: 'Always chasing sunsets',     bg: '#ECFDF5', activeBg: 'linear-gradient(135deg,#10B981,#059669)', activeColor: '#fff', activeBorder: '#10B981' },
 ];
+
+const STEP_LABELS = ['The Basics', 'Where & When', 'Travel Style', 'Bring Your Crew'];
 
 const primary = "#FF385C";
 
@@ -316,15 +316,15 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
     inviteEmails: [],
   });
 
-  const [showInviteSection, setShowInviteSection] = useState(true);
+  const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; description?: string; countries?: string; dates?: string }>({});
   const { token } = useAuthToken();
   const navigate = useNavigate();
 
-  const modalBoxRef  = useRef<HTMLDivElement>(null);
-  const rightPanelRef = useRef<HTMLDivElement>(null);
+  const modalBoxRef = useRef<HTMLDivElement>(null);
+  const stepContentRef = useRef<HTMLDivElement>(null);
 
   const handleInputChange =
     (field: keyof FormData) =>
@@ -357,6 +357,40 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
 
   const handleRemoveInvite = (email: string) => {
     setFormData(p=> ({ ...p, inviteEmails: p.inviteEmails.filter(e=> e!==email) }));
+  };
+
+  const handleNext = () => {
+    if (step === 1) {
+      if (!formData.tripName.trim()) { setFieldErrors({ name: 'Trip name is required' }); return; }
+      setFieldErrors({});
+    }
+    if (step === 2) {
+      const errs: { countries?: string; dates?: string } = {};
+      if (formData.selectedCountries.length === 0) errs.countries = 'Select at least one country';
+      if (formData.startDate && formData.endDate && formData.endDate.isBefore(formData.startDate, 'day')) errs.dates = 'End date must be after start date';
+      if (Object.keys(errs).length > 0) { setFieldErrors(errs); return; }
+      setFieldErrors({});
+    }
+    if (stepContentRef.current) {
+      gsap.to(stepContentRef.current, { x: -24, opacity: 0, duration: 0.18, ease: 'power2.in', onComplete: () => {
+        setStep(s => s + 1);
+        gsap.fromTo(stepContentRef.current!, { x: 24, opacity: 0 }, { x: 0, opacity: 1, duration: 0.28, ease: 'power2.out' });
+      }});
+    } else {
+      setStep(s => s + 1);
+    }
+  };
+
+  const handleBack = () => {
+    setFieldErrors({});
+    if (stepContentRef.current) {
+      gsap.to(stepContentRef.current, { x: 24, opacity: 0, duration: 0.18, ease: 'power2.in', onComplete: () => {
+        setStep(s => s - 1);
+        gsap.fromTo(stepContentRef.current!, { x: -24, opacity: 0 }, { x: 0, opacity: 1, duration: 0.28, ease: 'power2.out' });
+      }});
+    } else {
+      setStep(s => s - 1);
+    }
   };
 
   const validate = () => {
@@ -439,7 +473,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
       inviteEmail: "",
       inviteEmails: [],
     });
-    setShowInviteSection(true);
+    setStep(1);
   };
 
   const handleClose = () => {
@@ -461,19 +495,8 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
     return () => ctx.revert();
   }, [open]);
 
-  // ── GSAP: right panel slide-in when shown ──
-  useEffect(() => {
-    if (!showInviteSection || !rightPanelRef.current) return;
-    gsap.fromTo(
-      rightPanelRef.current,
-      { x: 50, opacity: 0 },
-      { x: 0, opacity: 1, duration: 0.45, ease: 'power3.out' }
-    );
-  }, [showInviteSection]);
-
-  const canStart = formData.tripName.trim().length>0 && formData.selectedCountries.length>0 && !(formData.startDate && formData.endDate && formData.endDate.isBefore(formData.startDate,'day'));
-
   const activeVibe = VIBES.find(v => v.id === formData.vibe) ?? null;
+  const canFinish = formData.tripName.trim().length > 0 && formData.selectedCountries.length > 0;
 
   const fieldSx = {
     '& .MuiOutlinedInput-root': {
@@ -506,7 +529,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
         <Box
           ref={modalBoxRef}
           sx={{
-            width: showInviteSection ? { xs: '96vw', md: '880px' } : { xs: '96vw', md: '540px' },
+            width: { xs: '96vw', sm: '540px' },
             maxWidth: '96vw',
             maxHeight: '96vh',
             bgcolor: '#FFFFFF',
@@ -516,13 +539,11 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
             display: 'flex',
             flexDirection: 'column',
             position: 'relative',
-            transition: 'width 0.3s cubic-bezier(0.4,0,0.2,1)',
           }}
         >
           {/* ── TOP ACCENT STRIP ── */}
           <Box sx={{ height: 3, flexShrink: 0, background: activeVibe ? activeVibe.activeBg : 'linear-gradient(90deg, #FF385C 0%, #FF6B35 50%, #FFB347 100%)', transition: 'background 0.5s ease' }} />
-          {/* ── PANELS ROW ── */}
-          <Box sx={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
+
           {/* Loading overlay */}
           {submitting && (
             <Box sx={{ position: 'absolute', inset: 0, zIndex: 10, backdropFilter: 'blur(3px)', background: 'rgba(255,255,255,0.75)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
@@ -534,23 +555,21 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
             </Box>
           )}
 
-          {/* ── LEFT PANEL ── */}
+          {/* ── MAIN PANEL ── */}
           <Box sx={{
-            flex: '0 0 auto',
-            width: showInviteSection ? { xs: '100%', md: '540px' } : '100%',
-            p: { xs: '24px 20px', md: '32px 44px 28px' },
+            p: { xs: '24px 20px 20px', md: '28px 40px 24px' },
             overflowY: 'auto',
             display: 'flex', flexDirection: 'column',
+            flex: 1,
             background: '#FAFAFA',
             scrollbarWidth: 'none',
             '&::-webkit-scrollbar': { display: 'none' },
           }}>
 
-            {/* Top bar */}
-            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+            {/* Header */}
+            <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 2.5 }}>
               <Box>
-                {/* Badge */}
-                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.6, px: 1.2, py: 0.4, borderRadius: '50px', background: 'rgba(255,56,92,0.08)', mb: 1 }}>
+                <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.6, px: 1.2, py: 0.4, borderRadius: '50px', background: 'rgba(255,56,92,0.08)', mb: 0.8 }}>
                   <Box sx={{ width: 5, height: 5, borderRadius: '50%', background: primary, flexShrink: 0 }} />
                   <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: primary, fontFamily: "'Inter', sans-serif" }}>New Adventure</Typography>
                 </Box>
@@ -561,336 +580,333 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
               </IconButton>
             </Box>
 
+            {/* ── Step indicator ── */}
+            <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 3 }}>
+              {STEP_LABELS.map((label, i) => {
+                const stepNum = i + 1;
+                const isCompleted = step > stepNum;
+                const isActive = step === stepNum;
+                const dotColor = activeVibe ? activeVibe.activeBorder : primary;
+                return (
+                  <React.Fragment key={stepNum}>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+                      <Box sx={{
+                        width: 28, height: 28, borderRadius: '50%',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        background: isCompleted || isActive ? dotColor : 'rgba(0,0,0,0.06)',
+                        transition: 'all 0.3s ease',
+                        boxShadow: isActive ? `0 4px 12px ${dotColor}40` : 'none',
+                      }}>
+                        <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: isCompleted || isActive ? '#fff' : '#CCC', fontFamily: "'Inter', sans-serif", lineHeight: 1 }}>
+                          {isCompleted ? '✓' : stepNum}
+                        </Typography>
+                      </Box>
+                      <Typography sx={{ fontSize: '0.5rem', fontWeight: isActive ? 700 : 400, color: isActive ? dotColor : '#CCC', fontFamily: "'Inter', sans-serif", whiteSpace: 'nowrap', letterSpacing: '0.04em' }}>{label}</Typography>
+                    </Box>
+                    {i < STEP_LABELS.length - 1 && (
+                      <Box sx={{ flex: 1, height: '2px', mt: '13px', mx: 0.75, background: step > stepNum ? dotColor : 'rgba(0,0,0,0.08)', transition: 'background 0.3s ease', borderRadius: 2 }} />
+                    )}
+                  </React.Fragment>
+                );
+              })}
+            </Box>
+
             {errorMsg && (
-              <Alert severity="error" onClose={() => setErrorMsg(null)} sx={{ mb: 2.5, borderRadius: '12px' }}>{errorMsg}</Alert>
+              <Alert severity="error" onClose={() => setErrorMsg(null)} sx={{ mb: 2, borderRadius: '12px' }}>{errorMsg}</Alert>
             )}
 
-            {/* Trip name */}
-            <Box className="gs-modal-field" sx={{ mb: 1.5 }}>
-              <Typography sx={labelSx}>Give your trip a name</Typography>
-              <TextField
-                placeholder="e.g. Temples & Tea in Vietnam"
-                value={formData.tripName}
-                onChange={handleInputChange('tripName')}
-                fullWidth
-                variant="outlined"
-                error={!!fieldErrors.name}
-                helperText={fieldErrors.name}
-                sx={fieldSx}
-              />
-            </Box>
-            {/* Trip description */}
-            <Box className="gs-modal-field" sx={{ mb: 1.5 }}>
-              <Typography sx={labelSx}>What's coming in your mind about the trip?</Typography>
-              <TextField
-                placeholder="Tell a little more about your trip…"
-                value={formData.tripDescription}
-                onChange={handleInputChange('tripDescription')}
-                fullWidth
-                variant="outlined"
-                multiline
-                minRows={2}
-                maxRows={4}
-                inputProps={{ maxLength: 300 }}
-                error={!!fieldErrors.description}
-                helperText={fieldErrors.description || `${formData.tripDescription.length}/300`}
-                sx={fieldSx}
-              />
-            </Box>
+            {/* ── STEP CONTENT ── */}
+            <Box ref={stepContentRef} sx={{ flex: 1 }}>
 
-            {/* Countries */}
-            <Box className="gs-modal-field" sx={{ mb: 1.5 }}>
-              <Typography sx={labelSx}>Where are you headed?</Typography>
-              <Autocomplete
-                multiple
-                options={COUNTRIES}
-                value={formData.selectedCountries}
-                onChange={handleCountryChange}
-                renderTags={(value, getTagProps) =>
-                  value.map((option, index) => {
-                    const { key, ...tagProps } = getTagProps({ index });
-                    return (
-                      <Chip
-                        key={key}
-                        label={option}
-                        {...tagProps}
-                        size="small"
-                        sx={{ background: 'linear-gradient(135deg, #FF385C, #D91A50)', color: '#fff', fontWeight: 600, fontSize: '0.72rem', '& .MuiChip-deleteIcon': { color: 'rgba(255,255,255,0.75)', '&:hover': { color: '#fff' } } }}
+              {/* STEP 1 — The Basics */}
+              {step === 1 && (
+                <Box>
+                  <Typography sx={{ fontFamily: "'Playfair Display', serif", fontSize: '1.12rem', fontWeight: 700, color: '#222', mb: 0.4, letterSpacing: '-0.01em' }}>Name your adventure</Typography>
+                  <Typography sx={{ fontSize: '0.72rem', color: '#BBB', fontFamily: "'Inter', sans-serif", mb: 2.5 }}>Give your trip an identity — something that captures the vibe.</Typography>
+                  <Box className="gs-modal-field" sx={{ mb: 2 }}>
+                    <Typography sx={labelSx}>Trip name</Typography>
+                    <TextField
+                      placeholder="e.g. Temples & Tea in Vietnam"
+                      value={formData.tripName}
+                      onChange={handleInputChange('tripName')}
+                      fullWidth
+                      variant="outlined"
+                      autoFocus
+                      error={!!fieldErrors.name}
+                      helperText={fieldErrors.name}
+                      sx={fieldSx}
+                    />
+                  </Box>
+                  <Box className="gs-modal-field">
+                    <Typography sx={labelSx}>What's on your mind about the trip?</Typography>
+                    <TextField
+                      placeholder="Tell a little more about your trip…"
+                      value={formData.tripDescription}
+                      onChange={handleInputChange('tripDescription')}
+                      fullWidth
+                      variant="outlined"
+                      multiline
+                      minRows={3}
+                      maxRows={5}
+                      inputProps={{ maxLength: 300 }}
+                      error={!!fieldErrors.description}
+                      helperText={fieldErrors.description || `${formData.tripDescription.length}/300`}
+                      sx={fieldSx}
+                    />
+                  </Box>
+                </Box>
+              )}
+
+              {/* STEP 2 — Where & When */}
+              {step === 2 && (
+                <Box>
+                  <Typography sx={{ fontFamily: "'Playfair Display', serif", fontSize: '1.12rem', fontWeight: 700, color: '#222', mb: 0.4, letterSpacing: '-0.01em' }}>Plan your route</Typography>
+                  <Typography sx={{ fontSize: '0.72rem', color: '#BBB', fontFamily: "'Inter', sans-serif", mb: 2.5 }}>Where are you headed, and when?</Typography>
+                  <Box className="gs-modal-field" sx={{ mb: 2 }}>
+                    <Typography sx={labelSx}>Where are you headed?</Typography>
+                    <Autocomplete
+                      multiple
+                      options={COUNTRIES}
+                      value={formData.selectedCountries}
+                      onChange={handleCountryChange}
+                      renderTags={(value, getTagProps) =>
+                        value.map((option, index) => {
+                          const { key, ...tagProps } = getTagProps({ index });
+                          return (
+                            <Chip
+                              key={key}
+                              label={option}
+                              {...tagProps}
+                              size="small"
+                              sx={{ background: 'linear-gradient(135deg, #FF385C, #D91A50)', color: '#fff', fontWeight: 600, fontSize: '0.72rem', '& .MuiChip-deleteIcon': { color: 'rgba(255,255,255,0.75)', '&:hover': { color: '#fff' } } }}
+                            />
+                          );
+                        })
+                      }
+                      renderInput={(params) => (
+                        <TextField
+                          {...params}
+                          placeholder="Search a country or city..."
+                          variant="outlined"
+                          error={!!fieldErrors.countries}
+                          helperText={fieldErrors.countries}
+                          sx={fieldSx}
+                        />
+                      )}
+                    />
+                  </Box>
+                  <Box className="gs-modal-field">
+                    <Typography sx={labelSx}>When are you going? <span style={{ fontWeight: 400, color: '#CCC', letterSpacing: 0, textTransform: 'none', fontSize: '0.65rem' }}>(optional)</span></Typography>
+                    <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: { xs: 1, sm: 1.5 } }}>
+                      <DatePicker
+                        value={formData.startDate}
+                        onChange={(v) => setFormData(p => ({ ...p, startDate: v }))}
+                        slotProps={{ textField: { placeholder: 'Start date', fullWidth: true, sx: fieldSx } }}
                       />
-                    );
-                  })
-                }
-                renderInput={(params) => (
-                  <TextField
-                    {...params}
-                    placeholder="Search a country or city..."
-                    variant="outlined"
-                    error={!!fieldErrors.countries}
-                    helperText={fieldErrors.countries}
-                    sx={fieldSx}
-                  />
-                )}
-              />
-            </Box>
+                      <ArrowForwardIcon sx={{ color: '#DDD', flexShrink: 0, display: { xs: 'none', sm: 'block' } }} />
+                      <DatePicker
+                        value={formData.endDate}
+                        minDate={formData.startDate || undefined}
+                        onChange={(v) => setFormData(p => ({ ...p, endDate: v }))}
+                        slotProps={{ textField: { placeholder: 'End date', fullWidth: true, sx: fieldSx } }}
+                      />
+                    </Box>
+                    {fieldErrors.dates && <Typography variant="caption" sx={{ color: 'error.main', mt: 0.5, display: 'block' }}>{fieldErrors.dates}</Typography>}
+                    <Typography sx={{ fontSize: '0.7rem', color: '#BBBBBB', mt: 1, fontFamily: "'Inter', sans-serif", fontStyle: 'italic' }}>Exact dates are only used to calculate trip duration and aren't shown to others.</Typography>
+                  </Box>
+                </Box>
+              )}
 
-            {/* Dates */}
-            <Box className="gs-modal-field" sx={{ mb: 1 }}>
-              <Typography sx={labelSx}>When are you going? <span style={{ fontWeight: 400, color: '#CCC', letterSpacing: 0, textTransform: 'none', fontSize: '0.65rem' }}>(optional)</span></Typography>
-              <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: { xs: 1, sm: 1.5 } }}>
-                <DatePicker
-                  value={formData.startDate}
-                  onChange={(v) => setFormData(p => ({ ...p, startDate: v }))}
-                  slotProps={{ textField: { placeholder: 'Start date', fullWidth: true, sx: fieldSx } }}
-                />
-                <ArrowForwardIcon sx={{ color: '#DDD', flexShrink: 0, display: { xs: 'none', sm: 'block' } }} />
-                <DatePicker
-                  value={formData.endDate}
-                  minDate={formData.startDate || undefined}
-                  onChange={(v) => setFormData(p => ({ ...p, endDate: v }))}
-                  slotProps={{ textField: { placeholder: 'End date', fullWidth: true, sx: fieldSx } }}
-                />
-              </Box>
-              {fieldErrors.dates && <Typography variant="caption" sx={{ color: 'error.main', mt: 0.5, display: 'block' }}>{fieldErrors.dates}</Typography>}
-              <Typography sx={{ fontSize: '0.7rem', color: '#BBBBBB', mt: 1, fontFamily: "'Inter', sans-serif", fontStyle: 'italic' }}>Exact dates are only used to calculate trip duration and aren't shown to others.</Typography>
-            </Box>
+              {/* STEP 3 — Travel Style */}
+              {step === 3 && (
+                <Box>
+                  <Typography sx={{ fontFamily: "'Playfair Display', serif", fontSize: '1.12rem', fontWeight: 700, color: '#222', mb: 0.4, letterSpacing: '-0.01em' }}>What's your travel style?</Typography>
+                  <Typography sx={{ fontSize: '0.72rem', color: '#BBB', fontFamily: "'Inter', sans-serif", mb: 2 }}>Pick the vibe that feels most like you — or skip it.</Typography>
 
-            {/* Trip Vibe */}
-            <Box className="gs-modal-field" sx={{ mb: 2, mt: 1 }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 1.5 }}>
-                <Typography sx={labelSx}>I travel as a...</Typography>
-                {formData.vibe && (
-                  <Box
-                    onClick={() => setFormData(p => ({ ...p, vibe: null }))}
-                    sx={{ fontSize: '0.65rem', color: '#BBBBBB', cursor: 'pointer', fontFamily: "'Inter', sans-serif", '&:hover': { color: '#888' } }}
-                  >clear</Box>
-                )}
-              </Box>
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' }, gap: { xs: 0.75, sm: 1 } }}>
-                {VIBES.map((v) => {
-                  const selected = formData.vibe === v.id;
-                  return (
-                    <Box
-                      key={v.id}
-                      onClick={() => setFormData(p => ({ ...p, vibe: p.vibe === v.id ? null : v.id }))}
-                      sx={{
-                        position: 'relative',
-                        height: { xs: 80, sm: 88 },
-                        borderRadius: '12px',
-                        overflow: 'hidden',
-                        cursor: 'pointer',
-                        userSelect: 'none',
-                        flexShrink: 0,
-                        outline: selected ? `2.5px solid ${v.activeBorder}` : '2.5px solid transparent',
-                        outlineOffset: '2px',
-                        boxShadow: selected
-                          ? `0 8px 24px ${v.activeBorder}50`
-                          : '0 2px 8px rgba(0,0,0,0.10)',
-                        transition: 'transform 0.22s ease, box-shadow 0.22s ease',
-                        transform: selected ? 'scale(1.04) translateY(-2px)' : 'none',
-                        '&:hover': !selected ? {
-                          transform: 'translateY(-3px)',
-                          boxShadow: '0 8px 22px rgba(0,0,0,0.18)',
-                        } : {},
-                      }}
-                    >
-                      {/* Photo */}
-                      <Box sx={{
-                        position: 'absolute', inset: 0,
-                        backgroundImage: `url(${v.img})`,
-                        backgroundSize: 'cover',
-                        backgroundPosition: 'center',
-                      }} />
-                      {/* Overlay */}
-                      <Box sx={{
-                        position: 'absolute', inset: 0,
-                        background: selected
-                          ? `linear-gradient(to top, ${v.activeBorder}CC 0%, rgba(0,0,0,0.18) 100%)`
-                          : 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.12) 100%)',
-                        transition: 'background 0.22s',
-                      }} />
-                      {/* Label */}
-                      <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, p: '7px 9px 8px' }}>
-                        <Typography sx={{
-                          fontFamily: "'Playfair Display', serif",
-                          fontStyle: 'italic',
-                          fontWeight: 700,
-                          fontSize: '0.74rem',
-                          color: '#fff',
-                          lineHeight: 1.2,
-                          textShadow: '0 1px 6px rgba(0,0,0,0.55)',
-                        }}>{v.label}</Typography>
+                  {activeVibe && (
+                    <Box sx={{
+                      mb: 2, borderRadius: '14px', background: activeVibe.activeBg,
+                      p: '12px 18px', display: 'flex', alignItems: 'center', gap: 1.5,
+                      boxShadow: `0 6px 20px ${activeVibe.activeBorder}40`,
+                    }}>
+                      <Typography sx={{ fontSize: '1.8rem', lineHeight: 1, flexShrink: 0 }}>{activeVibe.emoji}</Typography>
+                      <Box sx={{ flex: 1 }}>
+                        <Typography sx={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: '0.95rem', color: '#fff', lineHeight: 1.2 }}>{activeVibe.label}</Typography>
+                        <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.75)', fontFamily: "'Inter', sans-serif", mt: 0.2, fontStyle: 'italic' }}>{activeVibe.tagline}</Typography>
                       </Box>
-                      {/* Selected indicator */}
-                      {selected && (
-                        <Box sx={{
-                          position: 'absolute', top: 6, right: 6,
-                          width: 16, height: 16, borderRadius: '50%',
-                          bgcolor: '#fff',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          boxShadow: '0 1px 4px rgba(0,0,0,0.2)',
-                        }}>
-                          <Box sx={{ width: 7, height: 7, borderRadius: '50%', bgcolor: v.activeBorder }} />
+                      <Box onClick={() => setFormData(p => ({ ...p, vibe: null }))} sx={{ px: 1.2, py: 0.4, borderRadius: '20px', bgcolor: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.25)', cursor: 'pointer', '&:hover': { bgcolor: 'rgba(255,255,255,0.28)' } }}>
+                        <Typography sx={{ fontSize: '0.52rem', fontWeight: 700, color: '#fff', fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em' }}>CLEAR</Typography>
+                      </Box>
+                    </Box>
+                  )}
+
+                  <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'repeat(2, 1fr)', sm: 'repeat(4, 1fr)' }, gap: { xs: 0.75, sm: 0.9 } }}>
+                    {VIBES.map((v) => {
+                      const selected = formData.vibe === v.id;
+                      return (
+                        <Box
+                          key={v.id}
+                          onClick={() => setFormData(p => ({ ...p, vibe: p.vibe === v.id ? null : v.id }))}
+                          sx={{
+                            borderRadius: '14px',
+                            border: selected ? `2px solid ${v.activeBorder}` : '2px solid rgba(0,0,0,0.07)',
+                            background: selected ? v.activeBg : '#fff',
+                            p: '12px 10px 10px',
+                            cursor: 'pointer', userSelect: 'none', textAlign: 'center',
+                            transition: 'all 0.22s ease',
+                            boxShadow: selected ? `0 6px 20px ${v.activeBorder}35` : '0 1px 4px rgba(0,0,0,0.05)',
+                            transform: selected ? 'translateY(-2px)' : 'none',
+                            '&:hover': !selected ? { border: `2px solid ${v.activeBorder}60`, background: v.bg, transform: 'translateY(-2px)', boxShadow: `0 6px 18px ${v.activeBorder}20` } : {},
+                          }}
+                        >
+                          <Typography sx={{ fontSize: '1.5rem', lineHeight: 1, mb: 0.6 }}>{v.emoji}</Typography>
+                          <Typography sx={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '0.67rem', color: selected ? '#fff' : '#333', lineHeight: 1.3 }}>{v.label}</Typography>
+                          <Typography sx={{ fontSize: '0.56rem', color: selected ? 'rgba(255,255,255,0.72)' : '#AAAAAA', fontFamily: "'Inter', sans-serif", mt: 0.3, lineHeight: 1.3 }}>{v.desc}</Typography>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                </Box>
+              )}
+
+              {/* STEP 4 — Bring Your Crew */}
+              {step === 4 && (
+                <Box>
+                  <Typography sx={{ fontFamily: "'Playfair Display', serif", fontSize: '1.12rem', fontWeight: 700, color: '#222', mb: 0.4, letterSpacing: '-0.01em' }}>Bring your crew</Typography>
+                  <Typography sx={{ fontSize: '0.72rem', color: '#BBB', fontFamily: "'Inter', sans-serif", mb: 2 }}>Invite friends to co-plan your trip — totally optional.</Typography>
+
+                  {/* Trip summary */}
+                  <Box sx={{ p: '14px 18px', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.07)', background: '#fff', mb: 2.5 }}>
+                    <Typography sx={{ fontSize: '0.56rem', fontWeight: 700, letterSpacing: '0.16em', color: '#CCC', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif", mb: 1.2 }}>Your Trip at a Glance</Typography>
+                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.8 }}>
+                      <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
+                        <Typography sx={{ fontSize: '0.68rem', color: '#CCC', fontFamily: "'Inter', sans-serif", minWidth: 72, flexShrink: 0 }}>Trip</Typography>
+                        <Typography sx={{ fontSize: '0.72rem', color: '#333', fontFamily: "'Inter', sans-serif", fontWeight: 600 }}>{formData.tripName || '—'}</Typography>
+                      </Box>
+                      {formData.selectedCountries.length > 0 && (
+                        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
+                          <Typography sx={{ fontSize: '0.68rem', color: '#CCC', fontFamily: "'Inter', sans-serif", minWidth: 72, flexShrink: 0 }}>Going to</Typography>
+                          <Typography sx={{ fontSize: '0.72rem', color: '#333', fontFamily: "'Inter', sans-serif", fontWeight: 600 }}>{formData.selectedCountries.join(', ')}</Typography>
+                        </Box>
+                      )}
+                      {(formData.startDate || formData.endDate) && (
+                        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
+                          <Typography sx={{ fontSize: '0.68rem', color: '#CCC', fontFamily: "'Inter', sans-serif", minWidth: 72, flexShrink: 0 }}>Dates</Typography>
+                          <Typography sx={{ fontSize: '0.72rem', color: '#333', fontFamily: "'Inter', sans-serif", fontWeight: 600 }}>
+                            {formData.startDate ? formData.startDate.format('MMM D, YYYY') : ''}{formData.startDate && formData.endDate ? ' → ' : ''}{formData.endDate ? formData.endDate.format('MMM D, YYYY') : ''}
+                          </Typography>
+                        </Box>
+                      )}
+                      {activeVibe && (
+                        <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                          <Typography sx={{ fontSize: '0.68rem', color: '#CCC', fontFamily: "'Inter', sans-serif", minWidth: 72, flexShrink: 0 }}>Style</Typography>
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+                            <Typography sx={{ fontSize: '0.9rem', lineHeight: 1 }}>{activeVibe.emoji}</Typography>
+                            <Typography sx={{ fontSize: '0.72rem', color: activeVibe.activeBorder, fontFamily: "'Inter', sans-serif", fontWeight: 600 }}>{activeVibe.label}</Typography>
+                          </Box>
                         </Box>
                       )}
                     </Box>
-                  );
-                })}
-              </Box>
-              {formData.vibe && (
-                <Box sx={{ mt: 1.5, display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                  <Box sx={{ width: 4, height: 4, borderRadius: '50%', background: activeVibe?.activeBorder, flexShrink: 0 }} />
-                  <Typography sx={{ fontSize: '0.72rem', color: activeVibe?.activeBorder, fontFamily: "'Inter', sans-serif", fontWeight: 500 }}>
-                    {activeVibe?.desc}
-                  </Typography>
+                  </Box>
+
+                  {/* Invite input */}
+                  <Box sx={{ display: 'flex', gap: 1, mb: 1.5 }}>
+                    <TextField
+                      placeholder="email or username"
+                      value={formData.inviteEmail}
+                      onChange={handleInputChange('inviteEmail')}
+                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleInviteFriend(); } }}
+                      size="small"
+                      fullWidth
+                      sx={{
+                        '& .MuiOutlinedInput-root': {
+                          borderRadius: '12px', backgroundColor: '#FFFFFF', fontSize: '0.88rem',
+                          '& fieldset': { borderColor: 'rgba(0,0,0,0.10)' },
+                          '&:hover fieldset': { borderColor: 'rgba(255,56,92,0.4)' },
+                          '&.Mui-focused fieldset': { borderColor: primary, borderWidth: '1.5px' },
+                        },
+                      }}
+                    />
+                    <Button
+                      variant="contained"
+                      onClick={handleInviteFriend}
+                      sx={{ background: activeVibe ? activeVibe.activeBg : 'linear-gradient(135deg, #FF385C, #D91A50)', borderRadius: '12px', px: 2.5, textTransform: 'none', fontWeight: 700, fontFamily: "'Inter', sans-serif", fontSize: '0.82rem', boxShadow: `0 4px 12px ${activeVibe ? activeVibe.activeBorder + '44' : 'rgba(255,56,92,0.30)'}`, '&:hover': { filter: 'brightness(1.08)' }, flexShrink: 0, transition: 'all 0.3s' }}
+                    >
+                      Add
+                    </Button>
+                  </Box>
+
+                  {formData.inviteEmails.length > 0 && (
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75, mb: 1.5 }}>
+                      {formData.inviteEmails.map(email => (
+                        <Chip
+                          key={email}
+                          label={email}
+                          onDelete={() => handleRemoveInvite(email)}
+                          size="small"
+                          sx={{ background: activeVibe ? activeVibe.activeBg : 'linear-gradient(135deg, #FF385C, #D91A50)', color: '#fff', fontWeight: 600, fontSize: '0.72rem', '& .MuiChip-deleteIcon': { color: 'rgba(255,255,255,0.75)', '&:hover': { color: '#fff' } } }}
+                        />
+                      ))}
+                    </Box>
+                  )}
+
+                  <Typography sx={{ fontSize: '0.68rem', color: '#CCC', fontFamily: "'Inter', sans-serif", fontStyle: 'italic' }}>You can always invite more friends after the trip is created.</Typography>
                 </Box>
               )}
-            </Box>
 
-            {/* Footer actions */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 2, pt: 1, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
-              <Box
-                onClick={() => setShowInviteSection(s => !s)}
-                sx={{ display: 'flex', alignItems: 'center', gap: 0.6, cursor: 'pointer', color: '#BBBBBB', fontSize: '0.76rem', fontFamily: "'Inter', sans-serif", fontWeight: 600, transition: 'color 0.18s', '&:hover': { color: primary }, userSelect: 'none' }}
-              >
-                <AddIcon sx={{ fontSize: 15 }} />
-                {showInviteSection ? 'Hide invite' : 'Invite friends'}
-              </Box>
-              <Button
-                variant="contained"
-                onClick={handleStartPlanning}
-                disabled={!canStart || submitting}
-                endIcon={!submitting && canStart ? <ArrowForwardIcon sx={{ fontSize: '1rem !important' }} /> : undefined}
-                sx={{
-                  fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '0.88rem',
-                  px: 3.5, py: 1.3,
-                  borderRadius: '50px',
-                  textTransform: 'none',
-                  background: canStart ? (activeVibe ? activeVibe.activeBg : 'linear-gradient(135deg, #FF385C 0%, #D91A50 100%)') : undefined,
-                  boxShadow: canStart ? `0 6px 20px ${activeVibe ? activeVibe.activeBorder + '44' : 'rgba(255,56,92,0.35)'}` : 'none',
-                  '&:hover': { filter: 'brightness(1.08)', boxShadow: canStart ? `0 10px 28px ${activeVibe ? activeVibe.activeBorder + '55' : 'rgba(255,56,92,0.45)'}` : 'none', transform: 'translateY(-1px)' },
-                  '&:disabled': { background: '#EEEEEE', color: '#CCCCCC', boxShadow: 'none' },
-                  transition: 'all 0.22s ease',
-                }}
-              >
-                {submitting ? 'Creating…' : 'Start planning'}
-              </Button>
-            </Box>
-          </Box>
+            </Box>{/* end step content */}
 
-          {/* ── DIVIDER ── */}
-          {showInviteSection && (
-            <Box sx={{ width: '1px', flexShrink: 0, background: 'rgba(0,0,0,0.06)', display: { xs: 'none', md: 'block' } }} />
-          )}
-
-          {/* ── RIGHT PANEL – Invite ── */}
-          {showInviteSection && (
-            <Box
-              ref={rightPanelRef}
-              sx={{
-                flex: 1,
-                display: { xs: 'none', md: 'flex' },
-                flexDirection: 'column',
-                p: '36px 32px 32px',
-                background: activeVibe
-                  ? `linear-gradient(160deg, ${activeVibe.bg} 0%, white 60%)`
-                  : 'linear-gradient(160deg, #FFF5F7 0%, #FFF8FA 100%)',
-                position: 'relative',
-                overflow: 'hidden',
-                transition: 'background 0.5s ease',
-              }}
-            >
-              {/* Ambient glow */}
-              <Box sx={{ position: 'absolute', width: 260, height: 260, borderRadius: '50%', background: activeVibe
-                ? `radial-gradient(circle, ${activeVibe.activeBorder}18 0%, transparent 70%)`
-                : 'radial-gradient(circle, rgba(255,56,92,0.07) 0%, transparent 70%)', top: -80, right: -80, pointerEvents: 'none', transition: 'background 0.5s' }} />
-
-              {/* Kala mandalas */}
-              <KalaMandala size={340} opacity={0.06} style={{ position: 'absolute', bottom: -90, right: -90, zIndex: 0 }} />
-              <KalaMandala size={180} opacity={0.04} style={{ position: 'absolute', top: -40, left: -40, zIndex: 0 }} />
-
-              {/* Vibe image watermark */}
-              {activeVibe && (
-                <Box sx={{
-                  position: 'absolute', bottom: 0, right: 0,
-                  width: '65%', height: '40%',
-                  backgroundImage: `url(${activeVibe.img})`,
-                  backgroundSize: 'cover', backgroundPosition: 'center',
-                  opacity: 0.10, filter: 'blur(3px) saturate(1.2)',
-                  borderRadius: '0 0 24px 0',
-                  pointerEvents: 'none', zIndex: 0,
-                  maskImage: 'linear-gradient(to top left, rgba(0,0,0,0.7) 0%, transparent 100%)',
-                  WebkitMaskImage: 'linear-gradient(to top left, rgba(0,0,0,0.7) 0%, transparent 100%)',
-                  transition: 'all 0.5s ease',
-                }} />
-              )}
-
-              {/* Header */}
-              <Box sx={{ position: 'relative', mb: 3 }}>
-                {activeVibe && (
-                  <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.6, px: 1.2, py: 0.4, borderRadius: '50px', background: `${activeVibe.activeBorder}18`, mb: 1 }}>
-                    <Box sx={{ width: 5, height: 5, borderRadius: '50%', background: activeVibe.activeBorder, flexShrink: 0 }} />
-                    <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: activeVibe.activeBorder, fontFamily: "'Inter', sans-serif" }}>
-                      {activeVibe.label}
-                    </Typography>
-                  </Box>
+            {/* ── FOOTER ACTIONS ── */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 3, pt: 1.5, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
+              <Box>
+                {step > 1 && (
+                  <Button
+                    onClick={handleBack}
+                    sx={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, fontSize: '0.84rem', px: 2.5, py: 1.1, borderRadius: '50px', textTransform: 'none', color: '#999', border: '1px solid rgba(0,0,0,0.10)', '&:hover': { border: '1px solid rgba(0,0,0,0.20)', color: '#555', bgcolor: 'rgba(0,0,0,0.03)' }, transition: 'all 0.2s' }}
+                  >
+                    ← Back
+                  </Button>
                 )}
-                <Typography sx={{ fontFamily: "'Playfair Display', serif", fontWeight: 800, fontSize: '1.4rem', color: '#111', letterSpacing: '-0.02em', lineHeight: 1.15, mb: 0.6 }}>
-                  {activeVibe ? `${activeVibe.label} trip` : 'Bring your crew'}
-                </Typography>
-                <Typography sx={{ fontSize: '0.76rem', color: '#999', fontFamily: "'Inter', sans-serif", lineHeight: 1.5 }}>
-                  {activeVibe
-                    ? activeVibe.desc + '\u00a0· invite friends to co-plan.'
-                    : 'Invite friends to plan together.'}
-                </Typography>
               </Box>
 
-              <Box sx={{ display: 'flex', gap: 1, position: 'relative' }}>
-                <TextField
-                  placeholder="email or username"
-                  value={formData.inviteEmail}
-                  onChange={handleInputChange('inviteEmail')}
-                  onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleInviteFriend(); } }}
-                  size="small"
-                  fullWidth
-                  sx={{
-                    '& .MuiOutlinedInput-root': {
-                      borderRadius: '10px',
-                      backgroundColor: '#FFFFFF',
-                      fontSize: '0.88rem',
-                      '&:hover fieldset': { borderColor: 'rgba(255,56,92,0.4)' },
-                      '&.Mui-focused fieldset': { borderColor: primary, borderWidth: '1.5px' },
-                    },
-                  }}
-                />
+              {step < 4 ? (
                 <Button
                   variant="contained"
-                  onClick={handleInviteFriend}
-                  sx={{ background: activeVibe ? activeVibe.activeBg : 'linear-gradient(135deg, #FF385C, #D91A50)', borderRadius: '10px', px: 2.5, textTransform: 'none', fontWeight: 700, fontFamily: "'Inter', sans-serif", fontSize: '0.82rem', boxShadow: `0 4px 12px ${activeVibe ? activeVibe.activeBorder + '44' : 'rgba(255,56,92,0.30)'}`, '&:hover': { filter: 'brightness(1.08)' }, flexShrink: 0, transition: 'all 0.3s' }}
+                  onClick={handleNext}
+                  endIcon={<ArrowForwardIcon sx={{ fontSize: '1rem !important' }} />}
+                  sx={{
+                    fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '0.88rem',
+                    px: 3.5, py: 1.3, borderRadius: '50px', textTransform: 'none',
+                    background: activeVibe ? activeVibe.activeBg : 'linear-gradient(135deg, #FF385C 0%, #D91A50 100%)',
+                    boxShadow: `0 6px 20px ${activeVibe ? activeVibe.activeBorder + '44' : 'rgba(255,56,92,0.35)'}`,
+                    '&:hover': { filter: 'brightness(1.08)', transform: 'translateY(-1px)' },
+                    transition: 'all 0.22s ease',
+                  }}
                 >
-                  Add
+                  Next
                 </Button>
-              </Box>
-
-              {formData.inviteEmails.length > 0 && (
-                <Box sx={{ mt: 2, display: 'flex', flexWrap: 'wrap', gap: 0.75, position: 'relative' }}>
-                  {formData.inviteEmails.map(email => (
-                    <Chip
-                      key={email}
-                      label={email}
-                      onDelete={() => handleRemoveInvite(email)}
-                      size="small"
-                      sx={{ background: activeVibe ? activeVibe.activeBg : 'linear-gradient(135deg, #FF385C, #D91A50)', color: '#fff', fontWeight: 600, fontSize: '0.72rem', '& .MuiChip-deleteIcon': { color: 'rgba(255,255,255,0.75)', '&:hover': { color: '#fff' } } }}
-                    />
-                  ))}
-                </Box>
+              ) : (
+                <Button
+                  variant="contained"
+                  onClick={handleStartPlanning}
+                  disabled={!canFinish || submitting}
+                  endIcon={!submitting ? <ArrowForwardIcon sx={{ fontSize: '1rem !important' }} /> : undefined}
+                  sx={{
+                    fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '0.88rem',
+                    px: 3.5, py: 1.3, borderRadius: '50px', textTransform: 'none',
+                    background: canFinish ? (activeVibe ? activeVibe.activeBg : 'linear-gradient(135deg, #FF385C 0%, #D91A50 100%)') : undefined,
+                    boxShadow: canFinish ? `0 6px 20px ${activeVibe ? activeVibe.activeBorder + '44' : 'rgba(255,56,92,0.35)'}` : 'none',
+                    '&:hover': { filter: 'brightness(1.08)', transform: 'translateY(-1px)' },
+                    '&:disabled': { background: '#EEEEEE', color: '#CCCCCC', boxShadow: 'none' },
+                    transition: 'all 0.22s ease',
+                  }}
+                >
+                  {submitting ? 'Creating…' : 'Start Planning'}
+                </Button>
               )}
-
-              <Box sx={{ mt: 'auto', pt: 3, position: 'relative' }}>
-                <Typography sx={{ fontSize: '0.72rem', color: '#BBBBBB', fontFamily: "'Inter', sans-serif", fontStyle: 'italic' }}>You can always invite more friends after the trip is created.</Typography>
-              </Box>
             </Box>
-          )}
-          </Box>{/* ── end panels row ── */}
+
+          </Box>{/* end main panel */}
         </Box>
       </LocalizationProvider>
     </Modal>
