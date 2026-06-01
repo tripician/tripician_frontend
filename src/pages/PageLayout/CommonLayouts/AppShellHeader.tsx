@@ -27,7 +27,6 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../../store';
 import { clearUser } from '../../../store/userSlice';
-import SearchBar from '../../../components/CommonComponents/SearchBar';
 import { APP_NAV_ITEMS, navItemFromPath } from '../navConfig';
 
 interface AppShellHeaderProps {

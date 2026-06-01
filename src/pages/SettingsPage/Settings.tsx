@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Box, Typography } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import { KalaMandala } from '../../components/DecorativeComponents/KalaDecor';
 import ProfileSettings from './ProfileSettings';
 import SettingsTopNav from './SettingsTopNav';
 import NotificationsSettings from './NotificationsSettings';

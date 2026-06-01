@@ -1,8 +1,5 @@
-import React, { useState } from 'react';
-import { Box, Typography, Button, Stack } from '@mui/material';
-import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import LuggageRoundedIcon from '@mui/icons-material/LuggageRounded';
-import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
+import React from 'react';
+import { Box, Typography } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { useAppShell } from '../AppShellContext';
 
@@ -12,16 +9,9 @@ interface QuickStartStripProps {
   onVibeChange?: (vibe: string | null) => void;
 }
 
-const QuickStartStrip: React.FC<QuickStartStripProps> = ({ userName, hasTrips, onVibeChange }) => {
+const QuickStartStrip: React.FC<QuickStartStripProps> = () => {
   const navigate = useNavigate();
   const { openCreateTrip } = useAppShell();
-  const [selectedVibe, setSelectedVibe] = useState<string | null>(null);
-
-  const handleVibeSelect = (label: string) => {
-    const next = selectedVibe === label ? null : label;
-    setSelectedVibe(next);
-    onVibeChange?.(next);
-  };
 
   return (
     <Box sx={{ mb: 4, p: { xs: '28px 24px', md: '36px 40px' }, borderRadius: '20px', position: 'relative', overflow: 'hidden',
