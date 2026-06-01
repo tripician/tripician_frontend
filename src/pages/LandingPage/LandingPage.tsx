@@ -21,8 +21,6 @@ import {
   Activity,
   Sparkles,
   Download,
-  MapPin,
-  Search,
 } from 'lucide-react';
 import '../../assets/css/LandingPage.css';
 
@@ -362,7 +360,7 @@ export default function LandingPage() {
   }, [isAuthenticated, isLoading, navigate]);
   const logoFullWhiteUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_2_URL as string | undefined;
 
-  const [heroVibe, setHeroVibe] = useState<string | null>(null);
+  const [onlineCount, setOnlineCount] = useState(312);
   const [showcaseImages, setShowcaseImages] = useState<Record<number, string>>({});
   const deferredInstallPrompt = useRef<(Event & { prompt: () => Promise<void> }) | null>(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);
@@ -374,6 +372,22 @@ export default function LandingPage() {
       results.forEach(({ i, url }) => { if (url) imgs[i] = url; });
       setShowcaseImages(imgs);
     });
+  }, []);
+
+  // Capture PWA install prompt
+  useEffect(() => {
+    // Fluctuate online count between 280–490 every 4–8s
+    const tick = () => {
+      setOnlineCount(prev => {
+        const delta = Math.floor(Math.random() * 15) - 7;
+        const next = prev + delta;
+        return Math.min(490, Math.max(280, next));
+      });
+    };
+    let timer: ReturnType<typeof setTimeout>;
+    const schedule = () => { timer = setTimeout(() => { tick(); schedule(); }, 4000 + Math.random() * 4000); };
+    schedule();
+    return () => clearTimeout(timer);
   }, []);
 
   // Capture PWA install prompt
@@ -607,16 +621,6 @@ export default function LandingPage() {
           <a href="/community">Community</a>
           <a href="#how-it-works">How it works</a>
         </div>
-        <div className="lp-nav__search">
-          <Search size={15} className="lp-nav__search-icon" aria-hidden="true" />
-          <input
-            className="lp-nav__search-input"
-            type="search"
-            placeholder="Where do you want to go?"
-            aria-label="Search destinations"
-          />
-          <MapPin size={15} className="lp-nav__search-pin" aria-hidden="true" />
-        </div>
         <div className="lp-nav__actions">
           <button className="lp-btn lp-btn--ghost" onClick={() => navigate('/signin')}>Sign in</button>
           <button className="lp-btn lp-btn--primary" onClick={() => navigate('/signup')}>Get Started</button>
@@ -640,49 +644,28 @@ export default function LandingPage() {
           <div className="lp-hero__left">
             <span className="lp-hero__eyebrow">
               <span className="lp-hero__eyebrow-dot" aria-hidden="true" />
-              <Users size={13} aria-hidden="true" /> YOUR NEXT ADVENTURE
+              <Users size={13} aria-hidden="true" /> 300+ TRAVELERS & COUNTING
             </span>
 
             <h1 className="lp-hero__title">
-              {['Travel', 'with', 'people', 'who'].map((word, i) => (
+              {['Your next', 'trip', 'deserves the'].map((word, i) => (
                 <span key={i} className="word">{word}</span>
               ))}
-              <em className="word lp-hero__em">get&nbsp;you.</em>
+              <em className="word lp-hero__em">right&nbsp;crew.</em>
             </h1>
 
             <p className="lp-hero__subtitle">
-              Join 40,000+ travelers. Find your vibe, build your crew, go somewhere that actually feels like you.
+              Stop settling for whoever says yes. Find people who travel exactly like you — same vibe, same pace, same sense of wonder.
             </p>
 
-            {/* Traveler type tags — functional filters */}
-            <div className="lp-hero__vibe-tags" role="group" aria-label="Filter by travel vibe">
-              {[
-                { label: 'Culture seeker',    emoji: '🎭' },
-                { label: 'Party lover',        emoji: '🎉' },
-                { label: 'Spiritual explorer', emoji: '🧘' },
-                { label: 'Adventure junkie',   emoji: '🏔️' },
-                { label: 'Slow traveler',      emoji: '🌴' },
-                { label: 'Urban explorer',     emoji: '🏙️' },
-              ].map(({ label, emoji }) => (
-                <button
-                  key={label}
-                  className={`lp-hero__vibe-tag${heroVibe === label ? ' lp-hero__vibe-tag--active' : ''}`}
-                  onClick={() => setHeroVibe(prev => prev === label ? null : label)}
-                  role="button"
-                  tabIndex={0}
-                  aria-pressed={heroVibe === label}
-                >
-                  <span aria-hidden="true">{emoji}</span> {label}
-                </button>
-              ))}
-            </div>
+            
 
             <div className="lp-hero__cta-group">
-              <button className="lp-btn lp-btn--hero-primary" onClick={() => navigate('/signup')} aria-label="Find your travel crew — sign up">
-                Find Your Crew <ArrowRight size={17} aria-hidden="true" />
+              <button className="lp-btn lp-btn--hero-primary" onClick={() => navigate('/signup')} aria-label="Start your journey — create an account">
+                Start Your Journey <ArrowRight size={17} aria-hidden="true" />
               </button>
-              <button className="lp-btn lp-btn--hero-ghost lp-btn--hide-mobile" onClick={() => navigate('/community')} aria-label="Browse community trips">
-                Browse trips
+              <button className="lp-btn lp-btn--hero-ghost lp-btn--hide-mobile" onClick={() => navigate('/signin')} aria-label="Welcome back — sign in">
+                Welcome back
               </button>
               {showInstallBtn && (
                 <button className="lp-btn lp-btn--hero-install" onClick={handleInstallApp} aria-label="Add Tripician to Home Screen">
@@ -695,20 +678,34 @@ export default function LandingPage() {
           {/* ── RIGHT: live stats card ── */}
           <div className="lp-hero__right" aria-hidden="true">
             <div className="lp-hero__stats-card">
-              <div className="lp-hero__stats-item">
-                <span className="lp-hero__stats-emoji">🌍</span>
-                <span><strong>2,847 travelers</strong> online now</span>
+              {/* Live badge */}
+              <div className="lp-hero__stats-header">
+                <span className="lp-hero__stats-live-dot" />
+                <span className="lp-hero__stats-live-label">Live activity</span>
               </div>
-              <div className="lp-hero__stats-divider" />
-              <div className="lp-hero__stats-item">
-                <span className="lp-hero__stats-emoji">✈️</span>
-                <span><strong>143 trips</strong> happening this week</span>
+
+              {/* Three metric tiles */}
+              <div className="lp-hero__stats-grid">
+                <div className="lp-hero__stats-metric">
+                  <span className="lp-hero__stats-num">{onlineCount}</span>
+                  <span className="lp-hero__stats-lbl">online now</span>
+                </div>
+                <div className="lp-hero__stats-metric">
+                  <span className="lp-hero__stats-num">100+</span>
+                  <span className="lp-hero__stats-lbl">trips this week</span>
+                </div>
+                <div className="lp-hero__stats-metric">
+                  <span className="lp-hero__stats-num">50+</span>
+                  <span className="lp-hero__stats-lbl">countries</span>
+                </div>
               </div>
-              <div className="lp-hero__stats-divider" />
-              <div className="lp-hero__stats-item">
-                <span className="lp-hero__stats-emoji">📍</span>
-                <span>Top destination: <strong>Bali, Indonesia</strong></span>
+
+              {/* Top destination */}
+              <div className="lp-hero__stats-item" style={{ marginBottom: 12 }}>
+                <span style={{ fontSize: '0.72rem', color: 'rgba(255,255,255,0.35)', fontWeight: 500, letterSpacing: '0.04em' }}>Top destination</span>
+                <span style={{ fontSize: '0.82rem', color: '#fff', fontWeight: 600, marginLeft: 'auto' }}>Bali, Indonesia</span>
               </div>
+
               <div className="lp-hero__stats-divider" />
               <div className="lp-hero__avatar-row">
                 <div className="lp-hero__avatar-stack">
@@ -716,7 +713,7 @@ export default function LandingPage() {
                     <div key={i} className={`lp-hero__avatar lp-hero__avatar--${i + 1}`}>{initial}</div>
                   ))}
                 </div>
-                <span className="lp-hero__avatar-caption">Maya, Arjun + 12 others joined this week</span>
+                <span className="lp-hero__avatar-caption">Maya, Arjun + 8 others joined this week</span>
               </div>
             </div>
           </div>
@@ -750,7 +747,7 @@ export default function LandingPage() {
                 <div key={i} className="lp-trust-bar__avatar">{initial}</div>
               ))}
             </div>
-            <span>Joined by <strong>40,000+</strong> travelers from 120 countries</span>
+            <span>Joined by <strong>2,000+</strong> travelers from 50+ countries</span>
           </div>
           <div className="lp-trust-bar__item">
             <div className="lp-trust-bar__stars" aria-label="5 out of 5 stars">
@@ -795,10 +792,10 @@ export default function LandingPage() {
       <section className="lp-stats">
         <div className="lp-stats__grid">
           {[
-            { label: 'Trips created',     value: 1000, suffix: '+',   decimal: false },
-            { label: 'Countries covered', value: 150,  suffix: '+',   decimal: false },
-            { label: 'Happy travelers',   value: 500,  suffix: '+',   decimal: false },
-            { label: 'Avg. rating',       value: 4.9,  suffix: '\u2605', decimal: true  },
+            { label: 'Trips created',     value: 200,  suffix: '+',   decimal: false },
+            { label: 'Countries covered', value: 50,   suffix: '+',   decimal: false },
+            { label: 'Happy travelers',   value: 300, suffix: '+',   decimal: false },
+            { label: 'Avg. rating',       value: 4.8,  suffix: '\u2605', decimal: true  },
           ].map((s, i) => (
             <div key={i} className="lp-stat">
               <div

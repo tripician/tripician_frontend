@@ -20,7 +20,7 @@ import TripSettingsDialog from './TripSettingsDialog';
 import DestinationsPanel, { type DestinationRow } from './DestinationsPanel';
 import DestinationCardsPanel from './DestinationCardsPanel';
 import ExpensesPanel from './ExpensesPanel';
-import TripComments from './TripComments';
+import TripChatPanel from '../../navia/TripChatPanel';
 import PackingPanel from './PackingPanel';
 import MapDrawer from './MapDrawer';
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
@@ -266,7 +266,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 			width: collapsed ? 44 : panelWidth,
 			flexShrink: 0,
 			height: '100%',
-			display: 'flex',
+			display: { xs: 'flex', lg: 'none' },
 			flexDirection: 'column',
 			borderLeft: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.07)'}`,
 			background: isLight ? '#ffffff' : '#0e1012',
@@ -290,11 +290,11 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 
 			{collapsed ? (
 				/* -- Collapsed strip -- */
-				<Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1.5, pt: 1.5 }}>
+				<Box sx={{ flex: 1, display: { xs: 'flex', lg: 'none' }, flexDirection: 'column', alignItems: 'center', gap: 1.5, pt: 1.5 }}>
 					<Box sx={{
 						width: 28, height: 28, borderRadius: '8px', flexShrink: 0,
 						background: 'linear-gradient(135deg,#FF385C 0%,#D91A50 100%)',
-						display: 'flex', alignItems: 'center', justifyContent: 'center',
+						display: { xs: 'flex', lg: 'none' }, alignItems: 'center', justifyContent: 'center',
 						boxShadow: '0 2px 8px rgba(255,56,92,0.35)',
 						cursor: 'pointer',
 					}} onClick={() => setCollapsed(false)}>
@@ -315,7 +315,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 					{/* -- Header -- */}
 					<Box sx={{
 						px: 2, py: 1.25,
-						display: 'flex', alignItems: 'center', gap: 1.25,
+						display: { xs: 'flex', lg: 'none' }, alignItems: 'center', gap: 1.25,
 						borderBottom: `1px solid ${isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.06)'}`,
 						background: isLight ? 'rgba(255,255,255,0.98)' : 'rgba(14,16,18,0.98)',
 						backdropFilter: 'blur(8px)',
@@ -325,7 +325,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 						<Box sx={{
 							width: 32, height: 32, borderRadius: '10px', flexShrink: 0,
 							background: 'linear-gradient(135deg,#FF385C 0%,#D91A50 100%)',
-							display: 'flex', alignItems: 'center', justifyContent: 'center',
+							display: { xs: 'flex', lg: 'none' }, alignItems: 'center', justifyContent: 'center',
 							boxShadow: '0 3px 12px rgba(255,56,92,0.40)',
 						}}>
 							<Box component='svg' viewBox='0 0 24 24' sx={{ width: 16, height: 16 }}>
@@ -336,7 +336,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 							<Typography sx={{ fontWeight: 800, fontSize: 14, lineHeight: 1, color: isLight ? '#0d0d0d' : '#f0f0f0', fontFamily: 'inherit', letterSpacing: -0.3 }}>
 								Navia
 							</Typography>
-							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.3 }}>
+							<Box sx={{ display: { xs: 'flex', lg: 'none' }, alignItems: 'center', gap: 0.5, mt: 0.3 }}>
 								<Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#22c55e', boxShadow: '0 0 5px rgba(34,197,94,0.7)' }} />
 								<Typography sx={{ fontSize: 10.5, color: isLight ? 'rgba(0,0,0,0.50)' : 'rgba(255,255,255,0.45)', fontWeight: 500, fontFamily: 'inherit', letterSpacing: 0.2 }}>
 									AI Travel Assistant
@@ -354,13 +354,13 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 					{/* -- Messages area -- */}
 					<Box sx={{
 						flex: 1, overflowY: 'auto', px: 1.75, py: 1.5,
-						display: 'flex', flexDirection: 'column', gap: 1.25,
+						display: { xs: 'flex', lg: 'none' }, flexDirection: 'column', gap: 1.25,
 						'&::-webkit-scrollbar': { width: 4 },
 						'&::-webkit-scrollbar-thumb': { borderRadius: 3, background: isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.10)' },
 						'&::-webkit-scrollbar-track': { background: 'transparent' },
 					}}>
 						{messages.length === 0 && (
-							<Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.5, pb: 2, mt: 4 }}>
+							<Box sx={{ flex: 1, display: { xs: 'flex', lg: 'none' }, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 1.5, pb: 2, mt: 4 }}>
 								<Box component='svg' viewBox='0 0 40 40' sx={{ width: 40, height: 40, opacity: 0.28, color: isLight ? 'rgba(0,0,0,0.4)' : 'rgba(255,255,255,0.35)' }}>
 									<circle cx='20' cy='20' r='18' fill='none' stroke='currentColor' strokeWidth='1.5'/>
 									<circle cx='20' cy='20' r='2' fill='currentColor'/>
@@ -384,7 +384,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 					{messages.length === 0 && (
 						<Box sx={{
 							px: 1.5, py: 0.75,
-							display: 'flex', flexDirection: 'column', gap: 0.5,
+							display: { xs: 'flex', lg: 'none' }, flexDirection: 'column', gap: 0.5,
 							borderTop: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.05)'}`,
 							flexShrink: 0,
 						}}>
@@ -422,7 +422,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 						flexShrink: 0,
 					}}>
 						<Box sx={{
-							display: 'flex', alignItems: 'flex-end', gap: 0.75,
+							display: { xs: 'flex', lg: 'none' }, alignItems: 'flex-end', gap: 0.75,
 							border: `1.5px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)'}`,
 							borderRadius: '12px', px: 1.5, py: 0.75,
 							background: isLight ? '#fafafa' : 'rgba(255,255,255,0.03)',
@@ -918,6 +918,18 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	// Support direct page reload without location.state by performing a fallback fetch.
 	const [remoteTrip, setRemoteTrip] = React.useState<any|null>(null);
 	const [tripUsers, setTripUsers] = React.useState<any[]>([]); // authoritative members list from /trips/{id}/users
+
+	// Re-fetch the trip from the server and force re-hydration (used after Navia mutations).
+	const refreshTripFromServer = React.useCallback(async () => {
+		if (!authToken || !tripId) return;
+		try {
+			const resp = await apiServices.getTripById(authToken, tripId);
+			if (resp?.data) {
+				hydratedRef.current = null; // allow re-hydration
+				setRemoteTrip({ ...resp.data, _refreshed: Date.now() });
+			}
+		} catch { /* silent */ }
+	}, [authToken, tripId]);
 	const unifiedTrip = React.useMemo(()=> {
 		return normalizedInitial || (remoteTrip ? normalizeTrip(remoteTrip) : null);
 	}, [normalizedInitial, remoteTrip]); // naming retained for downstream references
@@ -1948,7 +1960,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 							</Tabs>
 							<Tooltip title={`${totalNights} of ${targetNights} nights planned`} arrow placement='bottom'>
 							<Box sx={(t) => ({
-								position: 'relative', display: 'flex', alignItems: 'center', gap: .55,
+								position: 'relative', display: { xs: 'flex', lg: 'none' }, alignItems: 'center', gap: .55,
 								px: 1.1, height: 32, borderRadius: '20px', overflow: 'hidden', cursor: 'default', flexShrink: 0,
 								border: `1px solid ${totalNights >= targetNights && targetNights > 0 ? 'rgba(255,56,92,0.45)' : t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
 								bgcolor: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
@@ -1963,7 +1975,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 									pointerEvents: 'none',
 								}} />
 								<NightsStayRoundedIcon sx={{ fontSize: 13, color: '#FF385C', position: 'relative', zIndex: 1, flexShrink: 0 }} />
-								<Box sx={{ display: 'flex', alignItems: 'baseline', gap: .3, position: 'relative', zIndex: 1 }}>
+								<Box sx={{ display: { xs: 'flex', lg: 'none' }, alignItems: 'baseline', gap: .3, position: 'relative', zIndex: 1 }}>
 									<Typography sx={{ fontSize: 13, fontWeight: 700, lineHeight: 1, color: 'text.primary' }}>
 										{totalNights}
 									</Typography>
@@ -2075,7 +2087,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						<Divider />
 						{/* -- Floating board tools: Map + Optimize -- */}
 						{section === 'plan' && (
-							<Box sx={{ position: 'absolute', bottom: 72, left: 16, zIndex: 10, display: 'flex', flexDirection: 'column', gap: .85 }}>
+							<Box sx={{ position: 'absolute', bottom: 72, left: 16, zIndex: 10, display: { xs: 'flex', lg: 'none' }, flexDirection: 'column', gap: .85 }}>
 								<Tooltip title='View map' placement='right' arrow>
 									<IconButton
 										onClick={() => setMapDrawerOpen(true)}
@@ -2161,7 +2173,18 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 								</Box>
 							)}
 								{section==='plan' && tab===1 && ENABLE_EXPENSES && <ExpensesPanel readOnly={readOnly} />}
-								{section==='plan' && tab===2 && ENABLE_COMMENTS && <TripComments tripId={tripId} authToken={authToken} />}
+								{section==='plan' && tab===2 && ENABLE_COMMENTS && (
+									<Box sx={{ flex: 1, minHeight: 0, display: { xs: 'flex', lg: 'none' }, flexDirection: 'column', overflow: 'hidden', borderRadius: '12px', mx: 0, my: 1 }}>
+										<TripChatPanel
+												tripId={tripId}
+												token={authToken}
+												members={tripUsers.map((u: any) => ({ id: u.id, name: u.name || u.displayName || '', profilePictureUrl: u.profilePictureUrl || u.ProfilePictureUrl || null }))}
+												myUserId={userProfile?.id ? Number(userProfile.id) : null}
+												inline
+												onTripUpdated={refreshTripFromServer}
+											/>
+									</Box>
+								)}
 						</Box>
 					</Box>
 					)}
@@ -2194,33 +2217,47 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 							</Box>
 						</Box>
 					)}
-					</Box>{/* end centre column */}
-				{/* Right panel � Navia for owners/editors, trip info for public viewers */}
-				{(!readOnly && effectiveCanEdit) ? (
-					<Box sx={{ display: { xs: 'none', lg: 'flex' }, alignSelf: 'stretch', overflow: 'hidden', flexShrink: 0 }}>
-						<PremiumChatPanel naviaHook={naviaHook} />
-					</Box>
-				) : (
-					<Box sx={{ display: { xs: 'none', lg: 'flex' }, flexDirection: 'column', alignSelf: 'stretch', flex: '0 0 auto' }}>
-					<TripViewPanel
-						tripId={tripId}
-						title={title}
-						description={tripDescription}
-						bannerUrl={bannerUrl}
-						countries={countries}
-						tripUsers={tripUsers}
-						ownerInfo={ownerInfo}
-						startDate={unifiedTrip?.meta.startDate ?? null}
-						endDate={unifiedTrip?.meta.endDate ?? null}
-						totalNights={totalNights}
-						destinationCount={planner.destinations.length}
-						showEditAction={showViewEditAction}
-						isPublished={!isDraft}
-						onRequestEdit={onRequestEdit}
-						onShare={() => setShareModalOpen(true)}
-					/>
-					</Box>
-				)}
+                                    </Box>{/* end centre column */}
+                                            {/* Right panel — Trip Chat for editors, Trip Info for viewers */}
+                                            {(!readOnly && effectiveCanEdit) ? (
+                                                    <Box sx={(t) => ({
+                                                            display: { xs: 'none', lg: 'flex' },
+                                                            flexDirection: 'column',
+                                                            alignSelf: 'stretch',
+                                                            width: 340,
+                                                            flexShrink: 0,
+                                                            height: '100%',
+                                                            overflow: 'hidden',
+                                                            borderLeft: `1px solid ${t.palette.divider}`,
+                                                    })}>
+                                                            <TripChatPanel
+                                                                   tripId={tripId}
+                                                                   token={authToken}
+                                                                   members={tripUsers.map((u: any) => ({ id: u.id, name: u.name || u.displayName || '', profilePictureUrl: u.profilePictureUrl || u.ProfilePictureUrl || null }))}
+                                                                   myUserId={userProfile?.id ? Number(userProfile.id) : null}
+                                                            />
+                                                    </Box>
+                                            ) : (
+                                                    <Box sx={{ display: { xs: 'none', lg: 'flex' }, flexDirection: 'column', alignSelf: 'stretch', flex: '0 0 auto' }}>
+                                                    <TripViewPanel
+                                                                   tripId={tripId}
+                                                                   title={title}
+                                                                   description={tripDescription}
+                                                                   bannerUrl={bannerUrl}
+                                                                   countries={countries}
+                                                                   tripUsers={tripUsers}
+                                                                   ownerInfo={ownerInfo}
+                                                                   startDate={unifiedTrip?.meta.startDate ?? null}
+                                                                   endDate={unifiedTrip?.meta.endDate ?? null}
+                                                                   totalNights={totalNights}
+                                                                   destinationCount={planner.destinations.length}
+                                                                   showEditAction={showViewEditAction}
+                                                                   isPublished={!isDraft}
+                                                                   onRequestEdit={onRequestEdit}
+                                                                   onShare={() => setShareModalOpen(true)}
+                                                    />
+                                                    </Box>
+                                            )}
 		</Box>
 		{/* Mobile Navia FAB (visible only on xs/sm) */}
 		{(!readOnly && effectiveCanEdit) && (
@@ -2247,15 +2284,22 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			sx={{ display: { xs: 'block', lg: 'none' } }}
 			slotProps={{ paper: { sx: { height: '75vh', borderRadius: '16px 16px 0 0', overflow: 'hidden', background: 'transparent', boxShadow: 'none' } } }}
 		>
-			<Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: 'background.paper', borderRadius: '16px 16px 0 0' }}>
-				<Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1.25, borderBottom: '1px solid', borderColor: 'divider' }}>
-					<Typography sx={{ fontWeight: 700, fontSize: 15 }}>Ask Navia</Typography>
+			<Box sx={{ height: '100%', display: { xs: 'flex', lg: 'none' }, flexDirection: 'column', overflow: 'hidden', bgcolor: 'background.paper', borderRadius: '16px 16px 0 0' }}>
+				<Box sx={{ display: { xs: 'flex', lg: 'none' }, alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1.25, borderBottom: '1px solid', borderColor: 'divider' }}>
+					<Typography sx={{ fontWeight: 700, fontSize: 15 }}>Trip Chat</Typography>
 					<IconButton size='small' onClick={() => setNaviaDrawerOpen(false)}><CloseIcon fontSize='small' /></IconButton>
 				</Box>
 				<Box sx={{ flex: 1, overflow: 'hidden' }}>
-					<PremiumChatPanel naviaHook={naviaHook} />
+					<TripChatPanel
+						tripId={tripId}
+						token={authToken}
+						members={tripUsers.map((u: any) => ({ id: u.id, name: u.name || u.displayName || '', profilePictureUrl: u.profilePictureUrl || u.ProfilePictureUrl || null }))}
+						myUserId={userProfile?.id ? Number(userProfile.id) : null}
+						onTripUpdated={refreshTripFromServer}
+					/>
 				</Box>
-			</Box>
+				</Box>
+
 		</Drawer>
 				{canAccessDocs && ENABLE_DOC_UPLOAD && (
 				<Dialog open={visaOpen} onClose={()=> setVisaOpen(false)} fullWidth maxWidth='sm'>
@@ -2526,14 +2570,14 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				sx={{
 					position: 'fixed', inset: 0, zIndex: 9999,
 					background: 'rgba(13,13,13,0.97)',
-					display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
+					display: { xs: 'flex', lg: 'none' }, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
 					cursor: 'pointer',
 					'@keyframes celebFadeIn': { from: { opacity: 0, transform: 'scale(0.96)' }, to: { opacity: 1, transform: 'scale(1)' } },
 					animation: 'celebFadeIn 0.35s ease forwards',
 				}}
 			>
 				{/* Tripician logo mark */}
-				<Box sx={{ width: 56, height: 56, borderRadius: '16px', background: 'linear-gradient(135deg,#FF385C,#E31C5F)', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5, boxShadow: '0 8px 32px rgba(255,56,92,0.45)' }}>
+				<Box sx={{ width: 56, height: 56, borderRadius: '16px', background: 'linear-gradient(135deg,#FF385C,#E31C5F)', display: { xs: 'flex', lg: 'none' }, alignItems: 'center', justifyContent: 'center', mb: 0.5, boxShadow: '0 8px 32px rgba(255,56,92,0.45)' }}>
 					<Typography sx={{ fontSize: 26, color: '#fff', fontWeight: 800, fontFamily: "'Playfair Display', serif", fontStyle: 'italic', lineHeight: 1 }}>T</Typography>
 				</Box>
 				<Typography sx={{ fontSize: { xs: '1.6rem', sm: '2.2rem' }, fontWeight: 700, color: '#fff', textAlign: 'center', fontFamily: "'Playfair Display', serif", lineHeight: 1.15 }}>
@@ -2543,7 +2587,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					{title}
 				</Typography>
 				<Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', mt: 2 }}>Click anywhere to dismiss</Typography>
-				<Box sx={{ display: 'flex', gap: 1.5, mt: 1 }} onClick={e => e.stopPropagation()}>
+				<Box sx={{ display: { xs: 'flex', lg: 'none' }, gap: 1.5, mt: 1 }} onClick={e => e.stopPropagation()}>
 					<Button
 						variant='contained'
 						startIcon={<ShareRoundedIcon />}
