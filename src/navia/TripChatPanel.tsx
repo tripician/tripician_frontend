@@ -25,7 +25,6 @@ import {
   CircularProgress,
   Tooltip,
   Fade,
-  Divider,
 } from '@mui/material';
 import { useTheme } from '@mui/material/styles';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
@@ -487,7 +486,12 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
                 isLight={isLight}
                 onAccept={async () => {
                   const pid = await resolveProposalId(msg.id);
-                  if (pid != null) acceptProposalMsg(msg.id, pid);
+                  if (pid != null) {
+                    await acceptProposalMsg(msg.id, pid);
+                    // Trigger immediate refresh of the left planning panel
+                    // (don't wait only for the SignalR System message)
+                    onTripUpdated?.();
+                  }
                 }}
                 onReject={async () => {
                   const pid = await resolveProposalId(msg.id);

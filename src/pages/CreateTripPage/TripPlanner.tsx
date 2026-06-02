@@ -50,9 +50,9 @@ import SoonTag from '../../components/CommonComponents/SoonTag';
 import TripShareModal from '../../components/TripShareModal';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
 import { apiServices } from '../../services/APIs/apiServices';
-import { useAuthToken } from '../../hooks/useAuth0Token';
 import { useNavia, type UseNaviaReturn } from '../../navia/useNavia';
 import NaviaMessage from '../../navia/NaviaMessage';
+import { useAuthToken } from '../../hooks/useAuth0Token';
 import { normalizeTrip, type NormalizedTrip } from '../../utils/normalizeTrip';
 import { countryNameFromCode } from '../../utils/countryFlags';
 import { differenceInDays } from 'date-fns';
@@ -476,6 +476,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 		</Box>
 	);
 };
+void PremiumChatPanel;
 
 /* --- Public / View-Mode Info Panel --- */
 interface TripViewPanelProps {
@@ -903,9 +904,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const navigate = useNavigate();
 	const planner = useSelector((s:RootState)=> s.planner);
 	const docsState = useSelector((s:RootState)=> s.docs);
-		const auth = useAuthToken();
-		const authToken = auth.token; // string | null
+	const auth = useAuthToken();
+	const authToken = auth.token; // string | null
 	const naviaHook = useNavia(tripId, authToken);
+	void naviaHook;
 
 	// Normalize initial trip (stable backend shape: { trip, itinerary })
 		const normalizedInitial = React.useMemo<NormalizedTrip | null>(() => initialTrip ? normalizeTrip(initialTrip) : null, [initialTrip]);
@@ -918,6 +920,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	// Support direct page reload without location.state by performing a fallback fetch.
 	const [remoteTrip, setRemoteTrip] = React.useState<any|null>(null);
 	const [tripUsers, setTripUsers] = React.useState<any[]>([]); // authoritative members list from /trips/{id}/users
+	const remoteRefreshKeyRef = React.useRef(0);
 
 	// Re-fetch the trip from the server and force re-hydration (used after Navia mutations).
 	const refreshTripFromServer = React.useCallback(async () => {
@@ -925,13 +928,21 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		try {
 			const resp = await apiServices.getTripById(authToken, tripId);
 			if (resp?.data) {
+				remoteRefreshKeyRef.current += 1;
 				hydratedRef.current = null; // allow re-hydration
-				setRemoteTrip({ ...resp.data, _refreshed: Date.now() });
+				setRemoteTrip({ ...resp.data, _refreshed: remoteRefreshKeyRef.current });
+				// Commit snapshot after a server-driven refresh so the planner is not
+				// considered dirty (which would cause the next save to push stale data
+				// back and overwrite Navia-added destinations).
+				// requestAnimationFrame ensures Redux has re-rendered with the new state.
+				requestAnimationFrame(() => {
+					lastCommittedRef.current = computeSignatureRef.current();
+				});
 			}
 		} catch { /* silent */ }
 	}, [authToken, tripId]);
 	const unifiedTrip = React.useMemo(()=> {
-		return normalizedInitial || (remoteTrip ? normalizeTrip(remoteTrip) : null);
+		return remoteTrip ? normalizeTrip(remoteTrip) : normalizedInitial;
 	}, [normalizedInitial, remoteTrip]); // naming retained for downstream references
 	const hydratedRef = React.useRef<string | null>(null);
 	const cleanedNotesRef = React.useRef(false);
@@ -1133,9 +1144,12 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		const { meta, itinerary } = unifiedTrip;
 		// Allow re-hydration if the incoming data has more stops than what was previously loaded
 		// (e.g. Dashboard passes no itinerary, then remoteTrip arrives with the full list)
+		const refreshKey = Number((unifiedTrip.raw as any)?._refreshed ?? 0);
 		if (hydratedRef.current && hydratedRef.current.startsWith(meta.id + ':')) {
-			const prevCount = parseInt(hydratedRef.current.split(':')[1] || '0', 10);
-			if (prevCount >= itinerary.length) return;
+			const [, prevCountRaw, prevRefreshRaw] = hydratedRef.current.split(':');
+			const prevCount = parseInt(prevCountRaw || '0', 10);
+			const prevRefreshKey = parseInt(prevRefreshRaw || '0', 10);
+			if (prevRefreshKey >= refreshKey && prevCount >= itinerary.length) return;
 		}
 		if (title === 'Untitled Trip') setTitle(meta.name);
 		// hydrate notes (fallback to meta.importantNotes or meta.notes if present)
@@ -1265,7 +1279,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			expenseVisibilityEmails: [],
 			comments: []
 		}));
-		hydratedRef.current = `${meta.id}:${itinerary.length}`;
+		hydratedRef.current = `${meta.id}:${itinerary.length}:${refreshKey}`;
 		// Commit initial snapshot after first hydration.
 		// Use computeSignatureRef (not the closure-captured computeSignature) so the rAF
 		// always reads the latest signature AFTER React re-renders from the dispatch above.
@@ -1678,6 +1692,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		if(saving || (now - lastSaveTs) < 1200) return false;
 		setSaving(true);
 		setLastSaveTs(now);
+		// Snapshot the refresh key before the async save. If a Navia mutation triggers
+		// refreshTripFromServer() during the save, remoteRefreshKeyRef.current will be
+		// incremented and we must NOT overwrite remoteTrip with the stale payload data.
+		const refreshKeyAtSaveStart = remoteRefreshKeyRef.current;
 		try {
 			// Detailed logging for debugging prod 500s
 			try {
@@ -1696,8 +1714,16 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			await apiServices.updateTrip(authToken, tripId, payload);
 			// success log
 			console.info('[TripPersist] updateTrip succeeded for', tripId);
-			// Update in-memory remoteTrip so navigation without initialTrip still reflects latest
-			setRemoteTrip({ trip: payload.trip, itinerary: payload.itinerary });
+			// Only update in-memory remoteTrip if no server-side Navia refresh ran while
+			// the save was in-flight. If refreshTripFromServer() incremented the key, the
+			// authoritative data is already in remoteTrip and must not be overwritten with
+			// the stale payload (which would delete the Navia-added destination from Redux
+			// and trigger a follow-up save that would delete it from the DB too).
+			if (remoteRefreshKeyRef.current === refreshKeyAtSaveStart) {
+				setRemoteTrip({ trip: payload.trip, itinerary: payload.itinerary });
+			} else {
+				console.debug('[TripPersist] Skipping remoteTrip overwrite — server refresh happened during save (refreshKey changed).');
+			}
 			setLastSavedDisplay(new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' }));
 			openToast('success', payload.trip.status==='DRAFT'? 'Saved':'Trip updated');
 			return true;
@@ -2235,6 +2261,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
                                                                    token={authToken}
                                                                    members={tripUsers.map((u: any) => ({ id: u.id, name: u.name || u.displayName || '', profilePictureUrl: u.profilePictureUrl || u.ProfilePictureUrl || null }))}
                                                                    myUserId={userProfile?.id ? Number(userProfile.id) : null}
+                                                                   onTripUpdated={refreshTripFromServer}
                                                             />
                                                     </Box>
                                             ) : (

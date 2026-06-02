@@ -18,7 +18,6 @@ import {
   Bot,
   Shield,
   Zap,
-  Activity,
   Sparkles,
   Download,
 } from 'lucide-react';
@@ -36,14 +35,14 @@ const FEATURES = [
   },
   {
     icon: <Users size={26} />,
-    title: 'Trip Sharing & Collaboration',
-    desc: 'Invite friends and family to your trip with shareable links. Assign roles, co-plan the itinerary together, and keep everyone on the same page — no WhatsApp chaos required.',
+    title: 'Group Chat + AI Co-Planning',
+    desc: 'Every trip gets a shared chat where friends, family, and Navia plan together. Type @navia to propose changes, discuss them, and apply updates to the itinerary.',
     accent: '#FF385C',
   },
   {
     icon: <Bot size={26} />,
-    title: 'AI Trip Assistant',
-    desc: 'Navia is your AI-powered planning companion inside every trip. Ask anything — routes, hidden gems, packing tips, local culture — and get smart, personalised answers instantly.',
+    title: "World's First Agentic Travel AI",
+    desc: 'Navia does more than answer questions. It reads your trip context, suggests edits, creates proposals, and helps your group turn chat into a living travel plan.',
     accent: '#FF385C',
   },
   {
@@ -54,8 +53,8 @@ const FEATURES = [
   },
   {
     icon: <Brain size={26} />,
-    title: 'AI Trip Assistant',
-    desc: 'Get personalised suggestions powered by AI — tailored to your travel vibe. Discover hidden gems, local experiences, and smarter routes.',
+    title: 'Context-Aware Trip Intelligence',
+    desc: 'Get personalised suggestions tailored to your travel vibe, budget, dates, destinations, and group decisions.',
     accent: '#007ddc',
   },
   {
@@ -87,15 +86,15 @@ const STEPS = [
   },
   {
     num: '02',
-    title: 'Build your trip plan',
-    desc: 'Use the AI-powered collaborative planning board. Build your itinerary day by day, then publish your plan to attract the right co-travelers.',
-    tag: 'AI-powered',
+    title: 'Let Navia draft the plan',
+    desc: "Use the world's first Agentic Travel AI to turn one prompt into a day-by-day itinerary, route ideas, budget-aware suggestions, and editable trip proposals.",
+    tag: 'Agentic AI',
   },
   {
     num: '03',
-    title: 'Share & invite your crew',
-    desc: 'Share your trip with a link. Invite co-planners by role — they can edit destinations, add notes, and build the itinerary together. Or publish your plan to the community feed.',
-    tag: 'Collaboration',
+    title: 'Plan in group chat',
+    desc: 'Invite your crew, message in one shared trip chat, and summon @navia whenever the group needs alternate routes, destination ideas, or changes applied to the plan.',
+    tag: 'Group chat',
   },
   {
     num: '04',
@@ -166,29 +165,30 @@ const TICKER_ITEMS = [
   '🏜 Sahara', '🐘 Kenya', '🌺 Hawaii', '🏯 Kyoto', '🛶 Amazon',
 ];
 
-type AgentStepType = 'user' | 'think' | 'ai' | 'alert' | 'plan' | 'done';
-interface AgentStep { type: AgentStepType; text?: string; days?: string[]; }
+type AgentStepType = 'user' | 'think' | 'proposal' | 'system' | 'done';
+interface AgentStep { type: AgentStepType; text?: string; operations?: string[]; }
 
 const AGENT_STEPS: AgentStep[] = [
-  { type: 'user',  text: 'Plan a 10-day Japan trip for 2. Budget $3,000.' },
-  { type: 'think', text: 'Processing 12M+ data points — flights, hotels, activities...' },
-  { type: 'ai',    text: '✈️  Optimal routes found · Tokyo → Kyoto → Osaka · $1,240/person' },
-  { type: 'alert', text: '⚠️  Risk Monitor: Typhoon advisory near Mt. Fuji (moderate)' },
-  { type: 'ai',    text: '🏨  14 hotels matched · avg. ¥18,000/night · Budget on track' },
-  { type: 'ai',    text: '📅  Building your 10-day itinerary · 32 curated stops added' },
-  { type: 'plan',  days: ['Day 1–3 · Tokyo Arrival & Shinjuku Nights', 'Day 4 · Mt. Fuji — safe alternate route', 'Day 5–7 · Kyoto Temples & Arashiyama', 'Day 8 · Nara Deer Park Day Trip', 'Day 9–10 · Osaka Street Food & Farewell'] },
-  { type: 'done',  text: '✅  Trip ready — $2,847 / person · $153 saved vs. average' },
+  { type: 'user', text: '@navia should we add Paris to this Europe trip?' },
+  { type: 'think', text: 'Navia is analysing your route, dates, budget, and group preferences...' },
+  {
+    type: 'proposal',
+    text: 'Paris fits your current itinerary between Amsterdam and Rome. Should I add "Paris" as a destination?',
+    operations: ['+ Paris'],
+  },
+  { type: 'system', text: 'Paris added to trip' },
+  { type: 'done', text: 'Destination added. Your itinerary is now updated for the whole group.' },
 ];
 
 function AgentDemoWidget() {
   const [visible, setVisible] = useState(0);
   useEffect(() => {
-    const DELAYS = [0, 900, 1800, 2600, 3400, 4200, 5100, 6000];
+    const DELAYS = [0, 900, 1900, 3600, 4700];
     const timers: ReturnType<typeof setTimeout>[] = [];
     function cycle() {
       setVisible(0);
       DELAYS.forEach((d, i) => timers.push(setTimeout(() => setVisible(i + 1), d + 300)));
-      timers.push(setTimeout(cycle, 10800));
+      timers.push(setTimeout(cycle, 8200));
     }
     const init = setTimeout(cycle, 600);
     timers.push(init);
@@ -201,7 +201,7 @@ function AgentDemoWidget() {
         <span className="lp-agent-window__dot" style={{ background: '#ff5f57' }} />
         <span className="lp-agent-window__dot" style={{ background: '#febc2e' }} />
         <span className="lp-agent-window__dot" style={{ background: '#28c840' }} />
-        <span className="lp-agent-window__title"><Sparkles size={11} /> Navia — AI Trip Agent</span>
+        <span className="lp-agent-window__title"><Sparkles size={11} /> Navia - Agentic Travel AI</span>
       </div>
       <div className="lp-agent-window__body">
         {AGENT_STEPS.map((step, i) => (
@@ -212,7 +212,7 @@ function AgentDemoWidget() {
                 <span>{step.text}</span>
               </div>
             )}
-            {(step.type === 'ai' || step.type === 'done') && (
+            {step.type === 'done' && (
               <div className="lp-agent-bubble lp-agent-bubble--ai">
                 <span className="lp-agent-avatar lp-agent-avatar--n">N</span>
                 <span>{step.text}</span>
@@ -225,20 +225,42 @@ function AgentDemoWidget() {
                 <span style={{ opacity: .7, fontSize: 12 }}>{step.text}</span>
               </div>
             )}
-            {step.type === 'alert' && (
-              <div className="lp-agent-bubble lp-agent-bubble--alert">
-                <span>{step.text}</span>
+            {step.type === 'proposal' && (
+              <div className={`lp-agent-proposal${visible > i + 1 ? ' lp-agent-proposal--accepted' : ''}`}>
+                <div className="lp-agent-proposal__row">
+                  <span className="lp-agent-avatar lp-agent-avatar--n">N</span>
+                  <div className="lp-agent-proposal__card">
+                    <div className="lp-agent-proposal__head">
+                      <Sparkles size={14} />
+                      Navia Suggestion
+                    </div>
+                    <p>{step.text}</p>
+                    <div className="lp-agent-proposal__chips">
+                      {step.operations?.map((op, j) => <span key={j}>{op}</span>)}
+                    </div>
+                    <div className="lp-agent-proposal__actions">
+                      <button type="button" className="lp-agent-proposal__accept">
+                        <Check size={14} />
+                        {visible > i + 1 ? 'Accepted' : 'Accept'}
+                      </button>
+                      <button type="button" className="lp-agent-proposal__reject">Reject</button>
+                    </div>
+                  </div>
+                </div>
               </div>
             )}
-            {step.type === 'plan' && (
-              <div className="lp-agent-plan-card">
-                <div className="lp-agent-plan-card__head">📍 10-Day Japan Itinerary</div>
-                {step.days?.map((d, j) => (
-                  <div key={j} className="lp-agent-plan-card__day">
-                    <span className="lp-agent-plan-card__dot" />
-                    {d}
+            {step.type === 'system' && (
+              <div className="lp-agent-system">
+                <div className="lp-agent-system__card">
+                  <div className="lp-agent-system__head">
+                    <Check size={13} />
+                    Trip Updated
                   </div>
-                ))}
+                  <div className="lp-agent-system__result">
+                    <Check size={13} />
+                    <span>{step.text}</span>
+                  </div>
+                </div>
               </div>
             )}
           </div>
@@ -644,7 +666,7 @@ export default function LandingPage() {
           <div className="lp-hero__left">
             <span className="lp-hero__eyebrow">
               <span className="lp-hero__eyebrow-dot" aria-hidden="true" />
-              <Users size={13} aria-hidden="true" /> 300+ TRAVELERS & COUNTING
+              <Bot size={13} aria-hidden="true" /> WORLD'S FIRST AGENTIC TRAVEL AI
             </span>
 
             <h1 className="lp-hero__title">
@@ -655,7 +677,7 @@ export default function LandingPage() {
             </h1>
 
             <p className="lp-hero__subtitle">
-              Stop settling for whoever says yes. Find people who travel exactly like you — same vibe, same pace, same sense of wonder.
+              Plan with Navia and your crew in one shared trip chat. Ask, debate, approve, and turn group decisions into a live itinerary.
             </p>
 
             
@@ -766,17 +788,18 @@ export default function LandingPage() {
       <section className="lp-ai-agent" id="ai-agent">
         <div className="lp-ai-agent__inner">
           <div className="lp-ai-agent__text">
-            <span className="lp-section-eyebrow">The only AI that truly plans for you</span>
-            <h2 className="lp-section-title">Meet Navia,<br />your AI Trip Assistant</h2>
+            <span className="lp-section-eyebrow">World's first Agentic Travel AI</span>
+            <h2 className="lp-section-title">
+              Meet Navia,<br />your <span className="lp-ai-agent__title-highlight">AI trip agent</span> in group chat
+            </h2>
             <p className="lp-ai-agent__desc">
-              Most travel AI gives you a list of suggestions. Navia <em>converses</em> — ask anything about your trip, your destinations, or your itinerary and get smart, context-aware answers.
-              It flags real-time risks, suggests hidden gems, and helps your whole group make better decisions before and during travel.
+              Most travel AI gives you a list of suggestions. Navia <em>acts inside your planner</em> - joining the group chat, reading trip context, proposing itinerary changes, and helping your crew make decisions together.
             </p>
             <ul className="lp-ai-agent__bullets">
-              <li><Bot size={15} /> Conversational trip planning from a single message</li>
+              <li><Bot size={15} /> Summon @navia directly in trip group chat</li>
+              <li><Users size={15} /> Turns crew preferences into shared trip proposals</li>
               <li><Shield size={15} /> Integrated live risk &amp; weather monitoring</li>
-              <li><Zap size={15} /> Suggests optimised routes &amp; local experiences</li>
-              <li><Activity size={15} /> Available inside every trip you create</li>
+              <li><Zap size={15} /> Applies accepted changes to the live itinerary</li>
             </ul>
             <button className="lp-btn lp-btn--hero-primary" onClick={() => navigate('/signup')}>
               Try Navia for Free <ArrowRight size={16} />
@@ -901,12 +924,13 @@ export default function LandingPage() {
           </div>
           {/* Agent - violet, span 3 */}
           <div className="lp-bento-card lp-bento-card--agent">
-            <span className="lp-bento-card__tag">AI-Powered</span>
-            <h3>Agentic AI Planner</h3>
-            <p>Navia doesn't wait for instructions {"\u2014"} it autonomously builds, adjusts, and optimizes your entire itinerary from a single prompt.</p>
+            <span className="lp-bento-card__tag">World First</span>
+            <h3>Agentic AI + Group Chat</h3>
+            <p>Navia joins the trip conversation, understands each traveler, proposes itinerary edits, and applies approved changes to the shared plan.</p>
             <div className="lp-bento-agent-preview">
-              <div className="lp-bento-agent-msg lp-bento-agent-msg--user">Plan 10-day Japan trip under $2k</div>
-              <div className="lp-bento-agent-msg lp-bento-agent-msg--ai">{"\u2713"} Drafting your itinerary{"\u2026"}</div>
+              <div className="lp-bento-agent-msg lp-bento-agent-msg--member">Maya: less walking on Day 4?</div>
+              <div className="lp-bento-agent-msg lp-bento-agent-msg--user">@navia adjust Fuji day for the group</div>
+              <div className="lp-bento-agent-msg lp-bento-agent-msg--ai">Proposal ready: safer route + slower pace</div>
             </div>
             <span className="lp-bento-card__deco-icon" aria-hidden="true"><Bot size={100} /></span>
           </div>
