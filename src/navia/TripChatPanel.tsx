@@ -14,7 +14,7 @@
  *  � @navia mention hint in the input
  */
 
-import React, { useRef, useEffect, useState, useCallback } from 'react';
+import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
 import {
   Box,
   Typography,
@@ -384,6 +384,11 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
   const inputRef = useRef<HTMLInputElement>(null);
   const autoStickRef = useRef(true);
 
+  // @mention autocomplete
+  const [mentionQuery, setMentionQuery] = useState<string | null>(null);
+  const [mentionIndex, setMentionIndex] = useState(0);
+  const mentionStartRef = useRef<number>(-1);
+
   // Proposal id lookup � for now we read the proposal id from a local cache
   // keyed by chatMessageId. The backend should ideally embed proposalId in the
   // metadata; for now we extract it from a sibling field or use a heuristic.
@@ -436,6 +441,47 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
   // Detect @navia in input for hint
   const isNaviaMention = NAVIA_MENTION_RE.test(input);
 
+  // All mentionable participants: Navia first, then trip members
+  const mentionables = useMemo(() => [
+    { id: 'navia', insertName: 'navia', displayName: 'Navia', isNavia: true as const, avatarUrl: undefined as string | null | undefined },
+    ...members.map(m => ({
+      id: String(m.id),
+      insertName: m.name,
+      displayName: m.name,
+      isNavia: false as const,
+      avatarUrl: m.profilePictureUrl,
+    })),
+  ], [members]);
+
+  const mentionSuggestions = useMemo(() => {
+    if (mentionQuery === null) return [];
+    const q = mentionQuery.toLowerCase();
+    return mentionables.filter(m => m.displayName.toLowerCase().startsWith(q));
+  }, [mentionQuery, mentionables]);
+
+  const selectMention = useCallback((suggestion: { insertName: string; displayName: string }) => {
+    const el = inputRef.current as unknown as HTMLTextAreaElement | null;
+    const cursorPos = el?.selectionStart ?? input.length;
+    const start = mentionStartRef.current;
+    if (start < 0) return;
+    const before = input.slice(0, start);
+    const after = input.slice(cursorPos);
+    const inserted = `@${suggestion.insertName} `;
+    const newVal = (before + inserted + after).slice(0, MAX_CHARS);
+    setInput(newVal);
+    notifyTyping(newVal);
+    setMentionQuery(null);
+    mentionStartRef.current = -1;
+    const newCursor = before.length + inserted.length;
+    setTimeout(() => {
+      if (el) {
+        el.selectionStart = newCursor;
+        el.selectionEnd = newCursor;
+        el.focus();
+      }
+    }, 0);
+  }, [input, notifyTyping]);
+
   const send = useCallback(() => {
     const text = input.trim();
     if (!text || sending) return;
@@ -446,6 +492,28 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
   }, [input, sending, sendMessage]);
 
   const onKeyDown = (e: React.KeyboardEvent) => {
+    if (mentionSuggestions.length > 0) {
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        setMentionIndex(i => (i + 1) % mentionSuggestions.length);
+        return;
+      }
+      if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        setMentionIndex(i => (i - 1 + mentionSuggestions.length) % mentionSuggestions.length);
+        return;
+      }
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        selectMention(mentionSuggestions[mentionIndex]);
+        return;
+      }
+      if (e.key === 'Escape') {
+        setMentionQuery(null);
+        mentionStartRef.current = -1;
+        return;
+      }
+    }
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
       send();
@@ -667,7 +735,91 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
         flexShrink: 0,
         background: isLight ? 'rgba(255,255,255,0.95)' : 'rgba(14,22,33,0.95)',
         backdropFilter: 'blur(8px)',
+        position: 'relative',
       }}>
+
+        {/* @mention dropdown */}
+        <AnimatePresence>
+          {mentionSuggestions.length > 0 && (
+            <Box
+              component={motion.div as React.ElementType}
+              key="mention-dropdown"
+              initial={{ opacity: 0, y: 8, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 6, scale: 0.97 }}
+              transition={{ duration: 0.13 }}
+              sx={{
+                position: 'absolute',
+                bottom: '100%',
+                left: 12,
+                right: 12,
+                mb: 0.5,
+                zIndex: 200,
+                background: isLight ? '#fff' : '#1a2536',
+                border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)'}`,
+                borderRadius: '12px',
+                boxShadow: isLight
+                  ? '0 -4px 24px rgba(0,0,0,0.12), 0 2px 8px rgba(0,0,0,0.06)'
+                  : '0 -4px 24px rgba(0,0,0,0.40)',
+                overflow: 'hidden',
+                maxHeight: 240,
+                overflowY: 'auto',
+                '&::-webkit-scrollbar': { width: 3 },
+                '&::-webkit-scrollbar-thumb': { background: isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)', borderRadius: 4 },
+              }}
+            >
+              <Box sx={{ px: 1.5, py: 0.65, borderBottom: `1px solid ${isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.06)'}` }}>
+                <Typography sx={{ fontSize: 10, fontWeight: 700, color: isLight ? '#aaa' : 'rgba(255,255,255,0.35)', textTransform: 'uppercase', letterSpacing: '0.6px' }}>
+                  Mention a member
+                </Typography>
+              </Box>
+              {mentionSuggestions.map((s, i) => (
+                <Box
+                  key={s.id}
+                  onMouseDown={e => { e.preventDefault(); selectMention(s); }}
+                  onMouseEnter={() => setMentionIndex(i)}
+                  sx={{
+                    display: 'flex', alignItems: 'center', gap: 1.25,
+                    px: 1.5, py: 0.85, cursor: 'pointer',
+                    background: i === mentionIndex
+                      ? (isLight ? 'rgba(255,56,92,0.07)' : 'rgba(255,56,92,0.13)')
+                      : 'transparent',
+                    transition: 'background .1s',
+                    '&:hover': {
+                      background: isLight ? 'rgba(255,56,92,0.07)' : 'rgba(255,56,92,0.13)',
+                    },
+                  }}
+                >
+                  {s.isNavia ? (
+                    <NaviaLogo size={28} />
+                  ) : (
+                    <Avatar
+                      src={s.avatarUrl ?? undefined}
+                      sx={{ width: 28, height: 28, fontSize: 10, bgcolor: '#FF385C', flexShrink: 0 }}
+                    >
+                      {getInitials(s.displayName)}
+                    </Avatar>
+                  )}
+                  <Box sx={{ flex: 1, minWidth: 0 }}>
+                    <Typography sx={{ fontSize: 13, fontWeight: 600, color: isLight ? '#111' : 'rgba(255,255,255,0.88)', lineHeight: 1.3, display: 'flex', alignItems: 'center', gap: 0.75 }}>
+                      {s.displayName}
+                      {s.isNavia && (
+                        <Chip
+                          label="AI"
+                          size="small"
+                          sx={{ height: 16, fontSize: 9.5, fontWeight: 700, bgcolor: 'rgba(255,56,92,0.12)', color: '#FF385C', border: '1px solid rgba(255,56,92,0.22)', borderRadius: '4px', '& .MuiChip-label': { px: 0.75 } }}
+                        />
+                      )}
+                    </Typography>
+                    <Typography sx={{ fontSize: 11, color: isLight ? '#bbb' : 'rgba(255,255,255,0.30)', lineHeight: 1 }}>
+                      @{s.insertName}
+                    </Typography>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
+          )}
+        </AnimatePresence>
         {/* @navia hint */}
         <AnimatePresence>
           {isNaviaMention && (
@@ -706,7 +858,23 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
           <TextField
             inputRef={inputRef}
             value={input}
-            onChange={e => { const v = e.target.value.slice(0, MAX_CHARS); setInput(v); notifyTyping(v); }}
+            onChange={e => {
+                const v = e.target.value.slice(0, MAX_CHARS);
+                setInput(v);
+                notifyTyping(v);
+                // @mention detection
+                const cursor = (e.target as HTMLTextAreaElement).selectionStart ?? v.length;
+                const textUpToCursor = v.slice(0, cursor);
+                const match = textUpToCursor.match(/@(\w*)$/);
+                if (match) {
+                  setMentionQuery(match[1]);
+                  mentionStartRef.current = cursor - match[0].length;
+                  setMentionIndex(0);
+                } else {
+                  setMentionQuery(null);
+                  mentionStartRef.current = -1;
+                }
+              }}
             onKeyDown={onKeyDown}
             placeholder={token ? 'Message the group� or type @navia' : 'Sign in to chat'}
             multiline
