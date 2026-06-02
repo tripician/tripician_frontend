@@ -101,7 +101,6 @@ const SystemResultRow: React.FC<{ result: ReturnType<typeof parseSystemMetadata>
   const label = entry ? entry.label(result) : (result.summary ?? result.action);
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.15 }}>
-      <Typography sx={{ fontSize: 13, lineHeight: 1 }}>{icon}</Typography>
       <Typography sx={{ fontSize: 12.5, color: result.success ? 'text.primary' : 'error.main', lineHeight: 1.4 }}>
         {label}
       </Typography>
@@ -276,18 +275,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ msg, isMine, isLight, sho
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start' }}>
-      {!isMine && showAvatar && (
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.4, ml: isNavia ? 0 : 0 }}>
-          {isNavia ? <NaviaLogo size={16} /> : (
-            <Avatar src={msg.avatarUrl} sx={{ width: 16, height: 16, fontSize: 8, bgcolor: '#FF385C' }}>
-              {initials}
-            </Avatar>
-          )}
-          <Typography sx={{ fontSize: 11, fontWeight: 700, color: isNavia ? '#FF385C' : (isLight ? '#555' : 'rgba(255,255,255,0.55)'), letterSpacing: isNavia ? '0.4px' : 0, textTransform: isNavia ? 'uppercase' : 'none' }}>
-            {name}
-          </Typography>
-        </Box>
-      )}
+      
       <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 0.75, flexDirection: isMine ? 'row-reverse' : 'row' }}>
         {!isMine && (
           <Avatar
@@ -317,6 +305,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ msg, isMine, isLight, sho
             border: !isMine ? `0.5px solid ${isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)'}` : 'none',
           }}
         >
+          {!isMine && showAvatar && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.4, ml: isNavia ? 0 : 0 }}>          
+              <Typography sx={{ fontSize: 11, fontWeight: 700, color: isNavia ? '#FF385C' : (isLight ? '#555' : 'rgba(255,255,255,0.55)'), letterSpacing: isNavia ? '0.4px' : 0, textTransform: isNavia ? 'uppercase' : 'none' }}>
+                {name}
+              </Typography>
+            </Box>
+          )}
           <Typography sx={{ fontSize: 'inherit', lineHeight: 'inherit', whiteSpace: 'pre-line', color: 'inherit' }}>
             {msg.message}
           </Typography>
@@ -876,7 +871,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
                 }
               }}
             onKeyDown={onKeyDown}
-            placeholder={token ? 'Message the group� or type @navia' : 'Sign in to chat'}
+            placeholder={token ? 'Message the group or type @navia' : 'Sign in to chat'}
             multiline
             maxRows={4}
             disabled={!token}
@@ -922,6 +917,26 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
             {input.length}/{MAX_CHARS}
           </Typography>
         )}
+      </Box>
+      <Box sx={{
+        mt: 0.1,
+        mb: 2,
+        pr: 5,
+        display: 'flex',
+        justifyContent: 'right',
+        alignItems: 'center',
+        gap: 0.5,
+      }}>
+        <Typography sx={{
+          fontSize: 10,
+          fontWeight: 600,
+          letterSpacing: '0.4px',
+          color: isLight
+            ? 'rgba(0,0,0,0.35)'
+            : 'rgba(255,255,255,0.35)',
+        }}>
+          Powered by Navia AI
+        </Typography>
       </Box>
     </Box>
   );

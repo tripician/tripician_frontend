@@ -2,7 +2,6 @@
 import React from 'react';
 import { useSearchParams, useNavigate } from 'react-router-dom';
 import { Box, Tabs, Tab, Typography, Divider, Button, Avatar, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Snackbar, Alert, useTheme, Drawer, Fab } from '@mui/material';
-import { KalaMandala } from '../../components/DecorativeComponents/KalaDecor';
 // Props-based TripPlanner; tripId + optional initialTrip provided by route wrapper
 import DownloadIcon from '@mui/icons-material/Download';
 import PushPinIcon from '@mui/icons-material/PushPin';
@@ -588,8 +587,6 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 			overflow: 'hidden',
 			position: 'relative',
 		}}>
-			{/* Indian kala mandala � empty middle area, above Share button */}
-			<KalaMandala size={280} color="#FF385C" opacity={0.05} style={{ position: 'absolute', bottom: 120, right: -70, zIndex: 0, pointerEvents: 'none' }} />
 			{/* -- Banner + Title header -- */}
 			<Box sx={{ position: 'relative', flexShrink: 0 }}>
 				{(bannerUrl || sideBarBanner) ? (
@@ -786,7 +783,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 				{tripUsers.length > 0 && (
 					<Box sx={{ borderRadius: '12px', background: sectionBg, border: `1px solid ${border}`, p: '12px 14px' }}>
 						<Typography sx={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: textMuted, fontFamily: 'inherit', mb: 1.25 }}>
-							Trip Members � {tripUsers.length}
+							Trip Members {tripUsers.length}
 						</Typography>						
 						{/* Name list below */}
 						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.6 }}>
@@ -2250,7 +2247,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
                                                             display: { xs: 'none', lg: 'flex' },
                                                             flexDirection: 'column',
                                                             alignSelf: 'stretch',
-                                                            width: 340,
+                                                            width: '30vw',
                                                             flexShrink: 0,
                                                             height: '100%',
                                                             overflow: 'hidden',

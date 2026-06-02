@@ -38,7 +38,6 @@ import SyncRoundedIcon from '@mui/icons-material/SyncRounded';
 import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
 import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
-import { KalaGeometric } from '../DecorativeComponents/KalaDecor';
 import { useNavia } from '../../navia/useNavia';
 import NaviaMessage from '../../navia/NaviaMessage';
 import { useAuthToken } from '../../hooks/useAuth0Token';
@@ -237,12 +236,6 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
                 '&::-webkit-scrollbar-track': { background: 'transparent' },
                 '&::-webkit-scrollbar-thumb': { borderRadius: 4, background: 'rgba(255,56,92,0.25)' },
               }}>
-                <KalaGeometric
-                  size={300}
-                  color="#FF385C"
-                  opacity={isLight ? 0.04 : 0.06}
-                  style={{ position: 'absolute', bottom: 200, right: -60, pointerEvents: 'none', zIndex: 0 }}
-                />
                 <Box sx={{ position: 'relative', zIndex: 1, p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                   {messages.length === 0 && (
                     <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 0.8 }}>

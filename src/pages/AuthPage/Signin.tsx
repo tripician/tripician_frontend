@@ -2,7 +2,6 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { useAuth0 } from '@auth0/auth0-react';
 import '../../assets/css/Signin.css';
-import { KalaLotus } from '../../components/DecorativeComponents/KalaDecor';
 import { Eye, EyeOff, Plane, MapPin, Globe, Brain, ArrowLeft } from 'lucide-react';
 import { authAPI } from '../../services/APIs/Auth/auth';
 import { useNavigate } from 'react-router-dom';
@@ -187,10 +186,6 @@ const Signin = () => {
           <ArrowLeft size={15} />
           Back
         </button>
-        {/* Indian kala lotus — top-right corner */}
-        <KalaLotus size={380} color="#FF385C" opacity={0.07} style={{ position: 'absolute', top: -90, right: -90, zIndex: 0 }} />
-        {/* Indian kala lotus — bottom-left accent */}
-        <KalaLotus size={260} color="#FF6B8A" opacity={0.055} style={{ position: 'absolute', bottom: -65, left: -65, zIndex: 0 }} />
         <motion.div
           className="auth-card"
           initial={{ opacity: 0, y: 30, scale: 0.97 }}
