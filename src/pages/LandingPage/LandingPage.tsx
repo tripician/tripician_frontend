@@ -769,7 +769,7 @@ export default function LandingPage() {
                 <div key={i} className="lp-trust-bar__avatar">{initial}</div>
               ))}
             </div>
-            <span>Joined by <strong>2,000+</strong> travelers from 50+ countries</span>
+            <span>Joined by <strong>500+</strong> travelers from 50+ countries</span>
           </div>
           <div className="lp-trust-bar__item">
             <div className="lp-trust-bar__stars" aria-label="5 out of 5 stars">

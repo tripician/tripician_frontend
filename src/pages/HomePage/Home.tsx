@@ -64,7 +64,7 @@ const avatarColor = (seed: string) => {
 };
 
 const TRAVEL_FACTS: { emoji: string; fact: string; source: string }[] = [
-  { emoji: '✈️', fact: 'There are 195 countries in the world. Most travelers visit only 3–5 in their lifetime — every trip you take puts you ahead of the curve.', source: 'UN World Atlas' },
+  { emoji: '✈️', fact: 'There are 195 countries in the world. Most travellers visit only 3–5 in their lifetime — every trip you take puts you ahead of the curve.', source: 'UN World Atlas' },
   { emoji: '🌊', fact: 'The shortest international commercial flight is just 15 minutes — linking St. Maarten to Anguilla. Blink and you miss it.', source: 'Aviation Records' },
   { emoji: '🍽️', fact: 'Japan has more Michelin-starred restaurants than any other country — more than France and the USA combined.', source: 'Michelin Guide 2024' },
   { emoji: '🏔️', fact: 'The Maldives sits just 1.5 meters above sea level, making it the lowest-lying country on Earth. Every visit is precious.', source: 'Geographic Survey' },
@@ -1384,82 +1384,81 @@ const Home: React.FC = () => {
             flexDirection: 'column',
             position: 'relative',
             overflow: 'hidden',
+            borderRadius: 4,
           }}>
-            {/* Subtle top-right accent */}
-            <Box sx={{ position: 'absolute', top: -60, right: -60, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,56,92,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
+          {/* Subtle top-right accent */}
+          <Box sx={{ position: 'absolute', top: -60, right: -60, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,56,92,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-            {/* ── SECTION: Did You Know? (Full-height, Beautiful) ── */}
-            <Box sx={{
+            {/* ── SECTION: Travel Insight? (Full-height, Beautiful) ── */}
+            {/* Premium Quote Hero */}
+          <Box
+            sx={{
               flex: 1,
-              mb: 2.5,
-              borderRadius: '18px',
-              overflow: 'hidden',
-              background: 'linear-gradient(160deg, #0d0221 0%, #1e0b35 25%, #2d1b69 60%, #0f4c75 100%)',
-              p: '30px 26px',
               display: 'flex',
+              background: 'linear-gradient(135deg,#0B1020 0%,#1A1F3A 35%,#2E1A47 70%,#0F4C75 100%)',
               flexDirection: 'column',
-              position: 'relative',
-              minHeight: 230,
-            }}>
-              {/* Ambient glow blobs */}
-              <Box sx={{ position: 'absolute', top: -50, right: -50, width: 200, height: 200, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,215,0,0.10) 0%, transparent 65%)', pointerEvents: 'none' }} />
-              <Box sx={{ position: 'absolute', bottom: -40, left: -40, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(15,76,117,0.40) 0%, transparent 65%)', pointerEvents: 'none' }} />
-              <Box sx={{ position: 'absolute', top: '40%', left: '30%', width: 120, height: 120, borderRadius: '50%', background: 'radial-gradient(circle, rgba(138,43,226,0.12) 0%, transparent 70%)', pointerEvents: 'none' }} />
+              justifyContent: 'center',
+              alignItems: 'center',
+              textAlign: 'center',
+              position: 'relative',              
+              py:0,
+            }}
+          >
+            <Box
+              component="img"
+              src="https://res.cloudinary.com/ddt3rcyhv/image/upload/v1780518395/asset001_cotcp8.png"
+              alt="Quote"
+              sx={{
+                width: 150,
+                height: 'auto',
+                mb: 0,
+                opacity: 0.9,
+                userSelect: 'none',
+                pointerEvents: 'none',
+                mt:0
+              }}
+            />
 
-              {/* Header */}
-              <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 3 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <LightbulbIcon sx={{ fontSize: 16, color: '#FFD700' }} />
-                  <Typography sx={{ fontSize: '0.62rem', fontWeight: 800, letterSpacing: '0.24em', color: 'rgba(255,255,255,0.55)', textTransform: 'uppercase', fontFamily: "'Inter', sans-serif" }}>Did You Know?</Typography>
-                </Box>
-                <Box sx={{ px: 1.3, py: 0.4, borderRadius: '20px', background: 'rgba(255,215,0,0.12)', border: '1px solid rgba(255,215,0,0.28)', backdropFilter: 'blur(6px)' }}>
-                  <Typography sx={{ fontSize: '0.5rem', fontWeight: 800, color: '#FFD700', fontFamily: "'Inter', sans-serif", letterSpacing: '0.14em' }}>DAILY FACT</Typography>
-                </Box>
-              </Box>
-
-              {/* Emoji circle */}
-              <Box sx={{ display: 'flex', justifyContent: 'center', mb: 2.8 }}>
-                <Box sx={{
-                  width: 80, height: 80, borderRadius: '50%',
-                  background: 'rgba(255,255,255,0.06)',
-                  border: '1.5px solid rgba(255,255,255,0.14)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  boxShadow: '0 0 32px rgba(255,215,0,0.12), inset 0 1px 0 rgba(255,255,255,0.08)',
-                  backdropFilter: 'blur(10px)',
-                }}>
-                  <Typography sx={{ fontSize: '2.4rem', lineHeight: 1 }}>{travelFact.emoji}</Typography>
-                </Box>
-              </Box>
-
-              {/* Fact text */}
-              <Typography sx={{
-                fontFamily: "'Playfair Display', serif",
-                fontSize: '1.08rem',
+            {/* Fact */}
+            <Typography
+              sx={{
+                fontFamily: "'Cormorant Garamond', serif",
+                fontSize: {
+                  xs: '1.4rem',
+                  md: '1.8rem',
+                },
                 fontWeight: 600,
-                color: '#fff',
-                lineHeight: 1.7,
-                textAlign: 'center',
-                letterSpacing: '0.01em',
-                flex: 1,
-                mb: 2.5,
-                textShadow: '0 1px 12px rgba(0,0,0,0.4)',
-              }}>
-                "{travelFact.fact}"
-              </Typography>
+                color: '#ffffff',
+                lineHeight: 1.6,
+                maxWidth: '850px',
+                textShadow: '0 3px 15px rgba(0,0,0,0.35)',
+                mb: 3,
+                ml: 2,
+                mr: 2
+              }}
+            >
+              {travelFact.fact}
+            </Typography>
 
-              {/* Source divider row */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Box sx={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.15))' }} />
-                <Typography sx={{ fontSize: '0.58rem', color: 'rgba(255,215,0,0.65)', fontFamily: "'Inter', sans-serif", letterSpacing: '0.1em', fontStyle: 'italic', flexShrink: 0 }}>
-                  — {travelFact.source}
-                </Typography>
-                <Box sx={{ flex: 1, height: '1px', background: 'linear-gradient(90deg, rgba(255,255,255,0.15), transparent)' }} />
-              </Box>
-            </Box>
+            {/* Source */}
+            <Typography
+              sx={{
+                fontSize: '0.72rem',
+                fontWeight: 700,
+                letterSpacing: '0.18em',
+                color: '#FFD700',
+                textTransform: 'uppercase',
+                fontFamily: "'Inter', sans-serif",
+              }}
+            >
+              ✦ {travelFact.source}
+            </Typography>          
+          </Box>
+
+          
 
             {/* ── SECTION: Stats ── */}
             <Box sx={{
-              borderRadius: '18px',
               border: '1px solid rgba(0,0,0,0.07)',
               background: 'rgb(255, 255, 255)',
               p: '20px 22px',
