@@ -24,8 +24,6 @@ import {
   useTheme
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import ChatIcon from '@mui/icons-material/Chat';
-import CloseIcon from '@mui/icons-material/Close';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import NewReleasesOutlinedIcon from '@mui/icons-material/NewReleasesOutlined';
@@ -59,10 +57,14 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
   const [updatesDialogOpen, setUpdatesDialogOpen] = useState(false);
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [logoAnimating, setLogoAnimating] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
   const appVersion = import.meta.env.VITE_APP_VERSION || '1.0.0';
   const appEnv = import.meta.env.VITE_ENV || 'local';
+
+  const NAVIA_LOGO =  import.meta.env.VITE_NAVIA_LOGO as string | undefined;
+  const [attentionAnim, setAttentionAnim] = useState(false);
 
   const updateItems = [
     { icon: RocketLaunchRoundedIcon, text: 'Trip planner v1.0 — day-by-day itinerary builder with stays, spots & foods.' },
@@ -84,14 +86,28 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, open]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!open) {
+        setAttentionAnim(true);
+
+        setTimeout(() => {
+          setAttentionAnim(false);
+        }, 2500);
+      }
+    }, 45000);
+
+    return () => clearInterval(interval);
+  }, [open]);
+
   return (
     <>
       {/* Quick tools pill */}
       <Box
         sx={{
           position: 'fixed',
-          right: 32,
-          bottom: { xs: 168, lg: 100 },
+          right: 50,
+          bottom: { xs: 168, lg: 120 },
           zIndex: 1700,
           display: 'flex',
           flexDirection: 'column',
@@ -152,11 +168,75 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
       {/* Floating FAB */}
       <Zoom in timeout={300}>
         <Fab
-          color="primary"
-          onClick={() => setOpen(o => !o)}
-          sx={{ position: 'fixed', right: 24, bottom: { xs: 88, lg: 24 }, zIndex: 1700, boxShadow: 4, '&:hover': { boxShadow: 8 } }}
+          disableRipple
+          onClick={() => {
+            setLogoAnimating(true);
+            setOpen(o => !o);
+
+            setTimeout(() => {
+              setLogoAnimating(false);
+            }, 500);
+          }}
+          sx={{
+            position: 'fixed',
+            right: 24,
+            bottom: { xs: 88, lg: 24 },
+            zIndex: 1700,
+
+            width: 90,
+            height: 90,
+            minHeight: 'unset',
+
+            background: 'transparent',
+            boxShadow: 'none',
+
+            '&:hover': {
+              background: 'transparent',
+              boxShadow: 'none',
+            },
+
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              inset: 0,
+              opacity: 0,
+              transition: 'all .25s ease',
+            },
+
+          }}
         >
-          <ChatIcon />
+          <img
+            src={NAVIA_LOGO}
+            alt="Navia"
+            draggable={false}
+            style={{
+              width: 80,
+              height: 80,
+              objectFit: 'contain',
+              display: 'block',
+              userSelect: 'none',
+
+              transform:
+                logoAnimating
+                  ? 'rotate(90deg) scale(1.06)'
+                  : attentionAnim
+                    ? 'scale(1.12)'
+                    : 'scale(1)',
+
+              filter:
+                attentionAnim
+                  ? `
+                    drop-shadow(0 0 8px rgba(255,56,92,.35))
+                    drop-shadow(0 0 18px rgba(255,56,92,.25))
+                  `
+                  : 'none',
+
+              transition:
+                attentionAnim
+                  ? 'transform 1.2s ease-in-out, filter .6s ease'
+                  : 'transform .45s cubic-bezier(.22,1,.36,1)',
+            }}
+          />
         </Fab>
       </Zoom>
 
@@ -168,7 +248,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-            style={{ position: 'fixed', right: 24, bottom: 168, zIndex: 1700 }}
+            style={{ position: 'fixed', right: 40, bottom: 110, zIndex: 1700 }}
           >
             <Paper
               elevation={0}
@@ -185,43 +265,6 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
                   : '0 24px 64px rgba(0,0,0,0.6)',
               }}
             >
-              {/* Header */}
-              <Box sx={{
-                background: 'linear-gradient(135deg, #FF385C 0%, #C2185B 100%)',
-                px: 2, py: 1.5,
-                display: 'flex', alignItems: 'center', gap: 1.5,
-                flexShrink: 0,
-              }}>
-                <Box sx={{
-                  width: 38, height: 38, borderRadius: '12px',
-                  background: 'rgba(255,255,255,0.2)',
-                  backdropFilter: 'blur(8px)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  border: '1.5px solid rgba(255,255,255,0.35)',
-                  flexShrink: 0,
-                }}>
-                  <AutoAwesomeRoundedIcon sx={{ fontSize: 18, color: '#fff' }} />
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <Typography sx={{ fontSize: '0.95rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-                    Navia
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.2 }}>
-                    <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: '#A8FFB0', boxShadow: '0 0 6px #A8FFB0' }} />
-                    <Typography sx={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.82)', fontWeight: 500 }}>
-                      AI Travel Companion
-                    </Typography>
-                  </Box>
-                </Box>
-                <IconButton
-                  size="small"
-                  onClick={() => setOpen(false)}
-                  sx={{ color: 'rgba(255,255,255,0.8)', '&:hover': { color: '#fff', background: 'rgba(255,255,255,0.15)' } }}
-                >
-                  <CloseIcon fontSize="small" />
-                </IconButton>
-              </Box>
-
               {/* Messages */}
               <Box sx={{
                 flexGrow: 1,
@@ -240,11 +283,21 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
                   {messages.length === 0 && (
                     <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 0.8 }}>
                       <Box sx={{
-                        width: 26, height: 26, borderRadius: '8px', flexShrink: 0,
-                        background: 'linear-gradient(135deg, #FF385C, #C2185B)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.3,
+                        width: 38, height: 38,
+                        backdropFilter: 'blur(8px)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
                       }}>
-                        <AutoAwesomeRoundedIcon sx={{ fontSize: 13, color: '#fff' }} />
+                        <Box
+                          component="img"
+                          src="https://res.cloudinary.com/ddt3rcyhv/image/upload/v1780497710/ChatGPT_Image_Jun_3_2026_07_53_49_PM_ubsb8c.png"
+                          alt="Navia"
+                          sx={{
+                            width: 50,
+                            height: 50,
+                            display: 'block',
+                          }}
+                        />
                       </Box>
                       <Box sx={{
                         px: 1.5, py: 1, maxWidth: '78%',

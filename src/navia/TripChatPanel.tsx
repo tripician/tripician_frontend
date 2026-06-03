@@ -831,7 +831,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
               }}>
                 <NaviaLogo size={14} />
                 <Typography sx={{ fontSize: 11.5, color: '#FF385C', fontWeight: 600 }}>
-                  Navia will be summoned � she'll analyse your trip and suggest changes
+                  Navia will be summoned... she'll analyse your trip and suggest changes
                 </Typography>
               </Box>
             </motion.div>

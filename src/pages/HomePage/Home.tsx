@@ -756,161 +756,7 @@ const Home: React.FC = () => {
                 </Box>
               </Box>
             )}
-            {/* FEATURED DESTINATIONS */}
-            <Box sx={{ pb: 6 }}>
-              {/* Section header */}
-              <Box sx={{ mb: 3.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <Box sx={{ width: 4, height: 22, borderRadius: 2, background: 'linear-gradient(180deg, #FF385C, #D91A50)' }} />
-                  <Typography fontWeight={800} sx={{
-                    fontFamily: "'Inter', sans-serif",
-                    letterSpacing: '-0.03em',
-                    fontSize: { xs: '1.3rem', md: '1.5rem' },
-                    color: 'text.primary',
-                  }}>
-                    Trending Destinations
-                  </Typography>
-                </Box>
-                <Typography onClick={() => navigate('/blog')} sx={{
-                  fontSize: '0.78rem', fontWeight: 600, color: '#FF385C',
-                  fontFamily: "'Inter', sans-serif", cursor: 'pointer',
-                  letterSpacing: '0.01em',
-                  '&:hover': { textDecoration: 'underline' },
-                }}>View all →</Typography>
-              </Box>
-
-              {/* Cards grid */}
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 2.5 }}>
-                {featuredDestinations.map((destination) => (
-                  <Box
-                    key={destination.id}
-                    onClick={() => navigate(`/blog/${(destination as any).slug}`)}
-                    sx={{
-                      position: 'relative',
-                      borderRadius: '16px',
-                      overflow: 'hidden',
-                      cursor: 'pointer',
-                      minHeight: { xs: 260, md: 320 },
-                      boxShadow: '0 4px 20px rgba(0,0,0,0.10)',
-                      transition: 'transform 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.32s ease',
-                      '&:hover': {
-                        transform: 'translateY(-6px) scale(1.012)',
-                        boxShadow: '0 20px 48px rgba(0,0,0,0.20)',
-                      },
-                      '&:hover .dest-overlay': { opacity: 1 },
-                      '&:hover .dest-img': { transform: 'scale(1.06)' },
-                    }}
-                  >
-                    {/* Image */}
-                    {destination.image ? (
-                      <Box
-                        className="dest-img"
-                        component="img"
-                        src={destination.image}
-                        alt={destination.title}
-                        sx={{
-                          width: '100%', height: '100%',
-                          objectFit: 'cover',
-                          display: 'block',
-                          transition: 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-                        }}
-                      />
-                    ) : (
-                      <Box className="dest-img" sx={{ width: '100%', height: '100%', background: 'linear-gradient(145deg, #1c1c2e 0%, #2d1b3d 40%, #1a2a40 100%)', transition: 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)' }} />
-                    )}
-
-                    {/* Permanent gradient overlay bottom */}
-                    <Box sx={{
-                      position: 'absolute', inset: 0,
-                      background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 45%, transparent 100%)',
-                    }} />
-
-                    {/* Hover tint overlay */}
-                    <Box className="dest-overlay" sx={{
-                      position: 'absolute', inset: 0,
-                      background: 'linear-gradient(135deg, rgba(255,56,92,0.18) 0%, transparent 60%)',
-                      opacity: 0, transition: 'opacity 0.3s ease',
-                    }} />
-
-                    {/* Badge top-right */}
-                    <Box sx={{
-                      position: 'absolute', top: 14, right: 14,
-                      px: 1.25, py: 0.45,
-                      background: 'rgba(255,255,255,0.92)',
-                      backdropFilter: 'blur(12px)',
-                      borderRadius: '50px',
-                      fontSize: '0.7rem', fontWeight: 700,
-                      fontFamily: "'Inter', sans-serif",
-                      color: '#111',
-                      boxShadow: '0 2px 8px rgba(0,0,0,0.14)',
-                      lineHeight: 1.4,
-                    }}>
-                      {destination.badge}
-                    </Box>
-
-                    {/* Vibe pill top-left */}
-                    {(destination as any).vibe && (
-                      <Box sx={{
-                        position: 'absolute', top: 14, left: 14,
-                        px: 1.1, py: 0.4,
-                        background: 'rgba(0,0,0,0.50)',
-                        backdropFilter: 'blur(8px)',
-                        borderRadius: '50px',
-                        border: '1px solid rgba(255,255,255,0.15)',
-                        fontSize: '0.68rem', fontWeight: 600,
-                        fontFamily: "'Inter', sans-serif",
-                        color: 'rgba(255,255,255,0.9)',
-                        lineHeight: 1.4,
-                      }}>
-                        {(destination as any).vibe}
-                      </Box>
-                    )}
-
-                    {/* Text bottom */}
-                    <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, p: '18px 20px 20px' }}>
-                      <Typography sx={{
-                        color: '#FFFFFF', fontWeight: 700,
-                        fontSize: '1rem',
-                        fontFamily: "'Inter', sans-serif",
-                        lineHeight: 1.3, mb: 0.5,
-                        letterSpacing: '-0.01em',
-                      }}>
-                        {destination.title}
-                      </Typography>
-                      <Typography sx={{
-                        color: 'rgba(255,255,255,0.72)', fontSize: '0.72rem',
-                        fontFamily: "'Inter', sans-serif",
-                        lineHeight: 1.5,
-                        display: '-webkit-box',
-                        WebkitLineClamp: 2,
-                        WebkitBoxOrient: 'vertical',
-                        overflow: 'hidden',
-                        mb: (destination as any).travelerCount ? 0.8 : 0,
-                      }}>
-                        {destination.description}
-                      </Typography>
-                      {(destination as any).travelerCount && (
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
-                          <Box sx={{ display: 'flex' }}>
-                            {['#FF385C','#8B5CF6','#10B981'].map((c, idx) => (
-                              <Box key={idx} sx={{
-                                width: 18, height: 18, borderRadius: '50%',
-                                border: '1.5px solid rgba(0,0,0,0.5)',
-                                background: c,
-                                ml: idx > 0 ? '-5px' : 0,
-                              }} />
-                            ))}
-                          </Box>
-                          <Typography sx={{ fontSize: '0.62rem', fontWeight: 600, color: 'rgba(255,255,255,0.72)', fontFamily: "'Inter', sans-serif" }}>
-                            {(destination as any).travelerCount} travelers
-                          </Typography>
-                        </Box>
-                      )}
-                    </Box>
-                  </Box>
-                ))}
-              </Box>
-            </Box>
+            
 
             {/* Community Adventures */}
             <Box sx={{ mt: 2, mb: 6 }}>
@@ -1148,6 +994,162 @@ const Home: React.FC = () => {
                   </>
                 );
               })()}
+            </Box>
+
+            {/* FEATURED DESTINATIONS */}
+            <Box sx={{ pb: 6 }}>
+              {/* Section header */}
+              <Box sx={{ mb: 3.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                  <Box sx={{ width: 4, height: 22, borderRadius: 2, background: 'linear-gradient(180deg, #FF385C, #D91A50)' }} />
+                  <Typography fontWeight={800} sx={{
+                    fontFamily: "'Inter', sans-serif",
+                    letterSpacing: '-0.03em',
+                    fontSize: { xs: '1.3rem', md: '1.5rem' },
+                    color: 'text.primary',
+                  }}>
+                    Trending Destinations
+                  </Typography>
+                </Box>
+                <Typography onClick={() => navigate('/blog')} sx={{
+                  fontSize: '0.78rem', fontWeight: 600, color: '#FF385C',
+                  fontFamily: "'Inter', sans-serif", cursor: 'pointer',
+                  letterSpacing: '0.01em',
+                  '&:hover': { textDecoration: 'underline' },
+                }}>View all →</Typography>
+              </Box>
+
+              {/* Cards grid */}
+              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 2.5 }}>
+                {featuredDestinations.map((destination) => (
+                  <Box
+                    key={destination.id}
+                    onClick={() => navigate(`/blog/${(destination as any).slug}`)}
+                    sx={{
+                      position: 'relative',
+                      borderRadius: '16px',
+                      overflow: 'hidden',
+                      cursor: 'pointer',
+                      minHeight: { xs: 260, md: 320 },
+                      boxShadow: '0 4px 20px rgba(0,0,0,0.10)',
+                      transition: 'transform 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.32s ease',
+                      '&:hover': {
+                        transform: 'translateY(-6px) scale(1.012)',
+                        boxShadow: '0 20px 48px rgba(0,0,0,0.20)',
+                      },
+                      '&:hover .dest-overlay': { opacity: 1 },
+                      '&:hover .dest-img': { transform: 'scale(1.06)' },
+                    }}
+                  >
+                    {/* Image */}
+                    {destination.image ? (
+                      <Box
+                        className="dest-img"
+                        component="img"
+                        src={destination.image}
+                        alt={destination.title}
+                        sx={{
+                          width: '100%', height: '100%',
+                          objectFit: 'cover',
+                          display: 'block',
+                          transition: 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                        }}
+                      />
+                    ) : (
+                      <Box className="dest-img" sx={{ width: '100%', height: '100%', background: 'linear-gradient(145deg, #1c1c2e 0%, #2d1b3d 40%, #1a2a40 100%)', transition: 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)' }} />
+                    )}
+
+                    {/* Permanent gradient overlay bottom */}
+                    <Box sx={{
+                      position: 'absolute', inset: 0,
+                      background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 45%, transparent 100%)',
+                    }} />
+
+                    {/* Hover tint overlay */}
+                    <Box className="dest-overlay" sx={{
+                      position: 'absolute', inset: 0,
+                      background: 'linear-gradient(135deg, rgba(255,56,92,0.18) 0%, transparent 60%)',
+                      opacity: 0, transition: 'opacity 0.3s ease',
+                    }} />
+
+                    {/* Badge top-right */}
+                    <Box sx={{
+                      position: 'absolute', top: 14, right: 14,
+                      px: 1.25, py: 0.45,
+                      background: 'rgba(255,255,255,0.92)',
+                      backdropFilter: 'blur(12px)',
+                      borderRadius: '50px',
+                      fontSize: '0.7rem', fontWeight: 700,
+                      fontFamily: "'Inter', sans-serif",
+                      color: '#111',
+                      boxShadow: '0 2px 8px rgba(0,0,0,0.14)',
+                      lineHeight: 1.4,
+                    }}>
+                      {destination.badge}
+                    </Box>
+
+                    {/* Vibe pill top-left */}
+                    {(destination as any).vibe && (
+                      <Box sx={{
+                        position: 'absolute', top: 14, left: 14,
+                        px: 1.1, py: 0.4,
+                        background: 'rgba(0,0,0,0.50)',
+                        backdropFilter: 'blur(8px)',
+                        borderRadius: '50px',
+                        border: '1px solid rgba(255,255,255,0.15)',
+                        fontSize: '0.68rem', fontWeight: 600,
+                        fontFamily: "'Inter', sans-serif",
+                        color: 'rgba(255,255,255,0.9)',
+                        lineHeight: 1.4,
+                      }}>
+                        {(destination as any).vibe}
+                      </Box>
+                    )}
+
+                    {/* Text bottom */}
+                    <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, p: '18px 20px 20px' }}>
+                      <Typography sx={{
+                        color: '#FFFFFF', fontWeight: 700,
+                        fontSize: '1rem',
+                        fontFamily: "'Inter', sans-serif",
+                        lineHeight: 1.3, mb: 0.5,
+                        letterSpacing: '-0.01em',
+                      }}>
+                        {destination.title}
+                      </Typography>
+                      <Typography sx={{
+                        color: 'rgba(255,255,255,0.72)', fontSize: '0.72rem',
+                        fontFamily: "'Inter', sans-serif",
+                        lineHeight: 1.5,
+                        display: '-webkit-box',
+                        WebkitLineClamp: 2,
+                        WebkitBoxOrient: 'vertical',
+                        overflow: 'hidden',
+                        mb: (destination as any).travelerCount ? 0.8 : 0,
+                      }}>
+                        {destination.description}
+                      </Typography>
+                      {(destination as any).travelerCount && (
+                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+                          <Box sx={{ display: 'flex' }}>
+                            {['#FF385C','#8B5CF6','#10B981'].map((c, idx) => (
+                              <Box key={idx} sx={{
+                                width: 18, height: 18, borderRadius: '50%',
+                                border: '1.5px solid rgba(0,0,0,0.5)',
+                                background: c,
+                                ml: idx > 0 ? '-5px' : 0,
+                              }} />
+                            ))}
+                          </Box>
+                          <Typography sx={{ fontSize: '0.62rem', fontWeight: 600, color: 'rgba(255,255,255,0.72)', fontFamily: "'Inter', sans-serif" }}>
+                            {(destination as any).travelerCount} travelers
+                          </Typography>
+                        </Box>
+                      )}
+                    </Box>
+                  </Box>
+                ))}
+              </Box>
             </Box>
 
             {/* CTA */}
@@ -1507,127 +1509,7 @@ const Home: React.FC = () => {
           flexGrow: 1, 
           width: '100%',
           overflow: 'auto' 
-        }}>
-          {/* FEATURED DESTINATIONS */}
-          <Box sx={{ pb: 6 }}>
-            {/* Section header */}
-            <Box sx={{ mb: 3.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                <Box sx={{ width: 4, height: 22, borderRadius: 2, background: 'linear-gradient(180deg, #FF385C, #D91A50)' }} />
-                <Typography fontWeight={800} sx={{
-                  fontFamily: "'Inter', sans-serif",
-                  letterSpacing: '-0.03em',
-                  fontSize: { xs: '1.3rem', md: '1.5rem' },
-                  color: 'text.primary',
-                }}>
-                  Trending Destinations
-                </Typography>
-              </Box>
-              <Typography onClick={() => navigate('/blog')} sx={
-                {
-                fontSize: '0.78rem', fontWeight: 600, color: '#FF385C',
-                fontFamily: "'Inter', sans-serif", cursor: 'pointer',
-                letterSpacing: '0.01em',
-                '&:hover': { textDecoration: 'underline' },
-              }}>View all →</Typography>
-            </Box>
-
-            {/* Cards grid */}
-            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 2.5 }}>
-              {featuredDestinations.map((destination) => (
-                <Box
-                  key={destination.id}
-                  onClick={() => navigate(`/blog/${(destination as any).slug}`)}
-                  sx={{
-                    position: 'relative',
-                    borderRadius: '16px',
-                    overflow: 'hidden',
-                    cursor: 'pointer',
-                    minHeight: { xs: 260, md: 320 },
-                    boxShadow: '0 4px 20px rgba(0,0,0,0.10)',
-                    transition: 'transform 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.32s ease',
-                    '&:hover': {
-                      transform: 'translateY(-6px) scale(1.012)',
-                      boxShadow: '0 20px 48px rgba(0,0,0,0.20)',
-                    },
-                    '&:hover .dest-overlay': { opacity: 1 },
-                    '&:hover .dest-img': { transform: 'scale(1.06)' },
-                  }}
-                >
-                  {/* Image */}
-                  {destination.image ? (
-                    <Box
-                      className="dest-img"
-                      component="img"
-                      src={destination.image}
-                      alt={destination.title}
-                      sx={{
-                        width: '100%', height: '100%',
-                        objectFit: 'cover',
-                        display: 'block',
-                        transition: 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
-                      }}
-                    />
-                  ) : (
-                    <Box className="dest-img" sx={{ width: '100%', height: '100%', background: 'linear-gradient(145deg, #1c1c2e 0%, #2d1b3d 40%, #1a2a40 100%)', transition: 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)' }} />
-                  )}
-
-                  {/* Permanent gradient overlay bottom */}
-                  <Box sx={{
-                    position: 'absolute', inset: 0,
-                    background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 45%, transparent 100%)',
-                  }} />
-
-                  {/* Hover tint overlay */}
-                  <Box className="dest-overlay" sx={{
-                    position: 'absolute', inset: 0,
-                    background: 'linear-gradient(135deg, rgba(255,56,92,0.18) 0%, transparent 60%)',
-                    opacity: 0, transition: 'opacity 0.3s ease',
-                  }} />
-
-                  {/* Badge top-right */}
-                  <Box sx={{
-                    position: 'absolute', top: 14, right: 14,
-                    px: 1.25, py: 0.45,
-                    background: 'rgba(255,255,255,0.92)',
-                    backdropFilter: 'blur(12px)',
-                    borderRadius: '50px',
-                    fontSize: '0.7rem', fontWeight: 700,
-                    fontFamily: "'Inter', sans-serif",
-                    color: '#111',
-                    boxShadow: '0 2px 8px rgba(0,0,0,0.14)',
-                    lineHeight: 1.4,
-                  }}>
-                    {destination.badge}
-                  </Box>
-
-                  {/* Text bottom */}
-                  <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, p: '18px 20px 20px' }}>
-                    <Typography sx={{
-                      color: '#FFFFFF', fontWeight: 700,
-                      fontSize: '1rem',
-                      fontFamily: "'Inter', sans-serif",
-                      lineHeight: 1.3, mb: 0.5,
-                      letterSpacing: '-0.01em',
-                    }}>
-                      {destination.title}
-                    </Typography>
-                    <Typography sx={{
-                      color: 'rgba(255,255,255,0.72)', fontSize: '0.72rem',
-                      fontFamily: "'Inter', sans-serif",
-                      lineHeight: 1.5,
-                      display: '-webkit-box',
-                      WebkitLineClamp: 2,
-                      WebkitBoxOrient: 'vertical',
-                      overflow: 'hidden',
-                    }}>
-                      {destination.description}
-                    </Typography>
-                  </Box>
-                </Box>
-              ))}
-            </Box>
-          </Box>
+        }}>          
 
           {/* Community Adventures */}
           <Box sx={{ mt: 2, mb: 6 }}>
@@ -1877,6 +1759,127 @@ const Home: React.FC = () => {
                 </>
               );
             })()}
+          </Box>
+
+          {/* FEATURED DESTINATIONS */}
+          <Box sx={{ pb: 6 }}>
+            {/* Section header */}
+            <Box sx={{ mb: 3.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
+                <Box sx={{ width: 4, height: 22, borderRadius: 2, background: 'linear-gradient(180deg, #FF385C, #D91A50)' }} />
+                <Typography fontWeight={800} sx={{
+                  fontFamily: "'Inter', sans-serif",
+                  letterSpacing: '-0.03em',
+                  fontSize: { xs: '1.3rem', md: '1.5rem' },
+                  color: 'text.primary',
+                }}>
+                  Trending Destinations
+                </Typography>
+              </Box>
+              <Typography onClick={() => navigate('/blog')} sx={
+                {
+                fontSize: '0.78rem', fontWeight: 600, color: '#FF385C',
+                fontFamily: "'Inter', sans-serif", cursor: 'pointer',
+                letterSpacing: '0.01em',
+                '&:hover': { textDecoration: 'underline' },
+              }}>View all →</Typography>
+            </Box>
+
+            {/* Cards grid */}
+            <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr', md: 'repeat(4, 1fr)' }, gap: 2.5 }}>
+              {featuredDestinations.map((destination) => (
+                <Box
+                  key={destination.id}
+                  onClick={() => navigate(`/blog/${(destination as any).slug}`)}
+                  sx={{
+                    position: 'relative',
+                    borderRadius: '16px',
+                    overflow: 'hidden',
+                    cursor: 'pointer',
+                    minHeight: { xs: 260, md: 320 },
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.10)',
+                    transition: 'transform 0.32s cubic-bezier(0.25, 0.46, 0.45, 0.94), box-shadow 0.32s ease',
+                    '&:hover': {
+                      transform: 'translateY(-6px) scale(1.012)',
+                      boxShadow: '0 20px 48px rgba(0,0,0,0.20)',
+                    },
+                    '&:hover .dest-overlay': { opacity: 1 },
+                    '&:hover .dest-img': { transform: 'scale(1.06)' },
+                  }}
+                >
+                  {/* Image */}
+                  {destination.image ? (
+                    <Box
+                      className="dest-img"
+                      component="img"
+                      src={destination.image}
+                      alt={destination.title}
+                      sx={{
+                        width: '100%', height: '100%',
+                        objectFit: 'cover',
+                        display: 'block',
+                        transition: 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)',
+                      }}
+                    />
+                  ) : (
+                    <Box className="dest-img" sx={{ width: '100%', height: '100%', background: 'linear-gradient(145deg, #1c1c2e 0%, #2d1b3d 40%, #1a2a40 100%)', transition: 'transform 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94)' }} />
+                  )}
+
+                  {/* Permanent gradient overlay bottom */}
+                  <Box sx={{
+                    position: 'absolute', inset: 0,
+                    background: 'linear-gradient(to top, rgba(0,0,0,0.72) 0%, rgba(0,0,0,0.18) 45%, transparent 100%)',
+                  }} />
+
+                  {/* Hover tint overlay */}
+                  <Box className="dest-overlay" sx={{
+                    position: 'absolute', inset: 0,
+                    background: 'linear-gradient(135deg, rgba(255,56,92,0.18) 0%, transparent 60%)',
+                    opacity: 0, transition: 'opacity 0.3s ease',
+                  }} />
+
+                  {/* Badge top-right */}
+                  <Box sx={{
+                    position: 'absolute', top: 14, right: 14,
+                    px: 1.25, py: 0.45,
+                    background: 'rgba(255,255,255,0.92)',
+                    backdropFilter: 'blur(12px)',
+                    borderRadius: '50px',
+                    fontSize: '0.7rem', fontWeight: 700,
+                    fontFamily: "'Inter', sans-serif",
+                    color: '#111',
+                    boxShadow: '0 2px 8px rgba(0,0,0,0.14)',
+                    lineHeight: 1.4,
+                  }}>
+                    {destination.badge}
+                  </Box>
+
+                  {/* Text bottom */}
+                  <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, p: '18px 20px 20px' }}>
+                    <Typography sx={{
+                      color: '#FFFFFF', fontWeight: 700,
+                      fontSize: '1rem',
+                      fontFamily: "'Inter', sans-serif",
+                      lineHeight: 1.3, mb: 0.5,
+                      letterSpacing: '-0.01em',
+                    }}>
+                      {destination.title}
+                    </Typography>
+                    <Typography sx={{
+                      color: 'rgba(255,255,255,0.72)', fontSize: '0.72rem',
+                      fontFamily: "'Inter', sans-serif",
+                      lineHeight: 1.5,
+                      display: '-webkit-box',
+                      WebkitLineClamp: 2,
+                      WebkitBoxOrient: 'vertical',
+                      overflow: 'hidden',
+                    }}>
+                      {destination.description}
+                    </Typography>
+                  </Box>
+                </Box>
+              ))}
+            </Box>
           </Box>
 
           {/* CTA */}
