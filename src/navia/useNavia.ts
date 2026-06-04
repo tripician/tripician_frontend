@@ -1,5 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
 import { streamNaviaResponse } from './naviaService';
+import { loadNaviaMessages, saveNaviaMessages, clearNaviaSession } from './naviaSessionStorage';
 
 export interface NaviaMessage {
   id: string;
@@ -17,11 +18,14 @@ export interface UseNaviaReturn {
 }
 
 export function useNavia(tripId: string, token?: string | null): UseNaviaReturn {
-  const [messages, setMessages] = useState<NaviaMessage[]>([]);
+  const sessionKey = tripId || 'general';
+  const [messages, setMessages] = useState<NaviaMessage[]>(() => loadNaviaMessages(sessionKey));
   const [isStreaming, setIsStreaming] = useState(false);
   // Keep isStreaming in a ref so the event handler closure always has fresh value
   const isStreamingRef = useRef(false);
   const generatorRef = useRef<AsyncGenerator<string> | null>(null);
+  const messagesRef = useRef(messages);
+  messagesRef.current = messages;
 
   const sendMessage = useCallback(
     async (text: string) => {
@@ -47,7 +51,14 @@ export function useNavia(tripId: string, token?: string | null): UseNaviaReturn 
       isStreamingRef.current = true;
 
       try {
-        const gen = streamNaviaResponse(tripId, text.trim(), token);
+        const priorHistory = messagesRef.current
+          .filter(m => !m.isStreaming && m.content.trim())
+          .slice(-20)
+          .map(m => ({
+            role: m.role,
+            content: m.content,
+          }));
+        const gen = streamNaviaResponse(tripId, text.trim(), token, priorHistory);
         generatorRef.current = gen;
 
         for await (const chunk of gen) {
@@ -82,7 +93,18 @@ export function useNavia(tripId: string, token?: string | null): UseNaviaReturn 
     [tripId, token],
   );
 
-  const clearMessages = useCallback(() => setMessages([]), []);
+  useEffect(() => {
+    saveNaviaMessages(sessionKey, messages);
+  }, [messages, sessionKey]);
+
+  useEffect(() => {
+    setMessages(loadNaviaMessages(sessionKey));
+  }, [sessionKey]);
+
+  const clearMessages = useCallback(() => {
+    clearNaviaSession(sessionKey);
+    setMessages([]);
+  }, [sessionKey]);
 
   // Listen for custom events dispatched by DestinationCard / other components
   useEffect(() => {

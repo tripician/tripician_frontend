@@ -85,7 +85,7 @@ export function useTripChat(
     return {
       ...msg,
       displayName: member.name || msg.displayName,
-      avatarUrl: member.profilePictureUrl ?? msg.avatarUrl,
+      avatarUrl: member.avatarUrl ?? msg.avatarUrl,
     };
   }, []);
 
@@ -196,7 +196,7 @@ export function useTripChat(
             metadata: null,
             sentAt: new Date().toISOString(),
             displayName: memberMap.current.get(String(myUserId))?.name,
-            avatarUrl: memberMap.current.get(String(myUserId))?.profilePictureUrl ?? undefined,
+            avatarUrl: memberMap.current.get(String(myUserId))?.avatarUrl ?? undefined,
           };
           setMessages(prev => [...prev, optimistic]);
         }

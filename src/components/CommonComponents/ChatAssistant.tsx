@@ -35,10 +35,12 @@ import SecurityRoundedIcon from '@mui/icons-material/SecurityRounded';
 import SyncRoundedIcon from '@mui/icons-material/SyncRounded';
 import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
 import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
-import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import { useNavia } from '../../navia/useNavia';
 import NaviaMessage from '../../navia/NaviaMessage';
 import { useAuthToken } from '../../hooks/useAuth0Token';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../store';
+import { useIsMobile } from '../../hooks/useIsMobile';
 
 interface ChatAssistantProps {
   tripId?: string;
@@ -47,8 +49,15 @@ interface ChatAssistantProps {
 const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
   const theme = useTheme();
   const isLight = theme.palette.mode === 'light';
+  const isMobile = useIsMobile();
   const auth = useAuthToken();
+  const { profile } = useSelector((state: RootState) => state.user);
   const { messages, isStreaming, sendMessage } = useNavia(tripId ?? '', auth.token);
+
+  const greetingName = profile?.fname?.trim();
+  const emptyGreeting = tripId
+    ? `Hi${greetingName ? ` ${greetingName}` : ''}! I'm Navia — your AI co-planner for this trip. Ask me about destinations, pacing, packing, or what to do next.`
+    : `Hi${greetingName ? ` ${greetingName}` : ''}! I'm Navia, your AI travel companion. I can see your trips and help you plan your next adventure.`;
 
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
@@ -109,7 +118,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
           right: 50,
           bottom: { xs: 168, lg: 120 },
           zIndex: 1700,
-          display: 'flex',
+          display: { xs: 'none', md: 'flex' },
           flexDirection: 'column',
           alignItems: 'flex-end',
         }}
@@ -248,13 +257,20 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-            style={{ position: 'fixed', right: 40, bottom: 110, zIndex: 1700 }}
+            style={{
+              position: 'fixed',
+              right: isMobile ? 12 : 40,
+              left: isMobile ? 12 : 'auto',
+              bottom: isMobile ? 100 : 110,
+              zIndex: 1700,
+            }}
           >
             <Paper
               elevation={0}
               sx={{
-                width: { xs: '88vw', sm: 370 },
-                height: 520,
+                width: isMobile ? '100%' : { xs: '88vw', sm: 370 },
+                height: isMobile ? 'min(72vh, 520px)' : 520,
+                maxHeight: isMobile ? '72vh' : 520,
                 borderRadius: '20px',
                 display: 'flex',
                 flexDirection: 'column',
@@ -308,7 +324,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
                         fontSize: '0.82rem', lineHeight: 1.5,
                         color: isLight ? '#1a1a1a' : '#f0f0f0',
                       }}>
-                        Hi! I'm Navia ✨ Your AI travel companion. How can I help you plan your next adventure?
+                        {emptyGreeting}
                       </Box>
                     </Box>
                   )}

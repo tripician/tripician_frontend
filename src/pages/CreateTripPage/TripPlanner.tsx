@@ -903,8 +903,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const docsState = useSelector((s:RootState)=> s.docs);
 	const auth = useAuthToken();
 	const authToken = auth.token; // string | null
-	const naviaHook = useNavia(tripId, authToken);
-	void naviaHook;
+	useNavia(tripId, authToken);
 
 	// Normalize initial trip (stable backend shape: { trip, itinerary })
 		const normalizedInitial = React.useMemo<NormalizedTrip | null>(() => initialTrip ? normalizeTrip(initialTrip) : null, [initialTrip]);
@@ -1204,6 +1203,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			return {
 				id: it.id || ('dest_'+idx),
 				name: it.name || 'Destination '+(idx+1),
+				title: typeof it.title === 'string' && it.title.trim() ? it.title.trim() : undefined,
 				startDate: startDateRaw,
 				endDate: endDateRaw,
 				nights,
@@ -1219,7 +1219,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				foods: Array.isArray(it.foods)? it.foods: [],
 				docs: Array.isArray(it.docs)? it.docs: [],
 				notes: it.notes,
-				stay: it.stay || undefined
+				stay: it.stay || undefined,
+				stays: Array.isArray(it.stays) ? it.stays : (it.stay ? [it.stay] : []),
+				stayNotes: typeof it.stayNotes === 'string' ? it.stayNotes : undefined,
 			};
 		});
 		// If any stop had notes='general' (category placeholder leaked into notes field), clear it
@@ -1592,9 +1594,12 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				? (d as any).stays.filter((s:any)=> (s.name && s.name.trim()) || (s.reference && s.reference.trim())).map((s:any)=> ({ id:s.id, name:s.name?.trim() ?? null, reference:s.reference?.trim() ?? null }))
 				: [];
 			const stayNotesUnified = typeof (d as any).stayNotes === 'string' && (d as any).stayNotes.trim().length>0 ? (d as any).stayNotes.trim() : null;
+			const titleVal = typeof (d as any).title === 'string' && (d as any).title.trim().length > 0 ? (d as any).title.trim() : null;
 			return {
 				id:d.id,
+				externalId:d.id,
 				name:d.name,
+				title: titleVal,
 				startDate:d.startDate,
 				endDate:d.endDate,
 				nights:d.nights,
@@ -1723,6 +1728,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			}
 			setLastSavedDisplay(new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' }));
 			openToast('success', payload.trip.status==='DRAFT'? 'Saved':'Trip updated');
+			if (remoteRefreshKeyRef.current === refreshKeyAtSaveStart) {
+				void refreshTripFromServer();
+			}
 			return true;
 		} catch(err:any){
 			// Enhanced error logging
@@ -1747,7 +1755,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		} finally {
 			setSaving(false);
 		}
-	}, [authToken, saving, lastSaveTs, tripId, openToast]);
+	}, [authToken, saving, lastSaveTs, tripId, openToast, refreshTripFromServer]);
 
 	// If notes were silently cleaned on hydration (category 'general' leaked into notes field),
 	// persist the corrected value automatically so the backend stays in sync.
@@ -2182,7 +2190,18 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 							{section==='plan' && tab===0 && (
 								<Box sx={{ px:0 }}>
 									{ENABLE_CARD_LAYOUT ? (
-										<DestinationCardsPanel maxed={totalNights >= targetNights} readOnly={readOnly || !effectiveCanEdit} canAccessDocs={canAccessDocs} canEdit={effectiveCanEdit} isPublished={!isDraft} onRequestNaviaTip={(msg) => window.dispatchEvent(new CustomEvent('navia:send', { detail: { message: msg } }))} />
+										<DestinationCardsPanel
+											maxed={totalNights >= targetNights}
+											readOnly={readOnly || !effectiveCanEdit}
+											canAccessDocs={canAccessDocs}
+											canEdit={effectiveCanEdit}
+											isPublished={!isDraft}
+											tripId={tripId}
+											authToken={authToken}
+											tripVibe={vibe}
+											onNaviaToast={openToast}
+											onRequestNaviaTip={(msg) => window.dispatchEvent(new CustomEvent('navia:send', { detail: { message: msg } }))}
+										/>
 									) : (
 										<DestinationsPanel
 											destinations={panelDestinations}

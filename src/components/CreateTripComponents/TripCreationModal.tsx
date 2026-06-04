@@ -8,6 +8,7 @@ import {
   IconButton,
   Autocomplete,
   Chip,
+  Avatar,
 } from "@mui/material";
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
 import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
@@ -36,6 +37,8 @@ interface FormData {
   vibe: string | null;
   inviteEmail: string; // current typed email
   inviteEmails: string[]; // collected valid emails
+  aiGenerating: boolean;
+  aiMessage: string;
 }
 
 const COUNTRIES = [
@@ -314,7 +317,11 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
     vibe: null,
     inviteEmail: "",
     inviteEmails: [],
+    aiGenerating: false,
+    aiMessage: "",
   });
+
+  const [userSearchResults, setUserSearchResults] = useState<Array<{ id: number; fname: string; lname: string; email: string; profilepicture?: string; profilePicture?: string; profilePic?: string; avatar?: string }>>([]);
 
   const [step, setStep] = useState(1);
   const [submitting, setSubmitting] = useState(false);
@@ -328,7 +335,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
 
   const handleInputChange =
     (field: keyof FormData) =>
-    (event: ChangeEvent<HTMLInputElement>) => {
+    (event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
       let value = event.target.value;
       if (field === 'tripDescription') {
         value = value.slice(0, 300);
@@ -353,10 +360,129 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
       return;
     }
     setFormData(p=> ({ ...p, inviteEmails: p.inviteEmails.includes(raw)? p.inviteEmails : [...p.inviteEmails, raw], inviteEmail: '' }));
+    setUserSearchResults([]);
+  };
+
+  const handleUserSearch = async (query: string) => {
+    if (!query || query.length < 2) {
+      setUserSearchResults([]);
+      return;
+    }
+    try {
+      const tokenVal = token || localStorage.getItem('accessToken') || '';
+      if (!tokenVal) return;
+      // Search by email or name
+      const emailRegex = /.+@.+\..+/.test(query);
+      if (emailRegex) {
+        const resp = await apiServices.getUserProfileByEmail(tokenVal, query.toLowerCase());
+        if (resp.data) {
+          setUserSearchResults([resp.data]);
+        }
+      } else {
+        // Search by name
+        const resp = await apiServices.searchUsersByName(tokenVal, query);
+        if (resp.data && Array.isArray(resp.data)) {
+          setUserSearchResults(resp.data);
+        }
+      }
+    } catch (err) {
+      setUserSearchResults([]);
+    }
+  };
+
+  const handleSelectUser = (user: any) => {
+    const email = user.email;
+    if (email && !formData.inviteEmails.includes(email)) {
+      setFormData(p => ({ ...p, inviteEmails: [...p.inviteEmails, email], inviteEmail: '' }));
+    }
+    setUserSearchResults([]);
   };
 
   const handleRemoveInvite = (email: string) => {
     setFormData(p=> ({ ...p, inviteEmails: p.inviteEmails.filter(e=> e!==email) }));
+  };
+
+  // AI loading messages
+  const AI_LOADING_MESSAGES = [
+    "Crafting your trip...",
+    "Designing the best compatible path as per your travel style",
+    "Adding important notes",
+    "Here we are adding the best restaurants & foods",
+    "Finalizing your perfect itinerary",
+  ];
+
+  const handleGenerateWithAI = async () => {
+    if(!token) {
+      setErrorMsg('You must be signed in.');
+      return;
+    }
+    if(!validate()) return;
+    setFormData(p => ({ ...p, aiGenerating: true, aiMessage: AI_LOADING_MESSAGES[0] }));
+    setErrorMsg(null);
+    
+    // Cycle through AI loading messages
+    let messageIndex = 0;
+    const messageInterval = setInterval(() => {
+      messageIndex = (messageIndex + 1) % AI_LOADING_MESSAGES.length;
+      setFormData(p => ({ ...p, aiMessage: AI_LOADING_MESSAGES[messageIndex] }));
+    }, 2000);
+
+    try {
+      const VISIBILITY_MAP: Record<string, number> = {
+        PRIVATE: 0,
+        TRIP_MEMBERS: 1,
+        EVERYONE: 2,
+        PUBLIC: 2,
+      };
+
+      const payload = {
+        name: formData.tripName.trim(),
+        description: formData.tripDescription.trim(),
+        countries: formData.selectedCountries,
+        startDate: formData.startDate ? formData.startDate.format('YYYY-MM-DD') : null,
+        endDate: formData.endDate ? formData.endDate.format('YYYY-MM-DD') : null,
+        visibility: VISIBILITY_MAP['PRIVATE'],
+        currencyCode: 'USD',
+        vibe: formData.vibe,
+        invites: formData.inviteEmails,
+        generateWithAI: true, // Flag to indicate AI generation
+      };
+      
+      const createResp = await apiServices.createTrip(token, payload);
+      const createdId: string | undefined = createResp?.data?.id || createResp?.data?.Id || createResp?.data?.tripId;
+      
+      if(!createdId){
+        throw new Error('Trip created but no id returned');
+      }
+      
+      // Fetch full trip details
+      const tripResp = await apiServices.getTripById(token, createdId);
+      const tripData = tripResp.data;
+      
+      clearInterval(messageInterval);
+      handleClose();
+      
+      // Navigate to trip planner with AI-generated flag
+      navigate(`/tripplanner/${createdId}`, { 
+        state: { 
+          tripId: createdId, 
+          trip: tripData,
+          aiGenerated: true 
+        } 
+      });
+    } catch(err: any) {
+      clearInterval(messageInterval);
+      console.error('[CreateTripModal] AI generation failed', err);
+      if(err?.code === 'ERR_NETWORK') {
+        setErrorMsg(`Cannot reach server at ${apiBase}. Make sure the backend is running and accessible (network / certificate).`);
+      } else if(err?.response) {
+        const msg = err.response.data?.message || `Server error (${err.response.status}). Please try again.`;
+        setErrorMsg(msg);
+      } else {
+        setErrorMsg('Failed to generate trip with AI. Please try again.');
+      }
+      setFormData(p => ({ ...p, aiGenerating: false, aiMessage: '' }));
+    }
   };
 
   const handleNext = () => {
@@ -472,6 +598,8 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
       vibe: null,
       inviteEmail: "",
       inviteEmails: [],
+      aiGenerating: false,
+      aiMessage: "",
     });
     setStep(1);
   };
@@ -545,13 +673,15 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
           <Box sx={{ height: 3, flexShrink: 0, background: activeVibe ? activeVibe.activeBg : 'linear-gradient(90deg, #FF385C 0%, #FF6B35 50%, #FFB347 100%)', transition: 'background 0.5s ease' }} />
 
           {/* Loading overlay */}
-          {submitting && (
+          {(submitting || formData.aiGenerating) && (
             <Box sx={{ position: 'absolute', inset: 0, zIndex: 10, backdropFilter: 'blur(3px)', background: 'rgba(255,255,255,0.75)', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2 }}>
               <Box sx={{ width: 48, height: 48, position: 'relative' }}>
                 <Box sx={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid rgba(255,56,92,0.15)' }} />
                 <Box sx={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid transparent', borderTopColor: primary, animation: 'spin 0.85s linear infinite', '@keyframes spin': { to: { transform: 'rotate(360deg)' } } }} />
               </Box>
-              <Typography sx={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, color: 'text.secondary', fontSize: '0.88rem' }}>Creating your trip…</Typography>
+              <Typography sx={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, color: 'text.secondary', fontSize: '0.88rem', textAlign: 'center', maxWidth: 280 }}>
+                {formData.aiGenerating ? formData.aiMessage : 'Creating your trip…'}
+              </Typography>
             </Box>
           )}
 
@@ -696,7 +826,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
                     />
                   </Box>
                   <Box className="gs-modal-field">
-                    <Typography sx={labelSx}>When are you going? <span style={{ fontWeight: 400, color: '#CCC', letterSpacing: 0, textTransform: 'none', fontSize: '0.65rem' }}>(optional)</span></Typography>
+                    <Typography sx={labelSx}>When are you going?</Typography>
                     <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, alignItems: { xs: 'stretch', sm: 'center' }, gap: { xs: 1, sm: 1.5 } }}>
                       <DatePicker
                         value={formData.startDate}
@@ -810,30 +940,77 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
                   </Box>
 
                   {/* Invite input */}
-                  <Box sx={{ display: 'flex', gap: 1, mb: 1.5 }}>
-                    <TextField
-                      placeholder="email or username"
-                      value={formData.inviteEmail}
-                      onChange={handleInputChange('inviteEmail')}
-                      onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleInviteFriend(); } }}
-                      size="small"
-                      fullWidth
-                      sx={{
-                        '& .MuiOutlinedInput-root': {
-                          borderRadius: '12px', backgroundColor: '#FFFFFF', fontSize: '0.88rem',
-                          '& fieldset': { borderColor: 'rgba(0,0,0,0.10)' },
-                          '&:hover fieldset': { borderColor: 'rgba(255,56,92,0.4)' },
-                          '&.Mui-focused fieldset': { borderColor: primary, borderWidth: '1.5px' },
-                        },
-                      }}
-                    />
-                    <Button
-                      variant="contained"
-                      onClick={handleInviteFriend}
-                      sx={{ background: activeVibe ? activeVibe.activeBg : 'linear-gradient(135deg, #FF385C, #D91A50)', borderRadius: '12px', px: 2.5, textTransform: 'none', fontWeight: 700, fontFamily: "'Inter', sans-serif", fontSize: '0.82rem', boxShadow: `0 4px 12px ${activeVibe ? activeVibe.activeBorder + '44' : 'rgba(255,56,92,0.30)'}`, '&:hover': { filter: 'brightness(1.08)' }, flexShrink: 0, transition: 'all 0.3s' }}
-                    >
-                      Add
-                    </Button>
+                  <Box sx={{ position: 'relative', mb: 1.5 }}>
+                    <Box sx={{ display: 'flex', gap: 1 }}>
+                      <TextField
+                        placeholder="Search by name or email"
+                        value={formData.inviteEmail}
+                        onChange={(e) => {
+                          handleInputChange('inviteEmail')(e);
+                          handleUserSearch(e.target.value);
+                        }}
+                        onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); handleInviteFriend(); } }}
+                        size="small"
+                        fullWidth
+                        sx={{
+                          '& .MuiOutlinedInput-root': {
+                            borderRadius: '12px', backgroundColor: '#FFFFFF', fontSize: '0.88rem',
+                            '& fieldset': { borderColor: 'rgba(0,0,0,0.10)' },
+                            '&:hover fieldset': { borderColor: 'rgba(255,56,92,0.4)' },
+                            '&.Mui-focused fieldset': { borderColor: primary, borderWidth: '1.5px' },
+                          },
+                        }}
+                      />
+                      <Button
+                        variant="contained"
+                        onClick={handleInviteFriend}
+                        sx={{ background: activeVibe ? activeVibe.activeBg : 'linear-gradient(135deg, #FF385C, #D91A50)', borderRadius: '12px', px: 2.5, textTransform: 'none', fontWeight: 700, fontFamily: "'Inter', sans-serif", fontSize: '0.82rem', boxShadow: `0 4px 12px ${activeVibe ? activeVibe.activeBorder + '44' : 'rgba(255,56,92,0.30)'}`, '&:hover': { filter: 'brightness(1.08)' }, flexShrink: 0, transition: 'all 0.3s' }}
+                      >
+                        Add
+                      </Button>
+                    </Box>
+                    
+                    {/* User search results dropdown */}
+                    {userSearchResults.length > 0 && (
+                      <Box sx={{
+                        position: 'absolute', top: '100%', left: 0, right: 0, mt: 0.5,
+                        backgroundColor: '#fff', borderRadius: '12px',
+                        boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                        maxHeight: 200, overflowY: 'auto',
+                        zIndex: 20,
+                        border: '1px solid rgba(0,0,0,0.08)',
+                      }}>
+                        {userSearchResults.map((user) => (
+                          <Box
+                            key={user.id}
+                            onClick={() => handleSelectUser(user)}
+                            sx={{
+                              display: 'flex', alignItems: 'center', gap: 1.5,
+                              px: 2, py: 1.5,
+                              cursor: 'pointer',
+                              '&:hover': { backgroundColor: 'rgba(255,56,92,0.05)' },
+                              borderBottom: '1px solid rgba(0,0,0,0.04)',
+                            }}
+                          >
+                            <Avatar
+                              src={user.profilepicture || user.profilePicture || user.profilePic || user.avatar || undefined}
+                              sx={{ width: 36, height: 36, bgcolor: primary, fontWeight: 700, fontSize: 14 }}
+                              imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' as any }}
+                            >
+                              {user.fname?.[0]}{user.lname?.[0]}
+                            </Avatar>
+                            <Box sx={{ flex: 1, minWidth: 0 }}>
+                              <Typography sx={{ fontWeight: 600, fontSize: '0.88rem', fontFamily: "'Inter', sans-serif" }}>
+                                {user.fname} {user.lname}
+                              </Typography>
+                              <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontFamily: "'Inter', sans-serif" }}>
+                                {user.email}
+                              </Typography>
+                            </Box>
+                          </Box>
+                        ))}
+                      </Box>
+                    )}
                   </Box>
 
                   {formData.inviteEmails.length > 0 && (
@@ -886,23 +1063,41 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
                   Next
                 </Button>
               ) : (
-                <Button
-                  variant="contained"
-                  onClick={handleStartPlanning}
-                  disabled={!canFinish || submitting}
-                  endIcon={!submitting ? <ArrowForwardIcon sx={{ fontSize: '1rem !important' }} /> : undefined}
-                  sx={{
-                    fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '0.88rem',
-                    px: 3.5, py: 1.3, borderRadius: '50px', textTransform: 'none',
-                    background: canFinish ? (activeVibe ? activeVibe.activeBg : 'linear-gradient(135deg, #FF385C 0%, #D91A50 100%)') : undefined,
-                    boxShadow: canFinish ? `0 6px 20px ${activeVibe ? activeVibe.activeBorder + '44' : 'rgba(255,56,92,0.35)'}` : 'none',
-                    '&:hover': { filter: 'brightness(1.08)', transform: 'translateY(-1px)' },
-                    '&:disabled': { background: '#EEEEEE', color: '#CCCCCC', boxShadow: 'none' },
-                    transition: 'all 0.22s ease',
-                  }}
-                >
-                  {submitting ? 'Creating…' : 'Start Planning'}
-                </Button>
+                <Box sx={{ display: 'flex', gap: 1.5, alignItems: 'center' }}>
+                  <Button
+                    variant="outlined"
+                    onClick={handleGenerateWithAI}
+                    disabled={!canFinish || submitting || formData.aiGenerating}
+                    sx={{
+                      fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '0.82rem',
+                      px: 2.5, py: 1.3, borderRadius: '50px', textTransform: 'none',
+                      borderColor: primary,
+                      color: primary,
+                      '&:hover': { backgroundColor: 'rgba(255,56,92,0.05)', borderColor: primary },
+                      '&:disabled': { borderColor: '#EEEEEE', color: '#CCCCCC', backgroundColor: 'transparent' },
+                      transition: 'all 0.22s ease',
+                    }}
+                  >
+                    ✨ Generate with AI
+                  </Button>
+                  <Button
+                    variant="contained"
+                    onClick={handleStartPlanning}
+                    disabled={!canFinish || submitting || formData.aiGenerating}
+                    endIcon={!submitting && !formData.aiGenerating ? <ArrowForwardIcon sx={{ fontSize: '1rem !important' }} /> : undefined}
+                    sx={{
+                      fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '0.88rem',
+                      px: 3.5, py: 1.3, borderRadius: '50px', textTransform: 'none',
+                      background: canFinish ? (activeVibe ? activeVibe.activeBg : 'linear-gradient(135deg, #FF385C 0%, #D91A50 100%)') : undefined,
+                      boxShadow: canFinish ? `0 6px 20px ${activeVibe ? activeVibe.activeBorder + '44' : 'rgba(255,56,92,0.35)'}` : 'none',
+                      '&:hover': { filter: 'brightness(1.08)', transform: 'translateY(-1px)' },
+                      '&:disabled': { background: '#EEEEEE', color: '#CCCCCC', boxShadow: 'none' },
+                      transition: 'all 0.22s ease',
+                    }}
+                  >
+                    {submitting ? 'Creating…' : 'Start Planning'}
+                  </Button>
+                </Box>
               )}
             </Box>
 

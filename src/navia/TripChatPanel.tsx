@@ -32,7 +32,6 @@ import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import CancelRoundedIcon from '@mui/icons-material/CancelRounded';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
-import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import { motion, AnimatePresence } from 'framer-motion';
 import QuestionAnswerRoundedIcon from '@mui/icons-material/QuestionAnswerRounded';
 import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
@@ -107,7 +106,6 @@ const NaviaLogo: React.FC<{ size?: number }> = () => (
 /** System change result row */
 const SystemResultRow: React.FC<{ result: ReturnType<typeof parseSystemMetadata>[number] }> = ({ result }) => {
   const entry = result.event ? EVENT_LABELS[result.event] : null;
-  const icon = entry?.icon ?? (result.success ? '?' : '?');
   const label = entry ? entry.label(result) : (result.summary ?? result.action);
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.15 }}>

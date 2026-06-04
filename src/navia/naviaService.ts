@@ -13,13 +13,27 @@ function errorMessageForStatus(status: number): string {
  * Streams Navia AI response chunks via SSE.
  * Routes to /api/navia/chat when tripId is provided, otherwise /api/navia/general-chat.
  */
+export interface NaviaHistoryMessage {
+  role: 'user' | 'navia' | 'assistant';
+  content: string;
+}
+
 export async function* streamNaviaResponse(
   tripId: string,
   userMessage: string,
   token?: string | null,
+  history?: NaviaHistoryMessage[],
 ): AsyncGenerator<string> {
   const endpoint = tripId ? '/api/navia/chat' : '/api/navia/general-chat';
-  const body = tripId ? { tripId, userMessage } : { userMessage };
+  const apiHistory = history
+    ?.filter(m => m.content.trim())
+    .map(m => ({
+      role: m.role === 'navia' ? 'assistant' : m.role,
+      content: m.content.trim(),
+    }));
+  const body = tripId
+    ? { tripId, userMessage, history: apiHistory }
+    : { userMessage, history: apiHistory };
 
   let response: Response;
   try {
@@ -77,4 +91,54 @@ export async function* streamNaviaResponse(
   } finally {
     reader.releaseLock();
   }
+}
+
+export interface PlanDestinationSpot {
+  name: string;
+  description?: string;
+}
+
+export interface PlanDestinationFood {
+  name: string;
+}
+
+export interface PlanDestinationResult {
+  spots: PlanDestinationSpot[];
+  foods: PlanDestinationFood[];
+  journalNotes: string;
+}
+
+export interface PlanDestinationRequest {
+  tripId: string;
+  destinationName: string;
+  planTitle?: string;
+  lat?: number;
+  lng?: number;
+  nights?: number;
+  category?: string;
+  vibe?: string;
+}
+
+/**
+ * Structured JSON plan for one destination stop (spots, foods, journal — no lodging).
+ */
+export async function planDestination(
+  request: PlanDestinationRequest,
+  token?: string | null,
+): Promise<PlanDestinationResult> {
+  const response = await fetch(`${API_BASE}/api/navia/plan-destination`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(text || errorMessageForStatus(response.status));
+  }
+
+  return response.json() as Promise<PlanDestinationResult>;
 }

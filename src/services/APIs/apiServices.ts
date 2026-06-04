@@ -216,6 +216,7 @@ export const apiServices = {
     itinerary: Array<{
       id: string;
       name: string;
+      title?: string | null;
       startDate: string;
       endDate: string;
       nights: number;
@@ -314,6 +315,12 @@ export const apiServices = {
   // GET /user-profiles/{userEmail} - search user by email
   getUserProfileByEmail: (token: string, userEmail: string) =>
     apiClient.get(`/search/user-profiles/${encodeURIComponent(userEmail)}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // GET /search/user-profiles/name/{name} - search user by name
+  searchUsersByName: (token: string, name: string) =>
+    apiClient.get(`/search/user-profiles/name/${encodeURIComponent(name)}`, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 

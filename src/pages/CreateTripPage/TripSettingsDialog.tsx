@@ -94,6 +94,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
   const [foundUser, setFoundUser] = React.useState<{ id: number; fname: string; lname: string; email: string; country?: string; profilepicture?: string; profilePicture?: string; profilePic?: string; avatar?: string } | null>(null);
   const [pendingUsers, setPendingUsers] = React.useState<Array<{ id: number; fname: string; lname: string; email: string; country?: string; profilepicture?: string; profilePicture?: string; profilePic?: string; avatar?: string }>>([]);
   const [addingMembers, setAddingMembers] = React.useState(false);
+  const [userSearchResults, setUserSearchResults] = React.useState<Array<{ id: number; fname: string; lname: string; email: string; country?: string; profilepicture?: string; profilePicture?: string; profilePic?: string; avatar?: string }>>([]);
 
   const [unsplashBanner, setUnsplashBanner] = React.useState<string | null>(null);
   React.useEffect(() => {
@@ -149,6 +150,40 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
       if (err?.response?.status === 404) setSearchError('No user found with this email');
       else setSearchError('Search failed. Please try again.');
     } finally { setInviting(false); }
+  };
+
+  const handleUserSearch = async (query: string) => {
+    if (!query || query.length < 2) {
+      setUserSearchResults([]);
+      return;
+    }
+    try {
+      const token = authToken || localStorage.getItem('accessToken') || '';
+      if (!token) return;
+      // Search by email or name
+      const emailRegex = /.+@.+\..+/.test(query);
+      if (emailRegex) {
+        const resp = await apiServices.getUserProfileByEmail(token, query.toLowerCase());
+        if (resp.data) {
+          setUserSearchResults([resp.data]);
+        }
+      } else {
+        // Search by name
+        const resp = await apiServices.searchUsersByName(token, query);
+        if (resp.data && Array.isArray(resp.data)) {
+          setUserSearchResults(resp.data);
+        }
+      }
+    } catch (err) {
+      setUserSearchResults([]);
+    }
+  };
+
+  const handleSelectUser = (user: any) => {
+    if (!foundUser) return;
+    if (pendingUsers.some(u => u.id === user.id)) { setSearchError('User already added'); return; }
+    setPendingUsers(prev => [...prev, user]);
+    setInviteEmail(''); setFoundUser(null); setUserSearchResults([]); setSearchError('');
   };
 
   const handleAddToPending = () => {
@@ -246,31 +281,80 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
 
           <DialogContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5, overflowY: 'auto' }}>
             {/* Search row */}
-            <Box sx={(t: any) => ({
-              display: 'flex', alignItems: 'center',
-              border: `1.5px solid ${t.palette.divider}`, borderRadius: 3, overflow: 'hidden',
-              background: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : '#fff',
-              '&:focus-within': { borderColor: primary, boxShadow: '0 0 0 3px rgba(255,56,92,0.10)' },
-              transition: 'all .2s',
-            })}>
-              <InputBase
-                placeholder="Search by email address…"
-                value={inviteEmail}
-                onChange={e => { setInviteEmail(e.target.value); setSearchError(''); setFoundUser(null); }}
-                onKeyPress={e => e.key === 'Enter' && handleSearchUser()}
-                sx={{ flex: 1, px: 2, py: 1.1, fontSize: 14 }}
-              />
-              <Button
-                disabled={!inviteEmail || inviting}
-                onClick={handleSearchUser}
-                variant="contained"
-                sx={{
-                  m: 0.6, px: 2.5, textTransform: 'none', borderRadius: 2.5,
-                  background: 'linear-gradient(135deg,#FF385C,#E31C5F)',
-                  fontWeight: 700, fontSize: 13, boxShadow: 'none',
-                  '&:hover': { background: 'linear-gradient(135deg,#e02d50,#c91855)', boxShadow: 'none' },
-                }}
-              >{inviting ? 'Searching…' : 'Search'}</Button>
+            <Box sx={{ position: 'relative' }}>
+              <Box sx={(t: any) => ({
+                display: 'flex', alignItems: 'center',
+                border: `1.5px solid ${t.palette.divider}`, borderRadius: 3, overflow: 'hidden',
+                background: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : '#fff',
+                '&:focus-within': { borderColor: primary, boxShadow: '0 0 0 3px rgba(255,56,92,0.10)' },
+                transition: 'all .2s',
+              })}>
+                <InputBase
+                  placeholder="Search by name or email…"
+                  value={inviteEmail}
+                  onChange={e => { 
+                    setInviteEmail(e.target.value); 
+                    setSearchError(''); 
+                    setFoundUser(null);
+                    handleUserSearch(e.target.value);
+                  }}
+                  onKeyPress={e => e.key === 'Enter' && handleSearchUser()}
+                  sx={{ flex: 1, px: 2, py: 1.1, fontSize: 14 }}
+                />
+                <Button
+                  disabled={!inviteEmail || inviting}
+                  onClick={handleSearchUser}
+                  variant="contained"
+                  sx={{
+                    m: 0.6, px: 2.5, textTransform: 'none', borderRadius: 2.5,
+                    background: 'linear-gradient(135deg,#FF385C,#E31C5F)',
+                    fontWeight: 700, fontSize: 13, boxShadow: 'none',
+                    '&:hover': { background: 'linear-gradient(135deg,#e02d50,#c91855)', boxShadow: 'none' },
+                  }}
+                >{inviting ? 'Searching…' : 'Search'}</Button>
+              </Box>
+              
+              {/* User search results dropdown */}
+              {userSearchResults.length > 0 && (
+                <Box sx={{
+                  position: 'absolute', top: '100%', left: 0, right: 0, mt: 0.5,
+                  backgroundColor: '#fff', borderRadius: 3,
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.15)',
+                  maxHeight: 200, overflowY: 'auto',
+                  zIndex: 20,
+                  border: '1px solid rgba(0,0,0,0.08)',
+                }}>
+                  {userSearchResults.map((user) => (
+                    <Box
+                      key={user.id}
+                      onClick={() => handleSelectUser(user)}
+                      sx={{
+                        display: 'flex', alignItems: 'center', gap: 1.5,
+                        px: 2, py: 1.5,
+                        cursor: 'pointer',
+                        '&:hover': { backgroundColor: 'rgba(255,56,92,0.05)' },
+                        borderBottom: '1px solid rgba(0,0,0,0.04)',
+                      }}
+                    >
+                      <Avatar
+                        src={user.profilepicture || user.profilePicture || user.profilePic || user.avatar || undefined}
+                        sx={{ width: 36, height: 36, bgcolor: primary, fontWeight: 700, fontSize: 14 }}
+                        imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' as any }}
+                      >
+                        {user.fname?.[0]}{user.lname?.[0]}
+                      </Avatar>
+                      <Box sx={{ flex: 1, minWidth: 0 }}>
+                        <Typography sx={{ fontWeight: 600, fontSize: '0.88rem', fontFamily: "'Inter', sans-serif" }}>
+                          {user.fname} {user.lname}
+                        </Typography>
+                        <Typography sx={{ fontSize: '0.75rem', color: 'text.secondary', fontFamily: "'Inter', sans-serif" }}>
+                          {user.email}
+                        </Typography>
+                      </Box>
+                    </Box>
+                  ))}
+                </Box>
+              )}
             </Box>
 
             {searchError && (

@@ -10,7 +10,6 @@ import PlaceRoundedIcon from '@mui/icons-material/PlaceRounded';
 import EditRoundedIcon from '@mui/icons-material/EditRounded';
 import FlightTakeoffIcon from '@mui/icons-material/FlightTakeoff';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
-import LightbulbIcon from '@mui/icons-material/EmojiObjects';
 import QuickStartStrip from '../PageLayout/CommonLayouts/QuickStartStrip';
 
 import { useAppShell } from '../PageLayout/AppShellContext';
@@ -507,7 +506,9 @@ const Home: React.FC = () => {
       }}
     >
       {/* Indian kala lotus — top-right page root, always visible */}
-      <KalaLotus size={780} color="#FF6B8A" opacity={0.15} style={{ position: 'absolute', top: -80, right: -80, zIndex: 0, pointerEvents: 'none' }} />
+      <Box sx={{ display: { xs: 'none', md: 'block' }, position: 'absolute', top: -80, right: -80, zIndex: 0, pointerEvents: 'none' }}>
+        <KalaLotus size={780} color="#FF6B8A" opacity={0.15} />
+      </Box>
 
       {/* HERO SECTION */}
       <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 1, md: 2 }, pb: 2, position: 'relative', zIndex: 2 }}>
@@ -519,7 +520,7 @@ const Home: React.FC = () => {
         <Box sx={{ 
           flex: 1, 
           display: 'flex', 
-          flexDirection: 'row', 
+          flexDirection: { xs: 'column', lg: 'row' }, 
           position: 'relative', 
           pb: 6, 
           gap: 3, 
@@ -1380,7 +1381,7 @@ const Home: React.FC = () => {
 
           {/* ── RIGHT: Insights & Stats Panel ── */}
           <Box sx={{
-            display: 'flex',
+            display: { xs: 'none', lg: 'flex' },
             flexDirection: 'column',
             position: 'relative',
             overflow: 'hidden',
@@ -1496,7 +1497,7 @@ const Home: React.FC = () => {
       <Box sx={{ 
         flex: 1, 
         display: 'flex', 
-        flexDirection: 'row', 
+        flexDirection: { xs: 'column', lg: 'row' }, 
         position: 'relative', 
         px: { xs: 2, sm: 3, md: 4 }, 
         pb: 6, 

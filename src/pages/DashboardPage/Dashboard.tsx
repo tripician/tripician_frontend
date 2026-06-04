@@ -240,7 +240,7 @@ const Dashboard: React.FC = () => {
     if (!deleteTarget || !token) return;
     setDeleting(true);
     try {
-      await apiServices.deleteTrip(deleteTarget.id, token);
+      await apiServices.deleteTrip(token, deleteTarget.id);
       setAllPlans(prev => prev.filter(p => p.id !== deleteTarget.id));
       setPlans(prev => prev.filter(p => p.id !== deleteTarget.id));
       setSnackbar('Trip deleted.');
@@ -561,7 +561,7 @@ const Dashboard: React.FC = () => {
                 edited={plan.edited}                
                 members={plan.members}
                 onShare={() => handleShare(plan)}
-                onDelete={() => setDeleteTarget({ id: plan.id, title: plan.title })}
+                onDelete={plan.isOwner ? () => setDeleteTarget({ id: plan.id, title: plan.title }) : undefined}
                 onClick={()=> {
                   navigate(`/trip/${plan.id}`, {
                     state: {

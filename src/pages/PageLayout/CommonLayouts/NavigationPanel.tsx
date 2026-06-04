@@ -1,5 +1,5 @@
-import React, { useState, useEffect } from 'react';
-import { useNavigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect, useMemo } from 'react';
+import { useNavigate, useLocation, useMatch } from 'react-router-dom';
 import Footer from './Footer';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../../../store';
@@ -26,6 +26,13 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
 
   const [createTripOpen, setCreateTripOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
+
+  const plannerMatch = useMatch('/tripplanner/:tripId');
+  const activeTripId = plannerMatch?.params.tripId;
+  const hideFloatingNavia = useMemo(
+    () => Boolean(activeTripId) || location.pathname.startsWith('/tripplanner/'),
+    [activeTripId, location.pathname],
+  );
 
   const openCreateTrip = () => setCreateTripOpen(true);
 
@@ -56,7 +63,9 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
           }}
         >
           <Box sx={{ flexGrow: 1 }}>{children}</Box>
-          <Footer />
+          <Box sx={{ display: { xs: 'none', md: 'block' } }}>
+            <Footer />
+          </Box>
         </Box>
 
         <AppBottomNav onCreateTrip={openCreateTrip} onMoreMenu={() => setMoreMenuOpen(true)} />
@@ -98,7 +107,7 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
         </Drawer>
 
         <TripCreationModal open={createTripOpen} onClose={() => setCreateTripOpen(false)} />
-        <ChatAssistant />
+        {!hideFloatingNavia && <ChatAssistant tripId={activeTripId} />}
       </Box>
     </AppShellProvider>
   );
