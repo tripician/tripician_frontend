@@ -34,6 +34,8 @@ import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import { motion, AnimatePresence } from 'framer-motion';
+import QuestionAnswerRoundedIcon from '@mui/icons-material/QuestionAnswerRounded';
+import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
 
 import { useTripChat } from './useTripChat';
 import {
@@ -82,16 +84,24 @@ const EVENT_LABELS: Record<string, { icon: string; label: (r: any) => string }> 
 // ??? Sub-components ???????????????????????????????????????????????????????????
 
 /** Navia logo mark */
-const NaviaLogo: React.FC<{ size?: number }> = ({ size = 18 }) => (
-  <Box
-    sx={{
-      width: size, height: size, borderRadius: `${size * 0.28}px`,
-      background: 'linear-gradient(135deg,#FF385C,#D91A50)',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-    }}
-  >
-    <AutoAwesomeRoundedIcon sx={{ fontSize: size * 0.55, color: '#fff' }} />
-  </Box>
+const NaviaLogo: React.FC<{ size?: number }> = () => (
+  <Box sx={{
+                          width: 38, height: 38,
+                          backdropFilter: 'blur(8px)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                          flexShrink: 0,
+                        }}>
+                          <Box
+                            component="img"
+                            src="https://res.cloudinary.com/ddt3rcyhv/image/upload/v1780497710/ChatGPT_Image_Jun_3_2026_07_53_49_PM_ubsb8c.png"
+                            alt="Navia"
+                            sx={{
+                              width: 40,
+                              height: 40,
+                              display: 'block',
+                            }}
+                          />
+                        </Box>
 );
 
 /** System change result row */
@@ -444,7 +454,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
       insertName: m.name,
       displayName: m.name,
       isNavia: false as const,
-      avatarUrl: m.profilePictureUrl,
+      avatarUrl: m.avatarUrl,
     })),
   ], [members]);
 
@@ -611,15 +621,19 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
         backdropFilter: 'blur(8px)',
       }}>
         <Box sx={{
-          width: 30, height: 30, borderRadius: '9px',
+          width: 30,
+          height: 30,
+          borderRadius: '9px',
           background: 'linear-gradient(135deg,#FF385C,#D91A50)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
         }}>
-          <AutoAwesomeRoundedIcon sx={{ fontSize: 15, color: '#fff' }} />
+          <QuestionAnswerRoundedIcon sx={{ fontSize: 15, color: '#fff' }} />
         </Box>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontSize: 13.5, fontWeight: 700, lineHeight: 1.2, color: isLight ? '#111' : '#fff' }}>
-            Trip Chat
+          <Typography sx={{ fontFamily: 'Playfair Display, serif' ,fontSize: 13.5, fontWeight: 700, lineHeight: 1.2, color: isLight ? '#111' : '#fff' }}>
+            Discussions
           </Typography>
           <Typography sx={{ fontSize: 11, color: isLight ? '#888' : 'rgba(255,255,255,0.45)', lineHeight: 1 }}>
             Type <Box component='span' sx={{ color: '#FF385C', fontWeight: 700 }}>@navia</Box> to ask the AI
@@ -646,11 +660,19 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
       >
         {messages.length === 0 && (
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 6, gap: 1 }}>
-            <Box sx={{ width: 48, height: 48, borderRadius: '14px', background: 'linear-gradient(135deg,#FF385C,#D91A50)', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
-              <AutoAwesomeRoundedIcon sx={{ fontSize: 24, color: '#fff' }} />
+            <Box sx={{
+              width: 30,
+              height: 30,
+              borderRadius: '9px',
+              background: 'linear-gradient(135deg,#FF385C,#D91A50)',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}>
+              <ForumRoundedIcon sx={{ fontSize: 15, color: '#fff' }} />
             </Box>
-            <Typography sx={{ fontWeight: 700, fontSize: 15, color: isLight ? '#222' : 'rgba(255,255,255,0.85)' }}>
-              Trip Chat
+            <Typography sx={{ fontFamily: 'Playfair Display, serif' ,fontWeight: 700, fontSize: 15, color: isLight ? '#222' : 'rgba(255,255,255,0.85)' }}>
+              Let's discuss!
             </Typography>
             <Typography sx={{ fontSize: 13, color: isLight ? '#888' : 'rgba(255,255,255,0.4)', textAlign: 'center', maxWidth: 260, lineHeight: 1.55 }}>
               All trip members can chat here. Type <Box component='span' sx={{ color: '#FF385C', fontWeight: 700 }}>@navia</Box> to get AI suggestions for your trip.
@@ -692,10 +714,10 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
                 ))}
                 <Box component="span" sx={{ ml: 1, fontSize: '0.72rem', color: 'rgba(255,56,92,0.85)', fontWeight: 600, letterSpacing: 0.2 }}>
                   {naviaTyping
-                    ? 'Navia is analysing�'
+                    ? 'Navia is analysing...'
                     : typingUsers.length === 1
-                      ? `${typingUsers[0]} is typing�`
-                      : `${typingUsers.join(', ')} are typing�`}
+                      ? `${typingUsers[0]} is typing...`
+                      : `${typingUsers.join(', ')} are typing...`}
                 </Box>
               </Box>
             </Box>
