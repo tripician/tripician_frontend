@@ -153,6 +153,26 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
+  // GET /api/trips/saved - trips the current user has saved (Saved Trips tab on Dashboard)
+  getSavedTrips: (token: string) =>
+    apiClient.get('/api/trips/saved', {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // GET /api/trips/{tripId}/reactions - aggregate like/save/needswork counts + this user's state
+  // Token is optional: anonymous visitors of a shared trip receive counts with user flags false.
+  getTripReactions: (token: string | null | undefined, tripId: string) =>
+    apiClient.get(`/api/trips/${tripId}/reactions`, {
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined
+    }),
+
+  // POST /api/trips/{tripId}/reactions/{type} - toggle a reaction (type: 'like' | 'save' | 'needswork')
+  // Returns the refreshed reaction summary.
+  toggleTripReaction: (token: string, tripId: string, type: 'like' | 'save' | 'needswork') =>
+    apiClient.post(`/api/trips/${tripId}/reactions/${type}`, null, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
   // Simple connectivity ping (GET public trips) to help diagnose local server reachability (no auth required).
   pingPublicTrips: () => apiClient.get('/api/trips/public').then(r => ({ ok: true, status: r.status })).catch(e => ({ ok: false, error: e.message })),
 
@@ -184,9 +204,10 @@ export const apiServices = {
   },
 
   // GET /api/trips/{tripId}
+  // Token is optional: published/shared trips are viewable without authentication.
   // Response: Trip object with description?: string | null, vibe?: string | null, rating?: number | null
-  getTripById: (token: string, tripId: string) => apiClient.get(`/api/trips/${tripId}`, {
-    headers: { Authorization: `Bearer ${token}` }
+  getTripById: (token: string | null | undefined, tripId: string) => apiClient.get(`/api/trips/${tripId}`, {
+    headers: token ? { Authorization: `Bearer ${token}` } : undefined
   }),
 
   // PUT /api/trips/{tripId} - update trip core + itinerary + docs/meta

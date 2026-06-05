@@ -62,8 +62,8 @@ function App() {
           {/* Trip Planner entry: redirect /tripplanner -> /tripplanner/:generatedId (reusing last draft if available) */}
           <Route path="/tripplanner" element={<ProtectedRoute><TripPlannerEntry /></ProtectedRoute>} />
           <Route path="/tripplanner/:tripId" element={<ProtectedRoute><TripPlannerRoute /></ProtectedRoute>} />
-          {/* Read-only trip view route */}
-          <Route path="/trip/:tripId" element={<ProtectedRoute><TripView /></ProtectedRoute>} />
+          {/* Read-only trip view route (partially public: published/shared trips viewable without login) */}
+          <Route path="/trip/:tripId" element={<TripView />} />
           {/* Legacy path redirect */}
           <Route path="/create-trip" element={<Navigate to="/error/404" replace />} />
           {/* Error & status pages */}

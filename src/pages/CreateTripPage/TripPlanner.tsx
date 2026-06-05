@@ -1,7 +1,7 @@
 // TripPlanner main page component (formerly CreateTrip)
 import React from 'react';
-import { useSearchParams, useNavigate } from 'react-router-dom';
-import { Box, Tabs, Tab, Typography, Divider, Button, Avatar, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Snackbar, Alert, useTheme, Drawer, Fab } from '@mui/material';
+import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
+import { Box, Tabs, Tab, Typography, Divider, Button, Avatar, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Snackbar, Alert, useTheme, useMediaQuery, Drawer, Fab } from '@mui/material';
 // Props-based TripPlanner; tripId + optional initialTrip provided by route wrapper
 import DownloadIcon from '@mui/icons-material/Download';
 import PushPinIcon from '@mui/icons-material/PushPin';
@@ -9,7 +9,7 @@ import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
-import { updateDestinationNights, setTransport, addDestination, removeDestination, reorderChainExact, addVisaDoc, removeVisaDoc, removeGlobalDoc, pinDoc, unpinDoc, loadState, resetPlanner, setTripDates, setTargetNights } from '../../store/plannerSlice';
+import { updateDestinationNights, setTransport, addDestination, removeDestination, reorderChainExact, addVisaDoc, removeVisaDoc, removeGlobalDoc, pinDoc, unpinDoc, loadState, resetPlanner, setTripDates, setTargetNights, addSpot, addFoodItem, setDestinationNotes, clearDestinationDiscover } from '../../store/plannerSlice';
 import { togglePin as togglePinDocSlice, removeDocument as removeDocsSliceDocument } from '../../store/docsSlice';
 import { DEFAULT_DOC_RULE } from '../../utils/fileValidation'; // legacy use (validateFiles removed after refactor)
 import ValidatedFileInput from '../../components/CommonComponents/ValidatedFileInput';
@@ -50,6 +50,8 @@ import TripShareModal from '../../components/TripShareModal';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useNavia, type UseNaviaReturn } from '../../navia/useNavia';
+import { planDestination } from '../../navia/naviaService';
+import { suggestCountryItinerary } from '../../navia/naviaService';
 import NaviaMessage from '../../navia/NaviaMessage';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { normalizeTrip, type NormalizedTrip } from '../../utils/normalizeTrip';
@@ -198,6 +200,7 @@ interface TripPlannerProps {
 	onRequestEdit?: () => void;
 	isExternalNonOwner?: boolean; // viewing someone else's published trip
 	isOwnerExternal?: boolean; // current user owns trip (controls publish)
+	aiGenerated?: boolean; // when true, auto-generate destinations via Navia on mount
 }
 
 /* --- Persistent AI Chat Panel (GitHub Copilot-style right column) --- */
@@ -518,44 +521,59 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 	const textMuted = isLight ? 'rgba(0,0,0,0.44)' : 'rgba(255,255,255,0.38)';
 	const sectionBg = isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.04)';
 
-	// Premium action toggles (local UI state) -- persisted in localStorage per tripId when available
+	// Premium action toggles — persisted server-side via the trip reactions API
+	const reactionAuth = useAuthToken();
+	const reactionToken = reactionAuth.token;
+	const reactionNavigate = useNavigate();
 	const [liked, setLiked] = React.useState(false);
 	const [saved, setSaved] = React.useState(false);
 	const [needsImprovement, setNeedsImprovement] = React.useState(false);
 
-	// Counts (persisted alongside toggle state)
+	// Aggregate counts (from server)
 	const [likesCount, setLikesCount] = React.useState<number>(0);
 	const [savesCount, setSavesCount] = React.useState<number>(0);
 	const [needsImprovementCount, setNeedsImprovementCount] = React.useState<number>(0);
 
-	// Load persisted state for this trip (if tripId provided)
-	React.useEffect(() => {
-		if (!tripId) return;
-		try {
-			const raw = localStorage.getItem(`tripActions:${tripId}`);
-			if (!raw) return;
-			const parsed = JSON.parse(raw);
-			if (typeof parsed === 'object' && parsed) {
-				if (typeof parsed.liked === 'boolean') setLiked(parsed.liked);
-				if (typeof parsed.saved === 'boolean') setSaved(parsed.saved);
-				if (typeof parsed.needsImprovement === 'boolean') setNeedsImprovement(parsed.needsImprovement);
-				if (typeof parsed.likesCount === 'number') setLikesCount(parsed.likesCount);
-				if (typeof parsed.savesCount === 'number') setSavesCount(parsed.savesCount);
-				if (typeof parsed.needsImprovementCount === 'number') setNeedsImprovementCount(parsed.needsImprovementCount);
-			}
-		} catch {}
-	}, [tripId]);
+	// In-flight guards so rapid clicks don't double-toggle
+	const reactionBusyRef = React.useRef<Record<string, boolean>>({});
 
-	// Persist changes
+	const applySummary = React.useCallback((s: any) => {
+		if (!s) return;
+		setLikesCount(Math.max(0, Number(s.likes) || 0));
+		setSavesCount(Math.max(0, Number(s.saves) || 0));
+		setNeedsImprovementCount(Math.max(0, Number(s.needsWork) || 0));
+		setLiked(!!s.userLiked);
+		setSaved(!!s.userSaved);
+		setNeedsImprovement(!!s.userNeedsWork);
+	}, []);
+
+	// Load reaction summary for this trip. Counts are public, so this runs for guests too;
+	// the optional token (may be null) lets the server flag this user's own reactions.
 	React.useEffect(() => {
 		if (!tripId) return;
+		let cancelled = false;
+		apiServices.getTripReactions(reactionToken, tripId)
+			.then(resp => { if (!cancelled) applySummary(resp.data); })
+			.catch(() => { /* keep zeros on failure */ });
+		return () => { cancelled = true; };
+	}, [tripId, reactionToken, applySummary]);
+
+	const toggleReaction = React.useCallback(async (type: 'like' | 'save' | 'needswork') => {
+		if (!tripId) return;
+		// Reacting requires an account — send guests to sign in first.
+		if (!reactionToken) { reactionNavigate('/signin'); return; }
+		if (reactionBusyRef.current[type]) return;
+		reactionBusyRef.current[type] = true;
 		try {
-			localStorage.setItem(`tripActions:${tripId}`, JSON.stringify({
-				liked, saved, needsImprovement,
-				likesCount, savesCount, needsImprovementCount,
-			}));
-		} catch {}
-	}, [tripId, liked, saved, needsImprovement]);
+			const resp = await apiServices.toggleTripReaction(reactionToken, tripId, type);
+			applySummary(resp.data);
+		} catch {
+			/* ignore — UI stays on last known server state */
+		} finally {
+			reactionBusyRef.current[type] = false;
+		}
+	}, [tripId, reactionToken, reactionNavigate, applySummary]);
+
 
 	// Debug: log render to help verify toolbar visibility in browser console
 	React.useEffect(() => {
@@ -668,8 +686,8 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 				{/* -- Quick stats -- */}
 				<Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
 					{[
-						{ Icon: NightsStayRoundedIcon,  label: 'Nights',       value: totalNights || '�' },
-						{ Icon: GroupsRoundedIcon,       label: 'Destinations', value: destinationCount || '�' },
+						{ Icon: NightsStayRoundedIcon,  label: 'Nights',       value: totalNights || 'Yet to Plan' },
+						{ Icon: GroupsRoundedIcon,       label: 'Destinations', value: destinationCount || 'Yet to Plan' },
 					].map(({ Icon, label, value }) => (
 						<Box key={label} sx={{
 							borderRadius: '10px', background: sectionBg, border: `1px solid ${border}`,
@@ -699,16 +717,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 								aria-label='like'
 								onClick={(e:any) => {
 									e.stopPropagation?.();
-									console.log('[TripViewPanel] like clicked', { liked, likesCount, needsImprovement });
-									setLiked(v => {
-										const next = !v;
-										if (next && needsImprovement) {
-											setNeedsImprovement(false);
-											setNeedsImprovementCount(c => Math.max(0, c - 1));
-										}
-										setLikesCount(c => Math.max(0, c + (next ? 1 : -1)));
-										return next;
-									});
+									toggleReaction('like');
 								}}
 								sx={{
 									width: 36, height: 36, p: 0.5, borderRadius: '8px',
@@ -730,8 +739,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 								aria-label='save'
 								onClick={(e:any) => {
 									e.stopPropagation?.();
-									console.log('[TripViewPanel] save clicked', { saved, savesCount });
-									setSaved(v => { const next = !v; setSavesCount(c => Math.max(0, c + (next ? 1 : -1))); return next; });
+									toggleReaction('save');
 								}}
 								sx={{
 									width: 36, height: 36, p: 0.5, borderRadius: '8px',
@@ -753,16 +761,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 								aria-label='need-improvement'
 								onClick={(e:any) => {
 									e.stopPropagation?.();
-									console.log('[TripViewPanel] need-improvement clicked', { needsImprovement, needsImprovementCount, liked });
-									setNeedsImprovement(v => {
-										const next = !v;
-										if (next && liked) {
-											setLiked(false);
-											setLikesCount(c => Math.max(0, c - 1));
-										}
-										setNeedsImprovementCount(c => Math.max(0, c + (next ? 1 : -1)));
-										return next;
-									});
+									toggleReaction('needswork');
 								}}
 								sx={{
 									width: 36, height: 36, p: 0.5, borderRadius: '8px',
@@ -899,6 +898,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	// ---------------------------------------------------------------------------
 	const dispatch = useDispatch<AppDispatch>();
 	const navigate = useNavigate();
+	const location = useLocation();
+	// Read AI-generation flag from navigation state (set by TripCreationModal "Generate with AI" flow)
+	const aiGenerated = (location.state as any)?.aiGenerated === true;
 	const planner = useSelector((s:RootState)=> s.planner);
 	const docsState = useSelector((s:RootState)=> s.docs);
 	const auth = useAuthToken();
@@ -1298,6 +1300,165 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const [toast, setToast] = React.useState<{ open:boolean; type:'success'|'error'|'info'; msg:string }>({ open:false, type:'success', msg:'' });
 	const openToast = (type:'success'|'error'|'info', msg:string)=> setToast({ open:true, type, msg });
 	const closeToast = ()=> setToast(t=> ({ ...t, open:false }));
+
+	// ── AI Auto-generation (triggered via "Generate with AI" flow) ──────────────
+	const AI_GEN_MESSAGES = [
+		'Crafting your trip…',
+		'Designing the best compatible path for your travel style…',
+		'Adding important highlights and notes…',
+		'Discovering the best restaurants & local foods…',
+		'Mapping out the perfect route for your destinations…',
+		'Almost done – finalizing your itinerary…',
+	];
+	const [aiAutoGenerating, setAiAutoGenerating] = React.useState(false);
+	const [aiAutoMessage, setAiAutoMessage] = React.useState('');
+	const aiAutoTriggeredRef = React.useRef(false);
+	const aiMsgIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
+	const aiExpectedDestCountRef = React.useRef(0);
+	const aiMsgIdxRef = React.useRef(0);
+
+	// Phase 1: Trigger on hydration complete when aiGenerated prop is true
+	React.useEffect(() => {
+		if (!aiGenerated || aiAutoTriggeredRef.current || !isHydrated || !authToken || !tripId) return;
+		if (countries.length === 0) return;
+		aiAutoTriggeredRef.current = true;
+
+		// Clear location state to prevent re-trigger on reload
+		try { window.history.replaceState({}, '', window.location.pathname + window.location.search); } catch {}
+
+		// Start overlay
+		aiMsgIdxRef.current = 0;
+		setAiAutoMessage(AI_GEN_MESSAGES[0]);
+		setAiAutoGenerating(true);
+		aiMsgIntervalRef.current = setInterval(() => {
+			aiMsgIdxRef.current = (aiMsgIdxRef.current + 1) % AI_GEN_MESSAGES.length;
+			setAiAutoMessage(AI_GEN_MESSAGES[aiMsgIdxRef.current]);
+		}, 2200);
+
+		if (planner.destinations.length > 0) {
+			// Destinations already seeded (from trip data) — go straight to planning
+			aiExpectedDestCountRef.current = -1; // signal Phase 2 to plan all existing
+			return;
+		}
+
+		// Total nights to cover, derived from the trip date span (fallback: 3 nights per country).
+		const computeTripNights = (): number => {
+			const s = tripStartDate && tripStartDate.length >= 10 ? tripStartDate.slice(0, 10) : null;
+			const e = tripEndDate && tripEndDate.length >= 10 ? tripEndDate.slice(0, 10) : null;
+			if (s && e) {
+				const diff = Math.round((new Date(e).getTime() - new Date(s).getTime()) / (24 * 60 * 60 * 1000));
+				if (diff > 0) return diff;
+			}
+			return 0;
+		};
+
+		const countriesToAdd = countries.slice(0, 8);
+		let tripNights = computeTripNights();
+		if (tripNights <= 0) tripNights = Math.max(planner.targetNights, countriesToAdd.length * 3);
+
+		// Split the total nights across the selected countries (earlier countries absorb any remainder).
+		const perCountry = Math.floor(tripNights / countriesToAdd.length);
+		const remainder = tripNights - perCountry * countriesToAdd.length;
+		const allocations = countriesToAdd.map((country, i) => ({
+			country,
+			nights: Math.max(1, perCountry + (i < remainder ? 1 : 0)),
+		}));
+
+		(async () => {
+			const allStops: { name: string; nights: number }[] = [];
+			for (const alloc of allocations) {
+				setAiAutoMessage(`Mapping the best route through ${alloc.country}…`);
+				try {
+					const res = await suggestCountryItinerary(
+						{ tripId, country: alloc.country, totalNights: alloc.nights, vibe: vibe ?? undefined },
+						authToken,
+					);
+					const stops = (res.stops ?? []).filter(s => s.name?.trim() && s.nights > 0);
+					if (stops.length > 0) {
+						stops.forEach(s => allStops.push({ name: s.name.trim(), nights: Math.max(1, Math.round(s.nights)) }));
+					} else {
+						allStops.push({ name: alloc.country, nights: alloc.nights });
+					}
+				} catch {
+					// Fallback: single stop for the country covering its allocated nights
+					allStops.push({ name: alloc.country, nights: alloc.nights });
+				}
+			}
+
+			if (allStops.length === 0) {
+				// Last-resort fallback — original one-destination-per-country behavior
+				allocations.forEach(a => allStops.push({ name: a.country, nights: a.nights }));
+			}
+
+			// Target must equal the sum of stop nights so every day is covered and nothing is clamped away.
+			const grandTotal = allStops.reduce((a, s) => a + s.nights, 0);
+			dispatch(setTargetNights(grandTotal));
+			aiExpectedDestCountRef.current = allStops.length;
+			allStops.forEach(s => dispatch(addDestination({ name: s.name, nights: s.nights })));
+		})();
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [aiGenerated, isHydrated, authToken, tripId]);
+
+	// Phase 2: Once destinations reach expected count, plan each one via Navia
+	const aiPlanningActiveRef = React.useRef(false);
+	React.useEffect(() => {
+		if (!aiAutoGenerating || !authToken || !tripId) return;
+		if (aiPlanningActiveRef.current) return;
+
+		const expectedCount = aiExpectedDestCountRef.current;
+		if (expectedCount === 0) return; // not yet triggered
+		if (expectedCount > 0 && planner.destinations.length < expectedCount) return; // waiting
+
+		aiPlanningActiveRef.current = true;
+		aiExpectedDestCountRef.current = 0;
+
+		const destsToProcess = expectedCount === -1
+			? [...planner.destinations]
+			: planner.destinations.slice(-expectedCount);
+
+		(async () => {
+			try {
+				for (const dest of destsToProcess) {
+					if (aiMsgIntervalRef.current) { clearInterval(aiMsgIntervalRef.current); aiMsgIntervalRef.current = null; }
+					setAiAutoMessage(`Planning ${dest.name}…`);
+					try {
+						const result = await planDestination({
+							tripId,
+							destinationName: dest.name,
+							planTitle: dest.title,
+							lat: dest.lat,
+							lng: dest.lng,
+							nights: dest.nights,
+							category: dest.category,
+							vibe: vibe ?? undefined,
+						}, authToken);
+						dispatch(clearDestinationDiscover({ destinationId: dest.id }));
+						for (const spot of result.spots ?? []) {
+							if (!spot.name?.trim()) continue;
+							dispatch(addSpot({ destinationId: dest.id, name: spot.name.trim(), description: spot.description?.trim(), known: true }));
+						}
+						for (const food of result.foods ?? []) {
+							if (!food.name?.trim()) continue;
+							dispatch(addFoodItem({ destinationId: dest.id, name: food.name.trim() }));
+						}
+						const notes = (result.journalNotes ?? '').trim();
+						if (notes) dispatch(setDestinationNotes({ id: dest.id, notes }));
+					} catch { /* silent per destination */ }
+				}
+			} finally {
+				if (aiMsgIntervalRef.current) { clearInterval(aiMsgIntervalRef.current); aiMsgIntervalRef.current = null; }
+				setAiAutoGenerating(false);
+				setAiAutoMessage('');
+				aiPlanningActiveRef.current = false;
+				openToast('success', 'Your trip has been generated with AI!');
+			}
+		})();
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [aiAutoGenerating, planner.destinations.length, authToken, tripId]);
+
+	// Cleanup interval on unmount
+	React.useEffect(() => () => { if (aiMsgIntervalRef.current) clearInterval(aiMsgIntervalRef.current); }, []);
+	// ── End AI Auto-generation ───────────────────────────────────────────────────
 	// Lightweight settings save listener (Save Settings button dispatches browser event)
 	React.useEffect(()=> {
 		const settingsSaveHandler = async () => {
@@ -1922,8 +2083,70 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		}
 		return list;
 	}, [initialTrip, userProfile, tripUsers, ownerInfo, currentUserIsOwner, currentUserRole, effectiveCanEdit]);
+
+	const theme = useTheme();
+	const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+	if (isMobile && !readOnly) {
+		return (
+			<Box sx={{
+				display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+				minHeight: '100dvh', px: 3, textAlign: 'center', gap: 2,
+				background: theme.palette.background.default,
+			}}>
+				<Typography sx={{ fontSize: '2.5rem' }}>🖥️</Typography>
+				<Typography sx={{ fontFamily: "'Playfair Display', serif", fontWeight: 800, fontSize: '1.4rem', color: 'text.primary' }}>
+					Best experienced on desktop
+				</Typography>
+				<Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.9rem', color: 'text.secondary', maxWidth: 320, lineHeight: 1.7 }}>
+					The trip planner is designed for a larger screen. Open Tripician on your computer to plan your trip in full detail.
+				</Typography>
+				<Button
+					variant="contained"
+					onClick={() => navigate('/home')}
+					sx={{ mt: 1, borderRadius: '50px', textTransform: 'none', fontFamily: "'Inter', sans-serif", background: '#FF385C', boxShadow: 'none', '&:hover': { background: '#E31C5F', boxShadow: 'none' } }}
+				>
+					Back to Home
+				</Button>
+			</Box>
+		);
+	}
+
 	return (
 		<React.Fragment>
+		{/* ── AI Auto-Generation fullscreen overlay ── */}
+		{aiAutoGenerating && (
+			<Box sx={{
+				position: 'fixed', inset: 0, zIndex: 9999,
+				backdropFilter: 'blur(6px)',
+				background: 'rgba(255,255,255,0.88)',
+				display: 'flex', flexDirection: 'column',
+				alignItems: 'center', justifyContent: 'center', gap: 2.5,
+			}}>
+				<Box sx={{ position: 'relative', width: 56, height: 56 }}>
+					<Box sx={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid rgba(255,56,92,0.12)' }} />
+					<Box sx={{
+						position: 'absolute', inset: 0, borderRadius: '50%',
+						border: '3px solid transparent', borderTopColor: '#FF385C',
+						animation: 'ai-spin 0.9s linear infinite',
+						'@keyframes ai-spin': { to: { transform: 'rotate(360deg)' } },
+					}} />
+				</Box>
+				<Typography key={aiAutoMessage} sx={{
+					fontFamily: "'Inter', sans-serif", fontWeight: 600,
+					fontSize: '1rem', color: 'text.secondary',
+					textAlign: 'center', maxWidth: 320,
+					animation: 'ai-fadein 0.45s ease',
+					'@keyframes ai-fadein': {
+						from: { opacity: 0, transform: 'translateY(8px)' },
+						to: { opacity: 1, transform: 'translateY(0)' },
+					},
+				}}>{aiAutoMessage}</Typography>
+				<Typography sx={{ fontSize: '0.72rem', color: 'rgba(0,0,0,0.35)', fontFamily: "'Inter', sans-serif" }}>
+					Powered by Navia AI
+				</Typography>
+			</Box>
+		)}
 		<Box sx={{ display:'flex', flexDirection:'row', height:'100vh', overflow:'hidden' }}>
 		<CreateTripNav
 			active={section}
@@ -2073,7 +2296,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 										}}
 									>
 										{saving ? (
-											<><CircularProgress size={12} thickness={5} sx={{ color: 'inherit', mr: .4 }} />Publishing�</>
+											<><CircularProgress size={12} thickness={5} sx={{ color: 'inherit', mr: .4 }} />Publishing...</>
 										) : isDraft ? (
 											<><PublishRoundedIcon sx={{ fontSize: 13 }} /> Publish</>
 										) : (

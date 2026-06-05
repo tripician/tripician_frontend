@@ -1,7 +1,8 @@
 // TripView: Read-only view of a trip with optional Edit transition to TripPlanner
 import React from 'react';
-import { Box, Button, Alert, CircularProgress } from '@mui/material';
+import { Box, Button, Alert } from '@mui/material';
 import TripPlanner from '../CreateTripPage/TripPlanner';
+import PageLoader from '../../components/CommonComponents/PageLoader';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../store';
@@ -67,7 +68,8 @@ const TripView: React.FC = () => {
 
     if(!tripId) { setLoading(false); return; }
     if(trip && hasFetched) { setLoading(false); return; }
-    if(!effectiveToken) { setLoading(false); return; }
+    // No token bail-out: published/shared trips are viewable anonymously. The request is sent
+    // with an optional token (null for guests); the backend gates private trips server-side.
     (async()=> {
       setLoading(true);
       try {
@@ -158,7 +160,7 @@ const TripView: React.FC = () => {
         <Box sx={{ display:'flex', flex:1 }}>
           <TripPlannerNav active='plan' hideSections={['docs']} />
           <Box sx={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <CircularProgress />
+            <PageLoader variant="inline" messages={['Loading trip details…', 'Fetching your itinerary…', 'Getting destination info…', 'Almost there…']} />
           </Box>
         </Box>
       </Box>

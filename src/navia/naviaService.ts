@@ -142,3 +142,44 @@ export async function planDestination(
 
   return response.json() as Promise<PlanDestinationResult>;
 }
+
+export interface SuggestItineraryStop {
+  name: string;
+  nights: number;
+}
+
+export interface SuggestItineraryResult {
+  stops: SuggestItineraryStop[];
+}
+
+export interface SuggestItineraryRequest {
+  tripId: string;
+  country: string;
+  totalNights: number;
+  vibe?: string;
+}
+
+/**
+ * Asks Navia to break a country into an ordered multi-city route whose nights sum to totalNights.
+ * Used by the "Generate with AI" flow so every day of the trip is covered with a real city.
+ */
+export async function suggestCountryItinerary(
+  request: SuggestItineraryRequest,
+  token?: string | null,
+): Promise<SuggestItineraryResult> {
+  const response = await fetch(`${API_BASE}/api/navia/suggest-itinerary`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(request),
+  });
+
+  if (!response.ok) {
+    const text = await response.text().catch(() => '');
+    throw new Error(text || errorMessageForStatus(response.status));
+  }
+
+  return response.json() as Promise<SuggestItineraryResult>;
+}

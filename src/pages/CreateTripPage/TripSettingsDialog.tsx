@@ -136,20 +136,36 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
   };
 
   const handleSearchUser = async () => {
-    if (!inviteEmail || !inviteEmail.includes('@')) { setSearchError('Please enter a valid email address'); return; }
-    setSearchError(''); setFoundUser(null); setInviting(true);
+    if (!inviteEmail || inviteEmail.trim().length < 2) {
+      setSearchError('Enter a name or email to search');
+      return;
+    }
+    setSearchError('');
+    setFoundUser(null);
+    setInviting(true);
     try {
-      const email = inviteEmail.trim().toLowerCase();
+      const query = inviteEmail.trim();
       const token = authToken || localStorage.getItem('accessToken') || '';
       if (!token) { setSearchError('Authentication required'); return; }
-      const resp = await apiServices.getUserProfileByEmail(token, email);
-      const userData = resp.data;
-      if (!userData) { setSearchError('No user data returned'); return; }
-      setFoundUser(userData);
+      const isEmail = /.+@.+\..+/.test(query);
+      if (isEmail) {
+        const resp = await apiServices.getUserProfileByEmail(token, query.toLowerCase());
+        if (resp.data) setFoundUser(resp.data);
+        else setSearchError('No user found');
+      } else {
+        const resp = await apiServices.searchUsersByName(token, query);
+        if (resp.data && Array.isArray(resp.data) && resp.data.length > 0) {
+          setUserSearchResults(resp.data);
+        } else {
+          setSearchError('No users found');
+        }
+      }
     } catch (err: any) {
-      if (err?.response?.status === 404) setSearchError('No user found with this email');
+      if (err?.response?.status === 404) setSearchError('No user found');
       else setSearchError('Search failed. Please try again.');
-    } finally { setInviting(false); }
+    } finally {
+      setInviting(false);
+    }
   };
 
   const handleUserSearch = async (query: string) => {

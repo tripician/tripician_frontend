@@ -381,24 +381,17 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
     prevProgressRef.current = progressPct;
   }, [progressPct]);
 
-  /* --------------------------- Timeline rail geometry -------------------------- */
-  const cardRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
-  const containerRef = React.useRef<HTMLDivElement | null>(null);
-  const [centers, setCenters] = React.useState<number[]>([]);
-  const [railBounds, setRailBounds] = React.useState<{ top:number; bottom:number } | null>(null);
-  const recompute = React.useCallback(()=>{
-    const cont=containerRef.current; if(!cont){ setCenters([]); setRailBounds(null); return; }
-    const list:number[]=[]; destinations.forEach(d=>{ const el=cardRefs.current[d.id]; if(el){ const r=el.getBoundingClientRect(); const cr=cont.getBoundingClientRect(); list.push(r.top-cr.top + r.height/2); } });
-    setCenters(list); if(list.length>=2) setRailBounds({ top:list[0], bottom:list[list.length-1] }); else setRailBounds(null);
-  }, [destinations]);
-  React.useLayoutEffect(()=> { recompute(); }, [recompute]);
-  React.useEffect(()=> { const onResize=()=> recompute(); window.addEventListener('resize', onResize); return ()=> window.removeEventListener('resize', onResize); }, [recompute]);
-  // Observe card height changes (e.g. notes expand/collapse) to keep timeline rail in sync
-  React.useEffect(()=> {
-    const ro = new ResizeObserver(()=> recompute());
-    Object.values(cardRefs.current).forEach(el => { if(el) ro.observe(el); });
-    return ()=> ro.disconnect();
-  }, [destinations, recompute]);
+  /* --------------------------- Timeline rail helper -------------------------- */
+  // Color for the connector segment leaving a given destination index (in-flow rail).
+  const segmentColor = React.useCallback((di: number, dark: boolean): string => {
+    const dd = destinations[di];
+    const cl = dd ? checklists[dd.id] : undefined;
+    const hasAlert = (dd ? alertsMap[dd.id]?.alerts.length ?? 0 : 0) > 0;
+    const allDone = cl?.accommodation && cl?.transport && cl?.activities;
+    if (hasAlert) return 'linear-gradient(180deg,#BA7517,#F59E0B)';
+    if (allDone) return 'linear-gradient(180deg,#16a34a,#22c55e)';
+    return dark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)';
+  }, [destinations, checklists, alertsMap]);
 
   /* --------------------------------- Render --------------------------------- */
   return (
@@ -510,49 +503,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
           </Box>
         )}
 
-        <Box ref={containerRef} sx={{ position: 'relative', pl: 8, maxWidth: 900, mx: 'auto', width: '100%' }}>
-          {railBounds && (
-            <>
-              {/* Living journey line: per-segment coloring (Feature 4) */}
-              {centers.length >= 2 && centers.map((c, idx) => {
-                if (idx >= centers.length - 1) return null;
-                const d = destinations[idx];
-                const cl = checklists[d?.id];
-                const hasAlert = (alertsMap[d?.id]?.alerts.length ?? 0) > 0;
-                const allDone = cl?.accommodation && cl?.transport && cl?.activities;
-                return (
-                  <Box key={`seg-${idx}`} sx={(t) => ({
-                    position: 'absolute', top: c, height: centers[idx + 1] - c,
-                    left: 18, width: 2, pointerEvents: 'none',
-                    background: hasAlert
-                      ? 'linear-gradient(180deg,#BA7517,#F59E0B)'
-                      : allDone
-                      ? 'linear-gradient(180deg,#16a34a,#22c55e)'
-                      : t.palette.mode === 'dark' ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)',
-                    transition: 'background 0.3s',
-                  })} />
-                );
-              })}
-              {/* State-aware numbered nodes (Feature 4) */}
-              {centers.map((c, idx) => {
-                const d = destinations[idx];
-                const cl = checklists[d?.id];
-                const allDone = cl?.accommodation && cl?.transport && cl?.activities;
-                return (
-                  <Box key={idx} sx={{ position: 'absolute', top: c, left: 6, width: 28, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'translateY(-50%)', zIndex: 3 }}>
-                    <Box sx={{
-                      width: 22, height: 22, borderRadius: '50%',
-                      background: allDone ? 'linear-gradient(135deg,#16a34a,#22c55e)' : 'linear-gradient(135deg,#e8436a,#E31C5F)',
-                      color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 11, fontWeight: 700,
-                      boxShadow: allDone ? '0 2px 8px rgba(22,163,74,0.4)' : '0 2px 8px rgba(232,67,106,0.4)',
-                      transition: 'background 0.3s, box-shadow 0.3s',
-                    }}>{idx + 1}</Box>
-                  </Box>
-                );
-              })}
-            </>
-          )}
+        <Box sx={{ position: 'relative', maxWidth: 900, mx: 'auto', width: '100%' }}>
           {destinations.length === 0 && (
             <Box sx={(t) => ({ mt: 3, p: 5, border: '2px dashed rgba(255,56,92,0.2)', borderRadius: 3, textAlign: 'center', fontSize: 14, color: t.palette.text.secondary })}>Click "+ Add your next stop" below to add your first destination.</Box>
           )}
@@ -565,10 +516,31 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
             <SortableContext items={destinations.map(d => d.id)} strategy={verticalListSortingStrategy}>
               <Stack spacing={1}>
                 <AnimatePresence initial={false}>
-                  {destinations.map(d => (
+                  {destinations.map((d, idx) => (
                     <SortableCardWrapper key={d.id} id={d.id}>
                       {({ isDragging, dragHandleProps }) => (
-                        <Box ref={el => { cardRefs.current[d.id] = el as HTMLDivElement | null; }}>
+                        <Box sx={{ display: 'flex', alignItems: 'stretch', gap: 1 }}>
+                          {/* In-flow timeline rail: numbered node + connector (always visible, no measurement) */}
+                          <Box sx={{ position: 'relative', width: 28, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+                            {idx > 0 && (
+                              <Box sx={(t) => ({ position: 'absolute', top: -8, height: 'calc(50% + 8px)', width: 2, background: segmentColor(idx - 1, t.palette.mode === 'dark'), transition: 'background 0.3s' })} />
+                            )}
+                            {idx < destinations.length - 1 && (
+                              <Box sx={(t) => ({ position: 'absolute', top: '50%', bottom: -8, width: 2, background: segmentColor(idx, t.palette.mode === 'dark'), transition: 'background 0.3s' })} />
+                            )}
+                            <Box sx={{
+                              position: 'absolute', top: '50%', transform: 'translateY(-50%)', zIndex: 1,
+                              width: 22, height: 22, borderRadius: '50%',
+                              background: (checklists[d.id]?.accommodation && checklists[d.id]?.transport && checklists[d.id]?.activities)
+                                ? 'linear-gradient(135deg,#16a34a,#22c55e)' : 'linear-gradient(135deg,#e8436a,#E31C5F)',
+                              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: 11, fontWeight: 700,
+                              boxShadow: (checklists[d.id]?.accommodation && checklists[d.id]?.transport && checklists[d.id]?.activities)
+                                ? '0 2px 8px rgba(22,163,74,0.4)' : '0 2px 8px rgba(232,67,106,0.4)',
+                              transition: 'background 0.3s, box-shadow 0.3s',
+                            }}>{idx + 1}</Box>
+                          </Box>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
                           <DestinationCard
                             destination={d}
                             isDragging={isDragging}
@@ -591,6 +563,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                             alertCount={alertsMap[d.id]?.alerts.length ?? 0}
                             alerts={alertsMap[d.id]?.alerts ?? []}
                           />
+                          </Box>
                         </Box>
                       )}
                     </SortableCardWrapper>
@@ -622,7 +595,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
             <>
               {ghostSearchOpen ? (
                 /* Inline search input — replaces ghost card */
-                <Box sx={{ position: 'relative', mt: 1 }}>
+                <Box sx={{ position: 'relative', mt: 1, ml: '36px' }}>
                   <Paper elevation={0} sx={(t) => ({
                     display: 'flex', alignItems: 'center', gap: 1, pl: 1.5, pr: 0.75, py: 0.65,
                     borderRadius: '12px',
@@ -670,7 +643,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                 <Box
                   onClick={() => { if (!maxed) setGhostSearchOpen(true); }}
                   sx={{
-                    mt: 1, height: 56, border: '1.5px dashed',
+                    mt: 1, ml: '36px', height: 56, border: '1.5px dashed',
                     borderColor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)',
                     borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     gap: 1, cursor: maxed ? 'default' : 'pointer',

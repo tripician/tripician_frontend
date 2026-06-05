@@ -1,6 +1,7 @@
 import React, { useEffect, useRef, useState, useMemo } from 'react';
-import { Box, Typography, Button, CircularProgress, Alert } from '@mui/material';
+import { Box, Typography, Button, Alert } from '@mui/material';
 import { KalaLotus } from '../../components/DecorativeComponents/KalaDecor';
+import PageLoader from '../../components/CommonComponents/PageLoader';
 import { useSelector } from 'react-redux';
 import ExploreIcon from '@mui/icons-material/TravelExplore';
 
@@ -786,9 +787,7 @@ const Home: React.FC = () => {
               </Box>
 
               {loadingPublic && (
-                <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-                  <CircularProgress size={32} sx={{ color: '#FF385C' }} />
-                </Box>
+                <PageLoader variant="inline" messages={['Discovering public trips…', 'Finding great adventures…', 'Loading community trips…']} />
               )}
               {publicError && !loadingPublic && <Alert severity="error" sx={{ mb: 2 }}>{publicError}</Alert>}
               {!loadingPublic && !publicError && publicTrips.length === 0 && (
@@ -1539,9 +1538,7 @@ const Home: React.FC = () => {
             </Box>
 
             {loadingPublic && (
-              <Box sx={{ display: 'flex', justifyContent: 'center', py: 6 }}>
-                <CircularProgress size={32} sx={{ color: '#FF385C' }} />
-              </Box>
+              <PageLoader variant="inline" messages={['Discovering public trips…', 'Finding great adventures…', 'Loading community trips…']} />
             )}
             {publicError && !loadingPublic && <Alert severity="error" sx={{ mb: 2 }}>{publicError}</Alert>}
             {!loadingPublic && !publicError && publicTrips.length === 0 && (

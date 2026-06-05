@@ -670,14 +670,14 @@ export default function LandingPage() {
             </span>
 
             <h1 className="lp-hero__title">
-              {['Your next', 'trip', 'deserves the'].map((word, i) => (
+              {['Great trips', 'are planned', 'together.'].map((word, i) => (
                 <span key={i} className="word">{word}</span>
               ))}
-              <em className="word lp-hero__em">right&nbsp;crew.</em>
+              <em className="word lp-hero__em">Not in 100 chats.</em>
             </h1>
 
             <p className="lp-hero__subtitle">
-              Plan with Navia and your crew in one shared trip chat. Ask, debate, approve, and turn group decisions into a live itinerary.
+              Collaborate with your crew and Navia AI in one place.
             </p>
 
             

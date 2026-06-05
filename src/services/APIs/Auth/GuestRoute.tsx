@@ -1,7 +1,7 @@
 import React from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuthToken } from '../../../hooks/useAuth0Token';
-import { Box, CircularProgress } from '@mui/material';
+import PageLoader from '../../../components/CommonComponents/PageLoader';
 
 interface GuestRouteProps {
   children: React.ReactNode;
@@ -15,16 +15,7 @@ const GuestRoute: React.FC<GuestRouteProps> = ({ children }) => {
   const { isAuthenticated, loading } = useAuthToken();
 
   if (loading) {
-    return (
-      <Box
-        display="flex"
-        justifyContent="center"
-        alignItems="center"
-        minHeight="100vh"
-      >
-        <CircularProgress />
-      </Box>
-    );
+    return <PageLoader messages={['Checking your session…', 'Verifying credentials…', 'Almost ready…']} />;
   }
 
   if (isAuthenticated) {

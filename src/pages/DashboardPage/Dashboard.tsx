@@ -3,7 +3,7 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import TripCard from './TripCard';
 import '../../assets/css/Dashboard.css';
-import { Tabs, Tab, Box, CircularProgress, Typography, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, Snackbar } from '@mui/material';
+import { Tabs, Tab, Box, Typography, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, Snackbar } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
@@ -11,6 +11,7 @@ import { fetchUnsplashImage } from '../../services/unsplashService';
 import gsap from 'gsap';
 import TripCreationModal from '../../components/CreateTripComponents/TripCreationModal';
 import TripShareModal from '../../components/TripShareModal';
+import PageLoader from '../../components/CommonComponents/PageLoader';
 
 const Dashboard: React.FC = () => {
   const formatRelativeTime = (dateStr?: string) => {
@@ -38,6 +39,9 @@ const Dashboard: React.FC = () => {
   const navigate = useNavigate();
   const [allPlans, setAllPlans] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
+  const [savedPlans, setSavedPlans] = useState<any[]>([]);
+  const [savedLoading, setSavedLoading] = useState(false);
+  const savedFetchedRef = useRef(false);
   const [tripImages, setTripImages] = useState<Record<string, string>>({});
   const [tabValue, setTabValue] = useState(0);
   const [loading, setLoading] = useState(true);
@@ -51,6 +55,93 @@ const Dashboard: React.FC = () => {
 
   useSelector((state: RootState) => state.user);
   const userProfile = useSelector((state: RootState) => state.user.profile);
+
+  // Maps a backend TripResponseDto into the card view-model used across all dashboard tabs.
+  const mapTripVM = (t: any) => ({
+    id: t.id || t.Id,
+    title: t.name || t.title || 'Untitled trip',
+    description: typeof t.description === 'string' ? t.description.trim() : '',
+    visibility: t.visibility || t.Visibility || t.privacy || t.Privacy || 'PRIVATE',
+    location: Array.isArray(t.countries) && t.countries.length ? t.countries[0] : 'Unknown',
+    countries: Array.isArray(t.countries) ? t.countries : [],
+    image: (typeof t.photoUrl === 'string' && t.photoUrl.trim()) ? t.photoUrl : '',
+    progress: typeof t.progress === 'number' ? t.progress : 0,
+    edited: formatRelativeTime(t.updatedDate),
+    members: (() => {
+      const rawMembers = t.members || t.invitedUsers || [];
+      const normalizeMember = (m: any) => {
+        const u = m.user || m.User || m;
+        const firstName = u.fname || u.Fname || u.firstName || u.FirstName || m.fname || m.firstName || '';
+        const lastName = u.lname || u.Lname || u.lastName || u.LastName || m.lname || m.lastName || '';
+        const name =
+          u.name || u.Name || u.fullName || u.displayName ||
+          m.name || m.Name || m.fullName || m.displayName ||
+          [firstName, lastName].filter(Boolean).join(' ').trim() ||
+          (u.email ? u.email.split('@')[0] : null) ||
+          (m.email ? m.email.split('@')[0] : 'Member');
+        const profilePic =
+          u.profilePic || u.ProfilePic ||
+          u.profilePicture || u.ProfilePicture ||
+          u.profilepicture ||
+          u.avatar || u.Avatar ||
+          u.photoUrl || u.PhotoUrl ||
+          m.profilePic || m.ProfilePic ||
+          m.profilePicture || m.ProfilePicture ||
+          m.profilepicture ||
+          m.avatar || m.Avatar ||
+          m.photoUrl || '';
+        return {
+          id: String(m.id || m.userId || m.Id || m.UserId || u.id || u.Id || ''),
+          name,
+          profilePic,
+        };
+      };
+      const normalized = rawMembers.map(normalizeMember);
+      const myId = String(userProfile?.id || '');
+      const patched = normalized.map((m: { id: string; name: string; profilePic: string }) => {
+        if (m.profilePic) return m;
+        if (myId && m.id === myId) return { ...m, profilePic: (userProfile?.profilepicture as string) || '' };
+        return m;
+      });
+      if (normalized.length === 0) {
+        const o = t.owner || t.Owner || null;
+        const firstName = (o?.fname || o?.Fname || o?.firstName || o?.FirstName ||
+          userProfile?.fname || '') as string;
+        const lastName = (o?.lname || o?.Lname || o?.lastName || o?.LastName ||
+          userProfile?.lname || '') as string;
+        const name = (o?.name || o?.Name || o?.displayName ||
+          [firstName, lastName].filter(Boolean).join(' ').trim() ||
+          (o?.email ? o.email.split('@')[0] : null) ||
+          (userProfile?.email ? (userProfile.email as string).split('@')[0] : 'Me')) as string;
+        const profilePic = (o?.profilePic || o?.profilePicture || o?.profilepicture ||
+          o?.avatar || o?.Avatar || o?.photoUrl ||
+          userProfile?.profilepicture || '') as string;
+        return [{ id: String(o?.id || o?.Id || userProfile?.id || ''), name, profilePic }];
+      }
+      return patched;
+    })(),
+    startDate: t.startDate || t.start_date || null,
+    endDate: t.endDate || t.end_date || null,
+    isOwner: (() => {
+      const myId = String(userProfile?.id || '');
+      if (!myId) return true;
+      const o = t.owner || t.Owner;
+      const ownerId = String(
+        t.OwnerUserId || t.ownerUserId || t.ownerId || t.OwnerId ||
+        o?.id || o?.Id || o?.userId || o?.UserId || ''
+      );
+      return ownerId ? ownerId === myId : true;
+    })(),
+    isPublished: t.published === true || t.isPublished === true || (typeof t.status === 'string' && t.status.toUpperCase() === 'PUBLISHED'),
+    ownerId: (() => {
+      const o = t.owner || t.Owner;
+      return String(
+        t.OwnerUserId || t.ownerUserId || t.ownerId || t.OwnerId ||
+        o?.id || o?.Id || o?.userId || o?.UserId || ''
+      );
+    })(),
+  });
+
 
   // Page entrance animation (banner + tabs + cards)
   useEffect(() => {
@@ -90,102 +181,7 @@ const Dashboard: React.FC = () => {
       try {
         const resp = await apiServices.getDashboardTrips(token);
         // Assuming resp.data is an array of trips with fields: id, name, countries, progress?, updatedAt?, members?
-        const mapped = (resp.data || []).map((t: any) => ({
-          id: t.id || t.Id,
-          title: t.name || t.title || 'Untitled trip',
-          description: typeof t.description === 'string' ? t.description.trim() : '',
-          visibility: t.visibility || t.Visibility || t.privacy || t.Privacy || 'PRIVATE',
-          location: Array.isArray(t.countries) && t.countries.length ? t.countries[0] : 'Unknown',
-          countries: Array.isArray(t.countries) ? t.countries : [],
-          // Use user-uploaded photoUrl if present; Unsplash fetch happens after mount
-          image: (typeof t.photoUrl === 'string' && t.photoUrl.trim()) ? t.photoUrl : '',
-          progress: typeof t.progress === 'number' ? t.progress : 0,
-          edited: formatRelativeTime(t.updatedDate),
-          members: (() => {
-            const rawMembers = t.members || t.invitedUsers || [];
-            // Log ALL members of first trip so we can diagnose field names + profile pic URLs
-            if (t === (resp.data || [])[0]) {
-              console.debug('[Dashboard] raw trip sample:', JSON.parse(JSON.stringify({
-                owner: t.owner || t.Owner,
-                members: rawMembers,
-              })));
-            }
-            const normalizeMember = (m: any) => {
-              // Flatten nested user sub-object if present (e.g. { userId, user: { fname, profilepicture } })
-              const u = m.user || m.User || m;
-              const firstName = u.fname || u.Fname || u.firstName || u.FirstName || m.fname || m.firstName || '';
-              const lastName = u.lname || u.Lname || u.lastName || u.LastName || m.lname || m.lastName || '';
-              const name =
-                u.name || u.Name || u.fullName || u.displayName ||
-                m.name || m.Name || m.fullName || m.displayName ||
-                [firstName, lastName].filter(Boolean).join(' ').trim() ||
-                (u.email ? u.email.split('@')[0] : null) ||
-                (m.email ? m.email.split('@')[0] : 'Member');
-              const profilePic =
-                u.profilePic || u.ProfilePic ||
-                u.profilePicture || u.ProfilePicture ||
-                u.profilepicture ||
-                u.avatar || u.Avatar ||
-                u.photoUrl || u.PhotoUrl ||
-                m.profilePic || m.ProfilePic ||
-                m.profilePicture || m.ProfilePicture ||
-                m.profilepicture ||
-                m.avatar || m.Avatar ||
-                m.photoUrl || '';
-              return {
-                id: String(m.id || m.userId || m.Id || m.UserId || u.id || u.Id || ''),
-                name,
-                profilePic,
-              };
-            };
-            const normalized = rawMembers.map(normalizeMember);
-            // Patch: if any member is the logged-in user and their profilePic is empty,
-            // fill it from Redux — backend member lists often omit the picture URL
-            const myId = String(userProfile?.id || '');
-            const patched = normalized.map((m: { id: string; name: string; profilePic: string }) => {
-              if (m.profilePic) return m;
-              if (myId && m.id === myId) return { ...m, profilePic: (userProfile?.profilepicture as string) || '' };
-              return m;
-            });
-            // If backend returned no members (solo trip), synthesise one from t.owner or the logged-in user
-            if (normalized.length === 0) {
-              const o = t.owner || t.Owner || null;
-              const firstName = (o?.fname || o?.Fname || o?.firstName || o?.FirstName ||
-                userProfile?.fname || '') as string;
-              const lastName = (o?.lname || o?.Lname || o?.lastName || o?.LastName ||
-                userProfile?.lname || '') as string;
-              const name = (o?.name || o?.Name || o?.displayName ||
-                [firstName, lastName].filter(Boolean).join(' ').trim() ||
-                (o?.email ? o.email.split('@')[0] : null) ||
-                (userProfile?.email ? (userProfile.email as string).split('@')[0] : 'Me')) as string;
-              const profilePic = (o?.profilePic || o?.profilePicture || o?.profilepicture ||
-                o?.avatar || o?.Avatar || o?.photoUrl ||
-                userProfile?.profilepicture || '') as string;
-              return [{ id: String(o?.id || o?.Id || userProfile?.id || ''), name, profilePic }];
-            }
-            return patched;
-          })(),
-          startDate: t.startDate || t.start_date || null,
-          endDate: t.endDate || t.end_date || null,
-          isOwner: (() => {
-            const myId = String(userProfile?.id || '');
-            if (!myId) return true; // assume owner if we can't tell
-            const o = t.owner || t.Owner;
-            const ownerId = String(
-              t.OwnerUserId || t.ownerUserId || t.ownerId || t.OwnerId ||
-              o?.id || o?.Id || o?.userId || o?.UserId || ''
-            );
-            return ownerId ? ownerId === myId : true;
-          })(),
-          isPublished: t.published === true || t.isPublished === true || (typeof t.status === 'string' && t.status.toUpperCase() === 'PUBLISHED'),
-          ownerId: (() => {
-            const o = t.owner || t.Owner;
-            return String(
-              t.OwnerUserId || t.ownerUserId || t.ownerId || t.OwnerId ||
-              o?.id || o?.Id || o?.userId || o?.UserId || ''
-            );
-          })(),
-        }));
+        const mapped = (resp.data || []).map((t: any) => mapTripVM(t));
         if(active){
           setAllPlans(mapped);
           setPlans(mapped);
@@ -280,6 +276,35 @@ const Dashboard: React.FC = () => {
       case 1: setPlans(myTrips); break;
       case 2: setPlans(sharedTrips); break;
       case 3: setPlans(publishedTrips); break;
+      case 4: setPlans(savedPlans); fetchSavedTrips(); break;
+    }
+  };
+
+  // Lazily load the trips this user has saved (Saved Trips tab)
+  const fetchSavedTrips = async (force = false) => {
+    if (!token) return;
+    if (savedFetchedRef.current && !force) return;
+    savedFetchedRef.current = true;
+    setSavedLoading(true);
+    try {
+      const resp = await apiServices.getSavedTrips(token);
+      const mapped = (resp.data || []).map((t: any) => mapTripVM(t));
+      setSavedPlans(mapped);
+      setPlans(prev => (tabValue === 4 ? mapped : prev));
+      // Fetch Unsplash images for saved trips lacking a photo
+      const needImg = mapped.filter((p: any) => !p.image && p.countries?.[0]);
+      if (needImg.length > 0) {
+        const results = await Promise.all(
+          needImg.map(async (p: any) => ({ id: p.id, url: await fetchUnsplashImage(p.countries[0]) }))
+        );
+        const updates: Record<string, string> = {};
+        results.forEach(({ id, url }) => { if (url) updates[id] = url; });
+        if (Object.keys(updates).length > 0) setTripImages(prev => ({ ...prev, ...updates }));
+      }
+    } catch (err) {
+      console.error('[Dashboard] fetch saved trips failed', err);
+    } finally {
+      setSavedLoading(false);
     }
   };
   return (
@@ -455,10 +480,11 @@ const Dashboard: React.FC = () => {
             value={tabValue}
             className="mb-1 mt-3"
             onChange={handleTabChange}
-            variant="fullWidth"
+            variant="scrollable"
+            scrollButtons="auto"
+            allowScrollButtonsMobile
             aria-label="trip tabs"
             sx={{
-              display: { xs: 'none', sm: 'flex' },
               pl: 0,
               mt: "1%",
               ml: "2%",
@@ -474,6 +500,7 @@ const Dashboard: React.FC = () => {
                 margin: '0 2px',
                 textTransform: 'none',
                 fontWeight: 'bold',
+                fontSize: { xs: '0.78rem', sm: '0.875rem' },
                 '&.Mui-selected': {
                   backgroundColor: 'background.paper',
                   boxShadow: 1,
@@ -481,7 +508,7 @@ const Dashboard: React.FC = () => {
                 },
               },
               '& .MuiTabs-indicator': {
-                display: 'none', // Hide the default indicator since we're using background color
+                display: 'none',
               },
             }}
           >
@@ -489,17 +516,29 @@ const Dashboard: React.FC = () => {
             <Tab label="My Trips" />
             <Tab label="Shared with Me" />
             <Tab label="Published" />
+            <Tab label="Saved Trips" />
           </Tabs>
-          <div ref={cardsRef} className="trip-cards-container" style={{ marginBottom: '32px' }}>
+          <div ref={cardsRef} className="trip-cards-container" style={{ marginBottom: '32px', paddingBottom: 'env(safe-area-inset-bottom, 0px)' }}>
             {loading && (
-              <Box sx={{ display:'flex', justifyContent:'center', py:6 }}>
-                <CircularProgress />
+              <Box sx={{ gridColumn: '1 / -1', minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <PageLoader
+                  variant="inline"
+                  messages={['Loading your trips\u2026', 'Fetching your adventures\u2026', 'Almost ready\u2026', 'Gathering your journeys\u2026']}
+                />
+              </Box>
+            )}
+            {!loading && tabValue === 4 && savedLoading && (
+              <Box sx={{ gridColumn: '1 / -1', minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <PageLoader
+                  variant="inline"
+                  messages={['Loading your saved trips\u2026', 'Gathering your bookmarks\u2026', 'Almost ready\u2026']}
+                />
               </Box>
             )}
             {error && !loading && (
               <Alert severity="error" sx={{ mb:2 }}>{error}</Alert>
             )}
-            {!loading && !error && plans.length === 0 && (
+            {!loading && !error && !(tabValue === 4 && savedLoading) && plans.length === 0 && (
               <Box
                 sx={{
                   flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
@@ -550,7 +589,7 @@ const Dashboard: React.FC = () => {
                 >+ Plan your trip</Button>
               </Box>
             )}
-            {!loading && !error && plans.map((plan) => (
+            {!loading && !error && !(tabValue === 4 && savedLoading) && plans.map((plan) => (
               <div key={plan.id || plan.title} className="gs-trip-card">
               <TripCard
                 title={plan.title}
