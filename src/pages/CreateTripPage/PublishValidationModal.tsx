@@ -124,10 +124,10 @@ const PublishValidationModal: React.FC<Props> = ({ open, onClose, checks }) => {
 
             <CheckRow
               passed={checks.hasDescription}
-              label="Description has at least 20 words"
+              label="Description has at least 10 words"
               helperText={
                 !checks.hasDescription
-                  ? `Currently ${checks.wordCount} ${checks.wordCount === 1 ? 'word' : 'words'} — add ${20 - checks.wordCount} more.`
+                  ? `Currently ${checks.wordCount} ${checks.wordCount === 1 ? 'word' : 'words'} — add ${10 - checks.wordCount} more.`
                   : undefined
               }
             />

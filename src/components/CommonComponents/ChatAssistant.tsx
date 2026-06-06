@@ -81,8 +81,8 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
   const [attentionAnim, setAttentionAnim] = useState(false);
 
   const updateItems = [
-    { icon: RocketLaunchRoundedIcon, text: 'Tripician 2.0 — full rewrite with premium UI, new trip view & community feed.' },
-    { icon: SecurityRoundedIcon,     text: 'Publish validation — title, 20-word description & all days planned before going live.' },
+    { icon: RocketLaunchRoundedIcon, text: 'Tripician 2.0 — New trip view & community feed.' },
+    { icon: SecurityRoundedIcon,     text: 'Publish validation — title, 10-word description & all days planned before going live.' },
     { icon: SyncRoundedIcon,         text: 'Community Adventures — browse real trips with days plan, nights & live reactions.' },
     { icon: RocketLaunchRoundedIcon, text: 'Navia AI v0.0.1 — smarter trip co-planner inside every itinerary.' },
     { icon: SecurityRoundedIcon,     text: 'Premium trip view sidebar — date range, traveller profiles & live reaction toolbar.' },

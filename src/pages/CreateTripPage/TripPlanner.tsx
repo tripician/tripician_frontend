@@ -40,10 +40,7 @@ import confetti from 'canvas-confetti';
 import ShareRoundedIcon from '@mui/icons-material/ShareRounded';
 import NightsStayRoundedIcon from '@mui/icons-material/NightsStayRounded';
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
-import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
-// EditIcon removed � inline title editing removed
-// CheckIcon removed � inline title editing removed
 import Docs from '../DocsPage/Docs';
 import SoonTag from '../../components/CommonComponents/SoonTag';
 import TripShareModal from '../../components/TripShareModal';
@@ -2035,7 +2032,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 
 		const words = (tripDescription || '').trim().split(/\s+/).filter(w => w.length > 0);
 		const wordCount = words.length;
-		const hasDescription = wordCount >= 20;
+		const hasDescription = wordCount >= 10;
 
 		let expectedNights = 0;
 		if (tripStartDate && tripEndDate) {
