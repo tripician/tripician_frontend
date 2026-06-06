@@ -505,7 +505,23 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
 
         <Box sx={{ position: 'relative', maxWidth: 900, mx: 'auto', width: '100%' }}>
           {destinations.length === 0 && (
-            <Box sx={(t) => ({ mt: 3, p: 5, border: '2px dashed rgba(255,56,92,0.2)', borderRadius: 3, textAlign: 'center', fontSize: 14, color: t.palette.text.secondary })}>Click "+ Add your next stop" below to add your first destination.</Box>
+            readOnly ? (
+              <Box sx={(t) => ({
+                mt: 3, p: 5, borderRadius: 3, textAlign: 'center',
+                background: t.palette.mode === 'light' ? 'rgba(255,56,92,0.03)' : 'rgba(255,56,92,0.06)',
+                border: '1.5px dashed rgba(255,56,92,0.18)',
+              })}>
+                <Typography sx={{ fontSize: 22, mb: 1 }}>✈️</Typography>
+                <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
+                  No destinations yet
+                </Typography>
+                <Typography sx={{ fontSize: 13, color: 'text.secondary', lineHeight: 1.6 }}>
+                  The creator hasn't added any stops to this trip yet.
+                </Typography>
+              </Box>
+            ) : (
+              <Box sx={(t) => ({ mt: 3, p: 5, border: '2px dashed rgba(255,56,92,0.2)', borderRadius: 3, textAlign: 'center', fontSize: 14, color: t.palette.text.secondary })}>Click "+ Add your next stop" below to add your first destination.</Box>
+            )
           )}
           <DndContext
             sensors={sensors}

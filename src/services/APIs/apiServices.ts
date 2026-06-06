@@ -173,6 +173,12 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
+  // POST /api/feedback - submit user feedback (emailed to support@tripician.com)
+  sendFeedback: (token: string, message: string) =>
+    apiClient.post('/api/feedback', { message }, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
   // Simple connectivity ping (GET public trips) to help diagnose local server reachability (no auth required).
   pingPublicTrips: () => apiClient.get('/api/trips/public').then(r => ({ ok: true, status: r.status })).catch(e => ({ ok: false, error: e.message })),
 

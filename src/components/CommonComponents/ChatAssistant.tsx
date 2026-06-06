@@ -41,6 +41,7 @@ import { useAuthToken } from '../../hooks/useAuth0Token';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import { useIsMobile } from '../../hooks/useIsMobile';
+import { apiServices } from '../../services/APIs/apiServices';
 
 interface ChatAssistantProps {
   tripId?: string;
@@ -66,22 +67,26 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
   const [updatesDialogOpen, setUpdatesDialogOpen] = useState(false);
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [feedbackSending, setFeedbackSending] = useState(false);
+  const [feedbackDone, setFeedbackDone] = useState(false);
+  const [feedbackError, setFeedbackError] = useState('');
   const [logoAnimating, setLogoAnimating] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const appVersion = import.meta.env.VITE_APP_VERSION || '1.0.0';
+  const appVersion = import.meta.env.VITE_APP_VERSION || '2.0.0';
   const appEnv = import.meta.env.VITE_ENV || 'local';
+  const naviaVersion = '0.0.1';
 
   const NAVIA_LOGO =  import.meta.env.VITE_NAVIA_LOGO as string | undefined;
   const [attentionAnim, setAttentionAnim] = useState(false);
 
   const updateItems = [
-    { icon: RocketLaunchRoundedIcon, text: 'Trip planner v1.0 — day-by-day itinerary builder with stays, spots & foods.' },
-    { icon: SecurityRoundedIcon,     text: 'Published trips now visible on the Home feed & Community Adventures.' },
-    { icon: SyncRoundedIcon,         text: 'Travel Risk Monitor with live news, weather & currency intel (Beta).' },
-    { icon: RocketLaunchRoundedIcon, text: 'Navia AI assistant — ask anything about your trip inside the planner.' },
-    { icon: SecurityRoundedIcon,     text: 'Trip sharing with shareable links and member role management.' },
-    { icon: SyncRoundedIcon,         text: 'Profile picture upload, preferences settings & theme toggle.' },
+    { icon: RocketLaunchRoundedIcon, text: 'Tripician 2.0 — full rewrite with premium UI, new trip view & community feed.' },
+    { icon: SecurityRoundedIcon,     text: 'Publish validation — title, 20-word description & all days planned before going live.' },
+    { icon: SyncRoundedIcon,         text: 'Community Adventures — browse real trips with days plan, nights & live reactions.' },
+    { icon: RocketLaunchRoundedIcon, text: 'Navia AI v0.0.1 — smarter trip co-planner inside every itinerary.' },
+    { icon: SecurityRoundedIcon,     text: 'Premium trip view sidebar — date range, traveller profiles & live reaction toolbar.' },
+    { icon: SyncRoundedIcon,         text: 'Profile picture upload, preferences settings & dark / light theme toggle.' },
   ];
 
   const handleSend = () => {
@@ -395,8 +400,9 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
         <DialogContent dividers sx={{ backgroundColor: theme.palette.mode === 'light' ? 'grey.50' : 'background.default' }}>
           <Stack spacing={2}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-              <Chip icon={<VerifiedRoundedIcon />} label={`Version ${appVersion}`} color="primary" />
-              <Chip icon={<PublicRoundedIcon />} label={`Environment ${appEnv}`} variant="outlined" color="primary" />
+              <Chip icon={<VerifiedRoundedIcon />} label={`Tripician v${appVersion}`} color="primary" />
+              <Chip icon={<PublicRoundedIcon />} label={`Navia AI v${naviaVersion}`} color="secondary" />
+              <Chip icon={<PublicRoundedIcon />} label={`Env: ${appEnv}`} variant="outlined" color="primary" />
             </Stack>
             <Box sx={{
               p: 2, borderRadius: 2,
@@ -475,13 +481,36 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
               minRows={4}
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
+              disabled={feedbackSending || feedbackDone}
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, backgroundColor: theme.palette.mode === 'light' ? 'common.white' : 'background.paper' } }}
             />
+            {feedbackDone && <Typography variant="body2" color="success.main" fontWeight={600}>✓ Feedback sent — thank you!</Typography>}
+            {feedbackError && <Typography variant="body2" color="error">{feedbackError}</Typography>}
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setFeedbackDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={() => { setFeedback(''); setFeedbackDialogOpen(false); }}>Submit</Button>
+          <Button onClick={() => { setFeedbackDialogOpen(false); setFeedback(''); setFeedbackDone(false); setFeedbackError(''); }}>Cancel</Button>
+          <Button
+            variant="contained"
+            disabled={feedbackSending || !feedback.trim()}
+            onClick={async () => {
+              if (!auth.token || !feedback.trim()) return;
+              setFeedbackSending(true);
+              setFeedbackError('');
+              try {
+                await apiServices.sendFeedback(auth.token, feedback.trim());
+                setFeedback('');
+                setFeedbackDone(true);
+                setTimeout(() => { setFeedbackDialogOpen(false); setFeedbackDone(false); }, 1800);
+              } catch {
+                setFeedbackError('Failed to send. Please try again.');
+              } finally {
+                setFeedbackSending(false);
+              }
+            }}
+          >
+            {feedbackSending ? 'Sending…' : feedbackDone ? 'Sent ✓' : 'Submit'}
+          </Button>
         </DialogActions>
       </Dialog>
     </>

@@ -47,6 +47,7 @@ import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import Docs from '../DocsPage/Docs';
 import SoonTag from '../../components/CommonComponents/SoonTag';
 import TripShareModal from '../../components/TripShareModal';
+import PublishValidationModal, { type PublishChecks } from './PublishValidationModal';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useNavia, type UseNaviaReturn } from '../../navia/useNavia';
@@ -501,6 +502,7 @@ interface TripViewPanelProps {
 
 const TripViewPanel: React.FC<TripViewPanelProps> = ({
 	tripId, title, description, bannerUrl, countries, tripUsers, ownerInfo,
+	startDate, endDate,
 	totalNights, destinationCount,
 	showEditAction = false, isPublished = false, onRequestEdit, onShare,
 }) => {
@@ -592,6 +594,20 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 	const getMemberInitial = (u: any) => getMemberLabel(u)[0]?.toUpperCase() || 'M';
 	const getMemberAvatar = (u: any) => u.avatar || u.profilePic || u.profilePicture || null;
 
+	const formatDateRange = () => {
+		if (!startDate && !endDate) return null;
+		const fmt = (d: string | null) => {
+			if (!d) return '?';
+			try {
+				return new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+			} catch { return d; }
+		};
+		if (startDate && endDate) return `${fmt(startDate)} – ${fmt(endDate)}`;
+		if (startDate) return `From ${fmt(startDate)}`;
+		return `Until ${fmt(endDate)}`;
+	};
+	const dateRange = formatDateRange();
+
 	return (
 		<Box sx={{
 			width: 320,
@@ -600,277 +616,358 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 			flexDirection: 'column',
 			height: '100%',
 			borderLeft: `1px solid ${border}`,
-			background: bg,
+			background: isLight
+				? 'linear-gradient(180deg, #fafafa 0%, #ffffff 120px)'
+				: 'linear-gradient(180deg, #0c0c12 0%, #0a0a0f 120px)',
 			fontFamily: "'Inter', system-ui, sans-serif",
 			overflow: 'hidden',
 			position: 'relative',
 		}}>
-			{/* -- Banner + Title header -- */}
+			{/* ── Banner ── */}
 			<Box sx={{ position: 'relative', flexShrink: 0 }}>
 				{(bannerUrl || sideBarBanner) ? (
 					<Box
 						component="img" src={bannerUrl || sideBarBanner!} alt={title}
-						sx={{ width: '100%', height: 110, objectFit: 'cover', display: 'block' }}
+						sx={{ width: '100%', height: 145, objectFit: 'cover', display: 'block' }}
 					/>
 				) : (
 					<Box sx={{
-						width: '100%', height: 110,
-						background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 50%, #0f3460 100%)',
+						width: '100%', height: 145,
+						background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 45%, #0f3460 100%)',
 						display: 'flex', alignItems: 'center', justifyContent: 'center',
 					}}>
-						<Typography sx={{ fontSize: '2.5rem', opacity: 0.12 }}>??</Typography>
+						<Typography sx={{ fontSize: '3rem', opacity: 0.08 }}>✈</Typography>
 					</Box>
 				)}
-				{/* Gradient overlay */}
-				<Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.62) 0%, transparent 55%)' }} />
-				{/* Title */}
-				<Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, px: 2, pb: 1.5 }}>
-					<Typography sx={{
-						fontFamily: "'Playfair Display', serif",
-						fontWeight: 800, fontStyle: 'italic',
-						fontSize: '1.05rem', color: '#fff',
-						textShadow: '0 1px 6px rgba(0,0,0,0.5)',
-						lineHeight: 1.2,
-					}}>{title}</Typography>
-					{ownerInfo.name && (
-						<Typography sx={{ fontSize: '0.65rem', color: 'rgba(255,255,255,0.7)', fontFamily: 'inherit', mt: 0.25 }}>
-							by {ownerDisplayName}
-						</Typography>
-					)}
-				</Box>
-			</Box>
-
-			{/* -- Scrollable body -- */}
-			<Box sx={{
-				flex: 1, overflowY: 'auto', px: 2, py: 1.75,
-				display: 'flex', flexDirection: 'column', gap: 2,
-				'&::-webkit-scrollbar': { width: 4 },
-				'&::-webkit-scrollbar-thumb': { borderRadius: 3, background: isLight ? 'rgba(0,0,0,0.12)' : 'rgba(255,255,255,0.10)' },
-			}}>
-
-				{/* -- Published badge -- */}
+				{/* Multi-stop gradient overlay */}
+				<Box sx={{
+					position: 'absolute', inset: 0,
+					background: 'linear-gradient(to bottom, rgba(0,0,0,0.08) 0%, rgba(0,0,0,0.25) 40%, rgba(0,0,0,0.82) 100%)',
+				}} />
+				{/* Published pill */}
 				{isPublished && (
 					<Box sx={{
-						display: 'flex', alignItems: 'center', gap: 0.6,
-						px: 1.1, py: 0.55, borderRadius: '8px',
-						background: 'linear-gradient(135deg, rgba(34,197,94,0.12) 0%, rgba(16,185,129,0.08) 100%)',
-						border: '1px solid rgba(34,197,94,0.28)',
+						position: 'absolute', top: 10, right: 10,
+						display: 'flex', alignItems: 'center', gap: 0.5,
+						px: 1, py: 0.4, borderRadius: '20px',
+						background: 'rgba(0,0,0,0.45)',
+						backdropFilter: 'blur(8px)',
+						border: '1px solid rgba(34,197,94,0.45)',
 					}}>
-						<Box sx={{ width: 7, height: 7, borderRadius: '50%', background: '#22c55e', boxShadow: '0 0 6px rgba(34,197,94,0.7)', flexShrink: 0 }} />
-						<Typography sx={{ fontSize: '0.62rem', fontWeight: 800, color: '#16a34a', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'inherit' }}>
-							Published
-						</Typography>
-						<Typography sx={{ fontSize: '0.62rem', color: '#16a34a', fontFamily: 'inherit', opacity: 0.75, ml: 'auto' }}>
+						<Box sx={{
+							width: 6, height: 6, borderRadius: '50%', background: '#22c55e',
+							boxShadow: '0 0 8px rgba(34,197,94,0.9)',
+							animation: 'trip-view-pulse 2s ease-in-out infinite',
+							'@keyframes trip-view-pulse': {
+								'0%, 100%': { opacity: 1, transform: 'scale(1)' },
+								'50%': { opacity: 0.6, transform: 'scale(0.85)' },
+							},
+						}} />
+						<Typography sx={{ fontSize: '0.58rem', fontWeight: 800, color: '#4ade80', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
 							Live
 						</Typography>
 					</Box>
 				)}
+				{/* Title block */}
+				<Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, px: 2, pb: 1.75 }}>
+					<Typography sx={{
+						fontFamily: "'Playfair Display', serif",
+						fontWeight: 800, fontStyle: 'italic',
+						fontSize: '1.18rem', color: '#fff',
+						textShadow: '0 2px 12px rgba(0,0,0,0.6)',
+						lineHeight: 1.25,
+						letterSpacing: '-0.01em',
+					}}>{title}</Typography>
+					<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, mt: 0.4 }}>
+						<Avatar
+							src={ownerInfo.avatar ?? undefined}
+							imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any}
+							sx={{ width: 16, height: 16, fontSize: '0.48rem', fontWeight: 800,
+								background: 'linear-gradient(135deg,#FF385C,#D91A50)', color: '#fff',
+								border: '1.5px solid rgba(255,255,255,0.5)', flexShrink: 0 }}
+						>{ownerDisplayName[0]?.toUpperCase()}</Avatar>
+						<Typography sx={{ fontSize: '0.63rem', color: 'rgba(255,255,255,0.72)', fontFamily: 'inherit', letterSpacing: '0.01em' }}>
+							by {ownerDisplayName}
+						</Typography>
+					</Box>
+				</Box>
+			</Box>
 
-				{/* Premium actions toolbar (icons only) */}
-			{/* Premium actions toolbar was moved below the About section */}
+			{/* ── Scrollable body ── */}
+			<Box sx={{
+				flex: 1, overflowY: 'auto', px: 2, pt: 2, pb: 1.5,
+				display: 'flex', flexDirection: 'column', gap: 2.25,
+				'&::-webkit-scrollbar': { width: 3 },
+				'&::-webkit-scrollbar-thumb': { borderRadius: 4, background: isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.08)' },
+				'&::-webkit-scrollbar-track': { background: 'transparent' },
+			}}>
 
-				{/* -- Description -- */}
+				{/* ── About ── */}
 				{description && (
-					<Box>
-						<Typography sx={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: textMuted, fontFamily: 'inherit', mb: 0.75 }}>
+					<Box sx={{
+						pl: 1.5, borderLeft: '3px solid',
+						borderImage: 'linear-gradient(to bottom, #FF385C, #E31C5F55) 1',
+					}}>
+						<Typography sx={{
+							fontSize: '0.58rem', fontWeight: 800, letterSpacing: '0.18em',
+							textTransform: 'uppercase', color: textMuted, fontFamily: 'inherit', mb: 0.6,
+						}}>
 							About this trip
 						</Typography>
-						<Typography sx={{ fontSize: '0.82rem', color: textPrimary, fontFamily: 'inherit', lineHeight: 1.7, opacity: 0.85 }}>
+						<Typography sx={{
+							fontSize: '0.83rem', color: textPrimary, fontFamily: 'inherit',
+							lineHeight: 1.75, opacity: 0.88,
+						}}>
 							{description}
 						</Typography>
 					</Box>
 				)}
 
-
-
-				{/* -- Quick stats -- */}
-				<Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
-					{[
-						{ Icon: NightsStayRoundedIcon,  label: 'Nights',       value: totalNights || 'Yet to Plan' },
-						{ Icon: GroupsRoundedIcon,       label: 'Destinations', value: destinationCount || 'Yet to Plan' },
-					].map(({ Icon, label, value }) => (
-						<Box key={label} sx={{
-							borderRadius: '10px', background: sectionBg, border: `1px solid ${border}`,
-							p: '10px 12px', display: 'flex', flexDirection: 'column', gap: 0.35,
-						}}>
-							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-								<Icon sx={{ fontSize: 12, color: '#FF385C' }} />
-								<Typography sx={{ fontSize: '0.55rem', fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: textMuted, fontFamily: 'inherit' }}>
-									{label}
-								</Typography>
+				{/* ── Stats grid ── */}
+				<Box>
+					<Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
+						{[
+							{ Icon: NightsStayRoundedIcon, label: 'Nights',       value: totalNights   || null, accent: '#FF385C' },
+							{ Icon: AltRouteIcon,           label: 'Destinations', value: destinationCount || null, accent: '#7C3AED' },
+						].map(({ Icon, label, value, accent }) => (
+							<Box key={label} sx={{
+								borderRadius: '12px',
+								background: isLight
+									? `linear-gradient(135deg, ${accent}09 0%, ${accent}04 100%)`
+									: `linear-gradient(135deg, ${accent}18 0%, ${accent}08 100%)`,
+								border: `1px solid ${accent}22`,
+								p: '11px 13px',
+								display: 'flex', flexDirection: 'column', gap: 0.8,
+							}}>
+								<Box sx={{
+									width: 28, height: 28, borderRadius: '8px',
+									background: `${accent}18`,
+									display: 'flex', alignItems: 'center', justifyContent: 'center',
+								}}>
+									<Icon sx={{ fontSize: 15, color: accent }} />
+								</Box>
+								<Box>
+									<Typography sx={{ fontSize: '0.54rem', fontWeight: 700, letterSpacing: '0.14em', textTransform: 'uppercase', color: textMuted, fontFamily: 'inherit', mb: 0.2 }}>
+										{label}
+									</Typography>
+									{value ? (
+										<Typography sx={{ fontSize: '1rem', fontWeight: 800, color: textPrimary, fontFamily: 'inherit', lineHeight: 1.1 }}>
+											{value}
+										</Typography>
+									) : (
+										<Typography sx={{ fontSize: '0.75rem', fontStyle: 'italic', color: textMuted, fontFamily: 'inherit', lineHeight: 1.1 }}>
+											Not set
+										</Typography>
+									)}
+								</Box>
 							</Box>
-							<Typography sx={{ fontSize: '0.82rem', fontWeight: 700, color: textPrimary, fontFamily: 'inherit', lineHeight: 1.15 }}>
-								{value}
+						))}
+					</Box>
+
+					{/* Date range row */}
+					{dateRange && (
+						<Box sx={{
+							mt: 1, px: 1.5, py: 0.9, borderRadius: '10px',
+							background: isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.04)',
+							border: `1px solid ${border}`,
+							display: 'flex', alignItems: 'center', gap: 1,
+						}}>
+							<Box sx={{ width: 7, height: 7, borderRadius: '50%', background: '#FF385C', flexShrink: 0 }} />
+							<Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: textPrimary, fontFamily: 'inherit' }}>
+								{dateRange}
 							</Typography>
 						</Box>
-					))}
+					)}
 				</Box>
 
-				{/* Premium actions toolbar placed under Nights & Destinations */}
+				{/* ── Reactions toolbar ── */}
 				{isPublished && (
-					<Box id='trip-premium-toolbar' title='Premium actions' sx={{ display: 'flex', gap: 1.25, alignItems: 'center', mt: 0 }}>
+					<Box sx={{
+						display: 'flex', alignItems: 'center', gap: 0.5,
+						px: 1.25, py: 0.85, borderRadius: '12px',
+						background: isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.04)',
+						border: `1px solid ${border}`,
+					}}>
 						{/* Like */}
-						<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
-							<Tooltip title='Like'>
-								<IconButton
-								size='small'
-								aria-label='like'
-								onClick={(e:any) => {
-									e.stopPropagation?.();
-									toggleReaction('like');
-								}}
-								sx={{
-									width: 36, height: 36, p: 0.5, borderRadius: '8px',
-									color: liked ? '#FF385C' : textMuted,
-									background: liked ? 'rgba(255,56,92,0.08)' : 'transparent',
-									'&:hover': { background: liked ? 'rgba(255,56,92,0.12)' : 'rgba(0,0,0,0.04)' }
-								}}
-								>
-									{liked ? <FavoriteIcon fontSize='medium' /> : <FavoriteBorderIcon fontSize='medium' />}
+						<Tooltip title={liked ? 'Unlike' : 'Like this trip'}>
+							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, flex: 1, justifyContent: 'center' }}>
+								<IconButton size='small' aria-label='like'
+									onClick={(e: any) => { e.stopPropagation?.(); toggleReaction('like'); }}
+									sx={{ width: 30, height: 30, borderRadius: '8px',
+										color: liked ? '#FF385C' : textMuted,
+										background: liked ? 'rgba(255,56,92,0.10)' : 'transparent',
+										'&:hover': { background: 'rgba(255,56,92,0.10)' },
+									}}>
+									{liked ? <FavoriteIcon sx={{ fontSize: 16 }} /> : <FavoriteBorderIcon sx={{ fontSize: 16 }} />}
 								</IconButton>
-							</Tooltip>
-							<Typography sx={{ fontSize: '0.72rem', color: textMuted }}>{likesCount}</Typography>
-						</Box>
-
-						{/* Save */}
-						<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
-							<IconButton
-								size='small'
-								aria-label='save'
-								onClick={(e:any) => {
-									e.stopPropagation?.();
-									toggleReaction('save');
-								}}
-								sx={{
-									width: 36, height: 36, p: 0.5, borderRadius: '8px',
-									color: saved ? '#0EA5E9' : textMuted,
-									background: saved ? 'rgba(14,165,233,0.08)' : 'transparent',
-									'&:hover': { background: saved ? 'rgba(14,165,233,0.12)' : 'rgba(0,0,0,0.04)' }
-								}}
-								>
-									{saved ? <BookmarkIcon fontSize='medium' /> : <BookmarkBorderIcon fontSize='medium' />}
-								</IconButton>
-								<Typography sx={{ fontSize: '0.72rem', color: textMuted }}>{savesCount}</Typography>
+								<Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: liked ? '#FF385C' : textMuted, minWidth: 14 }}>{likesCount}</Typography>
 							</Box>
-
-						{/* Need improvement */}
-						<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
-							<Tooltip title='Need improvement'>
-								<IconButton
-								size='small'
-								aria-label='need-improvement'
-								onClick={(e:any) => {
-									e.stopPropagation?.();
-									toggleReaction('needswork');
-								}}
-								sx={{
-									width: 36, height: 36, p: 0.5, borderRadius: '8px',
-									color: needsImprovement ? '#F59E0B' : textMuted,
-									background: needsImprovement ? 'rgba(245,158,11,0.08)' : 'transparent',
-									'&:hover': { background: needsImprovement ? 'rgba(245,158,11,0.12)' : 'rgba(0,0,0,0.04)' }
-								}}
-								>
-									{needsImprovement ? <ReportProblemRoundedIcon fontSize='medium' /> : <ReportProblemOutlinedIcon fontSize='medium' />}
+						</Tooltip>
+						<Box sx={{ width: 1, height: 20, background: border }} />
+						{/* Save */}
+						<Tooltip title={saved ? 'Unsave' : 'Save trip'}>
+							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, flex: 1, justifyContent: 'center' }}>
+								<IconButton size='small' aria-label='save'
+									onClick={(e: any) => { e.stopPropagation?.(); toggleReaction('save'); }}
+									sx={{ width: 30, height: 30, borderRadius: '8px',
+										color: saved ? '#0EA5E9' : textMuted,
+										background: saved ? 'rgba(14,165,233,0.10)' : 'transparent',
+										'&:hover': { background: 'rgba(14,165,233,0.10)' },
+									}}>
+									{saved ? <BookmarkIcon sx={{ fontSize: 16 }} /> : <BookmarkBorderIcon sx={{ fontSize: 16 }} />}
 								</IconButton>
-							</Tooltip>
-							<Typography sx={{ fontSize: '0.72rem', color: textMuted }}>{needsImprovementCount}</Typography>
-						</Box>
+								<Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: saved ? '#0EA5E9' : textMuted, minWidth: 14 }}>{savesCount}</Typography>
+							</Box>
+						</Tooltip>
+						<Box sx={{ width: 1, height: 20, background: border }} />
+						{/* Needs work */}
+						<Tooltip title='Flag for improvement'>
+							<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, flex: 1, justifyContent: 'center' }}>
+								<IconButton size='small' aria-label='needs-improvement'
+									onClick={(e: any) => { e.stopPropagation?.(); toggleReaction('needswork'); }}
+									sx={{ width: 30, height: 30, borderRadius: '8px',
+										color: needsImprovement ? '#F59E0B' : textMuted,
+										background: needsImprovement ? 'rgba(245,158,11,0.10)' : 'transparent',
+										'&:hover': { background: 'rgba(245,158,11,0.10)' },
+									}}>
+									{needsImprovement ? <ReportProblemRoundedIcon sx={{ fontSize: 16 }} /> : <ReportProblemOutlinedIcon sx={{ fontSize: 16 }} />}
+								</IconButton>
+								<Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: needsImprovement ? '#F59E0B' : textMuted, minWidth: 14 }}>{needsImprovementCount}</Typography>
+							</Box>
+						</Tooltip>
 					</Box>
 				)}
 
-				{/* -- Members -- */}
+				{/* ── Members ── */}
 				{tripUsers.length > 0 && (
-					<Box sx={{ borderRadius: '12px', background: sectionBg, border: `1px solid ${border}`, p: '12px 14px' }}>
-						<Typography sx={{ fontSize: '0.6rem', fontWeight: 800, letterSpacing: '0.16em', textTransform: 'uppercase', color: textMuted, fontFamily: 'inherit', mb: 1.25 }}>
-							Trip Members {tripUsers.length}
-						</Typography>						
-						{/* Name list below */}
-						<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.6 }}>
-							{shownUsers.map((u, i) => {
-								const label = getMemberLabel(u);
-								const initial = getMemberInitial(u);
-								const avatarSrc = getMemberAvatar(u);
-								const role = u.role || u.Role || '';
-								const isOwnerMember = role.toLowerCase() === 'owner';
-								return (
-									<Box key={u.id ?? i} sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-										<Avatar
-											src={avatarSrc ?? undefined}
-											imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any}
-											sx={{
-												width: 24, height: 24, fontSize: '0.58rem', fontWeight: 800,
-												background: isOwnerMember
-													? 'linear-gradient(135deg,#FF385C,#D91A50)'
-													: (isLight ? '#e0e0e0' : 'rgba(255,255,255,0.12)'),
-												color: isOwnerMember ? '#fff' : textPrimary,
-												border: `1.5px solid ${border}`,
-												flexShrink: 0,
-											}}
-										>{initial}</Avatar>
-										<Typography sx={{
-											fontSize: '0.78rem', fontWeight: 600, color: textPrimary,
-											fontFamily: 'inherit', lineHeight: 1.2,
-											overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
-										}}>{label}</Typography>
-										{isOwnerMember && (
-											<Box sx={{
-												px: 0.8, py: 0.2, borderRadius: '50px',
-												background: 'rgba(255,56,92,0.10)',
-												border: '1px solid rgba(255,56,92,0.25)',
-											}}>
-												<Typography sx={{ fontSize: '0.52rem', fontWeight: 800, color: '#FF385C', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'inherit' }}>
-													Owner
-												</Typography>
-											</Box>
-										)}
-									</Box>
-								);
-							})}
-							{extraUsers > 0 && (
-								<Typography sx={{ fontSize: '0.7rem', color: textMuted, fontFamily: 'inherit', pl: 0.25 }}>
-									+{extraUsers} more member{extraUsers > 1 ? 's' : ''}
+					<Box sx={{ borderRadius: '14px', background: sectionBg, border: `1px solid ${border}`, overflow: 'hidden' }}>
+						{/* Header */}
+						<Box sx={{
+							px: 1.75, py: 1.1,
+							borderBottom: `1px solid ${border}`,
+							display: 'flex', alignItems: 'center', justifyContent: 'space-between',
+						}}>
+							<Typography sx={{ fontSize: '0.58rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: textMuted, fontFamily: 'inherit' }}>
+								Travellers
+							</Typography>
+							<Box sx={{
+								px: 0.9, py: 0.25, borderRadius: '20px',
+								background: isLight ? 'rgba(0,0,0,0.06)' : 'rgba(255,255,255,0.08)',
+							}}>
+								<Typography sx={{ fontSize: '0.6rem', fontWeight: 700, color: textMuted, fontFamily: 'inherit' }}>
+									{tripUsers.length}
 								</Typography>
-							)}
+							</Box>
+						</Box>
+						{/* Member rows */}
+						<Box sx={{ px: 1.75, py: 1 }}>
+							<Box sx={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+								{shownUsers.map((u, i) => {
+									const label = getMemberLabel(u);
+									const initial = getMemberInitial(u);
+									const avatarSrc = getMemberAvatar(u);
+									const role = u.role || u.Role || '';
+									const isOwnerMember = role.toLowerCase() === 'owner';
+									return (
+										<Box key={u.id ?? i} sx={{
+											display: 'flex', alignItems: 'center', gap: 1.1,
+											py: 0.85,
+											borderBottom: i < shownUsers.length - 1 ? `1px solid ${isLight ? 'rgba(0,0,0,0.05)' : 'rgba(255,255,255,0.05)'}` : 'none',
+										}}>
+											<Avatar
+												src={avatarSrc ?? undefined}
+												imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any}
+												sx={{
+													width: 30, height: 30, fontSize: '0.62rem', fontWeight: 800, flexShrink: 0,
+													background: isOwnerMember
+														? 'linear-gradient(135deg,#FF385C,#D91A50)'
+														: (isLight ? '#e8e8e8' : 'rgba(255,255,255,0.10)'),
+													color: isOwnerMember ? '#fff' : textPrimary,
+													border: `2px solid ${isOwnerMember ? 'rgba(255,56,92,0.35)' : border}`,
+													boxShadow: isOwnerMember ? '0 2px 8px rgba(255,56,92,0.28)' : 'none',
+												}}
+											>{initial}</Avatar>
+											<Typography sx={{
+												fontSize: '0.8rem', fontWeight: 600, color: textPrimary,
+												fontFamily: 'inherit', lineHeight: 1.25,
+												overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', flex: 1,
+											}}>{label}</Typography>
+											{isOwnerMember && (
+												<Box sx={{
+													px: 0.85, py: 0.28, borderRadius: '20px',
+													background: 'linear-gradient(135deg, rgba(255,56,92,0.12), rgba(255,56,92,0.06))',
+													border: '1px solid rgba(255,56,92,0.30)',
+													flexShrink: 0,
+												}}>
+													<Typography sx={{ fontSize: '0.51rem', fontWeight: 800, color: '#FF385C', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'inherit' }}>
+														Host
+													</Typography>
+												</Box>
+											)}
+										</Box>
+									);
+								})}
+								{extraUsers > 0 && (
+									<Box sx={{ pt: 0.75 }}>
+										<Typography sx={{ fontSize: '0.7rem', color: textMuted, fontFamily: 'inherit', fontStyle: 'italic' }}>
+											+{extraUsers} more traveller{extraUsers > 1 ? 's' : ''}
+										</Typography>
+									</Box>
+								)}
+							</Box>
 						</Box>
 					</Box>
 				)}
 
 			</Box>
 
-			{/* -- Footer: edit + share buttons -- */}
+			{/* ── Footer ── */}
 			<Box sx={{
-				px: 2, py: 1.25, flexShrink: 0,
+				px: 2, pb: 2, pt: 1.25, flexShrink: 0,
 				borderTop: `1px solid ${border}`,
 				background: bg,
-				display: 'flex', flexDirection: 'column', gap: 1,
+				display: 'flex', flexDirection: 'column', gap: 0.85,
+				'&::before': {
+					content: '""',
+					position: 'absolute',
+					bottom: showEditAction ? 118 : 76, left: 0, right: 0, height: 32,
+					background: isLight
+						? 'linear-gradient(to top, rgba(255,255,255,0.9), transparent)'
+						: 'linear-gradient(to top, rgba(10,10,15,0.9), transparent)',
+					pointerEvents: 'none',
+				},
 			}}>
 				{showEditAction && (
 					<Button
-						fullWidth
-						variant="contained"
-						onClick={() => { onRequestEdit?.(); }}
+						fullWidth variant="contained" onClick={() => { onRequestEdit?.(); }}
 						sx={{
-							textTransform: 'none', borderRadius: '10px', fontFamily: 'inherit',
-							fontWeight: 600, fontSize: '0.82rem',
-							background: 'linear-gradient(135deg,#FF385C,#D91A50)',
-							color: '#fff', py: 0.9,
-							'&:hover': { background: 'linear-gradient(135deg,#e02d50,#c01545)' },
+							textTransform: 'none', borderRadius: '12px', fontFamily: 'inherit',
+							fontWeight: 700, fontSize: '0.84rem',
+							background: 'linear-gradient(135deg, #FF385C 0%, #E31C5F 55%, #c91855 100%)',
+							color: '#fff', py: 1,
+							boxShadow: '0 4px 14px rgba(255,56,92,0.38)',
+							'&:hover': {
+								background: 'linear-gradient(135deg, #ff4d6d 0%, #E31C5F 55%, #b5144c 100%)',
+								boxShadow: '0 6px 20px rgba(255,56,92,0.50)',
+								transform: 'translateY(-1px)',
+							},
+							transition: 'all .2s ease',
 						}}
 					>
 						Edit Trip
 					</Button>
 				)}
 				<Button
-					fullWidth
-					variant="outlined"
-					startIcon={<ShareRoundedIcon sx={{ fontSize: 16 }} />}
+					fullWidth variant="outlined"
+					startIcon={<ShareRoundedIcon sx={{ fontSize: 15 }} />}
 					onClick={() => { onShare?.(); }}
 					sx={{
-						textTransform: 'none', borderRadius: '10px', fontFamily: 'inherit',
+						textTransform: 'none', borderRadius: '12px', fontFamily: 'inherit',
 						fontWeight: 600, fontSize: '0.82rem',
-						borderColor: 'rgba(255,56,92,0.30)', color: '#FF385C',
-						py: 0.9,
-						'&:hover': { borderColor: '#FF385C', background: 'rgba(255,56,92,0.05)' },
+						borderColor: 'rgba(255,56,92,0.35)', color: '#FF385C',
+						py: 0.88,
+						'&:hover': { borderColor: '#FF385C', background: 'rgba(255,56,92,0.05)', transform: 'translateY(-1px)' },
+						transition: 'all .2s ease',
 					}}
 				>
 					Share this trip
@@ -1565,6 +1662,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const [exitConfirmOpen, setExitConfirmOpen] = React.useState(false);
 	const [savePermissionDenied, setSavePermissionDenied] = React.useState(false);
 	const [showCelebration, setShowCelebration] = React.useState(false);
+	const [showPublishCheck, setShowPublishCheck] = React.useState(false);
+	const [publishChecks, setPublishChecks] = React.useState<PublishChecks | null>(null);
 	const [naviaDrawerOpen, setNaviaDrawerOpen] = React.useState(false);
 	const [exiting, setExiting] = React.useState(false);
 	const [deletingTrip, setDeletingTrip] = React.useState(false);
@@ -1930,6 +2029,27 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		return () => clearTimeout(timer);
 	}, [isHydrated, effectiveCanEdit, authToken, buildPersistPayload, persistToBackend, isDraft, commitSnapshot]);
 
+	const computePublishChecks = React.useCallback((): PublishChecks => {
+		const trimmedTitle = title.trim();
+		const hasTitle = trimmedTitle.length > 0 && trimmedTitle !== 'Untitled Trip';
+
+		const words = (tripDescription || '').trim().split(/\s+/).filter(w => w.length > 0);
+		const wordCount = words.length;
+		const hasDescription = wordCount >= 20;
+
+		let expectedNights = 0;
+		if (tripStartDate && tripEndDate) {
+			try {
+				const ms = new Date(tripEndDate).getTime() - new Date(tripStartDate).getTime();
+				expectedNights = Math.max(0, Math.round(ms / (1000 * 60 * 60 * 24)));
+			} catch {}
+		}
+		const coveredNights = planner.destinations.reduce((a, d) => a + (d.nights || 0), 0);
+		const allDatesCovered = expectedNights > 0 && coveredNights >= expectedNights;
+
+		return { hasTitle, hasDescription, allDatesCovered, wordCount, expectedNights, coveredNights };
+	}, [title, tripDescription, tripStartDate, tripEndDate, planner.destinations]);
+
 	const handlePublish = async () => {
 		if(!currentUserIsOwner || !authToken) return; // safety
 		if(isDraft){
@@ -2248,6 +2368,13 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 										disabled={!isDraft || saving}
 										onClick={() => {
 											if (isDraft) {
+												const checks = computePublishChecks();
+												const allPassed = checks.hasTitle && checks.hasDescription && checks.allDatesCovered;
+												if (!allPassed) {
+													setPublishChecks(checks);
+													setShowPublishCheck(true);
+													return;
+												}
 												handlePublish();
 												requestAnimationFrame(() => { lastCommittedRef.current = computeSignature(); });
 											}
@@ -2881,6 +3008,13 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			destinationCount={planner.destinations.length}
 			totalNights={totalNights}
 		/>
+		{publishChecks && (
+			<PublishValidationModal
+				open={showPublishCheck}
+				onClose={() => setShowPublishCheck(false)}
+				checks={publishChecks}
+			/>
+		)}
 		</React.Fragment>
 	);
 };
