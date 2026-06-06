@@ -902,3 +902,85 @@
   .rm-stats-strip__item { gap: 4px; }
   .rm-stats-strip__num { font-size: 1.1rem; }
 }
+
+/* ─── NEW HERO HEADER BLOCK ───────────────────────────────────── */
+.rm-hero__header-block {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.rm-hero__header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: rgba(255, 56, 92, 0.12);
+  border: 1px solid rgba(255, 56, 92, 0.28);
+  flex-shrink: 0;
+}
+
+.rm-hero__header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rm-hero__header-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Override centered title for new layout */
+.rm-hero__title--inline {
+  margin: 0;
+  font-size: 1.9rem;
+  text-align: left;
+}
+
+/* LIVE pill badge */
+.rm-hero__live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.30);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #22c55e;
+  font-family: 'Inter', sans-serif;
+  flex-shrink: 0;
+}
+
+.rm-hero__live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  position: relative;
+  flex-shrink: 0;
+}
+.rm-hero__live-dot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.4);
+  animation: radar-ping 1.8s ease-out infinite;
+}
+
+@media (max-width: 768px) {
+  .rm-hero__header-block { gap: 12px; }
+  .rm-hero__header-icon  { width: 46px; height: 46px; border-radius: 10px; }
+  .rm-hero__title--inline { font-size: 1.45rem; }
+}

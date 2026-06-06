@@ -9,7 +9,7 @@
 import React from 'react';
 import {
   Box, Stack, Typography, Fade, Paper, InputBase, Dialog, DialogTitle, DialogContent, DialogActions,
-  Button, IconButton, LinearProgress
+  Button, IconButton
 } from '@mui/material';
 import { AnimatePresence } from 'framer-motion';
 import {
@@ -25,17 +25,18 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
 import CloseIcon from '@mui/icons-material/Close';
 import NotesIcon from '@mui/icons-material/Notes';
-import HotelIcon from '@mui/icons-material/Hotel';
 import DestinationCard from './DestinationCard';
+import { DiscoverSheet, StaySheet } from './PlannerModals';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import {
-  addDestination, removeDestination, duplicateDestination, toggleDestinationCompleted, setDestinationCategory, renameDestination,
+  addDestination, removeDestination, duplicateDestination, toggleDestinationCompleted, setDestinationCategory, renameDestination, setDestinationTitle,
   setDestinationNotes, addDestinationDoc, removeDestinationDoc,
   addSpot, toggleSpot, removeSpot, addFoodItem, toggleFoodItem, removeFoodItem,
   updateDestinationNights, reorderChainExact,
-  addStayEntry, updateStayEntry, removeStayEntry, setStayNotes
+  addStayEntry, updateStayEntry, removeStayEntry, setStayNotes, clearDestinationDiscover
 } from '../../store/plannerSlice';
+import { planDestination } from '../../navia/naviaService';
 import ValidatedFileInput from '../../components/CommonComponents/ValidatedFileInput';
 import SoonTag from '../../components/CommonComponents/SoonTag';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
@@ -48,7 +49,11 @@ interface DestinationCardsPanelProps {
   canAccessDocs?: boolean;
   canEdit?: boolean;
   isPublished?: boolean;
+  tripId?: string;
+  authToken?: string | null;
+  tripVibe?: string | null;
   onRequestNaviaTip?: (destinationName: string) => void;
+  onNaviaToast?: (type: 'success' | 'error' | 'info', message: string) => void;
 }
 
 /* ---- Google Maps JS SDK loader (standalone, since MapPanel now uses Mapbox) ---- */
@@ -83,9 +88,55 @@ const SortableCardWrapper: React.FC<{
   );
 };
 
-const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, readOnly=false, canEdit=false, isPublished=false, onRequestNaviaTip }) => {
+const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
+  maxed, readOnly=false, canEdit=false, isPublished=false, tripId, authToken, tripVibe,
+  onRequestNaviaTip, onNaviaToast,
+}) => {
   const dispatch = useDispatch<AppDispatch>();
   const destinations = useSelector((s:RootState)=> s.planner.destinations);
+
+  const handlePlanDestination = React.useCallback(async (destinationId: string) => {
+    const dest = destinations.find(d => d.id === destinationId);
+    if (!dest || !tripId || !authToken) {
+      onNaviaToast?.('error', 'Sign in and save your trip before using Navia here.');
+      window.dispatchEvent(new CustomEvent('navia:response'));
+      return;
+    }
+    try {
+      const result = await planDestination({
+        tripId,
+        destinationName: dest.name,
+        planTitle: dest.title,
+        lat: dest.lat,
+        lng: dest.lng,
+        nights: dest.nights,
+        category: dest.category,
+        vibe: tripVibe ?? undefined,
+      }, authToken);
+
+      dispatch(clearDestinationDiscover({ destinationId }));
+      for (const spot of result.spots ?? []) {
+        if (!spot.name?.trim()) continue;
+        dispatch(addSpot({
+          destinationId,
+          name: spot.name.trim(),
+          description: spot.description?.trim(),
+          known: true,
+        }));
+      }
+      for (const food of result.foods ?? []) {
+        if (!food.name?.trim()) continue;
+        dispatch(addFoodItem({ destinationId, name: food.name.trim() }));
+      }
+      const notes = (result.journalNotes ?? '').trim();
+      if (notes) dispatch(setDestinationNotes({ id: destinationId, notes }));
+      onNaviaToast?.('success', `Navia planned ${dest.name}`);
+    } catch {
+      onNaviaToast?.('error', 'Navia could not plan this stop. Try again.');
+    } finally {
+      window.dispatchEvent(new CustomEvent('navia:response'));
+    }
+  }, [destinations, tripId, authToken, tripVibe, dispatch, onNaviaToast]);
   // completedCount removed with Timeline header
   /* Load Google Maps SDK once on mount so Places autocomplete works independently of MapPanel */
   React.useEffect(() => {
@@ -142,8 +193,10 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
   const [spotSearch, setSpotSearch] = React.useState('');
   const [spotPredictions, setSpotPredictions] = React.useState<any[]>([]);
   const [spotSearchLoading, setSpotSearchLoading] = React.useState(false);
-  const recommendedSpots = ['Central Park','Old Town','Museum of Art','River Walk','Sunset Point'];
   const recommendedFoods = ['Local BBQ','Seafood Platter','Street Tacos','Traditional Dessert','Coffee Roastery'];
+  type QuickSuggestion = { name: string; placeId?: string };
+  const [nearbySpots, setNearbySpots] = React.useState<QuickSuggestion[]>([]);
+  const [nearbyLoading, setNearbyLoading] = React.useState(false);
   const placesServiceRef = React.useRef<any>(null);
   const scriptLoadingRef = React.useRef(false);
   const ensurePlacesScript = React.useCallback(()=>{
@@ -186,6 +239,52 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
   const addSpotFromPrediction = (p:any) => { if(!discoverFor) return; fetchPlacePhoto(p.place_id).then(det=>{
     dispatch(addSpot({ destinationId: discoverFor, name: p.description.split(',')[0], photoUrl: det.photoUrl, mapUrl: det.mapUrl, description: det.description, placeId: p.place_id, known:true })); setSpotSearch(''); setSpotPredictions([]);
   }); };
+
+  const fetchNearbySuggestions = React.useCallback((dest: { lat?: number; lng?: number; name: string }) => {
+    setNearbyLoading(true);
+    setNearbySpots([]);
+    const g = (window as any).google;
+    if (!g?.maps?.places) {
+      setNearbyLoading(false);
+      return;
+    }
+    const finish = (items: QuickSuggestion[]) => {
+      setNearbySpots(items.slice(0, 6));
+      setNearbyLoading(false);
+    };
+    const svc = new g.maps.places.PlacesService(document.createElement('div'));
+    if (dest.lat != null && dest.lng != null) {
+      svc.nearbySearch(
+        { location: new g.maps.LatLng(dest.lat, dest.lng), radius: 8000, type: 'tourist_attraction' },
+        (results: any[] | null, status: string) => {
+          if (status === 'OK' && Array.isArray(results) && results.length > 0) {
+            finish(results.map(r => ({ name: r.name as string, placeId: r.place_id as string })).filter(r => r.name));
+            return;
+          }
+          svc.textSearch({ query: `top attractions near ${dest.name}` }, (textRes: any[] | null, textStatus: string) => {
+            if (textStatus === 'OK' && Array.isArray(textRes)) {
+              finish(textRes.map(r => ({ name: r.name as string, placeId: r.place_id as string })).filter(r => r.name));
+            } else finish([]);
+          });
+        }
+      );
+      return;
+    }
+    svc.textSearch({ query: `top attractions in ${dest.name}` }, (textRes: any[] | null, textStatus: string) => {
+      if (textStatus === 'OK' && Array.isArray(textRes)) {
+        finish(textRes.map(r => ({ name: r.name as string, placeId: r.place_id as string })).filter(r => r.name));
+      } else finish([]);
+    });
+  }, []);
+
+  React.useEffect(() => {
+    if (!discoverFor || discoverTab !== 'spots') { setNearbySpots([]); return; }
+    const d = destinations.find(p => p.id === discoverFor);
+    if (!d) return;
+    ensurePlacesScript();
+    const t = setTimeout(() => fetchNearbySuggestions({ lat: d.lat, lng: d.lng, name: d.name }), 200);
+    return () => clearTimeout(t);
+  }, [discoverFor, discoverTab, destinations, ensurePlacesScript, fetchNearbySuggestions]);
 
   /* ---------------------------- Notes / Stay / Docs ---------------------------- */
   const [notesFor, setNotesFor] = React.useState<string | null>(null);
@@ -282,24 +381,17 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
     prevProgressRef.current = progressPct;
   }, [progressPct]);
 
-  /* --------------------------- Timeline rail geometry -------------------------- */
-  const cardRefs = React.useRef<Record<string, HTMLDivElement | null>>({});
-  const containerRef = React.useRef<HTMLDivElement | null>(null);
-  const [centers, setCenters] = React.useState<number[]>([]);
-  const [railBounds, setRailBounds] = React.useState<{ top:number; bottom:number } | null>(null);
-  const recompute = React.useCallback(()=>{
-    const cont=containerRef.current; if(!cont){ setCenters([]); setRailBounds(null); return; }
-    const list:number[]=[]; destinations.forEach(d=>{ const el=cardRefs.current[d.id]; if(el){ const r=el.getBoundingClientRect(); const cr=cont.getBoundingClientRect(); list.push(r.top-cr.top + r.height/2); } });
-    setCenters(list); if(list.length>=2) setRailBounds({ top:list[0], bottom:list[list.length-1] }); else setRailBounds(null);
-  }, [destinations]);
-  React.useLayoutEffect(()=> { recompute(); }, [recompute]);
-  React.useEffect(()=> { const onResize=()=> recompute(); window.addEventListener('resize', onResize); return ()=> window.removeEventListener('resize', onResize); }, [recompute]);
-  // Observe card height changes (e.g. notes expand/collapse) to keep timeline rail in sync
-  React.useEffect(()=> {
-    const ro = new ResizeObserver(()=> recompute());
-    Object.values(cardRefs.current).forEach(el => { if(el) ro.observe(el); });
-    return ()=> ro.disconnect();
-  }, [destinations, recompute]);
+  /* --------------------------- Timeline rail helper -------------------------- */
+  // Color for the connector segment leaving a given destination index (in-flow rail).
+  const segmentColor = React.useCallback((di: number, dark: boolean): string => {
+    const dd = destinations[di];
+    const cl = dd ? checklists[dd.id] : undefined;
+    const hasAlert = (dd ? alertsMap[dd.id]?.alerts.length ?? 0 : 0) > 0;
+    const allDone = cl?.accommodation && cl?.transport && cl?.activities;
+    if (hasAlert) return 'linear-gradient(180deg,#BA7517,#F59E0B)';
+    if (allDone) return 'linear-gradient(180deg,#16a34a,#22c55e)';
+    return dark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)';
+  }, [destinations, checklists, alertsMap]);
 
   /* --------------------------------- Render --------------------------------- */
   return (
@@ -411,51 +503,25 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
           </Box>
         )}
 
-        <Box ref={containerRef} sx={{ position: 'relative', pl: 8, maxWidth: 900, mx: 'auto', width: '100%' }}>
-          {railBounds && (
-            <>
-              {/* Living journey line: per-segment coloring (Feature 4) */}
-              {centers.length >= 2 && centers.map((c, idx) => {
-                if (idx >= centers.length - 1) return null;
-                const d = destinations[idx];
-                const cl = checklists[d?.id];
-                const hasAlert = (alertsMap[d?.id]?.alerts.length ?? 0) > 0;
-                const allDone = cl?.accommodation && cl?.transport && cl?.activities;
-                return (
-                  <Box key={`seg-${idx}`} sx={(t) => ({
-                    position: 'absolute', top: c, height: centers[idx + 1] - c,
-                    left: 18, width: 2, pointerEvents: 'none',
-                    background: hasAlert
-                      ? 'linear-gradient(180deg,#BA7517,#F59E0B)'
-                      : allDone
-                      ? 'linear-gradient(180deg,#16a34a,#22c55e)'
-                      : t.palette.mode === 'dark' ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)',
-                    transition: 'background 0.3s',
-                  })} />
-                );
-              })}
-              {/* State-aware numbered nodes (Feature 4) */}
-              {centers.map((c, idx) => {
-                const d = destinations[idx];
-                const cl = checklists[d?.id];
-                const allDone = cl?.accommodation && cl?.transport && cl?.activities;
-                return (
-                  <Box key={idx} sx={{ position: 'absolute', top: c, left: 6, width: 28, height: 24, display: 'flex', alignItems: 'center', justifyContent: 'center', transform: 'translateY(-50%)', zIndex: 3 }}>
-                    <Box sx={{
-                      width: 22, height: 22, borderRadius: '50%',
-                      background: allDone ? 'linear-gradient(135deg,#16a34a,#22c55e)' : 'linear-gradient(135deg,#e8436a,#E31C5F)',
-                      color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                      fontSize: 11, fontWeight: 700,
-                      boxShadow: allDone ? '0 2px 8px rgba(22,163,74,0.4)' : '0 2px 8px rgba(232,67,106,0.4)',
-                      transition: 'background 0.3s, box-shadow 0.3s',
-                    }}>{idx + 1}</Box>
-                  </Box>
-                );
-              })}
-            </>
-          )}
+        <Box sx={{ position: 'relative', maxWidth: 900, mx: 'auto', width: '100%' }}>
           {destinations.length === 0 && (
-            <Box sx={(t) => ({ mt: 3, p: 5, border: '2px dashed rgba(255,56,92,0.2)', borderRadius: 3, textAlign: 'center', fontSize: 14, color: t.palette.text.secondary })}>Click "+ Add your next stop" below to add your first destination.</Box>
+            readOnly ? (
+              <Box sx={(t) => ({
+                mt: 3, p: 5, borderRadius: 3, textAlign: 'center',
+                background: t.palette.mode === 'light' ? 'rgba(255,56,92,0.03)' : 'rgba(255,56,92,0.06)',
+                border: '1.5px dashed rgba(255,56,92,0.18)',
+              })}>
+                <Typography sx={{ fontSize: 22, mb: 1 }}>✈️</Typography>
+                <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
+                  No destinations yet
+                </Typography>
+                <Typography sx={{ fontSize: 13, color: 'text.secondary', lineHeight: 1.6 }}>
+                  The creator hasn't added any stops to this trip yet.
+                </Typography>
+              </Box>
+            ) : (
+              <Box sx={(t) => ({ mt: 3, p: 5, border: '2px dashed rgba(255,56,92,0.2)', borderRadius: 3, textAlign: 'center', fontSize: 14, color: t.palette.text.secondary })}>Click "+ Add your next stop" below to add your first destination.</Box>
+            )
           )}
           <DndContext
             sensors={sensors}
@@ -466,10 +532,31 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
             <SortableContext items={destinations.map(d => d.id)} strategy={verticalListSortingStrategy}>
               <Stack spacing={1}>
                 <AnimatePresence initial={false}>
-                  {destinations.map(d => (
+                  {destinations.map((d, idx) => (
                     <SortableCardWrapper key={d.id} id={d.id}>
                       {({ isDragging, dragHandleProps }) => (
-                        <Box ref={el => { cardRefs.current[d.id] = el as HTMLDivElement | null; }}>
+                        <Box sx={{ display: 'flex', alignItems: 'stretch', gap: 1 }}>
+                          {/* In-flow timeline rail: numbered node + connector (always visible, no measurement) */}
+                          <Box sx={{ position: 'relative', width: 28, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
+                            {idx > 0 && (
+                              <Box sx={(t) => ({ position: 'absolute', top: -8, height: 'calc(50% + 8px)', width: 2, background: segmentColor(idx - 1, t.palette.mode === 'dark'), transition: 'background 0.3s' })} />
+                            )}
+                            {idx < destinations.length - 1 && (
+                              <Box sx={(t) => ({ position: 'absolute', top: '50%', bottom: -8, width: 2, background: segmentColor(idx, t.palette.mode === 'dark'), transition: 'background 0.3s' })} />
+                            )}
+                            <Box sx={{
+                              position: 'absolute', top: '50%', transform: 'translateY(-50%)', zIndex: 1,
+                              width: 22, height: 22, borderRadius: '50%',
+                              background: (checklists[d.id]?.accommodation && checklists[d.id]?.transport && checklists[d.id]?.activities)
+                                ? 'linear-gradient(135deg,#16a34a,#22c55e)' : 'linear-gradient(135deg,#e8436a,#E31C5F)',
+                              color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                              fontSize: 11, fontWeight: 700,
+                              boxShadow: (checklists[d.id]?.accommodation && checklists[d.id]?.transport && checklists[d.id]?.activities)
+                                ? '0 2px 8px rgba(22,163,74,0.4)' : '0 2px 8px rgba(232,67,106,0.4)',
+                              transition: 'background 0.3s, box-shadow 0.3s',
+                            }}>{idx + 1}</Box>
+                          </Box>
+                          <Box sx={{ flex: 1, minWidth: 0 }}>
                           <DestinationCard
                             destination={d}
                             isDragging={isDragging}
@@ -477,6 +564,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
                             checklist={checklists[d.id]}
                             onChecklistChange={handleChecklistChange}
                             onRename={readOnly ? undefined : (id, name) => dispatch(renameDestination({ id, name }))}
+                            onChangeTitle={readOnly ? undefined : (id, t) => dispatch(setDestinationTitle({ id, title: t }))}
                             onChangeCategory={readOnly ? undefined : (id, cat) => dispatch(setDestinationCategory({ id, category: cat }))}
                             onToggleComplete={readOnly ? undefined : (id) => dispatch(toggleDestinationCompleted({ id }))}
                             onDuplicate={readOnly ? undefined : (id) => dispatch(duplicateDestination({ id }))}
@@ -487,9 +575,11 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
                             onOpenDiscover={readOnly ? undefined : () => { setDiscoverFor(d.id); setDiscoverTab('spots'); }}
                             onChangeNights={readOnly ? undefined : (id, delta) => dispatch(updateDestinationNights({ id, delta }))}
                             onRequestNaviaTip={onRequestNaviaTip}
+                            onPlanDestination={readOnly ? undefined : handlePlanDestination}
                             alertCount={alertsMap[d.id]?.alerts.length ?? 0}
                             alerts={alertsMap[d.id]?.alerts ?? []}
                           />
+                          </Box>
                         </Box>
                       )}
                     </SortableCardWrapper>
@@ -521,7 +611,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
             <>
               {ghostSearchOpen ? (
                 /* Inline search input — replaces ghost card */
-                <Box sx={{ position: 'relative', mt: 1 }}>
+                <Box sx={{ position: 'relative', mt: 1, ml: '36px' }}>
                   <Paper elevation={0} sx={(t) => ({
                     display: 'flex', alignItems: 'center', gap: 1, pl: 1.5, pr: 0.75, py: 0.65,
                     borderRadius: '12px',
@@ -533,7 +623,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
                     <InputBase
                       value={searchValue}
                       onChange={e => setSearchValue(e.target.value)}
-                      placeholder={maxed ? 'Night limit reached' : 'Search destination…'}
+                      placeholder={maxed ? 'Night limit reached' : 'Tag a place on Google (e.g. Hanoi, Old Quarter)…'}
                       disabled={maxed}
                       inputRef={ghostInputRef}
                       autoFocus
@@ -569,7 +659,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
                 <Box
                   onClick={() => { if (!maxed) setGhostSearchOpen(true); }}
                   sx={{
-                    mt: 1, height: 56, border: '1.5px dashed',
+                    mt: 1, ml: '36px', height: 56, border: '1.5px dashed',
                     borderColor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)',
                     borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
                     gap: 1, cursor: maxed ? 'default' : 'pointer',
@@ -599,176 +689,35 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
           )}
         </Box>
 
-        {/* Discover Dialog — premium compact */}
-        <Dialog
-          open={!!discoverFor} onClose={() => setDiscoverFor(null)}
-          fullWidth maxWidth='sm'
-          PaperProps={{ sx: (t) => ({
-            borderRadius: '20px', overflow: 'hidden',
-            background: t.palette.mode === 'dark' ? '#111314' : '#fff',
-            boxShadow: '0 32px 80px rgba(0,0,0,0.22)',
-            height: '78vh', display: 'flex', flexDirection: 'column',
-          }) }}
-        >
-          {discoverFor && (() => {
-            const pd = destinations.find(p => p.id === discoverFor);
-            const spots = pd?.spots || [];
-            const foods = pd?.foods || [];
-            return (
-              <>
-                {/* Header */}
-                <Box sx={(t) => ({
-                  display: 'flex', alignItems: 'center', gap: 1.5,
-                  px: 2.5, pt: 2.25, pb: 1.5,
-                  borderBottom: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)'}`,
-                  flexShrink: 0,
-                })}>
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography sx={{ fontWeight: 800, fontSize: 16, lineHeight: 1.2 }}>{pd?.name || 'Destination'}</Typography>
-                    <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.2 }}>Curate spots & local foods</Typography>
-                  </Box>
-                  {/* Tabs as pill toggles */}
-                  <Box sx={(t) => ({
-                    display: 'flex', borderRadius: '10px', overflow: 'hidden',
-                    border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.09)'}`,
-                  })}>
-                    {(['spots', 'foods'] as const).map(tab => (
-                      <Box key={tab} onClick={() => setDiscoverTab(tab)} sx={(t) => ({
-                        px: 1.5, py: 0.55, fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                        background: discoverTab === tab
-                          ? 'linear-gradient(135deg,#FF385C,#E31C5F)'
-                          : (t.palette.mode === 'dark' ? 'transparent' : 'transparent'),
-                        color: discoverTab === tab ? '#fff' : 'text.secondary',
-                        transition: 'background .15s, color .15s',
-                        '&:hover': discoverTab !== tab ? { background: 'rgba(255,56,92,0.07)', color: '#FF385C' } : {},
-                      })}>
-                        {tab === 'spots' ? `Spots (${spots.length})` : `Foods (${foods.length})`}
-                      </Box>
-                    ))}
-                  </Box>
-                  <IconButton size='small' onClick={() => setDiscoverFor(null)} sx={{ p: 0.5, color: 'text.disabled', '&:hover': { color: 'text.primary' } }}>
-                    <CloseIcon sx={{ fontSize: 16 }} />
-                  </IconButton>
-                </Box>
-
-                {/* Body — two columns */}
-                <Box sx={{ flex: 1, display: 'flex', overflow: 'hidden' }}>
-                  {/* Left: curated list */}
-                  <Box sx={(t) => ({
-                    flex: 1, display: 'flex', flexDirection: 'column', overflow: 'hidden',
-                    borderRight: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)'}`,
-                  })}>
-                    <Box sx={{ flex: 1, overflowY: 'auto', px: 2, py: 1.5, display: 'flex', flexDirection: 'column', gap: 0.6,
-                      '&::-webkit-scrollbar': { width: 3 }, '&::-webkit-scrollbar-thumb': { borderRadius: 2, background: 'rgba(0,0,0,0.12)' } }}>
-                      {discoverTab === 'spots' && (<>
-                        {spots.length === 0 && <Typography sx={{ fontSize: 12, color: 'text.disabled', textAlign: 'center', mt: 3 }}>No spots added yet.</Typography>}
-                        {spots.map((s: any) => (
-                          <Box key={s.id} sx={(t) => ({
-                            display: 'flex', alignItems: 'center', gap: 1, px: 1.25, py: 0.9,
-                            borderRadius: '10px', border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`,
-                            background: s.checked ? (t.palette.mode === 'dark' ? 'rgba(22,163,74,0.08)' : 'rgba(22,163,74,0.04)') : 'transparent',
-                            transition: 'background .12s',
-                          })}>
-                            <Box onClick={() => dispatch(toggleSpot({ destinationId: discoverFor!, spotId: s.id }))}
-                              sx={{ width: 18, height: 18, borderRadius: '5px', flexShrink: 0, cursor: 'pointer',
-                                border: `2px solid ${s.checked ? '#16a34a' : 'rgba(0,0,0,0.2)'}`,
-                                background: s.checked ? '#16a34a' : 'transparent',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .12s',
-                              }}>
-                              {s.checked && <Box component='svg' viewBox='0 0 12 12' sx={{ width: 9, height: 9 }}><path fill='#fff' d='M1.5 6l3 3 6-6'/></Box>}
-                            </Box>
-                            <Typography sx={{ flex: 1, fontSize: 13, fontWeight: 500, color: s.checked ? 'text.secondary' : 'text.primary',
-                              textDecoration: s.checked ? 'line-through' : 'none', lineHeight: 1.3 }}>
-                              {s.name}
-                            </Typography>
-                            <IconButton size='small' onClick={() => dispatch(removeSpot({ destinationId: discoverFor!, spotId: s.id }))}
-                              sx={{ p: 0.3, opacity: 0, '.MuiBox-root:hover &': { opacity: 1 }, color: 'text.disabled', '&:hover': { color: '#ef4444' } }}>
-                              <DeleteOutlineIcon sx={{ fontSize: 13 }} />
-                            </IconButton>
-                          </Box>
-                        ))}
-                      </>)}
-                      {discoverTab === 'foods' && (<>
-                        {foods.length === 0 && <Typography sx={{ fontSize: 12, color: 'text.disabled', textAlign: 'center', mt: 3 }}>No foods added yet.</Typography>}
-                        {foods.map((f: any) => (
-                          <Box key={f.id} sx={(t) => ({
-                            display: 'flex', alignItems: 'center', gap: 1, px: 1.25, py: 0.9,
-                            borderRadius: '10px', border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`,
-                            background: f.checked ? (t.palette.mode === 'dark' ? 'rgba(22,163,74,0.08)' : 'rgba(22,163,74,0.04)') : 'transparent',
-                          })}>
-                            <Box onClick={() => dispatch(toggleFoodItem({ destinationId: discoverFor!, foodId: f.id }))}
-                              sx={{ width: 18, height: 18, borderRadius: '5px', flexShrink: 0, cursor: 'pointer',
-                                border: `2px solid ${f.checked ? '#16a34a' : 'rgba(0,0,0,0.2)'}`,
-                                background: f.checked ? '#16a34a' : 'transparent',
-                                display: 'flex', alignItems: 'center', justifyContent: 'center', transition: 'all .12s',
-                              }}>
-                              {f.checked && <Box component='svg' viewBox='0 0 12 12' sx={{ width: 9, height: 9 }}><path fill='#fff' d='M1.5 6l3 3 6-6'/></Box>}
-                            </Box>
-                            <Typography sx={{ flex: 1, fontSize: 13, fontWeight: 500 }}>{f.name}</Typography>
-                            <IconButton size='small' onClick={() => dispatch(removeFoodItem({ destinationId: discoverFor!, foodId: f.id }))}
-                              sx={{ p: 0.3, color: 'text.disabled', '&:hover': { color: '#ef4444' } }}>
-                              <DeleteOutlineIcon sx={{ fontSize: 13 }} />
-                            </IconButton>
-                          </Box>
-                        ))}
-                      </>)}
-                    </Box>
-                  </Box>
-
-                  {/* Right: add panel */}
-                  <Box sx={{ width: 240, flexShrink: 0, display: 'flex', flexDirection: 'column', px: 2, py: 1.5, gap: 1.25, overflowY: 'auto' }}>
-                    <Typography sx={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'text.secondary' }}>
-                      {discoverTab === 'spots' ? 'Quick adds' : 'Local staples'}
-                    </Typography>
-                    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                      {(discoverTab === 'spots' ? recommendedSpots : recommendedFoods).map(r => (
-                        <Box key={r} onClick={() => discoverTab === 'spots'
-                          ? dispatch(addSpot({ destinationId: discoverFor!, name: r, known: true, mapUrl: `https://maps.google.com/?q=${encodeURIComponent(r + ' ' + (pd?.name || ''))}` }))
-                          : dispatch(addFoodItem({ destinationId: discoverFor!, name: r }))
-                        } sx={(t) => ({
-                          px: 1.25, py: 0.65, borderRadius: '8px', fontSize: 12.5, cursor: 'pointer',
-                          border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}`,
-                          color: 'text.secondary', transition: 'background .12s, color .12s, border-color .12s',
-                          '&:hover': { background: 'rgba(255,56,92,0.06)', borderColor: 'rgba(255,56,92,0.28)', color: '#FF385C' },
-                        })}>+ {r}</Box>
-                      ))}
-                    </Box>
-                    {discoverTab === 'spots' && (
-                      <>
-                        <Typography sx={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'text.secondary', mt: 0.5 }}>Search places</Typography>
-                        <Box sx={{ position: 'relative' }}>
-                          <InputBase value={spotSearch} onChange={e => setSpotSearch(e.target.value)}
-                            placeholder='Search attractions…'
-                            sx={(t) => ({ width: '100%', fontSize: 13, border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`, borderRadius: '8px', px: 1.25, py: 0.6,
-                              '&:focus-within': { borderColor: 'rgba(255,56,92,0.45)' } })}
-                            startAdornment={<SearchIcon sx={{ fontSize: 14, mr: 0.5, opacity: 0.4 }} />}
-                          />
-                          {spotSearchLoading && <LinearProgress sx={{ position: 'absolute', left: 0, right: 0, bottom: 0, height: 2, borderRadius: 1 }} />}
-                        </Box>
-                        {spotPredictions.length > 0 && (
-                          <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.4 }}>
-                            {spotPredictions.slice(0, 5).map(p => (
-                              <Box key={p.place_id} onClick={() => addSpotFromPrediction(p)}
-                                sx={(t) => ({ px: 1, py: 0.6, borderRadius: '8px', fontSize: 12, cursor: 'pointer',
-                                  border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)'}`,
-                                  color: 'text.secondary', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
-                                  '&:hover': { background: 'rgba(255,56,92,0.06)', color: '#FF385C', borderColor: 'rgba(255,56,92,0.25)' } })}>
-                                {p.description.split(',')[0]}
-                              </Box>
-                            ))}
-                          </Box>
-                        )}
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 'auto', pt: 1 }}>
-                          <Box component='img' alt='Google' src={import.meta.env.VITE_GOOGLE_LOGO || 'https://developers.google.com/static/maps/documentation/images/google_on_white.png'} sx={{ height: 12, opacity: 0.6 }} />
-                        </Box>
-                      </>
-                    )}
-                  </Box>
-                </Box>
-              </>
-            );
-          })()}
-        </Dialog>
+        <DiscoverSheet
+          open={!!discoverFor}
+          onClose={() => setDiscoverFor(null)}
+          destination={discoverFor ? destinations.find(p => p.id === discoverFor) : undefined}
+          tab={discoverTab}
+          onTabChange={setDiscoverTab}
+          spotSearch={spotSearch}
+          onSpotSearchChange={setSpotSearch}
+          spotSearchLoading={spotSearchLoading}
+          spotPredictions={spotPredictions}
+          nearbySpots={nearbySpots}
+          nearbyLoading={nearbyLoading}
+          recommendedFoods={recommendedFoods}
+          readOnly={readOnly}
+          onAddSpotFromPrediction={addSpotFromPrediction}
+          onQuickAddSpot={(item) => {
+            if (!discoverFor) return;
+            if (item.placeId) addSpotFromPrediction({ place_id: item.placeId, description: item.name });
+            else {
+              const pd = destinations.find(p => p.id === discoverFor);
+              dispatch(addSpot({ destinationId: discoverFor, name: item.name, known: true, mapUrl: `https://maps.google.com/?q=${encodeURIComponent(item.name + ' ' + (pd?.name || ''))}` }));
+            }
+          }}
+          onQuickAddFood={(name) => discoverFor && dispatch(addFoodItem({ destinationId: discoverFor, name }))}
+          onToggleSpot={(spotId) => discoverFor && dispatch(toggleSpot({ destinationId: discoverFor, spotId }))}
+          onRemoveSpot={(spotId) => discoverFor && dispatch(removeSpot({ destinationId: discoverFor, spotId }))}
+          onToggleFood={(foodId) => discoverFor && dispatch(toggleFoodItem({ destinationId: discoverFor, foodId }))}
+          onRemoveFood={(foodId) => discoverFor && dispatch(removeFoodItem({ destinationId: discoverFor, foodId }))}
+        />
 
         {/* Notes Dialog */}
         <Dialog
@@ -846,104 +795,18 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({ maxed, re
           )}
         </Dialog>
 
-        {/* Stay Dialog — premium compact */}
-        <Dialog
-          open={!!stayFor} onClose={closeStayPanel}
-          fullWidth maxWidth='xs'
-          PaperProps={{ sx: (t) => ({
-            borderRadius: '20px', overflow: 'hidden',
-            background: t.palette.mode === 'dark' ? '#111314' : '#fff',
-            boxShadow: '0 32px 80px rgba(0,0,0,0.22)',
-            maxHeight: '80vh', display: 'flex', flexDirection: 'column',
-          }) }}
-        >
-          {stayFor && (() => {
-            const d = destinations.find(p => p.id === stayFor);
-            return (
-              <>
-                {/* Header */}
-                <Box sx={(t) => ({
-                  display: 'flex', alignItems: 'center', gap: 1.25,
-                  px: 2.25, pt: 2, pb: 1.5,
-                  borderBottom: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.06)'}`,
-                  flexShrink: 0,
-                })}>
-                  <HotelIcon sx={{ fontSize: 18, color: '#FF385C', flexShrink: 0 }} />
-                  <Box sx={{ flex: 1, minWidth: 0 }}>
-                    <Typography sx={{ fontWeight: 800, fontSize: 15, lineHeight: 1.2 }}>{d?.name || 'Stays'}</Typography>
-                    <Typography sx={{ fontSize: 11, color: 'text.secondary' }}>Where you're sleeping</Typography>
-                  </Box>
-                  <IconButton size='small' onClick={closeStayPanel} sx={{ p: 0.5, color: 'text.disabled', '&:hover': { color: 'text.primary' } }}>
-                    <CloseIcon sx={{ fontSize: 16 }} />
-                  </IconButton>
-                </Box>
-
-                {/* Body */}
-                <Box sx={{ flex: 1, overflowY: 'auto', px: 2.25, py: 1.5, display: 'flex', flexDirection: 'column', gap: 0.75,
-                  '&::-webkit-scrollbar': { width: 3 }, '&::-webkit-scrollbar-thumb': { borderRadius: 2, background: 'rgba(0,0,0,0.12)' } }}>
-                  {destinationStays.length === 0 && (
-                    <Typography sx={{ fontSize: 12, color: 'text.disabled', textAlign: 'center', mt: 2 }}>No properties added yet.</Typography>
-                  )}
-                  {destinationStays.map((prop: any) => (
-                    <Box key={prop.id} sx={(t) => ({
-                      display: 'flex', alignItems: 'flex-start', gap: 1, px: 1.25, py: 1,
-                      borderRadius: '10px',
-                      border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`,
-                      transition: 'border-color .12s',
-                      '&:hover': { borderColor: 'rgba(255,56,92,0.25)' },
-                    })}>
-                      <HotelIcon sx={{ fontSize: 16, color: '#FF385C', flexShrink: 0, mt: 0.5 }} />
-                      <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
-                        <InputBase disabled={readOnly} value={prop.name || ''} onChange={e => updatePropertyField(prop.id, { name: e.target.value })}
-                          placeholder='Property name'
-                          sx={(t) => ({ fontSize: 13, fontWeight: 600, px: 0.75, py: 0.3, borderRadius: '6px',
-                            border: `1px solid transparent`, '&:hover': { border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}` },
-                            '&.Mui-focused': { border: `1px solid rgba(255,56,92,0.4)` } })} />
-                        <InputBase disabled={readOnly} value={prop.reference || ''} onChange={e => updatePropertyField(prop.id, { reference: e.target.value })}
-                          placeholder='Booking ref / address'
-                          sx={(t) => ({ fontSize: 12, px: 0.75, py: 0.2, borderRadius: '6px', color: 'text.secondary',
-                            border: `1px solid transparent`, '&:hover': { border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}` },
-                            '&.Mui-focused': { border: `1px solid rgba(255,56,92,0.4)` } })} />
-                      </Box>
-                      {!readOnly && (
-                        <IconButton size='small' onClick={() => deleteProperty(prop.id)}
-                          sx={{ p: 0.35, color: 'text.disabled', '&:hover': { color: '#ef4444' } }}>
-                          <DeleteOutlineIcon sx={{ fontSize: 14 }} />
-                        </IconButton>
-                      )}
-                    </Box>
-                  ))}
-
-                  {!readOnly && (
-                    <Box onClick={addProperty} sx={(t) => ({
-                      display: 'flex', alignItems: 'center', gap: 0.75, px: 1.25, py: 0.8,
-                      borderRadius: '10px', border: `1.5px dashed ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
-                      cursor: 'pointer', color: 'text.secondary', fontSize: 13,
-                      '&:hover': { borderColor: 'rgba(255,56,92,0.35)', color: '#FF385C', background: 'rgba(255,56,92,0.03)' },
-                      transition: 'all .15s',
-                    })}>
-                      <Box component='svg' viewBox='0 0 24 24' sx={{ width: 16, height: 16, flexShrink: 0 }}>
-                        <path fill='currentColor' d='M19 11h-6V5h-2v6H5v2h6v6h2v-6h6z'/>
-                      </Box>
-                      Add property
-                    </Box>
-                  )}
-
-                  {/* Notes */}
-                  <Box sx={{ mt: 0.5 }}>
-                    <Typography sx={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.1em', color: 'text.secondary', mb: 0.75 }}>Notes</Typography>
-                    <InputBase disabled={readOnly} multiline minRows={3}
-                      value={stayNotesVal} onChange={e => saveStayNotes(e.target.value)}
-                      placeholder='Check-in time, access codes, parking notes…'
-                      sx={(t) => ({ width: '100%', fontSize: 12.5, border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.09)'}`, borderRadius: '10px', px: 1.25, py: 0.75,
-                        '&:hover': { borderColor: 'rgba(255,56,92,0.3)' }, '&.Mui-focused': { borderColor: '#FF385C' } })}
-                    />
-                  </Box>
-                </Box>
-              </>
-            );
-          })()}
-        </Dialog>
+        <StaySheet
+          open={!!stayFor}
+          onClose={closeStayPanel}
+          destination={stayFor ? destinations.find(p => p.id === stayFor) : undefined}
+          stays={destinationStays}
+          stayNotes={stayNotesVal}
+          readOnly={readOnly}
+          onAddProperty={addProperty}
+          onUpdateProperty={updatePropertyField}
+          onDeleteProperty={deleteProperty}
+          onStayNotesChange={saveStayNotes}
+        />
 
         {/* Docs Dialog */}
         <Dialog open={!!docsFor} onClose={()=> setDocsFor(null)} fullWidth maxWidth='sm'>

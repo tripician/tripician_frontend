@@ -40,6 +40,7 @@ const FloatingDock: React.FC = () => {
 				<MotionIconButton
 					size='small'
 					color='primary'
+					aria-label='Open Chat Assistant'
 					whileHover={{ scale: 1.18, rotate: 5 }}
 					whileTap={{ scale: 0.9 }}
 					transition={{ type: 'spring', stiffness: 400, damping: 17 }}
@@ -50,6 +51,7 @@ const FloatingDock: React.FC = () => {
 			<Tooltip title='Show Map' placement='left'>
 				<MotionIconButton
 					size='small'
+					aria-label='Show Map'
 					whileHover={{ scale: 1.18, rotate: -5 }}
 					whileTap={{ scale: 0.9 }}
 					transition={{ type: 'spring', stiffness: 400, damping: 17 }}
@@ -61,6 +63,7 @@ const FloatingDock: React.FC = () => {
 				<MotionIconButton
 					size='small'
 					color='secondary'
+					aria-label='Add Destination'
 					whileHover={{ scale: 1.18, rotate: 5 }}
 					whileTap={{ scale: 0.9 }}
 					transition={{ type: 'spring', stiffness: 400, damping: 17 }}
