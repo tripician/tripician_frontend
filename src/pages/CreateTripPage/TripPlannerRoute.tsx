@@ -12,6 +12,7 @@ interface TripPlannerRouteLocationState {
   isOwner?: boolean;
   isMember?: boolean;
   canEdit?: boolean;
+  aiGenerated?: boolean; // flag: navigate from "Generate with AI" flow
 }
 
 const TripPlannerRoute: React.FC = () => {
@@ -29,6 +30,7 @@ const TripPlannerRoute: React.FC = () => {
   const passedTrip = stateMatches ? (state.trip || state.initialTrip) : undefined;
   const derivedIsOwner = stateMatches && typeof state.isOwner === 'boolean' ? state.isOwner : undefined;
   const derivedCanEdit = stateMatches && typeof state.canEdit === 'boolean' ? state.canEdit : undefined;
+  const derivedAiGenerated = stateMatches ? !!state.aiGenerated : false;
 
   // Proactive planner reset when navigating to a new trip (route-level) before TripPlanner mounts.
   // This complements internal mismatch detection and ensures no stale itinerary flashes.
@@ -48,6 +50,7 @@ const TripPlannerRoute: React.FC = () => {
       isOwnerExternal={derivedIsOwner ?? true}
       isExternalNonOwner={false}
       effectiveCanEdit={derivedCanEdit ?? true}
+      aiGenerated={derivedAiGenerated}
     />
   );
 };

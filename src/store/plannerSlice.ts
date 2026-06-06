@@ -5,6 +5,8 @@ import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 export interface PlannerDestination {
   id: string;
   name: string;
+  /** User-facing plan headline for this stop (e.g. "Coffee & explore the market") */
+  title?: string;
   startDate: string; // ISO date
   endDate: string;   // ISO date
   nights: number;
@@ -323,6 +325,12 @@ const plannerSlice = createSlice({
       const d = state.destinations.find(x => x.id === action.payload.id);
       if (d) d.name = action.payload.name;
     },
+    setDestinationTitle(state, action: PayloadAction<{ id: string; title: string }>) {
+      const d = state.destinations.find(x => x.id === action.payload.id);
+      if (!d) return;
+      const trimmed = action.payload.title.trim();
+      d.title = trimmed.length > 0 ? trimmed : undefined;
+    },
     setDestinationCategory(state, action: PayloadAction<{ id: string; category: PlannerDestination['category'] }>) {
       const d = state.destinations.find(x => x.id === action.payload.id);
       if (d) d.category = action.payload.category || 'general';
@@ -341,6 +349,7 @@ const plannerSlice = createSlice({
         ...source,
         id: Date.now().toString() + '_' + Math.random().toString(36).slice(2),
         name: source.name + ' Copy',
+        title: source.title ? source.title + ' (copy)' : undefined,
         spots: source.spots ? source.spots.map(s=> ({ ...s, id: s.name + Date.now() + Math.random().toString(36).slice(2), checked:false })) : [],
         foods: source.foods ? source.foods.map(f=> ({ ...f, id: f.name + Date.now() + Math.random().toString(36).slice(2), checked:false })) : [],
         docs: source.docs ? source.docs.map(doc => ({ ...doc, id: doc.id + '_copy_' + Math.random().toString(36).slice(2) })) : [],
@@ -537,6 +546,12 @@ const plannerSlice = createSlice({
       if (!d?.foods) return;
       d.foods = d.foods.filter(f=> f.id !== action.payload.foodId);
     },
+    clearDestinationDiscover(state, action: PayloadAction<{ destinationId: string }>) {
+      const d = state.destinations.find(x => x.id === action.payload.destinationId);
+      if (!d) return;
+      d.spots = [];
+      d.foods = [];
+    },
     reorderFoods(state, action: PayloadAction<{ destinationId: string; fromIndex: number; toIndex: number }>) {
       const d = state.destinations.find(x=> x.id === action.payload.destinationId);
       if (!d?.foods) return;
@@ -643,6 +658,7 @@ export const {
   removeStayEntry,
   setStayNotes,
   renameDestination,
+  setDestinationTitle,
   setDestinationCategory,
   toggleDestinationCompleted,
   duplicateDestination,
@@ -658,7 +674,8 @@ export const {
   addFoodItem,
   toggleFoodItem,
   removeFoodItem,
-  reorderFoods
+  reorderFoods,
+  clearDestinationDiscover
 } = plannerSlice.actions;
 
 export const {

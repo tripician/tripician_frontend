@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import gsap from 'gsap';
-import { Skeleton } from '@mui/material';
+import { Skeleton, Box, Typography } from '@mui/material';
+import useMediaQuery from '@mui/material/useMediaQuery';
 import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
 import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
@@ -8,7 +9,6 @@ import { fetchWeather, type WeatherData } from '../../services/APIs/weather/weat
 import { fetchCurrency, type CurrencyData } from '../../services/APIs/currency/currencyService';
 import { fetchNews, type TwinglyDocument, type FetchNewsParams } from '../../services/APIs/news/newsService';
 import { flagEmojiFromCode } from '../../utils/countryFlags';
-import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import '../../assets/css/RiskMonitor.css';
 
 // ─── Destination catalogue ────────────────────────────────────────────────────
@@ -125,6 +125,7 @@ function ScoreGauge({ score, color }: { score: number; color: string }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function RiskMonitor() {
+  const isMobile = useMediaQuery('(max-width: 899px)');
   const [query,    setQuery]    = useState('');
   const [dropOpen, setDropOpen] = useState(false);
   const [selected, setSelected] = useState<string | null>(null);
@@ -199,9 +200,25 @@ export default function RiskMonitor() {
   const statsHigh     = DEST_ENTRIES.filter(([, d]) => d.baseRisk > 70).length;
   const filteredDests = DEST_ENTRIES.filter(([, d]) => regionFilter === 'All' || d.region === regionFilter);
 
+  if (isMobile) {
+    return (
+      <Box sx={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        minHeight: '100dvh', px: 3, textAlign: 'center', gap: 2.5,
+      }}>
+        <Typography sx={{ fontSize: '3rem' }}>🖥️</Typography>
+        <Typography sx={{ fontFamily: "'Playfair Display', serif", fontWeight: 800, fontSize: '1.4rem' }}>
+          Best on Desktop
+        </Typography>
+        <Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.9rem', color: 'rgba(0,0,0,0.55)', maxWidth: 300, lineHeight: 1.7 }}>
+          The Risk Monitor is designed for larger screens. Please open Tripician on your computer to access this feature.
+        </Typography>
+      </Box>
+    );
+  }
+
   return (
     <div className="rm-page">
-      <TopBar />
 
       {/* ── HERO ────────────────────────────────────── */}
       <div className="rm-hero" ref={heroRef}>

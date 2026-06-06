@@ -5,7 +5,6 @@ import {
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { apiServices } from '../../services/APIs/apiServices';
 import SearchIcon from '@mui/icons-material/Search';
@@ -53,8 +52,6 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
   const [photo, setPhoto] = React.useState<string | null>(trip.photoUrl || null);
-  const [liked, setLiked] = React.useState(false);
-  const [likeCount, setLikeCount] = React.useState(typeof trip.likes === 'number' ? trip.likes : 0);
   const [imgFailed, setImgFailed] = React.useState(false);
 
   React.useEffect(() => {
@@ -68,9 +65,15 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
   const vibe = VIBE_META[trip.vibe?.toLowerCase?.()] || null;
   const nights = typeof trip.totalNights === 'number' ? trip.totalNights
     : typeof trip.targetNights === 'number' ? trip.targetNights : null;
-  const ownerName = trip.ownerName || trip.OwnerName || (trip.owner ? `${trip.owner.fname || ''} ${trip.owner.lname || ''}`.trim() : null) || 'Explorer';
-  const ownerAvatar = trip.ownerAvatar || trip.OwnerAvatar || trip.owner?.avatar || trip.owner?.profilepicture || null;
+  // Backend returns owner as { name, profilePicture } (TripUserDto)
+  const ownerName = trip.owner?.name?.trim() || trip.ownerName || trip.OwnerName || 'Explorer';
+  const ownerAvatar = trip.owner?.profilePicture || trip.ownerAvatar || trip.OwnerAvatar || null;
   const countries: string[] = Array.isArray(trip.countries) ? trip.countries : [];
+  const [liked, setLiked] = React.useState(false);
+  const [likeCount, setLikeCount] = React.useState(
+    typeof trip.likesCount === 'number' ? trip.likesCount :
+    typeof trip.likes === 'number' ? trip.likes : 0
+  );
 
   return (
     <motion.div
@@ -125,17 +128,19 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
               {vibe.icon}{vibe.label}
             </Box>
           )}
-          {/* nights */}
+          {/* nights badge */}
           {nights !== null && (
             <Box sx={{
               position: 'absolute', top: 12, right: 12,
               display: 'flex', alignItems: 'center', gap: .4,
-              px: 1.1, py: .35, borderRadius: '50px',
-              background: 'rgba(0,0,0,0.55)', backdropFilter: 'blur(8px)',
-              color: '#fff', fontSize: 11, fontWeight: 700,
-              border: '1px solid rgba(255,255,255,0.15)',
+              px: 1.25, py: .4, borderRadius: '50px',
+              background: 'rgba(0,0,0,0.58)', backdropFilter: 'blur(10px)',
+              color: '#fff', fontSize: 11.5, fontWeight: 700,
+              border: '1px solid rgba(255,255,255,0.18)',
+              letterSpacing: '0.01em',
             }}>
-              <NightsStayRoundedIcon sx={{ fontSize: 12 }} />{nights}n
+              <NightsStayRoundedIcon sx={{ fontSize: 12.5 }} />
+              {nights} {nights === 1 ? 'night' : 'nights'}
             </Box>
           )}
           {/* title over image */}
@@ -173,6 +178,27 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
                   +{countries.length - 3}
                 </Box>
               )}
+            </Box>
+          )}
+
+          {/* Trip length stat */}
+          {nights !== null && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75 }}>
+              <Box sx={{
+                display: 'flex', alignItems: 'center', gap: 0.5,
+                px: 1.25, py: 0.4, borderRadius: '8px',
+                background: isDark ? 'rgba(255,56,92,0.12)' : 'rgba(255,56,92,0.07)',
+                border: '1px solid rgba(255,56,92,0.18)',
+              }}>
+                <NightsStayRoundedIcon sx={{ fontSize: 13, color: '#FF385C' }} />
+                <Typography sx={{ fontSize: 12, fontWeight: 700, color: '#FF385C', lineHeight: 1 }}>
+                  {nights} {nights === 1 ? 'night' : 'nights'}
+                </Typography>
+                <Box sx={{ width: '1px', height: 12, background: 'rgba(255,56,92,0.25)', mx: 0.25 }} />
+                <Typography sx={{ fontSize: 12, fontWeight: 600, color: isDark ? 'rgba(255,255,255,0.55)' : 'rgba(0,0,0,0.45)', lineHeight: 1 }}>
+                  {nights + 1} {nights + 1 === 1 ? 'day' : 'days'} plan
+                </Typography>
+              </Box>
             </Box>
           )}
 
@@ -326,7 +352,6 @@ const Community: React.FC = () => {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: bg, display: 'flex', flexDirection: 'column' }}>
-      <TopBar />
 
       {/* ── Hero ─────────────────────────────────────────────────────────────── */}
       <Box sx={{

@@ -1,4 +1,4 @@
-﻿import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Box,
   Button,
@@ -24,8 +24,6 @@ import {
   useTheme
 } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
-import ChatIcon from '@mui/icons-material/Chat';
-import CloseIcon from '@mui/icons-material/Close';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import InfoOutlinedIcon from '@mui/icons-material/InfoOutlined';
 import NewReleasesOutlinedIcon from '@mui/icons-material/NewReleasesOutlined';
@@ -37,11 +35,13 @@ import SecurityRoundedIcon from '@mui/icons-material/SecurityRounded';
 import SyncRoundedIcon from '@mui/icons-material/SyncRounded';
 import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
 import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
-import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
-import { KalaGeometric } from '../DecorativeComponents/KalaDecor';
 import { useNavia } from '../../navia/useNavia';
 import NaviaMessage from '../../navia/NaviaMessage';
 import { useAuthToken } from '../../hooks/useAuth0Token';
+import { useSelector } from 'react-redux';
+import type { RootState } from '../../store';
+import { useIsMobile } from '../../hooks/useIsMobile';
+import { apiServices } from '../../services/APIs/apiServices';
 
 interface ChatAssistantProps {
   tripId?: string;
@@ -50,8 +50,15 @@ interface ChatAssistantProps {
 const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
   const theme = useTheme();
   const isLight = theme.palette.mode === 'light';
+  const isMobile = useIsMobile();
   const auth = useAuthToken();
+  const { profile } = useSelector((state: RootState) => state.user);
   const { messages, isStreaming, sendMessage } = useNavia(tripId ?? '', auth.token);
+
+  const greetingName = profile?.fname?.trim();
+  const emptyGreeting = tripId
+    ? `Hi${greetingName ? ` ${greetingName}` : ''}! I'm Navia — your AI co-planner for this trip. Ask me about destinations, pacing, packing, or what to do next.`
+    : `Hi${greetingName ? ` ${greetingName}` : ''}! I'm Navia, your AI travel companion. I can see your trips and help you plan your next adventure.`;
 
   const [open, setOpen] = useState(false);
   const [input, setInput] = useState('');
@@ -60,18 +67,26 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
   const [updatesDialogOpen, setUpdatesDialogOpen] = useState(false);
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
   const [feedback, setFeedback] = useState('');
+  const [feedbackSending, setFeedbackSending] = useState(false);
+  const [feedbackDone, setFeedbackDone] = useState(false);
+  const [feedbackError, setFeedbackError] = useState('');
+  const [logoAnimating, setLogoAnimating] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
 
-  const appVersion = import.meta.env.VITE_APP_VERSION || '1.0.0';
+  const appVersion = import.meta.env.VITE_APP_VERSION || '2.0.0';
   const appEnv = import.meta.env.VITE_ENV || 'local';
+  const naviaVersion = '0.0.1';
+
+  const NAVIA_LOGO =  import.meta.env.VITE_NAVIA_LOGO as string | undefined;
+  const [attentionAnim, setAttentionAnim] = useState(false);
 
   const updateItems = [
-    { icon: RocketLaunchRoundedIcon, text: 'Trip planner v1.0 — day-by-day itinerary builder with stays, spots & foods.' },
-    { icon: SecurityRoundedIcon,     text: 'Published trips now visible on the Home feed & Community Adventures.' },
-    { icon: SyncRoundedIcon,         text: 'Travel Risk Monitor with live news, weather & currency intel (Beta).' },
-    { icon: RocketLaunchRoundedIcon, text: 'Navia AI assistant — ask anything about your trip inside the planner.' },
-    { icon: SecurityRoundedIcon,     text: 'Trip sharing with shareable links and member role management.' },
-    { icon: SyncRoundedIcon,         text: 'Profile picture upload, preferences settings & theme toggle.' },
+    { icon: RocketLaunchRoundedIcon, text: 'Tripician 2.0 — New trip view & community feed.' },
+    { icon: SecurityRoundedIcon,     text: 'Publish validation — title, 10-word description & all days planned before going live.' },
+    { icon: SyncRoundedIcon,         text: 'Community Adventures — browse real trips with days plan, nights & live reactions.' },
+    { icon: RocketLaunchRoundedIcon, text: 'Navia AI v0.0.1 — smarter trip co-planner inside every itinerary.' },
+    { icon: SecurityRoundedIcon,     text: 'Premium trip view sidebar — date range, traveller profiles & live reaction toolbar.' },
+    { icon: SyncRoundedIcon,         text: 'Profile picture upload, preferences settings & dark / light theme toggle.' },
   ];
 
   const handleSend = () => {
@@ -85,16 +100,30 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages, open]);
 
+  useEffect(() => {
+    const interval = setInterval(() => {
+      if (!open) {
+        setAttentionAnim(true);
+
+        setTimeout(() => {
+          setAttentionAnim(false);
+        }, 2500);
+      }
+    }, 45000);
+
+    return () => clearInterval(interval);
+  }, [open]);
+
   return (
     <>
       {/* Quick tools pill */}
       <Box
         sx={{
           position: 'fixed',
-          right: 32,
-          bottom: 100,
+          right: 50,
+          bottom: { xs: 168, lg: 120 },
           zIndex: 1700,
-          display: 'flex',
+          display: { xs: 'none', md: 'flex' },
           flexDirection: 'column',
           alignItems: 'flex-end',
         }}
@@ -153,11 +182,75 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
       {/* Floating FAB */}
       <Zoom in timeout={300}>
         <Fab
-          color="primary"
-          onClick={() => setOpen(o => !o)}
-          sx={{ position: 'fixed', right: 24, bottom: 24, zIndex: 1700, boxShadow: 4, '&:hover': { boxShadow: 8 } }}
+          disableRipple
+          onClick={() => {
+            setLogoAnimating(true);
+            setOpen(o => !o);
+
+            setTimeout(() => {
+              setLogoAnimating(false);
+            }, 500);
+          }}
+          sx={{
+            position: 'fixed',
+            right: 24,
+            bottom: { xs: 88, lg: 24 },
+            zIndex: 1700,
+
+            width: 90,
+            height: 90,
+            minHeight: 'unset',
+
+            background: 'transparent',
+            boxShadow: 'none',
+
+            '&:hover': {
+              background: 'transparent',
+              boxShadow: 'none',
+            },
+
+            '&::before': {
+              content: '""',
+              position: 'absolute',
+              inset: 0,
+              opacity: 0,
+              transition: 'all .25s ease',
+            },
+
+          }}
         >
-          <ChatIcon />
+          <img
+            src={NAVIA_LOGO}
+            alt="Navia"
+            draggable={false}
+            style={{
+              width: 80,
+              height: 80,
+              objectFit: 'contain',
+              display: 'block',
+              userSelect: 'none',
+
+              transform:
+                logoAnimating
+                  ? 'rotate(90deg) scale(1.06)'
+                  : attentionAnim
+                    ? 'scale(1.12)'
+                    : 'scale(1)',
+
+              filter:
+                attentionAnim
+                  ? `
+                    drop-shadow(0 0 8px rgba(255,56,92,.35))
+                    drop-shadow(0 0 18px rgba(255,56,92,.25))
+                  `
+                  : 'none',
+
+              transition:
+                attentionAnim
+                  ? 'transform 1.2s ease-in-out, filter .6s ease'
+                  : 'transform .45s cubic-bezier(.22,1,.36,1)',
+            }}
+          />
         </Fab>
       </Zoom>
 
@@ -169,13 +262,20 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
             transition={{ type: 'spring', stiffness: 350, damping: 28 }}
-            style={{ position: 'fixed', right: 24, bottom: 100, zIndex: 1700 }}
+            style={{
+              position: 'fixed',
+              right: isMobile ? 12 : 40,
+              left: isMobile ? 12 : 'auto',
+              bottom: isMobile ? 100 : 110,
+              zIndex: 1700,
+            }}
           >
             <Paper
               elevation={0}
               sx={{
-                width: { xs: '88vw', sm: 370 },
-                height: 520,
+                width: isMobile ? '100%' : { xs: '88vw', sm: 370 },
+                height: isMobile ? 'min(72vh, 520px)' : 520,
+                maxHeight: isMobile ? '72vh' : 520,
                 borderRadius: '20px',
                 display: 'flex',
                 flexDirection: 'column',
@@ -186,43 +286,6 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
                   : '0 24px 64px rgba(0,0,0,0.6)',
               }}
             >
-              {/* Header */}
-              <Box sx={{
-                background: 'linear-gradient(135deg, #FF385C 0%, #C2185B 100%)',
-                px: 2, py: 1.5,
-                display: 'flex', alignItems: 'center', gap: 1.5,
-                flexShrink: 0,
-              }}>
-                <Box sx={{
-                  width: 38, height: 38, borderRadius: '12px',
-                  background: 'rgba(255,255,255,0.2)',
-                  backdropFilter: 'blur(8px)',
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  border: '1.5px solid rgba(255,255,255,0.35)',
-                  flexShrink: 0,
-                }}>
-                  <AutoAwesomeRoundedIcon sx={{ fontSize: 18, color: '#fff' }} />
-                </Box>
-                <Box sx={{ flex: 1 }}>
-                  <Typography sx={{ fontSize: '0.95rem', fontWeight: 800, color: '#fff', letterSpacing: '-0.01em', lineHeight: 1.2 }}>
-                    Navia
-                  </Typography>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.2 }}>
-                    <Box sx={{ width: 6, height: 6, borderRadius: '50%', background: '#A8FFB0', boxShadow: '0 0 6px #A8FFB0' }} />
-                    <Typography sx={{ fontSize: '0.68rem', color: 'rgba(255,255,255,0.82)', fontWeight: 500 }}>
-                      AI Travel Companion
-                    </Typography>
-                  </Box>
-                </Box>
-                <IconButton
-                  size="small"
-                  onClick={() => setOpen(false)}
-                  sx={{ color: 'rgba(255,255,255,0.8)', '&:hover': { color: '#fff', background: 'rgba(255,255,255,0.15)' } }}
-                >
-                  <CloseIcon fontSize="small" />
-                </IconButton>
-              </Box>
-
               {/* Messages */}
               <Box sx={{
                 flexGrow: 1,
@@ -237,21 +300,25 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
                 '&::-webkit-scrollbar-track': { background: 'transparent' },
                 '&::-webkit-scrollbar-thumb': { borderRadius: 4, background: 'rgba(255,56,92,0.25)' },
               }}>
-                <KalaGeometric
-                  size={300}
-                  color="#FF385C"
-                  opacity={isLight ? 0.04 : 0.06}
-                  style={{ position: 'absolute', bottom: 200, right: -60, pointerEvents: 'none', zIndex: 0 }}
-                />
                 <Box sx={{ position: 'relative', zIndex: 1, p: 2, display: 'flex', flexDirection: 'column', gap: 1.5 }}>
                   {messages.length === 0 && (
                     <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 0.8 }}>
                       <Box sx={{
-                        width: 26, height: 26, borderRadius: '8px', flexShrink: 0,
-                        background: 'linear-gradient(135deg, #FF385C, #C2185B)',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.3,
+                        width: 38, height: 38,
+                        backdropFilter: 'blur(8px)',
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        flexShrink: 0,
                       }}>
-                        <AutoAwesomeRoundedIcon sx={{ fontSize: 13, color: '#fff' }} />
+                        <Box
+                          component="img"
+                          src="https://res.cloudinary.com/ddt3rcyhv/image/upload/v1780497710/ChatGPT_Image_Jun_3_2026_07_53_49_PM_ubsb8c.png"
+                          alt="Navia"
+                          sx={{
+                            width: 50,
+                            height: 50,
+                            display: 'block',
+                          }}
+                        />
                       </Box>
                       <Box sx={{
                         px: 1.5, py: 1, maxWidth: '78%',
@@ -262,7 +329,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
                         fontSize: '0.82rem', lineHeight: 1.5,
                         color: isLight ? '#1a1a1a' : '#f0f0f0',
                       }}>
-                        Hi! I'm Navia ✨ Your AI travel companion. How can I help you plan your next adventure?
+                        {emptyGreeting}
                       </Box>
                     </Box>
                   )}
@@ -333,8 +400,9 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
         <DialogContent dividers sx={{ backgroundColor: theme.palette.mode === 'light' ? 'grey.50' : 'background.default' }}>
           <Stack spacing={2}>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
-              <Chip icon={<VerifiedRoundedIcon />} label={`Version ${appVersion}`} color="primary" />
-              <Chip icon={<PublicRoundedIcon />} label={`Environment ${appEnv}`} variant="outlined" color="primary" />
+              <Chip icon={<VerifiedRoundedIcon />} label={`Tripician v${appVersion}`} color="primary" />
+              <Chip icon={<PublicRoundedIcon />} label={`Navia AI v${naviaVersion}`} color="secondary" />
+              <Chip icon={<PublicRoundedIcon />} label={`Env: ${appEnv}`} variant="outlined" color="primary" />
             </Stack>
             <Box sx={{
               p: 2, borderRadius: 2,
@@ -413,13 +481,36 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
               minRows={4}
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
+              disabled={feedbackSending || feedbackDone}
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, backgroundColor: theme.palette.mode === 'light' ? 'common.white' : 'background.paper' } }}
             />
+            {feedbackDone && <Typography variant="body2" color="success.main" fontWeight={600}>✓ Feedback sent — thank you!</Typography>}
+            {feedbackError && <Typography variant="body2" color="error">{feedbackError}</Typography>}
           </Stack>
         </DialogContent>
         <DialogActions>
-          <Button onClick={() => setFeedbackDialogOpen(false)}>Cancel</Button>
-          <Button variant="contained" onClick={() => { setFeedback(''); setFeedbackDialogOpen(false); }}>Submit</Button>
+          <Button onClick={() => { setFeedbackDialogOpen(false); setFeedback(''); setFeedbackDone(false); setFeedbackError(''); }}>Cancel</Button>
+          <Button
+            variant="contained"
+            disabled={feedbackSending || !feedback.trim()}
+            onClick={async () => {
+              if (!auth.token || !feedback.trim()) return;
+              setFeedbackSending(true);
+              setFeedbackError('');
+              try {
+                await apiServices.sendFeedback(auth.token, feedback.trim());
+                setFeedback('');
+                setFeedbackDone(true);
+                setTimeout(() => { setFeedbackDialogOpen(false); setFeedbackDone(false); }, 1800);
+              } catch {
+                setFeedbackError('Failed to send. Please try again.');
+              } finally {
+                setFeedbackSending(false);
+              }
+            }}
+          >
+            {feedbackSending ? 'Sending…' : feedbackDone ? 'Sent ✓' : 'Submit'}
+          </Button>
         </DialogActions>
       </Dialog>
     </>

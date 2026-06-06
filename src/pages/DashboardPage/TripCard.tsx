@@ -114,7 +114,6 @@ const TripCard: React.FC<TripCardProps> = ({
           <div className="tc-image-placeholder" />
         )}
         <div className="tc-overlay" />
-        <div className="tc-blur-layer" />
       </div>
 
       {/* Progress ring — top left */}
