@@ -1,9 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { useSelector } from 'react-redux';
-import type { RootState } from '../../store';
 import TripCard from './TripCard';
 import '../../assets/css/Dashboard.css';
-import { Tabs, Tab, Box, Typography, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, Snackbar } from '@mui/material';
+import { Tabs, Tab, Box, Typography, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, Snackbar, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
@@ -12,6 +10,10 @@ import gsap from 'gsap';
 import TripCreationModal from '../../components/CreateTripComponents/TripCreationModal';
 import TripShareModal from '../../components/TripShareModal';
 import PageLoader from '../../components/CommonComponents/PageLoader';
+import LogoutIcon from '@mui/icons-material/Logout';
+import { clearUser } from '../../store/userSlice';
+import { useSelector, useDispatch } from 'react-redux';
+import type { RootState, AppDispatch } from '../../store';
 
 const Dashboard: React.FC = () => {
   const formatRelativeTime = (dateStr?: string) => {
@@ -52,9 +54,25 @@ const Dashboard: React.FC = () => {
   const cardsRef  = useRef<HTMLDivElement>(null);
   const bannerRef = useRef<HTMLDivElement>(null);
   const [createTripOpen, setCreateTripOpen] = useState(false);
-
+  
   useSelector((state: RootState) => state.user);
   const userProfile = useSelector((state: RootState) => state.user.profile);
+
+  const dispatch = useDispatch<AppDispatch>();
+  
+
+  const handleLogout = () => {
+      try {
+        // Remove stored tokens (adjust keys as needed)
+        localStorage.removeItem('accessToken');
+        localStorage.removeItem('refreshToken');
+        // Clear redux user state
+        dispatch(clearUser());
+        navigate('/signin');
+      } catch (e) {
+        console.error('Logout error', e);
+      }
+    };
 
   // Maps a backend TripResponseDto into the card view-model used across all dashboard tabs.
   const mapTripVM = (t: any) => ({
@@ -536,7 +554,23 @@ const Dashboard: React.FC = () => {
               </Box>
             )}
             {error && !loading && (
-              <Alert severity="error" sx={{ mb:2 }}>{error}</Alert>
+              
+              <Box sx={{ px: 4, pb: 1.5 }}>
+                <Alert severity="error" sx={{ mb:2 }}>
+                <ListItemButton
+                  onClick={handleLogout}
+                  sx={{
+                    px: 1.5, py: 0.9, borderRadius: '10px',
+                    color: '#ff002f',
+                    '&:hover': { bgcolor: 'rgba(255,56,92,0.07)' },
+                    transition: 'all 0.15s',
+                  }}
+                >
+                  {error}
+                  <button style={{ borderRadius: '50px', backgroundColor: '#FF385C', color: '#ffffff', fontSize: 13, fontWeight: 600, fontFamily:"'Inter',sans-serif" }}>Logout</button>
+                </ListItemButton>
+                </Alert> 
+              </Box>
             )}
             {!loading && !error && !(tabValue === 4 && savedLoading) && plans.length === 0 && (
               <Box

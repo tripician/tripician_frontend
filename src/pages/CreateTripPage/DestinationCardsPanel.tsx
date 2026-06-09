@@ -578,6 +578,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                             onPlanDestination={readOnly ? undefined : handlePlanDestination}
                             alertCount={alertsMap[d.id]?.alerts.length ?? 0}
                             alerts={alertsMap[d.id]?.alerts ?? []}
+                            readonly={readOnly}
                           />
                           </Box>
                         </Box>

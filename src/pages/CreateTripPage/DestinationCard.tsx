@@ -32,6 +32,7 @@ export interface DestinationCardProps {
   disabled?: boolean;
   canMoveUp?: boolean;
   canMoveDown?: boolean;
+  readonly?: boolean;
   onRename?: (id: string, name: string) => void;
   /** Day plan headline (e.g. "Coffee & explore the market") — separate from Google place name */
   onChangeTitle?: (id: string, title: string) => void;
@@ -60,6 +61,7 @@ export interface DestinationCardProps {
   onRequestNaviaTip?: (name: string) => void;
   /** Fills Discover + Journal for this stop via plan-destination API (does not touch Stay). */
   onPlanDestination?: (destinationId: string) => void;
+  
 }
 
 export interface DestinationCardChecklist {
@@ -333,7 +335,7 @@ const DragDots = () => (
 );
 
 const DestinationCard: React.FC<DestinationCardProps> = ({
-  destination, disabled, onRename, onChangeTitle, onRemove, onChangeNotes,
+  destination, disabled, readonly, onRename, onChangeTitle, onRemove, onChangeNotes,
   onOpenDiscover, onOpenStay, onChangeNights,
   alertCount = 0, alerts = [], isDragging = false, dragHandleProps, onRequestNaviaTip, onPlanDestination,
 }) => {
@@ -543,7 +545,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
             <Box sx={(t) => ({ display: { xs: 'flex', sm: 'none' }, alignItems: 'center', mt: .35, height: 18, fontSize: 9.5, fontWeight: 600, color: t.palette.text.secondary, letterSpacing: '-0.1px', whiteSpace: 'nowrap' })}>
               {dateFmt(startDate)} → {dateFmt(endDate)}
             </Box>
-            {!editingTitle && onRequestNaviaTip && (
+            {!editingTitle && onRequestNaviaTip && !readonly &&(
               <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: .4, flexWrap: 'nowrap', overflow: 'hidden', mt: .45 }}>
                 {['Best time?', 'Top spots?', 'Pack?'].map(prompt => (
                   <Box
@@ -567,18 +569,19 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
 
           {/* Nights +/- */}
           <Box onClick={e => e.stopPropagation()} sx={{ display: 'flex', alignItems: 'center', bgcolor: 'rgba(255,56,92,0.07)', border: '1px solid rgba(255,56,92,0.2)', borderRadius: '20px', px: .5, height: 22, gap: .1, flexShrink: 0, mt: { xs: .2, sm: 0 } }}>
-            <Box component='button' type='button'
+            {!readonly ? (<Box component='button' type='button'
               onClick={(e: any) => { e.stopPropagation(); onChangeNights?.(id, -1); }} disabled={nights <= 1}
               style={{ border: 'none', background: 'transparent', cursor: nights > 1 ? 'pointer' : 'default', padding: '0 3px', fontSize: 13, fontWeight: 900, color: '#FF385C', opacity: nights > 1 ? 1 : .3, lineHeight: 1 }}>
               -
-            </Box>
-            <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: '#FF385C', lineHeight: 1, px: .15, letterSpacing: '-0.3px' }}>{nights}n</Typography>
-            <Box component='button' type='button'
+            </Box>) : ""}
+            <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: '#FF385C', lineHeight: 1, px: .15, letterSpacing: '-0.3px' }}>{nights} nights</Typography>
+            {!readonly ? (<Box component='button' type='button'
               onClick={(e: any) => { e.stopPropagation(); onChangeNights?.(id, +1); }}
               style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '0 3px', fontSize: 13, fontWeight: 900, color: '#FF385C', lineHeight: 1 }}>
               +
-            </Box>
+            </Box>) : ""}
           </Box>
+
 
           {/* Date range */}
           <Box sx={(t) => ({ height: 22, px: .75, borderRadius: '20px', border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`, fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, color: t.palette.text.secondary, display: { xs: 'none', sm: 'flex' }, alignItems: 'center', letterSpacing: '-0.2px' })}>
