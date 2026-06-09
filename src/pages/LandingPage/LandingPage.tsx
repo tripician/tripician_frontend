@@ -382,7 +382,7 @@ export default function LandingPage() {
   }, [isAuthenticated, isLoading, navigate]);
   const logoFullWhiteUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_2_URL as string | undefined;
 
-  const [onlineCount, setOnlineCount] = useState(312);
+  const [onlineCount, setOnlineCount] = useState(50);
   const [showcaseImages, setShowcaseImages] = useState<Record<number, string>>({});
   const deferredInstallPrompt = useRef<(Event & { prompt: () => Promise<void> }) | null>(null);
   const [showInstallBtn, setShowInstallBtn] = useState(false);

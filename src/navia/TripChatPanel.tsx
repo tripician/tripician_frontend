@@ -4,14 +4,14 @@
  * Premium real-time trip chat panel.
  *
  * Features:
- *  � All trip members can send messages
- *  � Type @navia to summon the AI agent � the backend handles routing,
+ *   All trip members can send messages
+ *   Type @navia to summon the AI agent  the backend handles routing,
  *    Navia's reply arrives back through SignalR as a Proposal or Navia message
- *  � Proposal bubbles surface the AI suggestion with structured Accept / Reject actions
- *  � System messages show structured per-change results (destination added, dates updated�)
- *  � Auto-scroll + "New message" jump button
- *  � Connection status indicator
- *  � @navia mention hint in the input
+ *   Proposal bubbles surface the AI suggestion with structured Accept / Reject actions
+ *   System messages show structured per-change results (destination added, dates updated)
+ *   Auto-scroll + "New message" jump button
+ *   Connection status indicator
+ *   @navia mention hint in the input
  */
 
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
@@ -73,7 +73,7 @@ const EVENT_LABELS: Record<string, { icon: string; label: (r: any) => string }> 
   destination_already_present: { icon: '??', label: r => `${r.destination} already in trip` },
   destination_removed:       { icon: '???', label: r => `${r.destination} removed from trip` },
   destination_not_found:     { icon: '???', label: r => `${r.destination} not found in trip` },
-  dates_updated:             { icon: '??', label: r => `Trip dates updated${r.startDate ? ` � start ${r.startDate}` : ''}${r.endDate ? ` � end ${r.endDate}` : ''}` },
+  dates_updated:             { icon: '??', label: r => `Trip dates updated${r.startDate ? `  start ${r.startDate}` : ''}${r.endDate ? `  end ${r.endDate}` : ''}` },
   dates_update_failed:       { icon: '??', label: () => 'Date update failed' },
   place_noted:               { icon: '???', label: r => `Place "${r.place}" noted` },
   member_invite_noted:       { icon: '??', label: r => `Invite for "${r.memberName}" noted` },
@@ -392,7 +392,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
   const [mentionIndex, setMentionIndex] = useState(0);
   const mentionStartRef = useRef<number>(-1);
 
-  // Proposal id lookup � for now we read the proposal id from a local cache
+  // Proposal id lookup  for now we read the proposal id from a local cache
   // keyed by chatMessageId. The backend should ideally embed proposalId in the
   // metadata; for now we extract it from a sibling field or use a heuristic.
   // The TripProposalController exposes GET /api/proposals/by-chat/{chatMessageId}
@@ -598,7 +598,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
 
   // ??? Status dot ?????????????????????????????????????????????????????????????
   const statusColor = status === 'connected' ? '#22c55e' : status === 'connecting' ? '#f59e0b' : '#ef4444';
-  const statusLabel = status === 'connected' ? 'Live' : status === 'connecting' ? 'Connecting�' : 'Reconnecting�';
+  const statusLabel = status === 'connected' ? 'Live' : status === 'connecting' ? 'Connecting' : 'Reconnecting';
 
   // ??? Render ??????????????????????????????????????????????????????????????????
   return (

@@ -370,7 +370,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 									<path d='M36 20 L22 22 L24 20 L22 18 Z' fill='currentColor'/>
 								</Box>
 								<Typography sx={{ fontSize: 12, color: isLight ? 'rgba(0,0,0,0.40)' : 'rgba(255,255,255,0.30)', textAlign: 'center', maxWidth: 200, lineHeight: 1.6, fontFamily: 'inherit' }}>
-									Your trip story starts here. Ask Navia anything � routes, hidden gems, packing tips, local culture.
+									Your trip story starts here. Ask Navia anything  routes, hidden gems, packing tips, local culture.
 								</Typography>
 							</Box>
 						)}
@@ -437,7 +437,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 								value={input}
 								onChange={e => setInput(e.target.value)}
 								onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-								placeholder='Ask Navia anything�'
+								placeholder='Ask Navia anything'
 								multiline
 								maxRows={4}
 								sx={{
@@ -1053,14 +1053,14 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const [title, setTitle] = React.useState<string>(normalizedInitial?.meta.name || 'Untitled Trip');
 	const [tripDescription, setTripDescription] = React.useState<string>(normalizedInitial?.meta.description || '');
 	const [vibe, setVibe] = React.useState<string | null>(normalizedInitial?.meta.vibe ?? null);
-	// editingTitle removed � title editing moved to Settings dialog
+	// editingTitle removed  title editing moved to Settings dialog
 	// Notes field (plain text, auto-grow) seeded from normalized initial trip meta if present
 	const [importantNotes, setImportantNotes] = React.useState<string>(
 		(normalizedInitial?.meta.importantNotes && typeof normalizedInitial.meta.importantNotes === 'string')
 			? normalizedInitial.meta.importantNotes
 			: ''
 	);
-	// Banner image (trip card photo) � store as URL (existing backend-provided or newly selected object URL / base64)
+	// Banner image (trip card photo)  store as URL (existing backend-provided or newly selected object URL / base64)
 	const [bannerUrl, setBannerUrl] = React.useState<string>(() => {
 		try {
 			// Prefer normalizedInitial (already extracted photoUrl), fall back to raw
@@ -1152,7 +1152,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	}, [isDraft, derivePrivacyFromDraft]);
 
 
-	// Section + tab UI state � persisted in ?tab= query param so refresh keeps the same panel
+	// Section + tab UI state  persisted in ?tab= query param so refresh keeps the same panel
 	const VALID_SECTIONS = ['plan', 'news', 'docs', 'packing'] as const;
 	const [searchParams, setSearchParams] = useSearchParams();
 	const rawTab = searchParams.get('tab') as typeof VALID_SECTIONS[number] | null;
@@ -1836,7 +1836,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			});
 		}
 		const routeDistanceKm = legs.reduce((a,l)=> l.distanceKm!=null? a + l.distanceKm : a, 0);
-		// Itinerary (extended fields) � omit empty large text fields
+		// Itinerary (extended fields)  omit empty large text fields
 		const itinerary = planner.destinations.map(d=> {
 			const notesVal: unknown = (d as any).notes;
 			const notesClean = (typeof notesVal === 'string' && notesVal.trim().length>0) ? notesVal.trim() : null;
@@ -1846,7 +1846,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			const stayRef = typeof stayRaw.reference === 'string' && stayRaw.reference.trim() ? stayRaw.reference.trim() : undefined;
 			const stayNotes = typeof stayRaw.notes === 'string' && stayRaw.notes.trim() ? stayRaw.notes.trim() : undefined;
 			const stay = (stayName||stayRef||stayNotes) ? { name: stayName ?? null, reference: stayRef ?? null, notes: stayNotes ?? null } : null;
-			// Multi stays (new model) � always send array, never undefined
+			// Multi stays (new model)  always send array, never undefined
 			const multiStays = Array.isArray((d as any).stays)
 				? (d as any).stays.filter((s:any)=> (s.name && s.name.trim()) || (s.reference && s.reference.trim())).map((s:any)=> ({ id:s.id, name:s.name?.trim() ?? null, reference:s.reference?.trim() ?? null }))
 				: [];
@@ -2312,7 +2312,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						</Box>
 					) : (
 					<Box sx={(theme)=>({ flex:1, minWidth:0, minHeight:0, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative',
-						/* Premium board background � dot grid pattern */
+						/* Premium board background  dot grid pattern */
 						backgroundColor: theme.palette.mode==='light' ? '#f9fafb' : '#111315',
 						backgroundImage: theme.palette.mode==='light'
 							? 'radial-gradient(circle, rgba(0,0,0,0.10) 1px, transparent 1px)'
@@ -2357,7 +2357,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 							</Box>
 						</Tooltip>
 							{!readOnly && effectiveCanEdit && (
-							<Tooltip arrow placement='bottom' title={!isDraft ? 'Your trip is live � visible to everyone' : saving ? 'Publishing...' : 'Make your trip public'}>
+							<Tooltip arrow placement='bottom' title={!isDraft ? 'Your trip is live visible to everyone' : saving ? 'Publishing...' : 'Make your trip public'}>
 								<span>
 									<Button
 										size='small'
@@ -2485,7 +2485,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 								{!isExternalNonOwner && (
 									<Tooltip
 										placement='right' arrow
-										title={geocodedCount < 3 ? 'Add at least 3 destinations with coordinates to optimize' : optimizingRoute ? 'Optimizing�' : 'Optimize route order'}
+										title={geocodedCount < 3 ? 'Add at least 3 destinations with coordinates to optimize' : optimizingRoute ? 'Optimizing' : 'Optimize route order'}
 									>
 										<span>
 											<IconButton
@@ -2511,7 +2511,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 										</span>
 									</Tooltip>
 								)}
-							{/* Settings � mobile only (desktop uses sidebar) */}
+							{/* Settings  mobile only (desktop uses sidebar) */}
 							{(!readOnly && effectiveCanEdit) && (
 								<Tooltip title='Trip settings' placement='right' arrow>
 									<IconButton
@@ -2718,7 +2718,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						{visaErrors.length>0 && (
 							<Box sx={{ mb:2, border:'1px solid', borderColor:'error.light', background:(t)=> t.palette.mode==='dark'? '#2a1818':'#fff5f5', p:1, borderRadius:1.5 }}>
 								<Typography variant='caption' sx={{ fontWeight:700, color:'error.main', display:'flex', gap:.5 }}>Upload issues:</Typography>
-								{visaErrors.map((er,i)=>(<Typography key={i} variant='caption' sx={{ display:'block', color:'error.main' }}>� {er}</Typography>))}
+								{visaErrors.map((er,i)=>(<Typography key={i} variant='caption' sx={{ display:'block', color:'error.main' }}> {er}</Typography>))}
 							</Box>
 						)}
 						{planner.visaDocs && planner.visaDocs.length>0 ? (
