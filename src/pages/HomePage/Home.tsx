@@ -2,7 +2,7 @@ import React, { useEffect, useRef, useState, useMemo } from 'react';
 import { Box, Typography, Button, Alert } from '@mui/material';
 import { KalaLotus } from '../../components/DecorativeComponents/KalaDecor';
 import PageLoader from '../../components/CommonComponents/PageLoader';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import ExploreIcon from '@mui/icons-material/TravelExplore';
 
 import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
@@ -20,6 +20,8 @@ import { fetchUnsplashImage } from '../../services/unsplashService';
 import TripCard from '../DashboardPage/TripCard';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { countryAlpha3FromCode, countryAlpha3FromName, countryNameFromCode, countryCodeFromName } from '../../utils/countryFlags';
+import type { AppDispatch } from '../../store';
+import { clearUser } from '../../store/userSlice';
 
 import gsap from 'gsap';
 import blogsData from '../../assets/blogs/blogs.json';
@@ -81,6 +83,8 @@ const TRAVEL_FACTS: { emoji: string; fact: string; source: string }[] = [
 const FEED_FILTER_LABELS = ['All', 'Wellness', 'Adventure', 'Cultural', 'Urban', 'Social'] as const;
 type FeedFilter = typeof FEED_FILTER_LABELS[number];
 
+
+
 const AlsoCheckoutAvatar: React.FC<{ member: { id: string; name: string; profilePic: string } }> = ({ member }) => {
   const [imgFailed, setImgFailed] = React.useState(false);
   const showImg = !imgFailed && !!member.profilePic;
@@ -106,6 +110,7 @@ const AlsoCheckoutAvatar: React.FC<{ member: { id: string; name: string; profile
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
 
   const pageRef      = useRef<HTMLDivElement>(null);
   const heroRef      = useRef<HTMLDivElement>(null);
@@ -122,6 +127,21 @@ const Home: React.FC = () => {
   const [userTrips, setUserTrips] = useState<any[]>([]);
   const [userTripsLoading, setUserTripsLoading] = useState(true);
   const [, setUserTripsError] = useState<string | null>(null);
+  
+
+
+  const handleLogout = () => {
+        try {
+          // Remove stored tokens (adjust keys as needed)
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          // Clear redux user state
+          dispatch(clearUser());
+          navigate('/signin');
+        } catch (e) {
+          console.error('Logout error', e);
+        }
+      };
 
   // Fetch featured destination images from Unsplash on mount
   useEffect(() => {
@@ -789,7 +809,36 @@ const Home: React.FC = () => {
               {loadingPublic && (
                 <PageLoader variant="inline" messages={['Discovering public trips…', 'Finding great adventures…', 'Loading community trips…']} />
               )}
-              {publicError && !loadingPublic && <Alert severity="error" sx={{ mb: 2 }}>{publicError}</Alert>}
+              {publicError && !loadingPublic && (
+                <Alert
+                  severity="error"
+                  sx={{
+                    mb: 6,
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                  action={
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={handleLogout}
+                      sx={{
+                        bgcolor: "#FF385C",
+                        borderRadius: "50px",
+                        textTransform: "none",
+                        fontWeight: 600,
+                        "&:hover": {
+                          bgcolor: "#e62e52",
+                        },
+                      }}
+                    >
+                      Log In
+                    </Button>
+                  }
+                >
+                  {publicError}
+                </Alert>
+              )}
               {!loadingPublic && !publicError && publicTrips.length === 0 && (
                 <Typography variant="body2" color="text.secondary">No public trips yet.</Typography>
               )}
@@ -1540,7 +1589,34 @@ const Home: React.FC = () => {
             {loadingPublic && (
               <PageLoader variant="inline" messages={['Discovering public trips…', 'Finding great adventures…', 'Loading community trips…']} />
             )}
-            {publicError && !loadingPublic && <Alert severity="error" sx={{ mb: 2 }}>{publicError}</Alert>}
+            {publicError && !loadingPublic && <Alert
+                  severity="error"
+                  sx={{
+                    mb: 6,
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                  action={
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={handleLogout}
+                      sx={{
+                        bgcolor: "#FF385C",
+                        borderRadius: "50px",
+                        textTransform: "none",
+                        fontWeight: 600,
+                        "&:hover": {
+                          bgcolor: "#e62e52",
+                        },
+                      }}
+                    >
+                      Log In
+                    </Button>
+                  }
+                >
+                  {publicError}
+                </Alert>}
             {!loadingPublic && !publicError && publicTrips.length === 0 && (
               <Typography variant="body2" color="text.secondary">No public trips yet.</Typography>
             )}

@@ -10,7 +10,6 @@ import gsap from 'gsap';
 import TripCreationModal from '../../components/CreateTripComponents/TripCreationModal';
 import TripShareModal from '../../components/TripShareModal';
 import PageLoader from '../../components/CommonComponents/PageLoader';
-import LogoutIcon from '@mui/icons-material/Logout';
 import { clearUser } from '../../store/userSlice';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
@@ -553,24 +552,35 @@ const Dashboard: React.FC = () => {
                 />
               </Box>
             )}
-            {error && !loading && (
-              
-              <Box sx={{ px: 4, pb: 1.5 }}>
-                <Alert severity="error" sx={{ mb:2 }}>
-                <ListItemButton
-                  onClick={handleLogout}
-                  sx={{
-                    px: 1.5, py: 0.9, borderRadius: '10px',
-                    color: '#ff002f',
-                    '&:hover': { bgcolor: 'rgba(255,56,92,0.07)' },
-                    transition: 'all 0.15s',
-                  }}
-                >
-                  {error}
-                  <button style={{ borderRadius: '50px', backgroundColor: '#FF385C', color: '#ffffff', fontSize: 13, fontWeight: 600, fontFamily:"'Inter',sans-serif" }}>Logout</button>
-                </ListItemButton>
-                </Alert> 
-              </Box>
+            {error && !loading && (              
+              <Alert
+                severity="error"
+                sx={{
+                  mb: 6,
+                  display: "flex",
+                  alignItems: "center",
+                }}
+                action={
+                  <Button
+                    variant="contained"
+                    size="small"
+                    onClick={handleLogout}
+                    sx={{
+                      bgcolor: "#FF385C",
+                      borderRadius: "50px",
+                      textTransform: "none",
+                      fontWeight: 600,
+                      "&:hover": {
+                        bgcolor: "#e62e52",
+                      },
+                    }}
+                  >
+                    Log In
+                  </Button>
+                }
+              >
+                {error}
+              </Alert>
             )}
             {!loading && !error && !(tabValue === 4 && savedLoading) && plans.length === 0 && (
               <Box
