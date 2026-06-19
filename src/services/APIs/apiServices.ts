@@ -502,4 +502,49 @@ export const apiServices = {
     apiClient.delete('/auth/account', {
       headers: { Authorization: `Bearer ${token}` }
     }),
+
+
+    // ----------------------------------------------------------
+    // Notifications
+    // GET /api/notifications
+    getNotifications: (
+      token: string,
+      page: number = 1,
+      pageSize: number = 20
+    ) =>
+      apiClient.get(
+        `/api/notifications?page=${page}&pageSize=${pageSize}`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      ),
+
+    getUnreadNotificationCount: (token: string) =>
+      apiClient.get(
+        '/api/notifications/unread-count',
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      ),
+
+    markNotificationAsRead: (
+      token: string,
+      notificationId: string
+    ) =>
+      apiClient.patch(
+        `/api/notifications/${notificationId}/read`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      ),
+
+    markAllNotificationsAsRead: (token: string) =>
+      apiClient.patch(
+        '/api/notifications/read-all',
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      ),
 };

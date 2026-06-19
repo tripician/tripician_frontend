@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   Box,
   Typography,
@@ -28,6 +28,12 @@ import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../../store';
 import { clearUser } from '../../../store/userSlice';
 import { APP_NAV_ITEMS, navItemFromPath } from '../navConfig';
+import Badge from '@mui/material/Badge';
+import {
+  fetchUnreadCount,
+  fetchNotifications
+} from "../../../store/notificationSlice";
+import { apiServices } from '../../../services/APIs/apiServices';
 
 interface AppShellHeaderProps {
   onCreateTrip: () => void;
@@ -40,6 +46,13 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
   const location = useLocation();
   const { profile } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch<AppDispatch>();
+  const unreadCount = useSelector(
+    (state: RootState) => state.notifications.unreadCount
+  );
+
+  const notifications = useSelector(
+    (state: RootState) => state.notifications.notifications
+  );
 
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
   const [notifAnchorEl, setNotifAnchorEl] = React.useState<HTMLElement | null>(null);
@@ -47,6 +60,13 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
   const activeNav = navItemFromPath(location.pathname);
   const displayName = profile ? `${profile.fname ?? ''} ${profile.lname ?? ''}`.trim() || 'Traveler' : 'Traveler';
   const initials = displayName.charAt(0).toUpperCase();
+
+
+
+  useEffect(() => {
+    dispatch(fetchUnreadCount());
+    dispatch(fetchNotifications());
+    }, [dispatch]);
 
   const handleLogout = () => {
     try {
@@ -262,7 +282,14 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
           <Tooltip title="Notifications" arrow>
             <IconButton
               size="small"
-              onClick={(e) => setNotifAnchorEl(e.currentTarget)}
+              onClick={(e) => {
+                setNotifAnchorEl(e.currentTarget);
+                const token = localStorage.getItem("accessToken");
+                if (token) {
+                  apiServices.markAllNotificationsAsRead(token);
+                }
+                dispatch(fetchUnreadCount());
+              }}
               sx={{
                 width: 36,
                 height: 36,
@@ -270,7 +297,18 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
                 '&:hover': { backgroundColor: 'rgba(255,56,92,0.07)' },
               }}
             >
-              <NotificationsNoneIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
+              <Badge
+                badgeContent={unreadCount}
+                color="error"
+                max={99}
+              >
+                <NotificationsNoneIcon
+                  sx={{
+                    color: 'text.secondary',
+                    fontSize: 20,
+                  }}
+                />
+              </Badge>
             </IconButton>
           </Tooltip>
 
@@ -320,12 +358,39 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
           <Typography sx={{ fontWeight: 700, fontSize: '0.95rem' }}>Notifications</Typography>
         </Box>
         <Divider />
+          {notifications.length === 0 ? (
         <Box sx={{ py: 5, px: 3, textAlign: 'center' }}>
-          <NotificationsOffOutlinedIcon sx={{ fontSize: 38, color: 'text.disabled', mb: 1 }} />
-          <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.secondary' }}>
+          <NotificationsOffOutlinedIcon
+            sx={{
+              fontSize: 38,
+              color: 'text.disabled',
+              mb: 1
+            }}
+          />
+          <Typography
+            sx={{
+              fontWeight: 600,
+              fontSize: '0.875rem',
+              color: 'text.secondary'
+            }}
+          >
             No notifications yet
           </Typography>
         </Box>
+        ) : (
+          <List dense>
+            {notifications.map((notification: any) => (
+              <ListItemButton key={notification.id}>
+                <ListItemText
+                  primary={notification.message}
+                  secondary={new Date(
+                    notification.createdAt
+                  ).toLocaleString()}
+                />
+              </ListItemButton>
+            ))}
+          </List>
+        )}
       </Popover>
 
       <Popover
