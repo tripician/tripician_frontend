@@ -48,6 +48,7 @@ const CATEGORIES = [
 // ─── trip card ────────────────────────────────────────────────────────────────
 interface TripCardProps { trip: any; onClick: () => void; }
 
+
 const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -74,6 +75,40 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
     typeof trip.likesCount === 'number' ? trip.likesCount :
     typeof trip.likes === 'number' ? trip.likes : 0
   );
+  const reactionBusyRef = React.useRef<Record<string, boolean>>({});
+  const reactionNavigate = useNavigate();
+  const reactionAuth = useAuthToken();
+  const reactionToken = reactionAuth.token;
+
+  const applySummary = React.useCallback((s: any) => {
+      if (!s) return;
+      setLikeCount(Math.max(0, Number(s.likes) || 0));
+      setLiked(!!s.userLiked);
+    }, []);
+
+  const toggleReaction = React.useCallback(async (type: 'like') => {
+      if (!trip.id) return;
+      if (!reactionToken) { trip.reactionNavigate('/signin'); return; }
+      if (reactionBusyRef.current[type]) return;
+      reactionBusyRef.current[type] = true;
+      try {
+        const resp = await apiServices.toggleTripReaction(reactionToken, trip.id, type);
+        applySummary(resp.data);
+      } catch {
+      } finally {
+        reactionBusyRef.current[type] = false;
+      }
+    }, [trip.Id, reactionToken, reactionNavigate, applySummary]);
+
+    React.useEffect(() => {
+        if (!trip.id) return;
+        let cancelled = false;
+        apiServices.getTripReactions(reactionToken, trip.id)
+          .then(resp => { if (!cancelled) applySummary(resp.data); })
+          .catch(() => { /* keep zeros on failure */ });
+        return () => { cancelled = true; };
+      }, [trip.id, reactionToken, applySummary]);
+  
 
   return (
     <motion.div
@@ -226,7 +261,7 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
               </Typography>
             </Box>
             <Box
-              onClick={(e: React.MouseEvent<HTMLDivElement>) => { e.stopPropagation(); setLiked((v: boolean) => !v); setLikeCount((v: number) => liked ? v - 1 : v + 1); }}
+              onClick={(e: React.MouseEvent<HTMLDivElement>) => { e.stopPropagation(); toggleReaction('like'); }}
               sx={{
                 display: 'flex', alignItems: 'center', gap: .4,
                 px: 1, py: .35, borderRadius: '50px', cursor: 'pointer',

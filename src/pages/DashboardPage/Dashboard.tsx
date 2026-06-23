@@ -293,37 +293,41 @@ const Dashboard: React.FC = () => {
       case 1: setPlans(myTrips); break;
       case 2: setPlans(sharedTrips); break;
       case 3: setPlans(publishedTrips); break;
-      case 4: setPlans(savedPlans); fetchSavedTrips(); break;
+      case 4: setPlans(savedPlans); savedPlans; break;
     }
   };
 
   // Lazily load the trips this user has saved (Saved Trips tab)
-  const fetchSavedTrips = async (force = false) => {
-    if (!token) return;
-    if (savedFetchedRef.current && !force) return;
-    savedFetchedRef.current = true;
-    setSavedLoading(true);
-    try {
-      const resp = await apiServices.getSavedTrips(token);
-      const mapped = (resp.data || []).map((t: any) => mapTripVM(t));
-      setSavedPlans(mapped);
-      setPlans(prev => (tabValue === 4 ? mapped : prev));
-      // Fetch Unsplash images for saved trips lacking a photo
-      const needImg = mapped.filter((p: any) => !p.image && p.countries?.[0]);
-      if (needImg.length > 0) {
-        const results = await Promise.all(
-          needImg.map(async (p: any) => ({ id: p.id, url: await fetchUnsplashImage(p.countries[0]) }))
-        );
-        const updates: Record<string, string> = {};
-        results.forEach(({ id, url }) => { if (url) updates[id] = url; });
-        if (Object.keys(updates).length > 0) setTripImages(prev => ({ ...prev, ...updates }));
+    useEffect(() => {
+    const fetchSavedTrips = async (force = false) => {
+      if (!token) return;
+      if (savedFetchedRef.current && !force) return;
+      savedFetchedRef.current = true;
+      setSavedLoading(true);
+      try {
+        const resp = await apiServices.getSavedTrips(token);
+        const mapped = (resp.data || []).map((t: any) => mapTripVM(t));
+        setSavedPlans(mapped);
+        setPlans(prev => (tabValue === 4 ? mapped : prev));
+        // Fetch Unsplash images for saved trips lacking a photo
+        const needImg = mapped.filter((p: any) => !p.image && p.countries?.[0]);
+        if (needImg.length > 0) {
+          const results = await Promise.all(
+            needImg.map(async (p: any) => ({ id: p.id, url: await fetchUnsplashImage(p.countries[0]) }))
+          );
+          const updates: Record<string, string> = {};
+          results.forEach(({ id, url }) => { if (url) updates[id] = url; });
+          if (Object.keys(updates).length > 0) setTripImages(prev => ({ ...prev, ...updates }));
+        }
+      } catch (err) {
+        console.error('[Dashboard] fetch saved trips failed', err);
+      } finally {
+        setSavedLoading(false);
       }
-    } catch (err) {
-      console.error('[Dashboard] fetch saved trips failed', err);
-    } finally {
-      setSavedLoading(false);
-    }
-  };
+    };
+    fetchSavedTrips()
+    }, [token, authLoading]);
+  
   return (
     <Box
       ref={pageRef}
