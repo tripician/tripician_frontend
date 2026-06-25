@@ -2567,7 +2567,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 										<TripChatPanel
 												tripId={tripId}
 												token={authToken}
-												members={tripUsers.map((u: any) => ({ id: u.id, name: u.name || u.displayName || '', profilePictureUrl: u.profilePictureUrl || u.ProfilePictureUrl || null }))}
+												members={tripUsers.map((u: any) => ({ id: u.id, name: u.name || u.displayName || '', avatarUrl: u.avatar || u.profilePic || u.profilePicture || null }))}
 												myUserId={userProfile?.id ? Number(userProfile.id) : null}
 												inline
 												onTripUpdated={refreshTripFromServer}
@@ -2622,7 +2622,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
                                                             <TripChatPanel
                                                                    tripId={tripId}
                                                                    token={authToken}
-                                                                   members={tripUsers.map((u: any) => ({ id: u.id, name: u.name || u.displayName || '', profilePictureUrl: u.profilePictureUrl || u.ProfilePictureUrl || null }))}
+                                                                   members={tripUsers.map((u: any) => ({ id: u.id, name: u.name || u.displayName || '', avatarUrl: u.avatar || u.profilePic || u.profilePicture || null }))}
                                                                    myUserId={userProfile?.id ? Number(userProfile.id) : null}
                                                                    onTripUpdated={refreshTripFromServer}
                                                             />
@@ -2683,7 +2683,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					<TripChatPanel
 						tripId={tripId}
 						token={authToken}
-						members={tripUsers.map((u: any) => ({ id: u.id, name: u.name || u.displayName || '', profilePictureUrl: u.profilePictureUrl || u.ProfilePictureUrl || null }))}
+						members={tripUsers.map((u: any) => ({ id: u.id, name: u.name || u.displayName || '', avatarUrl: u.avatar || u.profilePic || u.profilePicture || null }))}
 						myUserId={userProfile?.id ? Number(userProfile.id) : null}
 						onTripUpdated={refreshTripFromServer}
 					/>
