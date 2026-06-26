@@ -126,7 +126,7 @@ const deriveOwnerInfo = (tripSources: any[], memberCandidates: any[]): OwnerInfo
 		const lastName = pickFirstString(owner.lname, owner.Lname, owner.lastName, owner.LastName);
 		const name = directName || (firstName || lastName ? [firstName, lastName].filter(Boolean).join(' ').trim() : undefined);
 		const handle = normalizeHandle(pickFirstString(owner.handle, owner.Handle, owner.username, owner.Username, owner.userName));
-		const avatar = pickFirstString(owner.avatar, owner.Avatar, owner.profilepicture, owner.profilePicture, owner.photoUrl, owner.PhotoUrl, owner.profilePic, owner.ProfilePic);
+		const avatar = pickFirstString(owner.avatar, owner.Avatar, owner.profilepicture, owner.profilePicture, owner.photoUrl, owner.PhotoUrl, owner.profilePic, owner.ProfilePic, owner.profilePictureUrl, owner.ProfilePictureUrl);
 		assign('id', id);
 		assign('email', email);
 		assign('name', name);
@@ -2118,7 +2118,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 
 	// Build dynamic trip members list (owner + any backend-provided members if structure exists)
 	const userProfile = useSelector((s:RootState)=> s.user.profile);
-	const ownerInfo = React.useMemo(() => deriveOwnerInfo([initialTrip, remoteTrip], tripUsers), [initialTrip, remoteTrip, tripUsers]);
+	const ownerInfo = React.useMemo(() => deriveOwnerInfo([initialTrip, remoteTrip], tripUsers), [initialTrip, remoteTrip, tripUsers]);	
 	const currentUserIsOwner = React.useMemo(() => {
 		if(!userProfile){
 			return Boolean(isOwnerExternal);
