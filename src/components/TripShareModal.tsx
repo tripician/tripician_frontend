@@ -5,8 +5,7 @@ import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
 import { useTripShare } from '../hooks/useTripShare';
 
-// â”€â”€â”€ Props â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
-
+// Props 
 interface TripShareModalProps {
   open: boolean;
   onClose: () => void;
@@ -16,7 +15,7 @@ interface TripShareModalProps {
   totalNights: number;
 }
 
-// â”€â”€â”€ Inline SVG brand icons â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Inline SVG brand icons 
 
 const FacebookIcon = () => (
   <svg width="32" height="32" viewBox="0 0 24 24" fill="currentColor">
@@ -63,7 +62,7 @@ const DownloadIcon = () => (
   </svg>
 );
 
-// â”€â”€â”€ Share button configs â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+//  Share button configs
 
 interface ShareButtonConfig {
   id: string;
@@ -82,7 +81,7 @@ const SHARE_BUTTONS: ShareButtonConfig[] = [
   { id: 'copy',      label: 'Copy link',            Icon: LinkIcon,      brandColor: '#6366f1' },
 ];
 
-// â”€â”€â”€ Main component â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€â”€
+// Main component
 
 const TripShareModal: React.FC<TripShareModalProps> = ({
   open,
@@ -135,7 +134,7 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
         setTimeout(() => setImageCopied(false), 2000);
       }
     } catch {
-      // Clipboard write not supported â€” silently ignore
+      // Clipboard write not supported silently ignore
     }
   }, [cardBlob]);
 
@@ -227,7 +226,7 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
         '&::-webkit-scrollbar-thumb': { borderRadius: 4, bgcolor: 'rgba(0,0,0,0.15)' },
       }}
     >
-      {/* â”€â”€ Header â”€â”€ */}
+      {/*Header*/}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
         <Typography sx={{ fontSize: '16px', fontWeight: 500, fontFamily: "'Inter', system-ui, sans-serif", color: 'text.primary' }}>
           Share your trip
@@ -237,7 +236,7 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
         </IconButton>
       </Box>
 
-      {/* â”€â”€ Section 1: Card preview with hover copy button â”€â”€ */}
+      {/*Section 1: Card preview with hover copy button*/}
       <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 1 }}>
         {isLoading ? (
           <Skeleton variant="rectangular" width={372} height={210} sx={{ borderRadius: '12px', maxWidth: '100%' }} />
@@ -257,7 +256,7 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
               alt={`Share card for ${tripName}`}
               sx={{ width: '100%', borderRadius: '12px', display: 'block', objectFit: 'cover' }}
             />
-            {/* Copy image button â€” visible on hover only */}
+            {/* Copy image button visible on hover only */}
             <Tooltip title={imageCopied ? 'Copied!' : 'Copy image'} placement="top" arrow>
               <Box
                 component="button"
@@ -300,7 +299,7 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
         )}
         <Typography sx={{ fontSize: '12px', color: 'text.secondary', textAlign: 'center', fontFamily: "'Inter', system-ui, sans-serif" }}>
           {isLoading
-            ? error === 'generating' ? 'Generating your cardâ€¦' : 'Loading your cardâ€¦'
+            ? error === 'generating' ? 'Generating your card ¦' : 'Loading your card ¦'
             : 'Your trip card is ready to share'}
         </Typography>
       </Box>
@@ -358,7 +357,7 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
         })}
       </Box>
 
-      {/* â”€â”€ Section 3: Download button â”€â”€ */}
+      {/*Section 3: Download button*/}
       <Box
         component="button"
         onClick={handleDownload}
