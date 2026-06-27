@@ -30,16 +30,18 @@ export function useTripShare(
   // Track the current blob URL so we can revoke it on unmount / re-fetch
   const blobUrlRef = useRef<string | null>(null);
 
-  const tripUrl = `https://tripician.com/trips/${tripId}`;
-  const shareText = `I just planned my ${tripName} trip on Tripician — ${destinationCount} destination${destinationCount !== 1 ? 's' : ''}, ${totalNights} night${totalNights !== 1 ? 's' : ''}. Check it out and plan yours free 🌍`;
+  const WEB_BASE = import.meta.env.VITE_WEB_BASE_URL as string;
+
+  const tripUrl = `${WEB_BASE.replace(/\/$/, '')}/trip/${tripId}`;
+
+  const shareText = `Discover this amazing ${tripName} itinerary, created with Tripician 🌍 ${destinationCount} destination${destinationCount !== 1 ? 's' : ''}, ${totalNights} night${totalNights !== 1 ? 's' : ''}.`
 
   useEffect(() => {
     if (!tripId || !token) return;
 
     let cancelled = false;
-    let slowTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const API_BASE = import.meta.env.VITE_API_BASE_URL as string;
+    let slowTimer: ReturnType<typeof setTimeout> | null = null;
 
     const fetchCard = async () => {
       setIsLoading(true);
@@ -52,7 +54,7 @@ export function useTripShare(
 
       try {
         const response = await fetch(
-          `${API_BASE.replace(/\/$/, '')}/api/trips/${tripId}/share-card`,
+          `${WEB_BASE.replace(/\/$/, '')}/api/trips/${tripId}/share-card`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
 
@@ -61,6 +63,7 @@ export function useTripShare(
         }
 
         const blob = await response.blob();
+
         if (cancelled) return;
 
         // Revoke any previous blob URL

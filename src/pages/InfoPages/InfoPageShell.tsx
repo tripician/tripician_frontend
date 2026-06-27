@@ -17,18 +17,7 @@ const InfoPageShell: React.FC<Props> = ({ children }) => {
   const pageContent = (
     <Box sx={{ minHeight: '100vh', background: '#FAFAFA', fontFamily: "'Inter', sans-serif" }}>
       {isAuthenticated ? (
-        <TopBar
-          showSearch={false}
-          logo={
-            <Box
-              onClick={() => navigate(-1)}
-              sx={{ display: 'flex', alignItems: 'center', gap: 0.5, cursor: 'pointer', color: '#555', fontSize: '0.82rem', fontWeight: 500, transition: 'color 0.2s', '&:hover': { color: '#FF385C' } }}
-            >
-              <ArrowBackRoundedIcon sx={{ fontSize: 16 }} />
-              Back
-            </Box>
-          }
-        />
+        null
       ) : (
         <Box sx={{
           position: 'sticky', top: 0, zIndex: 1100,
