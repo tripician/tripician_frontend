@@ -50,7 +50,7 @@ const CheckBox = ({ checked, onClick }: { checked: boolean; onClick: () => void 
   </Box>
 );
 
-/* ─ Discover (spots & foods) ─ */
+/*  Discover (spots & foods)  */
 
 export interface DiscoverSheetProps {
   open: boolean;
@@ -327,7 +327,7 @@ export const DiscoverSheet: React.FC<DiscoverSheetProps> = ({
   );
 };
 
-/* ─ Stay sheet ─ */
+/*  Stay sheet  */
 
 export interface StaySheetProps {
   open: boolean;

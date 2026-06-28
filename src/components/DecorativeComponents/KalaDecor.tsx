@@ -22,7 +22,7 @@ export interface KalaDecorProps {
 const C = 150; // all patterns use 300 × 300 viewBox
 const R = Math.PI / 180;
 
-// ─ shared micro-helpers ─
+//  shared micro-helpers 
 
 /** Filled almond petal from r1 → r2, width w, at angle deg */
 function petal(r1: number, r2: number, w: number, deg: number, col: string, k: string) {
@@ -138,7 +138,7 @@ function scaleRing(n: number, r: number, depth: number, off: number, col: string
   });
 }
 
-// ─ KalaMandala 
+//  KalaMandala 
 // Zones (inside → out):
 //   1. Spiral volute core
 //   2. Filled petal ring (8)
@@ -203,7 +203,7 @@ export const KalaMandala: React.FC<KalaDecorProps> = ({ size=300, color='#C41E3A
   </svg>
 );
 
-// ─ KalaLotus 
+//  KalaLotus 
 // Zones (inside → out):
 //   1. 3-loop volute centre
 //   2. Tiny petal burst (8)
@@ -267,7 +267,7 @@ export const KalaLotus: React.FC<KalaDecorProps> = ({ size=300, color='#C41E3A',
   </svg>
 );
 
-// ─ KalaGeometric 
+//  KalaGeometric 
 // Zones (inside → out):
 //   1. Cross + circle core
 //   2. Star of David (6-point) fill

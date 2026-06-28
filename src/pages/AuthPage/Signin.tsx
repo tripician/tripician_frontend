@@ -136,7 +136,7 @@ const Signin = () => {
 
   return (
     <div className="auth-root">
-      {/*  Left brand pane ─ */}
+      {/*  Left brand pane  */}
       <motion.div
         className="auth-left"
         variants={fadeInLeft}
@@ -174,7 +174,7 @@ const Signin = () => {
         </motion.div>
       </motion.div>
 
-      {/*  Right form pane ─ */}
+      {/*  Right form pane  */}
       <motion.div
         className="auth-right"
         variants={fadeInRight}

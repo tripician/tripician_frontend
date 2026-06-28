@@ -25,7 +25,7 @@ import '../../assets/css/LandingPage.css';
 
 gsap.registerPlugin(ScrollTrigger);
 
-/* ─ STATIC DATA  */
+/*  STATIC DATA  */
 const FEATURES = [
   {
     icon: <Sparkles size={26} />,
@@ -270,7 +270,7 @@ function AgentDemoWidget() {
   );
 }
 
-/* ─ FAQ  */
+/*  FAQ  */
 const LP_FAQS = [
   {
     q: 'What exactly is Tripician?',
@@ -368,7 +368,7 @@ function LandingFAQ() {
   );
 }
 
-/* ─ COMPONENT ─ */
+/*  COMPONENT  */
 export default function LandingPage() {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading } = useAuth0();
@@ -433,7 +433,7 @@ export default function LandingPage() {
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
 
-      /*  1. HERO ENTRANCE ─ */
+      /*  1. HERO ENTRANCE  */
       const heroTL = gsap.timeline({ defaults: { ease: 'power3.out' } });
       heroTL
         .to('.lp-nav', { y: 0, opacity: 1, duration: 0.85 })
@@ -505,7 +505,7 @@ export default function LandingPage() {
         },
       });
 
-      /*  3. HERO PARALLAX ─ */
+      /*  3. HERO PARALLAX  */
       gsap.to('.lp-hero__bg', {
         yPercent: 32,
         ease: 'none',
@@ -553,7 +553,7 @@ export default function LandingPage() {
         scrollTrigger: { trigger: '.lp-features__grid', start: 'top 78%', toggleActions: 'play none none reverse' },
       });
 
-      /*  6. STEPS ─ */
+      /*  6. STEPS  */
       gsap.from('.lp-steps__header', {
         y: 42, opacity: 0, duration: 0.8,
         scrollTrigger: { trigger: '.lp-steps', start: 'top 82%', toggleActions: 'play none none reverse' },
@@ -587,7 +587,7 @@ export default function LandingPage() {
         scrollTrigger: { trigger: '.lp-reviews__grid', start: 'top 82%', toggleActions: 'play none none reverse' },
       });
 
-      /*  9. CTA ─ */
+      /*  9. CTA  */
       gsap.from('.lp-cta__content', {
         y: 62, opacity: 0, duration: 1, ease: 'power3.out',
         scrollTrigger: { trigger: '.lp-cta', start: 'top 78%', toggleActions: 'play none none reverse' },
@@ -623,10 +623,10 @@ export default function LandingPage() {
     return () => ctx.revert();
   }, []);
 
-  /* ─ JSX  */
+  /*  JSX  */
   return (
     <div className="lp-root">
-      {/*  SKIP TO CONTENT ─ */}
+      {/*  SKIP TO CONTENT  */}
       <a href="#lp-main-content" className="lp-skip-to-content">Skip to main content</a>
 
       {/*  NAVBAR  */}
@@ -784,7 +784,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/*  AGENTIC AI DEMO ─ */}
+      {/*  AGENTIC AI DEMO  */}
       <section className="lp-ai-agent" id="ai-agent">
         <div className="lp-ai-agent__inner">
           <div className="lp-ai-agent__text">
@@ -811,7 +811,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/*  STATS ─ */}
+      {/*  STATS  */}
       <section className="lp-stats">
         <div className="lp-stats__grid">
           {[
@@ -952,7 +952,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/*  HOW IT WORKS ─ */}
+      {/*  HOW IT WORKS  */}
       <section className="lp-steps" id="how-it-works">
         <div className="lp-steps__header">
           <span className="lp-section-eyebrow">How it works</span>
@@ -1001,7 +1001,7 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
-      {/*  RISK MONITOR TEASER ─ */}
+      {/*  RISK MONITOR TEASER  */}
       <section className="lp-risk-preview">
         <div className="lp-risk-preview__card">
           <div className="lp-risk-preview__live">
@@ -1064,7 +1064,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/*  CTA ─ */}
+      {/*  CTA  */}
       <section className="lp-cta">
         <div className="lp-cta__content">
           <span className="lp-section-eyebrow lp-section-eyebrow--light">Your next adventure starts here</span>
@@ -1092,7 +1092,7 @@ export default function LandingPage() {
         <KalaGeometric size={480} color="#FF385C" opacity={0.06} style={{ position: 'absolute', bottom: -130, right: -110 }} />
         </section>
 
-      {/*  FAQ ─ */}
+      {/*  FAQ  */}
       <LandingFAQ />
 
       {/*  FOOTER  */}

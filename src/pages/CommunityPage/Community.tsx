@@ -22,7 +22,7 @@ import DiamondRoundedIcon from '@mui/icons-material/DiamondRounded';
 import TravelExploreRoundedIcon from '@mui/icons-material/TravelExploreRounded';
 import { fetchUnsplashImage } from '../../services/unsplashService';
 
-// ─ helpers ─
+//  helpers 
 
 const VIBE_META: Record<string, { label: string; icon: React.ReactNode; gradient: string; tag: string }> = {
   adventure: { label: 'Adventure', icon: <LandscapeRoundedIcon sx={{ fontSize: 14 }} />, gradient: 'linear-gradient(135deg,#059669,#047857)', tag: '#10B981' },
@@ -45,7 +45,7 @@ const CATEGORIES = [
   { id: 'romantic',  label: 'Party',      icon: <WhatshotRoundedIcon sx={{ fontSize: 15 }} /> },
 ];
 
-// ─ trip card 
+//  trip card 
 interface TripCardProps { trip: any; onClick: () => void; }
 
 
@@ -281,7 +281,7 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
   );
 };
 
-// ─ skeleton cards ─
+//  skeleton cards 
 const SkeletonCard = () => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -307,7 +307,7 @@ const SkeletonCard = () => {
   );
 };
 
-// ─ main component ─
+//  main component 
 const Community: React.FC = () => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -388,7 +388,7 @@ const Community: React.FC = () => {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: bg, display: 'flex', flexDirection: 'column' }}>
 
-      {/*  Hero ─ */}
+      {/*  Hero  */}
       <Box sx={{
         position: 'relative', overflow: 'hidden',
         pt: { xs: 5, md: 7 }, pb: { xs: 4, md: 6 },

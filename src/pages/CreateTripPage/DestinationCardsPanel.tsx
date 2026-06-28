@@ -74,7 +74,7 @@ function ensureGoogleMapsLoaded(apiKey: string): Promise<void> {
   });
 }
 
-/* ─ Sortable card wrapper (dnd-kit per-item) ─ */
+/*  Sortable card wrapper (dnd-kit per-item)  */
 const SortableCardWrapper: React.FC<{
   id: string;
   children: (props: { isDragging: boolean; dragHandleProps: Record<string, unknown> }) => React.ReactNode;
@@ -333,7 +333,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
     setChecklists(prev => ({ ...prev, [id]: cl }));
   }, []);
 
-  /* ─ Drag-to-reorder (dnd-kit)  */
+  /*  Drag-to-reorder (dnd-kit)  */
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [activeDragId, setActiveDragId] = React.useState<string | null>(null);
   const handleDragEnd = React.useCallback((event: DragEndEvent) => {
@@ -348,7 +348,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
     dispatch(reorderChainExact({ ids: newIds }));
   }, [destinations, dispatch]);
 
-  /*  Completion signals (Feature 3) ─ */
+  /*  Completion signals (Feature 3)  */
   const completionSignals = React.useMemo(() => {
     const hasDestinations = destinations.length > 0;
     const hasDates = destinations.some(d => !!d.startDate);

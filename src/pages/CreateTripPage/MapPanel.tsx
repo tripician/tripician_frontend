@@ -62,7 +62,7 @@ const MapPanel: React.FC<MapPanelProps> = () => {
   const [error, setError] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
-  //  Sync markers ─
+  //  Sync markers 
   const syncMarkers = useCallback((dests: PlannerDestination[]) => {
     const map = mapRef.current;
     if (!map || !styleLoadedRef.current) return;
@@ -138,7 +138,7 @@ const MapPanel: React.FC<MapPanelProps> = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  //  Theme switch ─
+  //  Theme switch 
   useEffect(() => {
     if (firstRenderRef.current) { firstRenderRef.current = false; return; }
     const map = mapRef.current;

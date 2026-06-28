@@ -40,9 +40,9 @@ import ArchiveRoundedIcon from '@mui/icons-material/ArchiveRounded';
 import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 
-// ─
+// 
 // Default banner fetched once from Unsplash (cached in module scope)
-// ─
+// 
 let _defaultBanner: string | null = null;
 const DEFAULT_BANNER_QUERIES = ['mountains aerial travel', 'aerial landscape travel', 'travel adventure nature'];
 
@@ -55,9 +55,9 @@ async function loadDefaultBanner(): Promise<string | null> {
   return null;
 }
 
-// ─
+// 
 // TRIP CARD
-// ─
+// 
 const ProfileTripCard: React.FC<{ trip: any; index: number; onClick: () => void }> = ({ trip, index, onClick }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -167,9 +167,9 @@ const ProfileTripCard: React.FC<{ trip: any; index: number; onClick: () => void 
   );
 };
 
-// ─
+// 
 // STAT PILL
-// ─
+// 
 const StatPill: React.FC<{ value: number | string; label: string; icon: React.ReactNode; accent?: string }> = ({ value, label, icon, accent = '#FF385C' }) => {
   const isDark = useTheme().palette.mode === 'dark';
   return (
@@ -194,9 +194,9 @@ const StatPill: React.FC<{ value: number | string; label: string; icon: React.Re
   );
 };
 
-// ─
+// 
 // DETAIL ROW
-// ─
+// 
 const DetailRow: React.FC<{ icon: React.ReactNode; label: string; value?: string | null }> = ({ icon, label, value }) => {
   if (!value?.trim()) return null;
   return (
@@ -212,9 +212,9 @@ const DetailRow: React.FC<{ icon: React.ReactNode; label: string; value?: string
   );
 };
 
-// ─
+// 
 // PILL TABS
-// ─
+// 
 const PillTabs: React.FC<{ tabs: { label: string; count: number }[]; active: number; onChange: (i: number) => void }> = ({ tabs, active, onChange }) => {
   const isDark = useTheme().palette.mode === 'dark';
   return (
@@ -240,9 +240,9 @@ const PillTabs: React.FC<{ tabs: { label: string; count: number }[]; active: num
   );
 };
 
-// ─
+// 
 // SKELETON
-// ─
+// 
 const SkeletonTripCard = () => {
   const isDark = useTheme().palette.mode === 'dark';
   return (
@@ -259,9 +259,9 @@ const SkeletonTripCard = () => {
   );
 };
 
-// ─
+// 
 // EMPTY STATE
-// ─
+// 
 const EMPTY_COPY = [
   {
     icon: <FlightTakeoffRoundedIcon sx={{ fontSize: 36, color: '#FF385C' }} />,
@@ -313,9 +313,9 @@ const EmptyState: React.FC<{ tabIndex: number; onCTA: () => void }> = ({ tabInde
   );
 };
 
-// ─
+// 
 // SIDE CARD
-// ─
+// 
 const SideCard: React.FC<{ children: React.ReactNode; headerIcon: React.ReactNode; headerLabel: string; accent?: string }> = ({ children, headerIcon, headerLabel, accent = '#FF385C' }) => {
   const isDark = useTheme().palette.mode === 'dark';
   return (

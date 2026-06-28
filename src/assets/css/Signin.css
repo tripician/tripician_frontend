@@ -1,9 +1,9 @@
-/* ─
+/* 
    Auth.css  (shared by Signin & Signup)  —  Tripician dark theme
-   ─ */
+    */
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,500;1,700&family=Inter:wght@300;400;500;600&display=swap');
 
-/* ─ ROOT ─ */
+/*  ROOT  */
 .auth-root {
   display: flex;
   height: 100vh;
@@ -13,7 +13,7 @@
   background: #F7F7F7;
 }
 
-/* ─ LEFT PANE  */
+/*  LEFT PANE  */
 .auth-left {
   position: relative;
   flex: 0 0 42%;
@@ -128,7 +128,7 @@
   flex-shrink: 0;
 }
 
-/* ─ RIGHT PANE ─ */
+/*  RIGHT PANE  */
 .auth-right {
   flex: 1;
   display: flex;
@@ -141,7 +141,7 @@
   position: relative;
 }
 
-/*  Back button ─ */
+/*  Back button  */
 .auth-back-btn {
   position: absolute;
   top: 22px;
@@ -194,7 +194,7 @@
   pointer-events: none;
 }
 
-/* ─ CARD ─ */
+/*  CARD  */
 .auth-card {
   position: relative;
   z-index: 1;
@@ -246,7 +246,7 @@
   font-weight: 300;
 }
 
-/* ─ ALERTS ─ */
+/*  ALERTS  */
 .auth-alert {
   width: 100%;
   border-radius: 10px;
@@ -268,7 +268,7 @@
   color: #4ade80;
 }
 
-/* ─ FORM ─ */
+/*  FORM  */
 .auth-form {
   width: 100%;
   display: flex;
@@ -350,7 +350,7 @@
 }
 .auth-field__eye:hover { color: rgba(0, 0, 0, 0.65); }
 
-/* ─ FORGOT ─ */
+/*  FORGOT  */
 .auth-forgot {
   font-size: 0.79rem;
   color: #FF385C;
@@ -361,7 +361,7 @@
 }
 .auth-forgot:hover { color: #E31C5F; }
 
-/* ─ PRIMARY BUTTON ─ */
+/*  PRIMARY BUTTON  */
 .auth-btn {
   width: 100%;
   border: none;
@@ -391,7 +391,7 @@
   transform: none;
 }
 
-/* ─ SWITCH LINE  */
+/*  SWITCH LINE  */
 .auth-switch {
   font-size: 0.83rem;
   color: #717171;
@@ -407,7 +407,7 @@
 }
 .auth-switch__link:hover { color: #E31C5F; }
 
-/* ─ DIVIDER  */
+/*  DIVIDER  */
 .auth-divider {
   width: 100%;
   display: flex;
@@ -430,7 +430,7 @@
   font-weight: 500;
 }
 
-/* ─ SOCIAL BUTTONS ─ */
+/*  SOCIAL BUTTONS  */
 .auth-social {
   width: 100%;
   display: flex;
@@ -501,9 +501,9 @@
   }
 }
 
-/* ─ RESPONSIVE ─ */
+/*  RESPONSIVE  */
 
-/*  Tablets: 600px – 1024px ─ */
+/*  Tablets: 600px – 1024px  */
 @media (min-width: 601px) and (max-width: 1024px) {
   .auth-root {
     overflow: hidden;
@@ -556,7 +556,7 @@
   }
 }
 
-/*  Small tablets / large phones: up to 600px ─ */
+/*  Small tablets / large phones: up to 600px  */
 @media (max-width: 600px) {
   .auth-right {
     padding: 56px 14px 20px;

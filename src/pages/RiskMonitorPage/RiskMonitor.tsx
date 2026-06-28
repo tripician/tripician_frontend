@@ -11,7 +11,7 @@ import { fetchNews, type TwinglyDocument, type FetchNewsParams } from '../../ser
 import { flagEmojiFromCode } from '../../utils/countryFlags';
 import '../../assets/css/RiskMonitor.css';
 
-// ─ Destination catalogue 
+//  Destination catalogue 
 interface Dest { name: string; currency: string; region: string; baseRisk: number; }
 const DESTS: Record<string, Dest> = {
   jp: { name: 'Japan',          currency: 'JPY', region: 'Asia Pacific',  baseRisk: 8  },
@@ -55,7 +55,7 @@ const POPULAR = ['jp', 'fr', 'ae', 'th', 'it', 'au', 'sg', 'gb'];
 const MAJOR_FX = ['USD', 'EUR', 'GBP', 'AUD', 'CAD', 'CHF', 'SGD', 'JPY'];
 const REGIONS  = ['All', 'Asia Pacific', 'Europe', 'North America', 'South America', 'Middle East', 'Africa'];
 
-// ─ Helpers ─
+//  Helpers 
 function riskProfile(score: number) {
   if (score <= 20) return { label: 'Low Risk', color: '#22c55e', dim: 'rgba(34,197,94,0.15)',  icon: '🟢' };
   if (score <= 45) return { label: 'Watch',    color: '#f59e0b', dim: 'rgba(245,158,11,0.15)', icon: '🟡' };
@@ -103,7 +103,7 @@ function wmoEmoji(code: number | null): string {
   return '⛈️';
 }
 
-// ─ Score Gauge 
+//  Score Gauge 
 function ScoreGauge({ score, color }: { score: number; color: string }) {
   const R = 52, cx = 64, cy = 64;
   const circ = 2 * Math.PI * R;
@@ -123,7 +123,7 @@ function ScoreGauge({ score, color }: { score: number; color: string }) {
   );
 }
 
-// ─ Main Page 
+//  Main Page 
 export default function RiskMonitor() {
   const isMobile = useMediaQuery('(max-width: 899px)');
   const [query,    setQuery]    = useState('');
@@ -295,7 +295,7 @@ export default function RiskMonitor() {
           </div>
         </div>
       </div>
-      {/*  GLOBAL STATS STRIP ─ */}
+      {/*  GLOBAL STATS STRIP  */}
       <div className="rm-stats-strip">
         <div className="rm-stats-strip__item">
           <span className="rm-stats-strip__num">{Object.keys(DESTS).length}</span>
@@ -326,7 +326,7 @@ export default function RiskMonitor() {
           <span className="rm-stats-strip__lbl">High Risk</span>
         </div>
       </div>
-      {/*  RESULTS ─ */}
+      {/*  RESULTS  */}
       {selected && dest && (
         <div className="rm-results" ref={resultsRef}>
 

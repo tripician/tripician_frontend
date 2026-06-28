@@ -116,7 +116,7 @@ function normalizeLocationCode(value?: string): string {
   return match ? match[0] : '';
 }
 
-// ─ Colour/icon helpers shared with AlertsPanel 
+//  Colour/icon helpers shared with AlertsPanel 
 const ALERT_META: Record<string, { bg: string; border: string; iconColor: string; badgeColor: 'error' | 'warning' | 'info' | 'default'; description: string }> = {
   'Severe Weather': {
     bg: 'rgba(127,29,29,0.18)', border: 'rgba(239,68,68,0.45)', iconColor: '#f87171',

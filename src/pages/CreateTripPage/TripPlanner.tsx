@@ -1552,7 +1552,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 
 	// Cleanup interval on unmount
 	React.useEffect(() => () => { if (aiMsgIntervalRef.current) clearInterval(aiMsgIntervalRef.current); }, []);
-	//  End AI Auto-generation ─
+	//  End AI Auto-generation 
 	// Lightweight settings save listener (Save Settings button dispatches browser event)
 	React.useEffect(()=> {
 		const settingsSaveHandler = async () => {
