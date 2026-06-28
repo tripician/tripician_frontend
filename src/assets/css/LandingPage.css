@@ -1,9 +1,9 @@
-﻿/* ─────────────────────────────────────────────────────────────────
+﻿/* ─
    LandingPage.css  —  Tripician  (Polarsteps-inspired cinematic)
-   ───────────────────────────────────────────────────────────────── */
+   ─ */
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,500;1,700&family=Inter:wght@300;400;500;600&display=swap');
 
-/* ─── ROOT / CSS VARIABLES ──────────────────────────────────────── */
+/* ─ ROOT / CSS VARIABLES  */
 .lp-root {
   --lp-primary: #FF385C;
   --lp-secondary: #E31C5F;
@@ -25,7 +25,7 @@
   scroll-behavior: smooth;
 }
 
-/* ─── NAV ────────────────────────────────────────────────────────── */
+/* ─ NAV  */
 .lp-nav {
   position: fixed;
   top: 0;
@@ -91,7 +91,7 @@
   align-items: center;
 }
 
-/* ─── BUTTON SYSTEM ─────────────────────────────────────────────── */
+/* ─ BUTTON SYSTEM ─ */
 .lp-btn {
   display: inline-flex;
   align-items: center;
@@ -222,7 +222,7 @@
   box-shadow: 0 22px 54px rgba(0, 0, 0, 0.45);
 }
 
-/* ─── HERO ───────────────────────────────────────────────────────── */
+/* ─ HERO ─ */
 .lp-hero {
   position: relative;
   min-height: 100vh;
@@ -395,12 +395,12 @@
   right: 18%;
 }
 
-/* ─── NAV OPACITY INITIAL ───────────────────────────────────────── */
+/* ─ NAV OPACITY INITIAL ─ */
 .lp-nav {
   opacity: 0; /* GSAP will animate in */
 }
 
-/* ─── DESTINATION TICKER ────────────────────────────────────────── */
+/* ─ DESTINATION TICKER  */
 .lp-ticker {
   overflow: hidden;
   background: #F4F6F8;
@@ -438,7 +438,7 @@
   to   { transform: translateX(-50%); }
 }
 
-/* ─── STATS ─────────────────────────────────────────────────────── */
+/* ─ STATS ─ */
 .lp-stats {
   padding: 80px 52px;
   max-width: var(--lp-max-w);
@@ -485,7 +485,7 @@
   font-weight: 500;
 }
 
-/* ─── SHARED SECTION TYPOGRAPHY ─────────────────────────────────── */
+/* ─ SHARED SECTION TYPOGRAPHY ─ */
 .lp-section-eyebrow {
   display: inline-block;
   font-size: 0.75rem;
@@ -518,7 +518,7 @@
   font-weight: 300;
 }
 
-/* ─── FEATURES ───────────────────────────────────────────────────── */
+/* ─ FEATURES ─ */
 .lp-features {
   padding: 100px 52px;
   max-width: var(--lp-max-w);
@@ -595,7 +595,7 @@
   margin: 0;
 }
 
-/* ─── HOW IT WORKS ───────────────────────────────────────────────── */
+/* ─ HOW IT WORKS ─ */
 .lp-steps {
   padding: 100px 52px;
   background: #F4F6F8;
@@ -695,7 +695,7 @@
   max-width: 520px;
 }
 
-/* ─── SHOWCASE ───────────────────────────────────────────────────── */
+/* ─ SHOWCASE ─ */
 .lp-showcase {
   padding: 100px 52px;
   max-width: var(--lp-max-w);
@@ -808,7 +808,7 @@
   border-color: rgba(255, 0, 0, 0.445);
 }
 
-/* ─── SOCIAL PROOF ───────────────────────────────────────────────── */
+/* ─ SOCIAL PROOF ─ */
 .lp-social-proof {
   padding: 100px 52px;
   background: #F4F6F8;
@@ -890,7 +890,7 @@
   margin-top: 3px;
 }
 
-/* ─── CTA SECTION ───────────────────────────────────────────────── */
+/* ─ CTA SECTION ─ */
 .lp-cta {
   position: relative;
   padding: 130px 52px;
@@ -981,7 +981,7 @@
   right: -120px;
 }
 
-/* ─── FOOTER ─────────────────────────────────────────────────────── */
+/* ─ FOOTER ─ */
 .lp-footer {
   background: #111111;
   border-top: 1px solid rgba(255, 255, 255, 0.08);
@@ -1063,7 +1063,7 @@
   color: rgba(255, 255, 255, 0.25);
 }
 
-/* ─── RESPONSIVE ─────────────────────────────────────────────────── */
+/* ─ RESPONSIVE ─ */
 @media (max-width: 1024px) {
   .lp-nav { padding: 18px 32px; }
   .lp-nav__links { display: none; }
@@ -1104,9 +1104,9 @@
   .lp-step { padding-left: 72px; }
   .lp-step__num { width: 40px; height: 40px; font-size: 0.72rem; left: 16px; }
 }
-/* ─────────────────────────────────────────────────────────────────
+/* ─
    AGENTIC AI SECTION
-   ───────────────────────────────────────────────────────────────── */
+   ─ */
 .lp-ai-agent {
   padding: 110px 52px;
   background: linear-gradient(160deg, #0a0a0f 0%, #0d1320 40%, #0a0f1a 100%);
@@ -1175,7 +1175,7 @@
 
 .lp-ai-agent__widget { position: relative; z-index: 1; }
 
-/* ── Agent Demo Window ── */
+/*  Agent Demo Window  */
 .lp-agent-window {
   background: #13161e;
   border: 1px solid rgba(255,255,255,0.1);
@@ -1221,7 +1221,7 @@
   overflow: hidden;
 }
 
-/* ── Agent Messages ── */
+/*  Agent Messages  */
 .lp-agent-msg {
   opacity: 0;
   transform: translateY(8px);
@@ -1486,12 +1486,12 @@
   flex-shrink: 0;
 }
 
-/* ─────────────────────────────────────────────────────────────────
+/* ─
    WHY DIFFERENT — BENTO GRID
-   ───────────────────────────────────────────────────────────────── */
-/* ─────────────────────────────────────────────────────────────────
+   ─ */
+/* ─
    BENTO GRID  "Why Different"
-   ───────────────────────────────────────────────────────────────── */
+   ─ */
 .lp-bento {
   padding: 120px 52px;
   background: linear-gradient(180deg, #f0f4fb 0%, #f8faff 60%, #ffffff 100%);
@@ -1522,7 +1522,7 @@
   z-index: 1;
 }
 
-/* ── Base card ── */
+/*  Base card  */
 .lp-bento-card {
   border-radius: 22px;
   padding: 32px 30px;
@@ -1573,7 +1573,7 @@
   margin-bottom: 6px;
 }
 
-/* ── Grid placement ── */
+/*  Grid placement  */
 .lp-bento-card--risk    { grid-column: span 6; }
 .lp-bento-card--agent   { grid-column: span 3; }
 .lp-bento-card--collab  { grid-column: span 3; }
@@ -1765,7 +1765,7 @@
 /* Ghost deco icon */
 .lp-bento-card--risk .lp-bento-card__deco-icon { color: #ef4444; opacity: 0.03; }
 
-/* ── AGENT  violet/indigo ── */
+/*  AGENT  violet/indigo  */
 .lp-bento-card--agent {
   background: linear-gradient(145deg, #faf5ff 0%, #ede9fe 100%);
   border-color: rgba(139,92,246,0.18);
@@ -1783,7 +1783,7 @@
 .lp-bento-card--agent p  { color: #6d4a9e; }
 .lp-bento-card--agent .lp-bento-card__tag  { background: rgba(139,92,246,0.12); color: #7c3aed; border-color: rgba(139,92,246,0.25); }
 
-/* ── COLLAB  blue ── */
+/*  COLLAB  blue  */
 .lp-bento-card--collab {
   background: linear-gradient(145deg, #eff6ff 0%, #dbeafe 100%);
   border-color: rgba(59,130,246,0.18);
@@ -1801,7 +1801,7 @@
 .lp-bento-card--collab p  { color: #3a6aba; }
 .lp-bento-card--collab .lp-bento-card__tag { background: rgba(59,130,246,0.1); color: #2563eb; border-color: rgba(59,130,246,0.25); }
 
-/* ── CANVAS  orange/warm ── */
+/*  CANVAS  orange/warm  */
 .lp-bento-card--canvas {
   background: linear-gradient(145deg, #fff7ed 0%, #ffedd5 100%);
   border-color: rgba(234,88,12,0.15);
@@ -1819,7 +1819,7 @@
 .lp-bento-card--canvas p  { color: #9a4520; }
 .lp-bento-card--canvas .lp-bento-card__tag { background: rgba(234,88,12,0.1); color: #ea580c; border-color: rgba(234,88,12,0.25); }
 
-/* ── PASSPORT  emerald ── */
+/*  PASSPORT  emerald  */
 .lp-bento-card--passport {
   background: linear-gradient(145deg, #f0fdf4 0%, #dcfce7 100%);
   border-color: rgba(22,163,74,0.15);
@@ -1837,7 +1837,7 @@
 .lp-bento-card--passport p  { color: #247a4a; }
 .lp-bento-card--passport .lp-bento-card__tag { background: rgba(22,163,74,0.1); color: #16a34a; border-color: rgba(22,163,74,0.25); }
 
-/* ─── Risk mini table (inside risk card) ───── */
+/* ─ Risk mini table (inside risk card) ─ */
 .lp-bento-risk-table {
   display: flex;
   flex-direction: column;
@@ -1872,7 +1872,7 @@
   background: rgba(255,255,255,0.06);
 }
 
-/* ─── Agent chat preview ───── */
+/* ─ Agent chat preview ─ */
 .lp-bento-agent-preview {
   margin-top: 16px;
   display: flex;
@@ -1906,7 +1906,7 @@
   align-self: flex-start;
 }
 
-/* ─── Collab avatars ───── */
+/* ─ Collab avatars ─ */
 .lp-bento-collab-row {
   display: flex;
   align-items: center;
@@ -1939,7 +1939,7 @@
   border-radius: 999px;
 }
 
-/* ─── Canvas SVG route ───── */
+/* ─ Canvas SVG route ─ */
 .lp-bento-route-svg {
   width: 100%;
   max-width: 260px;
@@ -1948,7 +1948,7 @@
   display: block;
 }
 
-/* ─── Passport stamps ───── */
+/* ─ Passport stamps ─ */
 .lp-bento-stamps {
   display: flex;
   align-items: center;
@@ -1969,9 +1969,9 @@
 }
 
 
-/* ─────────────────────────────────────────────────────────────────
+/* ─
    RISK MONITOR TEASER
-   ───────────────────────────────────────────────────────────────── */
+   ─ */
 .lp-risk-preview {
   padding: 100px 52px;
   background: linear-gradient(160deg, #080c14 0%, #0c1525 60%, #10192e 100%);
@@ -2076,9 +2076,9 @@
 .lp-risk-row__status{ font-size: 0.78rem; font-weight: 800; text-align: right; }
 .lp-risk-row__detail{ font-size: 0.75rem; color: rgba(255,255,255,0.45); text-align: right; }
 
-/* ─────────────────────────────────────────────────────────────────
+/* ─
    RESPONSIVE ADDITIONS
-   ───────────────────────────────────────────────────────────────── */
+   ─ */
 @media (max-width: 1024px) {
   .lp-ai-agent { padding: 80px 32px; }
   .lp-ai-agent__inner { grid-template-columns: 1fr; gap: 52px; }
@@ -2106,7 +2106,7 @@
    NEW SECTIONS — spec v2
    ================================================================= */
 
-/* ─── SKIP TO CONTENT ─────────────────────────────────────────── */
+/* ─ SKIP TO CONTENT ─ */
 .lp-skip-to-content {
   position: absolute;
   top: -100%;
@@ -2126,13 +2126,13 @@
   top: 16px;
 }
 
-/* ─── FOCUS VISIBLE RING (global) ────────────────────────────── */
+/* ─ FOCUS VISIBLE RING (global)  */
 *:focus-visible {
   outline: 2px solid var(--lp-primary);
   outline-offset: 2px;
 }
 
-/* ─── NAV SEARCH BAR ─────────────────────────────────────────── */
+/* ─ NAV SEARCH BAR ─ */
 .lp-nav__search {
   position: relative;
   display: flex;
@@ -2179,7 +2179,7 @@
   align-items: center;
 }
 
-/* ─── HERO 2-COLUMN LAYOUT ───────────────────────────────────── */
+/* ─ HERO 2-COLUMN LAYOUT ─ */
 .lp-hero__content--split {
   max-width: 1200px;
   width: 100%;
@@ -2290,7 +2290,7 @@
   outline-offset: 2px;
 }
 
-/* ─── HERO RIGHT: LIVE STATS CARD ───────────────────────────── */
+/* ─ HERO RIGHT: LIVE STATS CARD ─ */
 .lp-hero__right {
   flex: 0 0 45%;
   max-width: 45%;
@@ -2442,7 +2442,7 @@
   max-width: 160px;
 }
 
-/* ─── TRUST BAR ───────────────────────────────────────────────── */
+/* ─ TRUST BAR ─ */
 .lp-trust-bar {
   background: #F7F7F7;
   border-top: 1px solid #EBEBEB;
@@ -2513,7 +2513,7 @@
   flex-shrink: 0;
 }
 
-/* ─── MICRO-INTERACTIONS ─────────────────────────────────────── */
+/* ─ MICRO-INTERACTIONS ─ */
 
 /* Card hover lift */
 .lp-feature-card,
@@ -2541,7 +2541,7 @@
   transition: background 0.3s, box-shadow 0.3s, padding 0.3s;
 }
 
-/* ─── RESPONSIVE ADDITIONS ───────────────────────────────────── */
+/* ─ RESPONSIVE ADDITIONS ─ */
 @media (max-width: 1024px) {
   .lp-nav__search { display: none; }
 

@@ -104,7 +104,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
       <Box sx={{ position:'absolute', top:0, left:0, bottom:0, width:3, background:'linear-gradient(180deg,#FF385C,#E31C5F)', borderRadius:'3px 0 0 3px', pointerEvents:'none' }} />
       <CardContent sx={{ pl:2, pr:.5, py:'0 !important', minHeight:48, display:'flex', alignItems:'center', gap:.75 }}>
 
-        {/* ── Name ── */}
+        {/*  Name  */}
         <Box sx={{ flex:'1 1 100px', minWidth:60, maxWidth:'34%', overflow:'hidden' }}>
           {editing ? (
             <InputBase value={localName} autoFocus onChange={e=>setLocalName(e.target.value)} onBlur={commitName} onKeyDown={handleKey}
@@ -117,7 +117,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
 
         <Box sx={{ flex:1 }} />
 
-        {/* ── Nights pill ── */}
+        {/*  Nights pill  */}
         <Box onClick={e => e.stopPropagation()} sx={{ display: 'flex', alignItems: 'center', bgcolor: 'rgba(255,56,92,0.07)', border: '1px solid rgba(255,56,92,0.2)', borderRadius: '20px', px: .5, height: 22, gap: .1, flexShrink: 0, mt: { xs: .2, sm: 0 } }}>
             {!readonly && (<Box component='button' type='button'
               onClick={(e: any) => { e.stopPropagation(); onChangeNights?.(id, -1); }} disabled={nights <= 1}
@@ -132,14 +132,14 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
             </Box>)}
           </Box>
 
-        {/* ── Date pill ── */}
+        {/*  Date pill  */}
         <Box sx={(t)=>({ height:22, px:.8, borderRadius:20, border:`1px solid ${t.palette.divider}`, fontSize:11, fontWeight:600, whiteSpace:'nowrap', flexShrink:0, color:t.palette.text.secondary, display:'flex', alignItems:'center' })}>
           {dateFmt(startDate)} – {dateFmt(endDate)}
         </Box>
 
         {completed && <Chip size='small' label='✓' color='success' sx={{ height:16, minWidth:0, fontSize:10, fontWeight:700, '& .MuiChip-label':{ px:.6 } }} />}
 
-        {/* ── Feature icon strip (icon-only, tooltip labels) ── */}
+        {/*  Feature icon strip (icon-only, tooltip labels)  */}
         {(()=>{
           const discoverCount=(spots?.length||0)+(foods?.length||0);
           const stayCount=Array.isArray(stays)?stays.length:((stay?.name||stay?.reference||stay?.notes)?1:0);
@@ -171,14 +171,14 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
           );
         })()}
 
-        {/* ── Dropdown arrow for notes ── */}
+        {/*  Dropdown arrow for notes  */}
         <Tooltip title={notesOpen ? 'Hide notes' : (notes ? 'Show notes' : 'Add notes')} enterDelay={400}>
           <IconButton size='small' onClick={(e) => { e.stopPropagation(); setNotesOpen(v => !v); }} sx={{ p: .45, color: notes ? '#FF385C' : 'text.disabled', transition: 'transform .2s, color .15s', transform: notesOpen ? 'rotate(180deg)' : 'rotate(0deg)', '&:hover': { color: '#FF385C' } }}>
             <KeyboardArrowDownIcon sx={{ fontSize: 16 }} />
           </IconButton>
         </Tooltip>
 
-        {/* ── Delete (visible on hover) ── */}
+        {/*  Delete (visible on hover)  */}
         {onRemove && (
           <Tooltip title='Remove destination' enterDelay={400}>
             <IconButton size='small' onClick={(e) => { e.stopPropagation(); onRemove(id); }} sx={{ p: .45, opacity: 0, transition: 'opacity .15s, color .15s', color: 'text.disabled', '.MuiCard-root:hover &': { opacity: 1 }, '&:hover': { color: '#ef4444' } }}>
@@ -189,7 +189,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
 
       </CardContent>
 
-      {/* ── Alerts popover ── */}
+      {/*  Alerts popover  */}
       <Popover
         open={!!alertAnchor}
         anchorEl={alertAnchor}
@@ -219,7 +219,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({ destination, disabled
         </Box>
       </Popover>
 
-      {/* ── Expandable notes section ── */}
+      {/*  Expandable notes section  */}
       <Collapse in={notesOpen} timeout={200} unmountOnExit>
         <Box sx={{ px: 2, pb: 1.5, pt: 0.5 }}>
           <TextField

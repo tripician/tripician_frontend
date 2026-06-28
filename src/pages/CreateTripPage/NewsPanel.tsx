@@ -116,7 +116,7 @@ function normalizeLocationCode(value?: string): string {
   return match ? match[0] : '';
 }
 
-// ─── Colour/icon helpers shared with AlertsPanel ──────────────────────────
+// ─ Colour/icon helpers shared with AlertsPanel 
 const ALERT_META: Record<string, { bg: string; border: string; iconColor: string; badgeColor: 'error' | 'warning' | 'info' | 'default'; description: string }> = {
   'Severe Weather': {
     bg: 'rgba(127,29,29,0.18)', border: 'rgba(239,68,68,0.45)', iconColor: '#f87171',
@@ -663,7 +663,7 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
         </Box>
       )}
 
-      {/* ── Premium Risk Monitor Banner ── */}
+      {/*  Premium Risk Monitor Banner  */}
       <Box sx={{
         mb: 3, color: '#f8fafc', borderRadius: { xs: 2.5, md: 3.5 },
         background: 'linear-gradient(135deg, #020a1c 0%, #0a1628 20%, #0d2146 50%, #1255b0 78%, #0288d1 100%)',
@@ -1009,7 +1009,7 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
               })}
             </Stack>
 
-            {/* ── Active Alerts Panel ── */}
+            {/*  Active Alerts Panel  */}
             <AlertsPanel articles={activeArticles} loading={loading} classifyImpact={classifyImpact} formatDate={formatDate} />
 
             <Card variant='outlined' sx={{ p: 2, borderRadius: 2.5 }}>

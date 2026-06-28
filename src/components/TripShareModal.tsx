@@ -304,7 +304,7 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
         </Typography>
       </Box>
 
-      {/* ── Section 2: Share icon-only buttons ── */}
+      {/*  Section 2: Share icon-only buttons  */}
       <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.5, flexWrap: 'wrap' }}>
         {SHARE_BUTTONS.map((btn) => {
           const isInstagram = btn.id === 'instagram';

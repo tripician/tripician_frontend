@@ -609,7 +609,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
     onClose();
   };
 
-  // ── GSAP: modal entrance ──
+  //  GSAP: modal entrance 
   useEffect(() => {
     if (!open) return;
     const ctx = gsap.context(() => {
@@ -669,7 +669,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
             position: 'relative',
           }}
         >
-          {/* ── TOP ACCENT STRIP ── */}
+          {/*  TOP ACCENT STRIP  */}
           <Box sx={{ height: 3, flexShrink: 0, background: activeVibe ? activeVibe.activeBg : 'linear-gradient(90deg, #FF385C 0%, #FF6B35 50%, #FFB347 100%)', transition: 'background 0.5s ease' }} />
 
           {/* Loading overlay */}
@@ -685,7 +685,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
             </Box>
           )}
 
-          {/* ── MAIN PANEL ── */}
+          {/*  MAIN PANEL  */}
           <Box sx={{
             p: { xs: '24px 20px 20px', md: '28px 40px 24px' },
             overflowY: 'auto',
@@ -710,7 +710,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
               </IconButton>
             </Box>
 
-            {/* ── Step indicator ── */}
+            {/*  Step indicator  */}
             <Box sx={{ display: 'flex', alignItems: 'flex-start', mb: 3 }}>
               {STEP_LABELS.map((label, i) => {
                 const stepNum = i + 1;
@@ -745,7 +745,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
               <Alert severity="error" onClose={() => setErrorMsg(null)} sx={{ mb: 2, borderRadius: '12px' }}>{errorMsg}</Alert>
             )}
 
-            {/* ── STEP CONTENT ── */}
+            {/*  STEP CONTENT  */}
             <Box ref={stepContentRef} sx={{ flex: 1 }}>
 
               {/* STEP 1 — The Basics */}
@@ -1033,7 +1033,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
 
             </Box>{/* end step content */}
 
-            {/* ── FOOTER ACTIONS ── */}
+            {/*  FOOTER ACTIONS  */}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 3, pt: 1.5, borderTop: '1px solid rgba(0,0,0,0.05)' }}>
               <Box>
                 {step > 1 && (

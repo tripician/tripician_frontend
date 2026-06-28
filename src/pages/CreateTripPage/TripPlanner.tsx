@@ -620,7 +620,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 			overflow: 'hidden',
 			position: 'relative',
 		}}>
-			{/* ── Banner ── */}
+			{/*  Banner  */}
 			<Box sx={{ position: 'relative', flexShrink: 0 }}>
 				{(bannerUrl || sideBarBanner) ? (
 					<Box
@@ -690,7 +690,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 				</Box>
 			</Box>
 
-			{/* ── Scrollable body ── */}
+			{/*  Scrollable body  */}
 			<Box sx={{
 				flex: 1, overflowY: 'auto', px: 2, pt: 2, pb: 1.5,
 				display: 'flex', flexDirection: 'column', gap: 2.25,
@@ -699,7 +699,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 				'&::-webkit-scrollbar-track': { background: 'transparent' },
 			}}>
 
-				{/* ── About ── */}
+				{/*  About  */}
 				{description && (
 					<Box sx={{
 						pl: 1.5, borderLeft: '3px solid',
@@ -720,7 +720,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 					</Box>
 				)}
 
-				{/* ── Stats grid ── */}
+				{/*  Stats grid  */}
 				<Box>
 					<Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
 						{[
@@ -777,7 +777,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 					)}
 				</Box>
 
-				{/* ── Reactions toolbar ── */}
+				{/*  Reactions toolbar  */}
 				{isPublished && (
 					<Box sx={{
 						display: 'flex', alignItems: 'center', gap: 0.5,
@@ -835,7 +835,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 					</Box>
 				)}
 
-				{/* ── Members ── */}
+				{/*  Members  */}
 				{tripUsers.length > 0 && (
 					<Box sx={{ borderRadius: '14px', background: sectionBg, border: `1px solid ${border}`, overflow: 'hidden' }}>
 						{/* Header */}
@@ -918,7 +918,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 
 			</Box>
 
-			{/* ── Footer ── */}
+			{/*  Footer  */}
 			<Box sx={{
 				px: 2, pb: 2, pt: 1.25, flexShrink: 0,
 				borderTop: `1px solid ${border}`,
@@ -1395,7 +1395,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const openToast = (type:'success'|'error'|'info', msg:string)=> setToast({ open:true, type, msg });
 	const closeToast = ()=> setToast(t=> ({ ...t, open:false }));
 
-	// ── AI Auto-generation (triggered via "Generate with AI" flow) ──────────────
+	//  AI Auto-generation (triggered via "Generate with AI" flow) 
 	const AI_GEN_MESSAGES = [
 		'Crafting your trip…',
 		'Designing the best compatible path for your travel style…',
@@ -1552,7 +1552,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 
 	// Cleanup interval on unmount
 	React.useEffect(() => () => { if (aiMsgIntervalRef.current) clearInterval(aiMsgIntervalRef.current); }, []);
-	// ── End AI Auto-generation ───────────────────────────────────────────────────
+	//  End AI Auto-generation ─
 	// Lightweight settings save listener (Save Settings button dispatches browser event)
 	React.useEffect(()=> {
 		const settingsSaveHandler = async () => {
@@ -2231,7 +2231,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 
 	return (
 		<React.Fragment>
-		{/* ── AI Auto-Generation fullscreen overlay ── */}
+		{/*  AI Auto-Generation fullscreen overlay  */}
 		{aiAutoGenerating && (
 			<Box sx={{
 				position: 'fixed', inset: 0, zIndex: 9999,

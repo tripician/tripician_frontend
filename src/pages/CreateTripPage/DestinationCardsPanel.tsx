@@ -74,7 +74,7 @@ function ensureGoogleMapsLoaded(apiKey: string): Promise<void> {
   });
 }
 
-/* ─── Sortable card wrapper (dnd-kit per-item) ─── */
+/* ─ Sortable card wrapper (dnd-kit per-item) ─ */
 const SortableCardWrapper: React.FC<{
   id: string;
   children: (props: { isDragging: boolean; dragHandleProps: Record<string, unknown> }) => React.ReactNode;
@@ -327,13 +327,13 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
     return () => { cancelled = true; };
   }, [destinations.map(d => d.id + ':' + d.name).join(',')]);
 
-  /* ──────── Per-destination checklist (local, kept in sync across renders) ──── */
+  /*  Per-destination checklist (local, kept in sync across renders)  */
   const [checklists, setChecklists] = React.useState<Record<string, DestinationCardChecklist>>({});
   const handleChecklistChange = React.useCallback((id: string, cl: DestinationCardChecklist) => {
     setChecklists(prev => ({ ...prev, [id]: cl }));
   }, []);
 
-  /* ─────────────────────── Drag-to-reorder (dnd-kit) ────────────────────────── */
+  /* ─ Drag-to-reorder (dnd-kit)  */
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [activeDragId, setActiveDragId] = React.useState<string | null>(null);
   const handleDragEnd = React.useCallback((event: DragEndEvent) => {
@@ -348,7 +348,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
     dispatch(reorderChainExact({ ids: newIds }));
   }, [destinations, dispatch]);
 
-  /* ────────────────────── Completion signals (Feature 3) ─────────────────────── */
+  /*  Completion signals (Feature 3) ─ */
   const completionSignals = React.useMemo(() => {
     const hasDestinations = destinations.length > 0;
     const hasDates = destinations.some(d => !!d.startDate);
@@ -398,7 +398,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
     <Fade in timeout={300}>
       <Box sx={{ px:2.5, pt:2, pb:1.5, display:'flex', flexDirection:'column', gap:1.5, position:'relative' }}>
 
-        {/* ── Progress milestone stepper ── */}
+        {/*  Progress milestone stepper  */}
         {destinations.length > 0 && (
           <Box sx={(t) => ({
             maxWidth: 900, mx: 'auto', width: '100%', mb: 0.5,

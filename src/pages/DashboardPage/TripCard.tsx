@@ -141,7 +141,7 @@ const TripCard: React.FC<TripCardProps> = ({
         )}
       </div>
 
-      {/* ── Blurred bottom panel ── */}
+      {/*  Blurred bottom panel  */}
       <div className="tc-body">
 
         {/* 1. Title + share */}

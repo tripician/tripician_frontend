@@ -343,11 +343,11 @@ const Dashboard: React.FC = () => {
     >
       <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column', justifyContent: 'flex-start' }}>
 
-        {/* ── Boarding pass / Welcome banner ── */}
+        {/*  Boarding pass / Welcome banner  */}
         {!loading && (
           <Box ref={bannerRef} style={{ opacity: 0, transform: 'translateY(-28px) scale(0.97)' }} sx={{ mx: '2%', mt: 2.5, mb: 1 }}>
             {allPlans.length === 0 || !nextUpcoming ? (
-              /* ── Premium welcome banner (new / no trips) ── */
+              /*  Premium welcome banner (new / no trips)  */
               <Box
                 sx={{
                   position: 'relative',
@@ -399,7 +399,7 @@ const Dashboard: React.FC = () => {
                 </Box>
               </Box>
             ) : (
-              /* ── Next Trip card (has trips) ── */
+              /*  Next Trip card (has trips)  */
               <Box
                 onClick={() => nextUpcoming && navigate(`/trip/${nextUpcoming.id}`, { state:{ trip:{ id:nextUpcoming.id, name:nextUpcoming.title }, tripId:nextUpcoming.id, __ts:Date.now() } })}
                 sx={{

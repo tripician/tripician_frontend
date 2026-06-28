@@ -440,7 +440,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
         },
       })}
     >
-      {/* ── Photo panel + drag handle ── */}
+      {/*  Photo panel + drag handle  */}
       <Box
         {...(dragHandleProps || {})}
         sx={(t) => ({
@@ -482,10 +482,10 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
         </Box>
       </Box>
 
-      {/* ── Main content ── */}
+      {/*  Main content  */}
       <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', minWidth: 0 }}>
 
-        {/* ── Header ── */}
+        {/*  Header  */}
         <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: .5, pl: 1.25, pr: .5, pt: .75, pb: .5, minHeight: 46, flexWrap: 'wrap' }}>
 
           {/* Plan title + location tag (inline) */}
@@ -624,7 +624,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
           </Box>
         </Box>{/* end header */}
 
-        {/* ── Meta chips (transport / budget) ── */}
+        {/*  Meta chips (transport / budget)  */}
         {(transportLabel || budgetVal > 0) && (
           <Box onClick={e => e.stopPropagation()} sx={{ display: 'flex', flexWrap: 'wrap', gap: .5, px: 1.25, pb: .35, alignItems: 'center' }}>
             {transportLabel && (
@@ -642,7 +642,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
           </Box>
         )}
 
-        {/* ── Journey plan strip (integrated footer) ── */}
+        {/*  Journey plan strip (integrated footer)  */}
         <Box onClick={e => e.stopPropagation()}>
           <JourneyPlanStrip
             activeLane={notesExpanded ? 'notes' : null}
@@ -675,7 +675,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
           )}
         </Box>
 
-        {/* ── Inline notes (only expandable lane) ── */}
+        {/*  Inline notes (only expandable lane)  */}
         <AnimatePresence initial={false}>
           {notesExpanded && (
             <motion.div
@@ -723,7 +723,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
 
       </Box>{/* end content */}
 
-      {/* ── Alerts popover ── */}
+      {/*  Alerts popover  */}
       <Popover
         open={!!alertAnchor}
         anchorEl={alertAnchor}

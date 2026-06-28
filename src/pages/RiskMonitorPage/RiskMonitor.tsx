@@ -11,7 +11,7 @@ import { fetchNews, type TwinglyDocument, type FetchNewsParams } from '../../ser
 import { flagEmojiFromCode } from '../../utils/countryFlags';
 import '../../assets/css/RiskMonitor.css';
 
-// ─── Destination catalogue ────────────────────────────────────────────────────
+// ─ Destination catalogue 
 interface Dest { name: string; currency: string; region: string; baseRisk: number; }
 const DESTS: Record<string, Dest> = {
   jp: { name: 'Japan',          currency: 'JPY', region: 'Asia Pacific',  baseRisk: 8  },
@@ -55,7 +55,7 @@ const POPULAR = ['jp', 'fr', 'ae', 'th', 'it', 'au', 'sg', 'gb'];
 const MAJOR_FX = ['USD', 'EUR', 'GBP', 'AUD', 'CAD', 'CHF', 'SGD', 'JPY'];
 const REGIONS  = ['All', 'Asia Pacific', 'Europe', 'North America', 'South America', 'Middle East', 'Africa'];
 
-// ─── Helpers ─────────────────────────────────────────────────────────────────
+// ─ Helpers ─
 function riskProfile(score: number) {
   if (score <= 20) return { label: 'Low Risk', color: '#22c55e', dim: 'rgba(34,197,94,0.15)',  icon: '🟢' };
   if (score <= 45) return { label: 'Watch',    color: '#f59e0b', dim: 'rgba(245,158,11,0.15)', icon: '🟡' };
@@ -103,7 +103,7 @@ function wmoEmoji(code: number | null): string {
   return '⛈️';
 }
 
-// ─── Score Gauge ──────────────────────────────────────────────────────────────
+// ─ Score Gauge 
 function ScoreGauge({ score, color }: { score: number; color: string }) {
   const R = 52, cx = 64, cy = 64;
   const circ = 2 * Math.PI * R;
@@ -123,7 +123,7 @@ function ScoreGauge({ score, color }: { score: number; color: string }) {
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+// ─ Main Page 
 export default function RiskMonitor() {
   const isMobile = useMediaQuery('(max-width: 899px)');
   const [query,    setQuery]    = useState('');
@@ -220,7 +220,7 @@ export default function RiskMonitor() {
   return (
     <div className="rm-page">
 
-      {/* ── HERO ────────────────────────────────────── */}
+      {/*  HERO  */}
       <div className="rm-hero" ref={heroRef}>
         <div className="rm-hero__dots" aria-hidden="true" />
         <div className="rm-hero__glow"  aria-hidden="true" />
@@ -239,7 +239,7 @@ export default function RiskMonitor() {
             Real-time safety, weather &amp; news intelligence for any destination — before you book.
           </p>
 
-          {/* ── Research caution notice ── */}
+          {/*  Research caution notice  */}
           <div className="rm-hero__caution">
             <span>
               <strong>⚠️ For reference only.</strong> Risk data is based on ongoing research and automated sources — it may be incomplete or inaccurate. Always verify with official government travel advisories before making any travel decisions.
@@ -295,7 +295,7 @@ export default function RiskMonitor() {
           </div>
         </div>
       </div>
-      {/* ── GLOBAL STATS STRIP ─────────────────────── */}
+      {/*  GLOBAL STATS STRIP ─ */}
       <div className="rm-stats-strip">
         <div className="rm-stats-strip__item">
           <span className="rm-stats-strip__num">{Object.keys(DESTS).length}</span>
@@ -326,7 +326,7 @@ export default function RiskMonitor() {
           <span className="rm-stats-strip__lbl">High Risk</span>
         </div>
       </div>
-      {/* ── RESULTS ─────────────────────────────────── */}
+      {/*  RESULTS ─ */}
       {selected && dest && (
         <div className="rm-results" ref={resultsRef}>
 
@@ -345,7 +345,7 @@ export default function RiskMonitor() {
             </p>
           </div>
 
-          {/* ── 4-panel stat row ── */}
+          {/*  4-panel stat row  */}
           <div className="rm-stat-row">
 
             {/* Gauge */}
@@ -425,7 +425,7 @@ export default function RiskMonitor() {
             </div>
           </div>
 
-          {/* ── Tab bar ── */}
+          {/*  Tab bar  */}
           <div className="rm-tab-bar">
             {(['news', 'alerts', 'currency'] as const).map(t => (
               <button
@@ -440,7 +440,7 @@ export default function RiskMonitor() {
             ))}
           </div>
 
-          {/* ── Tab content ── */}
+          {/*  Tab content  */}
           <div className="rm-tab-body">
 
             {/* NEWS */}
@@ -554,7 +554,7 @@ export default function RiskMonitor() {
         </div>
       )}
 
-      {/* ── WELCOME (no destination selected) ──────── */}
+      {/*  WELCOME (no destination selected)  */}
       {!selected && (
         <div className="rm-welcome">
 

@@ -12,7 +12,7 @@
   opacity: 0.7;
 }
 
-/* ─── GLOBAL DESIGN TOKENS ───────────────────────────────────── */
+/* ─ GLOBAL DESIGN TOKENS ─ */
 :root {
   --color-brand:        #FF385C;
   --color-brand-hover:  #E31C5F;
@@ -24,15 +24,15 @@
   --transition:         all 0.2s ease;
 }
 
-/* ─── RADAR PING — Risk Monitor nav icon only ──────────────────
+/* ─ RADAR PING — Risk Monitor nav icon only 
    One animation done well > six gimmicks.
-   ────────────────────────────────────────────────────────────── */
+    */
 @keyframes radar-ping {
   0%   { transform: scale(1); opacity: 0.8; }
   100% { transform: scale(2.6); opacity: 0; }
 }
 
-/* ─── PAGE HEADER — live badge dot pulse ─────────────────────── */
+/* ─ PAGE HEADER — live badge dot pulse ─ */
 @keyframes page-header-live-pulse {
   0%   { box-shadow: 0 0 0 0 rgba(34,197,94,0.6); }
   70%  { box-shadow: 0 0 0 6px rgba(34,197,94,0); }

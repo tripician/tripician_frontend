@@ -35,7 +35,7 @@ export interface TwinglySearchResponse {
   documents: TwinglyDocument[];
 }
 
-// ─── Guardian implementation ───────────────────────────────────────────────
+// ─ Guardian implementation ─
 
 const GUARDIAN_BASE = 'https://content.guardianapis.com';
 

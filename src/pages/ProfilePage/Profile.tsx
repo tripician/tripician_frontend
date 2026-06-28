@@ -40,9 +40,9 @@ import ArchiveRoundedIcon from '@mui/icons-material/ArchiveRounded';
 import PeopleRoundedIcon from '@mui/icons-material/PeopleRounded';
 import PersonRoundedIcon from '@mui/icons-material/PersonRounded';
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─
 // Default banner fetched once from Unsplash (cached in module scope)
-// ─────────────────────────────────────────────────────────────────────────────
+// ─
 let _defaultBanner: string | null = null;
 const DEFAULT_BANNER_QUERIES = ['mountains aerial travel', 'aerial landscape travel', 'travel adventure nature'];
 
@@ -55,9 +55,9 @@ async function loadDefaultBanner(): Promise<string | null> {
   return null;
 }
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─
 // TRIP CARD
-// ─────────────────────────────────────────────────────────────────────────────
+// ─
 const ProfileTripCard: React.FC<{ trip: any; index: number; onClick: () => void }> = ({ trip, index, onClick }) => {
   const theme = useTheme();
   const isDark = theme.palette.mode === 'dark';
@@ -167,9 +167,9 @@ const ProfileTripCard: React.FC<{ trip: any; index: number; onClick: () => void 
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─
 // STAT PILL
-// ─────────────────────────────────────────────────────────────────────────────
+// ─
 const StatPill: React.FC<{ value: number | string; label: string; icon: React.ReactNode; accent?: string }> = ({ value, label, icon, accent = '#FF385C' }) => {
   const isDark = useTheme().palette.mode === 'dark';
   return (
@@ -194,9 +194,9 @@ const StatPill: React.FC<{ value: number | string; label: string; icon: React.Re
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─
 // DETAIL ROW
-// ─────────────────────────────────────────────────────────────────────────────
+// ─
 const DetailRow: React.FC<{ icon: React.ReactNode; label: string; value?: string | null }> = ({ icon, label, value }) => {
   if (!value?.trim()) return null;
   return (
@@ -212,9 +212,9 @@ const DetailRow: React.FC<{ icon: React.ReactNode; label: string; value?: string
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─
 // PILL TABS
-// ─────────────────────────────────────────────────────────────────────────────
+// ─
 const PillTabs: React.FC<{ tabs: { label: string; count: number }[]; active: number; onChange: (i: number) => void }> = ({ tabs, active, onChange }) => {
   const isDark = useTheme().palette.mode === 'dark';
   return (
@@ -240,9 +240,9 @@ const PillTabs: React.FC<{ tabs: { label: string; count: number }[]; active: num
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─
 // SKELETON
-// ─────────────────────────────────────────────────────────────────────────────
+// ─
 const SkeletonTripCard = () => {
   const isDark = useTheme().palette.mode === 'dark';
   return (
@@ -259,9 +259,9 @@ const SkeletonTripCard = () => {
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─
 // EMPTY STATE
-// ─────────────────────────────────────────────────────────────────────────────
+// ─
 const EMPTY_COPY = [
   {
     icon: <FlightTakeoffRoundedIcon sx={{ fontSize: 36, color: '#FF385C' }} />,
@@ -313,9 +313,9 @@ const EmptyState: React.FC<{ tabIndex: number; onCTA: () => void }> = ({ tabInde
   );
 };
 
-// ─────────────────────────────────────────────────────────────────────────────
+// ─
 // SIDE CARD
-// ─────────────────────────────────────────────────────────────────────────────
+// ─
 const SideCard: React.FC<{ children: React.ReactNode; headerIcon: React.ReactNode; headerLabel: string; accent?: string }> = ({ children, headerIcon, headerLabel, accent = '#FF385C' }) => {
   const isDark = useTheme().palette.mode === 'dark';
   return (
@@ -433,7 +433,7 @@ const Profile: React.FC = () => {
     () => setActiveTab(0),
   ];
 
-  // ── States ──────────────────────────────────────────────────────────────
+  //  States 
   if (loading) {
     return (
       <Box sx={{ width: '100%', minHeight: '100vh', bgcolor: isDark ? '#07090c' : '#f2f4f8', display: 'flex', flexDirection: 'column' }}>
@@ -517,7 +517,7 @@ const Profile: React.FC = () => {
           </Box>
         </Box>
 
-        {/* ── Avatar + Identity ── */}
+        {/*  Avatar + Identity  */}
         <Container maxWidth='xl' sx={{ px: { xs: 2, sm: 3, md: 4 } }}>
           <Box sx={{
             display: 'flex',
@@ -596,7 +596,7 @@ const Profile: React.FC = () => {
             </Box>
           </Box>
 
-          {/* ── Stats bar ── */}
+          {/*  Stats bar  */}
           <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.18, type: 'spring', stiffness: 280, damping: 24 }}>
             <Box sx={{ display: 'flex', gap: { xs: 0.75, sm: 1.25 }, flexWrap: 'wrap', mb: 3 }}>
               <StatPill value={myTrips.length}      label='Total Trips'     icon={<ExploreRoundedIcon />} />
@@ -615,7 +615,7 @@ const Profile: React.FC = () => {
       <Container maxWidth='xl' sx={{ px: { xs: 2, sm: 3, md: 4 }, pb: 8, flex: 1 }}>
         <Box sx={{ display: 'flex', gap: { xs: 0, xl: 3.5 }, flexDirection: { xs: 'column', xl: 'row' }, alignItems: 'flex-start' }}>
 
-          {/* ── Trip grid ── */}
+          {/*  Trip grid  */}
           <Box sx={{ flex: 1, minWidth: 0, width: '100%' }}>
             <Box sx={{ mb: 2.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 1.25 }}>
               <PillTabs
@@ -655,7 +655,7 @@ const Profile: React.FC = () => {
             </AnimatePresence>
           </Box>
 
-          {/* ── Sidebar ── */}
+          {/*  Sidebar  */}
           <Box sx={{ width: { xs: '100%', xl: 295 }, flexShrink: 0, mt: { xs: 3.5, xl: 0 } }}>
             <motion.div initial={{ opacity: 0, x: 20 }} animate={{ opacity: 1, x: 0 }} transition={{ delay: 0.24, type: 'spring', stiffness: 260, damping: 24 }}>
 

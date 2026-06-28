@@ -472,7 +472,7 @@ const Home: React.FC = () => {
   const [, setCurrentStatusMessages] = useState(() => statusMessages[0] ?? { title: '', subtitle: '' });
   const [currentMotivation, setCurrentMotivation] = useState(() => ({ title: motivationalQuotes[0] }));
 
-  /* ── Feed filter state ── */
+  /*  Feed filter state  */
   const [feedFilter, setFeedFilter] = useState<FeedFilter>('All');
 
   /* Happening Now uses real public trips only */
@@ -534,7 +534,7 @@ const Home: React.FC = () => {
       {/* HERO SECTION */}
       <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 1, md: 2 }, pb: 2, position: 'relative', zIndex: 2 }}>
 
-      {/* ── No upcoming trip: full discovery experience ── */}
+      {/*  No upcoming trip: full discovery experience  */}
       {userTripsLoading ? (
         <Box sx={{ height: { xs: 220, md: 260 }, borderRadius: '20px' }} />
       ) : !nextUpcomingTrip && (
@@ -554,12 +554,12 @@ const Home: React.FC = () => {
             width: '100%',
             overflow: 'auto' 
           }}>
-            {/* ── VIBE HERO ────────────────────────────────────────── */}
+            {/*  VIBE HERO  */}
             <QuickStartStrip userName={userFirstName} hasTrips={userTrips.length > 0} />
 
             {/* Community Adventures */}
             <Box sx={{ mt: 2, mb: 6 }}>
-              {/* ── Section master header ── */}
+              {/*  Section master header  */}
               <Box sx={{ mb: 4, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography sx={{
@@ -1042,7 +1042,7 @@ const Home: React.FC = () => {
         </Box>
       )}
 
-      {/* ── Has upcoming trip: Journey Dashboard Hero ── */}
+      {/*  Has upcoming trip: Journey Dashboard Hero  */}
       {!userTripsLoading && nextUpcomingTrip && (
         <>
         <Box
@@ -1056,7 +1056,7 @@ const Home: React.FC = () => {
             mb: 0,
           }}
         >
-          {/* ── LEFT: Dark hero panel ── */}
+          {/*  LEFT: Dark hero panel  */}
           <Box sx={{
             borderRadius: '20px',
             background: 'linear-gradient(160deg, #130006 0%, #220009 40%, #0d0004 100%)',
@@ -1204,7 +1204,7 @@ const Home: React.FC = () => {
             </Box>
           </Box>
 
-          {/* ── RIGHT: Insights & Stats Panel ── */}
+          {/*  RIGHT: Insights & Stats Panel  */}
           <Box sx={{
             display: { xs: 'none', lg: 'flex' },
             flexDirection: 'column',
@@ -1215,7 +1215,7 @@ const Home: React.FC = () => {
           {/* Subtle top-right accent */}
           <Box sx={{ position: 'absolute', top: -60, right: -60, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,56,92,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-            {/* ── SECTION: Travel Insight? (Full-height, Beautiful) ── */}
+            {/*  SECTION: Travel Insight? (Full-height, Beautiful)  */}
             {/* Premium Quote Hero */}
           <Box
             sx={{
@@ -1283,7 +1283,7 @@ const Home: React.FC = () => {
 
           
 
-            {/* ── SECTION: Stats ── */}
+            {/*  SECTION: Stats  */}
             <Box sx={{
               border: '1px solid rgba(0,0,0,0.07)',
               background: 'rgb(255, 255, 255)',
@@ -1339,7 +1339,7 @@ const Home: React.FC = () => {
           {/* Community Adventures */}
           <Box sx={{ mt: 2, mb: 6 }}>
 
-            {/* ── Section master header ── */}
+            {/*  Section master header  */}
             <Box sx={{ mb: 4, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
               <Box>
                 <Typography sx={{

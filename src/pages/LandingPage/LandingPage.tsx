@@ -25,7 +25,7 @@ import '../../assets/css/LandingPage.css';
 
 gsap.registerPlugin(ScrollTrigger);
 
-/* ─── STATIC DATA ────────────────────────────────────────────────── */
+/* ─ STATIC DATA  */
 const FEATURES = [
   {
     icon: <Sparkles size={26} />,
@@ -270,7 +270,7 @@ function AgentDemoWidget() {
   );
 }
 
-/* ─── FAQ ────────────────────────────────────────────────────────── */
+/* ─ FAQ  */
 const LP_FAQS = [
   {
     q: 'What exactly is Tripician?',
@@ -368,7 +368,7 @@ function LandingFAQ() {
   );
 }
 
-/* ─── COMPONENT ─────────────────────────────────────────────────── */
+/* ─ COMPONENT ─ */
 export default function LandingPage() {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading } = useAuth0();
@@ -433,7 +433,7 @@ export default function LandingPage() {
   useLayoutEffect(() => {
     const ctx = gsap.context(() => {
 
-      /* ── 1. HERO ENTRANCE ───────────────────────────────────── */
+      /*  1. HERO ENTRANCE ─ */
       const heroTL = gsap.timeline({ defaults: { ease: 'power3.out' } });
       heroTL
         .to('.lp-nav', { y: 0, opacity: 1, duration: 0.85 })
@@ -490,7 +490,7 @@ export default function LandingPage() {
         duration: 2.8, ease: 'power3.out', delay: 0.6,
       });
 
-      /* ── 2. NAVBAR SHRINKS ON SCROLL ────────────────────────── */
+      /*  2. NAVBAR SHRINKS ON SCROLL  */
       ScrollTrigger.create({
         start: 'top -55',
         end: 99999,
@@ -505,7 +505,7 @@ export default function LandingPage() {
         },
       });
 
-      /* ── 3. HERO PARALLAX ───────────────────────────────────── */
+      /*  3. HERO PARALLAX ─ */
       gsap.to('.lp-hero__bg', {
         yPercent: 32,
         ease: 'none',
@@ -517,7 +517,7 @@ export default function LandingPage() {
         },
       });
 
-      /* ── 4. STATS COUNTERS ──────────────────────────────────── */
+      /*  4. STATS COUNTERS  */
       document.querySelectorAll<HTMLElement>('.lp-stat__number').forEach((el) => {
         const target = parseFloat(el.dataset.target ?? '0');
         const isDecimal = el.dataset.decimal === 'true';
@@ -543,7 +543,7 @@ export default function LandingPage() {
         });
       });
 
-      /* ── 5. FEATURES ────────────────────────────────────────── */
+      /*  5. FEATURES  */
       gsap.from('.lp-features__header', {
         y: 42, opacity: 0, duration: 0.8,
         scrollTrigger: { trigger: '.lp-features', start: 'top 82%', toggleActions: 'play none none reverse' },
@@ -553,7 +553,7 @@ export default function LandingPage() {
         scrollTrigger: { trigger: '.lp-features__grid', start: 'top 78%', toggleActions: 'play none none reverse' },
       });
 
-      /* ── 6. STEPS ───────────────────────────────────────────── */
+      /*  6. STEPS ─ */
       gsap.from('.lp-steps__header', {
         y: 42, opacity: 0, duration: 0.8,
         scrollTrigger: { trigger: '.lp-steps', start: 'top 82%', toggleActions: 'play none none reverse' },
@@ -567,7 +567,7 @@ export default function LandingPage() {
         scrollTrigger: { trigger: '.lp-steps__list', start: 'top 72%', toggleActions: 'play none none reverse' },
       });
 
-      /* ── 7. SHOWCASE ────────────────────────────────────────── */
+      /*  7. SHOWCASE  */
       gsap.from('.lp-showcase__header', {
         y: 42, opacity: 0, duration: 0.8,
         scrollTrigger: { trigger: '.lp-showcase', start: 'top 82%', toggleActions: 'play none none reverse' },
@@ -577,7 +577,7 @@ export default function LandingPage() {
         scrollTrigger: { trigger: '.lp-showcase__grid', start: 'top 82%', toggleActions: 'play none none reverse' },
       });
 
-      /* ── 8. SOCIAL PROOF ────────────────────────────────────── */
+      /*  8. SOCIAL PROOF  */
       gsap.from('.lp-social-proof .lp-section-title', {
         y: 42, opacity: 0, duration: 0.8,
         scrollTrigger: { trigger: '.lp-social-proof', start: 'top 82%', toggleActions: 'play none none reverse' },
@@ -587,13 +587,13 @@ export default function LandingPage() {
         scrollTrigger: { trigger: '.lp-reviews__grid', start: 'top 82%', toggleActions: 'play none none reverse' },
       });
 
-      /* ── 9. CTA ─────────────────────────────────────────────── */
+      /*  9. CTA ─ */
       gsap.from('.lp-cta__content', {
         y: 62, opacity: 0, duration: 1, ease: 'power3.out',
         scrollTrigger: { trigger: '.lp-cta', start: 'top 78%', toggleActions: 'play none none reverse' },
       });
 
-      /* ── New section animations ────────────────────────────────────── */
+      /*  New section animations  */
       gsap.from('.lp-ai-agent__text > *', {
         y: 40, opacity: 0, duration: 0.75, stagger: 0.12,
         scrollTrigger: { trigger: '.lp-ai-agent__text', start: 'top 80%', toggleActions: 'play none none reverse' },
@@ -623,13 +623,13 @@ export default function LandingPage() {
     return () => ctx.revert();
   }, []);
 
-  /* ─── JSX ──────────────────────────────────────────────────────── */
+  /* ─ JSX  */
   return (
     <div className="lp-root">
-      {/* ── SKIP TO CONTENT ───────────────────────────────────── */}
+      {/*  SKIP TO CONTENT ─ */}
       <a href="#lp-main-content" className="lp-skip-to-content">Skip to main content</a>
 
-      {/* ── NAVBAR ────────────────────────────────────────────── */}
+      {/*  NAVBAR  */}
       <nav className="lp-nav" aria-label="Main navigation">
         <div className="lp-nav__logo" onClick={() => navigate('/')}>
           {logoFullWhiteUrl
@@ -649,7 +649,7 @@ export default function LandingPage() {
         </div>
       </nav>
 
-      {/* ── HERO ──────────────────────────────────────────────── */}
+      {/*  HERO  */}
       <section className="lp-hero" id="lp-main-content">
       {/* Kala lotus — top-left corner watermark, slow wheel spin */}
         <div className="lp-hero__kala-lotus" style={{ position: 'absolute', top: -320, left: -300, zIndex: 1, pointerEvents: 'none' }}>
@@ -662,7 +662,7 @@ export default function LandingPage() {
         <div className="lp-hero__overlay" />
 
         <div className="lp-hero__content lp-hero__content--split">
-          {/* ── LEFT: copy + vibe tags + CTAs ── */}
+          {/*  LEFT: copy + vibe tags + CTAs  */}
           <div className="lp-hero__left">
             <span className="lp-hero__eyebrow">
               <span className="lp-hero__eyebrow-dot" aria-hidden="true" />
@@ -697,7 +697,7 @@ export default function LandingPage() {
             </div>
           </div>
 
-          {/* ── RIGHT: live stats card ── */}
+          {/*  RIGHT: live stats card  */}
           <div className="lp-hero__right" aria-hidden="true">
             <div className="lp-hero__stats-card">
               {/* Live badge */}
@@ -751,7 +751,7 @@ export default function LandingPage() {
         <div className="lp-hero__orb lp-hero__orb--3" aria-hidden="true" />
       </section>
 
-      {/* ── DESTINATION TICKER ────────────────────────────────── */}
+      {/*  DESTINATION TICKER  */}
       <div className="lp-ticker" aria-hidden="true">
         <div className="lp-ticker__track">
           {[...TICKER_ITEMS, ...TICKER_ITEMS].map((dest, i) => (
@@ -760,7 +760,7 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/* ── SOCIAL PROOF TRUST BAR ────────────────────────────── */}
+      {/*  SOCIAL PROOF TRUST BAR  */}
       <section className="lp-trust-bar" aria-label="Community trust signals">
         <div className="lp-trust-bar__inner">
           <div className="lp-trust-bar__item">
@@ -784,7 +784,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── AGENTIC AI DEMO ───────────────────────────────────── */}
+      {/*  AGENTIC AI DEMO ─ */}
       <section className="lp-ai-agent" id="ai-agent">
         <div className="lp-ai-agent__inner">
           <div className="lp-ai-agent__text">
@@ -811,7 +811,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── STATS ─────────────────────────────────────────────────── */}
+      {/*  STATS ─ */}
       <section className="lp-stats">
         <div className="lp-stats__grid">
           {[
@@ -835,7 +835,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── FEATURES ──────────────────────────────────────────── */}
+      {/*  FEATURES  */}
       <section className="lp-features" id="features">
         <div className="lp-features__header">
           <span className="lp-section-eyebrow">Everything you need</span>
@@ -861,7 +861,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── WHY DIFFERENT BENTO ──────────────────────────────── */}
+      {/*  WHY DIFFERENT BENTO  */}
       <section className="lp-bento" id="why-different">
         <div className="lp-bento__header">
           <span className="lp-section-eyebrow">What makes us different</span>
@@ -952,7 +952,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── HOW IT WORKS ─────────────────────────────────────── */}
+      {/*  HOW IT WORKS ─ */}
       <section className="lp-steps" id="how-it-works">
         <div className="lp-steps__header">
           <span className="lp-section-eyebrow">How it works</span>
@@ -973,7 +973,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── SHOWCASE ──────────────────────────────────────────── */}
+      {/*  SHOWCASE  */}
       <section className="lp-showcase" id="explore">
         <div className="lp-showcase__header">
           <span className="lp-section-eyebrow">Popular destinations</span>
@@ -1001,7 +1001,7 @@ export default function LandingPage() {
           ))}
         </div>
       </section>
-      {/* ── RISK MONITOR TEASER ─────────────────────────────── */}
+      {/*  RISK MONITOR TEASER ─ */}
       <section className="lp-risk-preview">
         <div className="lp-risk-preview__card">
           <div className="lp-risk-preview__live">
@@ -1038,7 +1038,7 @@ export default function LandingPage() {
           <KalaGeometric size={560} color="#FF385C" opacity={0.07} />
         </div>
       </section>
-      {/* ── SOCIAL PROOF ──────────────────────────────────────── */}
+      {/*  SOCIAL PROOF  */}
       <section className="lp-social-proof">
         <div className="lp-social-proof__inner">
           <h2 className="lp-section-title">Loved by travelers worldwide</h2>
@@ -1064,7 +1064,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/* ── CTA ───────────────────────────────────────────────── */}
+      {/*  CTA ─ */}
       <section className="lp-cta">
         <div className="lp-cta__content">
           <span className="lp-section-eyebrow lp-section-eyebrow--light">Your next adventure starts here</span>
@@ -1092,10 +1092,10 @@ export default function LandingPage() {
         <KalaGeometric size={480} color="#FF385C" opacity={0.06} style={{ position: 'absolute', bottom: -130, right: -110 }} />
         </section>
 
-      {/* ── FAQ ───────────────────────────────────────────────── */}
+      {/*  FAQ ─ */}
       <LandingFAQ />
 
-      {/* ── FOOTER ────────────────────────────────────────────── */}
+      {/*  FOOTER  */}
 
       <footer className="lp-footer">
         <div className="lp-footer__inner">
