@@ -12,6 +12,8 @@ import { useAuthToken } from '../../hooks/useAuth0Token';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import { apiServices } from '../../services/APIs/apiServices';
 import { fetchUserProfile } from '../../store/userSlice';
+import Seo, { SITE_URL } from '../../components/Seo';
+import { extractTripId, tripPath } from '../../utils/tripSlug';
 
 // Basic shape of trip meta we expect (extend later when backend schema finalized)
 interface TripDTO { 
@@ -29,7 +31,9 @@ interface TripDTO {
 interface LocationState { trip?: TripDTO; }
 
 const TripView: React.FC = () => {
-  const { tripId = '' } = useParams();
+  // Route param may be a bare GUID or an SEO slug ending in the GUID
+  const { tripId: tripParam = '' } = useParams();
+  const tripId = extractTripId(tripParam);
   // Pull token + loading so we can defer trip fetch until auth finished resolving
   const { token } = useAuthToken();
   const location = useLocation();
@@ -40,12 +44,14 @@ const TripView: React.FC = () => {
   const userLoading = useSelector((s:RootState)=> s.user.loading);
   const dispatch = useDispatch<AppDispatch>();
   React.useEffect(() => {
-    if (!userProfile && !userLoading) {
-      // Only fetch if not already loading and profile is missing
+    // Only attempt profile fetch when a token exists ,guests have no token so
+    // dispatching would fail, set loading=false, and re-trigger the effect forever.
+    const hasToken = !!token || !!localStorage.getItem('accessToken');
+    if (hasToken && !userProfile && !userLoading) {
       dispatch(fetchUserProfile());
     }
-  }, [userProfile, userLoading, dispatch]);
-  const currentUserId = userProfile?.id; // real user id (may be undefined until loaded)
+  }, [userProfile, userLoading, dispatch, token]);
+  const currentUserId = userProfile?.id; // real user id (may be undefined for guests)
   const [loading, setLoading] = React.useState(!initialTrip);
   const [trip, setTrip] = React.useState<TripDTO | undefined>(initialTrip);
   const [hasFetched, setHasFetched] = React.useState(false);
@@ -57,14 +63,6 @@ const TripView: React.FC = () => {
     const rawLocalStorageToken = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
     // Treat undefined authLoading defensively as true until we know
     const effectiveToken = token == null ? rawLocalStorageToken : token;
-    console.log('[TripView] State Snapshot', {
-      initialTrip,
-      tripId,
-      tripPresent: !!trip,
-      hookToken: token,
-      rawLocalStorageToken,
-      effectiveToken,
-    });
 
     if(!tripId) { setLoading(false); return; }
     if(trip && hasFetched) { setLoading(false); return; }
@@ -73,9 +71,7 @@ const TripView: React.FC = () => {
     (async()=> {
       setLoading(true);
       try {
-        console.log('[TripView] Fetching trip', { tripId, effectiveTokenExists: !!effectiveToken });
         const resp = await apiServices.getTripById(effectiveToken, tripId);
-        console.log('TripView: fetched trip data', resp);
         const data = resp?.data;
         if (data) {
           setTrip(data);
@@ -125,7 +121,9 @@ const TripView: React.FC = () => {
     rawTrip?.Privacy ||
     'private';
   const visibility = String(visibilityRaw || 'private').toLowerCase();
-  const isPrivate = visibility.startsWith('priv');
+  // 'readonly' = link-sharing enabled ,anyone with the link can view (not truly private)
+  const isLinkShare = visibility === 'readonly';
+  const isPrivate = !isLinkShare && visibility.startsWith('priv');
   const publishedRaw =
     tripRoot?.published ??
     tripRoot?.Published ??
@@ -148,12 +146,13 @@ const TripView: React.FC = () => {
   const isOwner = Boolean(ownerId && currentUserId && String(ownerId) === String(currentUserId));
   const isMember = isOwner || Boolean(currentUserEmail && memberEmails.some(email => String(email).toLowerCase() === String(currentUserEmail).toLowerCase()));
   // Only decide readability after profile resolved if private
+  // Link-shared trips (ReadOnly visibility) are always readable (like Google Drive link sharing)
   const readable = trip ? (
-    isPublished ? true : (isPrivate ? (profileResolved && (isOwner || isMember)) : true)
+    isPublished || isLinkShare ? true : (isPrivate ? (profileResolved && (isOwner || isMember)) : true)
   ) : false;
 
-  // Loading guard: wait for both user profile and trip meta
-  if (loading || userLoading || !userProfile || !trip) {
+  // Loading guard: wait for trip fetch + (private trips also wait for profile to determine access)
+  if (loading || (isPrivate && !fetchError && userLoading)) {
     return (
       <Box sx={{ display:'flex', flexDirection:'column', height:'100vh' }}>
         <TopBar showSearch={false} />
@@ -167,6 +166,24 @@ const TripView: React.FC = () => {
     );
   }
 
+  // Trip not found or fetch error (no infinite spinner)
+  if (!trip) {
+    return (
+      <Box sx={{ display:'flex', flexDirection:'column', height:'100vh' }}>
+        <TopBar showSearch={false} />
+        <Box sx={{ display:'flex', flex:1, minHeight:0 }}>
+          <TripPlannerNav active='plan' hideSections={['docs','news','packing']} />
+          <Box sx={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3, p:3 }}>
+            <Alert severity='warning' variant='outlined' sx={{ maxWidth:520, width:'100%' }}>
+              {fetchError === 'Trip not found' ? 'This trip does not exist or has been removed.' : 'This trip could not be loaded. You may not have permission to view it, or the link may be invalid.'}
+            </Alert>
+            <Button variant='outlined' onClick={() => navigate('/')} sx={{ textTransform:'none', borderRadius:2 }}>Back to Home</Button>
+          </Box>
+        </Box>
+      </Box>
+    );
+  }
+
   if (!readable) {
     return (
       <Box sx={{ display:'flex', flexDirection:'column', height:'100vh' }}>
@@ -174,12 +191,10 @@ const TripView: React.FC = () => {
         <Box sx={{ display:'flex', flex:1, minHeight:0 }}>
           <TripPlannerNav active='plan' hideSections={['docs','news','packing']} />
           <Box sx={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3, p:3 }}>
-            {fetchError && <Alert severity='error' sx={{ maxWidth:480, width:'100%' }}>{fetchError}</Alert>}
-            <Alert severity='error' variant='outlined' sx={{ maxWidth:520, width:'100%' }}>Access denied. This trip is private.</Alert>
-            <Button variant='contained' onClick={()=> {/* future request access flow */}} sx={{ textTransform:'none', borderRadius:2 }}>Request Access</Button>
+            <Alert severity='error' variant='outlined' sx={{ maxWidth:520, width:'100%' }}>This trip is private. Only the owner and members can access it.</Alert>
+            <Button variant='outlined' onClick={() => navigate('/')} sx={{ textTransform:'none', borderRadius:2 }}>Back to Home</Button>
           </Box>
         </Box>
-  {/* Footer removed for access denied state */}
       </Box>
     );
   }
@@ -191,8 +206,43 @@ const TripView: React.FC = () => {
     navigate(`/tripplanner/${tripId}`, { state: { tripId, trip, isOwner, isMember, canEdit: isOwner || isMember }, replace: true });
   };
 
+  // ── SEO: published trips are public landing pages; everything else stays out of indexes ──
+  const seoName: string = tripRoot?.name || tripRoot?.Name || 'Trip itinerary';
+  const seoDescriptionRaw: string = tripRoot?.description || tripRoot?.Description || '';
+  const seoCountries: string[] = Array.isArray(tripRoot?.countries) ? tripRoot.countries
+    : Array.isArray(tripRoot?.Countries) ? tripRoot.Countries : [];
+  const seoPhoto: string | undefined = tripRoot?.photoUrl || tripRoot?.PhotoUrl || undefined;
+  const seoStart: string | undefined = tripRoot?.startDate || tripRoot?.StartDate || undefined;
+  const seoEnd: string | undefined = tripRoot?.endDate || tripRoot?.EndDate || undefined;
+  const seoDescription = (seoDescriptionRaw ||
+    `${seoName} ,a complete travel itinerary${seoCountries.length ? ` through ${seoCountries.slice(0, 3).join(', ')}` : ''} on Tripician. See the route, stops, and plan, then clone it for your own trip.`
+  ).slice(0, 300);
+  const canonicalPath = tripPath({ id: tripId, name: seoName });
+  const tripJsonLd = isPublished ? {
+    '@context': 'https://schema.org',
+    '@type': 'Trip',
+    name: seoName,
+    description: seoDescription,
+    url: `${SITE_URL}${canonicalPath}`,
+    ...(seoPhoto ? { image: seoPhoto } : {}),
+    ...(seoStart ? { startDate: seoStart } : {}),
+    ...(seoEnd ? { endDate: seoEnd } : {}),
+    ...(seoCountries.length ? {
+      itinerary: seoCountries.map((c) => ({ '@type': 'Place', name: c })),
+    } : {}),
+    provider: { '@type': 'Organization', name: 'Tripician', url: SITE_URL },
+  } : undefined;
+
   return (
     <Box sx={{ display:'flex', flexDirection:'column', height:'100vh' }}>
+      <Seo
+        title={seoCountries.length ? `${seoName} ,${seoCountries.slice(0, 2).join(' & ')} itinerary` : seoName}
+        description={seoDescription}
+        path={canonicalPath}
+        image={seoPhoto}
+        noindex={!isPublished}
+        jsonLd={tripJsonLd}
+      />
       <TripPlanner
         tripId={tripId}
         initialTrip={trip}

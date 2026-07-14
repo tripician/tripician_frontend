@@ -22,6 +22,7 @@ import {
   Download,
 } from 'lucide-react';
 import '../../assets/css/LandingPage.css';
+import Seo, { SITE_URL } from '../../components/Seo';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -60,13 +61,13 @@ const FEATURES = [
   {
     icon: <Map size={26} />,
     title: 'Interactive Maps',
-    desc: 'Visualise your entire journey on a live map. Pin destinations, draw routes, and explore at a glance — solo or with your group.',
+    desc: 'Visualise your entire journey on a live map. Pin destinations, draw routes, and explore at a glance ,solo or with your group.',
     accent: '#008bbd',
   },
   {
     icon: <Compass size={26} />,
     title: 'Day-by-Day Planner',
-    desc: 'Organise every day with destinations, stays, activities, and notes. Optimise your route with one click — then publish your trip so others can discover it.',
+    desc: 'Organise every day with destinations, stays, activities, and notes. Optimise your route with one click ,then publish your trip so others can discover it.',
     accent: '#29587a',
   },
   {
@@ -81,7 +82,7 @@ const STEPS = [
   {
     num: '01',
     title: 'Set your travel vibe',
-    desc: 'Define your travel personality — culture seeker, adventure junkie, spiritual explorer, luxury traveler. Your vibe shapes every trip and person you discover.',
+    desc: 'Define your travel personality ,culture seeker, adventure junkie, spiritual explorer, luxury traveler. Your vibe shapes every trip and person you discover.',
     tag: 'Your identity',
   },
   {
@@ -99,7 +100,7 @@ const STEPS = [
   {
     num: '04',
     title: 'Travel with confidence',
-    desc: 'Hit the road with your itinerary, packing list, and live risk monitoring at your fingertips. Solo, duo, or full crew — everything in one place, exactly how you planned it.',
+    desc: 'Hit the road with your itinerary, packing list, and live risk monitoring at your fingertips. Solo, duo, or full crew ,everything in one place, exactly how you planned it.',
     tag: 'Real trips',
   },
 ];
@@ -138,7 +139,7 @@ const SHOWCASE = [
 const REVIEWS = [
   {
     quote:
-      'I always traveled alone because nobody I knew shared my travel style. Tripician matched me with three people planning the exact same Japan trip. We went together last spring — best decision I ever made.',
+      'I always traveled alone because nobody I knew shared my travel style. Tripician matched me with three people planning the exact same Japan trip. We went together last spring ,best decision I ever made.',
     name: 'Priya K.',
     place: 'Found her tribe · Japan 🗾',
     rating: 5,
@@ -274,7 +275,7 @@ function AgentDemoWidget() {
 const LP_FAQS = [
   {
     q: 'What exactly is Tripician?',
-    a: "Tripician is a travel planning and community platform. You can build detailed trip itineraries, track expenses, manage packing lists, monitor travel risks, and connect with travellers who share your travel vibe. We are not a travel agency — we don't book flights or accommodation.",
+    a: "Tripician is a travel planning and community platform. You can build detailed trip itineraries, track expenses, manage packing lists, monitor travel risks, and connect with travellers who share your travel vibe. We are not a travel agency ,we don't book flights or accommodation.",
   },
   {
     q: 'Is Tripician free?',
@@ -282,15 +283,15 @@ const LP_FAQS = [
   },
   {
     q: 'What is "vibe matching"?',
-    a: 'Every traveller and trip on Tripician is tagged with a travel personality — Adventure, Culture, Luxury, Spiritual, Urban, Scenic, or Romantic. Vibe matching surfaces trips, groups, and community members whose style fits yours, so you stop scrolling and start connecting.',
+    a: 'Every traveller and trip on Tripician is tagged with a travel personality ,Adventure, Culture, Luxury, Spiritual, Urban, Scenic, or Romantic. Vibe matching surfaces trips, groups, and community members whose style fits yours, so you stop scrolling and start connecting.',
   },
   {
     q: 'Can I plan a trip with friends or family?',
-    a: 'Absolutely. You can collaborate on any trip — invite co-planners, build the itinerary together, split expenses, and share notes in real time.',
+    a: 'Absolutely. You can collaborate on any trip ,invite co-planners, build the itinerary together, split expenses, and share notes in real time.',
   },
   {
     q: 'How does the Risk Monitor work?',
-    a: "Our Risk Monitor aggregates publicly available safety and travel advisories for destination countries. This is for general awareness only — always verify with your government's official travel advisory before making decisions.",
+    a: "Our Risk Monitor aggregates publicly available safety and travel advisories for destination countries. This is for general awareness only ,always verify with your government's official travel advisory before making decisions.",
   },
   {
     q: 'Is my data safe?',
@@ -374,7 +375,7 @@ export default function LandingPage() {
   const { isAuthenticated, isLoading } = useAuth0();
   const heroImageUrl = import.meta.env.VITE_LANDING_HERO_IMAGE_URL as string | undefined;
 
-  // Redirect authenticated users — no spinner, page renders immediately for Googlebot
+  // Redirect authenticated users ,no spinner, page renders immediately for Googlebot
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
       navigate('/home', { replace: true });
@@ -479,7 +480,7 @@ export default function LandingPage() {
       gsap.to('.lp-hero__orb--2', { y: 22,  x: -14, repeat: -1, yoyo: true, duration: 11, ease: 'sine.inOut', delay: 2 });
       gsap.to('.lp-hero__orb--3', { y: -18, x:  8,  repeat: -1, yoyo: true, duration: 7.5, ease: 'sine.inOut', delay: 4 });
 
-      /* Kala lotus — entrance transition then infinite wheel roll */
+      /* Kala lotus ,entrance transition then infinite wheel roll */
       gsap.set('.lp-hero__kala-lotus', { opacity: 0, scale: 0.4, rotation: -30, transformOrigin: '50% 50%' });
       gsap.timeline({
         onComplete: () => {
@@ -626,6 +627,41 @@ export default function LandingPage() {
   /*  JSX  */
   return (
     <div className="lp-root">
+      <Seo
+        title="Tripician ,AI-Powered Travel Planner & Trip Builder"
+        description="Plan your perfect trip with Tripician. AI itineraries, collaborative planning, group budgets, travel risk monitoring, and a global community of travelers."
+        path="/"
+        jsonLd={[
+          {
+            '@context': 'https://schema.org',
+            '@type': 'Organization',
+            name: 'Tripician',
+            url: SITE_URL,
+            logo: `${SITE_URL}/og-cover.jpg`,
+            sameAs: [],
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'WebSite',
+            name: 'Tripician',
+            url: SITE_URL,
+            potentialAction: {
+              '@type': 'SearchAction',
+              target: { '@type': 'EntryPoint', urlTemplate: `${SITE_URL}/community?q={search_term_string}` },
+              'query-input': 'required name=search_term_string',
+            },
+          },
+          {
+            '@context': 'https://schema.org',
+            '@type': 'FAQPage',
+            mainEntity: LP_FAQS.map((f) => ({
+              '@type': 'Question',
+              name: f.q,
+              acceptedAnswer: { '@type': 'Answer', text: f.a },
+            })),
+          },
+        ]}
+      />
       {/*  SKIP TO CONTENT  */}
       <a href="#lp-main-content" className="lp-skip-to-content">Skip to main content</a>
 
@@ -640,7 +676,7 @@ export default function LandingPage() {
         <div className="lp-nav__links">
           <a href="#features">Features</a>
           <a href="#ai-agent">AI Agent</a>
-          <a href="/community">Community</a>
+          <a href="/discover">Discover</a>
           <a href="#how-it-works">How it works</a>
         </div>
         <div className="lp-nav__actions">
@@ -651,7 +687,7 @@ export default function LandingPage() {
 
       {/*  HERO  */}
       <section className="lp-hero" id="lp-main-content">
-      {/* Kala lotus — top-left corner watermark, slow wheel spin */}
+      {/* Kala lotus ,top-left corner watermark, slow wheel spin */}
         <div className="lp-hero__kala-lotus" style={{ position: 'absolute', top: -320, left: -300, zIndex: 1, pointerEvents: 'none' }}>
           <KalaLotus size={920} color="#FF6B8A" opacity={0.07} />
         </div>
@@ -683,10 +719,10 @@ export default function LandingPage() {
             
 
             <div className="lp-hero__cta-group">
-              <button className="lp-btn lp-btn--hero-primary" onClick={() => navigate('/signup')} aria-label="Start your journey — create an account">
+              <button className="lp-btn lp-btn--hero-primary" onClick={() => navigate('/signup')} aria-label="Start your journey ,create an account">
                 Start Your Journey <ArrowRight size={17} aria-hidden="true" />
               </button>
-              <button className="lp-btn lp-btn--hero-ghost lp-btn--hide-mobile" onClick={() => navigate('/signin')} aria-label="Welcome back — sign in">
+              <button className="lp-btn lp-btn--hero-ghost lp-btn--hide-mobile" onClick={() => navigate('/signin')} aria-label="Welcome back ,sign in">
                 Welcome back
               </button>
               {showInstallBtn && (
@@ -775,7 +811,7 @@ export default function LandingPage() {
             <div className="lp-trust-bar__stars" aria-label="5 out of 5 stars">
               {Array.from({ length: 5 }).map((_, i) => <Star key={i} size={14} fill="currentColor" aria-hidden="true" />)}
             </div>
-            <span>"Best travel community I've found" — rated <strong>4.9/5</strong></span>
+            <span>"Best travel community I've found" ,rated <strong>4.9/5</strong></span>
           </div>
           <div className="lp-trust-bar__item">
             <Shield size={18} className="lp-trust-bar__shield" aria-hidden="true" />
@@ -841,7 +877,7 @@ export default function LandingPage() {
           <span className="lp-section-eyebrow">Everything you need</span>
           <h2 className="lp-section-title">Built around your travel personality</h2>
           <p className="lp-section-sub">
-            From solo explorers to group adventures — every feature is designed around who you are as a traveler, not just where you're going.
+            From solo explorers to group adventures ,every feature is designed around who you are as a traveler, not just where you're going.
           </p>
         </div>
         <div className="lp-features__grid">
@@ -938,7 +974,7 @@ export default function LandingPage() {
           <div className="lp-bento-card lp-bento-card--collab">
             <span className="lp-bento-card__tag" style={{ background: 'rgba(255,56,92,0.18)', color: '#FF385C', borderColor: 'rgba(255,56,92,0.35)' }}>Signature Feature</span>
             <h3>Vibe Matching</h3>
-            <p>Every plan, group, and profile is tagged with a travel personality. Culture seekers find culture seekers — you never compromise your experience again.</p>
+            <p>Every plan, group, and profile is tagged with a travel personality. Culture seekers find culture seekers ,you never compromise your experience again.</p>
             <div className="lp-bento-collab-row">
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 11, padding: '4px 11px', borderRadius: 20, background: '#FF385C', color: '#fff', fontWeight: 700 }}>🎭 Culture</span>
@@ -1013,7 +1049,7 @@ export default function LandingPage() {
           </h2>
           <p className="lp-risk-preview__desc">
             Our Travel Risk Monitor watches breaking news, severe weather, border closures,
-            flight strikes, and currency volatility — all automatically cross-referenced
+            flight strikes, and currency volatility ,all automatically cross-referenced
             against every destination in your active trip.
           </p>
           <div className="lp-risk-preview__rows">
@@ -1072,7 +1108,7 @@ export default function LandingPage() {
             Find your travel tribe.<br /><em>Or create your own.</em>
           </h2>
           <p className="lp-cta__sub">
-            Join Tripician free. Solo explorer, duo, or full crew — plan your next trip
+            Join Tripician free. Solo explorer, duo, or full crew ,plan your next trip
             exactly the way you travel, with tools built for the way you actually move.
           </p>
           <div className="lp-cta__actions">
@@ -1088,7 +1124,7 @@ export default function LandingPage() {
         </div>
         <div className="lp-cta__orb lp-cta__orb--1" />
         <div className="lp-cta__orb lp-cta__orb--2" />
-        {/* Indian kala geometric — bottom-left */}
+        {/* Indian kala geometric ,bottom-left */}
         <KalaGeometric size={480} color="#FF385C" opacity={0.06} style={{ position: 'absolute', bottom: -130, right: -110 }} />
         </section>
 

@@ -9,6 +9,7 @@ import PrivacyPage from './pages/InfoPages/PrivacyPage';
 import AboutPage from './pages/InfoPages/AboutPage';
 import BlogsList from './pages/BlogsPage/BlogsList';
 import BlogPost from './pages/BlogsPage/BlogPost';
+import { useAuthToken } from './hooks/useAuth0Token';
 
 const Signin = lazy(() => import('./pages/AuthPage/Signin'))
 const Signup = lazy(() => import('./pages/AuthPage/Signup'))
@@ -16,17 +17,19 @@ const ForgotPassword = lazy(() => import('./pages/AuthPage/ForgotPassword'))
 const Callback = lazy(() => import('./pages/AuthPage/Callback'))
 const AuthenticatedLayout = lazy(() => import('./pages/PageLayout/AuthenticatedLayout'))
 const SuccessOverlay = lazy(() => import('./components/CommonComponents/SuccessOverlay'))
-const Home = lazy(() => import('./pages/HomePage/Home'))
 const Dashboard = lazy(() => import('./pages/DashboardPage/Dashboard'))
-// const Profile = lazy(() => import('./pages/ProfilePage/Profile')) // blocked
+const Profile = lazy(() => import('./pages/ProfilePage/Profile'))
 const Community = lazy(() => import('./pages/CommunityPage/Community'))
+const TravelerProfile = lazy(() => import('./pages/ProfilePage/TravelerProfile'))
 const Settings = lazy(() => import('./pages/SettingsPage/Settings'))
 const RiskMonitor = lazy(() => import('./pages/RiskMonitorPage/RiskMonitor'))
+const NaviaPage = lazy(() => import('./pages/NaviaPage/NaviaPage'))
 const TripPlannerEntry = lazy(() => import('./pages/CreateTripPage/TripPlannerEntry.tsx'))
 const TripPlannerRoute = lazy(() => import('./pages/CreateTripPage/TripPlannerRoute.tsx'))
 const TripView = lazy(() => import('./pages/TripViewPage/TripView'))
 const HelpPage = lazy(() => import('./pages/InfoPages/HelpPage'))
 const ContactPage = lazy(() => import('./pages/InfoPages/ContactPage'))
+const DiscoveryPage = lazy(() => import('./pages/DiscoveryPage/DiscoveryPage'))
 const NotFound404 = lazy(() => import('./pages/ErrorPages/ErrorPages').then((m) => ({ default: m.NotFound404 })))
 const InternalError500 = lazy(() => import('./pages/ErrorPages/ErrorPages').then((m) => ({ default: m.InternalError500 })))
 const UnauthorizedAccess = lazy(() => import('./pages/ErrorPages/ErrorPages').then((m) => ({ default: m.UnauthorizedAccess })))
@@ -34,9 +37,16 @@ const UnderConstruction = lazy(() => import('./pages/ErrorPages/ErrorPages').the
 const SomethingWentWrong = lazy(() => import('./pages/ErrorPages/ErrorPages').then((m) => ({ default: m.SomethingWentWrong })))
 const DynamicErrorPage = lazy(() => import('./pages/ErrorPages/ErrorPages').then((m) => ({ default: m.DynamicErrorPage })))
 
-// Import debug utilities for development
-if (import.meta.env.development) {
+// Import debug utilities for development builds only (tree-shaken from production)
+if (import.meta.env.DEV) {
   import('./utils/authDebug');
+}
+
+// Smart root: authenticated users skip landing page and go straight to community
+function RootRedirect() {
+  const { isAuthenticated, loading } = useAuthToken();
+  if (loading) return <div style={{ minHeight: '100vh' }} />;
+  return isAuthenticated ? <Navigate to="/community" replace /> : <Landingpage />;
 }
 
 function App() {
@@ -48,16 +58,21 @@ function App() {
           <Route path="/signin" element={<GuestRoute><Signin /></GuestRoute>} />
           <Route path="/forgot-password" element={<GuestRoute><ForgotPassword /></GuestRoute>} />
           <Route path="/callback" element={<Callback />} />
-          <Route path="/" element={<Landingpage />} />
+          <Route path="/" element={<RootRedirect />} />
         
           {/* Protected Routes grouped under persistent layout */}
           <Route element={<ProtectedRoute><AuthenticatedLayout /></ProtectedRoute>}>
-            <Route path="/home" element={<Home />} />
+            <Route path="/home" element={<Navigate to="/community" replace />} />
             <Route path="/dashboard" element={<Dashboard />} />
-            <Route path="/profile" element={<Navigate to="/home" replace />} />
-            <Route path="/community" element={<Community />} />
-            <Route path="/risk-monitor" element={<RiskMonitor />} />
+            <Route path="/profile" element={<Profile />} />
+            <Route path="/navia" element={<NaviaPage />} />
             <Route path="/settings" element={<Settings />} />
+          </Route>
+          {/* Semi-public routes: full app layout but no auth gate ,guests can browse, login prompted on action */}
+          <Route element={<AuthenticatedLayout />}>
+            <Route path="/community" element={<Community />} />
+            <Route path="/traveler/:userId" element={<TravelerProfile />} />
+            <Route path="/risk-monitor" element={<RiskMonitor />} />
           </Route>
           {/* Trip Planner entry: redirect /tripplanner -> /tripplanner/:generatedId (reusing last draft if available) */}
           <Route path="/tripplanner" element={<ProtectedRoute><TripPlannerEntry /></ProtectedRoute>} />
@@ -81,9 +96,10 @@ function App() {
           <Route path="/contact-us" element={<ContactPage />} />
           <Route path="/about-us" element={<AboutPage />} />
         
-          {/* Blog routes — public, no auth required (SEO) */}
+          {/* Blog routes ,public, no auth required (SEO) */}
           <Route path="/blog" element={<BlogsList />} />
           <Route path="/blog/:slug" element={<BlogPost />} />
+          <Route path="/discover" element={<DiscoveryPage />} />
         
           {/* Final catch-all -> 404 page */}
           <Route path="*" element={<NotFound404 />} />

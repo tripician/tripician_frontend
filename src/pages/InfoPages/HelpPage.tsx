@@ -9,7 +9,7 @@ import EmailRoundedIcon from '@mui/icons-material/EmailRounded';
 const FAQS = [
   {
     q: 'What is Tripician?',
-    a: 'Tripician is a travel planning and organisation platform. It helps you create detailed trip itineraries, track expenses, build packing lists, monitor travel risks, and collaborate with fellow travellers — all in one place. Tripician is not a travel agency and does not book flights, hotels, or any travel services.',
+    a: 'Tripician is a travel planning and organisation platform. It helps you create detailed trip itineraries, track expenses, build packing lists, monitor travel risks, and collaborate with fellow travellers ,all in one place. Tripician is not a travel agency and does not book flights, hotels, or any travel services.',
   },
   {
     q: 'Is Tripician free to use?',
@@ -32,7 +32,7 @@ const FAQS = [
     a: 'Your account and trip data are stored securely. Authentication is handled by Auth0, an industry-leading identity provider. We do not sell your personal data to any third party. For full details, please read our Privacy Policy.',
   },
   {
-    q: 'I forgot my password — how do I reset it?',
+    q: 'I forgot my password ,how do I reset it?',
     a: "On the Sign In page, click \"Forgot password?\" and enter your registered email address. A reset link will be sent by Auth0. If you don't see it within a few minutes, check your spam or junk folder.",
   },
   {
@@ -40,7 +40,7 @@ const FAQS = [
     a: 'Go to Settings → Account → Delete Account. This will permanently remove your account and associated trip data. Per our Privacy Policy, data is retained in encrypted backups for up to 90 days post-deletion before final removal.',
   },
   {
-    q: 'The app is not working as expected — what should I do?',
+    q: 'The app is not working as expected ,what should I do?',
     a: 'Try refreshing the page or clearing your browser cache. If the issue persists, email support@tripician.com with a description of the problem, your device and browser details, and any error messages you see. We typically respond within 1–2 business days.',
   },
 ];
@@ -63,7 +63,7 @@ const HelpPage: React.FC = () => {
             How can we help you?
           </Typography>
           <Typography sx={{ fontSize: '1.05rem', color: '#666', lineHeight: 1.75 }}>
-            Browse common questions below. Can't find your answer? Reach out directly — we're here for you.
+            Browse common questions below. Can't find your answer? Reach out directly ,we're here for you.
           </Typography>
         </Container>
       </Box>

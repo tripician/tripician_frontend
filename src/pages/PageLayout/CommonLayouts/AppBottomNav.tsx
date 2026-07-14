@@ -6,9 +6,9 @@ import MoreHorizRoundedIcon from '@mui/icons-material/MoreHorizRounded';
 import { APP_NAV_ITEMS } from '../navConfig';
 
 /** Items shown LEFT of the New Trip FAB */
-const MOBILE_NAV_LEFT = ['home', 'trips'] as const;
+const MOBILE_NAV_LEFT = ['explore', 'trips'] as const;
 /** Items shown RIGHT of the New Trip FAB */
-const MOBILE_NAV_RIGHT = ['community'] as const;
+const MOBILE_NAV_RIGHT = ['navia'] as const;
 
 interface AppBottomNavProps {
   onCreateTrip: () => void;
@@ -22,7 +22,7 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip, onMoreMenu })
   const rightItems = APP_NAV_ITEMS.filter((i) => (MOBILE_NAV_RIGHT as readonly string[]).includes(i.id));
 
   const isActive = (path: string) => location.pathname === path;
-  const moreActive = ['/risk-monitor', '/settings'].includes(location.pathname);
+  const moreActive = location.pathname === '/risk-monitor';
 
   return (
     <Box
@@ -43,7 +43,7 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip, onMoreMenu })
         background: (t) =>
           t.palette.mode === 'light'
             ? 'rgba(255,255,255,0.96)'
-            : 'rgba(14,14,14,0.96)',
+            : 'rgba(15,15,19,0.96)',
         backdropFilter: 'blur(16px)',
         borderTop: '1px solid',
         borderColor: 'divider',
@@ -67,11 +67,11 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip, onMoreMenu })
               border: 'none',
               background: 'transparent',
               cursor: 'pointer',
-              color: active ? '#FF385C' : 'text.disabled',
+              color: active ? 'primary.main' : 'text.disabled',
               py: 1,
             }}
           >
-            <item.Icon size={22} stroke={1.75} color={active ? '#FF385C' : 'currentColor'} />
+            <item.Icon size={22} stroke={1.75} color="currentColor" />
             <Typography sx={{ fontSize: '0.62rem', fontWeight: active ? 700 : 600, fontFamily: "'Inter',sans-serif" }}>
               {item.shortLabel}
             </Typography>
@@ -79,7 +79,7 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip, onMoreMenu })
         );
       })}
 
-      {/*  New Trip FAB — centre slot  */}
+      {/*  New Trip FAB ,centre slot  */}
       <Box
         component="button"
         onClick={onCreateTrip}
@@ -104,14 +104,14 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip, onMoreMenu })
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: 'linear-gradient(135deg,#FF385C,#D91A50)',
+            background: (t) => t.custom.gradients.brand,
             color: '#fff',
-            boxShadow: '0 6px 24px rgba(255,56,92,0.45)',
+            boxShadow: (t) => t.custom.shadows.brandMd,
           }}
         >
           <AddRoundedIcon sx={{ fontSize: 28 }} />
         </Box>
-        <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: '#FF385C', mt: 0.25, fontFamily: "'Inter',sans-serif" }}>
+        <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: 'primary.main', mt: 0.25, fontFamily: "'Inter',sans-serif" }}>
           New Trip
         </Typography>
       </Box>
@@ -133,11 +133,11 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip, onMoreMenu })
               border: 'none',
               background: 'transparent',
               cursor: 'pointer',
-              color: active ? '#FF385C' : 'text.disabled',
+              color: active ? 'primary.main' : 'text.disabled',
               py: 1,
             }}
           >
-            <item.Icon size={22} stroke={1.75} color={active ? '#FF385C' : 'currentColor'} />
+            <item.Icon size={22} stroke={1.75} color="currentColor" />
             <Typography sx={{ fontSize: '0.62rem', fontWeight: active ? 700 : 600, fontFamily: "'Inter',sans-serif" }}>
               {item.shortLabel}
             </Typography>
@@ -158,7 +158,7 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip, onMoreMenu })
           border: 'none',
           background: 'transparent',
           cursor: 'pointer',
-          color: moreActive ? '#FF385C' : 'text.disabled',
+          color: moreActive ? 'primary.main' : 'text.disabled',
           py: 1,
         }}
       >

@@ -236,13 +236,13 @@ export default function RiskMonitor() {
             <span className="rm-hero__beta">BETA</span>
           </h1>
           <p className="rm-hero__sub">
-            Real-time safety, weather &amp; news intelligence for any destination — before you book.
+            Real-time safety, weather &amp; news intelligence for any destination ,before you book.
           </p>
 
           {/*  Research caution notice  */}
           <div className="rm-hero__caution">
             <span>
-              <strong>⚠️ For reference only.</strong> Risk data is based on ongoing research and automated sources — it may be incomplete or inaccurate. Always verify with official government travel advisories before making any travel decisions.
+              <strong>⚠️ For reference only.</strong> Risk data is based on ongoing research and automated sources ,it may be incomplete or inaccurate. Always verify with official government travel advisories before making any travel decisions.
             </span>
           </div>
 
@@ -251,7 +251,7 @@ export default function RiskMonitor() {
             <SearchRoundedIcon className="rm-search-icon" />
             <input
               className="rm-search-input"
-              placeholder="Search destination — Japan, UAE, Brazil…"
+              placeholder="Search destination ,Japan, UAE, Brazil…"
               value={query}
               onChange={e => { setQuery(e.target.value); setDropOpen(true); }}
               onFocus={() => setDropOpen(true)}

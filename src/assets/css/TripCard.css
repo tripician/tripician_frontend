@@ -1,5 +1,5 @@
 ﻿/* ═══════════════════════════════════════════════════════
-   TRIP CARD — Image fills full card, blurred panel at bottom
+   TRIP CARD ,Image fills full card, blurred panel at bottom
 ═══════════════════════════════════════════════════════ */
 
 .trip-card {
@@ -74,7 +74,7 @@
   z-index: 2;
   backdrop-filter: blur(18px);
   -webkit-backdrop-filter: blur(18px);
-  /* Mask: transparent at top, opaque at bottom — blur fades in */
+  /* Mask: transparent at top, opaque at bottom ,blur fades in */
   -webkit-mask-image: linear-gradient(
     to bottom,
     transparent  0%,
@@ -92,7 +92,7 @@
   pointer-events: none;
 }
 
-/*  Progress ring — top left  */
+/*  Progress ring ,top left  */
 .tc-ring-wrap {
   position: absolute;
   top: 11px;
@@ -116,7 +116,7 @@
   align-items: baseline;
 }
 
-/*  Action buttons — top right, hover reveal  */
+/*  Action buttons ,top right, hover reveal  */
 .tc-actions {
   position: absolute;
   top: 10px;
@@ -185,7 +185,7 @@
   flex-direction: column;
 }
 
-/* Feathered fade — dissolves panel top into the image above */
+/* Feathered fade ,dissolves panel top into the image above */
 .tc-body::before {
   content: '';
   position: absolute;
@@ -425,7 +425,7 @@
   color: rgba(255, 255, 255, 0.90);
 }
 
-/* 5. CTA button wrapper — collapses to zero height at rest, expands on hover */
+/* 5. CTA button wrapper ,collapses to zero height at rest, expands on hover */
 .tc-open-btn-wrap {
   overflow: hidden;
   max-height: 0;
@@ -479,7 +479,7 @@
 }
 
 /* ══════════════════════════════════════════════════════════
-   MOBILE — compact, premium, flawless
+   MOBILE ,compact, premium, flawless
 ══════════════════════════════════════════════════════════ */
 @media (max-width: 600px) {
   .trip-card {
@@ -517,18 +517,18 @@
     margin-left: -6px;
   }
 
-  /* Badge — tighter */
+  /* Badge ,tighter */
   .tc-badge-info {
     font-size: 0.60rem;
     padding: 3px 8px;
   }
 
-  /* Hide owner/likes row — redundant with avatar stack on small screens */
+  /* Hide owner/likes row ,redundant with avatar stack on small screens */
   .tc-meta-row {
     display: none;
   }
 
-  /* Explore button hidden — card tap navigates directly */
+  /* Explore button hidden ,card tap navigates directly */
   .tc-open-btn {
     display: none;
   }

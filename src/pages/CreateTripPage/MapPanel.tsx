@@ -7,7 +7,7 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import type { PlannerDestination } from '../../store/plannerSlice';
 
-const DEFAULT_CENTER: [number, number] = [20, 20]; // [lng, lat] — world overview
+const DEFAULT_CENTER: [number, number] = [20, 20]; // [lng, lat] ,world overview
 const DEFAULT_ZOOM = 2;
 
 // Colourful styles: streets for light, navigation-night for dark

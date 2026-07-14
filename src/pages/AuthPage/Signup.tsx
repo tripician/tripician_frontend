@@ -149,7 +149,7 @@ const Signup = () => {
             Join thousands of explorers planning smarter with Tripician.
           </motion.p>
           <motion.ul className="auth-left__perks" variants={staggerContainer(0.08, 0)}>
-            <motion.li variants={staggerItem}><Check size={14} /> Free forever — no credit card needed</motion.li>
+            <motion.li variants={staggerItem}><Check size={14} /> Free forever ,no credit card needed</motion.li>
             <motion.li variants={staggerItem}><MapPin size={14} /> Unlimited trip itineraries</motion.li>
             <motion.li variants={staggerItem}><Globe size={14} /> 150+ destinations covered</motion.li>
             <motion.li variants={staggerItem}><Brain size={14} /> AI-powered trip suggestions</motion.li>

@@ -1,5 +1,5 @@
 /**
- * KalaDecor — Rich Indian kala / zentangle mandala SVG components.
+ * KalaDecor ,Rich Indian kala / zentangle mandala SVG components.
  *
  * Three distinct highly-detailed patterns:
  *   <KalaMandala />   – Spiral-core → petal rings → triangle band → leaf crown → dot border
@@ -161,7 +161,7 @@ export const KalaMandala: React.FC<KalaDecorProps> = ({ size=300, color='#C41E3A
     {spiralPath(2, 10, 2.5, 120, color, 0.9)}
     <circle cx={C} cy={C} r={12} fill="none" stroke={color} strokeWidth={1.2} />
 
-    {/* 2. Inner petal ring — 8 petals, filled */}
+    {/* 2. Inner petal ring ,8 petals, filled */}
     {petalRing(8, 13, 28, 6.5, 0, color, 'km-p1-')}
     {/* small dot between each petal */}
     {dotRing(8, 29, 1.8, color, 'km-db1-')}
@@ -175,7 +175,7 @@ export const KalaMandala: React.FC<KalaDecorProps> = ({ size=300, color='#C41E3A
     {hatchBand(16, 41, 55, 5, 0, color, 0.65, 'km-hb1-')}
     <circle cx={C} cy={C} r={57} fill="none" stroke={color} strokeWidth={0.9} />
 
-    {/* 5. Medium petal ring — 12 petals, filled */}
+    {/* 5. Medium petal ring ,12 petals, filled */}
     {petalRing(12, 58, 80, 9, 0, color, 'km-p2-')}
     {petalRingStroke(12, 58, 80, 4, 15, color, 0.5, 'km-p2s-')}
     {dotRing(24, 82, 1.6, color, 'km-dr2-')}
@@ -185,16 +185,16 @@ export const KalaMandala: React.FC<KalaDecorProps> = ({ size=300, color='#C41E3A
     {scaleRing(24, 94, 8, 0, color, 0.75, 'km-sc1-')}
     <circle cx={C} cy={C} r={101} fill="none" stroke={color} strokeWidth={0.8} />
 
-    {/* 7. Large petal crown — 8 wide petals, filled + stroke inner line */}
+    {/* 7. Large petal crown ,8 wide petals, filled + stroke inner line */}
     {petalRing(8, 102, 130, 14, 22.5, color, 'km-p3-')}
     {petalRingStroke(8, 102, 130, 5, 22.5, color, 0.6, 'km-p3s-')}
 
-    {/* 8. Triangle spike ring — 24 outward pointing, between petals */}
+    {/* 8. Triangle spike ring ,24 outward pointing, between petals */}
     {triRing(24, 130, 10, 3.5, 0, color, 'km-tr1-')}
     {dotRing(24, 132, 1.3, color, 'km-dr3-')}
     <circle cx={C} cy={C} r={142} fill="none" stroke={color} strokeWidth={0.75} />
 
-    {/* 9. Outer leaf ring — 16 stroke-only leaves */}
+    {/* 9. Outer leaf ring ,16 stroke-only leaves */}
     {leafRing(16, 143, 14, 5.5, 0, color, false, 0.7, 'km-lf1-')}
     {dotRing(32, 144, 1.1, color, 'km-dr4-')}
 
@@ -226,14 +226,14 @@ export const KalaLotus: React.FC<KalaDecorProps> = ({ size=300, color='#C41E3A',
     {spiralPath(3, 11, 1.8, 80, color, 0.85)}
     <circle cx={C} cy={C} r={13} fill="none" stroke={color} strokeWidth={1.1} />
 
-    {/* 2. Tiny petal burst — 8 petals, very short */}
+    {/* 2. Tiny petal burst ,8 petals, very short */}
     {petalRing(8, 14, 24, 5, 22.5, color, 'kl-p0-')}
 
     {/* 3. Fine dotted ring */}
     {dotRing(16, 27, 1.6, color, 'kl-dr0-')}
     <circle cx={C} cy={C} r={31} fill="none" stroke={color} strokeWidth={0.7} />
 
-    {/* 4. Spoke ring — 16 spokes r=32→44 */}
+    {/* 4. Spoke ring ,16 spokes r=32→44 */}
     {spokeRing(16, 32, 44, 0, color, 0.6, 'kl-sp1-')}
     <circle cx={C} cy={C} r={45} fill="none" stroke={color} strokeWidth={0.8} />
 
@@ -242,17 +242,17 @@ export const KalaLotus: React.FC<KalaDecorProps> = ({ size=300, color='#C41E3A',
     {dotRing(20, 58, 1.5, color, 'kl-dr1-')}
     <circle cx={C} cy={C} r={62} fill="none" stroke={color} strokeWidth={0.8} />
 
-    {/* 6. Wide lotus petal ring — 8 filled */}
+    {/* 6. Wide lotus petal ring ,8 filled */}
     {petalRing(8, 63, 98, 15, 0, color, 'kl-p1-')}
     {/* inner vein line on each petal */}
     {spokeRing(8, 63, 97, 0, color, 0.55, 'kl-vn1-')}
 
-    {/* 7. Offset petal ring — 8 stroke-only, between main petals */}
+    {/* 7. Offset petal ring ,8 stroke-only, between main petals */}
     {petalRingStroke(8, 63, 88, 11, 22.5, color, 0.7, 'kl-p1s-')}
     {dotRing(16, 100, 1.8, color, 'kl-dr2-')}
     <circle cx={C} cy={C} r={105} fill="none" stroke={color} strokeWidth={0.85} />
 
-    {/* 8. Triangle crown — 16 triangles pointing out */}
+    {/* 8. Triangle crown ,16 triangles pointing out */}
     {triRing(16, 106, 12, 4, 11.25, color, 'kl-tr1-')}
     <circle cx={C} cy={C} r={120} fill="none" stroke={color} strokeWidth={0.75} />
 
@@ -260,7 +260,7 @@ export const KalaLotus: React.FC<KalaDecorProps> = ({ size=300, color='#C41E3A',
     {hatchBand(12, 121, 133, 4, 0, color, 0.6, 'kl-hb1-')}
     <circle cx={C} cy={C} r={135} fill="none" stroke={color} strokeWidth={0.8} />
 
-    {/* 10. Outer leaf ring — 12 filled leaves */}
+    {/* 10. Outer leaf ring ,12 filled leaves */}
     {leafRing(12, 136, 12, 5, 0, color, true, 0.5, 'kl-lf1-')}
     {dotRing(36, 141, 1.1, color, 'kl-dr3-')}
     <circle cx={C} cy={C} r={146} fill="none" stroke={color} strokeWidth={1.0} />
@@ -320,7 +320,7 @@ export const KalaGeometric: React.FC<KalaDecorProps> = ({ size=300, color='#C41E
       {spokeRing(8, 28, 46, -90, color, 0.6, 'kg-sp1-')}
       <circle cx={C} cy={C} r={50} fill="none" stroke={color} strokeWidth={0.7} />
 
-      {/* 5. Diamond lattice — 16 small diamonds around r=60 */}
+      {/* 5. Diamond lattice ,16 small diamonds around r=60 */}
       {Array.from({length:16}, (_,i) => {
         const deg = i*22.5, a = deg*R, pp = a+Math.PI/2;
         const cx_ = C+60*Math.cos(a), cy_ = C+60*Math.sin(a);
@@ -335,12 +335,12 @@ export const KalaGeometric: React.FC<KalaDecorProps> = ({ size=300, color='#C41E
       {hatchBand(16, 77, 89, 5, 0, color, 0.6, 'kg-hb1-')}
       <circle cx={C} cy={C} r={91} fill="none" stroke={color} strokeWidth={0.9} />
 
-      {/* 7. Petal ring — 16 filled petals */}
+      {/* 7. Petal ring ,16 filled petals */}
       {petalRing(16, 92, 114, 9, 0, color, 'kg-p1-')}
       {dotRing(16, 116, 1.5, color, 'kg-dr2-')}
       <circle cx={C} cy={C} r={120} fill="none" stroke={color} strokeWidth={0.8} />
 
-      {/* 8. Triangle ring — 24 pointing outward */}
+      {/* 8. Triangle ring ,24 pointing outward */}
       {triRing(24, 121, 10, 3.5, 7.5, color, 'kg-tr1-')}
       <circle cx={C} cy={C} r={133} fill="none" stroke={color} strokeWidth={0.75} />
 

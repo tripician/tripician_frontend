@@ -1,15 +1,12 @@
 import React from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { Box, Button, Typography } from '@mui/material';
 import { useSelector } from 'react-redux';
 import NavigationPannel from '../PageLayout/CommonLayouts/NavigationPanel';
-import TopBar from '../PageLayout/CommonLayouts/TopBar';
-import ArrowBackRoundedIcon from '@mui/icons-material/ArrowBackRounded';
 
 interface Props { children: React.ReactNode }
 
 const InfoPageShell: React.FC<Props> = ({ children }) => {
-  const navigate = useNavigate();
   const profile = useSelector((state: any) => state.user?.profile);
   const isAuthenticated = !!profile;
   const logoFullBlackUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_BLACK_2_URL as string | undefined;

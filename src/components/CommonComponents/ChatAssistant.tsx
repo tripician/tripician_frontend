@@ -57,7 +57,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
 
   const greetingName = profile?.fname?.trim();
   const emptyGreeting = tripId
-    ? `Hi${greetingName ? ` ${greetingName}` : ''}! I'm Navia — your AI co-planner for this trip. Ask me about destinations, pacing, packing, or what to do next.`
+    ? `Hi${greetingName ? ` ${greetingName}` : ''}! I'm Navia ,your AI co-planner for this trip. Ask me about destinations, pacing, packing, or what to do next.`
     : `Hi${greetingName ? ` ${greetingName}` : ''}! I'm Navia, your AI travel companion. I can see your trips and help you plan your next adventure.`;
 
   const [open, setOpen] = useState(false);
@@ -81,11 +81,11 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
   const [attentionAnim, setAttentionAnim] = useState(false);
 
   const updateItems = [
-    { icon: RocketLaunchRoundedIcon, text: 'Tripician 2.0 — New trip view & community feed.' },
-    { icon: SecurityRoundedIcon,     text: 'Publish validation — title, 10-word description & all days planned before going live.' },
-    { icon: SyncRoundedIcon,         text: 'Community Adventures — browse real trips with days plan, nights & live reactions.' },
-    { icon: RocketLaunchRoundedIcon, text: 'Navia AI v0.0.1 — smarter trip co-planner inside every itinerary.' },
-    { icon: SecurityRoundedIcon,     text: 'Premium trip view sidebar — date range, traveller profiles & live reaction toolbar.' },
+    { icon: RocketLaunchRoundedIcon, text: 'Tripician 2.0 ,New trip view & community feed.' },
+    { icon: SecurityRoundedIcon,     text: 'Publish validation ,title, 10-word description & all days planned before going live.' },
+    { icon: SyncRoundedIcon,         text: 'Community Adventures ,browse real trips with days plan, nights & live reactions.' },
+    { icon: RocketLaunchRoundedIcon, text: 'Navia AI v0.0.1 ,smarter trip co-planner inside every itinerary.' },
+    { icon: SecurityRoundedIcon,     text: 'Premium trip view sidebar ,date range, traveller profiles & live reaction toolbar.' },
     { icon: SyncRoundedIcon,         text: 'Profile picture upload, preferences settings & dark / light theme toggle.' },
   ];
 
@@ -484,7 +484,7 @@ const ChatAssistant: React.FC<ChatAssistantProps> = ({ tripId }) => {
               disabled={feedbackSending || feedbackDone}
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, backgroundColor: theme.palette.mode === 'light' ? 'common.white' : 'background.paper' } }}
             />
-            {feedbackDone && <Typography variant="body2" color="success.main" fontWeight={600}>✓ Feedback sent — thank you!</Typography>}
+            {feedbackDone && <Typography variant="body2" color="success.main" fontWeight={600}>✓ Feedback sent ,thank you!</Typography>}
             {feedbackError && <Typography variant="body2" color="error">{feedbackError}</Typography>}
           </Stack>
         </DialogContent>

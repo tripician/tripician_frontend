@@ -1,5 +1,5 @@
 ﻿/* 
-   LandingPage.css  —  Tripician  (Polarsteps-inspired cinematic)
+   LandingPage.css  , Tripician  (Polarsteps-inspired cinematic)
     */
 @import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,500;1,700&family=Inter:wght@300;400;500;600&display=swap');
 
@@ -161,7 +161,7 @@
   transform: translateY(-2px);
 }
 
-/* PWA install — always visible on mobile/tablet */
+/* PWA install ,always visible on mobile/tablet */
 .lp-install-wrap {
   display: none;
   flex-direction: column;
@@ -233,7 +233,7 @@
   overflow: hidden;
 }
 
-/* Cinematic dark background — overridden by VITE_LANDING_HERO_IMAGE_URL */
+/* Cinematic dark background ,overridden by VITE_LANDING_HERO_IMAGE_URL */
 .lp-hero__bg {
   position: absolute;
   inset: -22%;
@@ -1487,7 +1487,7 @@
 }
 
 /* 
-   WHY DIFFERENT — BENTO GRID
+   WHY DIFFERENT ,BENTO GRID
     */
 /* 
    BENTO GRID  "Why Different"
@@ -2103,7 +2103,7 @@
 }
 
 /* =================================================================
-   NEW SECTIONS — spec v2
+   NEW SECTIONS ,spec v2
    ================================================================= */
 
 /*  SKIP TO CONTENT  */
@@ -2522,7 +2522,7 @@
   transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-/* CTA button pulse on load — hero only, fires twice then stops */
+/* CTA button pulse on load ,hero only, fires twice then stops */
 @keyframes lp-subtle-pulse {
   0%, 100% { box-shadow: 0 12px 40px rgba(255, 56, 92, 0.42), 0 0 0 0 rgba(255, 56, 92, 0.4); }
   50%       { box-shadow: 0 12px 40px rgba(255, 56, 92, 0.42), 0 0 0 8px rgba(255, 56, 92, 0); }

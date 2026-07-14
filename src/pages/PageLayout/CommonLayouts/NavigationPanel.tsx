@@ -16,7 +16,7 @@ interface Props {
   children: React.ReactNode;
 }
 
-const MORE_NAV_IDS = ['risk', 'settings'];
+const MORE_NAV_IDS = ['risk'];
 
 const NavigationPannel: React.FC<Props> = ({ children }) => {
   const navigate = useNavigate();
@@ -30,7 +30,7 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
   const plannerMatch = useMatch('/tripplanner/:tripId');
   const activeTripId = plannerMatch?.params.tripId;
   const hideFloatingNavia = useMemo(
-    () => Boolean(activeTripId) || location.pathname.startsWith('/tripplanner/'),
+    () => Boolean(activeTripId) || location.pathname.startsWith('/tripplanner/') || location.pathname === '/navia',
     [activeTripId, location.pathname],
   );
 

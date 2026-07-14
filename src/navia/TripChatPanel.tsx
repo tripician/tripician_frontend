@@ -33,8 +33,6 @@ import CancelRoundedIcon from '@mui/icons-material/CancelRounded';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 import { motion, AnimatePresence } from 'framer-motion';
-import QuestionAnswerRoundedIcon from '@mui/icons-material/QuestionAnswerRounded';
-import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
 
 import { useTripChat } from './useTripChat';
 import {
@@ -274,60 +272,58 @@ interface MessageBubbleProps {
   isMine: boolean;
   isLight: boolean;
   showAvatar: boolean;
+  /** Only the last message of a same-sender group shows the timestamp */
+  showTime?: boolean;
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ msg, isMine, isLight, showAvatar }) => {
+const MessageBubble: React.FC<MessageBubbleProps> = ({ msg, isMine, isLight, showAvatar, showTime = true }) => {
   const isNavia = msg.messageType === 'Navia';
   const name = isNavia ? 'Navia' : (msg.displayName || `User ${msg.userId ?? ''}`);
   const initials = isNavia ? 'N' : getInitials(name);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start' }}>
-      
+
       <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 0.75, flexDirection: isMine ? 'row-reverse' : 'row' }}>
         {!isMine && (
           <Avatar
             src={isNavia ? undefined : msg.avatarUrl}
             sx={{
-              width: 28, height: 28, fontSize: 11, flexShrink: 0, alignSelf: 'flex-end',
+              width: 26, height: 26, fontSize: 10.5, flexShrink: 0, alignSelf: 'flex-end',
               bgcolor: isNavia ? 'transparent' : '#FF385C',
               visibility: showAvatar ? 'visible' : 'hidden',
             }}
           >
-            {isNavia ? <NaviaLogo size={28} /> : initials}
+            {isNavia ? <NaviaLogo size={26} /> : initials}
           </Avatar>
         )}
         <Box
           sx={{
             px: 1.5, py: 0.9,
             maxWidth: 360,
-            borderRadius: isMine ? '14px 14px 3px 14px' : (isNavia ? '14px 14px 14px 3px' : '14px 14px 14px 3px'),
-            fontSize: 13.5, lineHeight: 1.65, fontFamily: 'inherit', wordBreak: 'break-word',
+            borderRadius: isMine ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+            fontSize: 13.5, lineHeight: 1.6, fontFamily: 'inherit', wordBreak: 'break-word',
             background: isMine
-              ? 'linear-gradient(135deg,#FF385C,#D91A50)'
-              : isNavia
-                ? (isLight ? '#f4f4f4' : 'rgba(255,255,255,0.07)')
-                : (isLight ? '#f0f0f0' : 'rgba(255,255,255,0.08)'),
+              ? 'linear-gradient(135deg,#FF385C,#E31C5F)'
+              : (isLight ? '#f3f4f6' : 'rgba(255,255,255,0.07)'),
             color: isMine ? '#fff' : (isLight ? '#1a1a1a' : 'rgba(255,255,255,0.88)'),
-            boxShadow: isMine ? '0 2px 12px rgba(255,56,92,0.28)' : 'none',
-            border: !isMine ? `0.5px solid ${isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)'}` : 'none',
           }}
         >
           {!isMine && showAvatar && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.4, ml: isNavia ? 0 : 0 }}>          
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: isNavia ? '#FF385C' : (isLight ? '#555' : 'rgba(255,255,255,0.55)'), letterSpacing: isNavia ? '0.4px' : 0, textTransform: isNavia ? 'uppercase' : 'none' }}>
-                {name}
-              </Typography>
-            </Box>
+            <Typography sx={{ fontSize: 11, fontWeight: 700, mb: 0.35, color: isNavia ? '#FF385C' : (isLight ? '#666' : 'rgba(255,255,255,0.55)') }}>
+              {name}
+            </Typography>
           )}
           <Typography sx={{ fontSize: 'inherit', lineHeight: 'inherit', whiteSpace: 'pre-line', color: 'inherit' }}>
             {msg.message}
           </Typography>
         </Box>
       </Box>
-      <Typography sx={{ fontSize: 10.5, color: isLight ? 'rgba(0,0,0,0.32)' : 'rgba(255,255,255,0.28)', mt: 0.35, mx: isMine ? 0 : 4.5 }}>
-        {formatTime(msg.sentAt)}
-      </Typography>
+      {showTime && (
+        <Typography sx={{ fontSize: 10, color: isLight ? 'rgba(0,0,0,0.30)' : 'rgba(255,255,255,0.28)', mt: 0.4, mx: isMine ? 0.5 : 4.5 }}>
+          {formatTime(msg.sentAt)}
+        </Typography>
+      )}
     </Box>
   );
 };
@@ -343,6 +339,10 @@ export interface TripChatPanelProps {
   inline?: boolean;
   /** Called whenever Navia executes a trip mutation so the parent can re-fetch the plan */
   onTripUpdated?: () => void;
+  /** Whether the panel is currently shown (drives unread tracking); defaults to true */
+  visible?: boolean;
+  /** Reports the number of messages that arrived while the panel was hidden */
+  onUnreadChange?: (count: number) => void;
 }
 
 const TripChatPanel: React.FC<TripChatPanelProps> = ({
@@ -352,6 +352,8 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
   myUserId,
   inline = false,
   onTripUpdated,
+  visible = true,
+  onUnreadChange,
 }) => {
   const prevMessageCountRef = React.useRef(0);
 
@@ -379,6 +381,26 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
       onTripUpdated();
     }
   }, [messages, onTripUpdated]);
+
+  // ── Unread tracking: count messages that land while the panel is hidden ──
+  const lastSeenCountRef = useRef(0);
+  const [firstUnreadIdx, setFirstUnreadIdx] = useState<number | null>(null);
+  useEffect(() => {
+    if (visible) {
+      lastSeenCountRef.current = messages.length;
+      onUnreadChange?.(0);
+    } else {
+      const unread = Math.max(0, messages.length - lastSeenCountRef.current);
+      if (unread > 0 && firstUnreadIdx === null) setFirstUnreadIdx(lastSeenCountRef.current);
+      onUnreadChange?.(unread);
+    }
+  }, [messages.length, visible, onUnreadChange, firstUnreadIdx]);
+  // The "New messages" divider fades out shortly after the panel is reopened
+  useEffect(() => {
+    if (!visible || firstUnreadIdx === null) return;
+    const tm = setTimeout(() => setFirstUnreadIdx(null), 6000);
+    return () => clearTimeout(tm);
+  }, [visible, firstUnreadIdx]);
 
   const [input, setInput] = useState('');
   const [showJump, setShowJump] = useState(false);
@@ -532,6 +554,20 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
       const isMine = msg.userId != null && msg.userId === myUserId;
       const key = msg.id;
 
+      // "New messages" divider — marks where you left off
+      if (firstUnreadIdx !== null && idx === firstUnreadIdx) {
+        lastUserId = null;
+        nodes.push(
+          <Box key="unread-divider" sx={{ display: 'flex', alignItems: 'center', gap: 1, my: 1 }}>
+            <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,56,92,0.35)' }} />
+            <Typography sx={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#FF385C', flexShrink: 0 }}>
+              New
+            </Typography>
+            <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,56,92,0.35)' }} />
+          </Box>
+        );
+      }
+
       if (msg.messageType === 'System') {
         lastUserId = null;
         nodes.push(
@@ -587,7 +623,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
       nodes.push(
         <motion.div key={key} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }}>
           <Box sx={{ mb: isLast ? 1.5 : 0.35 }}>
-            <MessageBubble msg={msg} isMine={isMine} isLight={isLight} showAvatar={showAvatar} />
+            <MessageBubble msg={msg} isMine={isMine} isLight={isLight} showAvatar={showAvatar} showTime={isLast} />
           </Box>
         </motion.div>
       );
@@ -606,41 +642,29 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
       display: 'flex', flexDirection: 'column',
       height: inline ? '100%' : '100%',
       minHeight: inline ? 420 : undefined,
-      background: isLight ? '#fff' : '#0e1621',
+      bgcolor: 'background.paper',
       borderRadius: inline ? '12px' : 0,
       overflow: 'hidden',
       position: 'relative',
     }}>
-      {/* Header */}
-      <Box sx={{
-        px: 2, py: 1.25, borderBottom: `1px solid ${isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.06)'}`,
-        display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0,
-        background: isLight ? 'rgba(255,255,255,0.95)' : 'rgba(14,22,33,0.95)',
-        backdropFilter: 'blur(8px)',
-      }}>
-        <Box sx={{
-          width: 30,
-          height: 30,
-          borderRadius: '9px',
-          background: 'linear-gradient(135deg,#FF385C,#D91A50)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <QuestionAnswerRoundedIcon sx={{ fontSize: 15, color: '#fff' }} />
-        </Box>
+      {/* Slim header — identity + live status */}
+      <Box sx={(t) => ({
+        px: 2, py: 1.1, flexShrink: 0,
+        display: 'flex', alignItems: 'center', gap: 1,
+        borderBottom: `1px solid ${t.palette.divider}`,
+      })}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontFamily: 'Playfair Display, serif' ,fontSize: 13.5, fontWeight: 700, lineHeight: 1.2, color: isLight ? '#111' : '#fff' }}>
-            Discussions
+          <Typography noWrap sx={{ fontSize: 13, fontWeight: 700, letterSpacing: '-0.01em', color: 'text.primary', lineHeight: 1.3 }}>
+            Trip Discussion
           </Typography>
-          <Typography sx={{ fontSize: 11, color: isLight ? '#888' : 'rgba(255,255,255,0.45)', lineHeight: 1 }}>
-            Type <Box component='span' sx={{ color: '#FF385C', fontWeight: 700 }}>@navia</Box> to ask the AI
+          <Typography noWrap sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.3 }}>
+            {members.length > 1 ? `${members.length} travelers` : 'Just you so far'} · <Box component='span' sx={{ color: 'primary.main', fontWeight: 600 }}>@navia</Box> for AI help
           </Typography>
         </Box>
         <Tooltip title={statusLabel} arrow>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
             <FiberManualRecordIcon sx={{ fontSize: 9, color: statusColor }} />
-            <Typography sx={{ fontSize: 10.5, color: isLight ? '#999' : 'rgba(255,255,255,0.4)' }}>{statusLabel}</Typography>
+            <Typography sx={{ fontSize: 10.5, color: 'text.disabled', fontWeight: 600 }}>{statusLabel}</Typography>
           </Box>
         </Tooltip>
       </Box>
@@ -658,22 +682,12 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
       >
         {messages.length === 0 && (
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 6, gap: 1 }}>
-            <Box sx={{
-              width: 30,
-              height: 30,
-              borderRadius: '9px',
-              background: 'linear-gradient(135deg,#FF385C,#D91A50)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <ForumRoundedIcon sx={{ fontSize: 15, color: '#fff' }} />
-            </Box>
-            <Typography sx={{ fontFamily: 'Playfair Display, serif' ,fontWeight: 700, fontSize: 15, color: isLight ? '#222' : 'rgba(255,255,255,0.85)' }}>
-              Let's discuss!
+            <NaviaLogo size={40} />
+            <Typography sx={{ fontWeight: 700, fontSize: 14.5, letterSpacing: '-0.01em', color: 'text.primary' }}>
+              Plan it together
             </Typography>
-            <Typography sx={{ fontSize: 13, color: isLight ? '#888' : 'rgba(255,255,255,0.4)', textAlign: 'center', maxWidth: 260, lineHeight: 1.55 }}>
-              All trip members can chat here. Type <Box component='span' sx={{ color: '#FF385C', fontWeight: 700 }}>@navia</Box> to get AI suggestions for your trip.
+            <Typography sx={{ fontSize: 13, color: 'text.secondary', textAlign: 'center', maxWidth: 260, lineHeight: 1.55 }}>
+              All trip members can chat here. Type <Box component='span' sx={{ color: 'primary.main', fontWeight: 700 }}>@navia</Box> to get AI suggestions for your trip.
             </Typography>
           </Box>
         )}

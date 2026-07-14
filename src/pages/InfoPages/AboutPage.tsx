@@ -12,7 +12,7 @@ const VALUES = [
   {
     Icon: AutoAwesomeRoundedIcon,
     title: 'Made for Explorers',
-    desc: 'Every feature is designed around real travellers — from spontaneous adventurers to meticulous planners.',
+    desc: 'Every feature is designed around real travellers ,from spontaneous adventurers to meticulous planners.',
   },
   {
     Icon: GroupsRoundedIcon,
@@ -27,7 +27,7 @@ const VALUES = [
   {
     Icon: MapRoundedIcon,
     title: 'Thoughtfully Designed',
-    desc: 'We obsess over the details — because planning a trip should feel as exciting as the trip itself.',
+    desc: 'We obsess over the details ,because planning a trip should feel as exciting as the trip itself.',
   },
 ];
 
@@ -57,10 +57,10 @@ const AboutPage: React.FC = () => (
       <Box sx={{ background: '#fff', borderRadius: '16px', p: { xs: 3, md: 5 }, border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 2px 20px rgba(0,0,0,0.05)', mb: 3 }}>
         <Typography sx={{ fontWeight: 700, color: '#111', mb: 2.5, fontSize: '1.1rem' }}>Our Story</Typography>
         <Typography sx={{ color: '#444', lineHeight: 1.85, mb: 2, fontSize: '0.95rem' }}>
-          Planning a group trip to Southeast Asia, our founders found themselves bouncing between spreadsheets, messaging threads, documents, and booking sites — losing context, losing time, and nearly losing their minds.
+          Planning a group trip to Southeast Asia, our founders found themselves bouncing between spreadsheets, messaging threads, documents, and booking sites ,losing context, losing time, and nearly losing their minds.
         </Typography>
         <Typography sx={{ color: '#444', lineHeight: 1.85, mb: 2, fontSize: '0.95rem' }}>
-          They asked: why doesn't a single tool exist that handles everything — itineraries, day-by-day plans, expense tracking, packing lists, safety alerts, and real collaboration — without feeling like enterprise software?
+          They asked: why doesn't a single tool exist that handles everything ,itineraries, day-by-day plans, expense tracking, packing lists, safety alerts, and real collaboration ,without feeling like enterprise software?
         </Typography>
         <Typography sx={{ color: '#444', lineHeight: 1.85, fontSize: '0.95rem' }}>
           Tripician is that tool. It's the travel companion we always wanted: beautiful, intelligent, and built entirely around the traveller.

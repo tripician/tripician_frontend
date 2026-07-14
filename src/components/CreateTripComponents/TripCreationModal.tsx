@@ -748,11 +748,11 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
             {/*  STEP CONTENT  */}
             <Box ref={stepContentRef} sx={{ flex: 1 }}>
 
-              {/* STEP 1 — The Basics */}
+              {/* STEP 1 ,The Basics */}
               {step === 1 && (
                 <Box>
                   <Typography sx={{ fontFamily: "'Playfair Display', serif", fontSize: '1.12rem', fontWeight: 700, color: '#222', mb: 0.4, letterSpacing: '-0.01em' }}>Name your adventure</Typography>
-                  <Typography sx={{ fontSize: '0.72rem', color: '#BBB', fontFamily: "'Inter', sans-serif", mb: 2.5 }}>Give your trip an identity — something that captures the vibe.</Typography>
+                  <Typography sx={{ fontSize: '0.72rem', color: '#BBB', fontFamily: "'Inter', sans-serif", mb: 2.5 }}>Give your trip an identity ,something that captures the vibe.</Typography>
                   <Box className="gs-modal-field" sx={{ mb: 2 }}>
                     <Typography sx={labelSx}>Trip name</Typography>
                     <TextField
@@ -787,7 +787,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
                 </Box>
               )}
 
-              {/* STEP 2 — Where & When */}
+              {/* STEP 2 ,Where & When */}
               {step === 2 && (
                 <Box>
                   <Typography sx={{ fontFamily: "'Playfair Display', serif", fontSize: '1.12rem', fontWeight: 700, color: '#222', mb: 0.4, letterSpacing: '-0.01em' }}>Plan your route</Typography>
@@ -847,11 +847,11 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
                 </Box>
               )}
 
-              {/* STEP 3 — Travel Style */}
+              {/* STEP 3 ,Travel Style */}
               {step === 3 && (
                 <Box>
                   <Typography sx={{ fontFamily: "'Playfair Display', serif", fontSize: '1.12rem', fontWeight: 700, color: '#222', mb: 0.4, letterSpacing: '-0.01em' }}>What's your travel style?</Typography>
-                  <Typography sx={{ fontSize: '0.72rem', color: '#BBB', fontFamily: "'Inter', sans-serif", mb: 2 }}>Pick the vibe that feels most like you — or skip it.</Typography>
+                  <Typography sx={{ fontSize: '0.72rem', color: '#BBB', fontFamily: "'Inter', sans-serif", mb: 2 }}>Pick the vibe that feels most like you ,or skip it.</Typography>
 
                   {activeVibe && (
                     <Box sx={{
@@ -899,11 +899,11 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
                 </Box>
               )}
 
-              {/* STEP 4 — Bring Your Crew */}
+              {/* STEP 4 ,Bring Your Crew */}
               {step === 4 && (
                 <Box>
                   <Typography sx={{ fontFamily: "'Playfair Display', serif", fontSize: '1.12rem', fontWeight: 700, color: '#222', mb: 0.4, letterSpacing: '-0.01em' }}>Bring your crew</Typography>
-                  <Typography sx={{ fontSize: '0.72rem', color: '#BBB', fontFamily: "'Inter', sans-serif", mb: 2 }}>Invite friends to co-plan your trip — totally optional.</Typography>
+                  <Typography sx={{ fontSize: '0.72rem', color: '#BBB', fontFamily: "'Inter', sans-serif", mb: 2 }}>Invite friends to co-plan your trip ,totally optional.</Typography>
 
                   {/* Trip summary */}
                   <Box sx={{ p: '14px 18px', borderRadius: '16px', border: '1px solid rgba(0,0,0,0.07)', background: '#fff', mb: 2.5 }}>

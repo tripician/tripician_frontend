@@ -1,8 +1,9 @@
 ﻿import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Typography, IconButton, Skeleton, Tooltip, useMediaQuery } from '@mui/material';
+import { Box, Typography, IconButton, Skeleton, Tooltip, useMediaQuery, Switch, CircularProgress } from '@mui/material';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import ContentCopyRoundedIcon from '@mui/icons-material/ContentCopyRounded';
+import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
 import { useTripShare } from '../hooks/useTripShare';
 
 // Props 
@@ -13,6 +14,12 @@ interface TripShareModalProps {
   tripName: string;
   destinationCount: number;
   totalNights: number;
+  /** Whether the current user owns this trip (shows link-share toggle when true) */
+  isOwner?: boolean;
+  /** Whether link sharing is currently enabled (Visibility = ReadOnly) */
+  linkShareEnabled?: boolean;
+  /** Callback when the link-share toggle changes */
+  onLinkShareToggle?: (enabled: boolean) => Promise<void> | void;
 }
 
 // Inline SVG brand icons 
@@ -68,7 +75,7 @@ interface ShareButtonConfig {
   id: string;
   label: string;
   Icon: React.FC;
-  /** Color applied on hover — MUI theme tokens like 'text.primary' are supported */
+  /** Color applied on hover ,MUI theme tokens like 'text.primary' are supported */
   brandColor: string;
 }
 
@@ -90,6 +97,9 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
   tripName,
   destinationCount,
   totalNights,
+  isOwner = false,
+  linkShareEnabled = false,
+  onLinkShareToggle,
 }) => {
   const isMobile = useMediaQuery('(max-width:767px)');
 
@@ -103,6 +113,7 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
   const [imageCopied, setImageCopied] = useState(false);
   const [igTooltip, setIgTooltip] = useState(false);
   const [visible, setVisible] = useState(false);
+  const [linkShareToggling, setLinkShareToggling] = useState(false);
   const [cardHovered, setCardHovered] = useState(false);
 
   // Drive entry animation
@@ -316,7 +327,7 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
               key={btn.id}
               title={
                 isInstagram && igTooltip
-                  ? 'Image downloaded — paste it on Instagram!'
+                  ? 'Image downloaded ,paste it on Instagram!'
                   : isActive
                   ? 'Copied!'
                   : btn.label
@@ -356,6 +367,54 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
           );
         })}
       </Box>
+
+      {/* Section: Link sharing toggle (owner only ,Google Drive style) */}
+      {isOwner && (
+        <Box
+          sx={{
+            display: 'flex',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderRadius: '12px',
+            border: '0.5px solid',
+            borderColor: 'divider',
+            px: 2,
+            py: 1.5,
+            gap: 2,
+          }}
+        >
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
+            <LinkRoundedIcon sx={{ fontSize: 20, color: linkShareEnabled ? '#6366f1' : 'text.disabled', flexShrink: 0 }} />
+            <Box sx={{ minWidth: 0 }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 600, fontFamily: "'Inter', system-ui, sans-serif", color: 'text.primary', lineHeight: 1.4 }}>
+                Anyone with the link can view
+              </Typography>
+              <Typography sx={{ fontSize: 11, color: 'text.secondary', fontFamily: "'Inter', system-ui, sans-serif", lineHeight: 1.4 }}>
+                {linkShareEnabled ? 'Link sharing is on ,anyone can see this trip' : 'Only trip members can access this link'}
+              </Typography>
+            </Box>
+          </Box>
+          {linkShareToggling ? (
+            <CircularProgress size={20} sx={{ flexShrink: 0 }} />
+          ) : (
+            <Switch
+              checked={linkShareEnabled}
+              size="small"
+              disabled={!onLinkShareToggle}
+              onChange={async (e) => {
+                if (!onLinkShareToggle) return;
+                setLinkShareToggling(true);
+                try { await onLinkShareToggle(e.target.checked); } finally { setLinkShareToggling(false); }
+              }}
+              sx={{
+                flexShrink: 0,
+                '& .MuiSwitch-switchBase.Mui-checked': { color: '#6366f1' },
+                '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#6366f1' },
+              }}
+            />
+          )}
+        </Box>
+      )}
 
       {/*Section 3: Download button*/}
       <Box

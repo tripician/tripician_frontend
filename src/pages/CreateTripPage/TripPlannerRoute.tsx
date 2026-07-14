@@ -21,10 +21,6 @@ const TripPlannerRoute: React.FC = () => {
   const location = useLocation();
   const state = (location.state || {}) as TripPlannerRouteLocationState;
 
-  if(!tripId) {
-    return <Navigate to="/error/404" replace />;
-  }
-
   // Prefer `state.trip`; fall back to `state.initialTrip` if provided and matching id
   const stateMatches = state.tripId === tripId;
   const passedTrip = stateMatches ? (state.trip || state.initialTrip) : undefined;
@@ -41,6 +37,10 @@ const TripPlannerRoute: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripId, state.__ts]);
+
+  if(!tripId) {
+    return <Navigate to="/error/404" replace />;
+  }
   // Force component remount on tripId changes so internal refs (hydratedRef) don't carry over.
   return (
     <TripPlanner

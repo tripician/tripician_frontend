@@ -34,7 +34,7 @@ export interface DestinationCardProps {
   canMoveDown?: boolean;
   readonly?: boolean;
   onRename?: (id: string, name: string) => void;
-  /** Day plan headline (e.g. "Coffee & explore the market") — separate from Google place name */
+  /** Day plan headline (e.g. "Coffee & explore the market") ,separate from Google place name */
   onChangeTitle?: (id: string, title: string) => void;
   onChangeCategory?: (id: string, category: PlannerDestination['category']) => void;
   onToggleComplete?: (id: string) => void;
@@ -83,7 +83,7 @@ const buildGoogleMapsUrl = (dest: { name: string; placeId?: string; lat?: number
 
 type PlanLaneKey = 'spots' | 'stay' | 'notes';
 
-/* Inline location chip — opens Google Maps; edit via pencil */
+/* Inline location chip ,opens Google Maps; edit via pencil */
 const LocationTag: React.FC<{
   name: string;
   placeId?: string;
@@ -167,7 +167,7 @@ const LocationTag: React.FC<{
   );
 };
 
-/** Integrated itinerary lanes — part of the card, not a separate button row */
+/** Integrated itinerary lanes ,part of the card, not a separate button row */
 const JourneyPlanStrip: React.FC<{
   activeLane: PlanLaneKey | null;
   placeName: string;
@@ -178,6 +178,7 @@ const JourneyPlanStrip: React.FC<{
   stayPreview?: string;
   hasNotes: boolean;
   notesPreview?: string;
+  firstSpotPhoto?: string;
   spotsChecked: number;
   onSpots: () => void;
   onStay: () => void;
@@ -186,7 +187,7 @@ const JourneyPlanStrip: React.FC<{
   naviaThinking?: boolean;
 }> = ({
   activeLane, placeName, nights, spots, foodsCount, stayCount, stayPreview, hasNotes, notesPreview,
-  spotsChecked, onSpots, onStay, onNotes, onNavia, naviaThinking,
+  firstSpotPhoto, spotsChecked, onSpots, onStay, onNotes, onNavia, naviaThinking,
 }) => {
   const spotPreview = spots.slice(0, 2).map(s => s.name).join(' · ');
   const spotsProgress = spots.length > 0 ? spotsChecked / spots.length : 0;
@@ -281,6 +282,14 @@ const JourneyPlanStrip: React.FC<{
             <Typography sx={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '-0.2px', lineHeight: 1.2, color: isActive ? '#FF385C' : 'text.primary', mb: .25 }}>
               {lane.title}
             </Typography>
+            {lane.key === 'spots' && firstSpotPhoto && (
+              <Box
+                component='img'
+                src={firstSpotPhoto}
+                alt='Top spot'
+                sx={{ width: 24, height: 24, borderRadius: '7px', objectFit: 'cover', mb: .35, border: '1px solid', borderColor: 'divider' }}
+              />
+            )}
             <Typography
               noWrap
               sx={{
@@ -425,7 +434,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
       sx={(t) => ({
         position: 'relative', overflow: 'hidden', opacity: disabled ? .55 : 1,
         display: 'flex', flexDirection: 'row',
-        borderRadius: '14px',
+        borderRadius: '16px',
         border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`,
         background: t.palette.mode === 'dark' ? t.palette.background.paper : '#fff',
         boxShadow: t.palette.mode === 'dark'
@@ -444,7 +453,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
       <Box
         {...(dragHandleProps || {})}
         sx={(t) => ({
-          width: { xs: 62, sm: 76 }, flexShrink: 0, position: 'relative', overflow: 'hidden',
+          width: { xs: 68, sm: 96 }, flexShrink: 0, position: 'relative', overflow: 'hidden',
           cursor: isDragging ? 'grabbing' : 'grab',
           bgcolor: t.palette.mode === 'dark' ? '#1a1d22' : '#f1f3f5',
           // Category color tint when no photo
@@ -547,13 +556,13 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
             </Box>
             {!editingTitle && onRequestNaviaTip && !readonly &&(
               <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: .4, flexWrap: 'nowrap', overflow: 'hidden', mt: .45 }}>
-                {['Best time?', 'Top spots?', 'Pack?'].map(prompt => (
+                {['Best time?', 'Top picks?', 'Packing essentials?'].map(prompt => (
                   <Box
                     key={prompt}
-                    onClick={(e) => { e.stopPropagation(); onRequestNaviaTip(`${naviaContext} - ${prompt}`); }}
+                    onClick={(e) => { e.stopPropagation(); onRequestNaviaTip(`For ${naviaContext}, ${prompt}`); }}
                     sx={(t) => ({
-                      fontSize: 9.5, fontWeight: 600, color: 'text.disabled', cursor: 'pointer', whiteSpace: 'nowrap',
-                      px: .7, py: .2, borderRadius: '8px',
+                      fontSize: 10.5, fontWeight: 600, color: 'text.secondary', cursor: 'pointer', whiteSpace: 'nowrap',
+                      px: .9, py: .3, borderRadius: '20px',
                       bgcolor: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
                       border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
                       '&:hover': { color: '#FF385C', borderColor: 'rgba(255,56,92,0.28)', bgcolor: 'rgba(255,56,92,0.05)' },
@@ -568,16 +577,16 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
           </Box>
 
           {/* Nights +/- */}
-          <Box onClick={e => e.stopPropagation()} sx={{ display: 'flex', alignItems: 'center', bgcolor: 'rgba(255,56,92,0.07)', border: '1px solid rgba(255,56,92,0.2)', borderRadius: '20px', px: .5, height: 22, gap: .1, flexShrink: 0, mt: { xs: .2, sm: 0 } }}>
+          <Box onClick={e => e.stopPropagation()} sx={{ display: 'flex', alignItems: 'center', bgcolor: 'rgba(255,56,92,0.07)', border: '1px solid rgba(255,56,92,0.2)', borderRadius: '20px', px: .5, height: 24, gap: .1, flexShrink: 0, mt: { xs: .2, sm: 0 } }}>
             {!readonly ? (<Box component='button' type='button'
               onClick={(e: any) => { e.stopPropagation(); onChangeNights?.(id, -1); }} disabled={nights <= 1}
-              style={{ border: 'none', background: 'transparent', cursor: nights > 1 ? 'pointer' : 'default', padding: '0 3px', fontSize: 13, fontWeight: 900, color: '#FF385C', opacity: nights > 1 ? 1 : .3, lineHeight: 1 }}>
+              style={{ border: 'none', background: 'transparent', cursor: nights > 1 ? 'pointer' : 'default', padding: '0 5px', fontSize: 14, fontWeight: 900, color: '#FF385C', opacity: nights > 1 ? 1 : .3, lineHeight: 1 }}>
               -
             </Box>) : ""}
-            <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: '#FF385C', lineHeight: 1, px: .15, letterSpacing: '-0.3px' }}>{nights} nights</Typography>
+            <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#FF385C', lineHeight: 1, px: .15, letterSpacing: '-0.2px' }}>{nights} night{nights !== 1 ? 's' : ''}</Typography>
             {!readonly ? (<Box component='button' type='button'
               onClick={(e: any) => { e.stopPropagation(); onChangeNights?.(id, +1); }}
-              style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '0 3px', fontSize: 13, fontWeight: 900, color: '#FF385C', lineHeight: 1 }}>
+              style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '0 5px', fontSize: 14, fontWeight: 900, color: '#FF385C', lineHeight: 1 }}>
               +
             </Box>) : ""}
           </Box>
@@ -654,6 +663,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
             stayPreview={stayPreviewName}
             hasNotes={hasNotes}
             notesPreview={notesPreviewLine}
+            firstSpotPhoto={spotsList.find((s) => !!s.photoUrl)?.photoUrl}
             spotsChecked={spotsChecked}
             onSpots={() => onOpenDiscover?.(id)}
             onStay={() => onOpenStay?.(id)}

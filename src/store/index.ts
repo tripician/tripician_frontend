@@ -25,7 +25,6 @@ try {
   store.subscribe(()=> {
     const state = store.getState();
     // Persist only docs slice
-    // @ts-ignore - dynamic import may not exist server-side
     if (typeof window !== 'undefined') {
       persistDocs(state.docs);
     }

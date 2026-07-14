@@ -141,7 +141,7 @@ const ALERT_META: Record<string, { bg: string; border: string; iconColor: string
   'Transport Update': {
     bg: 'rgba(30,58,138,0.2)', border: 'rgba(96,165,250,0.4)', iconColor: '#60a5fa',
     badgeColor: 'info',
-    description: 'Disruptions to airports, airlines or rail services — including cancellations, strikes or major delays affecting your itinerary.'
+    description: 'Disruptions to airports, airlines or rail services ,including cancellations, strikes or major delays affecting your itinerary.'
   }
 };
 
@@ -640,7 +640,7 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
           <Box sx={{ fontSize: 60, mb: 2.5, lineHeight: 1, filter: 'grayscale(0.1)' }}>🛰️</Box>
           <Typography variant='h6' sx={{ fontWeight: 800, mb: 1.5, letterSpacing: .3 }}>No Active Corridors</Typography>
           <Typography variant='body2' color='text.secondary' sx={{ lineHeight: 1.7, maxWidth: 360, mx: 'auto' }}>
-            Add destinations in your trip settings to unlock real-time intelligence — breaking news, live weather alerts, and currency rates curated for your itinerary.
+            Add destinations in your trip settings to unlock real-time intelligence ,breaking news, live weather alerts, and currency rates curated for your itinerary.
           </Typography>
         </Box>
       </Box>
@@ -713,7 +713,7 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
             }}>
               <Typography sx={{ fontSize: '0.72rem', lineHeight: 1.55, color: 'rgba(255,255,255,0.72)', fontFamily: "'Inter', system-ui, sans-serif" }}>
                 <Box component='span' sx={{ fontWeight: 700, color: '#fbbf24' }}>⚠️ For reference only. </Box>
-                Risk data is sourced from automated feeds and ongoing research — it may be incomplete or inaccurate. Always check official government travel advisories before making travel decisions.
+                Risk data is sourced from automated feeds and ongoing research ,it may be incomplete or inaccurate. Always check official government travel advisories before making travel decisions.
               </Typography>
             </Box>
           </Box>

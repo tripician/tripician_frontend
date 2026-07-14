@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuthToken } from './useAuth0Token';
+import { tripPath } from '../utils/tripSlug';
 
 export interface TripShareData {
   isLoading: boolean;
@@ -7,7 +8,7 @@ export interface TripShareData {
   error: string | null;
   shareText: string;
   tripUrl: string;
-  /** Raw blob — use for downloading */
+  /** Raw blob ,use for downloading */
   cardBlob: Blob | null;
 }
 
@@ -31,8 +32,10 @@ export function useTripShare(
   const blobUrlRef = useRef<string | null>(null);
 
   const WEB_BASE = import.meta.env.VITE_WEB_BASE_URL as string;
+  const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) || WEB_BASE;
 
-  const tripUrl = `${WEB_BASE.replace(/\/$/, '')}/trip/${tripId}`;
+  // Slugged link: keywords in shared URLs help CTR and search snippets
+  const tripUrl = `${WEB_BASE.replace(/\/$/, '')}${tripPath({ id: tripId, name: tripName })}`;
 
   const shareText = `Discover this amazing ${tripName} itinerary, created with Tripician 🌍 ${destinationCount} destination${destinationCount !== 1 ? 's' : ''}, ${totalNights} night${totalNights !== 1 ? 's' : ''}.`
 
@@ -54,7 +57,7 @@ export function useTripShare(
 
       try {
         const response = await fetch(
-          `${WEB_BASE.replace(/\/$/, '')}/api/trips/${tripId}/share-card`,
+          `${API_BASE.replace(/\/$/, '')}/api/trips/${tripId}/share-card`,
           { headers: { Authorization: `Bearer ${token}` } },
         );
 

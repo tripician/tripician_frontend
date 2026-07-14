@@ -50,7 +50,36 @@ const initialState: NotificationState = {
 const notificationSlice = createSlice({
   name: "notifications",
   initialState,
-  reducers: {},
+  reducers: {
+    upsertNotifications: (state, action) => {
+      const incoming = Array.isArray(action.payload) ? action.payload : [];
+      const map = new Map<string, any>();
+      state.notifications.forEach((n: any) => map.set(String(n.id), n));
+      incoming.forEach((n: any) => {
+        if (!n?.id) return;
+        const prev = map.get(String(n.id));
+        map.set(String(n.id), { ...(prev || {}), ...n });
+      });
+      state.notifications = Array.from(map.values())
+        .sort((a: any, b: any) => {
+          const at = new Date(a?.createdAt || 0).getTime();
+          const bt = new Date(b?.createdAt || 0).getTime();
+          return bt - at;
+        });
+      state.unreadCount = state.notifications.filter((n: any) => !n?.isRead).length;
+    },
+    markNotificationReadLocal: (state, action) => {
+      const id = String(action.payload || '');
+      const n = state.notifications.find((x: any) => String(x.id) === id);
+      if (!n) return;
+      n.isRead = true;
+      state.unreadCount = Math.max(0, state.notifications.filter((x: any) => !x?.isRead).length);
+    },
+    markAllNotificationsReadLocal: (state) => {
+      state.notifications = state.notifications.map((n: any) => ({ ...n, isRead: true }));
+      state.unreadCount = 0;
+    }
+  },
   extraReducers: (builder) => {
     builder
       .addCase(fetchNotifications.pending, (state) => {
@@ -58,7 +87,8 @@ const notificationSlice = createSlice({
       })
       .addCase(fetchNotifications.fulfilled, (state, action) => {
         state.loading = false;
-        state.notifications = action.payload;
+        state.notifications = Array.isArray(action.payload) ? action.payload : [];
+        state.unreadCount = state.notifications.filter((n: any) => !n?.isRead).length;
       })
       .addCase(fetchNotifications.rejected, (state, action) => {
         state.loading = false;
@@ -69,5 +99,11 @@ const notificationSlice = createSlice({
       });
   }
 });
+
+export const {
+  upsertNotifications,
+  markNotificationReadLocal,
+  markAllNotificationsReadLocal
+} = notificationSlice.actions;
 
 export default notificationSlice.reducer;

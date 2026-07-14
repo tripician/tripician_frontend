@@ -662,7 +662,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
             {/* ══ VIBE ══ */}
             {tab === 'vibe' && (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', fontFamily: "'Inter', sans-serif", mb: 0.5 }}>Pick the vibe that best captures this trip — or leave it open.</Typography>
+                <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', fontFamily: "'Inter', sans-serif", mb: 0.5 }}>Pick the vibe that best captures this trip ,or leave it open.</Typography>
 
                 {/* Active vibe banner */}
                 {vibe && activeVibeData && (
@@ -678,7 +678,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                   </Box>
                 )}
 
-                {/* Vibe grid — 2 columns, emoji card style matching TripCreationModal */}
+                {/* Vibe grid ,2 columns, emoji card style matching TripCreationModal */}
                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 1 }}>
                   {VIBES.map(v => {
                     const selected = vibe === v.id;

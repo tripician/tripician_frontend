@@ -1,4 +1,4 @@
-// naviaService.ts — SSE streaming client for Navia AI
+// naviaService.ts ,SSE streaming client for Navia AI
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 function errorMessageForStatus(status: number): string {
@@ -46,7 +46,7 @@ export async function* streamNaviaResponse(
       body: JSON.stringify(body),
     });
   } catch {
-    yield "📡 Whoops! Can't find Navia — looks like she wandered off the network. Check your connection and try again!";
+    yield "📡 Whoops! Can't find Navia ,looks like she wandered off the network. Check your connection and try again!";
     return;
   }
 
@@ -57,7 +57,7 @@ export async function* streamNaviaResponse(
   }
 
   if (!response.body) {
-    yield '🫙 Navia sent back an empty reply — like an empty suitcase. Try again!';
+    yield '🫙 Navia sent back an empty reply ,like an empty suitcase. Try again!';
     return;
   }
 
@@ -120,7 +120,7 @@ export interface PlanDestinationRequest {
 }
 
 /**
- * Structured JSON plan for one destination stop (spots, foods, journal — no lodging).
+ * Structured JSON plan for one destination stop (spots, foods, journal ,no lodging).
  */
 export async function planDestination(
   request: PlanDestinationRequest,

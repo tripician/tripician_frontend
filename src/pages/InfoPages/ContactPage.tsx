@@ -44,7 +44,7 @@ const ContactPage: React.FC = () => {
             We'd love to hear from you.
           </Typography>
           <Typography sx={{ fontSize: '1.05rem', color: '#666', lineHeight: 1.75 }}>
-            Fill in the form and we'll open your email app ready to send — or email us directly at{' '}
+            Fill in the form and we'll open your email app ready to send ,or email us directly at{' '}
             <Box component="a" href="mailto:support@tripician.com" sx={{ color: '#FF385C', fontWeight: 600, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>support@tripician.com</Box>.
           </Typography>
         </Container>

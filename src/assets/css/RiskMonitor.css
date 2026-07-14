@@ -52,7 +52,7 @@
   gap: 0;
 }
 
-/* Children start invisible + shifted down — GSAP animates them in */
+/* Children start invisible + shifted down ,GSAP animates them in */
 .rm-hero__content > * { opacity: 0; transform: translateY(28px); }
 
 /* LIVE eyebrow */

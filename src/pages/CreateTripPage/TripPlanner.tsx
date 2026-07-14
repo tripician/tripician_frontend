@@ -1,7 +1,7 @@
 // TripPlanner main page component (formerly CreateTrip)
 import React from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
-import { Box, Tabs, Tab, Typography, Divider, Button, Avatar, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Snackbar, Alert, useTheme, useMediaQuery, Drawer, Fab } from '@mui/material';
+import { Box, Typography, Divider, Button, Avatar, AvatarGroup, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Snackbar, Alert, useTheme, useMediaQuery, Drawer, Fab } from '@mui/material';
 // Props-based TripPlanner; tripId + optional initialTrip provided by route wrapper
 import DownloadIcon from '@mui/icons-material/Download';
 import PushPinIcon from '@mui/icons-material/PushPin';
@@ -11,6 +11,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import { updateDestinationNights, setTransport, addDestination, removeDestination, reorderChainExact, addVisaDoc, removeVisaDoc, removeGlobalDoc, pinDoc, unpinDoc, loadState, resetPlanner, setTripDates, setTargetNights, addSpot, addFoodItem, setDestinationNotes, clearDestinationDiscover } from '../../store/plannerSlice';
 import { togglePin as togglePinDocSlice, removeDocument as removeDocsSliceDocument } from '../../store/docsSlice';
+import { loadPacking } from '../../store/packingSlice';
 import { DEFAULT_DOC_RULE } from '../../utils/fileValidation'; // legacy use (validateFiles removed after refactor)
 import ValidatedFileInput from '../../components/CommonComponents/ValidatedFileInput';
 import CreateTripNav from './TripPlannerNav';
@@ -21,13 +22,28 @@ import DestinationCardsPanel from './DestinationCardsPanel';
 import ExpensesPanel from './ExpensesPanel';
 import TripChatPanel from '../../navia/TripChatPanel';
 import PackingPanel from './PackingPanel';
+import TripPulse, { type PulseDimension } from './TripPulse';
+import {
+	IconMapPin as PulseRouteIcon,
+	IconCalendar as PulseDatesIcon,
+	IconMoonStars as PulseNightsIcon,
+	IconBed as PulseStaysIcon,
+	IconWallet as PulseBudgetIcon,
+	IconLuggage as PulseLuggageIcon,
+	IconUsers as PulseCrewIcon,
+	IconFileDescription as PulseStoryIcon,
+} from '@tabler/icons-react';
 import MapDrawer from './MapDrawer';
+import TripComments from './TripComments';
+// Lazy map for the right-rail Map tab (same chunk as MapDrawer's panel)
+const SideMapPanel = React.lazy(() => import('./MapPanel'));
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
 import ArrowBackIosNewIcon from '@mui/icons-material/ArrowBackIosNew';
 import AltRouteIcon from '@mui/icons-material/AltRoute';
 import PublishRoundedIcon from '@mui/icons-material/PublishRounded';
 import ChatRoundedIcon from '@mui/icons-material/ChatRounded';
 import CloseIcon from '@mui/icons-material/Close';
+import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import FavoriteIcon from '@mui/icons-material/Favorite';
@@ -520,7 +536,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 	const textMuted = isLight ? 'rgba(0,0,0,0.44)' : 'rgba(255,255,255,0.38)';
 	const sectionBg = isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.04)';
 
-	// Premium action toggles — persisted server-side via the trip reactions API
+	// Premium action toggles ,persisted server-side via the trip reactions API
 	const reactionAuth = useAuthToken();
 	const reactionToken = reactionAuth.token;
 	const reactionNavigate = useNavigate();
@@ -559,7 +575,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 
 	const toggleReaction = React.useCallback(async (type: 'like' | 'save' | 'needswork') => {
 		if (!tripId) return;
-		// Reacting requires an account — send guests to sign in first.
+		// Reacting requires an account ,send guests to sign in first.
 		if (!reactionToken) { reactionNavigate('/signin'); return; }
 		if (reactionBusyRef.current[type]) return;
 		reactionBusyRef.current[type] = true;
@@ -567,7 +583,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 			const resp = await apiServices.toggleTripReaction(reactionToken, tripId, type);
 			applySummary(resp.data);
 		} catch {
-			/* ignore — UI stays on last known server state */
+			/* ignore ,UI stays on last known server state */
 		} finally {
 			reactionBusyRef.current[type] = false;
 		}
@@ -986,6 +1002,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	onRequestEdit,
 	isExternalNonOwner = false,
 	isOwnerExternal = true,
+	aiGenerated: aiGeneratedProp = false,
 }) => {
 	// ---------------------------------------------------------------------------
 	// Selectors & dispatch
@@ -994,7 +1011,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const navigate = useNavigate();
 	const location = useLocation();
 	// Read AI-generation flag from navigation state (set by TripCreationModal "Generate with AI" flow)
-	const aiGenerated = (location.state as any)?.aiGenerated === true;
+	const aiGenerated = (location.state as any)?.aiGenerated === true || aiGeneratedProp;
 	const planner = useSelector((s:RootState)=> s.planner);
 	const docsState = useSelector((s:RootState)=> s.docs);
 	const auth = useAuthToken();
@@ -1110,6 +1127,11 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					? String(rawInitialTrip.status).toUpperCase() === 'PUBLISHED'
 					: false;
 	const [isDraft, setIsDraft] = React.useState<boolean>(!initialPublished);
+	// Link-share state: true when Visibility = ReadOnly (anyone with link can view, like Google Drive)
+	const [linkShareEnabled, setLinkShareEnabled] = React.useState<boolean>(() => {
+		const v = String(rawInitialTrip?.visibility || rawInitialTrip?.Visibility || '').toLowerCase();
+		return v === 'readonly';
+	});
 	const derivePrivacyFromDraft = React.useCallback((draft: boolean): 'Trip Members' | 'Everyone' => (
 		draft ? 'Trip Members' : 'Everyone'
 	), []);
@@ -1170,6 +1192,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	// Dirty tracking (signature of key planning fields)
 	const lastCommittedRef = React.useRef<string>('');
 	const persistedPayloadRef = React.useRef<any|null>(null);
+	const packingCategories = useSelector((s: RootState) => s.packing.categories);
 	const computeSignature = React.useCallback(()=> {
 		return JSON.stringify({
 			t:title,
@@ -1180,9 +1203,12 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			c:currency,
 			in:importantNotes.trim(),
 			b:bannerUrl,
-			cs:countries
+			cs:countries,
+			bg:planner.tripBudget ?? null,
+			ex:planner.expenses ?? [],
+			pk:packingCategories
 		});
-	}, [title, privacy, tripStartDate, tripEndDate, planner.destinations, currency, importantNotes, bannerUrl, countries]);
+	}, [title, privacy, tripStartDate, tripEndDate, planner.destinations, currency, importantNotes, bannerUrl, countries, planner.tripBudget, planner.expenses, packingCategories]);
 	// Always keep a ref to the latest computeSignature so rAF callbacks and async
 	// handlers never capture a stale closure (the main cause of false-positive isDirty).
 	const computeSignatureRef = React.useRef(computeSignature);
@@ -1358,6 +1384,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			effectiveTarget = (planner.targetNights || 1); lockTarget = false;
 		}
 		dispatch(resetPlanner({ tripId: meta.id }));
+		// Server-persisted extras (TripExtras table): budget, expenses, packing
+		const rawExtras: any = remoteTrip || initialTrip || {};
 		dispatch(loadState({
 			destinations: cleanedDestinations,
 			currency: normalizedCurrency,
@@ -1368,12 +1396,16 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			globalDocs: [],
 			visaDocs: [],
 			pinnedDocIds: [],
-			tripBudget: undefined,
-			expenses: [],
+			tripBudget: typeof rawExtras.budget === 'number' ? rawExtras.budget : undefined,
+			expenses: Array.isArray(rawExtras.expenses) ? rawExtras.expenses : [],
 			simplifyGroupExpenses: false,
 			expenseVisibilityEmails: [],
 			comments: []
 		}));
+		if (rawExtras.packing && Array.isArray(rawExtras.packing.categories) && rawExtras.packing.categories.length > 0) {
+			dispatch(loadPacking(rawExtras.packing));
+			packingHydratedRef.current = true;
+		}
 		hydratedRef.current = `${meta.id}:${itinerary.length}:${refreshKey}`;
 		// Commit initial snapshot after first hydration.
 		// Use computeSignatureRef (not the closure-captured computeSignature) so the rAF
@@ -1430,7 +1462,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		}, 2200);
 
 		if (planner.destinations.length > 0) {
-			// Destinations already seeded (from trip data) — go straight to planning
+			// Destinations already seeded (from trip data) ,go straight to planning
 			aiExpectedDestCountRef.current = -1; // signal Phase 2 to plan all existing
 			return;
 		}
@@ -1480,7 +1512,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			}
 
 			if (allStops.length === 0) {
-				// Last-resort fallback — original one-destination-per-country behavior
+				// Last-resort fallback ,original one-destination-per-country behavior
 				allocations.forEach(a => allStops.push({ name: a.country, nights: a.nights }));
 			}
 
@@ -1588,8 +1620,12 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					startDate: startIso,
 					endDate: endIso,
 					countries,
-					bannerPhotoId
+					bannerPhotoId,
+					photoUrl: bannerUrl || undefined,
 				});
+				if (bannerUrl && /^https?:\/\//i.test(bannerUrl)) {
+					try { await apiServices.saveTripBannerUrl(authToken, tripId, bannerUrl); } catch {}
+				}
 				try {
 					const refreshed = await apiServices.getTripById(authToken, tripId);
 					const meta = (refreshed?.data?.trip) || refreshed?.data?.meta || refreshed?.data;
@@ -1651,6 +1687,12 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	}, [authToken, tripId]);
 	
 	const [mapDrawerOpen, setMapDrawerOpen] = React.useState(false);
+	// Right side-panel rail (desktop editors): which tab is active
+	const [sidePanelTab, setSidePanelTab] = React.useState<'chat' | 'comments' | 'map' | 'info'>(readOnly ? 'info' : 'chat');
+	const [sidePanelCollapsed, setSidePanelCollapsed] = React.useState(false);
+	const [chatUnread, setChatUnread] = React.useState(0);
+	// Map mounts on first visit, then stays mounted (hidden) so it doesn't re-initialise per switch
+	const [sideMapMounted, setSideMapMounted] = React.useState(false);
 	const containerRef = React.useRef<HTMLDivElement|null>(null);
 	const [visaErrors, setVisaErrors] = React.useState<string[]>([]);
 
@@ -1729,7 +1771,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		id:d.id, name:d.name, start:dateFormatter(d.startDate), end:dateFormatter(d.endDate), nights:d.nights, transport:d.transport||'', todo:''
 	})), [planner.destinations, dateFormatter]);
 	const ENABLE_CARD_LAYOUT = true;
-	const handleTabChange = (_:any,v:number)=> setTab(v);
 	const handleChangeNights = (id:string, delta:number)=> dispatch(updateDestinationNights({ id, delta }));
 	const handleChangeTransport = (id:string, mode:string)=> dispatch(setTransport({ id, transport: mode }));
 	const handleAddDestination = (name:string, coords?:{lat:number; lng:number})=> dispatch(addDestination({ name, lat:coords?.lat, lng:coords?.lng }));
@@ -1892,7 +1933,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		const userEditedEnd = sanitizedEnd && originalEnd && sanitizedEnd !== originalEnd ? sanitizedEnd : (sanitizedEnd && !originalEnd ? sanitizedEnd : null);
 		// Final selection prioritizes user edits, then original, then (last resort) sanitized state.
 		// We deliberately DO NOT introduce a current-date fallback.
-		let finalStart = userEditedStart || originalStart || sanitizedStart || null;
+		const finalStart = userEditedStart || originalStart || sanitizedStart || null;
 		let finalEnd = userEditedEnd || originalEnd || sanitizedEnd || null;
 		// If start exists but end is missing, keep end equal to start (single-day trip invariant)
 		if(finalStart && !finalEnd) finalEnd = finalStart;
@@ -1934,6 +1975,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			legs,
 			expenses: planner.expenses || [],
 			budget: planner.tripBudget ?? null,
+			packing: { categories: packingCategories },
 			docs: [],
 			comments: [],
 			pinnedDocIds: planner.pinnedDocIds || [],
@@ -1942,7 +1984,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			destinationDocsCount: planner.destinations.reduce((sum, d) => sum + (d.docs?.length || 0), 0),
 			version: 1
 		};
-	}, [planner.destinations, planner.expenses, planner.tripBudget, planner.pinnedDocIds, planner.globalDocs, planner.visaDocs, tripId, title, currency, tripStartDate, tripEndDate, targetNights, totalNights, geocodedCount, importantNotes, vibe, tripDescription, bannerUrl, derivePrivacyFromDraft]);
+	}, [planner.destinations, planner.expenses, planner.tripBudget, packingCategories, planner.pinnedDocIds, planner.globalDocs, planner.visaDocs, tripId, title, currency, tripStartDate, tripEndDate, targetNights, totalNights, geocodedCount, importantNotes, vibe, tripDescription, bannerUrl, derivePrivacyFromDraft]);
+
 
 	// Persist helper (debounced save)
 	const persistToBackend = React.useCallback(async (payload:any): Promise<boolean> => {
@@ -1981,7 +2024,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			if (remoteRefreshKeyRef.current === refreshKeyAtSaveStart) {
 				setRemoteTrip({ trip: payload.trip, itinerary: payload.itinerary });
 			} else {
-				console.debug('[TripPersist] Skipping remoteTrip overwrite — server refresh happened during save (refreshKey changed).');
+				console.debug('[TripPersist] Skipping remoteTrip overwrite ,server refresh happened during save (refreshKey changed).');
 			}
 			setLastSavedDisplay(new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' }));
 			openToast('success', payload.trip.status==='DRAFT'? 'Saved':'Trip updated');
@@ -2013,6 +2056,22 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			setSaving(false);
 		}
 	}, [authToken, saving, lastSaveTs, tripId, openToast, refreshTripFromServer]);
+
+	// ── Autosave ───────────────────────────────────────────────────────────────
+	// Debounce-persist 2.5s after the last change. Uses the same payload/commit
+	// path as the manual Save button, which remains as an explicit fallback.
+	const autosaveTimerRef = React.useRef<number | null>(null);
+	React.useEffect(() => {
+		if (readOnly || !effectiveCanEdit || !isHydrated || !isDirty || saving) return;
+		if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
+		autosaveTimerRef.current = window.setTimeout(() => {
+			autosaveTimerRef.current = null;
+			const payload = buildPersistPayload(isDraft);
+			persistedPayloadRef.current = payload;
+			persistToBackend(payload).then((ok: boolean) => { if (ok) commitSnapshot(isDraft); });
+		}, 2500);
+		return () => { if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current); };
+	}, [readOnly, effectiveCanEdit, isHydrated, isDirty, saving, isDraft, buildPersistPayload, persistToBackend, commitSnapshot]);
 
 	// If notes were silently cleaned on hydration (category 'general' leaked into notes field),
 	// persist the corrected value automatically so the backend stays in sync.
@@ -2053,7 +2112,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			setSaving(true);
 			try {
 				// Publishing should always make the trip publicly readable.
-				await apiServices.changeTripVisibility(authToken, tripId, { visibility: 'EVERYONE' });
+				await apiServices.changeTripVisibility(authToken, tripId, { visibility: 'Everyone' });
 				await apiServices.setTripPublished(authToken, tripId, true);
 				setPrivacy('Everyone');
 				commitSnapshot(false);
@@ -2069,7 +2128,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			try {
 				await apiServices.setTripPublished(authToken, tripId, false);
 				// Unpublished trips should default back to trip-members visibility.
-				await apiServices.changeTripVisibility(authToken, tripId, { visibility: 'TRIP_MEMBERS' });
+				await apiServices.changeTripVisibility(authToken, tripId, { visibility: 'Members' });
 				setPrivacy('Trip Members');
 				commitSnapshot(true);
 				openToast('info', 'Trip unpublished');
@@ -2201,8 +2260,116 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		return list;
 	}, [initialTrip, userProfile, tripUsers, ownerInfo, currentUserIsOwner, currentUserRole, effectiveCanEdit]);
 
+	// Toggle "Anyone with link can view" (sets Visibility = ReadOnly or reverts to Members)
+	// Declared after currentUserIsOwner to avoid temporal dead zone
+	const handleLinkShareToggle = React.useCallback(async (enabled: boolean) => {
+		if (!authToken || !currentUserIsOwner) return;
+		try {
+			await apiServices.changeTripVisibility(authToken, tripId, { visibility: enabled ? 'ReadOnly' : 'Members' });
+			setLinkShareEnabled(enabled);
+		} catch {
+			openToast('error', 'Failed to update link sharing settings');
+		}
+	}, [authToken, tripId, currentUserIsOwner, openToast]);
+
 	const theme = useTheme();
 	const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
+	// ── Trip Pulse: readiness model ─────────────────────────────────────────
+	// ── Packing persistence (per-trip, localStorage) ──────────────────────────
+	// Until packing gets a backend field, hydrate/save per trip so refreshes don't lose the list.
+	const packingHydratedRef = React.useRef(false);
+	React.useEffect(() => {
+		if (!tripId || packingHydratedRef.current) return;
+		packingHydratedRef.current = true;
+		try {
+			const raw = localStorage.getItem(`tripPacking:${tripId}`);
+			if (raw) {
+				const parsed = JSON.parse(raw);
+				if (parsed && Array.isArray(parsed.categories)) dispatch(loadPacking(parsed));
+			}
+		} catch { /* corrupt entry — keep defaults */ }
+	}, [tripId, dispatch]);
+	React.useEffect(() => {
+		if (!tripId || !packingHydratedRef.current) return;
+		try {
+			localStorage.setItem(`tripPacking:${tripId}`, JSON.stringify({ categories: packingCategories }));
+		} catch { /* storage full — non-fatal */ }
+	}, [tripId, packingCategories]);
+
+	const daysToGo = React.useMemo(() => {
+		if (!tripStartDate) return null;
+		const start = new Date(tripStartDate).getTime();
+		if (!Number.isFinite(start)) return null;
+		return Math.ceil((start - Date.now()) / 86400000);
+	}, [tripStartDate]);
+
+	const expenseMembers = React.useMemo(
+		() => tripMembers.map((m: any) => ({ id: String(m.id), name: m.name || 'Member', avatarUrl: m.avatar || null })),
+		[tripMembers],
+	);
+
+	const pulseDimensions = React.useMemo((): PulseDimension[] => {
+		const destCount = planner.destinations.length;
+		const checks = computePublishChecks();
+		const staysCovered = planner.destinations.filter((d) => d.stay?.name || (d.stays?.length ?? 0) > 0).length;
+		const packingItems = packingCategories.flatMap((c) => c.items);
+		const packedCount = packingItems.filter((i) => i.checked).length;
+		const hasBudget = planner.tripBudget != null || (planner.expenses?.length ?? 0) > 0;
+		const goPlan = () => { setSectionDebug('plan'); setTab(0); };
+		return [
+			{
+				id: 'route', label: 'Plan your route', weight: 20, icon: PulseRouteIcon,
+				progress: destCount > 0 ? 1 : 0,
+				detail: destCount > 0 ? `${destCount} stop${destCount === 1 ? '' : 's'} planned` : 'No destinations yet',
+				actionLabel: 'Add stops', onAction: goPlan,
+			},
+			{
+				id: 'dates', label: 'Set travel dates', weight: 15, icon: PulseDatesIcon,
+				progress: tripStartDate && tripEndDate ? 1 : 0,
+				detail: tripStartDate && tripEndDate ? `${tripStartDate} → ${tripEndDate}` : 'No dates yet',
+				actionLabel: 'Set dates', onAction: () => setSettingsOpen(true),
+			},
+			{
+				id: 'nights', label: 'Allocate every night', weight: 15, icon: PulseNightsIcon,
+				progress: targetNights > 0 ? Math.min(1, totalNights / targetNights) : 0,
+				detail: `${totalNights} of ${targetNights} nights placed`,
+				actionLabel: 'Fill nights', onAction: goPlan,
+			},
+			{
+				id: 'stays', label: 'Book your stays', weight: 15, icon: PulseStaysIcon,
+				progress: destCount > 0 ? staysCovered / destCount : 0,
+				detail: destCount > 0 ? `${staysCovered} of ${destCount} stops have a stay` : 'Add stops first',
+				actionLabel: 'Add stays', onAction: goPlan,
+			},
+			{
+				id: 'budget', label: 'Set up the budget', weight: 10, icon: PulseBudgetIcon,
+				progress: hasBudget ? 1 : 0,
+				detail: hasBudget
+					? planner.tripBudget != null ? 'Budget set' : `${planner.expenses?.length ?? 0} expenses tracked`
+					: 'No budget yet',
+				actionLabel: 'Open budget', onAction: () => { setSectionDebug('plan'); setTab(1); },
+			},
+			{
+				id: 'packing', label: 'Start the packing list', weight: 10, icon: PulseLuggageIcon,
+				progress: packingItems.length === 0 ? 0 : 0.5 + 0.5 * (packedCount / packingItems.length),
+				detail: packingItems.length === 0 ? 'Nothing on the list yet' : `${packedCount} of ${packingItems.length} items packed`,
+				actionLabel: 'Pack', onAction: () => setSectionDebug('packing'),
+			},
+			{
+				id: 'crew', label: 'Invite your crew', weight: 10, icon: PulseCrewIcon,
+				progress: tripMembers.length >= 2 ? 1 : 0,
+				detail: tripMembers.length >= 2 ? `${tripMembers.length} travelers on board` : 'Planning solo so far',
+				actionLabel: 'Invite', onAction: () => setShareModalOpen(true),
+			},
+			{
+				id: 'story', label: 'Name & describe the trip', weight: 5, icon: PulseStoryIcon,
+				progress: (checks.hasTitle ? 0.5 : 0) + (checks.hasDescription ? 0.5 : 0),
+				detail: checks.hasTitle && checks.hasDescription ? 'Title & description set' : !checks.hasTitle ? 'Still untitled' : 'Description too short',
+				actionLabel: 'Edit', onAction: () => setSettingsOpen(true),
+			},
+		];
+	}, [planner.destinations, planner.tripBudget, planner.expenses, packingCategories, tripMembers.length, tripStartDate, tripEndDate, totalNights, targetNights, computePublishChecks]);
 
 	if (isMobile && !readOnly) {
 		return (
@@ -2266,32 +2433,53 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		)}
 		<Box sx={{ display:'flex', flexDirection:'row', height:'100vh', overflow:'hidden' }}>
 		<CreateTripNav
-			active={section}
-			onChange={(id)=> setSectionDebug(id as any)}
+			active={section === 'plan' && tab === 1 ? 'budget' : section}
+			onChange={(id)=> {
+				if (id === 'budget') { setSectionDebug('plan'); setTab(1); return; }
+				if (id === 'plan') { setSectionDebug('plan'); setTab(0); return; }
+				setSectionDebug(id as any);
+			}}
 			onSettingsClick={()=> setSettingsOpen(true)}
 			hideSections={hideSectionsArr}
 			canAccessDocs={canAccessDocs}
 			docsEnabled={ENABLE_DOC_UPLOAD}
+			budgetEnabled={ENABLE_EXPENSES}
 			settingsDisabled={readOnly || !effectiveCanEdit}
 		/>
 			<Box sx={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, minHeight:0 }}>
 				<TopBar showSearch={false} logo={
-					<Tooltip title='Back to Home'>
-						<IconButton
-							onClick={handleBackHomeClick}
-							sx={{
-								width:44,
-								height:44,
-								borderRadius:'50%',
-								color:'text.secondary',
-								transition:'background-color .15s ease, transform .15s ease',
-								'&:hover':{ backgroundColor:'rgba(0,0,0,0.04)' },
-								'&:active':{ transform:'scale(.92)' }
-							}}
-						>
-							<ArrowBackIosNewIcon fontSize='small' />
-						</IconButton>
-					</Tooltip>
+					<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+						<Tooltip title='Back'>
+							<IconButton
+								onClick={handleBackHomeClick}
+								sx={{
+									width:44,
+									height:44,
+									borderRadius:'50%',
+									color:'text.secondary',
+									transition:'background-color .15s ease, transform .15s ease',
+									'&:hover':{ backgroundColor:'rgba(0,0,0,0.04)' },
+									'&:active':{ transform:'scale(.92)' }
+								}}
+							>
+								<ArrowBackIosNewIcon fontSize='small' />
+							</IconButton>
+						</Tooltip>
+						<Tooltip title='Go to dashboard'>
+							<IconButton
+								onClick={() => navigate('/dashboard')}
+								sx={{
+									width:40,
+									height:40,
+									borderRadius:'50%',
+									color:'text.secondary',
+									'&:hover':{ backgroundColor:'rgba(0,0,0,0.04)', color:'#FF385C' },
+								}}
+							>
+								<HomeOutlinedIcon fontSize='small' />
+							</IconButton>
+						</Tooltip>
+					</Box>
 				} centerNode={
 					<Typography noWrap sx={{ fontFamily:"'Playfair Display', Georgia, serif", fontWeight:700, fontStyle:'italic', fontSize:'1.2rem', letterSpacing:'-0.35px', lineHeight:1.15 }}>{title}</Typography>
 				} />
@@ -2322,16 +2510,81 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						<Divider />
 						{section==='plan' && (
 						<Box sx={(t)=>({ display:'flex', alignItems:'center', px:2, gap:1, py:.75, borderBottom:`1px solid ${t.palette.divider}`, background: t.palette.mode==='light'? 'rgba(255,255,255,0.92)':'rgba(20,22,26,0.92)', backdropFilter:'blur(8px)', position:'sticky', top:0, zIndex:2 })}>
-							<Tabs value={tab} onChange={(e,v)=> {
-								// Block navigation into disabled features
-								if((v===1 && !ENABLE_EXPENSES) || (v===2 && !ENABLE_COMMENTS)) return;
-								handleTabChange(e,v);
-							}} variant='scrollable' allowScrollButtonsMobile sx={{ flex:1, minHeight:40, '& .MuiTab-root':{ minHeight:40, fontSize:14, fontWeight:600, textTransform:'none', fontFamily:"'Inter', system-ui, sans-serif", letterSpacing:'-0.1px' }, '& .Mui-selected':{ color:'#FF385C !important', fontWeight:700 }, '& .MuiTabs-indicator':{ backgroundColor:'#FF385C', height:2.5, borderRadius:2 } }}>
-								<Tab label='Planning' />
-							</Tabs>
+							{/* Vital trip info — dates · stops · travelers */}
+							<Box sx={{ flex:1, minWidth:0, display:'flex', alignItems:'center', gap:1, overflowX:'auto', '::-webkit-scrollbar':{ display:'none' }, scrollbarWidth:'none' }}>
+								<Tooltip title={(!readOnly && effectiveCanEdit) ? 'Edit trip dates' : 'Trip dates'} arrow placement='bottom'>
+									<Box
+										component='button'
+										type='button'
+										onClick={() => { if (!readOnly && effectiveCanEdit) setSettingsOpen(true); }}
+										sx={(t) => ({
+											display:'flex', alignItems:'center', gap:.6, height:32, px:1.2, borderRadius:'20px', flexShrink:0,
+											border:`1px solid ${t.palette.divider}`, bgcolor:'transparent',
+											color:'text.primary', fontFamily:'inherit', fontSize:12.5, fontWeight:600, lineHeight:1,
+											cursor:(!readOnly && effectiveCanEdit) ? 'pointer' : 'default',
+											transition:'all .15s',
+											'&:hover': (!readOnly && effectiveCanEdit) ? { borderColor:'rgba(255,56,92,0.4)', color:'#FF385C' } : {},
+										})}
+									>
+										<PulseDatesIcon size={13} stroke={2} />
+										{tripStartDate && tripEndDate
+											? `${new Date(tripStartDate).toLocaleDateString(undefined, { day:'numeric', month:'short' })} – ${new Date(tripEndDate).toLocaleDateString(undefined, { day:'numeric', month:'short' })}`
+											: 'Set dates'}
+									</Box>
+								</Tooltip>
+								<Box sx={(t)=>({ display:'flex', alignItems:'center', gap:.6, height:32, px:1.2, borderRadius:'20px', flexShrink:0, border:`1px solid ${t.palette.divider}`, color:'text.primary', fontSize:12.5, fontWeight:600, lineHeight:1 })}>
+									<PulseRouteIcon size={13} stroke={2} />
+									{planner.destinations.length} stop{planner.destinations.length !== 1 ? 's' : ''}
+								</Box>
+								<Tooltip title='Travelers — invite your crew' arrow placement='bottom'>
+									<Box
+										component='button'
+										type='button'
+										onClick={() => setShareModalOpen(true)}
+										sx={(t) => ({
+											display:'flex', alignItems:'center', gap:.7, height:32, px:1.2, borderRadius:'20px', flexShrink:0,
+											border:`1px solid ${t.palette.divider}`, bgcolor:'transparent',
+											color:'text.primary', fontFamily:'inherit', fontSize:12.5, fontWeight:600, lineHeight:1,
+											cursor:'pointer', transition:'all .15s',
+											'&:hover': { borderColor:'rgba(255,56,92,0.4)', color:'#FF385C' },
+										})}
+									>
+										{tripUsers.length > 0 && (
+											<AvatarGroup max={3} sx={{ '& .MuiAvatar-root': { width:20, height:20, fontSize:9, fontWeight:700, border:'1.5px solid', borderColor:'background.paper' } }}>
+												{tripUsers.map((u: any, i: number) => (
+													<Avatar key={u.id || i} src={u.avatar || u.profilePic || u.profilePicture || undefined} sx={{ bgcolor:'#FF385C' }}>
+														{(u.name || u.displayName || 'T').charAt(0).toUpperCase()}
+													</Avatar>
+												))}
+											</AvatarGroup>
+										)}
+										{tripUsers.length <= 1 ? 'Invite crew' : `${tripUsers.length} travelers`}
+									</Box>
+								</Tooltip>
+								{ENABLE_EXPENSES && planner.tripBudget != null && (
+									<Tooltip title='Open budget & expenses' arrow placement='bottom'>
+										<Box
+											component='button'
+											type='button'
+											onClick={() => { setSectionDebug('plan'); setTab(1); }}
+											sx={(t) => ({
+												display:'flex', alignItems:'center', gap:.6, height:32, px:1.2, borderRadius:'20px', flexShrink:0,
+												border:`1px solid ${t.palette.divider}`, bgcolor:'transparent',
+												color:'text.primary', fontFamily:'inherit', fontSize:12.5, fontWeight:600, lineHeight:1,
+												cursor:'pointer', transition:'all .15s',
+												'&:hover': { borderColor:'rgba(255,56,92,0.4)', color:'#FF385C' },
+											})}
+										>
+											<PulseBudgetIcon size={13} stroke={2} />
+											{new Intl.NumberFormat().format(planner.tripBudget)} budget
+										</Box>
+									</Tooltip>
+								)}
+							</Box>
+							<TripPulse dimensions={pulseDimensions} daysToGo={daysToGo} />
 							<Tooltip title={`${totalNights} of ${targetNights} nights planned`} arrow placement='bottom'>
 							<Box sx={(t) => ({
-								position: 'relative', display: { xs: 'flex', lg: 'none' }, alignItems: 'center', gap: .55,
+								position: 'relative', display: 'flex', alignItems: 'center', gap: .55,
 								px: 1.1, height: 32, borderRadius: '20px', overflow: 'hidden', cursor: 'default', flexShrink: 0,
 								border: `1px solid ${totalNights >= targetNights && targetNights > 0 ? 'rgba(255,56,92,0.45)' : t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
 								bgcolor: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.02)',
@@ -2346,7 +2599,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 									pointerEvents: 'none',
 								}} />
 								<NightsStayRoundedIcon sx={{ fontSize: 13, color: '#FF385C', position: 'relative', zIndex: 1, flexShrink: 0 }} />
-								<Box sx={{ display: { xs: 'flex', lg: 'none' }, alignItems: 'baseline', gap: .3, position: 'relative', zIndex: 1 }}>
+								<Box sx={{ display: 'flex', alignItems: 'baseline', gap: .3, position: 'relative', zIndex: 1 }}>
 									<Typography sx={{ fontSize: 13, fontWeight: 700, lineHeight: 1, color: 'text.primary' }}>
 										{totalNights}
 									</Typography>
@@ -2561,23 +2814,18 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 									)}
 								</Box>
 							)}
-								{section==='plan' && tab===1 && ENABLE_EXPENSES && <ExpensesPanel readOnly={readOnly} />}
-								{section==='plan' && tab===2 && ENABLE_COMMENTS && (
-									<Box sx={{ flex: 1, minHeight: 0, display: { xs: 'flex', lg: 'none' }, flexDirection: 'column', overflow: 'hidden', borderRadius: '12px', mx: 0, my: 1 }}>
-										<TripChatPanel
-												tripId={tripId}
-												token={authToken}
-												members={tripUsers.map((u: any) => ({ id: u.id, name: u.name || u.displayName || '', avatarUrl: u.avatar || u.profilePic || u.profilePicture || null }))}
-												myUserId={userProfile?.id ? Number(userProfile.id) : null}
-												inline
-												onTripUpdated={refreshTripFromServer}
-											/>
-									</Box>
+								{section==='plan' && tab===1 && ENABLE_EXPENSES && (
+									<ExpensesPanel
+										readOnly={readOnly || !effectiveCanEdit}
+										members={expenseMembers}
+										myUserId={userProfile?.id != null ? String(userProfile.id) : null}
+										onInvite={() => setShareModalOpen(true)}
+									/>
 								)}
 						</Box>
 					</Box>
 					)}
-					{/* Save/Update footer — always visible on all sections */}
+					{/* Save/Update footer ,always visible on all sections */}
 					{showPlannerActions && (
 						<Box sx={(t)=>({ borderTop:`1px solid ${t.palette.divider}`, px:2.5, py:1.5, background:t.palette.background.paper, display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 })}>
 							<Typography variant='caption' color='text.secondary'>Last saved: {lastSavedDisplay}</Typography>
@@ -2607,47 +2855,168 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						</Box>
 					)}
                                     </Box>{/* end centre column */}
-                                            {/* Right panel — Trip Chat for editors, Trip Info for viewers */}
-                                            {(!readOnly && effectiveCanEdit) ? (
+                                            {/* Right panel ,Trip Chat for editors, Trip Info for viewers */}
+                                            <Box sx={(t) => ({
+                                                    display: { xs: 'none', lg: 'flex' },
+                                                    alignSelf: 'stretch',
+                                                    width: sidePanelCollapsed ? 44 : ((!readOnly && effectiveCanEdit)
+                                                            ? 'calc(30vw + 44px)'
+                                                            : (sidePanelTab === 'comments' || sidePanelTab === 'map') ? 'calc(30vw + 44px)' : 364),
+                                                    flexShrink: 0,
+                                                    height: '100%',
+                                                    minHeight: 0,
+                                                    overflow: 'hidden',
+                                                    transition: `width ${t.custom.motion.duration.base} ${t.custom.motion.easing.standard}`,
+                                            })}>
+                                                    {/* Active panel */}
+                                                    <Box sx={{ flex: 1, minWidth: 0, height: '100%', display: sidePanelCollapsed ? 'none' : 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+                                                            {(!readOnly && effectiveCanEdit) ? (
+                                                                    /* Navia group chat — kept mounted so the live connection survives tab switches */
+                                                                    <Box sx={(t) => ({ flex: 1, minHeight: 0, display: sidePanelTab === 'chat' ? 'flex' : 'none', flexDirection: 'column', overflow: 'hidden', borderLeft: `1px solid ${t.palette.divider}` })}>
+                                                                            <TripChatPanel
+                                                                                   tripId={tripId}
+                                                                                   token={authToken}
+                                                                                   members={tripUsers.map((u: any) => ({ id: u.id, name: u.name || u.displayName || '', avatarUrl: u.avatar || u.profilePic || u.profilePicture || null }))}
+                                                                                   myUserId={userProfile?.id ? Number(userProfile.id) : null}
+                                                                                   onTripUpdated={refreshTripFromServer}
+                                                                                   visible={sidePanelTab === 'chat' && !sidePanelCollapsed}
+                                                                                   onUnreadChange={setChatUnread}
+                                                                            />
+                                                                    </Box>
+                                                            ) : (
+                                                                    /* Trip info — kept mounted so reaction counts don't refetch per switch */
+                                                                    <Box sx={{ flex: 1, minHeight: 0, display: (sidePanelTab === 'info' || sidePanelTab === 'chat') ? 'flex' : 'none', flexDirection: 'column', overflow: 'hidden' }}>
+                                                                            <TripViewPanel
+                                                                                   tripId={tripId}
+                                                                                   title={title}
+                                                                                   description={tripDescription}
+                                                                                   bannerUrl={bannerUrl}
+                                                                                   countries={countries}
+                                                                                   tripUsers={tripUsers}
+                                                                                   ownerInfo={ownerInfo}
+                                                                                   startDate={unifiedTrip?.meta.startDate ?? null}
+                                                                                   endDate={unifiedTrip?.meta.endDate ?? null}
+                                                                                   totalNights={totalNights}
+                                                                                   destinationCount={planner.destinations.length}
+                                                                                   showEditAction={showViewEditAction}
+                                                                                   isPublished={!isDraft}
+                                                                                   onRequestEdit={onRequestEdit}
+                                                                                   onShare={() => setShareModalOpen(true)}
+                                                                            />
+                                                                    </Box>
+                                                            )}
+                                                            {/* Public comments — only for published trips */}
+                                                            {ENABLE_COMMENTS && sidePanelTab === 'comments' && !isDraft && (
+                                                                    <Box sx={(t) => ({ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: 'background.paper', borderLeft: `1px solid ${t.palette.divider}` })}>
+                                                                            <TripComments tripId={tripId} authToken={authToken} />
+                                                                    </Box>
+                                                            )}
+                                                            {/* Map — mounts on first visit, then stays mounted (hidden) */}
+                                                            {sideMapMounted && (
+                                                                    <Box sx={(t) => ({ flex: 1, minHeight: 0, display: sidePanelTab === 'map' ? 'flex' : 'none', flexDirection: 'column', overflow: 'hidden', bgcolor: 'background.paper', borderLeft: `1px solid ${t.palette.divider}` })}>
+                                                                            <Box sx={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
+                                                                                    <React.Suspense fallback={<Box sx={{ p: 2, fontSize: 13, color: 'text.secondary' }}>Loading map…</Box>}>
+                                                                                            <SideMapPanel widthFraction={1} />
+                                                                                    </React.Suspense>
+                                                                            </Box>
+                                                                    </Box>
+                                                            )}
+                                                    </Box>
+                                                    {/* Vertical text rail — NAVIA | COMMENTS | MAP */}
                                                     <Box sx={(t) => ({
-                                                            display: { xs: 'none', lg: 'flex' },
-                                                            flexDirection: 'column',
-                                                            alignSelf: 'stretch',
-                                                            width: '30vw',
+                                                            width: 44,
                                                             flexShrink: 0,
                                                             height: '100%',
-                                                            overflow: 'hidden',
+                                                            display: 'flex',
+                                                            flexDirection: 'column',
+                                                            alignItems: 'center',
+                                                            pt: 2,
                                                             borderLeft: `1px solid ${t.palette.divider}`,
+                                                            bgcolor: 'background.paper',
                                                     })}>
-                                                            <TripChatPanel
-                                                                   tripId={tripId}
-                                                                   token={authToken}
-                                                                   members={tripUsers.map((u: any) => ({ id: u.id, name: u.name || u.displayName || '', avatarUrl: u.avatar || u.profilePic || u.profilePicture || null }))}
-                                                                   myUserId={userProfile?.id ? Number(userProfile.id) : null}
-                                                                   onTripUpdated={refreshTripFromServer}
-                                                            />
+                                                            <Tooltip title={sidePanelCollapsed ? 'Expand panel' : 'Collapse panel'} placement='left' arrow>
+                                                                    <IconButton
+                                                                            size='small'
+                                                                            onClick={() => setSidePanelCollapsed(c => !c)}
+                                                                            aria-label={sidePanelCollapsed ? 'Expand side panel' : 'Collapse side panel'}
+                                                                            sx={{ mb: 1, color: 'text.secondary' }}
+                                                                    >
+                                                                            <ChevronRightIcon sx={{ fontSize: 18, transform: sidePanelCollapsed ? 'rotate(180deg)' : 'none', transition: 'transform .2s' }} />
+                                                                    </IconButton>
+                                                            </Tooltip>
+                                                            {(((!readOnly && effectiveCanEdit)
+                                                                    ? [
+                                                                            { id: 'chat', label: 'Discussion', tip: 'Group chat — type @navia for AI help', disabled: false },
+                                                                            ...(ENABLE_COMMENTS ? [{ id: 'comments', label: 'Comments', tip: isDraft ? 'Publish this trip to enable public comments' : 'Public comments on this trip', disabled: isDraft }] : []),
+                                                                            { id: 'map', label: 'Map', tip: 'Trip map — see your route at a glance', disabled: false },
+                                                                    ]
+                                                                    : [
+                                                                            { id: 'info', label: 'Info', tip: 'Trip overview', disabled: false },
+                                                                            ...(ENABLE_COMMENTS ? [{ id: 'comments', label: 'Comments', tip: isDraft ? 'Comments open once this trip is published' : 'Public comments on this trip', disabled: isDraft }] : []),
+                                                                            { id: 'map', label: 'Map', tip: 'Trip map — see the route at a glance', disabled: false },
+                                                                    ]
+                                                            ) as Array<{ id: 'chat' | 'comments' | 'map' | 'info'; label: string; tip: string; disabled: boolean }>).map((railTab, railIdx) => {
+                                                                    const railActive = sidePanelTab === railTab.id || (railTab.id === 'info' && sidePanelTab === 'chat');
+                                                                    return (
+                                                                            <React.Fragment key={railTab.id}>
+                                                                                    {railIdx > 0 && <Box sx={{ width: 16, height: '1px', bgcolor: 'divider', my: 1.25, flexShrink: 0 }} />}
+                                                                                    <Tooltip title={railTab.tip} placement="left" arrow>
+                                                                                            <Box component="span" sx={{ display: 'inline-flex' }}>
+                                                                                                    <Box
+                                                                                                            component="button"
+                                                                                                            type="button"
+                                                                                                            disabled={railTab.disabled}
+                                                                                                            onClick={() => {
+                                                                                                                    if (railTab.disabled) return;
+                                                                                                                    if (railActive && !sidePanelCollapsed) { setSidePanelCollapsed(true); return; }
+                                                                                                                    setSidePanelCollapsed(false);
+                                                                                                                    setSidePanelTab(railTab.id);
+                                                                                                                    if (railTab.id === 'map') setSideMapMounted(true);
+                                                                                                            }}
+                                                                                                            aria-label={railTab.tip}
+                                                                                                            sx={(t) => ({
+                                                                                                                    position: 'relative',
+                                                                                                                    writingMode: 'vertical-rl',
+                                                                                                                    textOrientation: 'mixed',
+                                                                                                                    px: 1,
+                                                                                                                    py: 1.5,
+                                                                                                                    border: 'none',
+                                                                                                                    background: 'transparent',
+                                                                                                                    borderRadius: '8px',
+                                                                                                                    cursor: railTab.disabled ? 'default' : 'pointer',
+                                                                                                                    fontFamily: 'inherit',
+                                                                                                                    fontSize: 10.5,
+                                                                                                                    fontWeight: 700,
+                                                                                                                    letterSpacing: '0.18em',
+                                                                                                                    textTransform: 'uppercase',
+                                                                                                                    lineHeight: 1,
+                                                                                                                    color: railTab.disabled ? t.palette.text.disabled : railActive ? t.palette.primary.main : t.palette.text.secondary,
+                                                                                                                    transition: `color ${t.custom.motion.duration.fast} ${t.custom.motion.easing.standard}, background ${t.custom.motion.duration.fast} ${t.custom.motion.easing.standard}`,
+                                                                                                                    '&:hover': railTab.disabled ? {} : { color: railActive ? t.palette.primary.main : t.palette.text.primary, background: t.custom.surface.hover },
+                                                                                                                    '&:focus-visible': { outline: `2px solid ${t.custom.ring}`, outlineOffset: 2 },
+                                                                                                            })}
+                                                                                                    >
+                                                                                                            {railTab.label}
+                                                                                                            {railTab.id === 'chat' && chatUnread > 0 && (sidePanelTab !== 'chat' || sidePanelCollapsed) && (
+                                                                                                                    <Box sx={{
+                                                                                                                            position: 'absolute', top: 1, right: 1,
+                                                                                                                            minWidth: 15, height: 15, px: 0.35, borderRadius: 999,
+                                                                                                                            bgcolor: 'error.main', color: '#fff',
+                                                                                                                            fontSize: 9, fontWeight: 800, lineHeight: 1,
+                                                                                                                            display: 'flex', alignItems: 'center', justifyContent: 'center',
+                                                                                                                            writingMode: 'horizontal-tb', letterSpacing: 0,
+                                                                                                                    }}>
+                                                                                                                            {chatUnread > 9 ? '9+' : chatUnread}
+                                                                                                                    </Box>
+                                                                                                            )}
+                                                                                                    </Box>
+                                                                                            </Box>
+                                                                                    </Tooltip>
+                                                                            </React.Fragment>
+                                                                    );
+                                                            })}
                                                     </Box>
-                                            ) : (
-                                                    <Box sx={{ display: { xs: 'none', lg: 'flex' }, flexDirection: 'column', alignSelf: 'stretch', flex: '0 0 auto' }}>
-                                                    <TripViewPanel
-                                                                   tripId={tripId}
-                                                                   title={title}
-                                                                   description={tripDescription}
-                                                                   bannerUrl={bannerUrl}
-                                                                   countries={countries}
-                                                                   tripUsers={tripUsers}
-                                                                   ownerInfo={ownerInfo}
-                                                                   startDate={unifiedTrip?.meta.startDate ?? null}
-                                                                   endDate={unifiedTrip?.meta.endDate ?? null}
-                                                                   totalNights={totalNights}
-                                                                   destinationCount={planner.destinations.length}
-                                                                   showEditAction={showViewEditAction}
-                                                                   isPublished={!isDraft}
-                                                                   onRequestEdit={onRequestEdit}
-                                                                   onShare={() => setShareModalOpen(true)}
-                                                    />
-                                                    </Box>
-                                            )}
+                                            </Box>
 		</Box>
 		{/* Mobile Navia FAB (visible only on xs/sm) */}
 		{(!readOnly && effectiveCanEdit) && (
@@ -2850,7 +3219,29 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				members={tripMembers}
 				bannerUrl={bannerUrl}
 				currentUserIsOwner={currentUserIsOwner}
-				onChangeBanner={({ url })=> { setBannerUrl(url); }}
+				onChangeBanner={async ({ url, file }) => {
+					// If a local file was picked, upload directly to Cloudinary then persist
+					if (file && authToken && tripId) {
+						try {
+							const { data: uploadData } = await apiServices.getTripBannerUploadUrl(authToken, tripId);
+							const fd = new FormData();
+							fd.append('file', file);
+							fd.append('api_key', uploadData.apiKey);
+							fd.append('timestamp', String(uploadData.timestamp));
+							fd.append('signature', uploadData.signature);
+							fd.append('folder', uploadData.folder);
+							fd.append('public_id', uploadData.public_id);
+							const cloudRes = await fetch(uploadData.uploadUrl, { method: 'POST', body: fd });
+							if (cloudRes.ok) {
+								const cdnUrl = `${uploadData.fileUrl}?v=${uploadData.timestamp}`;
+								setBannerUrl(cdnUrl);
+								try { await apiServices.saveTripBannerUrl(authToken, tripId, uploadData.fileUrl); } catch {}
+								return;
+							}
+						} catch { /* fall through to DataURL preview */ }
+					}
+					setBannerUrl(url);
+				}}
 				countries={countries}
 					onAddCountry={(c: string)=> { // defer persistence until Save Settings
 						handleAddCountry(c);
@@ -3004,6 +3395,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			tripName={title}
 			destinationCount={planner.destinations.length}
 			totalNights={totalNights}
+			isOwner={currentUserIsOwner}
+			linkShareEnabled={linkShareEnabled}
+			onLinkShareToggle={handleLinkShareToggle}
 		/>
 		{publishChecks && (
 			<PublishValidationModal
