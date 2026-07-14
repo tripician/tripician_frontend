@@ -86,9 +86,9 @@ const ProfileTripCard: React.FC<{ trip: any; onClick: () => void }> = ({ trip, o
   ].filter(Boolean).join(' · ');
 
   return (
-    <motion.div whileHover={{ y: -4 }} onClick={onClick} style={{ cursor: 'pointer', height: '100%', minWidth: 0 }}>
+    <motion.div whileHover={{ y: -4 }} onClick={onClick} style={{ cursor: 'pointer', height: '100%' }}>
       <Box sx={{
-        height: '100%', minWidth: 0, display: 'flex', flexDirection: 'column',
+        height: '100%', display: 'flex', flexDirection: 'column',
         borderRadius: '16px', overflow: 'hidden',
         border: `1px solid ${theme.custom.surface.border}`,
         bgcolor: 'background.paper',
@@ -411,7 +411,7 @@ const Profile: React.FC = () => {
             <Box sx={{
               display: 'flex', gap: { xs: 2, sm: 3 },
               flexDirection: { xs: 'column', sm: 'row' },
-              alignItems: 'flex-start',
+              alignItems: { xs: 'flex-start', sm: 'flex-end' },
               px: { xs: 2, sm: 4 },
               mt: { xs: -5.5, sm: -6.5 },
               position: 'relative', zIndex: 1,
@@ -429,7 +429,7 @@ const Profile: React.FC = () => {
                 {!profile.profilepicture && initials}
               </Avatar>
 
-              <Box sx={{ flex: 1, minWidth: 0, pt: { xs: 0.5, sm: 8 } }}>
+              <Box sx={{ flex: 1, minWidth: 0, pb: 0.5}}>
                 <Typography component="h1" noWrap sx={{
                   fontFamily: theme.custom.fontDisplay, fontWeight: 700,
                   fontSize: { xs: '1.6rem', md: '2rem' },
@@ -446,7 +446,7 @@ const Profile: React.FC = () => {
               </Box>
 
               {/* Actions */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pt: { xs: 0.5, sm: 8.5 } }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pb: 0.5 }}>
                 {socials.map(({ url, Icon, label }) => (
                   <Tooltip key={label} title={label}>
                     <IconButton
@@ -525,8 +525,7 @@ const Profile: React.FC = () => {
                     ) : (
                       <Box sx={{
                         display: 'grid',
-                        // minmax(0,1fr) prevents track blowout from wide intrinsic image sizes
-                        gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))', md: 'repeat(3, minmax(0, 1fr))' },
+                        gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
                         gap: 2.5, alignItems: 'stretch',
                       }}>
                         {displayTrips.map((trip, i) => (
