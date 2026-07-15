@@ -9,8 +9,9 @@ import {
   Button,
   Tooltip,
 } from '@mui/material';
-import { IconBrain, IconSend, IconTrash, IconSparkles, IconPlus } from '@tabler/icons-react';
+import { IconBrain, IconSend, IconTrash, IconSparkles, IconPlus, IconCoins } from '@tabler/icons-react';
 import { useNavia } from '../../navia/useNavia';
+import { fetchMyCredits } from '../../navia/naviaService';
 import NaviaMessage from '../../navia/NaviaMessage';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { useAppShell } from '../PageLayout/AppShellContext';
@@ -39,6 +40,15 @@ const NaviaPage: React.FC = () => {
   const inputRef = useRef<HTMLInputElement>(null);
 
   const greetingName = profile?.fname?.trim();
+
+  // Personal Navia credit balance (separate from any trip's group wallet).
+  const [credits, setCredits] = useState<number | null>(null);
+  useEffect(() => {
+    if (!token || isStreaming) return;
+    fetchMyCredits(token)
+      .then((b) => setCredits(b.balance))
+      .catch(() => { /* chip is best-effort */ });
+  }, [token, isStreaming]);
 
   // Auto-scroll to bottom when messages update
   useEffect(() => {
@@ -122,6 +132,27 @@ const NaviaPage: React.FC = () => {
           </Box>
         </Box>
 
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+          {credits !== null && (
+            <Tooltip title="Your personal Navia credits — each message costs 1 credit" arrow>
+              <Chip
+                icon={<IconCoins size={13} />}
+                label={credits}
+                size="small"
+                sx={{
+                  height: 24,
+                  fontSize: '0.72rem',
+                  fontWeight: 700,
+                  fontFamily: "'Inter',sans-serif",
+                  borderRadius: '8px',
+                  bgcolor: credits <= 10 ? 'rgba(239,68,68,0.10)' : 'rgba(255,56,92,0.07)',
+                  color: credits <= 10 ? '#ef4444' : '#FF385C',
+                  border: `1px solid ${credits <= 10 ? 'rgba(239,68,68,0.25)' : 'rgba(255,56,92,0.18)'}`,
+                  '& .MuiChip-icon': { color: 'inherit' },
+                }}
+              />
+            </Tooltip>
+          )}
         {!isEmpty && (
           <Tooltip title="Clear conversation" arrow>
             <IconButton
@@ -139,6 +170,7 @@ const NaviaPage: React.FC = () => {
             </IconButton>
           </Tooltip>
         )}
+        </Box>
       </Box>
 
       {/* ── Message list ────────────────────────────────────────── */}

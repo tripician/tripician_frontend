@@ -41,6 +41,7 @@ import {
   type TripChatMessage,
   type TripMember,
 } from './tripChatService';
+import { fetchTripCredits } from './naviaService';
 
 // ??? Constants ????????????????????????????????????????????????????????????????
 
@@ -66,16 +67,18 @@ function getInitials(name?: string): string {
 }
 
 // Event label map for System message ExecuteResult events
+// Keys mirror TripOperationExecutor's ExecuteResult.Event values exactly.
 const EVENT_LABELS: Record<string, { icon: string; label: (r: any) => string }> = {
-  destination_added:         { icon: '??', label: r => `${r.destination} added to trip` },
-  destination_already_present: { icon: '??', label: r => `${r.destination} already in trip` },
-  destination_removed:       { icon: '???', label: r => `${r.destination} removed from trip` },
-  destination_not_found:     { icon: '???', label: r => `${r.destination} not found in trip` },
-  dates_updated:             { icon: '??', label: r => `Trip dates updated${r.startDate ? `  start ${r.startDate}` : ''}${r.endDate ? `  end ${r.endDate}` : ''}` },
-  dates_update_failed:       { icon: '??', label: () => 'Date update failed' },
-  place_noted:               { icon: '???', label: r => `Place "${r.place}" noted` },
-  member_invite_noted:       { icon: '??', label: r => `Invite for "${r.memberName}" noted` },
-  execution_error:           { icon: '??', label: r => r.summary ?? 'Execution error' },
+  destination_added:           { icon: '📍', label: r => `${r.destination} added to trip` },
+  destination_already_present: { icon: 'ℹ️', label: r => `${r.destination} already in trip` },
+  destination_removed:         { icon: '🗑️', label: r => `${r.destination} removed from trip` },
+  destination_not_found:       { icon: '❓', label: r => `${r.destination} not found in trip` },
+  dates_updated:               { icon: '📅', label: r => `Trip dates updated${r.startDate ? ` · start ${r.startDate}` : ''}${r.endDate ? ` · end ${r.endDate}` : ''}` },
+  dates_update_failed:         { icon: '⚠️', label: () => 'Date update failed' },
+  place_added:                 { icon: '🏷️', label: r => `${r.place} added to your itinerary` },
+  place_add_failed:            { icon: '⚠️', label: r => `Could not add ${r.place}` },
+  member_invite_noted:         { icon: '✉️', label: r => `Invite for "${r.memberName}" noted` },
+  execution_error:             { icon: '⚠️', label: r => r.summary ?? 'Execution error' },
 };
 
 // ??? Sub-components ???????????????????????????????????????????????????????????
@@ -107,6 +110,11 @@ const SystemResultRow: React.FC<{ result: ReturnType<typeof parseSystemMetadata>
   const label = entry ? entry.label(result) : (result.summary ?? result.action);
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.15 }}>
+      {entry && (
+        <Typography component="span" sx={{ fontSize: 12, lineHeight: 1.4 }}>
+          {entry.icon}
+        </Typography>
+      )}
       <Typography sx={{ fontSize: 12.5, color: result.success ? 'text.primary' : 'error.main', lineHeight: 1.4 }}>
         {label}
       </Typography>
@@ -121,9 +129,11 @@ interface ProposalBubbleProps {
   onAccept: () => void;
   onReject: () => void;
   isLight: boolean;
+  /** Set when the proposal id could not be resolved (expired/missing on server) */
+  resolveError?: string;
 }
 
-const ProposalBubble: React.FC<ProposalBubbleProps> = ({ msg, actionState, onAccept, onReject, isLight }) => {
+const ProposalBubble: React.FC<ProposalBubbleProps> = ({ msg, actionState, onAccept, onReject, isLight, resolveError }) => {
   const envelope = parseProposalMetadata(msg.metadata);
   const ops = envelope?.operations ?? [];
   const done = actionState === 'accepted' || actionState === 'rejected';
@@ -232,6 +242,11 @@ const ProposalBubble: React.FC<ProposalBubbleProps> = ({ msg, actionState, onAcc
             {actionState === 'accepted' ? 'Applied to your trip' : 'Dismissed'}
           </Typography>
         </Box>
+      )}
+      {(resolveError || actionState === 'error') && (
+        <Typography sx={{ fontSize: 11.5, color: 'error.main', mt: 0.75 }}>
+          {resolveError ?? "Couldn't apply this suggestion. Please try again."}
+        </Typography>
       )}
     </Box>
   );
@@ -420,6 +435,24 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
   // The TripProposalController exposes GET /api/proposals/by-chat/{chatMessageId}
   // We lazily resolve it on first Accept/Reject click.
   const proposalIdCache = useRef<Map<string, number>>(new Map());
+  const [resolveErrors, setResolveErrors] = useState<Record<string, string>>({});
+
+  // ── Trip credit balance (group wallet) ──
+  const [tripCredits, setTripCredits] = useState<number | null>(null);
+  const naviaSpendCountRef = useRef(0);
+  useEffect(() => {
+    if (!tripId || !token) return;
+    // Refresh whenever Navia-driven messages land (each implies a spend).
+    const naviaSpendCount = messages.filter(
+      m => m.messageType === 'Navia' || m.messageType === 'Proposal',
+    ).length;
+    if (tripCredits !== null && naviaSpendCount === naviaSpendCountRef.current) return;
+    naviaSpendCountRef.current = naviaSpendCount;
+    fetchTripCredits(tripId, token)
+      .then(b => setTripCredits(b.balance))
+      .catch(() => { /* chip is best-effort */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripId, token, messages]);
 
   const resolveProposalId = useCallback(async (chatMessageId: string): Promise<number | null> => {
     if (proposalIdCache.current.has(chatMessageId)) {
@@ -591,18 +624,33 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
                 msg={msg}
                 actionState={ps}
                 isLight={isLight}
+                resolveError={resolveErrors[msg.id]}
                 onAccept={async () => {
                   const pid = await resolveProposalId(msg.id);
                   if (pid != null) {
+                    setResolveErrors(prev => {
+                      const { [msg.id]: _removed, ...rest } = prev;
+                      return rest;
+                    });
                     await acceptProposalMsg(msg.id, pid);
                     // Trigger immediate refresh of the left planning panel
                     // (don't wait only for the SignalR System message)
                     onTripUpdated?.();
+                  } else {
+                    setResolveErrors(prev => ({ ...prev, [msg.id]: 'This suggestion has expired and can no longer be applied.' }));
                   }
                 }}
                 onReject={async () => {
                   const pid = await resolveProposalId(msg.id);
-                  if (pid != null) rejectProposalMsg(msg.id, pid);
+                  if (pid != null) {
+                    setResolveErrors(prev => {
+                      const { [msg.id]: _removed, ...rest } = prev;
+                      return rest;
+                    });
+                    rejectProposalMsg(msg.id, pid);
+                  } else {
+                    setResolveErrors(prev => ({ ...prev, [msg.id]: 'This suggestion has expired and can no longer be dismissed.' }));
+                  }
                 }}
               />
             </Box>
@@ -661,6 +709,20 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
             {members.length > 1 ? `${members.length} travelers` : 'Just you so far'} · <Box component='span' sx={{ color: 'primary.main', fontWeight: 600 }}>@navia</Box> for AI help
           </Typography>
         </Box>
+        {tripCredits !== null && (
+          <Tooltip title="Trip Navia credits — a shared wallet the whole group spends from" arrow>
+            <Chip
+              label={`🪙 ${tripCredits}`}
+              size="small"
+              sx={{
+                height: 22, fontSize: 11, fontWeight: 700, borderRadius: '7px', flexShrink: 0,
+                bgcolor: tripCredits <= 10 ? 'rgba(239,68,68,0.10)' : 'rgba(255,56,92,0.08)',
+                color: tripCredits <= 10 ? '#ef4444' : '#FF385C',
+                border: `1px solid ${tripCredits <= 10 ? 'rgba(239,68,68,0.25)' : 'rgba(255,56,92,0.18)'}`,
+              }}
+            />
+          </Tooltip>
+        )}
         <Tooltip title={statusLabel} arrow>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
             <FiberManualRecordIcon sx={{ fontSize: 9, color: statusColor }} />

@@ -36,7 +36,7 @@ import {
   updateDestinationNights, reorderChainExact,
   addStayEntry, updateStayEntry, removeStayEntry, setStayNotes, clearDestinationDiscover
 } from '../../store/plannerSlice';
-import { planDestination } from '../../navia/naviaService';
+import { planDestination, NaviaRequestError } from '../../navia/naviaService';
 import ValidatedFileInput from '../../components/CommonComponents/ValidatedFileInput';
 import SoonTag from '../../components/CommonComponents/SoonTag';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
@@ -142,8 +142,12 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
       const notes = (result.journalNotes ?? '').trim();
       if (notes) dispatch(setDestinationNotes({ id: destinationId, notes }));
       onNaviaToast?.('success', `Navia planned ${dest.name}`);
-    } catch {
-      onNaviaToast?.('error', 'Navia could not plan this stop. Try again.');
+    } catch (err) {
+      if (err instanceof NaviaRequestError && err.status === 402) {
+        onNaviaToast?.('error', 'This trip is out of Navia credits.');
+      } else {
+        onNaviaToast?.('error', 'Navia could not plan this stop. Try again.');
+      }
     } finally {
       window.dispatchEvent(new CustomEvent('navia:response'));
     }

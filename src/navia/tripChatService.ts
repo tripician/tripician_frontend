@@ -168,3 +168,28 @@ export async function fetchProposalIdByChatMessageId(
     return null;
   }
 }
+
+/** Server-side proposal record; used to restore Accept/Reject state after a refresh. */
+export interface TripProposalInfo {
+  id: number;
+  tripId: string;
+  chatMessageId: string;
+  naviaMessage: string;
+  operationsJson: string;
+  status: 'Pending' | 'Accepted' | 'Rejected' | string;
+  createdAt: string;
+}
+
+export async function fetchTripProposals(
+  tripId: string,
+  token: string | null | undefined,
+): Promise<TripProposalInfo[]> {
+  try {
+    const res = await authFetch(`/api/proposals/by-trip/${tripId}`, token);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data?.data) ? (data.data as TripProposalInfo[]) : [];
+  } catch {
+    return [];
+  }
+}

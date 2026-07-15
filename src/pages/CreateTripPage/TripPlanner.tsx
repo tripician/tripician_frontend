@@ -65,7 +65,7 @@ import { FEATURE_FLAGS } from '../../config/featureFlags';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useNavia, type UseNaviaReturn } from '../../navia/useNavia';
 import { planDestination } from '../../navia/naviaService';
-import { suggestCountryItinerary } from '../../navia/naviaService';
+import { suggestCountryItinerary, NaviaRequestError } from '../../navia/naviaService';
 import NaviaMessage from '../../navia/NaviaMessage';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { normalizeTrip, type NormalizedTrip } from '../../utils/normalizeTrip';
@@ -1442,6 +1442,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const aiMsgIntervalRef = React.useRef<ReturnType<typeof setInterval> | null>(null);
 	const aiExpectedDestCountRef = React.useRef(0);
 	const aiMsgIdxRef = React.useRef(0);
+	// Set when Phase 1 hit an empty trip credit wallet, so Phase 2 skips straight to the toast.
+	const aiCreditBlockedRef = React.useRef(false);
 
 	// Phase 1: Trigger on hydration complete when aiGenerated prop is true
 	React.useEffect(() => {
@@ -1492,8 +1494,14 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 
 		(async () => {
 			const allStops: { name: string; nights: number }[] = [];
+			let creditBlocked = false;
 			for (const alloc of allocations) {
 				setAiAutoMessage(`Mapping the best route through ${alloc.country}…`);
+				if (creditBlocked) {
+					// Wallet is empty — don't burn more requests; keep coarse country stops.
+					allStops.push({ name: alloc.country, nights: alloc.nights });
+					continue;
+				}
 				try {
 					const res = await suggestCountryItinerary(
 						{ tripId, country: alloc.country, totalNights: alloc.nights, vibe: vibe ?? undefined },
@@ -1505,11 +1513,13 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					} else {
 						allStops.push({ name: alloc.country, nights: alloc.nights });
 					}
-				} catch {
+				} catch (err) {
+					if (err instanceof NaviaRequestError && err.status === 402) creditBlocked = true;
 					// Fallback: single stop for the country covering its allocated nights
 					allStops.push({ name: alloc.country, nights: alloc.nights });
 				}
 			}
+			aiCreditBlockedRef.current = creditBlocked;
 
 			if (allStops.length === 0) {
 				// Last-resort fallback ,original one-destination-per-country behavior
@@ -1543,9 +1553,13 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			: planner.destinations.slice(-expectedCount);
 
 		(async () => {
+			let planned = 0;
+			let failed = 0;
+			let creditBlocked = aiCreditBlockedRef.current;
 			try {
 				for (const dest of destsToProcess) {
 					if (aiMsgIntervalRef.current) { clearInterval(aiMsgIntervalRef.current); aiMsgIntervalRef.current = null; }
+					if (creditBlocked) break;
 					setAiAutoMessage(`Planning ${dest.name}…`);
 					try {
 						const result = await planDestination({
@@ -1569,14 +1583,28 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						}
 						const notes = (result.journalNotes ?? '').trim();
 						if (notes) dispatch(setDestinationNotes({ id: dest.id, notes }));
-					} catch { /* silent per destination */ }
+						planned++;
+					} catch (err) {
+						failed++;
+						if (err instanceof NaviaRequestError && err.status === 402) creditBlocked = true;
+					}
 				}
 			} finally {
 				if (aiMsgIntervalRef.current) { clearInterval(aiMsgIntervalRef.current); aiMsgIntervalRef.current = null; }
 				setAiAutoGenerating(false);
 				setAiAutoMessage('');
 				aiPlanningActiveRef.current = false;
-				openToast('success', 'Your trip has been generated with AI!');
+				aiCreditBlockedRef.current = false;
+				// Report what actually happened instead of a blanket success.
+				if (creditBlocked) {
+					openToast('error', 'This trip ran out of Navia credits — generation stopped early. Your route was saved.');
+				} else if (planned === 0 && failed > 0) {
+					openToast('error', 'Navia could not plan your stops right now. Your route was saved — try "Plan with Navia" on each stop shortly.');
+				} else if (failed > 0) {
+					openToast('info', `Trip generated! ${failed} stop${failed === 1 ? '' : 's'} could not be planned — use "Plan with Navia" to retry.`);
+				} else {
+					openToast('success', 'Your trip has been generated with AI!');
+				}
 			}
 		})();
 	// eslint-disable-next-line react-hooks/exhaustive-deps

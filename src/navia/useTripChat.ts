@@ -16,6 +16,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import * as signalR from '@microsoft/signalr';
 import {
   fetchTripChatMessages,
+  fetchTripProposals,
   sendTripChatMessage,
   acceptProposal,
   rejectProposal,
@@ -36,7 +37,7 @@ export interface UseTripChatReturn {
   messages: TripChatMessage[];
   status: ChatStatus;
   sending: boolean;
-  /** Send a plain member message (or @navia message — backend decides) */
+  /** Send a plain member message (or @navia message ï¿½ backend decides) */
   sendMessage: (text: string) => Promise<void>;
   acceptProposalMsg: (chatMessageId: string, proposalId: number) => Promise<void>;
   rejectProposalMsg: (chatMessageId: string, proposalId: number) => Promise<void>;
@@ -98,11 +99,32 @@ export function useTripChat(
         setMessages(msgs.map(enrich));
       })
       .catch(() => { /* non-fatal */ });
+
+    // Restore Accept/Reject state for proposals settled before this page load,
+    // otherwise old proposals re-show live buttons after every refresh.
+    fetchTripProposals(tripId, token)
+      .then(proposals => {
+        if (!mountedRef.current) return;
+        const restored: Record<string, ProposalActionState> = {};
+        proposals.forEach(p => {
+          if (p.status === 'Accepted') restored[p.chatMessageId] = 'accepted';
+          else if (p.status === 'Rejected') restored[p.chatMessageId] = 'rejected';
+        });
+        if (Object.keys(restored).length > 0) {
+          setProposalStates(prev => ({ ...restored, ...prev }));
+        }
+      })
+      .catch(() => { /* non-fatal */ });
   }, [tripId, token, enrich]);
 
   // ?? SignalR connection ????????????????????????????????????????????????????
   useEffect(() => {
     if (!tripId || !token) return;
+
+    // Re-arm on every (re)connection: the cleanup below flips this to false when
+    // tripId/token change, and a mount-only effect would never set it back,
+    // leaving all handlers permanently muted after switching trips.
+    mountedRef.current = true;
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(`${API_BASE}/hubs/trip-chat`, {
@@ -184,7 +206,7 @@ export function useTripChat(
       if (!text.trim() || sending || !token) return;
       setSending(true);
       try {
-        // Optimistic insert for user messages (not @navia — those get a Navia reply pushed back)
+        // Optimistic insert for user messages (not @navia ï¿½ those get a Navia reply pushed back)
         const isNavia = /@navia\b/i.test(text);
         if (!isNavia && myUserId != null) {
           const optimistic: TripChatMessage = {

@@ -468,7 +468,7 @@ const Community: React.FC = () => {
               Explore
             </Typography>
             <Typography sx={{ mt: 1, fontSize: 15, color: 'text.secondary', maxWidth: 560 }}>
-              Real itineraries from travelers around the world.find one you love and make it yours.
+              Real itineraries from travelers around the world.
             </Typography>
           </motion.div>
 

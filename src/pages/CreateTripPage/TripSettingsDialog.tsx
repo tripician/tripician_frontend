@@ -17,6 +17,9 @@ import { fetchUnsplashImage } from '../../services/unsplashService';
 import { flagEmojiFromName, flagPngUrl, countryCodeFromName, COUNTRY_NAMES } from '../../utils/countryFlags';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
+import { generateTripBrief, NaviaRequestError } from '../../navia/naviaService';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import { CircularProgress } from '@mui/material';
 
 /*  Vibe cards  */
 const VIBES = [
@@ -104,6 +107,27 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
     fetchUnsplashImage(query).then(url => { if (!cancelled && url) setUnsplashBanner(url); });
     return () => { cancelled = true; };
   }, [bannerUrl, countries?.[0]]);
+
+  // "Write with Navia" — AI-drafted trip description (costs 1 trip credit)
+  const [briefLoading, setBriefLoading] = React.useState(false);
+  const [briefError, setBriefError] = React.useState('');
+  const handleWriteWithNavia = React.useCallback(async () => {
+    if (!tripId || !authToken || briefLoading) return;
+    setBriefLoading(true);
+    setBriefError('');
+    try {
+      const brief = await generateTripBrief(tripId, authToken);
+      if (brief.description) onChangeDescription?.(brief.description.slice(0, 300));
+    } catch (err) {
+      if (err instanceof NaviaRequestError && err.status === 402) {
+        setBriefError('This trip is out of Navia credits.');
+      } else {
+        setBriefError('Navia could not write a description right now. Try again shortly.');
+      }
+    } finally {
+      setBriefLoading(false);
+    }
+  }, [tripId, authToken, briefLoading, onChangeDescription]);
 
   const [countrySearch, setCountrySearch]   = React.useState('');
   const [countryDropOpen, setCountryDropOpen] = React.useState(false);
@@ -554,7 +578,31 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                 {/* Description */}
                 <FieldBlock
                   label="Description"
-                  action={description.length > 0 ? <Typography sx={{ fontSize: 10.5, color: 'text.disabled' }}>{description.length}/300</Typography> : undefined}
+                  action={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                      {tripId && (
+                        <Tooltip title="Let Navia draft a description from your route, dates and vibe (1 trip credit)" placement="top">
+                          <Box
+                            onClick={handleWriteWithNavia}
+                            sx={{
+                              display: 'flex', alignItems: 'center', gap: 0.45,
+                              fontSize: 11, fontWeight: 700,
+                              color: briefLoading ? 'text.disabled' : primary,
+                              cursor: briefLoading ? 'default' : 'pointer',
+                              transition: 'opacity .2s',
+                              '&:hover': { opacity: briefLoading ? 1 : 0.75 },
+                            }}
+                          >
+                            {briefLoading
+                              ? <CircularProgress size={11} sx={{ color: 'inherit' }} />
+                              : <AutoAwesomeIcon sx={{ fontSize: 13 }} />}
+                            {briefLoading ? 'Writing…' : 'Write with Navia'}
+                          </Box>
+                        </Tooltip>
+                      )}
+                      {description.length > 0 && <Typography sx={{ fontSize: 10.5, color: 'text.disabled' }}>{description.length}/300</Typography>}
+                    </Box>
+                  }
                 >
                   <TextField
                     value={description} fullWidth multiline minRows={3} maxRows={5}
@@ -563,6 +611,9 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                     inputProps={{ maxLength: 300 }}
                     sx={fieldSx}
                   />
+                  {briefError && (
+                    <Typography sx={{ fontSize: 11, color: 'error.main', mt: 0.5 }}>{briefError}</Typography>
+                  )}
                 </FieldBlock>
               </Box>
             )}
