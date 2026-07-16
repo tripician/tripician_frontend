@@ -1,8 +1,8 @@
-import React, { useEffect, useRef, useState, useMemo } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Box, Typography, Button, Alert } from '@mui/material';
 import { KalaLotus } from '../../components/DecorativeComponents/KalaDecor';
 import PageLoader from '../../components/CommonComponents/PageLoader';
-import { useSelector } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import ExploreIcon from '@mui/icons-material/TravelExplore';
 
 import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
@@ -20,6 +20,8 @@ import { fetchUnsplashImage } from '../../services/unsplashService';
 import TripCard from '../DashboardPage/TripCard';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { countryAlpha3FromCode, countryAlpha3FromName, countryNameFromCode, countryCodeFromName } from '../../utils/countryFlags';
+import type { AppDispatch } from '../../store';
+import { clearUser } from '../../store/userSlice';
 
 import gsap from 'gsap';
 import blogsData from '../../assets/blogs/blogs.json';
@@ -64,22 +66,19 @@ const avatarColor = (seed: string) => {
 };
 
 const TRAVEL_FACTS: { emoji: string; fact: string; source: string }[] = [
-  { emoji: '✈️', fact: 'There are 195 countries in the world. Most travellers visit only 3–5 in their lifetime — every trip you take puts you ahead of the curve.', source: 'UN World Atlas' },
-  { emoji: '🌊', fact: 'The shortest international commercial flight is just 15 minutes — linking St. Maarten to Anguilla. Blink and you miss it.', source: 'Aviation Records' },
-  { emoji: '🍽️', fact: 'Japan has more Michelin-starred restaurants than any other country — more than France and the USA combined.', source: 'Michelin Guide 2024' },
+  { emoji: '✈️', fact: 'There are 195 countries in the world. Most travellers visit only 3–5 in their lifetime - every trip you take puts you ahead of the curve.', source: 'UN World Atlas' },
+  { emoji: '🌊', fact: 'The shortest international commercial flight is just 15 minutes - linking St. Maarten to Anguilla. Blink and you miss it.', source: 'Aviation Records' },
+  { emoji: '🍽️', fact: 'Japan has more Michelin-starred restaurants than any other country - more than France and the USA combined.', source: 'Michelin Guide 2024' },
   { emoji: '🏔️', fact: 'The Maldives sits just 1.5 meters above sea level, making it the lowest-lying country on Earth. Every visit is precious.', source: 'Geographic Survey' },
   { emoji: '🧳', fact: 'Iceland has zero native mosquitoes. Its volcanic geology creates conditions that keep the island naturally mosquito-free.', source: 'Entomology Reports' },
   { emoji: '🌏', fact: 'Singapore Changi Airport features a 40-meter indoor waterfall, a rooftop pool, and a butterfly garden. Even the transit is a destination.', source: 'Changi Airport Group' },
-  { emoji: '🗼', fact: 'France attracts over 90 million international tourists each year — more visitors than there are residents in the country.', source: 'World Tourism Org' },
+  { emoji: '🗼', fact: 'France attracts over 90 million international tourists each year - more visitors than there are residents in the country.', source: 'World Tourism Org' },
   { emoji: '🚂', fact: 'The Trans-Siberian Railway spans 9,289 km across 8 time zones. The full journey end-to-end takes 7 days without stopping.', source: 'Russian Railways' },
-  { emoji: '🦁', fact: 'Finland has over 187,000 lakes — more lakes per square kilometer than any other country in the world.', source: 'Finnish Atlas' },
+  { emoji: '🦁', fact: 'Finland has over 187,000 lakes - more lakes per square kilometer than any other country in the world.', source: 'Finnish Atlas' },
   { emoji: '🌅', fact: 'The Great Wall of China is NOT visible from space with the naked eye. This myth has been officially debunked by astronauts on the ISS.', source: 'NASA Records' },
-  { emoji: '🏝️', fact: "Norway's full coastline, including all fjords and islands, stretches over 100,000 km — long enough to circle the Earth more than twice.", source: 'Norwegian Mapping Authority' },
+  { emoji: '🏝️', fact: "Norway's full coastline, including all fjords and islands, stretches over 100,000 km - long enough to circle the Earth more than twice.", source: 'Norwegian Mapping Authority' },
   { emoji: '🎌', fact: "Japan's Shinkansen bullet trains have an average delay of just 54 seconds per year. The most punctual railway system ever built.", source: 'JR East Statistics' },
 ];
-
-const FEED_FILTER_LABELS = ['All', 'Wellness', 'Adventure', 'Cultural', 'Urban', 'Social'] as const;
-type FeedFilter = typeof FEED_FILTER_LABELS[number];
 
 const AlsoCheckoutAvatar: React.FC<{ member: { id: string; name: string; profilePic: string } }> = ({ member }) => {
   const [imgFailed, setImgFailed] = React.useState(false);
@@ -106,6 +105,7 @@ const AlsoCheckoutAvatar: React.FC<{ member: { id: string; name: string; profile
 
 const Home: React.FC = () => {
   const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
 
   const pageRef      = useRef<HTMLDivElement>(null);
   const heroRef      = useRef<HTMLDivElement>(null);
@@ -122,6 +122,21 @@ const Home: React.FC = () => {
   const [userTrips, setUserTrips] = useState<any[]>([]);
   const [userTripsLoading, setUserTripsLoading] = useState(true);
   const [, setUserTripsError] = useState<string | null>(null);
+  
+
+
+  const handleLogout = () => {
+        try {
+          // Remove stored tokens (adjust keys as needed)
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          // Clear redux user state
+          dispatch(clearUser());
+          navigate('/signin');
+        } catch (e) {
+          console.error('Logout error', e);
+        }
+      };
 
   // Fetch featured destination images from Unsplash on mount
   useEffect(() => {
@@ -351,7 +366,7 @@ const Home: React.FC = () => {
   };
 
   const motivationalQuotes = React.useMemo(() => ([
-    `"The world is waiting — one trip at a time."`,
+    `"The world is waiting - one trip at a time."`,
     `"Adventure begins where comfort ends."`,
     `"Travel far enough, you meet yourself."`,
     `"Collect memories, not things."`,
@@ -419,7 +434,7 @@ const Home: React.FC = () => {
           subtitle: 'Keep your passport ready!'
         },
         {
-          title: `The world is your playground — ${visitedCount} countries down and many more to go!`,
+          title: `The world is your playground ,${visitedCount} countries down and many more to go!`,
           subtitle: 'Adventure is out there!'
         },
         {
@@ -440,7 +455,7 @@ const Home: React.FC = () => {
           subtitle: "Let's make them epic."
         },
         {
-          title: `Your travel streak is unstoppable — ${plannedCount} trips in pipeline!`,
+          title: `Your travel streak is unstoppable ,${plannedCount} trips in pipeline!`,
           subtitle: 'Adventure awaits!'
         }
       );
@@ -451,26 +466,6 @@ const Home: React.FC = () => {
 
   const [, setCurrentStatusMessages] = useState(() => statusMessages[0] ?? { title: '', subtitle: '' });
   const [currentMotivation, setCurrentMotivation] = useState(() => ({ title: motivationalQuotes[0] }));
-
-  /* ── Feed filter state ── */
-  const [feedFilter, setFeedFilter] = useState<FeedFilter>('All');
-
-  /* Happening Now uses real public trips only */
-  const happeningTrips = useMemo(() => {
-    const activeCategory = feedFilter !== 'All' ? feedFilter : null;
-    const base = [...publicTrips];
-
-    if (activeCategory) {
-      const filtered = base.filter((t: any) => {
-        const tp = (t.travelPersonality || t.vibe || t.travelStyle || '').toLowerCase();
-        return tp.includes(activeCategory.toLowerCase());
-      });
-      return filtered.slice(0, 8);
-    }
-
-    return base.slice(0, 8);
-  }, [publicTrips, feedFilter]);
-
 
   useEffect(() => {
     if (!statusMessages.length) return;
@@ -506,7 +501,7 @@ const Home: React.FC = () => {
         overflow: 'hidden',
       }}
     >
-      {/* Indian kala lotus — top-right page root, always visible */}
+      {/* Indian kala lotus - top-right page root, always visible */}
       <Box sx={{ display: { xs: 'none', md: 'block' }, position: 'absolute', top: -80, right: -80, zIndex: 0, pointerEvents: 'none' }}>
         <KalaLotus size={780} color="#FF6B8A" opacity={0.15} />
       </Box>
@@ -514,7 +509,7 @@ const Home: React.FC = () => {
       {/* HERO SECTION */}
       <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 1, md: 2 }, pb: 2, position: 'relative', zIndex: 2 }}>
 
-      {/* ── No upcoming trip: full discovery experience ── */}
+      {/*  No upcoming trip: full discovery experience  */}
       {userTripsLoading ? (
         <Box sx={{ height: { xs: 220, md: 260 }, borderRadius: '20px' }} />
       ) : !nextUpcomingTrip && (
@@ -534,235 +529,12 @@ const Home: React.FC = () => {
             width: '100%',
             overflow: 'auto' 
           }}>
-            {/* ── VIBE HERO ────────────────────────────────────────── */}
+            {/*  VIBE HERO  */}
             <QuickStartStrip userName={userFirstName} hasTrips={userTrips.length > 0} />
-
-            {/* ── HAPPENING RIGHT NOW ───────────────────────────── */}
-            {happeningTrips.length > 0 && (
-              <Box sx={{ mb: 5 }}>
-                {/* Header */}
-                <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 2 }}>
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                    <Box sx={{ width: 4, height: 22, borderRadius: 2, background: 'linear-gradient(180deg,#FF385C,#D91A50)' }} />
-                    <Typography fontWeight={800} sx={{ fontFamily: "'Inter',sans-serif", letterSpacing: '-0.03em', fontSize: { xs: '1.1rem', md: '1.3rem' }, color: 'text.primary' }}>
-                      Happening right now
-                    </Typography>
-                  </Box>
-                  <Typography
-                    onClick={() => navigate('/community')}
-                    sx={{ fontSize: '0.78rem', fontWeight: 600, color: '#FF385C', fontFamily: "'Inter',sans-serif", cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
-                  >
-                    View all →
-                  </Typography>
-                </Box>
-
-                {/* Feed filter pills */}
-                <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', mb: 2.5 }}>
-                  {FEED_FILTER_LABELS.map((label) => {
-                    const active = feedFilter === label;
-                    return (
-                      <Box
-                        key={label}
-                        component="button"
-                        onClick={() => setFeedFilter(label)}
-                        aria-pressed={active}
-                        sx={{
-                          px: 1.6, py: 0.6, borderRadius: '50px', cursor: 'pointer',
-                          fontFamily: "'Inter',sans-serif", fontSize: '0.78rem', fontWeight: 600,
-                          border: active ? '1.5px solid #FF385C' : '1.5px solid rgba(0,0,0,0.12)',
-                          background: active ? 'rgba(255,56,92,0.08)' : 'transparent',
-                          color: active ? '#FF385C' : 'text.secondary',
-                          transition: 'all 0.15s ease',
-                          outline: 'none',
-                          '&:hover': {
-                            borderColor: active ? '#FF385C' : 'rgba(0,0,0,0.28)',
-                            background: active ? 'rgba(255,56,92,0.12)' : 'rgba(0,0,0,0.04)',
-                          },
-                          '&:focus-visible': { outline: '2px solid #FF385C', outlineOffset: '2px' },
-                        }}
-                      >
-                        {label}
-                      </Box>
-                    );
-                  })}
-                </Box>
-
-                {/* Cards grid */}
-                <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(4,1fr)' }, gap: 2 }}>
-                  {happeningTrips.slice(0, 4).map((trip: any, i: number) => {
-                    const tripId = trip.id || trip.Id;
-                    const dest = (Array.isArray(trip.countries) && trip.countries[0]) || trip.name || trip.title || 'Unknown';
-                    const tripName = trip.name || trip.title || dest;
-                    const days = trip.durationDays || trip.duration ||
-                      (trip.startDate && trip.endDate ? Math.max(1, Math.round((new Date(trip.endDate).getTime() - new Date(trip.startDate).getTime()) / 86400000)) : null);
-                    const rawMembersRaw: any[] = trip.members || trip.invitedUsers || [];
-                    const rawMembers: any[] = rawMembersRaw.filter((m: any) => {
-                      const u = m.user || m.User || m;
-                      return !!(u.fname || u.firstName || u.name || u.Name || u.profilePicture || u.profilePic || u.avatar);
-                    });
-                    const vibeLabel = trip.travelPersonality || trip.vibe || trip.travelStyle || null;
-                    const coverImg = (typeof trip.photoUrl === 'string' && trip.photoUrl.trim())
-                      ? trip.photoUrl
-                      : (tripId && publicTripImages[tripId]) || '';
-                    const ACOLORS = ['#FF385C','#8B5CF6','#10B981','#0EA5E9','#F59E0B','#EC4899'];
-                    const aColor = (s: string) => { let h = 0; for (const c of s) h = (h * 31 + c.charCodeAt(0)) >>> 0; return ACOLORS[h % ACOLORS.length]; };
-                    const FALLBACKS = [
-                      'linear-gradient(145deg,#FF385C 0%,#7C2D7C 100%)',
-                      'linear-gradient(145deg,#0EA5E9 0%,#6366F1 100%)',
-                      'linear-gradient(145deg,#10B981 0%,#0EA5E9 100%)',
-                      'linear-gradient(145deg,#F59E0B 0%,#EF4444 100%)',
-                    ];
-                    return (
-                      <Box
-                        key={tripId || i}
-                        onClick={() => navigate(`/trip/${tripId}`)}
-                        sx={{
-                          position: 'relative',
-                          borderRadius: '18px',
-                          overflow: 'hidden',
-                          cursor: 'pointer',
-                          height: { xs: 200, md: 240 },
-                          boxShadow: '0 4px 24px rgba(0,0,0,0.22)',
-                          transition: 'transform 0.3s cubic-bezier(0.34,1.56,0.64,1), box-shadow 0.3s ease',
-                          '&:hover': {
-                            transform: 'translateY(-6px) scale(1.02)',
-                            boxShadow: '0 16px 48px rgba(0,0,0,0.35)',
-                          },
-                          '&:hover .hn-img': { transform: 'scale(1.08)' },
-                          '&:hover .hn-join': { opacity: 1, transform: 'translateY(0)' },
-                        }}
-                      >
-                        {coverImg ? (
-                          <Box
-                            className="hn-img"
-                            component="img"
-                            src={coverImg}
-                            alt={dest}
-                            sx={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', transition: 'transform 0.5s cubic-bezier(0.25,0.46,0.45,0.94)' }}
-                          />
-                        ) : (
-                          <Box
-                            className="hn-img"
-                            sx={{ position: 'absolute', inset: 0, background: FALLBACKS[i % FALLBACKS.length], transition: 'transform 0.5s ease' }}
-                          />
-                        )}
-
-                        <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.82) 0%, rgba(0,0,0,0.28) 50%, rgba(0,0,0,0.08) 100%)' }} />
-
-                        {/* New badge with live pulse */}
-                        <Box sx={{
-                          position: 'absolute', top: 12, left: 12,
-                          display: 'flex', alignItems: 'center', gap: 0.5,
-                          px: 1, py: 0.4, borderRadius: '50px',
-                          backdropFilter: 'blur(10px)',
-                          background: 'rgba(0,0,0,0.45)',
-                          border: '1px solid rgba(255,255,255,0.15)',
-                        }}>
-                          <Box sx={{
-                            width: 6, height: 6, borderRadius: '50%', background: '#FF385C',
-                            animation: 'livePulse 1.5s infinite',
-                            '@keyframes livePulse': {
-                              '0%': { boxShadow: '0 0 0 0 rgba(255,56,92,0.7)' },
-                              '70%': { boxShadow: '0 0 0 6px rgba(255,56,92,0)' },
-                              '100%': { boxShadow: '0 0 0 0 rgba(255,56,92,0)' },
-                            },
-                          }} />
-                          <Typography sx={{ fontSize: '0.58rem', fontWeight: 800, color: '#fff', letterSpacing: '0.1em', fontFamily: "'Inter',sans-serif" }}>
-                            NEW!
-                          </Typography>
-                        </Box>
-
-                        {/* Hover CTA */}
-                        <Box
-                          className="hn-join"
-                          sx={{
-                            position: 'absolute', top: '50%', left: '50%',
-                            transform: 'translate(-50%, calc(-50% + 8px))',
-                            opacity: 0, transition: 'opacity 0.2s ease, transform 0.2s ease',
-                            px: 2.2, py: 0.8, borderRadius: '50px',
-                            background: 'linear-gradient(135deg,#FF385C,#D91A50)',
-                            boxShadow: '0 6px 20px rgba(255,56,92,0.55)',
-                            pointerEvents: 'none',
-                          }}
-                        >
-                          <Typography sx={{ fontSize: '0.75rem', fontWeight: 800, color: '#fff', fontFamily: "'Inter',sans-serif", letterSpacing: '0.02em' }}>
-                            View Trip →
-                          </Typography>
-                        </Box>
-
-                        {/* Bottom content */}
-                        <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, p: '14px 16px' }}>
-                          {(vibeLabel || days) && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mb: 0.6, flexWrap: 'wrap' }}>
-                              {vibeLabel && (
-                                <Box sx={{ px: 0.9, py: 0.25, borderRadius: '50px', background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(6px)' }}>
-                                  <Typography sx={{ fontSize: '0.6rem', fontWeight: 600, color: '#fff', fontFamily: "'Inter',sans-serif" }}>{vibeLabel}</Typography>
-                                </Box>
-                              )}
-                              {days && (
-                                <Box sx={{ px: 0.9, py: 0.25, borderRadius: '50px', background: 'rgba(255,255,255,0.18)', backdropFilter: 'blur(6px)' }}>
-                                  <Typography sx={{ fontSize: '0.6rem', fontWeight: 600, color: '#fff', fontFamily: "'Inter',sans-serif" }}>{days}d</Typography>
-                                </Box>
-                              )}
-                            </Box>
-                          )}
-                          <Typography sx={{
-                            fontFamily: "'Inter',sans-serif", fontWeight: 800, fontSize: '0.95rem',
-                            color: '#fff', lineHeight: 1.25, mb: 0.5,
-                            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                            textShadow: '0 1px 4px rgba(0,0,0,0.4)',
-                          }}>
-                            {tripName}
-                          </Typography>
-                          {(trip.description || trip.vibe) && (
-                            <Typography sx={{
-                              fontFamily: "'Inter',sans-serif", fontSize: '0.7rem', fontWeight: 400,
-                              color: 'rgba(255,255,255,0.72)', lineHeight: 1.4, mb: rawMembers.length > 0 ? 1 : 0,
-                              display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-                            }}>
-                              {trip.description || trip.vibe}
-                            </Typography>
-                          )}
-                          {rawMembers.length > 0 && (
-                            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                              <Box sx={{ display: 'flex' }}>
-                                {rawMembers.slice(0, 5).map((m: any, j: number) => {
-                                  const u = m.user || m.User || m;
-                                  const fn = u.fname || u.firstName || u.name || u.Name || '';
-                                  const pic = u.profilePic || u.profilepicture || u.profilePicture || u.ProfilePicture || u.avatar || '';
-                                  const initial = fn ? String(fn).charAt(0).toUpperCase() : '?';
-                                  return (
-                                    <Box key={j} sx={{
-                                      width: 22, height: 22, borderRadius: '50%',
-                                      border: '2px solid rgba(0,0,0,0.6)',
-                                      ml: j > 0 ? '-7px' : 0,
-                                      background: aColor(fn), overflow: 'hidden',
-                                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                                      fontSize: '0.5rem', fontWeight: 800, color: '#fff',
-                                      zIndex: 5 - j, fontFamily: "'Inter',sans-serif",
-                                    }}>
-                                      {pic ? <img src={pic} alt={fn} style={{ width: '100%', height: '100%', objectFit: 'cover' }} onError={e => { (e.target as HTMLImageElement).style.display = 'none'; }} /> : initial}
-                                    </Box>
-                                  );
-                                })}
-                              </Box>
-                              <Typography sx={{ fontSize: '0.62rem', color: 'rgba(255,255,255,0.7)', fontFamily: "'Inter',sans-serif", fontWeight: 500 }}>
-                                {rawMembers.length} going
-                              </Typography>
-                            </Box>
-                          )}
-                        </Box>
-                      </Box>
-                    );
-                  })}
-                </Box>
-              </Box>
-            )}
-            
 
             {/* Community Adventures */}
             <Box sx={{ mt: 2, mb: 6 }}>
-              {/* ── Section master header ── */}
+              {/*  Section master header  */}
               <Box sx={{ mb: 4, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
                 <Box>
                   <Typography sx={{
@@ -789,7 +561,36 @@ const Home: React.FC = () => {
               {loadingPublic && (
                 <PageLoader variant="inline" messages={['Discovering public trips…', 'Finding great adventures…', 'Loading community trips…']} />
               )}
-              {publicError && !loadingPublic && <Alert severity="error" sx={{ mb: 2 }}>{publicError}</Alert>}
+              {publicError && !loadingPublic && (
+                <Alert
+                  severity="error"
+                  sx={{
+                    mb: 6,
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                  action={
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={handleLogout}
+                      sx={{
+                        bgcolor: "#FF385C",
+                        borderRadius: "50px",
+                        textTransform: "none",
+                        fontWeight: 600,
+                        "&:hover": {
+                          bgcolor: "#e62e52",
+                        },
+                      }}
+                    >
+                      Log In
+                    </Button>
+                  }
+                >
+                  {publicError}
+                </Alert>
+              )}
               {!loadingPublic && !publicError && publicTrips.length === 0 && (
                 <Typography variant="body2" color="text.secondary">No public trips yet.</Typography>
               )}
@@ -823,7 +624,7 @@ const Home: React.FC = () => {
                 };
 
                 const userId = userProfile?.id || userProfile?.email;
-                // /api/trips/public already returns only publicly-visible trips — no need to filter again
+                // /api/trips/public already returns only publicly-visible trips - no need to filter again
                 const recommended = publicTrips.slice(0, 3);
                 const alsoCheckout = publicTrips.slice(3, 11);
 
@@ -1216,7 +1017,7 @@ const Home: React.FC = () => {
         </Box>
       )}
 
-      {/* ── Has upcoming trip: Journey Dashboard Hero ── */}
+      {/*  Has upcoming trip: Journey Dashboard Hero  */}
       {!userTripsLoading && nextUpcomingTrip && (
         <>
         <Box
@@ -1230,7 +1031,7 @@ const Home: React.FC = () => {
             mb: 0,
           }}
         >
-          {/* ── LEFT: Dark hero panel ── */}
+          {/*  LEFT: Dark hero panel  */}
           <Box sx={{
             borderRadius: '20px',
             background: 'linear-gradient(160deg, #130006 0%, #220009 40%, #0d0004 100%)',
@@ -1241,7 +1042,7 @@ const Home: React.FC = () => {
             position: 'relative',
             overflow: 'hidden',
           }}>
-            {/* Deep ambient glow — top right */}
+            {/* Deep ambient glow - top right */}
             <Box sx={{
               position: 'absolute', top: -80, right: -80,
               width: 340, height: 340, borderRadius: '50%',
@@ -1378,7 +1179,7 @@ const Home: React.FC = () => {
             </Box>
           </Box>
 
-          {/* ── RIGHT: Insights & Stats Panel ── */}
+          {/*  RIGHT: Insights & Stats Panel  */}
           <Box sx={{
             display: { xs: 'none', lg: 'flex' },
             flexDirection: 'column',
@@ -1389,7 +1190,7 @@ const Home: React.FC = () => {
           {/* Subtle top-right accent */}
           <Box sx={{ position: 'absolute', top: -60, right: -60, width: 180, height: 180, borderRadius: '50%', background: 'radial-gradient(circle, rgba(255,56,92,0.06) 0%, transparent 70%)', pointerEvents: 'none' }} />
 
-            {/* ── SECTION: Travel Insight? (Full-height, Beautiful) ── */}
+            {/*  SECTION: Travel Insight? (Full-height, Beautiful)  */}
             {/* Premium Quote Hero */}
           <Box
             sx={{
@@ -1457,7 +1258,7 @@ const Home: React.FC = () => {
 
           
 
-            {/* ── SECTION: Stats ── */}
+            {/*  SECTION: Stats  */}
             <Box sx={{
               border: '1px solid rgba(0,0,0,0.07)',
               background: 'rgb(255, 255, 255)',
@@ -1491,7 +1292,7 @@ const Home: React.FC = () => {
 
       </Box>
 
-      {/* MAIN BODY — users with upcoming trip still see community content */}
+      {/* MAIN BODY - users with upcoming trip still see community content */}
       {!userTripsLoading && nextUpcomingTrip && (
       <Box sx={{ 
         flex: 1, 
@@ -1513,7 +1314,7 @@ const Home: React.FC = () => {
           {/* Community Adventures */}
           <Box sx={{ mt: 2, mb: 6 }}>
 
-            {/* ── Section master header ── */}
+            {/*  Section master header  */}
             <Box sx={{ mb: 4, display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
               <Box>
                 <Typography sx={{
@@ -1540,7 +1341,34 @@ const Home: React.FC = () => {
             {loadingPublic && (
               <PageLoader variant="inline" messages={['Discovering public trips…', 'Finding great adventures…', 'Loading community trips…']} />
             )}
-            {publicError && !loadingPublic && <Alert severity="error" sx={{ mb: 2 }}>{publicError}</Alert>}
+            {publicError && !loadingPublic && <Alert
+                  severity="error"
+                  sx={{
+                    mb: 6,
+                    display: "flex",
+                    alignItems: "center",
+                  }}
+                  action={
+                    <Button
+                      variant="contained"
+                      size="small"
+                      onClick={handleLogout}
+                      sx={{
+                        bgcolor: "#FF385C",
+                        borderRadius: "50px",
+                        textTransform: "none",
+                        fontWeight: 600,
+                        "&:hover": {
+                          bgcolor: "#e62e52",
+                        },
+                      }}
+                    >
+                      Log In
+                    </Button>
+                  }
+                >
+                  {publicError}
+                </Alert>}
             {!loadingPublic && !publicError && publicTrips.length === 0 && (
               <Typography variant="body2" color="text.secondary">No public trips yet.</Typography>
             )}
@@ -1577,7 +1405,7 @@ const Home: React.FC = () => {
               };
 
               const userId = userProfile?.id || userProfile?.email;
-              // /api/trips/public already returns only publicly-visible trips — no need to filter again
+              // /api/trips/public already returns only publicly-visible trips - no need to filter again
               const recommended = publicTrips.slice(0, 3);
               const alsoCheckout = publicTrips.slice(3, 11);
 
@@ -1602,7 +1430,7 @@ const Home: React.FC = () => {
                       <Box sx={{ flex: 1, height: '1px', background: 'linear-gradient(to right, rgba(255,56,92,0.15), transparent)' }} />
                     </Box>
 
-                    {/* Uniform grid — matches dashboard 5-col layout */}
+                    {/* Uniform grid - matches dashboard 5-col layout */}
                     <Box sx={{
                       display: 'grid',
                       gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)', lg: 'repeat(5, 1fr)' },

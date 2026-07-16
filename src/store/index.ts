@@ -6,6 +6,7 @@ import plannerReducer from "./plannerSlice";
 import newsReducer from "./newsSlice";
 import packingReducer from "./packingSlice";
 import docsReducer, { persistDocs } from "./docsSlice";
+import notificationReducer from "./notificationSlice";
 
 export const store = configureStore({
   reducer: {
@@ -15,6 +16,7 @@ export const store = configureStore({
     news: newsReducer,
     packing: packingReducer,
     docs: docsReducer,
+    notifications: notificationReducer,
   },
 });
 
@@ -23,7 +25,6 @@ try {
   store.subscribe(()=> {
     const state = store.getState();
     // Persist only docs slice
-    // @ts-ignore - dynamic import may not exist server-side
     if (typeof window !== 'undefined') {
       persistDocs(state.docs);
     }

@@ -13,6 +13,8 @@ const today = new Date().toISOString().split('T')[0];
 
 const staticRoutes = [
   { path: '/',                      priority: '1.0', changefreq: 'weekly'  },
+  { path: '/community',             priority: '0.9', changefreq: 'daily'   },
+  { path: '/discover',              priority: '0.9', changefreq: 'daily'   },
   { path: '/blog',                  priority: '0.9', changefreq: 'daily'   },
   { path: '/about-us',              priority: '0.6', changefreq: 'monthly' },
   { path: '/terms-and-conditions',  priority: '0.3', changefreq: 'monthly' },
@@ -21,35 +23,100 @@ const staticRoutes = [
   { path: '/contact-us',            priority: '0.4', changefreq: 'monthly' },
 ];
 
-const staticUrls = staticRoutes
-  .map(
-    (route) => `  <url>
-    <loc>${base}${route.path}</loc>
-    <lastmod>${today}</lastmod>
-    <changefreq>${route.changefreq}</changefreq>
-    <priority>${route.priority}</priority>
-  </url>`
-  )
-  .join('\n');
+const urlEntry = ({ loc, lastmod, changefreq, priority }) => `  <url>
+    <loc>${loc}</loc>
+    <lastmod>${lastmod}</lastmod>
+    <changefreq>${changefreq}</changefreq>
+    <priority>${priority}</priority>
+  </url>`;
 
-const blogUrls = blogs
-  .map(
-    (blog) => `  <url>
-    <loc>${base}/blog/${blog.slug}</loc>
-    <lastmod>${blog.updatedAt || blog.createdAt || today}</lastmod>
-    <changefreq>monthly</changefreq>
-    <priority>0.8</priority>
-  </url>`
-  )
-  .join('\n');
+const staticUrls = staticRoutes.map((r) =>
+  urlEntry({ loc: `${base}${r.path}`, lastmod: today, changefreq: r.changefreq, priority: r.priority })
+);
+
+const blogUrls = blogs.map((blog) =>
+  urlEntry({
+    loc: `${base}/blog/${blog.slug}`,
+    lastmod: blog.updatedAt || blog.createdAt || today,
+    changefreq: 'monthly',
+    priority: '0.8',
+  })
+);
+
+/**
+ * Published community trips are Tripician's largest organic-search surface -
+ * each becomes an indexable itinerary landing page. Fetched from the public
+ * API at build time; skipped gracefully when the API is unreachable (e.g.
+ * offline CI) so the build never breaks.
+ */
+/** Minimal .env reader ,node scripts don't get Vite's env files for free. */
+function readEnvApiBase() {
+  if (process.env.SITEMAP_API_BASE) return process.env.SITEMAP_API_BASE;
+  if (process.env.VITE_API_BASE_URL) return process.env.VITE_API_BASE_URL;
+  for (const file of ['.env.production', '.env.local', '.env']) {
+    try {
+      const text = fs.readFileSync(path.join(__dirname, '..', file), 'utf-8');
+      const match = text.match(/^\s*VITE_API_BASE_URL\s*=\s*(.+)\s*$/m);
+      if (match) return match[1].trim().replace(/^["']|["']$/g, '');
+    } catch { /* file absent ,keep looking */ }
+  }
+  return undefined;
+}
+
+async function fetchPublishedTripUrls() {
+  const apiBase = readEnvApiBase();
+  if (!apiBase) {
+    console.log('ℹ sitemap: no API base configured ,skipping published-trip URLs');
+    return [];
+  }
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    const resp = await fetch(`${apiBase.replace(/\/$/, '')}/api/trips/published`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    clearTimeout(timer);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+    const data = await resp.json();
+    const trips = Array.isArray(data) ? data : Array.isArray(data?.trips) ? data.trips : [];
+    // Slug logic mirrors src/utils/tripSlug.ts so sitemap URLs match page canonicals
+    const slugify = (name) =>
+      String(name || '')
+        .normalize('NFKD')
+        .replace(/[̀-ͯ]/g, '')
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '')
+        .slice(0, 60)
+        .replace(/-+$/g, '');
+    return trips
+      .map((t) => ({ id: t.id || t.Id, slug: slugify(t.name || t.Name) }))
+      .filter((t) => Boolean(t.id))
+      .map(({ id, slug }) =>
+        urlEntry({
+          loc: `${base}/trip/${slug && slug !== 'untitled-trip' ? `${slug}-` : ''}${id}`,
+          lastmod: today,
+          changefreq: 'weekly',
+          priority: '0.7',
+        })
+      );
+  } catch (err) {
+    console.log(`ℹ sitemap: could not fetch published trips (${err.message}) ,continuing without them`);
+    return [];
+  }
+}
+
+const tripUrls = await fetchPublishedTripUrls();
 
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
-${staticUrls}
-${blogUrls}
+${[...staticUrls, ...blogUrls, ...tripUrls].join('\n')}
 </urlset>
 `;
 
 const outPath = path.join(__dirname, '../public/sitemap.xml');
 fs.writeFileSync(outPath, sitemap, 'utf-8');
-console.log(`✅ sitemap.xml generated — ${blogs.length} blog entries + ${staticRoutes.length} static routes`);
+console.log(
+  `✅ sitemap.xml generated ,${staticRoutes.length} static + ${blogs.length} blog + ${tripUrls.length} trip URLs`
+);

@@ -27,7 +27,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import NotesIcon from '@mui/icons-material/Notes';
 import DestinationCard from './DestinationCard';
 import { DiscoverSheet, StaySheet } from './PlannerModals';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, useStore } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import {
   addDestination, removeDestination, duplicateDestination, toggleDestinationCompleted, setDestinationCategory, renameDestination, setDestinationTitle,
@@ -36,7 +36,7 @@ import {
   updateDestinationNights, reorderChainExact,
   addStayEntry, updateStayEntry, removeStayEntry, setStayNotes, clearDestinationDiscover
 } from '../../store/plannerSlice';
-import { planDestination } from '../../navia/naviaService';
+import { planDestination, NaviaRequestError } from '../../navia/naviaService';
 import ValidatedFileInput from '../../components/CommonComponents/ValidatedFileInput';
 import SoonTag from '../../components/CommonComponents/SoonTag';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
@@ -56,6 +56,17 @@ interface DestinationCardsPanelProps {
   onNaviaToast?: (type: 'success' | 'error' | 'info', message: string) => void;
 }
 
+const DEFAULT_DESTINATION_SUGGESTIONS = [
+  'Paris',
+  'Tokyo',
+  'New York',
+  'Rome',
+  'Barcelona',
+  'Bali',
+  'Istanbul',
+  'Cape Town',
+];
+
 /* ---- Google Maps JS SDK loader (standalone, since MapPanel now uses Mapbox) ---- */
 function ensureGoogleMapsLoaded(apiKey: string): Promise<void> {
   if ((window as any).google?.maps?.places) return Promise.resolve();
@@ -74,7 +85,7 @@ function ensureGoogleMapsLoaded(apiKey: string): Promise<void> {
   });
 }
 
-/* ─── Sortable card wrapper (dnd-kit per-item) ─── */
+/*  Sortable card wrapper (dnd-kit per-item)  */
 const SortableCardWrapper: React.FC<{
   id: string;
   children: (props: { isDragging: boolean; dragHandleProps: Record<string, unknown> }) => React.ReactNode;
@@ -93,6 +104,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
   onRequestNaviaTip, onNaviaToast,
 }) => {
   const dispatch = useDispatch<AppDispatch>();
+  const store = useStore<RootState>();
   const destinations = useSelector((s:RootState)=> s.planner.destinations);
 
   const handlePlanDestination = React.useCallback(async (destinationId: string) => {
@@ -114,11 +126,23 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
         vibe: tripVibe ?? undefined,
       }, authToken);
 
-      dispatch(clearDestinationDiscover({ destinationId }));
+      // A save/refresh during the AI call may have re-hydrated Redux with server
+      // ids. Re-resolve the stop from fresh state (by id, then by name) so the
+      // dispatches below never target an orphaned id and silently vanish.
+      const fresh = store.getState().planner.destinations;
+      const liveDest = fresh.find(d => d.id === destinationId)
+        ?? fresh.find(d => d.name === dest.name);
+      if (!liveDest) {
+        onNaviaToast?.('error', `${dest.name} is no longer in your plan, so Navia's ideas had nowhere to land.`);
+        return;
+      }
+      const liveId = liveDest.id;
+
+      dispatch(clearDestinationDiscover({ destinationId: liveId }));
       for (const spot of result.spots ?? []) {
         if (!spot.name?.trim()) continue;
         dispatch(addSpot({
-          destinationId,
+          destinationId: liveId,
           name: spot.name.trim(),
           description: spot.description?.trim(),
           known: true,
@@ -126,17 +150,21 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
       }
       for (const food of result.foods ?? []) {
         if (!food.name?.trim()) continue;
-        dispatch(addFoodItem({ destinationId, name: food.name.trim() }));
+        dispatch(addFoodItem({ destinationId: liveId, name: food.name.trim() }));
       }
       const notes = (result.journalNotes ?? '').trim();
-      if (notes) dispatch(setDestinationNotes({ id: destinationId, notes }));
+      if (notes) dispatch(setDestinationNotes({ id: liveId, notes }));
       onNaviaToast?.('success', `Navia planned ${dest.name}`);
-    } catch {
-      onNaviaToast?.('error', 'Navia could not plan this stop. Try again.');
+    } catch (err) {
+      if (err instanceof NaviaRequestError && err.status === 402) {
+        onNaviaToast?.('error', 'This trip is out of Navia credits.');
+      } else {
+        onNaviaToast?.('error', 'Navia could not plan this stop. Try again.');
+      }
     } finally {
       window.dispatchEvent(new CustomEvent('navia:response'));
     }
-  }, [destinations, tripId, authToken, tripVibe, dispatch, onNaviaToast]);
+  }, [destinations, tripId, authToken, tripVibe, dispatch, onNaviaToast, store]);
   // completedCount removed with Timeline header
   /* Load Google Maps SDK once on mount so Places autocomplete works independently of MapPanel */
   React.useEffect(() => {
@@ -186,6 +214,33 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
       }
     });
   };
+  const addDestinationFromQuery = React.useCallback((query: string) => {
+    if (readOnly || !query.trim()) return;
+    const g = (window as any).google;
+    if (!g?.maps?.places) {
+      setSearchValue(query);
+      return;
+    }
+    const svc = new g.maps.places.PlacesService(document.createElement('div'));
+    svc.textSearch({ query }, (results: any[] | null, status: string) => {
+      if (status !== 'OK' || !Array.isArray(results) || results.length === 0) {
+        setSearchValue(query);
+        return;
+      }
+      const place = results[0];
+      const name = place.name || query;
+      const lat = place.geometry?.location?.lat?.();
+      const lng = place.geometry?.location?.lng?.();
+      let photoUrl: string | undefined;
+      if (place.photos && place.photos.length) {
+        try { photoUrl = place.photos[0].getUrl({ maxWidth: 800, maxHeight: 600 }); } catch {}
+      }
+      dispatch(addDestination({ name, lat, lng, placeId: place.place_id, photoUrl }));
+      setSearchValue('');
+      setPredictions([]);
+      setGhostSearchOpen(false);
+    });
+  }, [dispatch, readOnly]);
 
   /* -------------------------- Discover dialog (spots) -------------------------- */
   const [discoverFor, setDiscoverFor] = React.useState<string | null>(null);
@@ -327,17 +382,18 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
     return () => { cancelled = true; };
   }, [destinations.map(d => d.id + ':' + d.name).join(',')]);
 
-  /* ──────── Per-destination checklist (local, kept in sync across renders) ──── */
+  /*  Per-destination checklist (local, kept in sync across renders)  */
   const [checklists, setChecklists] = React.useState<Record<string, DestinationCardChecklist>>({});
   const handleChecklistChange = React.useCallback((id: string, cl: DestinationCardChecklist) => {
     setChecklists(prev => ({ ...prev, [id]: cl }));
   }, []);
 
-  /* ─────────────────────── Drag-to-reorder (dnd-kit) ────────────────────────── */
+  /*  Drag-to-reorder (dnd-kit)  */
   const sensors = useSensors(useSensor(PointerSensor, { activationConstraint: { distance: 8 } }));
   const [activeDragId, setActiveDragId] = React.useState<string | null>(null);
   const handleDragEnd = React.useCallback((event: DragEndEvent) => {
     setActiveDragId(null);
+    if (readOnly) return; // viewers can never reorder
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const ids = destinations.map(d => d.id);
@@ -346,9 +402,9 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
     if (oldIndex === -1 || newIndex === -1) return;
     const newIds = arrayMove(ids, oldIndex, newIndex);
     dispatch(reorderChainExact({ ids: newIds }));
-  }, [destinations, dispatch]);
+  }, [destinations, dispatch, readOnly]);
 
-  /* ────────────────────── Completion signals (Feature 3) ─────────────────────── */
+  /*  Completion signals (Feature 3)  */
   const completionSignals = React.useMemo(() => {
     const hasDestinations = destinations.length > 0;
     const hasDates = destinations.some(d => !!d.startDate);
@@ -398,7 +454,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
     <Fade in timeout={300}>
       <Box sx={{ px:2.5, pt:2, pb:1.5, display:'flex', flexDirection:'column', gap:1.5, position:'relative' }}>
 
-        {/* ── Progress milestone stepper ── */}
+        {/*  Progress milestone stepper  */}
         {destinations.length > 0 && (
           <Box sx={(t) => ({
             maxWidth: 900, mx: 'auto', width: '100%', mb: 0.5,
@@ -432,7 +488,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
             {/* 1px vertical divider */}
             <Box sx={(t) => ({ width: '1px', alignSelf: 'stretch', flexShrink: 0, bgcolor: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)' })} />
 
-            {/* Stepper — absolute track line + evenly spaced circles */}
+            {/* Stepper - absolute track line + evenly spaced circles */}
             <Box sx={{ flex: 1, minWidth: 0, position: 'relative', pt: { xs: 0.5, sm: 0.75 }, pb: { xs: 0.25, sm: 0.5 } }}>
               {/* Grey track */}
               <Box sx={(t) => ({
@@ -484,7 +540,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                           </Typography>
                         )}
                       </Box>
-                      {/* Label — hidden on xs */}
+                      {/* Label - hidden on xs */}
                       <Typography sx={{
                         display: { xs: 'none', sm: 'block' },
                         fontSize: 9.5, fontWeight: isDone ? 700 : 500, textAlign: 'center', lineHeight: 1.25,
@@ -520,7 +576,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                 </Typography>
               </Box>
             ) : (
-              <Box sx={(t) => ({ mt: 3, p: 5, border: '2px dashed rgba(255,56,92,0.2)', borderRadius: 3, textAlign: 'center', fontSize: 14, color: t.palette.text.secondary })}>Click "+ Add your next stop" below to add your first destination.</Box>
+              <Box sx={(t) => ({ mt: 3, p: 5, border: '2px dashed rgba(255,56,92,0.2)', borderRadius: 3, textAlign: 'center', fontSize: 14, color: t.palette.text.secondary })}>Click "+ Add your next stop" below to add your first destination.</Box>
             )
           )}
           <DndContext
@@ -560,7 +616,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                           <DestinationCard
                             destination={d}
                             isDragging={isDragging}
-                            dragHandleProps={dragHandleProps}
+                            dragHandleProps={readOnly ? undefined : dragHandleProps}
                             checklist={checklists[d.id]}
                             onChecklistChange={handleChecklistChange}
                             onRename={readOnly ? undefined : (id, name) => dispatch(renameDestination({ id, name }))}
@@ -578,6 +634,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                             onPlanDestination={readOnly ? undefined : handlePlanDestination}
                             alertCount={alertsMap[d.id]?.alerts.length ?? 0}
                             alerts={alertsMap[d.id]?.alerts ?? []}
+                            readonly={readOnly}
                           />
                           </Box>
                         </Box>
@@ -610,7 +667,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
           {!readOnly && (
             <>
               {ghostSearchOpen ? (
-                /* Inline search input — replaces ghost card */
+                /* Inline search input - replaces ghost card */
                 <Box sx={{ position: 'relative', mt: 1, ml: '36px' }}>
                   <Paper elevation={0} sx={(t) => ({
                     display: 'flex', alignItems: 'center', gap: 1, pl: 1.5, pr: 0.75, py: 0.65,
@@ -651,6 +708,29 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                         </Box>
                       ))}
                       {!loadingPred && predictions.length === 0 && <Box sx={{ px: 2, py: 1, fontSize: 12, opacity: 0.65 }}>No matches</Box>}
+                    </Paper>
+                  )}
+                  {!searchValue && (
+                    <Paper elevation={2} sx={{ position: 'absolute', top: '100%', left: 0, mt: 0.75, width: '100%', zIndex: 20, borderRadius: '12px', p: 1, border: '1px solid', borderColor: 'divider' }}>
+                      <Typography sx={{ px: 1, py: 0.6, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'text.secondary' }}>
+                        Suggested destinations
+                      </Typography>
+                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.7, px: 0.7, pb: 0.6 }}>
+                        {DEFAULT_DESTINATION_SUGGESTIONS.map((name) => (
+                          <Button
+                            key={name}
+                            size='small'
+                            onClick={() => addDestinationFromQuery(name)}
+                            sx={{
+                              textTransform: 'none', borderRadius: '999px', fontSize: 12,
+                              border: '1px solid', borderColor: 'divider', color: 'text.secondary',
+                              '&:hover': { borderColor: 'rgba(255,56,92,0.4)', color: '#FF385C', bgcolor: 'rgba(255,56,92,0.05)' },
+                            }}
+                          >
+                            {name}
+                          </Button>
+                        ))}
+                      </Box>
                     </Paper>
                   )}
                 </Box>

@@ -17,8 +17,10 @@ import { fetchUnsplashImage } from '../../services/unsplashService';
 import { flagEmojiFromName, flagPngUrl, countryCodeFromName, COUNTRY_NAMES } from '../../utils/countryFlags';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
+import { generateTripBrief, NaviaRequestError } from '../../navia/naviaService';
+import NaviaOrb from '../../navia/NaviaOrb';
 
-/* ── Vibe cards ── */
+/*  Vibe cards  */
 const VIBES = [
   { id: 'adventure', label: 'Adventure Junkie',  emoji: '🏔️', desc: 'Trails, peaks & adrenaline',        tagline: 'Born for the wild',          bg: '#F0FDF4', activeBg: 'linear-gradient(135deg,#059669,#047857)', activeColor: '#fff', activeBorder: '#059669' },
   { id: 'culture',   label: 'Culture Seeker',    emoji: '🏛️', desc: 'History, art & local stories',      tagline: 'Every place has a tale',     bg: '#F5F3FF', activeBg: 'linear-gradient(135deg,#7C3AED,#5B21B6)', activeColor: '#fff', activeBorder: '#7C3AED' },
@@ -105,6 +107,27 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
     return () => { cancelled = true; };
   }, [bannerUrl, countries?.[0]]);
 
+  // "Write with Navia" - AI-drafted trip description (costs 1 trip credit)
+  const [briefLoading, setBriefLoading] = React.useState(false);
+  const [briefError, setBriefError] = React.useState('');
+  const handleWriteWithNavia = React.useCallback(async () => {
+    if (!tripId || !authToken || briefLoading) return;
+    setBriefLoading(true);
+    setBriefError('');
+    try {
+      const brief = await generateTripBrief(tripId, authToken);
+      if (brief.description) onChangeDescription?.(brief.description.slice(0, 300));
+    } catch (err) {
+      if (err instanceof NaviaRequestError && err.status === 402) {
+        setBriefError('This trip is out of Navia credits.');
+      } else {
+        setBriefError('Navia could not write a description right now. Try again shortly.');
+      }
+    } finally {
+      setBriefLoading(false);
+    }
+  }, [tripId, authToken, briefLoading, onChangeDescription]);
+
   const [countrySearch, setCountrySearch]   = React.useState('');
   const [countryDropOpen, setCountryDropOpen] = React.useState(false);
   const countryAnchorRef = React.useRef<HTMLDivElement>(null);
@@ -118,19 +141,19 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
   );
   const canManageMembers = Boolean(currentUserIsOwner);
 
-  /* ── Banner image ── */
+  /*  Banner image  */
   const coversTyped  = covers as Record<string, string>;
   const countryKey   = countries?.length ? countries[0].toLowerCase().replace(/\s+/g, '') : '';
   const coversSrc    = (countryKey && coversTyped[countryKey]?.trim()) ? coversTyped[countryKey] : coversTyped['default'];
   const imgSrc       = (bannerUrl && bannerUrl.trim()) ? bannerUrl : (unsplashBanner || coversSrc);
 
-  /* ── Accent gradient follows vibe ── */
+  /* Accent gradient follows vibe */
   const activeVibeData = VIBES.find(v => v.id === vibe);
   const accentGradient = activeVibeData
     ? activeVibeData.activeBg
     : `linear-gradient(90deg, ${primary} 0%, #FF6B35 50%, #FFB347 100%)`;
 
-  /* ── Helpers ── */
+  /*  Helpers  */
   const copy = (text: string) => {
     navigator.clipboard.writeText(text).then(() => { setCopyMain(true); setTimeout(() => setCopyMain(false), 1800); });
   };
@@ -272,7 +295,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
         }),
       }}
     >
-      {/* ── Top accent strip ── */}
+      {/*  Top accent strip  */}
       <Box sx={{ height: 3, flexShrink: 0, background: accentGradient, transition: 'background 0.5s ease' }} />
 
       {/* ════════════════════════════════
@@ -456,7 +479,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
       {view === 'main' && (
         <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', maxHeight: 'calc(92vh - 3px)' }}>
 
-          {/* ── Header ── */}
+          {/*  Header  */}
           <Box sx={{ px: 3, pt: 2.5, pb: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexShrink: 0 }}>
             <Box>
               <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.6, px: 1.2, py: 0.4, borderRadius: '50px', background: 'rgba(255,56,92,0.08)', mb: 0.7 }}>
@@ -472,7 +495,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
             </IconButton>
           </Box>
 
-          {/* ── Tab pills ── */}
+          {/*  Tab pills  */}
           <Box sx={{ px: 3, pt: 2, pb: 0, display: 'flex', gap: 0.75, flexShrink: 0, flexWrap: 'wrap' }}>
             {TABS.map(t => {
               const isActive = tab === t.id;
@@ -497,10 +520,10 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
             })}
           </Box>
 
-          {/* ── Divider ── */}
+          {/*  Divider  */}
           <Box sx={(t: any) => ({ height: '1px', background: t.palette.divider, mx: 3, mt: 1.5, flexShrink: 0 })} />
 
-          {/* ── Scrollable content ── */}
+          {/*  Scrollable content  */}
           <Box sx={{ flex: 1, overflowY: 'auto', px: 3, pt: 2.5, pb: 1, '::-webkit-scrollbar': { display: 'none' }, scrollbarWidth: 'none' }}>
 
             {/* ══ OVERVIEW ══ */}
@@ -554,7 +577,29 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                 {/* Description */}
                 <FieldBlock
                   label="Description"
-                  action={description.length > 0 ? <Typography sx={{ fontSize: 10.5, color: 'text.disabled' }}>{description.length}/300</Typography> : undefined}
+                  action={
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                      {tripId && (
+                        <Tooltip title="Let Navia draft a description from your route, dates and vibe (1 trip credit)" placement="top">
+                          <Box
+                            onClick={handleWriteWithNavia}
+                            sx={{
+                              display: 'flex', alignItems: 'center', gap: 0.45,
+                              fontSize: 11, fontWeight: 700,
+                              color: briefLoading ? 'text.disabled' : primary,
+                              cursor: briefLoading ? 'default' : 'pointer',
+                              transition: 'opacity .2s',
+                              '&:hover': { opacity: briefLoading ? 1 : 0.75 },
+                            }}
+                          >
+                            <NaviaOrb size={13} processing={briefLoading} />
+                            {briefLoading ? 'Writing…' : 'Write with Navia'}
+                          </Box>
+                        </Tooltip>
+                      )}
+                      {description.length > 0 && <Typography sx={{ fontSize: 10.5, color: 'text.disabled' }}>{description.length}/300</Typography>}
+                    </Box>
+                  }
                 >
                   <TextField
                     value={description} fullWidth multiline minRows={3} maxRows={5}
@@ -563,6 +608,9 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                     inputProps={{ maxLength: 300 }}
                     sx={fieldSx}
                   />
+                  {briefError && (
+                    <Typography sx={{ fontSize: 11, color: 'error.main', mt: 0.5 }}>{briefError}</Typography>
+                  )}
                 </FieldBlock>
               </Box>
             )}
@@ -662,7 +710,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
             {/* ══ VIBE ══ */}
             {tab === 'vibe' && (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', fontFamily: "'Inter', sans-serif", mb: 0.5 }}>Pick the vibe that best captures this trip — or leave it open.</Typography>
+                <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', fontFamily: "'Inter', sans-serif", mb: 0.5 }}>Pick the vibe that best captures this trip - or leave it open.</Typography>
 
                 {/* Active vibe banner */}
                 {vibe && activeVibeData && (
@@ -678,7 +726,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                   </Box>
                 )}
 
-                {/* Vibe grid — 2 columns, emoji card style matching TripCreationModal */}
+                {/* Vibe grid ,2 columns, emoji card style matching TripCreationModal */}
                 <Box sx={{ display: 'grid', gridTemplateColumns: 'repeat(2,1fr)', gap: 1 }}>
                   {VIBES.map(v => {
                     const selected = vibe === v.id;
@@ -770,7 +818,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
             <Box sx={{ height: 16 }} />
           </Box>
 
-          {/* ── Footer ── */}
+          {/*  Footer  */}
           <Box sx={(t: any) => ({ px: 3, py: 2, borderTop: `1px solid ${t.palette.divider}`, flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'space-between', background: t.palette.mode === 'dark' ? 'rgba(0,0,0,0.18)' : 'rgba(0,0,0,0.015)' })}>
             {canManageMembers ? (
               <Box onClick={onDeleteTrip} sx={{ display: 'flex', alignItems: 'center', gap: 0.5, fontSize: 12.5, fontWeight: 600, color: 'text.disabled', cursor: 'pointer', px: 1.5, py: 0.7, borderRadius: 2, '&:hover': { color: 'error.main', background: 'rgba(220,38,38,0.07)' }, transition: 'all .15s' }}>
@@ -799,7 +847,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
 
 export default TripSettingsDialog;
 
-/* ── File-local helpers ── */
+/*  File-local helpers  */
 
 const fieldSx = (t: any) => ({
   '& .MuiOutlinedInput-root': {

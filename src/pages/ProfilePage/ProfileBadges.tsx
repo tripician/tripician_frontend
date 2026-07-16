@@ -38,7 +38,7 @@ export default function ProfileBadges() {
   };
 
 
-  var badges = [
+  const badges = [
     {
       country : "France",
       flagUrl : "https://res.cloudinary.com/ddt3rcyhv/image/upload/v1755240288/France_d1aozi.png"

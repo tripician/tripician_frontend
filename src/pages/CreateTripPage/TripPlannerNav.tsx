@@ -7,6 +7,7 @@ import ImportExportIcon from '@mui/icons-material/ImportExport';
 import SoonTag from '../../components/CommonComponents/SoonTag';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
 import NewspaperIcon from '@mui/icons-material/Newspaper';
+import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import { motion } from 'framer-motion';
 
 // Custom lightweight T-shirt icon (since Material baseline set lacks a direct Tshirt glyph)
@@ -30,17 +31,18 @@ const TshirtIcon: React.FC<{ fontSize?: 'small' | 'medium' | 'large' }> = ({ fon
 
 interface NavItem { id: string; label: string; icon: React.ReactNode; }
 
-// Updated navigation: Plan, News, Packing, Docs
+// Updated navigation: Plan, Budget, News, Packing, Docs
 const navItems: NavItem[] = [
   { id: 'plan', label: 'Plan', icon: <CalendarMonthIcon fontSize='small' /> },
+  { id: 'budget', label: 'Budget', icon: <AccountBalanceWalletOutlinedIcon fontSize='small' /> },
   { id: 'news', label: 'News', icon: <NewspaperIcon fontSize='small' /> },
   { id: 'packing', label: 'Packing', icon: <TshirtIcon fontSize='small' /> },
   { id: 'docs', label: 'Docs', icon: <InsertDriveFileIcon fontSize='small' /> }
 ];
 
-interface TripPlannerNavProps { active?: string; onChange?: (id: string) => void; onSettingsClick?:()=>void; hideSections?: string[]; canAccessDocs?: boolean; docsEnabled?: boolean; settingsDisabled?: boolean }
+interface TripPlannerNavProps { active?: string; onChange?: (id: string) => void; onSettingsClick?:()=>void; hideSections?: string[]; canAccessDocs?: boolean; docsEnabled?: boolean; settingsDisabled?: boolean; budgetEnabled?: boolean }
 
-const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChange, onSettingsClick, hideSections=[], canAccessDocs=true, docsEnabled=true, settingsDisabled=false }) => {
+const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChange, onSettingsClick, hideSections=[], canAccessDocs=true, docsEnabled=true, settingsDisabled=false, budgetEnabled=true }) => {
   const { importExport, docsSection } = FEATURE_FLAGS;
   return (
     <Box
@@ -77,12 +79,11 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
         fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
       })}
     >
-  {navItems.filter(i=> !hideSections.includes(i.id) && (i.id!=='docs' || (canAccessDocs && docsSection))).map(item => {
+  {navItems.filter(i=> !hideSections.includes(i.id) && (i.id!=='docs' || (canAccessDocs && docsSection)) && (i.id!=='budget' || budgetEnabled)).map(item => {
         const selected = item.id === active;
         const isDocs = item.id==='docs';
-        const isPacking = item.id === 'packing';
   const disabledDocs = isDocs && !docsEnabled;
-  const isDisabled = disabledDocs || isPacking;
+  const isDisabled = disabledDocs;
         return (
           <Tooltip key={item.id} title={isDisabled ? `${item.label} (Coming Soon)` : item.label} placement='right' arrow>
             <Box

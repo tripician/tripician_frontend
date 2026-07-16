@@ -1,15 +1,15 @@
 import type React from 'react';
 import {
-  IconHome2,
   IconMap2,
   IconUsersGroup,
   IconRadar,
-  IconAdjustmentsHorizontal,
-  IconPlanet,
+  IconSparkles,
   IconRoute,
   IconCampfire,
   IconShieldBolt,
+  IconUserCircle,
 } from '@tabler/icons-react';
+import NaviaOrbIcon from '../../navia/NaviaOrbIcon';
 
 export interface AppNavItem {
   id: string;
@@ -19,19 +19,19 @@ export interface AppNavItem {
   Icon: React.ElementType;
   /** Icon shown in page-level header blocks (28px, brand color) */
   PageHeaderIcon?: React.ElementType;
-  /** Tooltip text shown on hover — shown in desktop nav */
+  /** Tooltip text shown on hover - shown in desktop nav */
   tooltip?: string;
   disabled?: boolean;
 }
 
 export const APP_NAV_ITEMS: AppNavItem[] = [
   {
-    id: 'home',
-    label: 'Home',
-    shortLabel: 'Home',
-    path: '/home',
-    Icon: IconHome2,
-    PageHeaderIcon: IconPlanet,
+    id: 'explore',
+    label: 'Explore',
+    shortLabel: 'Explore',
+    path: '/community',
+    Icon: IconUsersGroup,
+    PageHeaderIcon: IconCampfire,
   },
   {
     id: 'trips',
@@ -42,12 +42,13 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     PageHeaderIcon: IconRoute,
   },
   {
-    id: 'community',
-    label: 'Community',
-    shortLabel: 'Community',
-    path: '/community',
-    Icon: IconUsersGroup,
-    PageHeaderIcon: IconCampfire,
+    id: 'navia',
+    label: 'Navia',
+    shortLabel: 'Navia',
+    path: '/navia',
+    Icon: NaviaOrbIcon,
+    PageHeaderIcon: IconSparkles,
+    tooltip: 'Navia - your AI travel companion',
   },
   {
     id: 'risk',
@@ -56,15 +57,16 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     path: '/risk-monitor',
     Icon: IconRadar,
     PageHeaderIcon: IconShieldBolt,
-    tooltip: 'Travel Risk Monitor — real-time safety intel for your destinations',
+    tooltip: 'Travel Risk Monitor - real-time safety intel for your destinations',
   },
   {
-    id: 'settings',
-    label: 'Settings',
-    shortLabel: 'Settings',
-    path: '/settings',
-    Icon: IconAdjustmentsHorizontal,
-    PageHeaderIcon: IconAdjustmentsHorizontal,
+    id: 'profile',
+    label: 'My Profile',
+    shortLabel: 'Profile',
+    path: '/profile',
+    Icon: IconUserCircle,
+    PageHeaderIcon: IconUserCircle,
+    tooltip: 'Your profile - trips, stats, and travel identity',
   },
 ];
 

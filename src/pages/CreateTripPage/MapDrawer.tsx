@@ -1,5 +1,5 @@
 ﻿/**
- * MapDrawer — slide-over map panel
+ * MapDrawer - slide-over map panel
  * Triggered by "View Map" button in TripPlanner.
  */
 import React from 'react';
@@ -131,7 +131,7 @@ const MapDrawer: React.FC<MapDrawerProps> = ({ open, onClose, destinations }) =>
         </Box>
       )}
 
-      {/* Map — fills remaining space */}
+      {/* Map - fills remaining space */}
       <Box sx={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
         <React.Suspense fallback={<Box sx={{ p: 2, color: 'text.secondary', fontSize: 13 }}>Loading map...</Box>}>
           <MapPanel widthFraction={1} />

@@ -71,7 +71,7 @@ export function useNavia(tripId: string, token?: string | null): UseNaviaReturn 
         // Signal to DestinationCard that Navia has responded
         window.dispatchEvent(new CustomEvent('navia:response'));
       } catch {
-        // Generator error (unexpected — naviaService already handles HTTP errors gracefully)
+        // Generator error (unexpected - naviaService already handles HTTP errors gracefully)
         setMessages(prev =>
           prev.map(m =>
             m.id === naviaId
@@ -93,12 +93,19 @@ export function useNavia(tripId: string, token?: string | null): UseNaviaReturn 
     [tripId, token],
   );
 
+  // Tracks which session the in-memory messages belong to. Without this guard,
+  // switching trips ran the save effect with the NEW key while `messages` still
+  // held the OLD session's transcript, bleeding history across trips.
+  const loadedKeyRef = useRef(sessionKey);
+
   useEffect(() => {
+    if (loadedKeyRef.current !== sessionKey) return;
     saveNaviaMessages(sessionKey, messages);
   }, [messages, sessionKey]);
 
   useEffect(() => {
     setMessages(loadNaviaMessages(sessionKey));
+    loadedKeyRef.current = sessionKey;
   }, [sessionKey]);
 
   const clearMessages = useCallback(() => {

@@ -151,9 +151,9 @@ export function parseSystemMetadata(metadata: string | null): ExecuteResult[] {
   }
 }
 
-/** Extract proposal id from the first operation's context � the backend stores the id in the DB row.
+/** Extract proposal id from the first operation's context  the backend stores the id in the DB row.
  *  The chat message itself doesn't carry the proposal id, so we derive it from the chat message id
- *  by calling GET /api/proposals?chatMessageId={id} � or the caller resolves via a local lookup.
+ *  by calling GET /api/proposals?chatMessageId={id}  or the caller resolves via a local lookup.
  *  For now expose a helper to look it up on demand. */
 export async function fetchProposalIdByChatMessageId(
   chatMessageId: string,
@@ -166,5 +166,30 @@ export async function fetchProposalIdByChatMessageId(
     return data?.data?.id ?? null;
   } catch {
     return null;
+  }
+}
+
+/** Server-side proposal record; used to restore Accept/Reject state after a refresh. */
+export interface TripProposalInfo {
+  id: number;
+  tripId: string;
+  chatMessageId: string;
+  naviaMessage: string;
+  operationsJson: string;
+  status: 'Pending' | 'Accepted' | 'Rejected' | string;
+  createdAt: string;
+}
+
+export async function fetchTripProposals(
+  tripId: string,
+  token: string | null | undefined,
+): Promise<TripProposalInfo[]> {
+  try {
+    const res = await authFetch(`/api/proposals/by-trip/${tripId}`, token);
+    if (!res.ok) return [];
+    const data = await res.json();
+    return Array.isArray(data?.data) ? (data.data as TripProposalInfo[]) : [];
+  } catch {
+    return [];
   }
 }

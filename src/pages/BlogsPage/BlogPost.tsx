@@ -101,7 +101,7 @@ const BlogPost: React.FC = () => {
         boxShadow: '0 0 12px rgba(255,56,92,0.5)',
       }} />
 
-      {/* Nav — TopBar for logged-in, public nav for guests */}
+      {/* Nav - TopBar for logged-in, public nav for guests */}
       {isAuthenticated ? (
         <TopBar showSearch={false} logo={
           <Box
@@ -419,7 +419,7 @@ const BlogPost: React.FC = () => {
           </Box>
         </Box>
 
-        {/* Sticky sidebar — desktop only */}
+        {/* Sticky sidebar - desktop only */}
         <Box sx={{
           display: { xs: 'none', lg: 'block' },
           width: 280,
@@ -619,7 +619,7 @@ const BlogPost: React.FC = () => {
   return (
     <>
       <Helmet>
-        <title>{blog.title} — Tripician Travel Blog</title>
+        <title>{blog.title} - Tripician Travel Blog</title>
         <meta name="description" content={blog.description} />
         <link rel="canonical" href={`https://tripician.com/blog/${blog.slug}`} />
         <meta property="og:title" content={blog.title} />
@@ -631,6 +631,37 @@ const BlogPost: React.FC = () => {
         <meta name="twitter:title" content={blog.title} />
         <meta name="twitter:description" content={blog.description} />
         <meta name="robots" content="index, follow" />
+        <script type="application/ld+json">
+          {JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'Article',
+            headline: blog.title,
+            description: blog.description,
+            image: heroImage || 'https://tripician.com/og-cover.jpg',
+            url: `https://tripician.com/blog/${blog.slug}`,
+            author: { '@type': 'Organization', name: 'Tripician' },
+            publisher: {
+              '@type': 'Organization',
+              name: 'Tripician',
+              logo: { '@type': 'ImageObject', url: 'https://tripician.com/og-cover.jpg' },
+            },
+            mainEntityOfPage: `https://tripician.com/blog/${blog.slug}`,
+            ...(blog.city && blog.country
+              ? { about: { '@type': 'Place', name: `${blog.city}, ${blog.country}` } }
+              : {}),
+          }).replace(/</g, '\\u003c')}
+        </script>
+        <script type="application/ld+json">
+          {JSON.stringify({
+            '@context': 'https://schema.org',
+            '@type': 'BreadcrumbList',
+            itemListElement: [
+              { '@type': 'ListItem', position: 1, name: 'Home', item: 'https://tripician.com/' },
+              { '@type': 'ListItem', position: 2, name: 'Travel Blog', item: 'https://tripician.com/blog' },
+              { '@type': 'ListItem', position: 3, name: blog.title, item: `https://tripician.com/blog/${blog.slug}` },
+            ],
+          }).replace(/</g, '\\u003c')}
+        </script>
       </Helmet>
       {isAuthenticated ? (
         <NavigationPannel>{pageContent}</NavigationPannel>
