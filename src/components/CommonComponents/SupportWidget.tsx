@@ -58,8 +58,8 @@ const SupportWidget: React.FC = () => {
   const [feedbackDone, setFeedbackDone] = useState(false);
   const [feedbackError, setFeedbackError] = useState('');
 
-  const appVersion = import.meta.env.VITE_APP_VERSION || '2.0.0';
-  const naviaVersion = '0.0.1';
+  const appVersion = import.meta.env.VITE_APP_VERSION || '2.1.0';
+  const naviaVersion = '1.0.0';
 
   const updateItems = [
     { icon: RocketLaunchRoundedIcon, text: 'Tripician 2.0 - new trip view & community feed.' },
