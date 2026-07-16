@@ -1,6 +1,6 @@
 import React, { useEffect, useMemo, useRef, useState } from 'react';
 import TripCard from './TripCard';
-import { Tabs, Tab, Box, Typography, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, Snackbar, useTheme } from '@mui/material';
+import { Tabs, Tab, Box, Typography, Alert, Dialog, DialogTitle, DialogContent, DialogContentText, DialogActions, Button, Snackbar, useTheme, useMediaQuery } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { apiServices } from '../../services/APIs/apiServices';
@@ -190,6 +190,11 @@ const Dashboard: React.FC = () => {
   }, [allPlans]);
 
   const hasMapData = plannedCountryCodes.length > 0 || publishedCountryCodes.length > 0;
+  // Split view: on desktop the globe lives in a sticky right rail (Airbnb-style);
+  // below lg it stays an inline section. One breakpoint, one mounted map.
+  const isDesktop = useMediaQuery('(min-width:1200px)');
+  const showWorldPanel = !loading && hasMapData;
+  const worldCountryCount = new Set([...plannedCountryCodes, ...publishedCountryCodes]).size;
 
   // Fetch dashboard trips
   useEffect(() => {
@@ -380,7 +385,7 @@ const Dashboard: React.FC = () => {
   
   return (
     <Box sx={{ width: '100%', backgroundColor: 'background.default', minHeight: '100vh' }}>
-      <Box sx={{ maxWidth: 1280, mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 3, md: 4 }, pb: 8 }}>
+      <Box sx={{ maxWidth: { xs: 1280, lg: showWorldPanel ? 1440 : 1280 }, mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 3, md: 4 }, pb: 8 }}>
         <motion.div initial="hidden" animate="visible" variants={staggerContainer(0.08, 0.05)}>
 
         {/* ── Page header ── */}
@@ -403,6 +408,14 @@ const Dashboard: React.FC = () => {
             </Button>
           </Box>
         </motion.div>
+
+        {/* ── Split view: scrollable content left, sticky globe right (lg+) ── */}
+        <Box sx={{
+          display: 'grid',
+          gridTemplateColumns: { xs: 'minmax(0, 1fr)', lg: (isDesktop && showWorldPanel) ? 'minmax(0, 1fr) 400px' : 'minmax(0, 1fr)' },
+          gap: { xs: 0, lg: 5 },
+        }}>
+        <Box sx={{ minWidth: 0 }}>
 
         {/* ── Next trip feature card ── */}
         {!loading && nextUpcoming && (
@@ -461,8 +474,8 @@ const Dashboard: React.FC = () => {
           </motion.div>
         )}
 
-        {/* ── Trip World Map ──────────────────────────────────────────────── */}
-        {!loading && hasMapData && (
+        {/* ── Trip World Map: inline section below lg only ─────────────────── */}
+        {!isDesktop && showWorldPanel && (
           <Box sx={{ mb: { xs: 4, md: 5 } }}>
             <SectionHeader
               title="Your world"
@@ -525,7 +538,12 @@ const Dashboard: React.FC = () => {
           <Box sx={{
             mt: 3,
             display: 'grid',
-            gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(3, minmax(0, 1fr))' },
+            // 2-up when the globe rail is showing (narrower column); 3-up full width
+            gridTemplateColumns: {
+              xs: 'minmax(0, 1fr)',
+              sm: 'repeat(2, minmax(0, 1fr))',
+              lg: (isDesktop && showWorldPanel) ? 'repeat(2, minmax(0, 1fr))' : 'repeat(3, minmax(0, 1fr))',
+            },
             gap: 3, alignItems: 'stretch',
             pb: 'env(safe-area-inset-bottom, 0px)',
           }}>
@@ -606,6 +624,75 @@ const Dashboard: React.FC = () => {
               />
             ))}
           </Box>
+
+        </Box>{/* end left column */}
+
+        {/* ── Sticky globe rail (lg+) ── */}
+        {isDesktop && showWorldPanel && (
+          <Box sx={{ minWidth: 0 }}>
+            <Box sx={{
+              position: 'sticky',
+              top: 88,
+              height: 'calc(100vh - 120px)',
+              minHeight: 520,
+              display: 'flex',
+              flexDirection: 'column',
+              borderRadius: '20px',
+              overflow: 'hidden',
+              border: `1px solid ${theme.custom.surface.border}`,
+              boxShadow: theme.custom.shadows.card,
+              bgcolor: 'background.paper',
+            }}>
+              {/* Panel header */}
+              <Box sx={{ px: 3, pt: 2.5, pb: 2, borderBottom: `1px solid ${theme.custom.surface.border}` }}>
+                <Typography sx={{ fontWeight: 700, fontSize: 16, letterSpacing: '-0.01em', color: 'text.primary' }}>
+                  Your world
+                </Typography>
+                <Typography sx={{ mt: 0.25, fontSize: 12.5, color: 'text.secondary' }}>
+                  {worldCountryCount} {worldCountryCount === 1 ? 'country' : 'countries'} across your planned and published trips
+                </Typography>
+                <Box sx={{ display: 'flex', gap: 2, mt: 1.25 }}>
+                  {plannedCountryCodes.length > 0 && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+                      <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#2B89C7' }} />
+                      <Typography sx={{ fontSize: 12, color: 'text.secondary', fontWeight: 600 }}>
+                        Planned ({plannedCountryCodes.length})
+                      </Typography>
+                    </Box>
+                  )}
+                  {publishedCountryCodes.length > 0 && (
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
+                      <Box sx={{ width: 8, height: 8, borderRadius: '50%', bgcolor: '#FBBF24' }} />
+                      <Typography sx={{ fontSize: 12, color: 'text.secondary', fontWeight: 600 }}>
+                        Published ({publishedCountryCodes.length})
+                      </Typography>
+                    </Box>
+                  )}
+                </Box>
+              </Box>
+
+              {/* Globe */}
+              <Box sx={{ flex: 1, minHeight: 0 }}>
+                <TravelMap
+                  planned={plannedCountryCodes}
+                  upcoming={publishedCountryCodes}
+                  autoRotate
+                  rotationSpeedDegPerSec={2}
+                  disableAttribution
+                />
+              </Box>
+
+              {/* Panel footer */}
+              <Box sx={{ px: 3, py: 1.25, borderTop: `1px solid ${theme.custom.surface.border}` }}>
+                <Typography sx={{ fontSize: 11.5, color: 'text.disabled' }}>
+                  Drag to spin the globe — it pauses while you explore.
+                </Typography>
+              </Box>
+            </Box>
+          </Box>
+        )}
+
+        </Box>{/* end split grid */}
         </motion.div>
       </Box>
 

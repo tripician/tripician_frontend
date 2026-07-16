@@ -162,7 +162,11 @@ const MapPanel: React.FC<MapPanelProps> = () => {
 
   return (
     <Box sx={{ width: '100%', height: '100%', position: 'relative', overflow: 'hidden' }}>
-      <Box ref={containerRef} sx={{ position: 'absolute', inset: 0 }} />
+      {/* Inline style, NOT sx: mapbox-gl.css sets `.mapboxgl-map { position: relative }`
+          which ties with the emotion class on specificity — whichever stylesheet loads
+          later wins, and with lazy chunks that's a coin flip (it collapsed the panel to
+          0 height in production). Inline styles beat both, deterministically. */}
+      <Box ref={containerRef} style={{ position: 'absolute', inset: 0 }} />
 
       {loading && (
         <Box sx={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'background.default', zIndex: 10 }}>
