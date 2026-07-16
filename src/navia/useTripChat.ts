@@ -16,6 +16,7 @@ import { useState, useEffect, useRef, useCallback } from 'react';
 import * as signalR from '@microsoft/signalr';
 import {
   fetchTripChatMessages,
+  fetchTripProposals,
   sendTripChatMessage,
   acceptProposal,
   rejectProposal,
@@ -36,7 +37,7 @@ export interface UseTripChatReturn {
   messages: TripChatMessage[];
   status: ChatStatus;
   sending: boolean;
-  /** Send a plain member message (or @navia message — backend decides) */
+  /** Send a plain member message (or @navia message ï¿½ backend decides) */
   sendMessage: (text: string) => Promise<void>;
   acceptProposalMsg: (chatMessageId: string, proposalId: number) => Promise<void>;
   rejectProposalMsg: (chatMessageId: string, proposalId: number) => Promise<void>;
@@ -98,11 +99,32 @@ export function useTripChat(
         setMessages(msgs.map(enrich));
       })
       .catch(() => { /* non-fatal */ });
+
+    // Restore Accept/Reject state for proposals settled before this page load,
+    // otherwise old proposals re-show live buttons after every refresh.
+    fetchTripProposals(tripId, token)
+      .then(proposals => {
+        if (!mountedRef.current) return;
+        const restored: Record<string, ProposalActionState> = {};
+        proposals.forEach(p => {
+          if (p.status === 'Accepted') restored[p.chatMessageId] = 'accepted';
+          else if (p.status === 'Rejected') restored[p.chatMessageId] = 'rejected';
+        });
+        if (Object.keys(restored).length > 0) {
+          setProposalStates(prev => ({ ...restored, ...prev }));
+        }
+      })
+      .catch(() => { /* non-fatal */ });
   }, [tripId, token, enrich]);
 
   // ?? SignalR connection ????????????????????????????????????????????????????
   useEffect(() => {
     if (!tripId || !token) return;
+
+    // Re-arm on every (re)connection: the cleanup below flips this to false when
+    // tripId/token change, and a mount-only effect would never set it back,
+    // leaving all handlers permanently muted after switching trips.
+    mountedRef.current = true;
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(`${API_BASE}/hubs/trip-chat`, {
@@ -145,6 +167,16 @@ export function useTripChat(
       });
     });
 
+    // A member settled a proposal: freeze everyone's Accept/Dismiss buttons live,
+    // not just after the next page refresh.
+    connection.on('ProposalResolved', (payload: { chatMessageId?: string; status?: string }) => {
+      if (!mountedRef.current) return;
+      const chatMessageId = payload?.chatMessageId;
+      const status = (payload?.status || '').toLowerCase();
+      if (!chatMessageId || (status !== 'accepted' && status !== 'rejected')) return;
+      setProposalStates(prev => ({ ...prev, [chatMessageId]: status as ProposalActionState }));
+    });
+
     connection.onreconnecting(() => {
       if (mountedRef.current) setStatus('connecting');
     });
@@ -184,7 +216,7 @@ export function useTripChat(
       if (!text.trim() || sending || !token) return;
       setSending(true);
       try {
-        // Optimistic insert for user messages (not @navia — those get a Navia reply pushed back)
+        // Optimistic insert for user messages (not @navia ï¿½ those get a Navia reply pushed back)
         const isNavia = /@navia\b/i.test(text);
         if (!isNavia && myUserId != null) {
           const optimistic: TripChatMessage = {
@@ -225,32 +257,50 @@ export function useTripChat(
     setProposalStates(prev => ({ ...prev, [chatMessageId]: state }));
   };
 
+  /** A proposal can be acted on when untouched, still pending, or after a failed attempt (retry). */
+  const canActOnProposal = (state: ProposalActionState | undefined) =>
+    !state || state === 'pending' || state === 'error';
+
+  /**
+   * The server refused (e.g. someone else settled it first): sync the real
+   * status instead of showing a dead "try again" error.
+   */
+  const syncSettledState = useCallback(async (chatMessageId: string) => {
+    try {
+      const proposals = await fetchTripProposals(tripId, token);
+      const match = proposals.find(p => p.chatMessageId === chatMessageId);
+      if (match?.status === 'Accepted') { setProposalState(chatMessageId, 'accepted'); return true; }
+      if (match?.status === 'Rejected') { setProposalState(chatMessageId, 'rejected'); return true; }
+    } catch { /* fall through to error state */ }
+    return false;
+  }, [tripId, token]);
+
   const acceptProposalMsg = useCallback(
     async (chatMessageId: string, proposalId: number) => {
-      if (proposalStates[chatMessageId] && proposalStates[chatMessageId] !== 'pending') return;
+      if (!canActOnProposal(proposalStates[chatMessageId])) return;
       setProposalState(chatMessageId, 'accepting');
       try {
         await acceptProposal(proposalId, token);
         setProposalState(chatMessageId, 'accepted');
       } catch {
-        setProposalState(chatMessageId, 'error');
+        if (!(await syncSettledState(chatMessageId))) setProposalState(chatMessageId, 'error');
       }
     },
-    [proposalStates, token],
+    [proposalStates, token, syncSettledState],
   );
 
   const rejectProposalMsg = useCallback(
     async (chatMessageId: string, proposalId: number) => {
-      if (proposalStates[chatMessageId] && proposalStates[chatMessageId] !== 'pending') return;
+      if (!canActOnProposal(proposalStates[chatMessageId])) return;
       setProposalState(chatMessageId, 'rejecting');
       try {
         await rejectProposal(proposalId, token);
         setProposalState(chatMessageId, 'rejected');
       } catch {
-        setProposalState(chatMessageId, 'error');
+        if (!(await syncSettledState(chatMessageId))) setProposalState(chatMessageId, 'error');
       }
     },
-    [proposalStates, token],
+    [proposalStates, token, syncSettledState],
   );
 
   // ?? Typing indicator ?????????????????????????????????????????????????????

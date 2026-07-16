@@ -63,6 +63,11 @@ const packingSlice = createSlice({
   name: 'packing',
   initialState,
   reducers: {
+    /** Replace the whole packing state (hydration from persisted per-trip data) */
+    loadPacking(state, action: PayloadAction<PackingState>) {
+      state.categories = action.payload.categories?.length ? action.payload.categories : state.categories;
+      state.activeCategoryId = action.payload.activeCategoryId ?? state.activeCategoryId;
+    },
     setActiveCategory(state, action: PayloadAction<string>) { state.activeCategoryId = action.payload; },
     toggleItem(state, action: PayloadAction<TogglePayload>) {
       const cat = state.categories.find(c=> c.id===action.payload.categoryId);
@@ -94,5 +99,5 @@ const packingSlice = createSlice({
   }
 });
 
-export const { setActiveCategory, toggleItem, addItem, updateQuantity, addCategory, removeCategory } = packingSlice.actions;
+export const { loadPacking, setActiveCategory, toggleItem, addItem, updateQuantity, addCategory, removeCategory } = packingSlice.actions;
 export default packingSlice.reducer;

@@ -4,14 +4,14 @@
  * Premium real-time trip chat panel.
  *
  * Features:
- *  � All trip members can send messages
- *  � Type @navia to summon the AI agent � the backend handles routing,
+ *   All trip members can send messages
+ *   Type @navia to summon the AI agent  the backend handles routing,
  *    Navia's reply arrives back through SignalR as a Proposal or Navia message
- *  � Proposal bubbles surface the AI suggestion with structured Accept / Reject actions
- *  � System messages show structured per-change results (destination added, dates updated�)
- *  � Auto-scroll + "New message" jump button
- *  � Connection status indicator
- *  � @navia mention hint in the input
+ *   Proposal bubbles surface the AI suggestion with structured Accept / Reject actions
+ *   System messages show structured per-change results (destination added, dates updated)
+ *   Auto-scroll + "New message" jump button
+ *   Connection status indicator
+ *   @navia mention hint in the input
  */
 
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
@@ -33,8 +33,6 @@ import CancelRoundedIcon from '@mui/icons-material/CancelRounded';
 import FiberManualRecordIcon from '@mui/icons-material/FiberManualRecord';
 import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 import { motion, AnimatePresence } from 'framer-motion';
-import QuestionAnswerRoundedIcon from '@mui/icons-material/QuestionAnswerRounded';
-import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
 
 import { useTripChat } from './useTripChat';
 import {
@@ -43,6 +41,9 @@ import {
   type TripChatMessage,
   type TripMember,
 } from './tripChatService';
+import { fetchTripCredits, type NaviaCreditBalance } from './naviaService';
+import CreditUsagePopover from './CreditUsagePopover';
+import NaviaOrb from './NaviaOrb';
 
 // ??? Constants ????????????????????????????????????????????????????????????????
 
@@ -68,39 +69,25 @@ function getInitials(name?: string): string {
 }
 
 // Event label map for System message ExecuteResult events
+// Keys mirror TripOperationExecutor's ExecuteResult.Event values exactly.
 const EVENT_LABELS: Record<string, { icon: string; label: (r: any) => string }> = {
-  destination_added:         { icon: '??', label: r => `${r.destination} added to trip` },
-  destination_already_present: { icon: '??', label: r => `${r.destination} already in trip` },
-  destination_removed:       { icon: '???', label: r => `${r.destination} removed from trip` },
-  destination_not_found:     { icon: '???', label: r => `${r.destination} not found in trip` },
-  dates_updated:             { icon: '??', label: r => `Trip dates updated${r.startDate ? ` � start ${r.startDate}` : ''}${r.endDate ? ` � end ${r.endDate}` : ''}` },
-  dates_update_failed:       { icon: '??', label: () => 'Date update failed' },
-  place_noted:               { icon: '???', label: r => `Place "${r.place}" noted` },
-  member_invite_noted:       { icon: '??', label: r => `Invite for "${r.memberName}" noted` },
-  execution_error:           { icon: '??', label: r => r.summary ?? 'Execution error' },
+  destination_added:           { icon: '📍', label: r => `${r.destination} added to trip` },
+  destination_already_present: { icon: 'ℹ️', label: r => `${r.destination} already in trip` },
+  destination_removed:         { icon: '🗑️', label: r => `${r.destination} removed from trip` },
+  destination_not_found:       { icon: '❓', label: r => `${r.destination} not found in trip` },
+  dates_updated:               { icon: '📅', label: r => `Trip dates updated${r.startDate ? ` · start ${r.startDate}` : ''}${r.endDate ? ` · end ${r.endDate}` : ''}` },
+  dates_update_failed:         { icon: '⚠️', label: () => 'Date update failed' },
+  place_added:                 { icon: '🏷️', label: r => `${r.place} added to your itinerary` },
+  place_add_failed:            { icon: '⚠️', label: r => `Could not add ${r.place}` },
+  member_invite_noted:         { icon: '✉️', label: r => `Invite for "${r.memberName}" noted` },
+  execution_error:             { icon: '⚠️', label: r => r.summary ?? 'Execution error' },
 };
 
 // ??? Sub-components ???????????????????????????????????????????????????????????
 
-/** Navia logo mark */
-const NaviaLogo: React.FC<{ size?: number }> = () => (
-  <Box sx={{
-                          width: 38, height: 38,
-                          backdropFilter: 'blur(8px)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          flexShrink: 0,
-                        }}>
-                          <Box
-                            component="img"
-                            src="https://res.cloudinary.com/ddt3rcyhv/image/upload/v1780497710/ChatGPT_Image_Jun_3_2026_07_53_49_PM_ubsb8c.png"
-                            alt="Navia"
-                            sx={{
-                              width: 40,
-                              height: 40,
-                              display: 'block',
-                            }}
-                          />
-                        </Box>
+/** Navia logo mark - the glossy red orb; glows while Navia is processing */
+const NaviaLogo: React.FC<{ size?: number; processing?: boolean }> = ({ size = 28, processing = false }) => (
+  <NaviaOrb size={size} processing={processing} />
 );
 
 /** System change result row */
@@ -109,6 +96,11 @@ const SystemResultRow: React.FC<{ result: ReturnType<typeof parseSystemMetadata>
   const label = entry ? entry.label(result) : (result.summary ?? result.action);
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.15 }}>
+      {entry && (
+        <Typography component="span" sx={{ fontSize: 12, lineHeight: 1.4 }}>
+          {entry.icon}
+        </Typography>
+      )}
       <Typography sx={{ fontSize: 12.5, color: result.success ? 'text.primary' : 'error.main', lineHeight: 1.4 }}>
         {label}
       </Typography>
@@ -123,9 +115,11 @@ interface ProposalBubbleProps {
   onAccept: () => void;
   onReject: () => void;
   isLight: boolean;
+  /** Set when the proposal id could not be resolved (expired/missing on server) */
+  resolveError?: string;
 }
 
-const ProposalBubble: React.FC<ProposalBubbleProps> = ({ msg, actionState, onAccept, onReject, isLight }) => {
+const ProposalBubble: React.FC<ProposalBubbleProps> = ({ msg, actionState, onAccept, onReject, isLight, resolveError }) => {
   const envelope = parseProposalMetadata(msg.metadata);
   const ops = envelope?.operations ?? [];
   const done = actionState === 'accepted' || actionState === 'rejected';
@@ -160,10 +154,10 @@ const ProposalBubble: React.FC<ProposalBubbleProps> = ({ msg, actionState, onAcc
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1.25 }}>
           {ops.map((op, i) => {
             const label = op.action === 'add_destination' ? `+ ${op.destination}`
-              : op.action === 'remove_destination' ? `? ${op.destination}`
-              : op.action === 'update_dates' ? `?? ${op.startDate ?? ''}${op.startDate && op.endDate ? ' ? ' : ''}${op.endDate ?? ''}`
-              : op.action === 'add_place' ? `?? ${op.place}`
-              : op.action === 'add_member' ? `?? ${op.memberName}`
+              : op.action === 'remove_destination' ? `− ${op.destination}`
+              : op.action === 'update_dates' ? `📅 ${op.startDate ?? ''}${op.startDate && op.endDate ? ' → ' : ''}${op.endDate ?? ''}`
+              : op.action === 'add_place' ? `📍 ${op.place}`
+              : op.action === 'add_member' ? `👤 ${op.memberName}`
               : op.action;
             return (
               <Chip
@@ -235,6 +229,11 @@ const ProposalBubble: React.FC<ProposalBubbleProps> = ({ msg, actionState, onAcc
           </Typography>
         </Box>
       )}
+      {(resolveError || actionState === 'error') && (
+        <Typography sx={{ fontSize: 11.5, color: 'error.main', mt: 0.75 }}>
+          {resolveError ?? "Couldn't apply this suggestion. Please try again."}
+        </Typography>
+      )}
     </Box>
   );
 };
@@ -274,60 +273,58 @@ interface MessageBubbleProps {
   isMine: boolean;
   isLight: boolean;
   showAvatar: boolean;
+  /** Only the last message of a same-sender group shows the timestamp */
+  showTime?: boolean;
 }
 
-const MessageBubble: React.FC<MessageBubbleProps> = ({ msg, isMine, isLight, showAvatar }) => {
+const MessageBubble: React.FC<MessageBubbleProps> = ({ msg, isMine, isLight, showAvatar, showTime = true }) => {
   const isNavia = msg.messageType === 'Navia';
   const name = isNavia ? 'Navia' : (msg.displayName || `User ${msg.userId ?? ''}`);
   const initials = isNavia ? 'N' : getInitials(name);
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: isMine ? 'flex-end' : 'flex-start' }}>
-      
+
       <Box sx={{ display: 'flex', alignItems: 'flex-end', gap: 0.75, flexDirection: isMine ? 'row-reverse' : 'row' }}>
         {!isMine && (
           <Avatar
             src={isNavia ? undefined : msg.avatarUrl}
             sx={{
-              width: 28, height: 28, fontSize: 11, flexShrink: 0, alignSelf: 'flex-end',
+              width: 26, height: 26, fontSize: 10.5, flexShrink: 0, alignSelf: 'flex-end',
               bgcolor: isNavia ? 'transparent' : '#FF385C',
               visibility: showAvatar ? 'visible' : 'hidden',
             }}
           >
-            {isNavia ? <NaviaLogo size={28} /> : initials}
+            {isNavia ? <NaviaLogo size={26} /> : initials}
           </Avatar>
         )}
         <Box
           sx={{
             px: 1.5, py: 0.9,
             maxWidth: 360,
-            borderRadius: isMine ? '14px 14px 3px 14px' : (isNavia ? '14px 14px 14px 3px' : '14px 14px 14px 3px'),
-            fontSize: 13.5, lineHeight: 1.65, fontFamily: 'inherit', wordBreak: 'break-word',
+            borderRadius: isMine ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
+            fontSize: 13.5, lineHeight: 1.6, fontFamily: 'inherit', wordBreak: 'break-word',
             background: isMine
-              ? 'linear-gradient(135deg,#FF385C,#D91A50)'
-              : isNavia
-                ? (isLight ? '#f4f4f4' : 'rgba(255,255,255,0.07)')
-                : (isLight ? '#f0f0f0' : 'rgba(255,255,255,0.08)'),
+              ? 'linear-gradient(135deg,#FF385C,#E31C5F)'
+              : (isLight ? '#f3f4f6' : 'rgba(255,255,255,0.07)'),
             color: isMine ? '#fff' : (isLight ? '#1a1a1a' : 'rgba(255,255,255,0.88)'),
-            boxShadow: isMine ? '0 2px 12px rgba(255,56,92,0.28)' : 'none',
-            border: !isMine ? `0.5px solid ${isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.07)'}` : 'none',
           }}
         >
           {!isMine && showAvatar && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.4, ml: isNavia ? 0 : 0 }}>          
-              <Typography sx={{ fontSize: 11, fontWeight: 700, color: isNavia ? '#FF385C' : (isLight ? '#555' : 'rgba(255,255,255,0.55)'), letterSpacing: isNavia ? '0.4px' : 0, textTransform: isNavia ? 'uppercase' : 'none' }}>
-                {name}
-              </Typography>
-            </Box>
+            <Typography sx={{ fontSize: 11, fontWeight: 700, mb: 0.35, color: isNavia ? '#FF385C' : (isLight ? '#666' : 'rgba(255,255,255,0.55)') }}>
+              {name}
+            </Typography>
           )}
           <Typography sx={{ fontSize: 'inherit', lineHeight: 'inherit', whiteSpace: 'pre-line', color: 'inherit' }}>
             {msg.message}
           </Typography>
         </Box>
       </Box>
-      <Typography sx={{ fontSize: 10.5, color: isLight ? 'rgba(0,0,0,0.32)' : 'rgba(255,255,255,0.28)', mt: 0.35, mx: isMine ? 0 : 4.5 }}>
-        {formatTime(msg.sentAt)}
-      </Typography>
+      {showTime && (
+        <Typography sx={{ fontSize: 10, color: isLight ? 'rgba(0,0,0,0.30)' : 'rgba(255,255,255,0.28)', mt: 0.4, mx: isMine ? 0.5 : 4.5 }}>
+          {formatTime(msg.sentAt)}
+        </Typography>
+      )}
     </Box>
   );
 };
@@ -343,6 +340,10 @@ export interface TripChatPanelProps {
   inline?: boolean;
   /** Called whenever Navia executes a trip mutation so the parent can re-fetch the plan */
   onTripUpdated?: () => void;
+  /** Whether the panel is currently shown (drives unread tracking); defaults to true */
+  visible?: boolean;
+  /** Reports the number of messages that arrived while the panel was hidden */
+  onUnreadChange?: (count: number) => void;
 }
 
 const TripChatPanel: React.FC<TripChatPanelProps> = ({
@@ -352,6 +353,8 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
   myUserId,
   inline = false,
   onTripUpdated,
+  visible = true,
+  onUnreadChange,
 }) => {
   const prevMessageCountRef = React.useRef(0);
 
@@ -380,6 +383,26 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
     }
   }, [messages, onTripUpdated]);
 
+  // ── Unread tracking: count messages that land while the panel is hidden ──
+  const lastSeenCountRef = useRef(0);
+  const [firstUnreadIdx, setFirstUnreadIdx] = useState<number | null>(null);
+  useEffect(() => {
+    if (visible) {
+      lastSeenCountRef.current = messages.length;
+      onUnreadChange?.(0);
+    } else {
+      const unread = Math.max(0, messages.length - lastSeenCountRef.current);
+      if (unread > 0 && firstUnreadIdx === null) setFirstUnreadIdx(lastSeenCountRef.current);
+      onUnreadChange?.(unread);
+    }
+  }, [messages.length, visible, onUnreadChange, firstUnreadIdx]);
+  // The "New messages" divider fades out shortly after the panel is reopened
+  useEffect(() => {
+    if (!visible || firstUnreadIdx === null) return;
+    const tm = setTimeout(() => setFirstUnreadIdx(null), 6000);
+    return () => clearTimeout(tm);
+  }, [visible, firstUnreadIdx]);
+
   const [input, setInput] = useState('');
   const [showJump, setShowJump] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -392,12 +415,32 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
   const [mentionIndex, setMentionIndex] = useState(0);
   const mentionStartRef = useRef<number>(-1);
 
-  // Proposal id lookup � for now we read the proposal id from a local cache
+  // Proposal id lookup  for now we read the proposal id from a local cache
   // keyed by chatMessageId. The backend should ideally embed proposalId in the
   // metadata; for now we extract it from a sibling field or use a heuristic.
   // The TripProposalController exposes GET /api/proposals/by-chat/{chatMessageId}
   // We lazily resolve it on first Accept/Reject click.
   const proposalIdCache = useRef<Map<string, number>>(new Map());
+  const [resolveErrors, setResolveErrors] = useState<Record<string, string>>({});
+
+  // ── Trip credit balance (group wallet) ──
+  const [tripWallet, setTripWallet] = useState<NaviaCreditBalance | null>(null);
+  const [creditAnchor, setCreditAnchor] = useState<HTMLElement | null>(null);
+  const tripCredits = tripWallet?.balance ?? null;
+  const naviaSpendCountRef = useRef(0);
+  useEffect(() => {
+    if (!tripId || !token) return;
+    // Refresh whenever Navia-driven messages land (each implies a spend).
+    const naviaSpendCount = messages.filter(
+      m => m.messageType === 'Navia' || m.messageType === 'Proposal',
+    ).length;
+    if (tripCredits !== null && naviaSpendCount === naviaSpendCountRef.current) return;
+    naviaSpendCountRef.current = naviaSpendCount;
+    fetchTripCredits(tripId, token)
+      .then(setTripWallet)
+      .catch(() => { /* chip is best-effort */ });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripId, token, messages]);
 
   const resolveProposalId = useCallback(async (chatMessageId: string): Promise<number | null> => {
     if (proposalIdCache.current.has(chatMessageId)) {
@@ -532,6 +575,20 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
       const isMine = msg.userId != null && msg.userId === myUserId;
       const key = msg.id;
 
+      // "New messages" divider - marks where you left off
+      if (firstUnreadIdx !== null && idx === firstUnreadIdx) {
+        lastUserId = null;
+        nodes.push(
+          <Box key="unread-divider" sx={{ display: 'flex', alignItems: 'center', gap: 1, my: 1 }}>
+            <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,56,92,0.35)' }} />
+            <Typography sx={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#FF385C', flexShrink: 0 }}>
+              New
+            </Typography>
+            <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,56,92,0.35)' }} />
+          </Box>
+        );
+      }
+
       if (msg.messageType === 'System') {
         lastUserId = null;
         nodes.push(
@@ -555,18 +612,33 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
                 msg={msg}
                 actionState={ps}
                 isLight={isLight}
+                resolveError={resolveErrors[msg.id]}
                 onAccept={async () => {
                   const pid = await resolveProposalId(msg.id);
                   if (pid != null) {
+                    setResolveErrors(prev => {
+                      const { [msg.id]: _removed, ...rest } = prev;
+                      return rest;
+                    });
                     await acceptProposalMsg(msg.id, pid);
                     // Trigger immediate refresh of the left planning panel
                     // (don't wait only for the SignalR System message)
                     onTripUpdated?.();
+                  } else {
+                    setResolveErrors(prev => ({ ...prev, [msg.id]: 'This suggestion has expired and can no longer be applied.' }));
                   }
                 }}
                 onReject={async () => {
                   const pid = await resolveProposalId(msg.id);
-                  if (pid != null) rejectProposalMsg(msg.id, pid);
+                  if (pid != null) {
+                    setResolveErrors(prev => {
+                      const { [msg.id]: _removed, ...rest } = prev;
+                      return rest;
+                    });
+                    rejectProposalMsg(msg.id, pid);
+                  } else {
+                    setResolveErrors(prev => ({ ...prev, [msg.id]: 'This suggestion has expired and can no longer be dismissed.' }));
+                  }
                 }}
               />
             </Box>
@@ -587,7 +659,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
       nodes.push(
         <motion.div key={key} initial={{ opacity: 0, y: 6 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.18 }}>
           <Box sx={{ mb: isLast ? 1.5 : 0.35 }}>
-            <MessageBubble msg={msg} isMine={isMine} isLight={isLight} showAvatar={showAvatar} />
+            <MessageBubble msg={msg} isMine={isMine} isLight={isLight} showAvatar={showAvatar} showTime={isLast} />
           </Box>
         </motion.div>
       );
@@ -598,7 +670,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
 
   // ??? Status dot ?????????????????????????????????????????????????????????????
   const statusColor = status === 'connected' ? '#22c55e' : status === 'connecting' ? '#f59e0b' : '#ef4444';
-  const statusLabel = status === 'connected' ? 'Live' : status === 'connecting' ? 'Connecting�' : 'Reconnecting�';
+  const statusLabel = status === 'connected' ? 'Live' : status === 'connecting' ? 'Connecting' : 'Reconnecting';
 
   // ??? Render ??????????????????????????????????????????????????????????????????
   return (
@@ -606,41 +678,54 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
       display: 'flex', flexDirection: 'column',
       height: inline ? '100%' : '100%',
       minHeight: inline ? 420 : undefined,
-      background: isLight ? '#fff' : '#0e1621',
+      bgcolor: 'background.paper',
       borderRadius: inline ? '12px' : 0,
       overflow: 'hidden',
       position: 'relative',
     }}>
-      {/* Header */}
-      <Box sx={{
-        px: 2, py: 1.25, borderBottom: `1px solid ${isLight ? 'rgba(0,0,0,0.07)' : 'rgba(255,255,255,0.06)'}`,
-        display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0,
-        background: isLight ? 'rgba(255,255,255,0.95)' : 'rgba(14,22,33,0.95)',
-        backdropFilter: 'blur(8px)',
-      }}>
-        <Box sx={{
-          width: 30,
-          height: 30,
-          borderRadius: '9px',
-          background: 'linear-gradient(135deg,#FF385C,#D91A50)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-        }}>
-          <QuestionAnswerRoundedIcon sx={{ fontSize: 15, color: '#fff' }} />
-        </Box>
+      {/* Slim header - identity + live status */}
+      <Box sx={(t) => ({
+        px: 2, py: 1.1, flexShrink: 0,
+        display: 'flex', alignItems: 'center', gap: 1,
+        borderBottom: `1px solid ${t.palette.divider}`,
+      })}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontFamily: 'Playfair Display, serif' ,fontSize: 13.5, fontWeight: 700, lineHeight: 1.2, color: isLight ? '#111' : '#fff' }}>
-            Discussions
+          <Typography noWrap sx={{ fontSize: 13, fontWeight: 700, letterSpacing: '-0.01em', color: 'text.primary', lineHeight: 1.3 }}>
+            Trip Discussion
           </Typography>
-          <Typography sx={{ fontSize: 11, color: isLight ? '#888' : 'rgba(255,255,255,0.45)', lineHeight: 1 }}>
-            Type <Box component='span' sx={{ color: '#FF385C', fontWeight: 700 }}>@navia</Box> to ask the AI
+          <Typography noWrap sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.3 }}>
+            {members.length > 1 ? `${members.length} travelers` : 'Just you so far'} · <Box component='span' sx={{ color: 'primary.main', fontWeight: 600 }}>@navia</Box> for AI help
           </Typography>
         </Box>
+        {tripCredits !== null && (
+          <Tooltip title="Trip credits — a shared wallet for the whole crew. Tap for details" arrow>
+            <Chip
+              label={`🪙 ${tripCredits}`}
+              size="small"
+              onClick={(e) => setCreditAnchor(e.currentTarget)}
+              sx={{
+                height: 22, fontSize: 11, fontWeight: 700, borderRadius: '7px', flexShrink: 0,
+                cursor: 'pointer',
+                bgcolor: tripCredits <= 10 ? 'rgba(239,68,68,0.10)' : 'rgba(255,56,92,0.08)',
+                color: tripCredits <= 10 ? '#ef4444' : '#FF385C',
+                border: `1px solid ${tripCredits <= 10 ? 'rgba(239,68,68,0.25)' : 'rgba(255,56,92,0.18)'}`,
+                '&:hover': { bgcolor: tripCredits <= 10 ? 'rgba(239,68,68,0.16)' : 'rgba(255,56,92,0.14)' },
+              }}
+            />
+          </Tooltip>
+        )}
+        <CreditUsagePopover
+          open={Boolean(creditAnchor)}
+          anchorEl={creditAnchor}
+          onClose={() => setCreditAnchor(null)}
+          wallet={tripWallet}
+          title="Trip credits"
+          subtitle="A shared wallet — every member's AI requests on this trip spend from it."
+        />
         <Tooltip title={statusLabel} arrow>
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
             <FiberManualRecordIcon sx={{ fontSize: 9, color: statusColor }} />
-            <Typography sx={{ fontSize: 10.5, color: isLight ? '#999' : 'rgba(255,255,255,0.4)' }}>{statusLabel}</Typography>
+            <Typography sx={{ fontSize: 10.5, color: 'text.disabled', fontWeight: 600 }}>{statusLabel}</Typography>
           </Box>
         </Tooltip>
       </Box>
@@ -658,22 +743,12 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
       >
         {messages.length === 0 && (
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 6, gap: 1 }}>
-            <Box sx={{
-              width: 30,
-              height: 30,
-              borderRadius: '9px',
-              background: 'linear-gradient(135deg,#FF385C,#D91A50)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}>
-              <ForumRoundedIcon sx={{ fontSize: 15, color: '#fff' }} />
-            </Box>
-            <Typography sx={{ fontFamily: 'Playfair Display, serif' ,fontWeight: 700, fontSize: 15, color: isLight ? '#222' : 'rgba(255,255,255,0.85)' }}>
-              Let's discuss!
+            <NaviaLogo size={40} />
+            <Typography sx={{ fontWeight: 700, fontSize: 14.5, letterSpacing: '-0.01em', color: 'text.primary' }}>
+              Plan it together
             </Typography>
-            <Typography sx={{ fontSize: 13, color: isLight ? '#888' : 'rgba(255,255,255,0.4)', textAlign: 'center', maxWidth: 260, lineHeight: 1.55 }}>
-              All trip members can chat here. Type <Box component='span' sx={{ color: '#FF385C', fontWeight: 700 }}>@navia</Box> to get AI suggestions for your trip.
+            <Typography sx={{ fontSize: 13, color: 'text.secondary', textAlign: 'center', maxWidth: 260, lineHeight: 1.55 }}>
+              All trip members can chat here. Type <Box component='span' sx={{ color: 'primary.main', fontWeight: 700 }}>@navia</Box> to get AI suggestions for your trip.
             </Typography>
           </Box>
         )}
@@ -695,22 +770,26 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
               sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, pb: 1 }}
             >
               <Box sx={{
-                display: 'flex', alignItems: 'center', gap: 0.5,
+                display: 'flex', alignItems: 'center', gap: 0.75,
                 background: 'rgba(255,56,92,0.10)',
                 border: '1px solid rgba(255,56,92,0.18)',
                 borderRadius: '14px',
                 px: 1.5, py: 0.7,
               }}>
-                {[0, 1, 2].map(i => (
-                  <Box
-                    key={i}
-                    component={motion.span as React.ElementType}
-                    animate={{ y: [0, -4, 0] }}
-                    transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.15, ease: 'easeInOut' }}
-                    sx={{ width: 6, height: 6, borderRadius: '50%', background: '#FF385C', display: 'block' }}
-                  />
-                ))}
-                <Box component="span" sx={{ ml: 1, fontSize: '0.72rem', color: 'rgba(255,56,92,0.85)', fontWeight: 600, letterSpacing: 0.2 }}>
+                {naviaTyping ? (
+                  <NaviaOrb size={16} processing />
+                ) : (
+                  [0, 1, 2].map(i => (
+                    <Box
+                      key={i}
+                      component={motion.span as React.ElementType}
+                      animate={{ y: [0, -4, 0] }}
+                      transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.15, ease: 'easeInOut' }}
+                      sx={{ width: 6, height: 6, borderRadius: '50%', background: '#FF385C', display: 'block' }}
+                    />
+                  ))
+                )}
+                <Box component="span" sx={{ ml: 0.5, fontSize: '0.72rem', color: 'rgba(255,56,92,0.85)', fontWeight: 600, letterSpacing: 0.2 }}>
                   {naviaTyping
                     ? 'Navia is analysing...'
                     : typingUsers.length === 1

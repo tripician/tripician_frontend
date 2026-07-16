@@ -1,5 +1,5 @@
 import React from "react";
-import { Box, Typography, IconButton, Avatar, Tooltip, Popover, Divider, List, ListItemButton, ListItemText, ListItemIcon } from "@mui/material";
+import { Box, Typography, IconButton, Avatar, Tooltip, Popover, Divider, List, ListItemButton, ListItemText, ListItemIcon, Button } from "@mui/material";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import NotificationsOffOutlinedIcon from "@mui/icons-material/NotificationsOffOutlined";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
@@ -13,6 +13,7 @@ import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../../store';
 import { clearUser } from '../../../store/userSlice';
 import { useNavigate } from 'react-router-dom';
+import { useAuthToken } from '../../../hooks/useAuth0Token';
 
 interface TopBarProps {
   showSearch?: boolean;
@@ -24,10 +25,11 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
   const { profile } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
+  const { isAuthenticated, loading: authLoading } = useAuthToken();
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
   const [notifAnchorEl, setNotifAnchorEl] = React.useState<HTMLElement | null>(null);
 
-  const displayName = profile ? `${profile.fname ?? ''} ${profile.lname ?? ''}`.trim() || 'T' : 'T';
+  const displayName = profile ? `${profile.fname ?? ''} ${profile.lname ?? ''}`.trim() || 'Me' : 'Me';
   const initials = displayName.charAt(0).toUpperCase();
 
   const open = Boolean(anchorEl);
@@ -88,7 +90,7 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
 
         {/* Left Section - Search or Logo */}
         <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', pr: 2, gap: 1 }}>
-          {/* Burger — mobile/tablet only */}
+          {/* Burger - mobile/tablet only */}
           <IconButton
             size="small"
             onClick={() => window.dispatchEvent(new CustomEvent('nav:toggleMobile'))}
@@ -111,6 +113,54 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
 
         {/* Right Section - Actions */}
         <Box sx={{ display: "flex", alignItems: "center", gap: 0.5, flexShrink: 0 }}>
+          {/* Guest: Sign In / Sign Up */}
+          {!authLoading && !isAuthenticated ? (
+            <>
+              <Button
+                onClick={() => navigate('/signin')}
+                variant="outlined"
+                size="small"
+                sx={{
+                  display: { xs: 'none', sm: 'inline-flex' },
+                  borderRadius: '50px',
+                  textTransform: 'none',
+                  fontFamily: "'Inter',sans-serif",
+                  fontWeight: 600,
+                  fontSize: '0.82rem',
+                  px: 1.75,
+                  py: 0.6,
+                  borderColor: 'divider',
+                  color: 'text.primary',
+                  '&:hover': { borderColor: '#FF385C', color: '#FF385C', bgcolor: 'transparent' },
+                }}
+              >
+                Sign In
+              </Button>
+              <Button
+                onClick={() => navigate('/signup')}
+                variant="contained"
+                size="small"
+                sx={{
+                  borderRadius: '50px',
+                  textTransform: 'none',
+                  fontFamily: "'Inter',sans-serif",
+                  fontWeight: 700,
+                  fontSize: '0.82rem',
+                  px: 1.75,
+                  py: 0.65,
+                  background: 'linear-gradient(135deg,#FF385C 0%,#D91A50 100%)',
+                  boxShadow: '0 4px 14px rgba(255,56,92,0.35)',
+                  '&:hover': {
+                    background: 'linear-gradient(135deg,#E31C5F 0%,#B01550 100%)',
+                    boxShadow: '0 6px 20px rgba(255,56,92,0.45)',
+                  },
+                }}
+              >
+                Sign Up
+              </Button>
+            </>
+          ) : isAuthenticated ? (
+            <>
           {/* Notifications */}
           <Tooltip title="Notifications" arrow>
             <IconButton
@@ -165,6 +215,8 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
               >{!profile?.profilepicture && initials}</Avatar>
             </Box>
           </Tooltip>
+            </>
+          ) : null /* auth loading - render nothing */}
         </Box>
       </Box>
 
@@ -197,10 +249,10 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 5, px: 3, gap: 1.5 }}>
           <NotificationsOffOutlinedIcon sx={{ fontSize: 38, color: 'text.disabled' }} />
           <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: '0.875rem', color: 'text.secondary' }}>
-            No notifications
+            All quiet on the horizon
           </Typography>
           <Typography sx={{ fontFamily: "'Inter',sans-serif", fontSize: '0.78rem', color: 'text.disabled', textAlign: 'center' }}>
-            You're all caught up! Check back later.
+            Followers, invites & trip updates will land here.
           </Typography>
         </Box>
       </Popover>

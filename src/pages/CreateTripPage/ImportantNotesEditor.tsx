@@ -9,6 +9,7 @@ import FormatItalicIcon from '@mui/icons-material/FormatItalic';
 import HighlightIcon from '@mui/icons-material/Highlight';
 import TextIncreaseIcon from '@mui/icons-material/TextIncrease';
 import TextDecreaseIcon from '@mui/icons-material/TextDecrease';
+import { sanitizeHtml } from '../../utils/sanitizeHtml';
 
 interface ImportantNotesEditorProps {
   value?: string;           // If provided => controlled mode
@@ -22,7 +23,9 @@ const MAX_CHARS = 1000;
 const ImportantNotesEditor: React.FC<ImportantNotesEditorProps> = (props) => {
   const { value, onChange, compact, readOnly=false } = props;
   const isControlled = value !== undefined; // uncontrolled if prop omitted
-  const initial = (value ?? '');
+  // Externally-sourced HTML (saved notes may come from other trip members) is
+  // sanitized before it ever reaches innerHTML - stored-XSS defense.
+  const initial = sanitizeHtml(value ?? '');
   const ref = React.useRef<HTMLDivElement | null>(null);
   const [editing, setEditing] = React.useState(false);
   const [internal, setInternal] = React.useState(initial);
@@ -37,7 +40,7 @@ const ImportantNotesEditor: React.FC<ImportantNotesEditorProps> = (props) => {
     if(value !== prevValueRef.current){
       prevValueRef.current = value;
       if(!editing){
-        const next = value ?? '';
+        const next = sanitizeHtml(value ?? '');
         setInternal(next);
         setSaved(next);
         if(ref.current && ref.current.innerHTML !== next) ref.current.innerHTML = next;

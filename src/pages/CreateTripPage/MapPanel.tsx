@@ -7,7 +7,7 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import type { PlannerDestination } from '../../store/plannerSlice';
 
-const DEFAULT_CENTER: [number, number] = [20, 20]; // [lng, lat] — world overview
+const DEFAULT_CENTER: [number, number] = [20, 20]; // [lng, lat] - world overview
 const DEFAULT_ZOOM = 2;
 
 // Colourful styles: streets for light, navigation-night for dark
@@ -62,7 +62,7 @@ const MapPanel: React.FC<MapPanelProps> = () => {
   const [error, setError] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
 
-  // ── Sync markers ─────────────────────────────────────────────────────────
+  //  Sync markers 
   const syncMarkers = useCallback((dests: PlannerDestination[]) => {
     const map = mapRef.current;
     if (!map || !styleLoadedRef.current) return;
@@ -97,7 +97,7 @@ const MapPanel: React.FC<MapPanelProps> = () => {
     }
   }, []);
 
-  // ── Initialize map once ──────────────────────────────────────────────────
+  //  Initialize map once 
   useEffect(() => {
     if (!token) { setLoading(false); setError('VITE_MAPBOX_TOKEN is not set.'); return; }
     if (!containerRef.current || mapRef.current) return;
@@ -138,7 +138,7 @@ const MapPanel: React.FC<MapPanelProps> = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  // ── Theme switch ─────────────────────────────────────────────────────────
+  //  Theme switch 
   useEffect(() => {
     if (firstRenderRef.current) { firstRenderRef.current = false; return; }
     const map = mapRef.current;
@@ -147,12 +147,12 @@ const MapPanel: React.FC<MapPanelProps> = () => {
     map.setStyle(isLight ? MAP_STYLE_LIGHT : MAP_STYLE_DARK);
   }, [isLight]);
 
-  // ── Destinations change ──────────────────────────────────────────────────
+  //  Destinations change 
   useEffect(() => {
     if (mapReady) syncMarkers(destinations);
   }, [destinations, mapReady, syncMarkers]);
 
-  // ── Center on first ──────────────────────────────────────────────────────
+  //  Center on first 
   const centerOnFirst = useCallback(() => {
     const first = destinations.find(d => d.lat != null && d.lng != null);
     if (mapRef.current && first) {

@@ -13,13 +13,22 @@ import SortIcon from '@mui/icons-material/Sort';
 import ReceiptLongIcon from '@mui/icons-material/ReceiptLong';
 import { type RootState, type AppDispatch } from '../../store';
 import { setTripBudget, addExpense, updateExpense, removeExpense, setSimplifyGroupExpenses, addExpenseVisibilityEmail, removeExpenseVisibilityEmail, clearExpenseVisibilityEmails } from '../../store/plannerSlice';
+import { GroupBalancesDialog, SpendBreakdownDialog, type ExpenseMember } from './ExpenseInsights';
 
 const EXPENSE_CATEGORIES = ['Flights','Stay','Food','Transport','Activity','Misc'];
 type SortMode = 'newest'|'oldest'|'amount_desc'|'amount_asc';
 const currencySymbol = (c: string) => c==='EUR' ? '€' : c==='USD' ? '$' : c==='GBP' ? '£' : '$';
 
-interface ExpensesPanelProps { readOnly?: boolean }
-const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ readOnly=false }) => {
+interface ExpensesPanelProps {
+  readOnly?: boolean;
+  /** Trip members for payer selection & balance math */
+  members?: ExpenseMember[];
+  /** Current user's id (string form) - maps the legacy 'me' payer sentinel */
+  myUserId?: string | null;
+  /** Opens the trip share/invite flow (used by the empty balances state) */
+  onInvite?: () => void;
+}
+const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ readOnly=false, members=[], myUserId=null, onInvite }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { currency, expenses = [], tripBudget } = useSelector((s:RootState)=> s.planner);
   const [sort, setSort] = React.useState<SortMode>('newest');
@@ -27,7 +36,17 @@ const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ readOnly=false }) => {
   const [expenseOpen, setExpenseOpen] = React.useState(false);
   const [editingId, setEditingId] = React.useState<string|null>(null);
   const [settingsOpen, setSettingsOpen] = React.useState(false);
+  const [balancesOpen, setBalancesOpen] = React.useState(false);
+  const [breakdownOpen, setBreakdownOpen] = React.useState(false);
   const [budgetInput, setBudgetInput] = React.useState(tripBudget?.toString()||'');
+
+  const myId = myUserId != null ? String(myUserId) : 'me';
+  const memberById = React.useMemo(()=> new Map(members.map(m=> [String(m.id), m])), [members]);
+  const payerName = React.useCallback((paidBy?: string)=> {
+    const id = !paidBy || paidBy==='me' ? myId : String(paidBy);
+    if(id===myId) return 'You';
+    return memberById.get(id)?.name || 'Member';
+  }, [myId, memberById]);
 
   const blankExpense = { label:'', category:'Flights', amount:'', note:'', date: new Date().toISOString().slice(0,10), paidByUserId:'me', splitStrategy:'none' as 'none'|'equal'|'custom' };
   const [expenseForm, setExpenseForm] = React.useState<{ label:string; category:string; amount:string; note?:string; date:string; paidByUserId:string; splitStrategy:'none'|'equal'|'custom' }>(blankExpense);
@@ -97,8 +116,8 @@ const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ readOnly=false }) => {
           </Box>
           <Box sx={{ display:'flex', gap:1.25, alignItems:'center', flexWrap:'wrap' }}>
             {!readOnly && <Button size='small' variant='contained' color='secondary' startIcon={<EditIcon />} onClick={()=> setSetBudgetOpen(true)} sx={{ borderRadius:2, textTransform:'none' }}>Set budget</Button>}
-            {!readOnly && <Button size='small' variant='outlined' startIcon={<GroupIcon />} sx={{ borderRadius:2, textTransform:'none' }}>Group balances</Button>}
-            <Button size='small' variant='outlined' startIcon={<ReceiptLongIcon />} sx={{ borderRadius:2, textTransform:'none' }} disabled>View breakdown</Button>
+            <Button size='small' variant='outlined' startIcon={<GroupIcon />} sx={{ borderRadius:2, textTransform:'none' }} onClick={()=> setBalancesOpen(true)}>Group balances</Button>
+            <Button size='small' variant='outlined' startIcon={<ReceiptLongIcon />} sx={{ borderRadius:2, textTransform:'none' }} disabled={!expenses.length} onClick={()=> setBreakdownOpen(true)}>View breakdown</Button>
             {!readOnly && <Button size='small' variant='text' startIcon={<SettingsIcon />} sx={{ borderRadius:2, textTransform:'none' }} onClick={()=> setSettingsOpen(true)}>Settings</Button>}
           </Box>
         </Box>
@@ -110,7 +129,7 @@ const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ readOnly=false }) => {
           </Box>
           <Box sx={{ display:'flex', flexDirection:'column' }}>
             <Typography variant='caption' color='text.secondary'>Remaining</Typography>
-            <Typography variant='body1' fontWeight={600} sx={{ color: remainingColor }}>{remaining!=null? cur+remaining.toFixed(2): (tripBudget!=null? cur+(tripBudget-totalSpent).toFixed(2): '—')}</Typography>
+            <Typography variant='body1' fontWeight={600} sx={{ color: remainingColor }}>{remaining!=null? cur+remaining.toFixed(2): (tripBudget!=null? cur+(tripBudget-totalSpent).toFixed(2): '-')}</Typography>
           </Box>
           <Box sx={{ display:'flex', flexDirection:'column' }}>
             <Typography variant='caption' color='text.secondary'>Entries</Typography>
@@ -153,6 +172,8 @@ const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ readOnly=false }) => {
                   <Box sx={{ display:'flex', gap:1, alignItems:'center', flexWrap:'wrap' }}>
                     <Chip size='small' label={e.category || 'Misc'} color={catColor as any} variant='outlined' />
                     <Typography variant='caption' color='text.secondary'>{e.date}</Typography>
+                    <Typography variant='caption' color='text.secondary'>· {payerName(e.paidByUserId)} paid</Typography>
+                    {e.splitStrategy==='equal' && <Chip size='small' label='split' sx={{ height:18, fontSize:10, fontWeight:700, bgcolor:'rgba(255,56,92,0.08)', color:'primary.main' }} />}
                     {e.note && <Typography variant='caption' color='text.secondary' noWrap sx={{ maxWidth:160 }}>• {e.note}</Typography>}
                   </Box>
                 </Box>
@@ -243,14 +264,17 @@ const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ readOnly=false }) => {
               onChange={e=> setExpenseForm(f=> ({ ...f, paidByUserId:e.target.value }))}
               size='small'
             >
-              <MenuItem value='me'>You (Rover's Compass)</MenuItem>
+              <MenuItem value='me'>You</MenuItem>
+              {members.filter(m=> String(m.id)!==myId).map(m=> (
+                <MenuItem key={m.id} value={String(m.id)}>{m.name}</MenuItem>
+              ))}
             </TextField>
           </Paper>
           <Paper variant='outlined' sx={{ px:1.5, py:1, borderRadius:2, display:'flex', flexDirection:'column', gap:.25 }}>
             <Typography variant='caption' sx={{ fontWeight:600, textTransform:'uppercase', letterSpacing:.5, opacity:.65 }}>Split</Typography>
             <TextField select size='small' value={expenseForm.splitStrategy} onChange={e=> setExpenseForm(f=> ({ ...f, splitStrategy: e.target.value as any }))}>
               <MenuItem value='none'>Don't split</MenuItem>
-              <MenuItem value='equal'>Split equally</MenuItem>
+              <MenuItem value='equal'>Split equally{members.length>1? ` between ${members.length}`:''}</MenuItem>
               <MenuItem value='custom' disabled>Custom (soon)</MenuItem>
             </TextField>
           </Paper>
@@ -271,6 +295,23 @@ const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ readOnly=false }) => {
       )}
       {/* Settings Dialog */}
       {!readOnly && <SettingsDialog open={settingsOpen} onClose={()=> setSettingsOpen(false)} />}
+      {/* Insights */}
+      <GroupBalancesDialog
+        open={balancesOpen}
+        onClose={()=> setBalancesOpen(false)}
+        expenses={expenses}
+        members={members}
+        myUserId={myId}
+        currencySymbol={cur}
+        onInvite={onInvite}
+      />
+      <SpendBreakdownDialog
+        open={breakdownOpen}
+        onClose={()=> setBreakdownOpen(false)}
+        expenses={expenses}
+        tripBudget={tripBudget}
+        currencySymbol={cur}
+      />
     </Box>
   );
 };

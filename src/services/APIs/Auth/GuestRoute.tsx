@@ -8,7 +8,7 @@ interface GuestRouteProps {
 }
 
 /**
- * GuestRoute — only accessible when NOT logged in.
+ * GuestRoute - only accessible when NOT logged in.
  * If the user is already authenticated, redirects them to /home.
  */
 const GuestRoute: React.FC<GuestRouteProps> = ({ children }) => {

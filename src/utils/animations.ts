@@ -1,6 +1,6 @@
 import type { Variants, Transition } from 'framer-motion';
 
-// ─── Premium spring presets ──────────────────────────────────────────────────
+//  Premium spring presets 
 export const springs = {
   snappy: { type: 'spring', stiffness: 400, damping: 30 } as Transition,
   gentle: { type: 'spring', stiffness: 200, damping: 24 } as Transition,
@@ -9,7 +9,7 @@ export const springs = {
   quick: { type: 'spring', stiffness: 500, damping: 35 } as Transition,
 };
 
-// ─── Page transition variants ────────────────────────────────────────────────
+//  Page transition variants 
 export const pageVariants: Variants = {
   initial: { opacity: 0, y: 16 },
   animate: { opacity: 1, y: 0 },
@@ -22,7 +22,7 @@ export const pageTransition: Transition = {
   duration: 0.35,
 };
 
-// ─── Fade-in variants ────────────────────────────────────────────────────────
+//  Fade-in variants 
 export const fadeIn: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { duration: 0.4, ease: 'easeOut' } },
@@ -48,7 +48,7 @@ export const fadeInRight: Variants = {
   visible: { opacity: 1, x: 0, transition: { duration: 0.5, ease: [0.25, 0.46, 0.45, 0.94] } },
 };
 
-// ─── Scale variants ──────────────────────────────────────────────────────────
+//  Scale variants 
 export const scaleIn: Variants = {
   hidden: { opacity: 0, scale: 0.92 },
   visible: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 300, damping: 25 } },
@@ -59,7 +59,7 @@ export const popIn: Variants = {
   visible: { opacity: 1, scale: 1, transition: { type: 'spring', stiffness: 400, damping: 22 } },
 };
 
-// ─── Stagger container ──────────────────────────────────────────────────────
+//  Stagger container 
 export const staggerContainer = (staggerChildren = 0.06, delayChildren = 0.1): Variants => ({
   hidden: { opacity: 1 },
   visible: {
@@ -90,7 +90,7 @@ export const staggerItemScale: Variants = {
   },
 };
 
-// ─── Card hover effects ─────────────────────────────────────────────────────
+//  Card hover effects 
 export const cardHover = {
   rest: { scale: 1, y: 0, boxShadow: '0 1px 4px rgba(0,0,0,0.08)' },
   hover: {
@@ -102,7 +102,7 @@ export const cardHover = {
   tap: { scale: 0.985 },
 };
 
-// ─── Slide-in from side ─────────────────────────────────────────────────────
+//  Slide-in from side 
 export const slideInFromRight: Variants = {
   hidden: { opacity: 0, x: 40 },
   visible: { opacity: 1, x: 0, transition: { type: 'spring', stiffness: 250, damping: 25 } },
@@ -115,7 +115,7 @@ export const slideInFromLeft: Variants = {
   exit: { opacity: 0, x: -40, transition: { duration: 0.2 } },
 };
 
-// ─── Modal / Dialog animation ───────────────────────────────────────────────
+//  Modal / Dialog animation 
 export const modalOverlay: Variants = {
   hidden: { opacity: 0 },
   visible: { opacity: 1, transition: { duration: 0.2 } },
@@ -133,7 +133,7 @@ export const modalContent: Variants = {
   exit: { opacity: 0, scale: 0.97, y: 8, transition: { duration: 0.15 } },
 };
 
-// ─── Float / dock animation ─────────────────────────────────────────────────
+//  Float / dock animation 
 export const floatIn: Variants = {
   hidden: { opacity: 0, y: 30, scale: 0.9 },
   visible: {
@@ -144,13 +144,13 @@ export const floatIn: Variants = {
   },
 };
 
-// ─── Icon spin ──────────────────────────────────────────────────────────────
+//  Icon spin 
 export const iconSpin = {
   rest: { rotate: 0 },
   hover: { rotate: 180, transition: { duration: 0.4, ease: 'easeInOut' } },
 };
 
-// ─── Pulse / attention ──────────────────────────────────────────────────────
+//  Pulse / attention 
 export const pulseVariant: Variants = {
   initial: { scale: 1 },
   pulse: {
@@ -159,7 +159,7 @@ export const pulseVariant: Variants = {
   },
 };
 
-// ─── List item with layout animation ────────────────────────────────────────
+//  List item with layout animation 
 export const listItem: Variants = {
   hidden: { opacity: 0, x: -12, scale: 0.97 },
   visible: {
@@ -176,14 +176,14 @@ export const listItem: Variants = {
   },
 };
 
-// ─── Tab content transition ─────────────────────────────────────────────────
+//  Tab content transition 
 export const tabContent: Variants = {
   initial: { opacity: 0, y: 8 },
   animate: { opacity: 1, y: 0, transition: { duration: 0.3, ease: 'easeOut' } },
   exit: { opacity: 0, y: -8, transition: { duration: 0.15 } },
 };
 
-// ─── Banner / hero section ──────────────────────────────────────────────────
+//  Banner / hero section 
 export const heroReveal: Variants = {
   hidden: { opacity: 0, y: 30, scale: 0.98 },
   visible: {
@@ -194,14 +194,14 @@ export const heroReveal: Variants = {
   },
 };
 
-// ─── Button micro-interaction ───────────────────────────────────────────────
+//  Button micro-interaction 
 export const buttonTap = {
   whileTap: { scale: 0.96 },
   whileHover: { scale: 1.02 },
   transition: springs.snappy,
 };
 
-// ─── Tooltip / chip reveal ──────────────────────────────────────────────────
+//  Tooltip / chip reveal 
 export const chipReveal: Variants = {
   hidden: { opacity: 0, scale: 0.85 },
   visible: {

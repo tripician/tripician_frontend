@@ -483,7 +483,7 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
             <Box sx={{ width:110, display:'flex', alignItems:'center', justifyContent:'center' }}>
               <input ref={el=>{ fileInputRefs.current[d.id]=el; }} type='file' multiple hidden onChange={(e)=> onFilesSelected(d.id, e.target.files)} />
               <Tooltip title={docs[d.id]?.length ? `View ${docs[d.id].length} document(s)` : 'Upload documents'}>
-                <IconButton size='small' onClick={()=> { docs[d.id]?.length ? setOpenDocsId(d.id) : handleUploadClick(d.id); }} sx={{ position:'relative' }}>
+                <IconButton size='small' onClick={()=> { if (docs[d.id]?.length) setOpenDocsId(d.id); else handleUploadClick(d.id); }} sx={{ position:'relative' }}>
                   <UploadFileIcon fontSize='small' color={docs[d.id]?.length ? 'primary' : 'disabled'} />
                   {docs[d.id]?.length > 0 && (
                     <Box sx={(theme)=>({ position:'absolute', top:-4, right:-4, minWidth:18, height:18, px:0.5, borderRadius:9, background: theme.palette.mode==='dark'? theme.palette.secondary.light : theme.palette.secondary.main, color:'#fff', display:'flex', alignItems:'center', justifyContent:'center', fontSize:10, fontWeight:600, boxShadow:'0 0 0 2px '+theme.palette.background.paper })}>

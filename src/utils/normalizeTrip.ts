@@ -33,7 +33,12 @@ export function normalizeTrip(input: any): NormalizedTrip | null {
   const tripRoot = (input.trip && typeof input.trip === 'object') ? input.trip : input;
   const id = toStringOrUndefined(tripRoot.id) || 'unknown';
   const name = toStringOrUndefined(tripRoot.name) || 'Untitled Trip';
-  const visibility = toStringOrUndefined(tripRoot.visibility) || 'PRIVATE';
+  const visibility =
+    toStringOrUndefined(tripRoot.visibility) ||
+    toStringOrUndefined(tripRoot.Visibility) ||
+    toStringOrUndefined(tripRoot.privacy) ||
+    toStringOrUndefined(tripRoot.Privacy) ||
+    'PRIVATE';
   const startDate = toStringOrUndefined(tripRoot.startDate) || null;
   const endDate = toStringOrUndefined(tripRoot.endDate) || null;
   const currencyCode = toStringOrUndefined(tripRoot.currencyCode) || null;
@@ -46,8 +51,26 @@ export function normalizeTrip(input: any): NormalizedTrip | null {
   const description = typeof tripRoot.description === 'string' ? tripRoot.description : null;
   const vibe = typeof tripRoot.vibe === 'string' ? tripRoot.vibe : null;
   const photoUrl = typeof tripRoot.photoUrl === 'string' && tripRoot.photoUrl.trim().length ? tripRoot.photoUrl : null;
-  const published = typeof tripRoot.published === 'boolean' ? tripRoot.published : false;
-  const itinerary = Array.isArray(input.itinerary) ? input.itinerary : (Array.isArray(tripRoot.itinerary) ? tripRoot.itinerary : []);
+  const published =
+    typeof tripRoot.published === 'boolean'
+      ? tripRoot.published
+      : typeof tripRoot.Published === 'boolean'
+        ? tripRoot.Published
+        : typeof tripRoot.isPublished === 'boolean'
+          ? tripRoot.isPublished
+          : typeof tripRoot.IsPublished === 'boolean'
+            ? tripRoot.IsPublished
+            : false;
+  const itinerary =
+    Array.isArray(input.itinerary) ? input.itinerary :
+    Array.isArray(input.Itinerary) ? input.Itinerary :
+    Array.isArray(input.destinations) ? input.destinations :
+    Array.isArray(input.Destinations) ? input.Destinations :
+    Array.isArray(tripRoot.itinerary) ? tripRoot.itinerary :
+    Array.isArray(tripRoot.Itinerary) ? tripRoot.Itinerary :
+    Array.isArray(tripRoot.destinations) ? tripRoot.destinations :
+    Array.isArray(tripRoot.Destinations) ? tripRoot.Destinations :
+    [];
   return { meta: { id, name, visibility, startDate, endDate, currencyCode, targetNights, importantNotes, description, vibe, photoUrl, published }, itinerary, raw: input };
 }
 

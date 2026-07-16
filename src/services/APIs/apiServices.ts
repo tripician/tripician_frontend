@@ -147,10 +147,10 @@ export const apiServices = {
     }),
 
   // GET /api/trips/published - all published trips (Published=true, IsArchived=false, any visibility)
-  // Used for Community Adventures feed and the Published tab on Dashboard.
-  getPublishedTrips: (token: string) =>
+  // Token is optional: guests can browse community trips without signing in.
+  getPublishedTrips: (token?: string) =>
     apiClient.get('/api/trips/published', {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined
     }),
 
   // GET /api/trips/saved - trips the current user has saved (Saved Trips tab on Dashboard)
@@ -291,18 +291,19 @@ export const apiServices = {
   },
 
   // PATCH /api/trips/{tripId}/visibility
-  changeTripVisibility: (token: string, tripId: string, data: { visibility: 'TRIP_MEMBERS' | 'PRIVATE' | 'EVERYONE' }) =>
+  // Backend enum: Members=0, Private=1, Everyone=2, ReadOnly=3 (serialised as string names)
+  changeTripVisibility: (token: string, tripId: string, data: { visibility: 'Members' | 'Private' | 'Everyone' | 'ReadOnly' }) =>
     apiClient.patch(`/api/trips/${tripId}/visibility`, data, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  // GET /api/trips/{tripId}/published — check published status
+  // GET /api/trips/{tripId}/published - check published status
   getTripPublishedStatus: (token: string, tripId: string) =>
     apiClient.get(`/api/trips/${tripId}/published`, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  // PATCH /api/trips/{tripId}/publish — publish or unpublish (owner only)
+  // PATCH /api/trips/{tripId}/publish - publish or unpublish (owner only)
   setTripPublished: (token: string, tripId: string, published: boolean) =>
     apiClient.patch(`/api/trips/${tripId}/publish`, { published }, {
       headers: { Authorization: `Bearer ${token}` }
@@ -312,6 +313,74 @@ export const apiServices = {
   deleteTrip: (token: string, tripId: string) => apiClient.delete(`/api/trips/${tripId}`, {
     headers: { Authorization: `Bearer ${token}` }
   }),
+
+  // POST /api/trips/{tripId}/clone - clone a published/public trip into a new private draft
+  cloneTrip: (token: string, tripId: string) =>
+    apiClient.post<{ tripId: string }>(`/api/trips/${tripId}/clone`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // GET /api/trips/vibe-passport - authenticated user's vibe breakdown (no extra params needed)
+  getVibePassport: (token: string) =>
+    apiClient.get<{
+      vibes: Array<{ name: string; count: number; percentage: number }>;
+      topCountries: string[];
+      totalNights: number;
+      totalTrips: number;
+      favoriteVibe: string | null;
+    }>('/api/trips/vibe-passport', {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // GET /api/trips/crew - find travelers whose published trips match destination/vibe
+  getTravelersCrew: (destination?: string, vibe?: string, month?: number) => {
+    const params = new URLSearchParams();
+    if (destination) params.set('destination', destination);
+    if (vibe) params.set('vibe', vibe);
+    if (month) params.set('month', String(month));
+    return apiClient.get<Array<{
+      userId: number;
+      name: string;
+      avatar: string | null;
+      destinations: string[];
+      vibe: string | null;
+      tripCount: number;
+    }>>(`/api/trips/crew${params.toString() ? '?' + params.toString() : ''}`);
+  },
+
+  // PATCH /api/trips/{tripId}/status - set trip lifecycle status (0=Planning, 1=Active, 2=Completed)
+  setTripStatus: (token: string, tripId: string, status: 0 | 1 | 2) =>
+    apiClient.patch(`/api/trips/${tripId}/status`, { status }, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // GET /api/trips/{tripId}/postcards - public postcard list for a trip
+  getTripPostcards: (tripId: string) =>
+    apiClient.get<Array<{
+      id: string; tripId: string; caption: string; photoUrl: string | null;
+      location: string | null; createdAt: string; authorName: string; authorAvatar: string | null;
+    }>>(`/api/trips/${tripId}/postcards`),
+
+  // POST /api/trips/{tripId}/postcards - create a new postcard (trip must be Active)
+  createPostcard: (token: string, tripId: string, dto: { caption: string; photoUrl?: string; location?: string }) =>
+    apiClient.post<{ id: string }>(`/api/trips/${tripId}/postcards`, dto, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // POST /api/trips/{tripId}/publish-as-template - mark a trip as a community template (owner only)
+  publishAsTemplate: (token: string, tripId: string) =>
+    apiClient.post(`/api/trips/${tripId}/publish-as-template`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // GET /api/trips/templates - community template library (public)
+  getTemplates: () =>
+    apiClient.get<Array<{
+      id: string; name: string; description?: string; vibe?: string;
+      countries?: string[]; cloneCount: number;
+      owner: { name: string; profilePicture?: string };
+      isTemplate: boolean;
+    }>>('/api/trips/templates'),
 
   // PUT /api/trips/{tripId}/settings - settings update (DTO-compatible: name, visibility, dates, countries, bannerPhotoId, description)
   // Do NOT send rating from client
@@ -339,15 +408,65 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     });
   },
-  // GET /user-profiles/{userEmail} - search user by email
-  getUserProfileByEmail: (token: string, userEmail: string) =>
-    apiClient.get(`/search/user-profiles/${encodeURIComponent(userEmail)}`, {
+  // GET /api/users/search?q=xxx - real user search
+  searchUsers: (q: string, take = 20) =>
+    apiClient.get<Array<{ id: number; name: string; email: string; country: string | null; avatar: string | null }>>
+      (`/api/users/search?q=${encodeURIComponent(q)}&take=${take}`),
+
+  searchUsersByName: (token: string, q: string, take = 20) =>
+    apiClient.get<Array<{ id: number; name?: string; fname?: string; lname?: string; email: string; country: string | null; avatar: string | null }>>
+      (`/api/users/search?q=${encodeURIComponent(q)}&take=${take}`, {
+        headers: { Authorization: `Bearer ${token}` }
+      })
+      .then((resp) => ({
+        ...resp,
+        data: resp.data.map((user) => {
+          const [firstName = '', ...lastNameParts] = (user.name || '').trim().split(/\s+/).filter(Boolean);
+          return {
+            id: user.id,
+            fname: user.fname || firstName,
+            lname: user.lname || lastNameParts.join(' '),
+            email: user.email,
+            country: user.country || undefined,
+            avatar: user.avatar || undefined,
+          };
+        }),
+      })),
+
+  // GET /api/users/{userId} - public profile by ID
+  getUserById: (userId: number) =>
+    apiClient.get<{ id: number; name: string; avatar: string | null; cover: string | null; country: string | null; location: string | null; website: string | null; instagram: string | null; twitter: string | null; facebook: string | null }>
+      (`/api/users/${userId}`),
+
+  // POST /api/follow/{followeeId} - follow a user (JWT resolves follower)
+  followUser: (token: string, followeeId: number) =>
+    apiClient.post(`/api/follow/${followeeId}`, {}, { headers: { Authorization: `Bearer ${token}` } }),
+
+  // DELETE /api/follow/{followeeId} - unfollow a user
+  unfollowUser: (token: string, followeeId: number) =>
+    apiClient.delete(`/api/follow/${followeeId}`, { headers: { Authorization: `Bearer ${token}` } }),
+
+  // GET /api/follow/{userId}/stats - follower/following counts
+  getFollowStats: (userId: number) =>
+    apiClient.get<{ followers: number; following: number }>(`/api/follow/${userId}/stats`),
+
+  // GET /api/follow/{userId}/followers - list of followers
+  getFollowers: (userId: number) =>
+    apiClient.get<Array<{ userId: number; name: string; avatar: string | null }>>(`/api/follow/${userId}/followers`),
+
+  // GET /api/follow/{userId}/following - list of following
+  getFollowing: (userId: number) =>
+    apiClient.get<Array<{ userId: number; name: string; avatar: string | null }>>(`/api/follow/${userId}/following`),
+
+  // GET /api/follow/is-following/{followeeId} - is current user following?
+  isFollowing: (token: string, followeeId: number) =>
+    apiClient.get<{ isFollowing: boolean }>(`/api/follow/is-following/${followeeId}`, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  // GET /search/user-profiles/name/{name} - search user by name
-  searchUsersByName: (token: string, name: string) =>
-    apiClient.get(`/search/user-profiles/name/${encodeURIComponent(name)}`, {
+  // GET /user-profiles/{userEmail} - search user by email (legacy)
+  getUserProfileByEmail: (token: string, userEmail: string) =>
+    apiClient.get(`/search/user-profiles/${encodeURIComponent(userEmail)}`, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
@@ -365,10 +484,10 @@ export const apiServices = {
 
   // ------------------------------------------------------------
   // Trip Comments
-  // GET /api/trips/{tripId}/comments
-  getTripComments: (token: string, tripId: string) =>
+  // GET /api/trips/{tripId}/comments - public for published trips; token optional
+  getTripComments: (token: string | null | undefined, tripId: string) =>
     apiClient.get(`/api/trips/${tripId}/comments`, {
-      headers: { Authorization: `Bearer ${token}` }
+      headers: token ? { Authorization: `Bearer ${token}` } : undefined
     }),
   // POST /api/trips/{tripId}/comments
   createTripComment: (token: string, tripId: string, content: string, parentCommentId?: string) =>
@@ -475,16 +594,32 @@ export const apiServices = {
   // ------------------------------------------------------------
   // Profile Photo Upload / Remove (Cloudinary signed upload)
   // POST /api/uploads/get-profile-upload-url
-  // Returns Cloudinary signed upload params + direct upload URL + final fileUrl
   getProfileUploadUrl: (token: string, userId: string) =>
     apiClient.post('/api/uploads/get-profile-upload-url', { UserId: userId }, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
+  // POST /api/uploads/get-cover-upload-url
+  getCoverUploadUrl: (token: string, userId: string) =>
+    apiClient.post('/api/uploads/get-cover-upload-url', { UserId: userId }, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
   // DELETE /api/uploads/profile-photo/{userId}
-  // Deletes the avatar from Cloudinary and clears ProfilePicture in DB
   removeProfilePhoto: (token: string, userId: number) =>
     apiClient.delete(`/api/uploads/profile-photo/${userId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // DELETE /api/uploads/cover-photo/{userId}
+  removeCoverPhoto: (token: string, userId: number) =>
+    apiClient.delete(`/api/uploads/cover-photo/${userId}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // PATCH /api/profile/settings/cover-picture
+  saveCoverPictureUrl: (token: string, coverPictureUrl: string) =>
+    apiClient.patch('/api/profile/settings/cover-picture', { CoverPictureUrl: coverPictureUrl }, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
@@ -495,6 +630,55 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
+  
+  // ------------------------------------------------------------
+  // Trip Banner Upload / Default Banner (Cloudinary signed upload)
+
+  // POST /api/uploads/get-trip-banner-upload-url
+  // Returns Cloudinary signed upload params + direct upload URL + final fileUrl
+  getTripBannerUploadUrl: (token: string, tripId: string) =>
+    apiClient.post(
+      "/api/uploads/get-trip-banner-upload-url",
+      { TripId: tripId },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    ),
+
+  // POST /api/uploads/default-trip-banner/{tripId}
+  // Restores the default banner image and updates the trip
+  defaultTripBanner: (token: string, tripId: string) =>
+    apiClient.post(
+      `/api/uploads/default-trip-banner/${tripId}`,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    ),
+
+  // PATCH /api/trips/{tripId}/banner
+  // Persists the uploaded banner URL to the trip after Cloudinary upload
+  saveTripBannerUrl: (
+    token: string,
+    tripId: string,
+    bannerUrl: string
+  ) =>
+    apiClient.patch(
+      `/api/trips/${tripId}/banner`,
+      {
+        BannerPictureUrl: bannerUrl,
+      },
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    ),
+
   // ------------------------------------------------------------
   // Account Deletion
   // DELETE /auth/account
@@ -502,4 +686,48 @@ export const apiServices = {
     apiClient.delete('/auth/account', {
       headers: { Authorization: `Bearer ${token}` }
     }),
+
+    // ----------------------------------------------------------
+    // Notifications
+    // GET /api/notifications
+    getNotifications: (
+      token: string,
+      page: number = 1,
+      pageSize: number = 20
+    ) =>
+      apiClient.get(
+        `/api/notifications?page=${page}&pageSize=${pageSize}`,
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      ),
+
+    getUnreadNotificationCount: (token: string) =>
+      apiClient.get(
+        '/api/notifications/unread-count',
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      ),
+
+    markNotificationAsRead: (
+      token: string,
+      notificationId: string
+    ) =>
+      apiClient.patch(
+        `/api/notifications/${notificationId}/read`,
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      ),
+
+    markAllNotificationsAsRead: (token: string) =>
+      apiClient.patch(
+        '/api/notifications/read-all',
+        {},
+        {
+          headers: { Authorization: `Bearer ${token}` }
+        }
+      ),
 };

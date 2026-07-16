@@ -36,7 +36,7 @@ const ForgotPassword = () => {
     try {
       await authAPI.forgotPassword(trimmedEmail);
     } catch {
-      // Intentionally swallowed — backend always returns 200; treat any
+      // Intentionally swallowed - backend always returns 200; treat any
       // network error the same way to avoid leaking account existence.
     } finally {
       setLoading(false);
@@ -47,7 +47,7 @@ const ForgotPassword = () => {
 
   return (
     <div className="auth-root">
-      {/* ── Left brand pane ─────────────────────────────────────── */}
+      {/*  Left brand pane  */}
       <motion.div
         className="auth-left"
         variants={fadeInLeft}
@@ -85,7 +85,7 @@ const ForgotPassword = () => {
         </motion.div>
       </motion.div>
 
-      {/* ── Right form pane ─────────────────────────────────────── */}
+      {/*  Right form pane  */}
       <motion.div
         className="auth-right"
         variants={fadeInRight}
@@ -107,7 +107,7 @@ const ForgotPassword = () => {
           transition={{ type: 'spring', stiffness: 300, damping: 28, delay: 0.15 }}
         >
           {submitted ? (
-            /* ── Success state ── */
+            /*  Success state  */
             <motion.div
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 16, textAlign: 'center' }}
               initial={{ opacity: 0, y: 16 }}
@@ -143,7 +143,7 @@ const ForgotPassword = () => {
               </motion.button>
             </motion.div>
           ) : (
-            /* ── Form state ── */
+            /*  Form state  */
             <>
               <motion.h1
                 className="auth-card__heading"

@@ -1,5 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { useAuthToken } from './useAuth0Token';
+import { tripPath } from '../utils/tripSlug';
 
 export interface TripShareData {
   isLoading: boolean;
@@ -7,7 +8,7 @@ export interface TripShareData {
   error: string | null;
   shareText: string;
   tripUrl: string;
-  /** Raw blob — use for downloading */
+  /** Raw blob - use for downloading */
   cardBlob: Blob | null;
 }
 
@@ -30,16 +31,20 @@ export function useTripShare(
   // Track the current blob URL so we can revoke it on unmount / re-fetch
   const blobUrlRef = useRef<string | null>(null);
 
-  const tripUrl = `https://tripician.com/trips/${tripId}`;
-  const shareText = `I just planned my ${tripName} trip on Tripician — ${destinationCount} destination${destinationCount !== 1 ? 's' : ''}, ${totalNights} night${totalNights !== 1 ? 's' : ''}. Check it out and plan yours free 🌍`;
+  const WEB_BASE = import.meta.env.VITE_WEB_BASE_URL as string;
+  const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) || WEB_BASE;
+
+  // Slugged link: keywords in shared URLs help CTR and search snippets
+  const tripUrl = `${WEB_BASE.replace(/\/$/, '')}${tripPath({ id: tripId, name: tripName })}`;
+
+  const shareText = `Discover this amazing ${tripName} itinerary, created with Tripician 🌍 ${destinationCount} destination${destinationCount !== 1 ? 's' : ''}, ${totalNights} night${totalNights !== 1 ? 's' : ''}.`
 
   useEffect(() => {
     if (!tripId || !token) return;
 
     let cancelled = false;
-    let slowTimer: ReturnType<typeof setTimeout> | null = null;
 
-    const API_BASE = import.meta.env.VITE_API_BASE_URL as string;
+    let slowTimer: ReturnType<typeof setTimeout> | null = null;
 
     const fetchCard = async () => {
       setIsLoading(true);
@@ -61,6 +66,7 @@ export function useTripShare(
         }
 
         const blob = await response.blob();
+
         if (cancelled) return;
 
         // Revoke any previous blob URL

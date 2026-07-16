@@ -46,7 +46,7 @@ const formatFieldValue = (label: string, value: string | number) => {
   switch (label.toLowerCase()) {
     case "email":
       return String(value).toLowerCase();
-    case "phone":
+    case "phone": {
       const phoneStr = String(value);
       if (phoneStr.match(/^\+?\d+$/)) {
         return phoneStr.replace(
@@ -54,7 +54,7 @@ const formatFieldValue = (label: string, value: string | number) => {
           "$1 ($2) $3-$4"
         );
       }
-      return phoneStr;
+      return phoneStr; }
     case "gender":
       return (
         String(value).charAt(0).toUpperCase() +
