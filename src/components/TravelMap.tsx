@@ -14,8 +14,6 @@ export interface TravelMapProps {
   persistUserControl?: boolean;
 }
 
-const DEFAULT_HEIGHT = 500;
-
 const highlightColors = {
   visited: "#0B5F89",
   planned: "#2B89C7",
@@ -231,21 +229,28 @@ const TravelMap: React.FC<TravelMapProps> = ({
     };
   }, []);
 
-  // -------------- MAKE GLOBE PERFECTLY CENTERED (SQUARE WRAPPER) --------------
+  // ----- KEEP THE GLOBE CENTERED & FULLY VISIBLE -----
+  // The map canvas is a centered square sized to the SMALLER wrapper dimension,
+  // so the globe always fits the container instead of overflowing it.
+  // (The old version forced the wrapper square-by-width: in a wide, short
+  // container the globe's centre ended up hundreds of px below the visible
+  // area — a blank white box.)
   useEffect(() => {
-    if (!wrapperRef.current) return;
+    const wrapper = wrapperRef.current;
+    const inner = mapContainerRef.current;
+    if (!wrapper || !inner) return;
 
-    const el = wrapperRef.current;
-
-    const setSquare = () => {
-      const w = el.getBoundingClientRect().width;
-      el.style.height = w + "px";
-      if (mapRef.current) mapRef.current.resize();
+    const fit = () => {
+      const rect = wrapper.getBoundingClientRect();
+      const side = Math.max(120, Math.min(rect.width, rect.height));
+      inner.style.width = `${side}px`;
+      inner.style.height = `${side}px`;
+      mapRef.current?.resize();
     };
 
-    setSquare();
-    const ro = new ResizeObserver(setSquare);
-    ro.observe(el);
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(wrapper);
 
     return () => ro.disconnect();
   }, []);
@@ -256,7 +261,11 @@ const TravelMap: React.FC<TravelMapProps> = ({
       style={{
         position: "relative",
         width: "100%",
-        height: `${DEFAULT_HEIGHT}px`,
+        height: "100%",
+        minHeight: 200,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
         borderRadius: 0,
         overflow: "hidden",
         background: "transparent",
@@ -277,8 +286,9 @@ const TravelMap: React.FC<TravelMapProps> = ({
       <div
         ref={mapContainerRef}
         style={{
-          position: "absolute",
-          inset: 0,
+          width: "100%",
+          height: "100%",
+          flexShrink: 0,
           background: "transparent",
         }}
       />
