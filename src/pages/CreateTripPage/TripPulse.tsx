@@ -4,7 +4,7 @@ import { IconCheck, IconSparkles } from '@tabler/icons-react';
 import confetti from 'canvas-confetti';
 
 /**
- * TripPulse ,the trip readiness engine.
+ * TripPulse - the trip readiness engine.
  *
  * Computes nothing itself: the parent (TripPlanner) owns all state and passes
  * scored dimensions in. Each dimension carries a one-tap action that jumps the
@@ -62,7 +62,7 @@ const TripPulse: React.FC<TripPulseProps> = ({ dimensions, daysToGo }) => {
 
   return (
     <>
-      <Tooltip title="Trip readiness ,see what's left to plan" arrow placement="bottom">
+      <Tooltip title="Trip readiness - see what's left to plan" arrow placement="bottom">
         <Box
           component="button"
           onClick={(e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget)}

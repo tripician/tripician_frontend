@@ -71,7 +71,7 @@ export function useNavia(tripId: string, token?: string | null): UseNaviaReturn 
         // Signal to DestinationCard that Navia has responded
         window.dispatchEvent(new CustomEvent('navia:response'));
       } catch {
-        // Generator error (unexpected ,naviaService already handles HTTP errors gracefully)
+        // Generator error (unexpected - naviaService already handles HTTP errors gracefully)
         setMessages(prev =>
           prev.map(m =>
             m.id === naviaId

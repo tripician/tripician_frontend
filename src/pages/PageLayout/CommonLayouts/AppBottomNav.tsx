@@ -79,7 +79,7 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip, onMoreMenu })
         );
       })}
 
-      {/*  New Trip FAB ,centre slot  */}
+      {/*  New Trip FAB - centre slot  */}
       <Box
         component="button"
         onClick={onCreateTrip}

@@ -1,4 +1,5 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,500;1,600;1,700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* Fonts are loaded via <link rel="preconnect"> + stylesheet in index.html
+   (a CSS @import here delays first paint by chaining requests). */
 
 /* ── Global design tokens (non-MUI contexts: raw CSS, canvas, mapbox) ── */
 :root {
@@ -32,6 +33,29 @@ a {
 }
 
 /* ── Keyframes ────────────────────────────────────────────────────────── */
+
+/* Navia orb - pulsing glow while processing */
+@keyframes navia-orb-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 4px rgba(255, 46, 66, 0.75))
+      drop-shadow(0 0 12px rgba(255, 46, 66, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 9px rgba(255, 66, 84, 0.95))
+      drop-shadow(0 0 26px rgba(255, 46, 66, 0.65));
+  }
+}
+
+/* Navia orb - sheen rotation while processing */
+@keyframes navia-orb-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
 
 /* Navia streaming cursor */
 @keyframes navia-blink {

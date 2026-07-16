@@ -29,7 +29,7 @@ export interface CustomTokens {
   /** Display serif for editorial headings (hero, page titles) */
   fontDisplay: string;
   gradients: {
-    /** Primary brand gradient ,CTAs */
+    /** Primary brand gradient - CTAs */
     brand: string;
     /** Hover state of the brand gradient */
     brandHover: string;

@@ -53,14 +53,25 @@ interface NotificationMeta {
   bg: string;
 }
 
-function notifMeta(msg: string): NotificationMeta {
+// The backend now sends notificationType - key icons on the type first and
+// only fall back to sniffing the message text for older payloads.
+function notifMeta(type: string | undefined, msg: string): NotificationMeta {
+  switch (type) {
+    case 'Follow':        return { Icon: PersonAddAltRoundedIcon, color: '#8B5CF6', bg: 'rgba(139,92,246,0.12)' };
+    case 'TripInvite':    return { Icon: GroupsRoundedIcon, color: '#F59E0B', bg: 'rgba(245,158,11,0.10)' };
+    case 'TripCreated':   return { Icon: FlightTakeoffRoundedIcon, color: '#FF385C', bg: 'rgba(255,56,92,0.10)' };
+    case 'TripUpdated':   return { Icon: FlightTakeoffRoundedIcon, color: '#0EA5E9', bg: 'rgba(14,165,233,0.10)' };
+    case 'TripPublished': return { Icon: PublicRoundedIcon, color: '#10B981', bg: 'rgba(16,185,129,0.10)' };
+    case 'Comment':
+    case 'Reply':         return { Icon: ChatBubbleOutlineRoundedIcon, color: '#0EA5E9', bg: 'rgba(14,165,233,0.10)' };
+  }
   const m = (msg || '').toLowerCase();
   if (m.includes('follow') || m.includes('connect')) return { Icon: PersonAddAltRoundedIcon, color: '#8B5CF6', bg: 'rgba(139,92,246,0.12)' };
   if (m.includes('like') || m.includes('react')) return { Icon: FavoriteRoundedIcon, color: '#EF4444', bg: 'rgba(239,68,68,0.10)' };
-  if (m.includes('message') || m.includes('chat')) return { Icon: ChatBubbleOutlineRoundedIcon, color: '#0EA5E9', bg: 'rgba(14,165,233,0.10)' };
+  if (m.includes('comment') || m.includes('repl') || m.includes('chat')) return { Icon: ChatBubbleOutlineRoundedIcon, color: '#0EA5E9', bg: 'rgba(14,165,233,0.10)' };
+  if (m.includes('publish') || m.includes('live')) return { Icon: PublicRoundedIcon, color: '#10B981', bg: 'rgba(16,185,129,0.10)' };
+  if (m.includes('invit') || m.includes('join') || m.includes('member')) return { Icon: GroupsRoundedIcon, color: '#F59E0B', bg: 'rgba(245,158,11,0.10)' };
   if (m.includes('trip') || m.includes('creat')) return { Icon: FlightTakeoffRoundedIcon, color: '#FF385C', bg: 'rgba(255,56,92,0.10)' };
-  if (m.includes('publish') || m.includes('share')) return { Icon: PublicRoundedIcon, color: '#10B981', bg: 'rgba(16,185,129,0.10)' };
-  if (m.includes('join') || m.includes('member')) return { Icon: GroupsRoundedIcon, color: '#F59E0B', bg: 'rgba(245,158,11,0.10)' };
   return { Icon: NotificationsNoneIcon, color: '#6366F1', bg: 'rgba(99,102,241,0.10)' };
 }
 
@@ -264,7 +275,7 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
           />
         </Box>
 
-        {/* Desktop nav ,labeled pills, centered */}
+        {/* Desktop nav - labeled pills, centered */}
         {isDesktop && (
           <Box
             component="nav"
@@ -316,8 +327,10 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
                     },
                   }}
                 >
-                  <Box sx={{ position: 'relative', display: 'flex' }}>
-                    <item.Icon size={20} stroke={1.9} color="currentColor" />
+                  {/* The Navia orb renders larger than the other icons but must not
+                      stretch the pill height — negative margin lets it overflow. */}
+                  <Box sx={{ position: 'relative', display: 'flex', ...(item.id === 'navia' ? { my: -0.75 } : {}) }}>
+                    <item.Icon size={item.id === 'navia' ? 30 : 20} stroke={1.9} color="currentColor" />
                     {item.id === 'risk' && (
                       <Box
                         aria-hidden="true"
@@ -341,12 +354,15 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
                       />
                     )}
                   </Box>
-                  <Typography
-                    component="span"
-                    sx={{ fontSize: '0.84rem', fontWeight: active ? 700 : 600, lineHeight: 1, whiteSpace: 'nowrap' }}
-                  >
-                    {item.shortLabel}
-                  </Typography>
+                  {/* Navia is represented by the orb alone - no text label */}
+                  {item.id !== 'navia' && (
+                    <Typography
+                      component="span"
+                      sx={{ fontSize: '0.84rem', fontWeight: active ? 700 : 600, lineHeight: 1, whiteSpace: 'nowrap' }}
+                    >
+                      {item.shortLabel}
+                    </Typography>
+                  )}
                 </Box>
               );
 
@@ -454,7 +470,7 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
                 </Box>
               </Tooltip>
             </>
-          ) : null /* loading ,render nothing to avoid flash */}
+          ) : null /* loading - render nothing to avoid flash */}
         </Box>
       </Box>
 
@@ -529,14 +545,14 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
               <NotificationsOffOutlinedIcon sx={{ fontSize: 26, color: 'text.disabled' }} />
             </Box>
             <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', color: 'text.secondary' }}>
-              You're all caught up!
+              All quiet on the horizon
             </Typography>
-            <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>New activity will appear here</Typography>
+            <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>Followers, invites & trip updates will land here</Typography>
           </Box>
         ) : (
           <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
             {notifications.map((notification: any) => {
-              const meta = notifMeta(notification.message || '');
+              const meta = notifMeta(notification.notificationType, notification.message || '');
               const NotificationIcon = meta.Icon;
               return (
                 <Box

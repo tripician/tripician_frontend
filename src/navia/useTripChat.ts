@@ -167,6 +167,16 @@ export function useTripChat(
       });
     });
 
+    // A member settled a proposal: freeze everyone's Accept/Dismiss buttons live,
+    // not just after the next page refresh.
+    connection.on('ProposalResolved', (payload: { chatMessageId?: string; status?: string }) => {
+      if (!mountedRef.current) return;
+      const chatMessageId = payload?.chatMessageId;
+      const status = (payload?.status || '').toLowerCase();
+      if (!chatMessageId || (status !== 'accepted' && status !== 'rejected')) return;
+      setProposalStates(prev => ({ ...prev, [chatMessageId]: status as ProposalActionState }));
+    });
+
     connection.onreconnecting(() => {
       if (mountedRef.current) setStatus('connecting');
     });
@@ -247,32 +257,50 @@ export function useTripChat(
     setProposalStates(prev => ({ ...prev, [chatMessageId]: state }));
   };
 
+  /** A proposal can be acted on when untouched, still pending, or after a failed attempt (retry). */
+  const canActOnProposal = (state: ProposalActionState | undefined) =>
+    !state || state === 'pending' || state === 'error';
+
+  /**
+   * The server refused (e.g. someone else settled it first): sync the real
+   * status instead of showing a dead "try again" error.
+   */
+  const syncSettledState = useCallback(async (chatMessageId: string) => {
+    try {
+      const proposals = await fetchTripProposals(tripId, token);
+      const match = proposals.find(p => p.chatMessageId === chatMessageId);
+      if (match?.status === 'Accepted') { setProposalState(chatMessageId, 'accepted'); return true; }
+      if (match?.status === 'Rejected') { setProposalState(chatMessageId, 'rejected'); return true; }
+    } catch { /* fall through to error state */ }
+    return false;
+  }, [tripId, token]);
+
   const acceptProposalMsg = useCallback(
     async (chatMessageId: string, proposalId: number) => {
-      if (proposalStates[chatMessageId] && proposalStates[chatMessageId] !== 'pending') return;
+      if (!canActOnProposal(proposalStates[chatMessageId])) return;
       setProposalState(chatMessageId, 'accepting');
       try {
         await acceptProposal(proposalId, token);
         setProposalState(chatMessageId, 'accepted');
       } catch {
-        setProposalState(chatMessageId, 'error');
+        if (!(await syncSettledState(chatMessageId))) setProposalState(chatMessageId, 'error');
       }
     },
-    [proposalStates, token],
+    [proposalStates, token, syncSettledState],
   );
 
   const rejectProposalMsg = useCallback(
     async (chatMessageId: string, proposalId: number) => {
-      if (proposalStates[chatMessageId] && proposalStates[chatMessageId] !== 'pending') return;
+      if (!canActOnProposal(proposalStates[chatMessageId])) return;
       setProposalState(chatMessageId, 'rejecting');
       try {
         await rejectProposal(proposalId, token);
         setProposalState(chatMessageId, 'rejected');
       } catch {
-        setProposalState(chatMessageId, 'error');
+        if (!(await syncSettledState(chatMessageId))) setProposalState(chatMessageId, 'error');
       }
     },
-    [proposalStates, token],
+    [proposalStates, token, syncSettledState],
   );
 
   // ?? Typing indicator ?????????????????????????????????????????????????????

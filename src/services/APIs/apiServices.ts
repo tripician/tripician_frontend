@@ -297,13 +297,13 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  // GET /api/trips/{tripId}/published ,check published status
+  // GET /api/trips/{tripId}/published - check published status
   getTripPublishedStatus: (token: string, tripId: string) =>
     apiClient.get(`/api/trips/${tripId}/published`, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  // PATCH /api/trips/{tripId}/publish ,publish or unpublish (owner only)
+  // PATCH /api/trips/{tripId}/publish - publish or unpublish (owner only)
   setTripPublished: (token: string, tripId: string, published: boolean) =>
     apiClient.patch(`/api/trips/${tripId}/publish`, { published }, {
       headers: { Authorization: `Bearer ${token}` }
@@ -314,13 +314,13 @@ export const apiServices = {
     headers: { Authorization: `Bearer ${token}` }
   }),
 
-  // POST /api/trips/{tripId}/clone ,clone a published/public trip into a new private draft
+  // POST /api/trips/{tripId}/clone - clone a published/public trip into a new private draft
   cloneTrip: (token: string, tripId: string) =>
     apiClient.post<{ tripId: string }>(`/api/trips/${tripId}/clone`, {}, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  // GET /api/trips/vibe-passport ,authenticated user's vibe breakdown (no extra params needed)
+  // GET /api/trips/vibe-passport - authenticated user's vibe breakdown (no extra params needed)
   getVibePassport: (token: string) =>
     apiClient.get<{
       vibes: Array<{ name: string; count: number; percentage: number }>;
@@ -332,7 +332,7 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  // GET /api/trips/crew ,find travelers whose published trips match destination/vibe
+  // GET /api/trips/crew - find travelers whose published trips match destination/vibe
   getTravelersCrew: (destination?: string, vibe?: string, month?: number) => {
     const params = new URLSearchParams();
     if (destination) params.set('destination', destination);
@@ -348,32 +348,32 @@ export const apiServices = {
     }>>(`/api/trips/crew${params.toString() ? '?' + params.toString() : ''}`);
   },
 
-  // PATCH /api/trips/{tripId}/status ,set trip lifecycle status (0=Planning, 1=Active, 2=Completed)
+  // PATCH /api/trips/{tripId}/status - set trip lifecycle status (0=Planning, 1=Active, 2=Completed)
   setTripStatus: (token: string, tripId: string, status: 0 | 1 | 2) =>
     apiClient.patch(`/api/trips/${tripId}/status`, { status }, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  // GET /api/trips/{tripId}/postcards ,public postcard list for a trip
+  // GET /api/trips/{tripId}/postcards - public postcard list for a trip
   getTripPostcards: (tripId: string) =>
     apiClient.get<Array<{
       id: string; tripId: string; caption: string; photoUrl: string | null;
       location: string | null; createdAt: string; authorName: string; authorAvatar: string | null;
     }>>(`/api/trips/${tripId}/postcards`),
 
-  // POST /api/trips/{tripId}/postcards ,create a new postcard (trip must be Active)
+  // POST /api/trips/{tripId}/postcards - create a new postcard (trip must be Active)
   createPostcard: (token: string, tripId: string, dto: { caption: string; photoUrl?: string; location?: string }) =>
     apiClient.post<{ id: string }>(`/api/trips/${tripId}/postcards`, dto, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  // POST /api/trips/{tripId}/publish-as-template ,mark a trip as a community template (owner only)
+  // POST /api/trips/{tripId}/publish-as-template - mark a trip as a community template (owner only)
   publishAsTemplate: (token: string, tripId: string) =>
     apiClient.post(`/api/trips/${tripId}/publish-as-template`, {}, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  // GET /api/trips/templates ,community template library (public)
+  // GET /api/trips/templates - community template library (public)
   getTemplates: () =>
     apiClient.get<Array<{
       id: string; name: string; description?: string; vibe?: string;
@@ -408,7 +408,7 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     });
   },
-  // GET /api/users/search?q=xxx ,real user search
+  // GET /api/users/search?q=xxx - real user search
   searchUsers: (q: string, take = 20) =>
     apiClient.get<Array<{ id: number; name: string; email: string; country: string | null; avatar: string | null }>>
       (`/api/users/search?q=${encodeURIComponent(q)}&take=${take}`),
@@ -433,32 +433,32 @@ export const apiServices = {
         }),
       })),
 
-  // GET /api/users/{userId} ,public profile by ID
+  // GET /api/users/{userId} - public profile by ID
   getUserById: (userId: number) =>
     apiClient.get<{ id: number; name: string; avatar: string | null; cover: string | null; country: string | null; location: string | null; website: string | null; instagram: string | null; twitter: string | null; facebook: string | null }>
       (`/api/users/${userId}`),
 
-  // POST /api/follow/{followeeId} ,follow a user (JWT resolves follower)
+  // POST /api/follow/{followeeId} - follow a user (JWT resolves follower)
   followUser: (token: string, followeeId: number) =>
     apiClient.post(`/api/follow/${followeeId}`, {}, { headers: { Authorization: `Bearer ${token}` } }),
 
-  // DELETE /api/follow/{followeeId} ,unfollow a user
+  // DELETE /api/follow/{followeeId} - unfollow a user
   unfollowUser: (token: string, followeeId: number) =>
     apiClient.delete(`/api/follow/${followeeId}`, { headers: { Authorization: `Bearer ${token}` } }),
 
-  // GET /api/follow/{userId}/stats ,follower/following counts
+  // GET /api/follow/{userId}/stats - follower/following counts
   getFollowStats: (userId: number) =>
     apiClient.get<{ followers: number; following: number }>(`/api/follow/${userId}/stats`),
 
-  // GET /api/follow/{userId}/followers ,list of followers
+  // GET /api/follow/{userId}/followers - list of followers
   getFollowers: (userId: number) =>
     apiClient.get<Array<{ userId: number; name: string; avatar: string | null }>>(`/api/follow/${userId}/followers`),
 
-  // GET /api/follow/{userId}/following ,list of following
+  // GET /api/follow/{userId}/following - list of following
   getFollowing: (userId: number) =>
     apiClient.get<Array<{ userId: number; name: string; avatar: string | null }>>(`/api/follow/${userId}/following`),
 
-  // GET /api/follow/is-following/{followeeId} ,is current user following?
+  // GET /api/follow/is-following/{followeeId} - is current user following?
   isFollowing: (token: string, followeeId: number) =>
     apiClient.get<{ isFollowing: boolean }>(`/api/follow/is-following/${followeeId}`, {
       headers: { Authorization: `Bearer ${token}` }
@@ -484,7 +484,7 @@ export const apiServices = {
 
   // ------------------------------------------------------------
   // Trip Comments
-  // GET /api/trips/{tripId}/comments — public for published trips; token optional
+  // GET /api/trips/{tripId}/comments - public for published trips; token optional
   getTripComments: (token: string | null | undefined, tripId: string) =>
     apiClient.get(`/api/trips/${tripId}/comments`, {
       headers: token ? { Authorization: `Bearer ${token}` } : undefined

@@ -8,6 +8,7 @@ import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import { fetchWeather, type WeatherData } from '../../services/APIs/weather/weatherService';
 import { fetchCurrency, type CurrencyData } from '../../services/APIs/currency/currencyService';
 import { fetchNews, type TwinglyDocument, type FetchNewsParams } from '../../services/APIs/news/newsService';
+import { fetchAdvisory, advisoryScoreToBaseRisk, type AdvisoryData } from '../../services/APIs/alerts/advisoryService';
 import { flagEmojiFromCode } from '../../utils/countryFlags';
 import '../../assets/css/RiskMonitor.css';
 
@@ -63,12 +64,19 @@ function riskProfile(score: number) {
   return              { label: 'High Risk', color: '#dc2626', dim: 'rgba(220,38,38,0.2)',   icon: '⛔' };
 }
 
+function weatherContribution(weatherSev?: string): number {
+  if (weatherSev === 'advisory') return 10;
+  if (weatherSev === 'watch')    return 18;
+  if (weatherSev === 'warning')  return 28;
+  return 0;
+}
+
+function alertContribution(alertCount: number): number {
+  return Math.min(18, alertCount * 3);
+}
+
 function computeScore(baseRisk: number, weatherSev?: string, alertCount = 0) {
-  let s = baseRisk;
-  if (weatherSev === 'advisory') s += 10;
-  if (weatherSev === 'watch')    s += 18;
-  if (weatherSev === 'warning')  s += 28;
-  s += Math.min(18, alertCount * 3);
+  const s = baseRisk + weatherContribution(weatherSev) + alertContribution(alertCount);
   return Math.min(99, Math.max(2, s));
 }
 
@@ -133,6 +141,7 @@ export default function RiskMonitor() {
   const [weather,  setWeather]  = useState<WeatherData | null>(null);
   const [currency, setCurrency] = useState<CurrencyData | null>(null);
   const [articles, setArticles] = useState<TwinglyDocument[]>([]);
+  const [advisory, setAdvisory] = useState<AdvisoryData | null>(null);
   const [tab,          setTab]          = useState<'news' | 'alerts' | 'currency'>('news');
   const [regionFilter, setRegionFilter] = useState('All');
   const [recent,       setRecent]       = useState<string[]>(() => {
@@ -160,16 +169,19 @@ export default function RiskMonitor() {
     setWeather(null);
     setCurrency(null);
     setArticles([]);
+    setAdvisory(null);
     try {
       const params: FetchNewsParams = { locations: [code], size: 15 };
-      const [w, c, n] = await Promise.all([
+      const [w, c, n, adv] = await Promise.all([
         fetchWeather(code).catch(() => null),
         fetchCurrency(code).catch(() => null),
         fetchNews(params).catch(() => null),
+        fetchAdvisory(code).catch(() => null),
       ]);
       setWeather(w);
       setCurrency(c);
       setArticles(n?.documents ?? []);
+      setAdvisory(adv);
     } finally {
       setLoading(false);
     }
@@ -189,7 +201,12 @@ export default function RiskMonitor() {
 
   const dest    = selected ? DESTS[selected] : null;
   const alerts  = articles.filter(a => classifyAlert(a.title, a.summary ?? a.text ?? ''));
-  const score   = dest ? computeScore(dest.baseRisk, weather?.severity ?? undefined, alerts.length) : 0;
+  // Ground the baseline in live official advisories when available; the static
+  // per-country estimate is only the fallback for when the feed is unreachable.
+  const baseRisk   = advisory ? advisoryScoreToBaseRisk(advisory.score) : (dest?.baseRisk ?? 0);
+  const weatherAdd = weatherContribution(weather?.severity ?? undefined);
+  const alertsAdd  = alertContribution(alerts.length);
+  const score   = dest ? computeScore(baseRisk, weather?.severity ?? undefined, alerts.length) : 0;
   const risk    = riskProfile(score);
   const fxPairs = MAJOR_FX.filter(m => m !== dest?.currency && currency?.rates[m]);
 
@@ -236,13 +253,13 @@ export default function RiskMonitor() {
             <span className="rm-hero__beta">BETA</span>
           </h1>
           <p className="rm-hero__sub">
-            Real-time safety, weather &amp; news intelligence for any destination ,before you book.
+            Live safety, weather &amp; news intelligence for any destination - know before you go.
           </p>
 
           {/*  Research caution notice  */}
           <div className="rm-hero__caution">
             <span>
-              <strong>⚠️ For reference only.</strong> Risk data is based on ongoing research and automated sources ,it may be incomplete or inaccurate. Always verify with official government travel advisories before making any travel decisions.
+              <strong>⚠️ For reference only.</strong> Scores blend aggregated official government advisories with automated weather and news signals - they may be incomplete or lag real events. Always confirm with your government's own travel advisory before making decisions.
             </span>
           </div>
 
@@ -251,7 +268,7 @@ export default function RiskMonitor() {
             <SearchRoundedIcon className="rm-search-icon" />
             <input
               className="rm-search-input"
-              placeholder="Search destination ,Japan, UAE, Brazil…"
+              placeholder="Where are you headed? Japan, UAE, Brazil…"
               value={query}
               onChange={e => { setQuery(e.target.value); setDropOpen(true); }}
               onFocus={() => setDropOpen(true)}
@@ -345,6 +362,22 @@ export default function RiskMonitor() {
             </p>
           </div>
 
+          {/* Official advisory headline (aggregated government guidance) */}
+          {!loading && advisory?.message && (
+            <div style={{
+              display: 'flex', alignItems: 'center', gap: 10,
+              padding: '10px 16px', marginBottom: 14,
+              borderRadius: 12,
+              background: risk.dim,
+              border: `1px solid ${risk.color}33`,
+            }}>
+              <span style={{ fontSize: 16, lineHeight: 1 }}>{risk.icon}</span>
+              <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.82)', lineHeight: 1.5 }}>
+                <strong style={{ color: risk.color }}>Official guidance:</strong> {advisory.message}
+              </span>
+            </div>
+          )}
+
           {/*  4-panel stat row  */}
           <div className="rm-stat-row">
 
@@ -356,10 +389,47 @@ export default function RiskMonitor() {
               }
               <div className="rm-gauge-meta">
                 <span className="rm-gauge-badge" style={{ color: risk.color, background: risk.dim, borderColor: `${risk.color}44` }}>
-                  {loading ? '—' : risk.label}
+                  {loading ? '-' : risk.label}
                 </span>
                 <span className="rm-gauge-label-text">Risk Score</span>
               </div>
+
+              {/* How the score is built - transparency beats a magic number */}
+              {!loading && (
+                <div style={{ marginTop: 12, width: '100%', display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  {([
+                    {
+                      label: advisory ? `Official advisories (${advisory.score.toFixed(1)}/5)` : 'Baseline estimate',
+                      value: baseRisk,
+                    },
+                    { label: 'Weather conditions', value: weatherAdd },
+                    { label: `News alerts (${alerts.length})`, value: alertsAdd },
+                  ]).map(row => (
+                    <div key={row.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', fontSize: 11, color: 'rgba(255,255,255,0.55)' }}>
+                      <span>{row.label}</span>
+                      <span style={{ fontWeight: 700, color: row.value > 0 ? 'rgba(255,255,255,0.85)' : 'rgba(255,255,255,0.35)', fontVariantNumeric: 'tabular-nums' }}>
+                        {row.value > 0 ? `+${row.value}` : '0'}
+                      </span>
+                    </div>
+                  ))}
+                  {advisory ? (
+                    <a
+                      href={advisory.sourceUrl || undefined}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.42)', textDecoration: 'none', marginTop: 4 }}
+                    >
+                      {advisory.sourcesActive > 0
+                        ? `Aggregated from ${advisory.sourcesActive} official government source${advisory.sourcesActive === 1 ? '' : 's'} ↗`
+                        : 'View official advisory sources ↗'}
+                    </a>
+                  ) : (
+                    <span style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>
+                      Live advisory feed unavailable - using research baseline
+                    </span>
+                  )}
+                </div>
+              )}
             </div>
 
             {/* Weather */}
@@ -375,11 +445,11 @@ export default function RiskMonitor() {
                   <div className="rm-weather-main">
                     <span className="rm-weather-emoji">{wmoEmoji(weather.conditionCode)}</span>
                     <span className="rm-weather-temp">
-                      {weather.temperatureC != null ? `${Math.round(weather.temperatureC)}°C` : '—'}
+                      {weather.temperatureC != null ? `${Math.round(weather.temperatureC)}°C` : '-'}
                     </span>
                   </div>
                   <p className="rm-weather-desc">{weather.conditionText ?? 'No data'}</p>
-                  <p className="rm-weather-wind">💨 {weather.windKph != null ? `${Math.round(weather.windKph)} km/h` : '—'}</p>
+                  <p className="rm-weather-wind">💨 {weather.windKph != null ? `${Math.round(weather.windKph)} km/h` : '-'}</p>
                   {weather.severity && weather.severity !== 'normal' && (
                     <span className="rm-weather-sev" data-sev={weather.severity}>
                       ⚠️ {weather.severity.charAt(0).toUpperCase() + weather.severity.slice(1)}
@@ -583,7 +653,7 @@ export default function RiskMonitor() {
 
           {/* Header: title + legend */}
           <div className="rm-welcome__header">
-            <p className="rm-welcome__heading">Explore Destinations</p>
+            <p className="rm-welcome__heading">Scout the World</p>
             <div className="rm-legend">
               {([
                 { label: 'Low Risk',  color: '#22c55e' },

@@ -24,7 +24,7 @@ const ImportantNotesEditor: React.FC<ImportantNotesEditorProps> = (props) => {
   const { value, onChange, compact, readOnly=false } = props;
   const isControlled = value !== undefined; // uncontrolled if prop omitted
   // Externally-sourced HTML (saved notes may come from other trip members) is
-  // sanitized before it ever reaches innerHTML ,stored-XSS defense.
+  // sanitized before it ever reaches innerHTML - stored-XSS defense.
   const initial = sanitizeHtml(value ?? '');
   const ref = React.useRef<HTMLDivElement | null>(null);
   const [editing, setEditing] = React.useState(false);

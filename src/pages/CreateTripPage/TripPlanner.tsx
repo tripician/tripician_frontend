@@ -35,6 +35,8 @@ import {
 } from '@tabler/icons-react';
 import MapDrawer from './MapDrawer';
 import TripComments from './TripComments';
+import NaviaOrb from '../../navia/NaviaOrb';
+import PlanReviewDialog from './PlanReviewDialog';
 // Lazy map for the right-rail Map tab (same chunk as MapDrawer's panel)
 const SideMapPanel = React.lazy(() => import('./MapPanel'));
 import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
@@ -215,6 +217,16 @@ interface TripPlannerProps {
 	isExternalNonOwner?: boolean; // viewing someone else's published trip
 	isOwnerExternal?: boolean; // current user owns trip (controls publish)
 	aiGenerated?: boolean; // when true, auto-generate destinations via Navia on mount
+	chatSeed?: { stops: ChatSeedStop[] }; // extracted plan from the Navia home chat (no AI calls needed)
+}
+
+/** One extracted stop from the Navia home chat, ready to seed the planner. */
+export interface ChatSeedStop {
+	name: string;
+	nights: number;
+	spots: { name: string; description: string }[];
+	foods: string[];
+	notes: string;
 }
 
 /* --- Persistent AI Chat Panel (GitHub Copilot-style right column) --- */
@@ -536,7 +548,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 	const textMuted = isLight ? 'rgba(0,0,0,0.44)' : 'rgba(255,255,255,0.38)';
 	const sectionBg = isLight ? 'rgba(0,0,0,0.025)' : 'rgba(255,255,255,0.04)';
 
-	// Premium action toggles ,persisted server-side via the trip reactions API
+	// Premium action toggles - persisted server-side via the trip reactions API
 	const reactionAuth = useAuthToken();
 	const reactionToken = reactionAuth.token;
 	const reactionNavigate = useNavigate();
@@ -575,7 +587,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 
 	const toggleReaction = React.useCallback(async (type: 'like' | 'save' | 'needswork') => {
 		if (!tripId) return;
-		// Reacting requires an account ,send guests to sign in first.
+		// Reacting requires an account - send guests to sign in first.
 		if (!reactionToken) { reactionNavigate('/signin'); return; }
 		if (reactionBusyRef.current[type]) return;
 		reactionBusyRef.current[type] = true;
@@ -583,7 +595,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 			const resp = await apiServices.toggleTripReaction(reactionToken, tripId, type);
 			applySummary(resp.data);
 		} catch {
-			/* ignore ,UI stays on last known server state */
+			/* ignore - UI stays on last known server state */
 		} finally {
 			reactionBusyRef.current[type] = false;
 		}
@@ -1003,6 +1015,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	isExternalNonOwner = false,
 	isOwnerExternal = true,
 	aiGenerated: aiGeneratedProp = false,
+	chatSeed,
 }) => {
 	// ---------------------------------------------------------------------------
 	// Selectors & dispatch
@@ -1054,6 +1067,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		return remoteTrip ? normalizeTrip(remoteTrip) : normalizedInitial;
 	}, [normalizedInitial, remoteTrip]); // naming retained for downstream references
 	const hydratedRef = React.useRef<string | null>(null);
+	// True while the AI auto-generation pipeline is dispatching into Redux.
+	// Re-hydration during that window would replace client destination ids with
+	// server ids, making every queued addSpot/addFoodItem silently no-op.
+	const aiGenActiveRef = React.useRef(false);
 	const cleanedNotesRef = React.useRef(false);
 	// Preserve original creation start/end dates (first hydration) so itinerary edits don't implicitly adjust them.
 	const originalDatesRef = React.useRef<{ start:string|null; end:string|null }|null>(null);
@@ -1259,6 +1276,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	// Hydration effect (simplified for stable backend shape)
 	React.useEffect(() => {
 		if (!unifiedTrip) return;
+		if (aiGenActiveRef.current) return; // never reset Redux mid AI-generation
 		const { meta, itinerary } = unifiedTrip;
 		// Allow re-hydration if the incoming data has more stops than what was previously loaded
 		// (e.g. Dashboard passes no itinerary, then remoteTrip arrives with the full list)
@@ -1419,6 +1437,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const ENABLE_DOC_UPLOAD = FEATURE_FLAGS.docsUpload;
 	// (moved earlier)
 	const [settingsOpen, setSettingsOpen] = React.useState(false);
+	const [planReviewOpen, setPlanReviewOpen] = React.useState(false);
 	const [optimizingRoute, setOptimizingRoute] = React.useState(false);
 	const [saving, setSaving] = React.useState(false);
 	const [lastSaveTs, setLastSaveTs] = React.useState<number>(0);
@@ -1458,13 +1477,14 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		aiMsgIdxRef.current = 0;
 		setAiAutoMessage(AI_GEN_MESSAGES[0]);
 		setAiAutoGenerating(true);
+		aiGenActiveRef.current = true;
 		aiMsgIntervalRef.current = setInterval(() => {
 			aiMsgIdxRef.current = (aiMsgIdxRef.current + 1) % AI_GEN_MESSAGES.length;
 			setAiAutoMessage(AI_GEN_MESSAGES[aiMsgIdxRef.current]);
 		}, 2200);
 
 		if (planner.destinations.length > 0) {
-			// Destinations already seeded (from trip data) ,go straight to planning
+			// Destinations already seeded (from trip data) - go straight to planning
 			aiExpectedDestCountRef.current = -1; // signal Phase 2 to plan all existing
 			return;
 		}
@@ -1498,7 +1518,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			for (const alloc of allocations) {
 				setAiAutoMessage(`Mapping the best route through ${alloc.country}…`);
 				if (creditBlocked) {
-					// Wallet is empty — don't burn more requests; keep coarse country stops.
+					// Wallet is empty - don't burn more requests; keep coarse country stops.
 					allStops.push({ name: alloc.country, nights: alloc.nights });
 					continue;
 				}
@@ -1522,7 +1542,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			aiCreditBlockedRef.current = creditBlocked;
 
 			if (allStops.length === 0) {
-				// Last-resort fallback ,original one-destination-per-country behavior
+				// Last-resort fallback - original one-destination-per-country behavior
 				allocations.forEach(a => allStops.push({ name: a.country, nights: a.nights }));
 			}
 
@@ -1534,6 +1554,31 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		})();
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [aiGenerated, isHydrated, authToken, tripId]);
+
+	// Phase 1 (chat seed): the Navia home chat already produced the full plan.
+	// Seed destinations here; Phase 2 fills spots/foods/notes from the extracted
+	// content POSITIONALLY (no network calls, no credits). Same guards as the
+	// AI-generation flow so hydration and autosave can't wipe mid-seed.
+	const chatSeedContentRef = React.useRef<ChatSeedStop[] | null>(null);
+	React.useEffect(() => {
+		if (!chatSeed || chatSeed.stops.length === 0) return;
+		if (aiAutoTriggeredRef.current || !isHydrated || !tripId) return;
+		aiAutoTriggeredRef.current = true;
+
+		// Clear location state to prevent re-seed on reload
+		try { window.history.replaceState({}, '', window.location.pathname + window.location.search); } catch {}
+
+		setAiAutoMessage('Assembling your trip from the chat…');
+		setAiAutoGenerating(true);
+		aiGenActiveRef.current = true;
+
+		chatSeedContentRef.current = chatSeed.stops;
+		const grandTotal = chatSeed.stops.reduce((a, s) => a + Math.max(1, s.nights), 0);
+		dispatch(setTargetNights(grandTotal));
+		aiExpectedDestCountRef.current = chatSeed.stops.length;
+		chatSeed.stops.forEach(s => dispatch(addDestination({ name: s.name, nights: Math.max(1, s.nights) })));
+	// eslint-disable-next-line react-hooks/exhaustive-deps
+	}, [chatSeed, isHydrated, tripId]);
 
 	// Phase 2: Once destinations reach expected count, plan each one via Navia
 	const aiPlanningActiveRef = React.useRef(false);
@@ -1552,13 +1597,37 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			? [...planner.destinations]
 			: planner.destinations.slice(-expectedCount);
 
+		// Chat-seed path: content came from the conversation, keyed by position.
+		const seedStops = chatSeedContentRef.current;
+		chatSeedContentRef.current = null;
+
 		(async () => {
 			let planned = 0;
 			let failed = 0;
 			let creditBlocked = aiCreditBlockedRef.current;
 			try {
-				for (const dest of destsToProcess) {
+				for (const [destIdx, dest] of destsToProcess.entries()) {
 					if (aiMsgIntervalRef.current) { clearInterval(aiMsgIntervalRef.current); aiMsgIntervalRef.current = null; }
+
+					// Extracted chat content: dispatch locally — no AI call, no credits.
+					const seed = seedStops?.[destIdx];
+					if (seed) {
+						setAiAutoMessage(`Placing ${dest.name}…`);
+						dispatch(clearDestinationDiscover({ destinationId: dest.id }));
+						for (const spot of seed.spots ?? []) {
+							if (!spot.name?.trim()) continue;
+							dispatch(addSpot({ destinationId: dest.id, name: spot.name.trim(), description: spot.description?.trim(), known: true }));
+						}
+						for (const food of seed.foods ?? []) {
+							if (!food?.trim()) continue;
+							dispatch(addFoodItem({ destinationId: dest.id, name: food.trim() }));
+						}
+						const seedNotes = (seed.notes ?? '').trim();
+						if (seedNotes) dispatch(setDestinationNotes({ id: dest.id, notes: seedNotes }));
+						planned++;
+						continue;
+					}
+
 					if (creditBlocked) break;
 					setAiAutoMessage(`Planning ${dest.name}…`);
 					try {
@@ -1592,16 +1661,19 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			} finally {
 				if (aiMsgIntervalRef.current) { clearInterval(aiMsgIntervalRef.current); aiMsgIntervalRef.current = null; }
 				setAiAutoGenerating(false);
+				aiGenActiveRef.current = false;
 				setAiAutoMessage('');
 				aiPlanningActiveRef.current = false;
 				aiCreditBlockedRef.current = false;
 				// Report what actually happened instead of a blanket success.
 				if (creditBlocked) {
-					openToast('error', 'This trip ran out of Navia credits — generation stopped early. Your route was saved.');
+					openToast('error', 'This trip ran out of Navia credits - generation stopped early. Your route was saved.');
 				} else if (planned === 0 && failed > 0) {
-					openToast('error', 'Navia could not plan your stops right now. Your route was saved — try "Plan with Navia" on each stop shortly.');
+					openToast('error', 'Navia could not plan your stops right now. Your route was saved - try "Plan with Navia" on each stop shortly.');
 				} else if (failed > 0) {
-					openToast('info', `Trip generated! ${failed} stop${failed === 1 ? '' : 's'} could not be planned — use "Plan with Navia" to retry.`);
+					openToast('info', `Trip generated! ${failed} stop${failed === 1 ? '' : 's'} could not be planned - use "Plan with Navia" to retry.`);
+				} else if (seedStops) {
+					openToast('success', 'Your chat is now a trip - Navia carried everything over.');
 				} else {
 					openToast('success', 'Your trip has been generated with AI!');
 				}
@@ -2052,7 +2124,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			if (remoteRefreshKeyRef.current === refreshKeyAtSaveStart) {
 				setRemoteTrip({ trip: payload.trip, itinerary: payload.itinerary });
 			} else {
-				console.debug('[TripPersist] Skipping remoteTrip overwrite ,server refresh happened during save (refreshKey changed).');
+				console.debug('[TripPersist] Skipping remoteTrip overwrite - server refresh happened during save (refreshKey changed).');
 			}
 			setLastSavedDisplay(new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' }));
 			openToast('success', payload.trip.status==='DRAFT'? 'Saved':'Trip updated');
@@ -2090,7 +2162,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	// path as the manual Save button, which remains as an explicit fallback.
 	const autosaveTimerRef = React.useRef<number | null>(null);
 	React.useEffect(() => {
-		if (readOnly || !effectiveCanEdit || !isHydrated || !isDirty || saving) return;
+		// aiAutoGenerating: saving mid-generation triggers a server refresh that
+		// re-hydrates Redux with server ids, orphaning the generator's queued spot
+		// dispatches. One clean save runs right after generation completes instead.
+		if (readOnly || !effectiveCanEdit || !isHydrated || !isDirty || saving || aiAutoGenerating) return;
 		if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
 		autosaveTimerRef.current = window.setTimeout(() => {
 			autosaveTimerRef.current = null;
@@ -2099,7 +2174,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			persistToBackend(payload).then((ok: boolean) => { if (ok) commitSnapshot(isDraft); });
 		}, 2500);
 		return () => { if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current); };
-	}, [readOnly, effectiveCanEdit, isHydrated, isDirty, saving, isDraft, buildPersistPayload, persistToBackend, commitSnapshot]);
+	}, [readOnly, effectiveCanEdit, isHydrated, isDirty, saving, isDraft, aiAutoGenerating, buildPersistPayload, persistToBackend, commitSnapshot]);
 
 	// If notes were silently cleaned on hydration (category 'general' leaked into notes field),
 	// persist the corrected value automatically so the backend stays in sync.
@@ -2316,13 +2391,13 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				const parsed = JSON.parse(raw);
 				if (parsed && Array.isArray(parsed.categories)) dispatch(loadPacking(parsed));
 			}
-		} catch { /* corrupt entry — keep defaults */ }
+		} catch { /* corrupt entry - keep defaults */ }
 	}, [tripId, dispatch]);
 	React.useEffect(() => {
 		if (!tripId || !packingHydratedRef.current) return;
 		try {
 			localStorage.setItem(`tripPacking:${tripId}`, JSON.stringify({ categories: packingCategories }));
-		} catch { /* storage full — non-fatal */ }
+		} catch { /* storage full - non-fatal */ }
 	}, [tripId, packingCategories]);
 
 	const daysToGo = React.useMemo(() => {
@@ -2538,7 +2613,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						<Divider />
 						{section==='plan' && (
 						<Box sx={(t)=>({ display:'flex', alignItems:'center', px:2, gap:1, py:.75, borderBottom:`1px solid ${t.palette.divider}`, background: t.palette.mode==='light'? 'rgba(255,255,255,0.92)':'rgba(20,22,26,0.92)', backdropFilter:'blur(8px)', position:'sticky', top:0, zIndex:2 })}>
-							{/* Vital trip info — dates · stops · travelers */}
+							{/* Vital trip info - dates · stops · travelers */}
 							<Box sx={{ flex:1, minWidth:0, display:'flex', alignItems:'center', gap:1, overflowX:'auto', '::-webkit-scrollbar':{ display:'none' }, scrollbarWidth:'none' }}>
 								<Tooltip title={(!readOnly && effectiveCanEdit) ? 'Edit trip dates' : 'Trip dates'} arrow placement='bottom'>
 									<Box
@@ -2564,7 +2639,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 									<PulseRouteIcon size={13} stroke={2} />
 									{planner.destinations.length} stop{planner.destinations.length !== 1 ? 's' : ''}
 								</Box>
-								<Tooltip title='Travelers — invite your crew' arrow placement='bottom'>
+								<Tooltip title='Travelers - invite your crew' arrow placement='bottom'>
 									<Box
 										component='button'
 										type='button'
@@ -2637,6 +2712,25 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 								</Box>
 							</Box>
 						</Tooltip>
+							{!readOnly && effectiveCanEdit && (
+							<Tooltip title="Get Navia's detailed feedback on this plan (2 trip credits)" arrow placement='bottom'>
+								<Box
+									component='button'
+									type='button'
+									onClick={() => setPlanReviewOpen(true)}
+									sx={(t) => ({
+										display:'flex', alignItems:'center', gap:.6, height:32, px:1.2, borderRadius:'20px', flexShrink:0,
+										border:`1px solid ${t.palette.divider}`, bgcolor:'transparent',
+										color:'text.primary', fontFamily:'inherit', fontSize:12.5, fontWeight:600, lineHeight:1,
+										cursor:'pointer', transition:'all .15s',
+										'&:hover': { borderColor:'rgba(255,56,92,0.4)', color:'#FF385C' },
+									})}
+								>
+									<NaviaOrb size={14} />
+									AI review
+								</Box>
+							</Tooltip>
+							)}
 							{!readOnly && effectiveCanEdit && (
 							<Tooltip arrow placement='bottom' title={!isDraft ? 'Your trip is live visible to everyone' : saving ? 'Publishing...' : 'Make your trip public'}>
 								<span>
@@ -2853,7 +2947,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						</Box>
 					</Box>
 					)}
-					{/* Save/Update footer ,always visible on all sections */}
+					{/* Save/Update footer - always visible on all sections */}
 					{showPlannerActions && (
 						<Box sx={(t)=>({ borderTop:`1px solid ${t.palette.divider}`, px:2.5, py:1.5, background:t.palette.background.paper, display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 })}>
 							<Typography variant='caption' color='text.secondary'>Last saved: {lastSavedDisplay}</Typography>
@@ -2883,7 +2977,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						</Box>
 					)}
                                     </Box>{/* end centre column */}
-                                            {/* Right panel ,Trip Chat for editors, Trip Info for viewers */}
+                                            {/* Right panel - Trip Chat for editors, Trip Info for viewers */}
                                             <Box sx={(t) => ({
                                                     display: { xs: 'none', lg: 'flex' },
                                                     alignSelf: 'stretch',
@@ -2899,7 +2993,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
                                                     {/* Active panel */}
                                                     <Box sx={{ flex: 1, minWidth: 0, height: '100%', display: sidePanelCollapsed ? 'none' : 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                                                             {(!readOnly && effectiveCanEdit) ? (
-                                                                    /* Navia group chat — kept mounted so the live connection survives tab switches */
+                                                                    /* Navia group chat - kept mounted so the live connection survives tab switches */
                                                                     <Box sx={(t) => ({ flex: 1, minHeight: 0, display: sidePanelTab === 'chat' ? 'flex' : 'none', flexDirection: 'column', overflow: 'hidden', borderLeft: `1px solid ${t.palette.divider}` })}>
                                                                             <TripChatPanel
                                                                                    tripId={tripId}
@@ -2912,7 +3006,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
                                                                             />
                                                                     </Box>
                                                             ) : (
-                                                                    /* Trip info — kept mounted so reaction counts don't refetch per switch */
+                                                                    /* Trip info - kept mounted so reaction counts don't refetch per switch */
                                                                     <Box sx={{ flex: 1, minHeight: 0, display: (sidePanelTab === 'info' || sidePanelTab === 'chat') ? 'flex' : 'none', flexDirection: 'column', overflow: 'hidden' }}>
                                                                             <TripViewPanel
                                                                                    tripId={tripId}
@@ -2933,13 +3027,13 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
                                                                             />
                                                                     </Box>
                                                             )}
-                                                            {/* Public comments — only for published trips */}
+                                                            {/* Public comments - only for published trips */}
                                                             {ENABLE_COMMENTS && sidePanelTab === 'comments' && !isDraft && (
                                                                     <Box sx={(t) => ({ flex: 1, minHeight: 0, display: 'flex', flexDirection: 'column', overflow: 'hidden', bgcolor: 'background.paper', borderLeft: `1px solid ${t.palette.divider}` })}>
                                                                             <TripComments tripId={tripId} authToken={authToken} />
                                                                     </Box>
                                                             )}
-                                                            {/* Map — mounts on first visit, then stays mounted (hidden) */}
+                                                            {/* Map - mounts on first visit, then stays mounted (hidden) */}
                                                             {sideMapMounted && (
                                                                     <Box sx={(t) => ({ flex: 1, minHeight: 0, display: sidePanelTab === 'map' ? 'flex' : 'none', flexDirection: 'column', overflow: 'hidden', bgcolor: 'background.paper', borderLeft: `1px solid ${t.palette.divider}` })}>
                                                                             <Box sx={{ flex: 1, minHeight: 0, position: 'relative', overflow: 'hidden' }}>
@@ -2950,7 +3044,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
                                                                     </Box>
                                                             )}
                                                     </Box>
-                                                    {/* Vertical text rail — NAVIA | COMMENTS | MAP */}
+                                                    {/* Vertical text rail - NAVIA | COMMENTS | MAP */}
                                                     <Box sx={(t) => ({
                                                             width: 44,
                                                             flexShrink: 0,
@@ -2974,14 +3068,14 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
                                                             </Tooltip>
                                                             {(((!readOnly && effectiveCanEdit)
                                                                     ? [
-                                                                            { id: 'chat', label: 'Discussion', tip: 'Group chat — type @navia for AI help', disabled: false },
+                                                                            { id: 'chat', label: 'Discussion', tip: 'Group chat - type @navia for AI help', disabled: false },
                                                                             ...(ENABLE_COMMENTS ? [{ id: 'comments', label: 'Comments', tip: isDraft ? 'Publish this trip to enable public comments' : 'Public comments on this trip', disabled: isDraft }] : []),
-                                                                            { id: 'map', label: 'Map', tip: 'Trip map — see your route at a glance', disabled: false },
+                                                                            { id: 'map', label: 'Map', tip: 'Trip map - see your route at a glance', disabled: false },
                                                                     ]
                                                                     : [
                                                                             { id: 'info', label: 'Info', tip: 'Trip overview', disabled: false },
                                                                             ...(ENABLE_COMMENTS ? [{ id: 'comments', label: 'Comments', tip: isDraft ? 'Comments open once this trip is published' : 'Public comments on this trip', disabled: isDraft }] : []),
-                                                                            { id: 'map', label: 'Map', tip: 'Trip map — see the route at a glance', disabled: false },
+                                                                            { id: 'map', label: 'Map', tip: 'Trip map - see the route at a glance', disabled: false },
                                                                     ]
                                                             ) as Array<{ id: 'chat' | 'comments' | 'map' | 'info'; label: string; tip: string; disabled: boolean }>).map((railTab, railIdx) => {
                                                                     const railActive = sidePanelTab === railTab.id || (railTab.id === 'info' && sidePanelTab === 'chat');
@@ -3088,6 +3182,17 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				</Box>
 
 		</Drawer>
+		{/* AI plan review (editors only; stays mounted so results survive close/reopen) */}
+		{!readOnly && effectiveCanEdit && (
+			<PlanReviewDialog
+				open={planReviewOpen}
+				onClose={() => setPlanReviewOpen(false)}
+				tripId={tripId}
+				token={authToken}
+				tripName={title}
+				tripVibe={vibe}
+			/>
+		)}
 				{canAccessDocs && ENABLE_DOC_UPLOAD && (
 				<Dialog open={visaOpen} onClose={()=> setVisaOpen(false)} fullWidth maxWidth='sm'>
 					<DialogTitle>Visa Documents</DialogTitle>

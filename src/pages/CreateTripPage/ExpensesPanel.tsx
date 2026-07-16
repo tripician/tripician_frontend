@@ -23,7 +23,7 @@ interface ExpensesPanelProps {
   readOnly?: boolean;
   /** Trip members for payer selection & balance math */
   members?: ExpenseMember[];
-  /** Current user's id (string form) ,maps the legacy 'me' payer sentinel */
+  /** Current user's id (string form) - maps the legacy 'me' payer sentinel */
   myUserId?: string | null;
   /** Opens the trip share/invite flow (used by the empty balances state) */
   onInvite?: () => void;
@@ -129,7 +129,7 @@ const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ readOnly=false, members=[
           </Box>
           <Box sx={{ display:'flex', flexDirection:'column' }}>
             <Typography variant='caption' color='text.secondary'>Remaining</Typography>
-            <Typography variant='body1' fontWeight={600} sx={{ color: remainingColor }}>{remaining!=null? cur+remaining.toFixed(2): (tripBudget!=null? cur+(tripBudget-totalSpent).toFixed(2): '—')}</Typography>
+            <Typography variant='body1' fontWeight={600} sx={{ color: remainingColor }}>{remaining!=null? cur+remaining.toFixed(2): (tripBudget!=null? cur+(tripBudget-totalSpent).toFixed(2): '-')}</Typography>
           </Box>
           <Box sx={{ display:'flex', flexDirection:'column' }}>
             <Typography variant='caption' color='text.secondary'>Entries</Typography>

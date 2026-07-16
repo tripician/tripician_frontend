@@ -101,7 +101,7 @@ const BlogPost: React.FC = () => {
         boxShadow: '0 0 12px rgba(255,56,92,0.5)',
       }} />
 
-      {/* Nav ,TopBar for logged-in, public nav for guests */}
+      {/* Nav - TopBar for logged-in, public nav for guests */}
       {isAuthenticated ? (
         <TopBar showSearch={false} logo={
           <Box
@@ -419,7 +419,7 @@ const BlogPost: React.FC = () => {
           </Box>
         </Box>
 
-        {/* Sticky sidebar ,desktop only */}
+        {/* Sticky sidebar - desktop only */}
         <Box sx={{
           display: { xs: 'none', lg: 'block' },
           width: 280,
@@ -619,7 +619,7 @@ const BlogPost: React.FC = () => {
   return (
     <>
       <Helmet>
-        <title>{blog.title} ,Tripician Travel Blog</title>
+        <title>{blog.title} - Tripician Travel Blog</title>
         <meta name="description" content={blog.description} />
         <link rel="canonical" href={`https://tripician.com/blog/${blog.slug}`} />
         <meta property="og:title" content={blog.title} />

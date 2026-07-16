@@ -335,7 +335,7 @@ const Community: React.FC = () => {
     }
   }, [activeView, fetchCrew]);
 
-  // Fetch published trips (public endpoint ,no auth required; token used only for personalised reactions later)
+  // Fetch published trips (public endpoint - no auth required; token used only for personalised reactions later)
   React.useEffect(() => {
     let active = true;
     setLoading(true);
@@ -376,7 +376,7 @@ const Community: React.FC = () => {
     return () => { active = false; };
   }, []);
 
-  // Filter logic ,default view ranks by community engagement so "Trending" is real
+  // Filter logic - default view ranks by community engagement so "Trending" is real
   const engagementScore = (t: any) =>
     (Number(t.likesCount ?? t.likes) || 0) + 2 * (Number(t.cloneCount) || 0);
 
@@ -398,7 +398,7 @@ const Community: React.FC = () => {
     return list;
   }, [trips, activeCategory, search]);
 
-  // Trip of the Day ,deterministic daily rotation so every visit feels fresh
+  // Trip of the Day - deterministic daily rotation so every visit feels fresh
   const tripOfTheDay = React.useMemo(() => {
     if (trips.length === 0) return null;
     const dayIndex = Math.floor(Date.now() / 86400000);
@@ -443,12 +443,12 @@ const Community: React.FC = () => {
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <Seo
         title="Discover Trips, Travelers & Itineraries"
-        description="Explore real travel itineraries published by the Tripician community ,trending journeys, travel companions, templates, and guides for your next adventure."
+        description="Explore real travel itineraries published by the Tripician community - trending journeys, travel companions, templates, and guides for your next adventure."
         path="/community"
         jsonLd={{
           '@context': 'https://schema.org',
           '@type': 'CollectionPage',
-          name: 'Tripician Community ,Trip Discovery',
+          name: 'Tripician Community - Trip Discovery',
           url: 'https://tripician.com/community',
           description: 'Real travel itineraries, trending journeys, and travel companions from the Tripician community.',
         }}
@@ -578,7 +578,7 @@ const Community: React.FC = () => {
                       title="No trips found"
                       description={isFiltering
                         ? 'Try different search terms or clear the filters to see every published journey.'
-                        : 'No published trips yet ,be the first to share an itinerary with the community.'}
+                        : 'No published trips yet - be the first to share an itinerary with the community.'}
                       actionLabel={isFiltering ? 'Clear filters' : 'Plan a trip'}
                       onAction={isFiltering
                         ? () => { setSearch(''); setActiveCategory('all'); }

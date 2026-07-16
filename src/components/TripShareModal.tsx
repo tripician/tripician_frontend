@@ -75,7 +75,7 @@ interface ShareButtonConfig {
   id: string;
   label: string;
   Icon: React.FC;
-  /** Color applied on hover ,MUI theme tokens like 'text.primary' are supported */
+  /** Color applied on hover - MUI theme tokens like 'text.primary' are supported */
   brandColor: string;
 }
 
@@ -327,7 +327,7 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
               key={btn.id}
               title={
                 isInstagram && igTooltip
-                  ? 'Image downloaded ,paste it on Instagram!'
+                  ? 'Image downloaded - paste it on Instagram!'
                   : isActive
                   ? 'Copied!'
                   : btn.label
@@ -368,7 +368,7 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
         })}
       </Box>
 
-      {/* Section: Link sharing toggle (owner only ,Google Drive style) */}
+      {/* Section: Link sharing toggle (owner only - Google Drive style) */}
       {isOwner && (
         <Box
           sx={{
@@ -390,7 +390,7 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
                 Anyone with the link can view
               </Typography>
               <Typography sx={{ fontSize: 11, color: 'text.secondary', fontFamily: "'Inter', system-ui, sans-serif", lineHeight: 1.4 }}>
-                {linkShareEnabled ? 'Link sharing is on ,anyone can see this trip' : 'Only trip members can access this link'}
+                {linkShareEnabled ? 'Link sharing is on - anyone can see this trip' : 'Only trip members can access this link'}
               </Typography>
             </Box>
           </Box>

@@ -2,7 +2,7 @@
  * SEO-friendly trip URLs: /trip/{name-slug}-{guid}
  *
  * The GUID always terminates the path segment, so any slug prefix is purely
- * decorative ,routing extracts the trailing GUID and old /trip/{guid} links
+ * decorative - routing extracts the trailing GUID and old /trip/{guid} links
  * keep working forever. Keep the slug logic in sync with
  * scripts/generate-sitemap.js so canonicals match sitemap URLs.
  */

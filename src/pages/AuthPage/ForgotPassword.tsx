@@ -36,7 +36,7 @@ const ForgotPassword = () => {
     try {
       await authAPI.forgotPassword(trimmedEmail);
     } catch {
-      // Intentionally swallowed ,backend always returns 200; treat any
+      // Intentionally swallowed - backend always returns 200; treat any
       // network error the same way to avoid leaking account existence.
     } finally {
       setLoading(false);

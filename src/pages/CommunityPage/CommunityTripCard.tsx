@@ -71,7 +71,7 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
         navigate(`/tripplanner/${newTripId}`);
       }
     } catch {
-      // silently ignore ,user stays on the page
+      // silently ignore - user stays on the page
     } finally {
       setCloneLoading(false);
     }

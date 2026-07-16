@@ -41,7 +41,9 @@ import {
   type TripChatMessage,
   type TripMember,
 } from './tripChatService';
-import { fetchTripCredits } from './naviaService';
+import { fetchTripCredits, type NaviaCreditBalance } from './naviaService';
+import CreditUsagePopover from './CreditUsagePopover';
+import NaviaOrb from './NaviaOrb';
 
 // ??? Constants ????????????????????????????????????????????????????????????????
 
@@ -83,25 +85,9 @@ const EVENT_LABELS: Record<string, { icon: string; label: (r: any) => string }> 
 
 // ??? Sub-components ???????????????????????????????????????????????????????????
 
-/** Navia logo mark */
-const NaviaLogo: React.FC<{ size?: number }> = () => (
-  <Box sx={{
-                          width: 38, height: 38,
-                          backdropFilter: 'blur(8px)',
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          flexShrink: 0,
-                        }}>
-                          <Box
-                            component="img"
-                            src="https://res.cloudinary.com/ddt3rcyhv/image/upload/v1780497710/ChatGPT_Image_Jun_3_2026_07_53_49_PM_ubsb8c.png"
-                            alt="Navia"
-                            sx={{
-                              width: 40,
-                              height: 40,
-                              display: 'block',
-                            }}
-                          />
-                        </Box>
+/** Navia logo mark - the glossy red orb; glows while Navia is processing */
+const NaviaLogo: React.FC<{ size?: number; processing?: boolean }> = ({ size = 28, processing = false }) => (
+  <NaviaOrb size={size} processing={processing} />
 );
 
 /** System change result row */
@@ -168,10 +154,10 @@ const ProposalBubble: React.FC<ProposalBubbleProps> = ({ msg, actionState, onAcc
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1.25 }}>
           {ops.map((op, i) => {
             const label = op.action === 'add_destination' ? `+ ${op.destination}`
-              : op.action === 'remove_destination' ? `? ${op.destination}`
-              : op.action === 'update_dates' ? `?? ${op.startDate ?? ''}${op.startDate && op.endDate ? ' ? ' : ''}${op.endDate ?? ''}`
-              : op.action === 'add_place' ? `?? ${op.place}`
-              : op.action === 'add_member' ? `?? ${op.memberName}`
+              : op.action === 'remove_destination' ? `− ${op.destination}`
+              : op.action === 'update_dates' ? `📅 ${op.startDate ?? ''}${op.startDate && op.endDate ? ' → ' : ''}${op.endDate ?? ''}`
+              : op.action === 'add_place' ? `📍 ${op.place}`
+              : op.action === 'add_member' ? `👤 ${op.memberName}`
               : op.action;
             return (
               <Chip
@@ -438,7 +424,9 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
   const [resolveErrors, setResolveErrors] = useState<Record<string, string>>({});
 
   // ── Trip credit balance (group wallet) ──
-  const [tripCredits, setTripCredits] = useState<number | null>(null);
+  const [tripWallet, setTripWallet] = useState<NaviaCreditBalance | null>(null);
+  const [creditAnchor, setCreditAnchor] = useState<HTMLElement | null>(null);
+  const tripCredits = tripWallet?.balance ?? null;
   const naviaSpendCountRef = useRef(0);
   useEffect(() => {
     if (!tripId || !token) return;
@@ -449,7 +437,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
     if (tripCredits !== null && naviaSpendCount === naviaSpendCountRef.current) return;
     naviaSpendCountRef.current = naviaSpendCount;
     fetchTripCredits(tripId, token)
-      .then(b => setTripCredits(b.balance))
+      .then(setTripWallet)
       .catch(() => { /* chip is best-effort */ });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripId, token, messages]);
@@ -587,7 +575,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
       const isMine = msg.userId != null && msg.userId === myUserId;
       const key = msg.id;
 
-      // "New messages" divider — marks where you left off
+      // "New messages" divider - marks where you left off
       if (firstUnreadIdx !== null && idx === firstUnreadIdx) {
         lastUserId = null;
         nodes.push(
@@ -695,7 +683,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
       overflow: 'hidden',
       position: 'relative',
     }}>
-      {/* Slim header — identity + live status */}
+      {/* Slim header - identity + live status */}
       <Box sx={(t) => ({
         px: 2, py: 1.1, flexShrink: 0,
         display: 'flex', alignItems: 'center', gap: 1,
@@ -710,19 +698,30 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
           </Typography>
         </Box>
         {tripCredits !== null && (
-          <Tooltip title="Trip Navia credits — a shared wallet the whole group spends from" arrow>
+          <Tooltip title="Trip credits — a shared wallet for the whole crew. Tap for details" arrow>
             <Chip
               label={`🪙 ${tripCredits}`}
               size="small"
+              onClick={(e) => setCreditAnchor(e.currentTarget)}
               sx={{
                 height: 22, fontSize: 11, fontWeight: 700, borderRadius: '7px', flexShrink: 0,
+                cursor: 'pointer',
                 bgcolor: tripCredits <= 10 ? 'rgba(239,68,68,0.10)' : 'rgba(255,56,92,0.08)',
                 color: tripCredits <= 10 ? '#ef4444' : '#FF385C',
                 border: `1px solid ${tripCredits <= 10 ? 'rgba(239,68,68,0.25)' : 'rgba(255,56,92,0.18)'}`,
+                '&:hover': { bgcolor: tripCredits <= 10 ? 'rgba(239,68,68,0.16)' : 'rgba(255,56,92,0.14)' },
               }}
             />
           </Tooltip>
         )}
+        <CreditUsagePopover
+          open={Boolean(creditAnchor)}
+          anchorEl={creditAnchor}
+          onClose={() => setCreditAnchor(null)}
+          wallet={tripWallet}
+          title="Trip credits"
+          subtitle="A shared wallet — every member's AI requests on this trip spend from it."
+        />
         <Tooltip title={statusLabel} arrow>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
             <FiberManualRecordIcon sx={{ fontSize: 9, color: statusColor }} />
@@ -771,22 +770,26 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
               sx={{ display: 'flex', alignItems: 'center', gap: 1, px: 2, pb: 1 }}
             >
               <Box sx={{
-                display: 'flex', alignItems: 'center', gap: 0.5,
+                display: 'flex', alignItems: 'center', gap: 0.75,
                 background: 'rgba(255,56,92,0.10)',
                 border: '1px solid rgba(255,56,92,0.18)',
                 borderRadius: '14px',
                 px: 1.5, py: 0.7,
               }}>
-                {[0, 1, 2].map(i => (
-                  <Box
-                    key={i}
-                    component={motion.span as React.ElementType}
-                    animate={{ y: [0, -4, 0] }}
-                    transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.15, ease: 'easeInOut' }}
-                    sx={{ width: 6, height: 6, borderRadius: '50%', background: '#FF385C', display: 'block' }}
-                  />
-                ))}
-                <Box component="span" sx={{ ml: 1, fontSize: '0.72rem', color: 'rgba(255,56,92,0.85)', fontWeight: 600, letterSpacing: 0.2 }}>
+                {naviaTyping ? (
+                  <NaviaOrb size={16} processing />
+                ) : (
+                  [0, 1, 2].map(i => (
+                    <Box
+                      key={i}
+                      component={motion.span as React.ElementType}
+                      animate={{ y: [0, -4, 0] }}
+                      transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.15, ease: 'easeInOut' }}
+                      sx={{ width: 6, height: 6, borderRadius: '50%', background: '#FF385C', display: 'block' }}
+                    />
+                  ))
+                )}
+                <Box component="span" sx={{ ml: 0.5, fontSize: '0.72rem', color: 'rgba(255,56,92,0.85)', fontWeight: 600, letterSpacing: 0.2 }}>
                   {naviaTyping
                     ? 'Navia is analysing...'
                     : typingUsers.length === 1

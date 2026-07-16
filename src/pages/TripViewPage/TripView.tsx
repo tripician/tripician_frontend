@@ -44,7 +44,7 @@ const TripView: React.FC = () => {
   const userLoading = useSelector((s:RootState)=> s.user.loading);
   const dispatch = useDispatch<AppDispatch>();
   React.useEffect(() => {
-    // Only attempt profile fetch when a token exists ,guests have no token so
+    // Only attempt profile fetch when a token exists - guests have no token so
     // dispatching would fail, set loading=false, and re-trigger the effect forever.
     const hasToken = !!token || !!localStorage.getItem('accessToken');
     if (hasToken && !userProfile && !userLoading) {
@@ -121,7 +121,7 @@ const TripView: React.FC = () => {
     rawTrip?.Privacy ||
     'private';
   const visibility = String(visibilityRaw || 'private').toLowerCase();
-  // 'readonly' = link-sharing enabled ,anyone with the link can view (not truly private)
+  // 'readonly' = link-sharing enabled - anyone with the link can view (not truly private)
   const isLinkShare = visibility === 'readonly';
   const isPrivate = !isLinkShare && visibility.startsWith('priv');
   const publishedRaw =
@@ -215,7 +215,7 @@ const TripView: React.FC = () => {
   const seoStart: string | undefined = tripRoot?.startDate || tripRoot?.StartDate || undefined;
   const seoEnd: string | undefined = tripRoot?.endDate || tripRoot?.EndDate || undefined;
   const seoDescription = (seoDescriptionRaw ||
-    `${seoName} ,a complete travel itinerary${seoCountries.length ? ` through ${seoCountries.slice(0, 3).join(', ')}` : ''} on Tripician. See the route, stops, and plan, then clone it for your own trip.`
+    `${seoName} - a complete travel itinerary${seoCountries.length ? ` through ${seoCountries.slice(0, 3).join(', ')}` : ''} on Tripician. See the route, stops, and plan, then clone it for your own trip.`
   ).slice(0, 300);
   const canonicalPath = tripPath({ id: tripId, name: seoName });
   const tripJsonLd = isPublished ? {

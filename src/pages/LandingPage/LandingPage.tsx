@@ -15,7 +15,6 @@ import {
   Users,
   Star,
   Check,
-  Bot,
   Shield,
   Zap,
   Sparkles,
@@ -23,6 +22,7 @@ import {
 } from 'lucide-react';
 import '../../assets/css/LandingPage.css';
 import Seo, { SITE_URL } from '../../components/Seo';
+import NaviaOrb from '../../navia/NaviaOrb';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -41,9 +41,9 @@ const FEATURES = [
     accent: '#FF385C',
   },
   {
-    icon: <Bot size={26} />,
+    icon: <NaviaOrb size={26} />,
     title: "World's First Agentic Travel AI",
-    desc: 'Navia does more than answer questions. It reads your trip context, suggests edits, creates proposals, and helps your group turn chat into a living travel plan.',
+    desc: 'Give Navia a destination and it drafts the whole trip - route, stops, spots, and local food. Then it stays in the room: reading context, proposing edits, and applying what your group approves.',
     accent: '#FF385C',
   },
   {
@@ -54,26 +54,26 @@ const FEATURES = [
   },
   {
     icon: <Brain size={26} />,
-    title: 'Context-Aware Trip Intelligence',
-    desc: 'Get personalised suggestions tailored to your travel vibe, budget, dates, destinations, and group decisions.',
+    title: 'AI Plan Review',
+    desc: 'Before you fly, Navia reviews your plan like a seasoned tour designer - a readiness score, overpacked days, routing detours, and the quick wins that fix them.',
     accent: '#007ddc',
   },
   {
     icon: <Map size={26} />,
     title: 'Interactive Maps',
-    desc: 'Visualise your entire journey on a live map. Pin destinations, draw routes, and explore at a glance ,solo or with your group.',
+    desc: 'Visualise your entire journey on a live map. Pin destinations, draw routes, and explore at a glance - solo or with your group.',
     accent: '#008bbd',
   },
   {
     icon: <Compass size={26} />,
     title: 'Day-by-Day Planner',
-    desc: 'Organise every day with destinations, stays, activities, and notes. Optimise your route with one click ,then publish your trip so others can discover it.',
+    desc: 'Organise every day with destinations, stays, activities, and notes. Optimise your route with one click - then publish your trip so others can discover it.',
     accent: '#29587a',
   },
   {
     icon: <Zap size={26} />,
-    title: 'Packing Lists',
-    desc: 'Build smart packing lists directly inside your trip. Check items off as you pack, customise by destination, and never forget essentials again.',
+    title: 'Budgets, Split Expenses & Packing',
+    desc: 'Set a trip budget, log shared costs, and settle up with the fewest transfers possible. Packing lists live right inside the trip, so nothing gets left behind.',
     accent: '#7c3aed',
   },
 ];
@@ -82,13 +82,13 @@ const STEPS = [
   {
     num: '01',
     title: 'Set your travel vibe',
-    desc: 'Define your travel personality ,culture seeker, adventure junkie, spiritual explorer, luxury traveler. Your vibe shapes every trip and person you discover.',
+    desc: 'Define your travel personality - culture seeker, adventure junkie, spiritual explorer, luxury traveler. Your vibe shapes every trip and person you discover.',
     tag: 'Your identity',
   },
   {
     num: '02',
     title: 'Let Navia draft the plan',
-    desc: "Use the world's first Agentic Travel AI to turn one prompt into a day-by-day itinerary, route ideas, budget-aware suggestions, and editable trip proposals.",
+    desc: 'Name a destination and the world\'s first Agentic Travel AI drafts the rest - a day-by-day route, must-see spots, local food, and notes - ready for you to make your own.',
     tag: 'Agentic AI',
   },
   {
@@ -100,7 +100,7 @@ const STEPS = [
   {
     num: '04',
     title: 'Travel with confidence',
-    desc: 'Hit the road with your itinerary, packing list, and live risk monitoring at your fingertips. Solo, duo, or full crew ,everything in one place, exactly how you planned it.',
+    desc: "Run Navia's plan review for a final readiness score, then hit the road with your itinerary, shared budget, packing list, and live risk monitoring in your pocket.",
     tag: 'Real trips',
   },
 ];
@@ -139,7 +139,7 @@ const SHOWCASE = [
 const REVIEWS = [
   {
     quote:
-      'I always traveled alone because nobody I knew shared my travel style. Tripician matched me with three people planning the exact same Japan trip. We went together last spring ,best decision I ever made.',
+      'I always traveled alone because nobody I knew shared my travel style. Tripician matched me with three people planning the exact same Japan trip. We went together last spring - best decision I ever made.',
     name: 'Priya K.',
     place: 'Found her tribe · Japan 🗾',
     rating: 5,
@@ -202,7 +202,7 @@ function AgentDemoWidget() {
         <span className="lp-agent-window__dot" style={{ background: '#ff5f57' }} />
         <span className="lp-agent-window__dot" style={{ background: '#febc2e' }} />
         <span className="lp-agent-window__dot" style={{ background: '#28c840' }} />
-        <span className="lp-agent-window__title"><Sparkles size={11} /> Navia - Agentic Travel AI</span>
+        <span className="lp-agent-window__title"><NaviaOrb size={12} /> Navia - Agentic Travel AI</span>
       </div>
       <div className="lp-agent-window__body">
         {AGENT_STEPS.map((step, i) => (
@@ -215,13 +215,13 @@ function AgentDemoWidget() {
             )}
             {step.type === 'done' && (
               <div className="lp-agent-bubble lp-agent-bubble--ai">
-                <span className="lp-agent-avatar lp-agent-avatar--n">N</span>
+                <span className="lp-agent-avatar" style={{ background: 'transparent' }}><NaviaOrb size={22} /></span>
                 <span>{step.text}</span>
               </div>
             )}
             {step.type === 'think' && (
               <div className="lp-agent-bubble lp-agent-bubble--think">
-                <span className="lp-agent-avatar lp-agent-avatar--n">N</span>
+                <span className="lp-agent-avatar" style={{ background: 'transparent' }}><NaviaOrb size={22} /></span>
                 <span className="lp-agent-dots"><span /><span /><span /></span>
                 <span style={{ opacity: .7, fontSize: 12 }}>{step.text}</span>
               </div>
@@ -229,10 +229,10 @@ function AgentDemoWidget() {
             {step.type === 'proposal' && (
               <div className={`lp-agent-proposal${visible > i + 1 ? ' lp-agent-proposal--accepted' : ''}`}>
                 <div className="lp-agent-proposal__row">
-                  <span className="lp-agent-avatar lp-agent-avatar--n">N</span>
+                  <span className="lp-agent-avatar" style={{ background: 'transparent' }}><NaviaOrb size={22} /></span>
                   <div className="lp-agent-proposal__card">
                     <div className="lp-agent-proposal__head">
-                      <Sparkles size={14} />
+                      <NaviaOrb size={14} />
                       Navia Suggestion
                     </div>
                     <p>{step.text}</p>
@@ -275,23 +275,27 @@ function AgentDemoWidget() {
 const LP_FAQS = [
   {
     q: 'What exactly is Tripician?',
-    a: "Tripician is a travel planning and community platform. You can build detailed trip itineraries, track expenses, manage packing lists, monitor travel risks, and connect with travellers who share your travel vibe. We are not a travel agency ,we don't book flights or accommodation.",
+    a: "Tripician is a travel planning and community platform powered by Navia, our agentic travel AI. Build detailed itineraries - or let Navia draft and review them - plan with your crew in a shared trip chat, track group expenses, manage packing lists, monitor travel risks, and connect with travellers who share your travel vibe. We are not a travel agency - we don't book flights or accommodation.",
   },
   {
     q: 'Is Tripician free?',
-    a: 'Yes. Tripician is completely free to use. We may introduce optional premium features in the future, but core trip planning and community features will always remain free.',
+    a: 'Yes - planning, community, and collaboration are free. Navia AI runs on included credits: every traveler starts with 300 personal credits and each trip gets its own shared 300-credit wallet, enough for roughly a month of regular AI use. Top-up options are on the way, but the core planner will always stay free.',
+  },
+  {
+    q: 'What can Navia AI actually do?',
+    a: 'Navia is an agentic travel AI, not a chatbot. It drafts complete itineraries from a single destination, plans individual stops with spots and local food, joins your trip group chat where @navia turns requests into proposals your crew can accept or dismiss, writes your trip description, and reviews your finished plan with a readiness score, issues, and quick wins.',
   },
   {
     q: 'What is "vibe matching"?',
-    a: 'Every traveller and trip on Tripician is tagged with a travel personality ,Adventure, Culture, Luxury, Spiritual, Urban, Scenic, or Romantic. Vibe matching surfaces trips, groups, and community members whose style fits yours, so you stop scrolling and start connecting.',
+    a: 'Every traveller and trip on Tripician is tagged with a travel personality - Adventure, Culture, Luxury, Spiritual, Urban, Scenic, or Romantic. Vibe matching surfaces trips, groups, and community members whose style fits yours, so you stop scrolling and start connecting.',
   },
   {
     q: 'Can I plan a trip with friends or family?',
-    a: 'Absolutely. You can collaborate on any trip ,invite co-planners, build the itinerary together, split expenses, and share notes in real time.',
+    a: 'Absolutely. Invite co-planners to any trip, build the itinerary together in real time, chat in the shared trip discussion, split group expenses with minimal-transfer settle-up, and let Navia mediate the "where next" debates.',
   },
   {
     q: 'How does the Risk Monitor work?',
-    a: "Our Risk Monitor aggregates publicly available safety and travel advisories for destination countries. This is for general awareness only ,always verify with your government's official travel advisory before making decisions.",
+    a: "Our Risk Monitor aggregates publicly available safety and travel advisories for destination countries. This is for general awareness only - always verify with your government's official travel advisory before making decisions.",
   },
   {
     q: 'Is my data safe?',
@@ -375,7 +379,7 @@ export default function LandingPage() {
   const { isAuthenticated, isLoading } = useAuth0();
   const heroImageUrl = import.meta.env.VITE_LANDING_HERO_IMAGE_URL as string | undefined;
 
-  // Redirect authenticated users ,no spinner, page renders immediately for Googlebot
+  // Redirect authenticated users - no spinner, page renders immediately for Googlebot
   useEffect(() => {
     if (!isLoading && isAuthenticated) {
       navigate('/home', { replace: true });
@@ -480,7 +484,7 @@ export default function LandingPage() {
       gsap.to('.lp-hero__orb--2', { y: 22,  x: -14, repeat: -1, yoyo: true, duration: 11, ease: 'sine.inOut', delay: 2 });
       gsap.to('.lp-hero__orb--3', { y: -18, x:  8,  repeat: -1, yoyo: true, duration: 7.5, ease: 'sine.inOut', delay: 4 });
 
-      /* Kala lotus ,entrance transition then infinite wheel roll */
+      /* Kala lotus - entrance transition then infinite wheel roll */
       gsap.set('.lp-hero__kala-lotus', { opacity: 0, scale: 0.4, rotation: -30, transformOrigin: '50% 50%' });
       gsap.timeline({
         onComplete: () => {
@@ -628,8 +632,8 @@ export default function LandingPage() {
   return (
     <div className="lp-root">
       <Seo
-        title="Tripician ,AI-Powered Travel Planner & Trip Builder"
-        description="Plan your perfect trip with Tripician. AI itineraries, collaborative planning, group budgets, travel risk monitoring, and a global community of travelers."
+        title="Tripician - AI-Powered Travel Planner & Trip Builder"
+        description="Plan your perfect trip with Tripician. AI-drafted itineraries, expert plan reviews, collaborative group planning, split expenses, travel risk monitoring, and a global community of travelers."
         path="/"
         jsonLd={[
           {
@@ -687,7 +691,7 @@ export default function LandingPage() {
 
       {/*  HERO  */}
       <section className="lp-hero" id="lp-main-content">
-      {/* Kala lotus ,top-left corner watermark, slow wheel spin */}
+      {/* Kala lotus - top-left corner watermark, slow wheel spin */}
         <div className="lp-hero__kala-lotus" style={{ position: 'absolute', top: -320, left: -300, zIndex: 1, pointerEvents: 'none' }}>
           <KalaLotus size={920} color="#FF6B8A" opacity={0.07} />
         </div>
@@ -702,7 +706,7 @@ export default function LandingPage() {
           <div className="lp-hero__left">
             <span className="lp-hero__eyebrow">
               <span className="lp-hero__eyebrow-dot" aria-hidden="true" />
-              <Bot size={13} aria-hidden="true" /> WORLD'S FIRST AGENTIC TRAVEL AI
+              <NaviaOrb size={13} /> WORLD'S FIRST AGENTIC TRAVEL AI
             </span>
 
             <h1 className="lp-hero__title">
@@ -719,10 +723,10 @@ export default function LandingPage() {
             
 
             <div className="lp-hero__cta-group">
-              <button className="lp-btn lp-btn--hero-primary" onClick={() => navigate('/signup')} aria-label="Start your journey ,create an account">
+              <button className="lp-btn lp-btn--hero-primary" onClick={() => navigate('/signup')} aria-label="Start your journey - create an account">
                 Start Your Journey <ArrowRight size={17} aria-hidden="true" />
               </button>
-              <button className="lp-btn lp-btn--hero-ghost lp-btn--hide-mobile" onClick={() => navigate('/signin')} aria-label="Welcome back ,sign in">
+              <button className="lp-btn lp-btn--hero-ghost lp-btn--hide-mobile" onClick={() => navigate('/signin')} aria-label="Welcome back - sign in">
                 Welcome back
               </button>
               {showInstallBtn && (
@@ -811,7 +815,7 @@ export default function LandingPage() {
             <div className="lp-trust-bar__stars" aria-label="5 out of 5 stars">
               {Array.from({ length: 5 }).map((_, i) => <Star key={i} size={14} fill="currentColor" aria-hidden="true" />)}
             </div>
-            <span>"Best travel community I've found" ,rated <strong>4.9/5</strong></span>
+            <span>"Best travel community I've found" - rated <strong>4.9/5</strong></span>
           </div>
           <div className="lp-trust-bar__item">
             <Shield size={18} className="lp-trust-bar__shield" aria-hidden="true" />
@@ -832,10 +836,11 @@ export default function LandingPage() {
               Most travel AI gives you a list of suggestions. Navia <em>acts inside your planner</em> - joining the group chat, reading trip context, proposing itinerary changes, and helping your crew make decisions together.
             </p>
             <ul className="lp-ai-agent__bullets">
-              <li><Bot size={15} /> Summon @navia directly in trip group chat</li>
+              <li><NaviaOrb size={15} /> Summon @navia directly in trip group chat</li>
               <li><Users size={15} /> Turns crew preferences into shared trip proposals</li>
-              <li><Shield size={15} /> Integrated live risk &amp; weather monitoring</li>
               <li><Zap size={15} /> Applies accepted changes to the live itinerary</li>
+              <li><Brain size={15} /> Reviews your finished plan - score, issues &amp; quick wins</li>
+              <li><Shield size={15} /> Integrated live risk &amp; weather monitoring</li>
             </ul>
             <button className="lp-btn lp-btn--hero-primary" onClick={() => navigate('/signup')}>
               Try Navia for Free <ArrowRight size={16} />
@@ -877,7 +882,7 @@ export default function LandingPage() {
           <span className="lp-section-eyebrow">Everything you need</span>
           <h2 className="lp-section-title">Built around your travel personality</h2>
           <p className="lp-section-sub">
-            From solo explorers to group adventures ,every feature is designed around who you are as a traveler, not just where you're going.
+            From solo explorers to group adventures - every feature is designed around who you are as a traveler, not just where you're going.
           </p>
         </div>
         <div className="lp-features__grid">
@@ -968,13 +973,13 @@ export default function LandingPage() {
               <div className="lp-bento-agent-msg lp-bento-agent-msg--user">@navia adjust Fuji day for the group</div>
               <div className="lp-bento-agent-msg lp-bento-agent-msg--ai">Proposal ready: safer route + slower pace</div>
             </div>
-            <span className="lp-bento-card__deco-icon" aria-hidden="true"><Bot size={100} /></span>
+            <span className="lp-bento-card__deco-icon" aria-hidden="true"><NaviaOrb size={100} /></span>
           </div>
           {/* Vibe Matching - blue/accent, span 3 */}
           <div className="lp-bento-card lp-bento-card--collab">
             <span className="lp-bento-card__tag" style={{ background: 'rgba(255,56,92,0.18)', color: '#FF385C', borderColor: 'rgba(255,56,92,0.35)' }}>Signature Feature</span>
             <h3>Vibe Matching</h3>
-            <p>Every plan, group, and profile is tagged with a travel personality. Culture seekers find culture seekers ,you never compromise your experience again.</p>
+            <p>Every plan, group, and profile is tagged with a travel personality. Culture seekers find culture seekers - you never compromise your experience again.</p>
             <div className="lp-bento-collab-row">
               <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap' }}>
                 <span style={{ fontSize: 11, padding: '4px 11px', borderRadius: 20, background: '#FF385C', color: '#fff', fontWeight: 700 }}>🎭 Culture</span>
@@ -1049,7 +1054,7 @@ export default function LandingPage() {
           </h2>
           <p className="lp-risk-preview__desc">
             Our Travel Risk Monitor watches breaking news, severe weather, border closures,
-            flight strikes, and currency volatility ,all automatically cross-referenced
+            flight strikes, and currency volatility - all automatically cross-referenced
             against every destination in your active trip.
           </p>
           <div className="lp-risk-preview__rows">
@@ -1108,7 +1113,7 @@ export default function LandingPage() {
             Find your travel tribe.<br /><em>Or create your own.</em>
           </h2>
           <p className="lp-cta__sub">
-            Join Tripician free. Solo explorer, duo, or full crew ,plan your next trip
+            Join Tripician free. Solo explorer, duo, or full crew - plan your next trip
             exactly the way you travel, with tools built for the way you actually move.
           </p>
           <div className="lp-cta__actions">
@@ -1124,7 +1129,7 @@ export default function LandingPage() {
         </div>
         <div className="lp-cta__orb lp-cta__orb--1" />
         <div className="lp-cta__orb lp-cta__orb--2" />
-        {/* Indian kala geometric ,bottom-left */}
+        {/* Indian kala geometric - bottom-left */}
         <KalaGeometric size={480} color="#FF385C" opacity={0.06} style={{ position: 'absolute', bottom: -130, right: -110 }} />
         </section>
 

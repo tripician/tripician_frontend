@@ -18,8 +18,7 @@ import { flagEmojiFromName, flagPngUrl, countryCodeFromName, COUNTRY_NAMES } fro
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { generateTripBrief, NaviaRequestError } from '../../navia/naviaService';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
-import { CircularProgress } from '@mui/material';
+import NaviaOrb from '../../navia/NaviaOrb';
 
 /*  Vibe cards  */
 const VIBES = [
@@ -108,7 +107,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
     return () => { cancelled = true; };
   }, [bannerUrl, countries?.[0]]);
 
-  // "Write with Navia" — AI-drafted trip description (costs 1 trip credit)
+  // "Write with Navia" - AI-drafted trip description (costs 1 trip credit)
   const [briefLoading, setBriefLoading] = React.useState(false);
   const [briefError, setBriefError] = React.useState('');
   const handleWriteWithNavia = React.useCallback(async () => {
@@ -593,9 +592,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                               '&:hover': { opacity: briefLoading ? 1 : 0.75 },
                             }}
                           >
-                            {briefLoading
-                              ? <CircularProgress size={11} sx={{ color: 'inherit' }} />
-                              : <AutoAwesomeIcon sx={{ fontSize: 13 }} />}
+                            <NaviaOrb size={13} processing={briefLoading} />
                             {briefLoading ? 'Writing…' : 'Write with Navia'}
                           </Box>
                         </Tooltip>
@@ -713,7 +710,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
             {/* ══ VIBE ══ */}
             {tab === 'vibe' && (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
-                <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', fontFamily: "'Inter', sans-serif", mb: 0.5 }}>Pick the vibe that best captures this trip ,or leave it open.</Typography>
+                <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', fontFamily: "'Inter', sans-serif", mb: 0.5 }}>Pick the vibe that best captures this trip - or leave it open.</Typography>
 
                 {/* Active vibe banner */}
                 {vibe && activeVibeData && (

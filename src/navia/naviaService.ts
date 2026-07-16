@@ -1,12 +1,12 @@
-// naviaService.ts ,SSE streaming client for Navia AI
+// naviaService.ts - SSE streaming client for Navia AI
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 function errorMessageForStatus(status: number): string {
   if (status === 401 || status === 403) return 'Please sign in to use Navia.';
   if (status === 400) return '⚠️ Navia needs a bit more context to help you. Try opening a trip and chatting from there!';
-  if (status === 402) return '🪙 Out of Navia credits! A top-up option is coming soon.';
+  if (status === 402) return "You've used all your Navia credits. Top-ups are on the way — see Settings → Credits for your balance and usage.";
   if (status === 404) return 'z z z z z... 💤\n\nNavia is sleeping right now. Come back a little later and I\'ll be ready to plan your next adventure!';
-  if (status === 429) return '⏳ Navia needs a breather — you\'ve hit the hourly limit. Try again in a little while!';
+  if (status === 429) return '⏳ Navia needs a breather - you\'ve hit the hourly limit. Try again in a little while!';
   if (status >= 500) return '😵 Navia bumped into something on the server. Give it a moment and try again!';
   return '🤔 Hmm, something went sideways. Try again in a sec!';
 }
@@ -67,7 +67,7 @@ export async function* streamNaviaResponse(
       body: JSON.stringify(body),
     });
   } catch {
-    yield "📡 Whoops! Can't find Navia ,looks like she wandered off the network. Check your connection and try again!";
+    yield "📡 Whoops! Can't find Navia - looks like she wandered off the network. Check your connection and try again!";
     return;
   }
 
@@ -79,7 +79,7 @@ export async function* streamNaviaResponse(
   }
 
   if (!response.body) {
-    yield '🫙 Navia sent back an empty reply ,like an empty suitcase. Try again!';
+    yield '🫙 Navia sent back an empty reply - like an empty suitcase. Try again!';
     return;
   }
 
@@ -162,7 +162,7 @@ export interface PlanDestinationRequest {
 }
 
 /**
- * Structured JSON plan for one destination stop (spots, foods, journal ,no lodging).
+ * Structured JSON plan for one destination stop (spots, foods, journal - no lodging).
  */
 /** Error carrying the HTTP status so callers can special-case 402 (credits) and 429 (rate limit). */
 export class NaviaRequestError extends Error {
@@ -241,6 +241,70 @@ export async function generateTripBrief(
   return postNaviaJson<TripBriefResult>('/api/navia/trip-brief', { tripId }, token);
 }
 
+// ─── Chat → trip (one-click conversion from the home chat) ──────────────────
+
+export interface ChatTripSpot {
+  name: string;
+  description: string;
+}
+
+export interface ChatTripStop {
+  name: string;
+  nights: number;
+  spots: ChatTripSpot[];
+  foods: string[];
+  notes: string;
+}
+
+export interface ChatTripExtract {
+  name: string;
+  countries: string[];
+  vibe: string | null;
+  stops: ChatTripStop[];
+}
+
+/**
+ * Turns a plan from the Navia chat into structured trip data (free — the chat
+ * that produced the plan already cost credits).
+ */
+export async function extractTripFromChat(
+  planText: string,
+  userPrompt: string | undefined,
+  token?: string | null,
+): Promise<ChatTripExtract> {
+  return postNaviaJson<ChatTripExtract>('/api/navia/chat-to-trip', { planText, userPrompt }, token);
+}
+
+// ─── Plan review (whole-plan AI feedback) ───────────────────────────────────
+
+export interface PlanReviewIssue {
+  severity: 'high' | 'medium' | 'low';
+  category: string;
+  title: string;
+  detail: string;
+  suggestion: string;
+}
+
+export interface PlanReviewResult {
+  score: number;
+  verdict: string;
+  strengths: string[];
+  issues: PlanReviewIssue[];
+  quickWins: string[];
+}
+
+/**
+ * Detailed AI review of the current plan (2 trip credits).
+ * planSummary is a compact client-built snapshot so unsaved edits count too.
+ */
+export async function reviewTripPlan(
+  tripId: string,
+  planSummary: string,
+  token?: string | null,
+): Promise<PlanReviewResult> {
+  return postNaviaJson<PlanReviewResult>('/api/navia/plan-review', { tripId, planSummary }, token);
+}
+
 // ─── Credits ────────────────────────────────────────────────────────────────
 
 export interface NaviaCreditBalance {
@@ -273,3 +337,56 @@ export async function fetchTripCredits(tripId: string, token?: string | null): P
   const data = await getNaviaJson<{ success: boolean; data: NaviaCreditBalance }>(`/api/navia/credits/trip/${tripId}`, token);
   return data.data;
 }
+
+/** One ledger row: positive delta = grant/refund, negative = spend. */
+export interface NaviaCreditHistoryEntry {
+  delta: number;
+  action: string;
+  createdAt: string;
+}
+
+export interface NaviaCreditHistory {
+  wallet: NaviaCreditBalance;
+  entries: NaviaCreditHistoryEntry[];
+}
+
+/** Personal wallet balance + recent activity, newest first. */
+export async function fetchMyCreditHistory(token?: string | null, limit = 50): Promise<NaviaCreditHistory> {
+  const data = await getNaviaJson<{ success: boolean; data: NaviaCreditHistory }>(
+    `/api/navia/credits/me/history?limit=${limit}`, token);
+  return data.data;
+}
+
+/** Human labels for ledger actions (mirrors backend action keys). */
+export const CREDIT_ACTION_LABELS: Record<string, string> = {
+  general_chat: 'Navia chat',
+  trip_chat: 'Trip chat',
+  trip_agent_mention: '@navia proposal',
+  plan_destination: 'Destination plan',
+  suggest_itinerary: 'Route suggestion',
+  trip_brief: 'Trip brief',
+  plan_review: 'AI plan review',
+  trial_grant: 'Welcome credits',
+  refund_general_chat: 'Refund · Navia chat',
+  refund_trip_chat: 'Refund · trip chat',
+  refund_plan_destination: 'Refund · destination plan',
+  refund_suggest_itinerary: 'Refund · route suggestion',
+  refund_trip_brief: 'Refund · trip brief',
+  refund_plan_review: 'Refund · AI plan review',
+};
+
+export function creditActionLabel(action: string): string {
+  return CREDIT_ACTION_LABELS[action]
+    ?? action.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+}
+
+/** What credits buy (mirrors backend NaviaCreditCosts). */
+export const CREDIT_PRICES: { label: string; cost: number; wallet: 'personal' | 'trip' }[] = [
+  { label: 'Navia chat message', cost: 1, wallet: 'personal' },
+  { label: 'Trip chat message', cost: 1, wallet: 'trip' },
+  { label: '@navia proposal in trip chat', cost: 2, wallet: 'trip' },
+  { label: 'AI destination plan', cost: 2, wallet: 'trip' },
+  { label: 'AI route suggestion', cost: 2, wallet: 'trip' },
+  { label: 'AI trip brief', cost: 1, wallet: 'trip' },
+  { label: 'AI plan review', cost: 2, wallet: 'trip' },
+];

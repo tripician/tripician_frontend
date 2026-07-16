@@ -23,9 +23,9 @@ import { tripPath } from '../../utils/tripSlug';
 const Dashboard: React.FC = () => {
   const demoDataEnabled = import.meta.env.DEV || String(import.meta.env.VITE_ENABLE_DEMO_DATA || '').toLowerCase() === 'true';
   const formatRelativeTime = (dateStr?: string) => {
-    if (!dateStr) return '—';
+    if (!dateStr) return '-';
     const then = new Date(dateStr).getTime();
-    if (isNaN(then)) return '—';
+    if (isNaN(then)) return '-';
     const now = Date.now();
     const diffMs = Math.max(0, now - then);
     const sec = Math.floor(diffMs / 1000);
@@ -195,7 +195,7 @@ const Dashboard: React.FC = () => {
   useEffect(() => {
     let active = true;
     const fetchTrips = async () => {
-      if (authLoading) return; // auth still resolving ,wait before fetching
+      if (authLoading) return; // auth still resolving - wait before fetching
       if(!token) { setLoading(false); return; } // not authenticated
       setLoading(true);
       setError(null);
@@ -206,7 +206,7 @@ const Dashboard: React.FC = () => {
         if(active){
           setAllPlans(mapped);
           setPlans(mapped);
-          // Kick off Unsplash fetches immediately ,runs concurrently with state flush,
+          // Kick off Unsplash fetches immediately - runs concurrently with state flush,
           // so images arrive with minimal extra delay (or instantly from localStorage cache).
           const tripsNeedingImage = mapped.filter((p: any) => !p.image && p.countries?.[0]);
           if (tripsNeedingImage.length > 0) {
@@ -395,7 +395,7 @@ const Dashboard: React.FC = () => {
                 Trips
               </Typography>
               <Typography sx={{ mt: 1, fontSize: 15, color: 'text.secondary' }}>
-                Everything you're planning, sharing, and saving ,in one place.
+                Every journey you're dreaming, drafting, and sharing - all in one place.
               </Typography>
             </Box>
             <Button variant="contained" startIcon={<IconPlus size={16} />} onClick={() => setCreateTripOpen(true)} sx={{ flexShrink: 0 }}>
@@ -489,7 +489,7 @@ const Dashboard: React.FC = () => {
               }
             />
 
-            {/* Map container ,fixed height, clipped */}
+            {/* Map container - fixed height, clipped */}
             <Box sx={{
               borderRadius: '16px',
               overflow: 'hidden',
@@ -556,13 +556,13 @@ const Dashboard: React.FC = () => {
               <Box sx={{ gridColumn: '1 / -1', minHeight: '50vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                 <EmptyState
                   icon={IconMapPlus}
-                  title={tabValue === 4 ? 'No saved trips yet' : tabValue === 2 ? 'Nothing shared with you yet' : 'Your adventure awaits'}
+                  title={tabValue === 4 ? 'No saved trips yet' : tabValue === 2 ? 'Nothing shared with you yet' : 'Your next story starts here'}
                   description={
                     tabValue === 4
                       ? 'Trips you bookmark from the community will live here for quick access.'
                       : tabValue === 2
                         ? 'When friends invite you to plan together, their trips will show up here.'
-                        : "Start building your itinerary and make every journey unforgettable."
+                        : 'All it takes is a destination — Navia and your crew handle the rest.'
                   }
                   actionLabel={tabValue === 4 || tabValue === 2 ? 'Explore community trips' : 'Plan your first trip'}
                   onAction={tabValue === 4 || tabValue === 2 ? () => navigate('/community') : () => setCreateTripOpen(true)}

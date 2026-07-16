@@ -40,7 +40,7 @@ const PrivacyPage: React.FC = () => {
       content: (
         <>
           <P><strong>Account Information:</strong> When you register, we collect your first name, last name, and email address. You may optionally provide a profile picture.</P>
-          <P><strong>Trip Data:</strong> All content you create within the Service ,including trip names, destination details, travel dates, day-by-day itineraries, expense records, packing lists, notes, and any files you choose to upload.</P>
+          <P><strong>Trip Data:</strong> All content you create within the Service - including trip names, destination details, travel dates, day-by-day itineraries, expense records, packing lists, notes, and any files you choose to upload.</P>
           <P><strong>Usage Data:</strong> Information about how you interact with the Service, such as features used, pages visited, session timestamps, and error events.</P>
           <P><strong>Technical Data:</strong> Your IP address, browser type and version, operating system, device type, and referring URL, collected automatically when you access the Service.</P>
           <P><strong>Authentication Data:</strong> Login sessions and authentication tokens managed by Auth0, Inc. We do not store your raw password at any point.</P>
@@ -90,9 +90,9 @@ const PrivacyPage: React.FC = () => {
           <P><strong>We do not sell, trade, or rent your personal information to any third party.</strong></P>
           <P>We share data with trusted third-party processors solely to operate the Service:</P>
           <Ul items={[
-            <><strong>Auth0, Inc.</strong> ,manages user authentication. Your email and authentication credentials are processed under Auth0's Privacy Policy and a Data Processing Agreement.</>,
-            <><strong>Unsplash Inc.</strong> ,provides destination photographs via its API. No personal data is shared with Unsplash. Image URLs are cached in your browser's local storage for performance only.</>,
-            <><strong>Infrastructure & Hosting Providers</strong> ,our servers are hosted on third-party cloud infrastructure. Providers process data on our behalf under Data Processing Agreements and are contractually required to protect your data.</>,
+            <><strong>Auth0, Inc.</strong> - manages user authentication. Your email and authentication credentials are processed under Auth0's Privacy Policy and a Data Processing Agreement.</>,
+            <><strong>Unsplash Inc.</strong> - provides destination photographs via its API. No personal data is shared with Unsplash. Image URLs are cached in your browser's local storage for performance only.</>,
+            <><strong>Infrastructure & Hosting Providers</strong> - our servers are hosted on third-party cloud infrastructure. Providers process data on our behalf under Data Processing Agreements and are contractually required to protect your data.</>,
           ]} />
           <P><strong>Legal Disclosure:</strong> We may disclose your information if required by law, court order, or government authority. Where legally permitted, we will notify you before doing so.</P>
         </>
@@ -145,7 +145,7 @@ const PrivacyPage: React.FC = () => {
       title: '8. International Data Transfers',
       content: (
         <>
-          <P>If you are located in the EEA or UK and your data is transferred to countries outside those regions (for example, to our infrastructure or authentication providers), we ensure that appropriate safeguards are in place ,such as Standard Contractual Clauses (SCCs) approved by the European Commission, or equivalent mechanisms compliant with applicable transfer rules.</P>
+          <P>If you are located in the EEA or UK and your data is transferred to countries outside those regions (for example, to our infrastructure or authentication providers), we ensure that appropriate safeguards are in place - such as Standard Contractual Clauses (SCCs) approved by the European Commission, or equivalent mechanisms compliant with applicable transfer rules.</P>
         </>
       ),
     },
@@ -225,7 +225,7 @@ const PrivacyPage: React.FC = () => {
 
       <Container maxWidth="lg" sx={{ py: { xs: 5, md: 7 } }}>
         <Box sx={{ display: 'flex', gap: { xs: 0, md: 5 }, alignItems: 'flex-start' }}>
-          {/* TOC ,desktop only */}
+          {/* TOC - desktop only */}
           <Box sx={{ display: { xs: 'none', md: 'block' }, width: 210, flexShrink: 0, position: 'sticky', top: 72 }}>
             <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#aaa', letterSpacing: '0.1em', textTransform: 'uppercase', mb: 2 }}>Contents</Typography>
             {sections.map((s) => (

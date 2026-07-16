@@ -3,14 +3,14 @@ import { Box, Typography } from '@mui/material';
 
 interface BadgeProps {
   text: string;
-  /** Dot + badge color ,defaults to green (#22c55e) */
+  /** Dot + badge color - defaults to green (#22c55e) */
   color?: string;
   textColor?: string;
   bgAlpha?: string;
 }
 
 interface PageHeaderProps {
-  /** Tabler (or any) icon component ,rendered at 28px in brand color */
+  /** Tabler (or any) icon component - rendered at 28px in brand color */
   Icon: React.ElementType;
   title: string;
   subtitle: string;
@@ -18,7 +18,7 @@ interface PageHeaderProps {
   badge?: BadgeProps;
   /** CSS transform override for the icon, e.g. 'rotate(-8deg)' */
   iconTransform?: string;
-  /** Margin-bottom ,defaults to 3 */
+  /** Margin-bottom - defaults to 3 */
   mb?: number | string;
 }
 

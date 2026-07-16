@@ -4,7 +4,7 @@ import { motion } from 'framer-motion';
 import { IconBroadcast, IconMapPin, IconShare2, IconTrash } from '@tabler/icons-react';
 import ImageBadge from '../../components/ui/ImageBadge';
 
-// Deterministic avatar colour from name/id ,cycles through a warm palette
+// Deterministic avatar colour from name/id - cycles through a warm palette
 const AVATAR_COLORS = ['#FF385C', '#0EA5E9', '#0FA968', '#F59E0B', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
 const avatarColor = (seed: string) => {
   let h = 0;

@@ -8,7 +8,7 @@ export interface TripShareData {
   error: string | null;
   shareText: string;
   tripUrl: string;
-  /** Raw blob ,use for downloading */
+  /** Raw blob - use for downloading */
   cardBlob: Blob | null;
 }
 

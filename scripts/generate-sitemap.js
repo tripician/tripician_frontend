@@ -44,7 +44,7 @@ const blogUrls = blogs.map((blog) =>
 );
 
 /**
- * Published community trips are Tripician's largest organic-search surface —
+ * Published community trips are Tripician's largest organic-search surface -
  * each becomes an indexable itinerary landing page. Fetched from the public
  * API at build time; skipped gracefully when the API is unreachable (e.g.
  * offline CI) so the build never breaks.

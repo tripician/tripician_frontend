@@ -90,7 +90,7 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
 
         {/* Left Section - Search or Logo */}
         <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', pr: 2, gap: 1 }}>
-          {/* Burger ,mobile/tablet only */}
+          {/* Burger - mobile/tablet only */}
           <IconButton
             size="small"
             onClick={() => window.dispatchEvent(new CustomEvent('nav:toggleMobile'))}
@@ -216,7 +216,7 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
             </Box>
           </Tooltip>
             </>
-          ) : null /* auth loading ,render nothing */}
+          ) : null /* auth loading - render nothing */}
         </Box>
       </Box>
 
@@ -249,10 +249,10 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 5, px: 3, gap: 1.5 }}>
           <NotificationsOffOutlinedIcon sx={{ fontSize: 38, color: 'text.disabled' }} />
           <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: '0.875rem', color: 'text.secondary' }}>
-            No notifications
+            All quiet on the horizon
           </Typography>
           <Typography sx={{ fontFamily: "'Inter',sans-serif", fontSize: '0.78rem', color: 'text.disabled', textAlign: 'center' }}>
-            You're all caught up! Check back later.
+            Followers, invites & trip updates will land here.
           </Typography>
         </Box>
       </Popover>

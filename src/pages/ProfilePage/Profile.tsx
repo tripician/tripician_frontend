@@ -17,8 +17,10 @@ import {
   IconLink,
   IconLogout,
   IconMail,
+  IconMap,
   IconMapPin,
   IconMoon,
+  IconSparkles,
   IconPhone,
   IconPlus,
   IconRoute,
@@ -39,7 +41,7 @@ import { staggerContainer, staggerItem, tabContent } from '../../utils/animation
 
 const CONTENT_MAX = 1200;
 
-// Default banner fetched once from Unsplash ,personalized by the user's location
+// Default banner fetched once from Unsplash - personalized by the user's location
 const _defaultBannerCache: Record<string, string> = {};
 
 async function loadDefaultBanner(place: string): Promise<string | null> {
@@ -160,6 +162,23 @@ const SideCard: React.FC<{ title: string; children: React.ReactNode }> = ({ titl
   );
 };
 
+// Bio highlights store feather-style icon NAMES ("heart", "map-pin") - they must
+// be mapped to real icon components or the raw name renders as text.
+const HIGHLIGHT_ICONS: Record<string, React.ElementType> = {
+  heart: IconHeart,
+  map: IconMap,
+  'map-pin': IconMapPin,
+};
+
+const HighlightIcon: React.FC<{ icon?: string }> = ({ icon }) => {
+  const name = (icon || '').trim();
+  const Mapped = HIGHLIGHT_ICONS[name.toLowerCase()];
+  if (Mapped) return <Mapped size={17} stroke={1.8} />;
+  // Emoji (or any non-ASCII glyph) stored directly is fine to render as text.
+  if (name && /[^\x20-\x7E]/.test(name)) return <>{name}</>;
+  return <IconSparkles size={17} stroke={1.8} />;
+};
+
 const DetailRow: React.FC<{ Icon: React.ElementType; label: string; value?: string | null }> = ({ Icon, label, value }) => {
   const theme = useTheme();
   if (!value?.trim()) return null;
@@ -226,7 +245,7 @@ const Profile: React.FC = () => {
         const resp = await apiServices.getVibePassport(token);
         if (!active) return;
         setVibePassport(resp.data);
-      } catch { /* silent ,optional enrichment */ }
+      } catch { /* silent - optional enrichment */ }
     })();
     return () => { active = false; };
   }, [token]);
@@ -319,7 +338,7 @@ const Profile: React.FC = () => {
     {
       icon: IconArchive,
       title: 'Nothing archived yet',
-      description: 'Old trips you tuck away will appear here ,your travel memory vault.',
+      description: 'Old trips you tuck away will appear here - your travel memory vault.',
       actionLabel: 'View my plans',
       onAction: () => setActiveTab(0),
     },
@@ -589,7 +608,9 @@ const Profile: React.FC = () => {
                   <SideCard title="Highlights">
                     {profile.bio!.highlights.map((h: any, i: number) => (
                       <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.25, py: 0.75 }}>
-                        <Box sx={{ fontSize: 17, lineHeight: 1, flexShrink: 0 }}>{h.icon}</Box>
+                        <Box sx={{ fontSize: 17, lineHeight: 1, flexShrink: 0, display: 'flex', alignItems: 'center', color: 'primary.main' }}>
+                          <HighlightIcon icon={h.icon} />
+                        </Box>
                         <Box sx={{ minWidth: 0 }}>
                           <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.08em', lineHeight: 1.3 }}>
                             {h.label}

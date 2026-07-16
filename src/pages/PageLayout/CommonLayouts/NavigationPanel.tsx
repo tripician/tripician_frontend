@@ -6,7 +6,7 @@ import type { RootState, AppDispatch } from '../../../store';
 import { fetchUserProfile } from '../../../store/userSlice';
 import { Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
 import TripCreationModal from '../../../components/CreateTripComponents/TripCreationModal';
-import ChatAssistant from '../../../components/CommonComponents/ChatAssistant';
+import SupportWidget from '../../../components/CommonComponents/SupportWidget';
 import AppShellHeader from './AppShellHeader';
 import AppBottomNav from './AppBottomNav';
 import { AppShellProvider } from '../AppShellContext';
@@ -29,8 +29,9 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
 
   const plannerMatch = useMatch('/tripplanner/:tripId');
   const activeTripId = plannerMatch?.params.tripId;
-  const hideFloatingNavia = useMemo(
-    () => Boolean(activeTripId) || location.pathname.startsWith('/tripplanner/') || location.pathname === '/navia',
+  // The planner has its own dense UI; everywhere else the support widget floats quietly.
+  const hideSupportWidget = useMemo(
+    () => Boolean(activeTripId) || location.pathname.startsWith('/tripplanner/'),
     [activeTripId, location.pathname],
   );
 
@@ -107,7 +108,7 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
         </Drawer>
 
         <TripCreationModal open={createTripOpen} onClose={() => setCreateTripOpen(false)} />
-        {!hideFloatingNavia && <ChatAssistant tripId={activeTripId} />}
+        {!hideSupportWidget && <SupportWidget />}
       </Box>
     </AppShellProvider>
   );

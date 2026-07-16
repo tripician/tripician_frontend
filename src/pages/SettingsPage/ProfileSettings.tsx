@@ -121,7 +121,7 @@ const ProfileSettings: React.FC = () => {
             >
               {!profilePicture && (fname?.[0]?.toUpperCase() || 'U')}
             </Avatar>
-            {/* Hidden file picker ,accepts jpg/png/webp up to 5 MB */}
+            {/* Hidden file picker - accepts jpg/png/webp up to 5 MB */}
             <input
               ref={fileInputRef}
               type="file"
@@ -183,7 +183,7 @@ const ProfileSettings: React.FC = () => {
                     throw new Error(`Cloudinary upload failed: ${errBody}`);
                   }
 
-                  // 3. Persist the URL to DB (non-fatal ,endpoint may not exist yet)
+                  // 3. Persist the URL to DB (non-fatal - endpoint may not exist yet)
                   const newUrl = `${uploadData.fileUrl}?v=${uploadData.timestamp}`;
                   try {
                     await apiServices.saveProfilePictureUrl(authToken, uploadData.fileUrl);
@@ -238,7 +238,7 @@ const ProfileSettings: React.FC = () => {
                   setIsRemovingPhoto(true);
                   setError(null);
                   try {
-                    // DELETE /api/uploads/profile-photo/{userId} ,removes from Cloudinary + clears DB
+                    // DELETE /api/uploads/profile-photo/{userId} - removes from Cloudinary + clears DB
                     await apiServices.removeProfilePhoto(authToken, Number(userId));
 
                     setProfilePicture(null);

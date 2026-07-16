@@ -8,7 +8,7 @@ import type { PlannerExpense } from '../../store/plannerSlice';
 
 /**
  * Group expense intelligence: who paid, who owes, and how to settle with the
- * fewest transfers ,plus a category breakdown of overall spend.
+ * fewest transfers - plus a category breakdown of overall spend.
  * Pure client-side math over the planner's expense list.
  */
 
@@ -57,7 +57,7 @@ export function computeBalances(
     splitTotal += e.amount;
     const payerId = resolvePayer(e.paidByUserId, myUserId);
     // Payments by someone no longer in the group still count toward everyone's share,
-    // but can't be settled ,attribute them to the closest known member if possible.
+    // but can't be settled - attribute them to the closest known member if possible.
     const payer = balances.get(payerId) ?? (byId.has(payerId) ? balances.get(payerId) : undefined);
     if (payer) payer.paid += e.amount;
     const perHead = e.amount / members.length;
@@ -137,7 +137,7 @@ export const GroupBalancesDialog: React.FC<GroupBalancesDialogProps> = ({
             </Box>
             <Typography sx={{ fontWeight: 700 }}>It's just you so far</Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary', maxWidth: 320 }}>
-              Invite your travel crew and every shared expense will be split automatically ,we'll track who owes whom.
+              Invite your travel crew and every shared expense will be split automatically - we'll track who owes whom.
             </Typography>
             {onInvite && (
               <Button variant="contained" size="small" onClick={() => { onClose(); onInvite(); }} sx={{ mt: 1 }}>
@@ -219,7 +219,7 @@ export const GroupBalancesDialog: React.FC<GroupBalancesDialogProps> = ({
             )}
             {settlements.length === 0 && splitTotal > 0 && (
               <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 650, textAlign: 'center' }}>
-                All settled ,nobody owes anything. 🎉
+                All settled - nobody owes anything. 🎉
               </Typography>
             )}
           </>

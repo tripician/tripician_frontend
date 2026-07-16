@@ -1,6 +1,6 @@
 import React from "react";
 import { Box } from "@mui/material";
-import { User, Bell, Shield, Globe } from "lucide-react";
+import { User, Bell, Shield, Globe, Coins } from "lucide-react";
 import { motion } from 'framer-motion';
 
 interface SettingsTopNavProps {
@@ -13,6 +13,7 @@ const NAV_ITEMS = [
   { value: 'notifications', label: 'Notifications', Icon: Bell   },
   { value: 'privacy',       label: 'Privacy',       Icon: Shield },
   { value: 'preferences',   label: 'Preferences',   Icon: Globe  },
+  { value: 'credits',       label: 'Credits',       Icon: Coins  },
 ];
 
 const SettingsTopNav: React.FC<SettingsTopNavProps> = ({ selectedSettingsMenuItem, onChange }) => (

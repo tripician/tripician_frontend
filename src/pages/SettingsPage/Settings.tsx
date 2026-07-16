@@ -1,15 +1,28 @@
 import React, { useState } from 'react';
 import { Box, Typography } from '@mui/material';
+import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import ProfileSettings from './ProfileSettings';
 import SettingsTopNav from './SettingsTopNav';
 import NotificationsSettings from './NotificationsSettings';
 import PrivacySettings from './PrivacySettings';
 import PreferencesSettings from './PreferencesSettings';
+import CreditsSettings from './CreditsSettings';
 import { staggerContainer, staggerItem, tabContent } from '../../utils/animations';
 
+// Deep-linkable tabs, e.g. /settings?tab=credits from the credit usage balloon.
+const TAB_FROM_PARAM: Record<string, string> = {
+  profile: 'Profile',
+  notifications: 'Notifications',
+  privacy: 'Privacy',
+  preferences: 'Preferences',
+  credits: 'Credits',
+};
+
 const Settings: React.FC = () => {
-  const [selectedSettingsMenuItem, setSelectedSettingsMenuItem] = useState('Profile');
+  const [searchParams] = useSearchParams();
+  const initialTab = TAB_FROM_PARAM[(searchParams.get('tab') || '').toLowerCase()] || 'Profile';
+  const [selectedSettingsMenuItem, setSelectedSettingsMenuItem] = useState(initialTab);
 
   return (
     <Box sx={{ width: '100%', backgroundColor: 'background.default', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>
@@ -44,7 +57,7 @@ const Settings: React.FC = () => {
             Settings
           </Typography>
           <Typography sx={{ fontSize: '0.8rem', color: 'text.disabled', mb: { xs: 2, md: 3.5 }, fontFamily: "'Inter', sans-serif" }}>
-            Manage your account
+            Make Tripician yours
           </Typography>
           <SettingsTopNav
             selectedSettingsMenuItem={selectedSettingsMenuItem}
@@ -68,6 +81,7 @@ const Settings: React.FC = () => {
               {selectedSettingsMenuItem === 'Notifications' && <NotificationsSettings />}
               {selectedSettingsMenuItem === 'Privacy'       && <PrivacySettings />}
               {selectedSettingsMenuItem === 'Preferences'   && <PreferencesSettings />}
+              {selectedSettingsMenuItem === 'Credits'       && <CreditsSettings />}
             </motion.div>
           </AnimatePresence>
         </Box>

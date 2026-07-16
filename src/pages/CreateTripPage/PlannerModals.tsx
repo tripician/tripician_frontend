@@ -399,7 +399,7 @@ export const StaySheet: React.FC<StaySheetProps> = ({
             <HotelIcon sx={{ fontSize: 32, color: '#6366f1', opacity: 0.5, mb: 1 }} />
             <Typography sx={{ fontSize: 14, fontWeight: 600, mb: 0.5 }}>Where are you staying?</Typography>
             <Typography sx={{ fontSize: 12, color: 'text.secondary', lineHeight: 1.5 }}>
-              Hotel, hostel, Airbnb ,add booking details so everything lives in one plan.
+              Hotel, hostel, Airbnb - add booking details so everything lives in one plan.
             </Typography>
           </Box>
         )}

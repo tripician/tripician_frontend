@@ -27,7 +27,7 @@ import CloseIcon from '@mui/icons-material/Close';
 import NotesIcon from '@mui/icons-material/Notes';
 import DestinationCard from './DestinationCard';
 import { DiscoverSheet, StaySheet } from './PlannerModals';
-import { useDispatch, useSelector } from 'react-redux';
+import { useDispatch, useSelector, useStore } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import {
   addDestination, removeDestination, duplicateDestination, toggleDestinationCompleted, setDestinationCategory, renameDestination, setDestinationTitle,
@@ -104,6 +104,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
   onRequestNaviaTip, onNaviaToast,
 }) => {
   const dispatch = useDispatch<AppDispatch>();
+  const store = useStore<RootState>();
   const destinations = useSelector((s:RootState)=> s.planner.destinations);
 
   const handlePlanDestination = React.useCallback(async (destinationId: string) => {
@@ -125,11 +126,23 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
         vibe: tripVibe ?? undefined,
       }, authToken);
 
-      dispatch(clearDestinationDiscover({ destinationId }));
+      // A save/refresh during the AI call may have re-hydrated Redux with server
+      // ids. Re-resolve the stop from fresh state (by id, then by name) so the
+      // dispatches below never target an orphaned id and silently vanish.
+      const fresh = store.getState().planner.destinations;
+      const liveDest = fresh.find(d => d.id === destinationId)
+        ?? fresh.find(d => d.name === dest.name);
+      if (!liveDest) {
+        onNaviaToast?.('error', `${dest.name} is no longer in your plan, so Navia's ideas had nowhere to land.`);
+        return;
+      }
+      const liveId = liveDest.id;
+
+      dispatch(clearDestinationDiscover({ destinationId: liveId }));
       for (const spot of result.spots ?? []) {
         if (!spot.name?.trim()) continue;
         dispatch(addSpot({
-          destinationId,
+          destinationId: liveId,
           name: spot.name.trim(),
           description: spot.description?.trim(),
           known: true,
@@ -137,10 +150,10 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
       }
       for (const food of result.foods ?? []) {
         if (!food.name?.trim()) continue;
-        dispatch(addFoodItem({ destinationId, name: food.name.trim() }));
+        dispatch(addFoodItem({ destinationId: liveId, name: food.name.trim() }));
       }
       const notes = (result.journalNotes ?? '').trim();
-      if (notes) dispatch(setDestinationNotes({ id: destinationId, notes }));
+      if (notes) dispatch(setDestinationNotes({ id: liveId, notes }));
       onNaviaToast?.('success', `Navia planned ${dest.name}`);
     } catch (err) {
       if (err instanceof NaviaRequestError && err.status === 402) {
@@ -151,7 +164,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
     } finally {
       window.dispatchEvent(new CustomEvent('navia:response'));
     }
-  }, [destinations, tripId, authToken, tripVibe, dispatch, onNaviaToast]);
+  }, [destinations, tripId, authToken, tripVibe, dispatch, onNaviaToast, store]);
   // completedCount removed with Timeline header
   /* Load Google Maps SDK once on mount so Places autocomplete works independently of MapPanel */
   React.useEffect(() => {
@@ -380,6 +393,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
   const [activeDragId, setActiveDragId] = React.useState<string | null>(null);
   const handleDragEnd = React.useCallback((event: DragEndEvent) => {
     setActiveDragId(null);
+    if (readOnly) return; // viewers can never reorder
     const { active, over } = event;
     if (!over || active.id === over.id) return;
     const ids = destinations.map(d => d.id);
@@ -388,7 +402,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
     if (oldIndex === -1 || newIndex === -1) return;
     const newIds = arrayMove(ids, oldIndex, newIndex);
     dispatch(reorderChainExact({ ids: newIds }));
-  }, [destinations, dispatch]);
+  }, [destinations, dispatch, readOnly]);
 
   /*  Completion signals (Feature 3)  */
   const completionSignals = React.useMemo(() => {
@@ -474,7 +488,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
             {/* 1px vertical divider */}
             <Box sx={(t) => ({ width: '1px', alignSelf: 'stretch', flexShrink: 0, bgcolor: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)' })} />
 
-            {/* Stepper ,absolute track line + evenly spaced circles */}
+            {/* Stepper - absolute track line + evenly spaced circles */}
             <Box sx={{ flex: 1, minWidth: 0, position: 'relative', pt: { xs: 0.5, sm: 0.75 }, pb: { xs: 0.25, sm: 0.5 } }}>
               {/* Grey track */}
               <Box sx={(t) => ({
@@ -526,7 +540,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                           </Typography>
                         )}
                       </Box>
-                      {/* Label ,hidden on xs */}
+                      {/* Label - hidden on xs */}
                       <Typography sx={{
                         display: { xs: 'none', sm: 'block' },
                         fontSize: 9.5, fontWeight: isDone ? 700 : 500, textAlign: 'center', lineHeight: 1.25,
@@ -602,7 +616,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                           <DestinationCard
                             destination={d}
                             isDragging={isDragging}
-                            dragHandleProps={dragHandleProps}
+                            dragHandleProps={readOnly ? undefined : dragHandleProps}
                             checklist={checklists[d.id]}
                             onChecklistChange={handleChecklistChange}
                             onRename={readOnly ? undefined : (id, name) => dispatch(renameDestination({ id, name }))}
@@ -653,7 +667,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
           {!readOnly && (
             <>
               {ghostSearchOpen ? (
-                /* Inline search input ,replaces ghost card */
+                /* Inline search input - replaces ghost card */
                 <Box sx={{ position: 'relative', mt: 1, ml: '36px' }}>
                   <Paper elevation={0} sx={(t) => ({
                     display: 'flex', alignItems: 'center', gap: 1, pl: 1.5, pr: 0.75, py: 0.65,

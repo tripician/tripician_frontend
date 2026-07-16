@@ -11,14 +11,14 @@ function lsGet(key: string): string | null {
   try { return localStorage.getItem(LS_PREFIX + key); } catch { return null; }
 }
 function lsSet(key: string, value: string): void {
-  try { localStorage.setItem(LS_PREFIX + key, value); } catch { /* quota exceeded ,skip silently */ }
+  try { localStorage.setItem(LS_PREFIX + key, value); } catch { /* quota exceeded - skip silently */ }
 }
 
 export async function fetchUnsplashImage(query: string): Promise<string | null> {
   if (!UNSPLASH_ACCESS_KEY || !query) return null;
   const key = query.trim().toLowerCase();
 
-  // 1. Memory cache (fastest ,same session)
+  // 1. Memory cache (fastest - same session)
   if (imageCache.has(key)) return imageCache.get(key)!;
 
   // 2. localStorage cache (instant on subsequent page loads)

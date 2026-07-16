@@ -2,7 +2,7 @@ import React from 'react';
 import { useParams, useLocation, Navigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { resetPlanner } from '../../store/plannerSlice';
-import TripPlanner from './TripPlanner';
+import TripPlanner, { type ChatSeedStop } from './TripPlanner';
 
 interface TripPlannerRouteLocationState {
   tripId?: string;
@@ -13,6 +13,7 @@ interface TripPlannerRouteLocationState {
   isMember?: boolean;
   canEdit?: boolean;
   aiGenerated?: boolean; // flag: navigate from "Generate with AI" flow
+  chatSeed?: { stops: ChatSeedStop[] }; // extracted plan from the Navia home chat
 }
 
 const TripPlannerRoute: React.FC = () => {
@@ -27,6 +28,7 @@ const TripPlannerRoute: React.FC = () => {
   const derivedIsOwner = stateMatches && typeof state.isOwner === 'boolean' ? state.isOwner : undefined;
   const derivedCanEdit = stateMatches && typeof state.canEdit === 'boolean' ? state.canEdit : undefined;
   const derivedAiGenerated = stateMatches ? !!state.aiGenerated : false;
+  const derivedChatSeed = stateMatches && state.chatSeed?.stops?.length ? state.chatSeed : undefined;
 
   // Proactive planner reset when navigating to a new trip (route-level) before TripPlanner mounts.
   // This complements internal mismatch detection and ensures no stale itinerary flashes.
@@ -51,6 +53,7 @@ const TripPlannerRoute: React.FC = () => {
       isExternalNonOwner={false}
       effectiveCanEdit={derivedCanEdit ?? true}
       aiGenerated={derivedAiGenerated}
+      chatSeed={derivedChatSeed}
     />
   );
 };

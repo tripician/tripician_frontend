@@ -82,7 +82,7 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
     return flat;
   };
 
-  // Fetch comments from backend — works for guests too (published trips are public)
+  // Fetch comments from backend - works for guests too (published trips are public)
   React.useEffect(() => {
     if (!tripId) { setLoadingComments(false); return; }
     let active = true;
@@ -211,7 +211,7 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
         <Chip size='small' label={`${sorted.length} comment${sorted.length===1?'':'s'}`} sx={{ fontWeight:500, fontSize:12, bgcolor:(t)=> t.palette.mode==='dark'? '#1d2731':'#f3f4f6' }} />
       </Box>
       <Typography sx={{ maxWidth:900, width:'100%', mx:'auto', fontSize:11.5, color:'text.secondary', mb:1.5 }}>
-        Public ,visible to everyone who can see this trip
+        Public - visible to everyone who can see this trip
       </Typography>
       <Box ref={scrollRef} onScroll={handleScroll} sx={{ flex:1, overflowY:'auto', pb:4 }}>
         <Box sx={{ maxWidth:900, width:'100%', mx:'auto', display:'flex', flexDirection:'column', gap:4 }}>

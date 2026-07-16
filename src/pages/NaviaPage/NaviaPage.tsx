@@ -8,15 +8,21 @@ import {
   useTheme,
   Button,
   Tooltip,
+  Snackbar,
 } from '@mui/material';
-import { IconBrain, IconSend, IconTrash, IconSparkles, IconPlus, IconCoins } from '@tabler/icons-react';
+import { useNavigate } from 'react-router-dom';
+import { IconSend, IconTrash, IconSparkles, IconPlus, IconCoins } from '@tabler/icons-react';
 import { useNavia } from '../../navia/useNavia';
-import { fetchMyCredits } from '../../navia/naviaService';
+import { fetchMyCredits, extractTripFromChat, type NaviaCreditBalance } from '../../navia/naviaService';
+import CreditUsagePopover from '../../navia/CreditUsagePopover';
 import NaviaMessage from '../../navia/NaviaMessage';
+import NaviaOrb from '../../navia/NaviaOrb';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { useAppShell } from '../PageLayout/AppShellContext';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
+import { apiServices } from '../../services/APIs/apiServices';
+import { matchCountryName } from '../../utils/countries';
 
 const STARTERS = [
   'Plan a 7-day trip to Japan for two people',
@@ -42,13 +48,15 @@ const NaviaPage: React.FC = () => {
   const greetingName = profile?.fname?.trim();
 
   // Personal Navia credit balance (separate from any trip's group wallet).
-  const [credits, setCredits] = useState<number | null>(null);
+  const [wallet, setWallet] = useState<NaviaCreditBalance | null>(null);
+  const [creditAnchor, setCreditAnchor] = useState<HTMLElement | null>(null);
   useEffect(() => {
     if (!token || isStreaming) return;
     fetchMyCredits(token)
-      .then((b) => setCredits(b.balance))
+      .then(setWallet)
       .catch(() => { /* chip is best-effort */ });
   }, [token, isStreaming]);
+  const credits = wallet?.balance ?? null;
 
   // Auto-scroll to bottom when messages update
   useEffect(() => {
@@ -82,6 +90,63 @@ const NaviaPage: React.FC = () => {
 
   const isEmpty = messages.length === 0;
 
+  // ── One-click chat → trip ────────────────────────────────────────────────
+  // Navia extracts the plan into structured data, the trip is created, and the
+  // planner opens with everything seeded. Fallback: the blank creation modal.
+  const [creatingTrip, setCreatingTrip] = useState(false);
+  const [toast, setToast] = useState<string | null>(null);
+  const navigate = useNavigate();
+
+  const handleCreateFromChat = useCallback(async () => {
+    if (!token || !lastNaviaMsg || creatingTrip) return;
+    setCreatingTrip(true);
+    try {
+      // The user message that produced this plan gives the extractor context.
+      const planIdx = messages.findIndex((m) => m.id === lastNaviaMsg.id);
+      const userPrompt = messages
+        .slice(0, Math.max(planIdx, 0))
+        .reverse()
+        .find((m) => m.role === 'user')?.content;
+
+      const extracted = await extractTripFromChat(lastNaviaMsg.content, userPrompt, token);
+      const countries = Array.from(new Set(
+        extracted.countries.map(matchCountryName).filter(Boolean),
+      ));
+      if (countries.length === 0 && extracted.stops.length === 0) {
+        throw new Error('Nothing usable extracted');
+      }
+
+      const name = extracted.name?.trim()
+        || (countries.length > 0 ? `Trip to ${countries[0]}` : 'My Navia Trip');
+
+      const createResp = await apiServices.createTrip(token, {
+        name,
+        description: '',
+        countries,
+        startDate: null,
+        endDate: null,
+        visibility: 0,
+        currencyCode: 'USD',
+        vibe: extracted.vibe ?? null,
+        invites: [] as string[],
+      });
+      const createdId: string | undefined =
+        createResp?.data?.id || createResp?.data?.Id || createResp?.data?.tripId;
+      if (!createdId) throw new Error('Trip created but no id returned');
+
+      const tripResp = await apiServices.getTripById(token, createdId);
+      navigate(`/tripplanner/${createdId}`, {
+        state: { tripId: createdId, trip: tripResp.data, chatSeed: { stops: extracted.stops } },
+      });
+      // No state reset needed: navigation unmounts this page.
+    } catch (err) {
+      console.error('[NaviaPage] chat-to-trip failed', err);
+      setCreatingTrip(false);
+      setToast("Couldn't turn this chat into a trip — starting a fresh one.");
+      openCreateTrip();
+    }
+  }, [token, lastNaviaMsg, creatingTrip, messages, navigate, openCreateTrip]);
+
   return (
     <Box
       sx={{
@@ -107,52 +172,49 @@ const NaviaPage: React.FC = () => {
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <Box
-            sx={{
-              width: 40,
-              height: 40,
-              borderRadius: '12px',
-              background: 'linear-gradient(135deg,#FF385C 0%,#D91A50 100%)',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              boxShadow: '0 6px 20px rgba(255,56,92,0.30)',
-              flexShrink: 0,
-            }}
-          >
-            <IconBrain size={22} color="#fff" stroke={1.6} />
-          </Box>
+          <NaviaOrb size={40} processing={isStreaming} />
           <Box>
             <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 800, fontSize: '1.1rem', lineHeight: 1.2 }}>
               Navia
             </Typography>
             <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', fontFamily: "'Inter',sans-serif" }}>
-              AI travel companion ,general chat
+              Your AI travel companion
             </Typography>
           </Box>
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           {credits !== null && (
-            <Tooltip title="Your personal Navia credits — each message costs 1 credit" arrow>
+            <Tooltip title="Your personal credits — tap for details" arrow>
               <Chip
                 icon={<IconCoins size={13} />}
                 label={credits}
                 size="small"
+                onClick={(e) => setCreditAnchor(e.currentTarget)}
                 sx={{
                   height: 24,
                   fontSize: '0.72rem',
                   fontWeight: 700,
                   fontFamily: "'Inter',sans-serif",
                   borderRadius: '8px',
+                  cursor: 'pointer',
                   bgcolor: credits <= 10 ? 'rgba(239,68,68,0.10)' : 'rgba(255,56,92,0.07)',
                   color: credits <= 10 ? '#ef4444' : '#FF385C',
                   border: `1px solid ${credits <= 10 ? 'rgba(239,68,68,0.25)' : 'rgba(255,56,92,0.18)'}`,
                   '& .MuiChip-icon': { color: 'inherit' },
+                  '&:hover': { bgcolor: credits <= 10 ? 'rgba(239,68,68,0.16)' : 'rgba(255,56,92,0.12)' },
                 }}
               />
             </Tooltip>
           )}
+          <CreditUsagePopover
+            open={Boolean(creditAnchor)}
+            anchorEl={creditAnchor}
+            onClose={() => setCreditAnchor(null)}
+            wallet={wallet}
+            title="Personal credits"
+            subtitle="Powers your one-on-one chat with Navia."
+          />
         {!isEmpty && (
           <Tooltip title="Clear conversation" arrow>
             <IconButton
@@ -186,7 +248,7 @@ const NaviaPage: React.FC = () => {
         }}
       >
         {isEmpty ? (
-          /* Empty state ,welcome + starters */
+          /* Empty state - welcome + starters */
           <Box
             sx={{
               display: 'flex',
@@ -217,8 +279,8 @@ const NaviaPage: React.FC = () => {
                 maxWidth: 420,
               }}
             >
-              Ask Navia anything ,destinations, itineraries, budgets, vibes. I'll turn your
-              conversation into a real trip plan.
+              Destinations, itineraries, budgets, hidden gems — ask away, and watch the
+              conversation become a real trip.
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center', maxWidth: 560 }}>
               {STARTERS.map((s) => (
@@ -253,14 +315,15 @@ const NaviaPage: React.FC = () => {
               <NaviaMessage key={msg.id} message={msg} isLight={isLight} />
             ))}
 
-            {/* Create Trip CTA ,shown after any trip-plan-like response */}
+            {/* Create Trip CTA - shown after any trip-plan-like response */}
             {showCreateTrip && (
               <Box sx={{ display: 'flex', justifyContent: 'flex-start', pl: { xs: 0, md: 0 }, pb: 1 }}>
                 <Button
-                  onClick={openCreateTrip}
+                  onClick={handleCreateFromChat}
+                  disabled={creatingTrip}
                   variant="contained"
                   size="small"
-                  startIcon={<IconPlus size={15} />}
+                  startIcon={creatingTrip ? <NaviaOrb size={15} processing /> : <IconPlus size={15} />}
                   sx={{
                     mt: 0.5,
                     ml: '52px',
@@ -278,7 +341,7 @@ const NaviaPage: React.FC = () => {
                     },
                   }}
                 >
-                  Create this trip
+                  {creatingTrip ? 'Building your trip…' : 'Create this trip'}
                 </Button>
               </Box>
             )}
@@ -393,6 +456,14 @@ const NaviaPage: React.FC = () => {
           Navia can make mistakes. Always verify travel details before booking.
         </Typography>
       </Box>
+
+      <Snackbar
+        open={toast !== null}
+        autoHideDuration={5000}
+        onClose={() => setToast(null)}
+        message={toast}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
     </Box>
   );
 };

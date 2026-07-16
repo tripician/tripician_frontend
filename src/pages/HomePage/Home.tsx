@@ -66,17 +66,17 @@ const avatarColor = (seed: string) => {
 };
 
 const TRAVEL_FACTS: { emoji: string; fact: string; source: string }[] = [
-  { emoji: '✈️', fact: 'There are 195 countries in the world. Most travellers visit only 3–5 in their lifetime ,every trip you take puts you ahead of the curve.', source: 'UN World Atlas' },
-  { emoji: '🌊', fact: 'The shortest international commercial flight is just 15 minutes ,linking St. Maarten to Anguilla. Blink and you miss it.', source: 'Aviation Records' },
-  { emoji: '🍽️', fact: 'Japan has more Michelin-starred restaurants than any other country ,more than France and the USA combined.', source: 'Michelin Guide 2024' },
+  { emoji: '✈️', fact: 'There are 195 countries in the world. Most travellers visit only 3–5 in their lifetime - every trip you take puts you ahead of the curve.', source: 'UN World Atlas' },
+  { emoji: '🌊', fact: 'The shortest international commercial flight is just 15 minutes - linking St. Maarten to Anguilla. Blink and you miss it.', source: 'Aviation Records' },
+  { emoji: '🍽️', fact: 'Japan has more Michelin-starred restaurants than any other country - more than France and the USA combined.', source: 'Michelin Guide 2024' },
   { emoji: '🏔️', fact: 'The Maldives sits just 1.5 meters above sea level, making it the lowest-lying country on Earth. Every visit is precious.', source: 'Geographic Survey' },
   { emoji: '🧳', fact: 'Iceland has zero native mosquitoes. Its volcanic geology creates conditions that keep the island naturally mosquito-free.', source: 'Entomology Reports' },
   { emoji: '🌏', fact: 'Singapore Changi Airport features a 40-meter indoor waterfall, a rooftop pool, and a butterfly garden. Even the transit is a destination.', source: 'Changi Airport Group' },
-  { emoji: '🗼', fact: 'France attracts over 90 million international tourists each year ,more visitors than there are residents in the country.', source: 'World Tourism Org' },
+  { emoji: '🗼', fact: 'France attracts over 90 million international tourists each year - more visitors than there are residents in the country.', source: 'World Tourism Org' },
   { emoji: '🚂', fact: 'The Trans-Siberian Railway spans 9,289 km across 8 time zones. The full journey end-to-end takes 7 days without stopping.', source: 'Russian Railways' },
-  { emoji: '🦁', fact: 'Finland has over 187,000 lakes ,more lakes per square kilometer than any other country in the world.', source: 'Finnish Atlas' },
+  { emoji: '🦁', fact: 'Finland has over 187,000 lakes - more lakes per square kilometer than any other country in the world.', source: 'Finnish Atlas' },
   { emoji: '🌅', fact: 'The Great Wall of China is NOT visible from space with the naked eye. This myth has been officially debunked by astronauts on the ISS.', source: 'NASA Records' },
-  { emoji: '🏝️', fact: "Norway's full coastline, including all fjords and islands, stretches over 100,000 km ,long enough to circle the Earth more than twice.", source: 'Norwegian Mapping Authority' },
+  { emoji: '🏝️', fact: "Norway's full coastline, including all fjords and islands, stretches over 100,000 km - long enough to circle the Earth more than twice.", source: 'Norwegian Mapping Authority' },
   { emoji: '🎌', fact: "Japan's Shinkansen bullet trains have an average delay of just 54 seconds per year. The most punctual railway system ever built.", source: 'JR East Statistics' },
 ];
 
@@ -366,7 +366,7 @@ const Home: React.FC = () => {
   };
 
   const motivationalQuotes = React.useMemo(() => ([
-    `"The world is waiting ,one trip at a time."`,
+    `"The world is waiting - one trip at a time."`,
     `"Adventure begins where comfort ends."`,
     `"Travel far enough, you meet yourself."`,
     `"Collect memories, not things."`,
@@ -501,7 +501,7 @@ const Home: React.FC = () => {
         overflow: 'hidden',
       }}
     >
-      {/* Indian kala lotus ,top-right page root, always visible */}
+      {/* Indian kala lotus - top-right page root, always visible */}
       <Box sx={{ display: { xs: 'none', md: 'block' }, position: 'absolute', top: -80, right: -80, zIndex: 0, pointerEvents: 'none' }}>
         <KalaLotus size={780} color="#FF6B8A" opacity={0.15} />
       </Box>
@@ -624,7 +624,7 @@ const Home: React.FC = () => {
                 };
 
                 const userId = userProfile?.id || userProfile?.email;
-                // /api/trips/public already returns only publicly-visible trips ,no need to filter again
+                // /api/trips/public already returns only publicly-visible trips - no need to filter again
                 const recommended = publicTrips.slice(0, 3);
                 const alsoCheckout = publicTrips.slice(3, 11);
 
@@ -1042,7 +1042,7 @@ const Home: React.FC = () => {
             position: 'relative',
             overflow: 'hidden',
           }}>
-            {/* Deep ambient glow ,top right */}
+            {/* Deep ambient glow - top right */}
             <Box sx={{
               position: 'absolute', top: -80, right: -80,
               width: 340, height: 340, borderRadius: '50%',
@@ -1292,7 +1292,7 @@ const Home: React.FC = () => {
 
       </Box>
 
-      {/* MAIN BODY ,users with upcoming trip still see community content */}
+      {/* MAIN BODY - users with upcoming trip still see community content */}
       {!userTripsLoading && nextUpcomingTrip && (
       <Box sx={{ 
         flex: 1, 
@@ -1405,7 +1405,7 @@ const Home: React.FC = () => {
               };
 
               const userId = userProfile?.id || userProfile?.email;
-              // /api/trips/public already returns only publicly-visible trips ,no need to filter again
+              // /api/trips/public already returns only publicly-visible trips - no need to filter again
               const recommended = publicTrips.slice(0, 3);
               const alsoCheckout = publicTrips.slice(3, 11);
 
@@ -1430,7 +1430,7 @@ const Home: React.FC = () => {
                       <Box sx={{ flex: 1, height: '1px', background: 'linear-gradient(to right, rgba(255,56,92,0.15), transparent)' }} />
                     </Box>
 
-                    {/* Uniform grid ,matches dashboard 5-col layout */}
+                    {/* Uniform grid - matches dashboard 5-col layout */}
                     <Box sx={{
                       display: 'grid',
                       gridTemplateColumns: { xs: '1fr 1fr', sm: 'repeat(3, 1fr)', md: 'repeat(4, 1fr)', lg: 'repeat(5, 1fr)' },

@@ -3,13 +3,13 @@ import {
   IconMap2,
   IconUsersGroup,
   IconRadar,
-  IconBrain,
   IconSparkles,
   IconRoute,
   IconCampfire,
   IconShieldBolt,
   IconUserCircle,
 } from '@tabler/icons-react';
+import NaviaOrbIcon from '../../navia/NaviaOrbIcon';
 
 export interface AppNavItem {
   id: string;
@@ -19,7 +19,7 @@ export interface AppNavItem {
   Icon: React.ElementType;
   /** Icon shown in page-level header blocks (28px, brand color) */
   PageHeaderIcon?: React.ElementType;
-  /** Tooltip text shown on hover ,shown in desktop nav */
+  /** Tooltip text shown on hover - shown in desktop nav */
   tooltip?: string;
   disabled?: boolean;
 }
@@ -46,9 +46,9 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     label: 'Navia',
     shortLabel: 'Navia',
     path: '/navia',
-    Icon: IconBrain,
+    Icon: NaviaOrbIcon,
     PageHeaderIcon: IconSparkles,
-    tooltip: 'Navia ,your AI travel companion',
+    tooltip: 'Navia - your AI travel companion',
   },
   {
     id: 'risk',
@@ -57,7 +57,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     path: '/risk-monitor',
     Icon: IconRadar,
     PageHeaderIcon: IconShieldBolt,
-    tooltip: 'Travel Risk Monitor ,real-time safety intel for your destinations',
+    tooltip: 'Travel Risk Monitor - real-time safety intel for your destinations',
   },
   {
     id: 'profile',
@@ -66,7 +66,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     path: '/profile',
     Icon: IconUserCircle,
     PageHeaderIcon: IconUserCircle,
-    tooltip: 'Your profile ,trips, stats, and travel identity',
+    tooltip: 'Your profile - trips, stats, and travel identity',
   },
 ];
 

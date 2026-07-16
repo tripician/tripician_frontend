@@ -8,7 +8,6 @@ import AttractionsIcon from '@mui/icons-material/Attractions';
 import LabelIcon from '@mui/icons-material/Label';
 import ExploreIcon from '@mui/icons-material/Explore';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
-import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
 import DirectionsTransitIcon from '@mui/icons-material/DirectionsTransit';
@@ -17,6 +16,7 @@ import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import EditOutlinedIcon from '@mui/icons-material/EditOutlined';
 import type { PlannerDestination, PlannerSpot } from '../../store/plannerSlice';
 import { type DestinationAlert, ALERT_META } from '../../services/APIs/alerts/alertService';
+import NaviaOrb from '../../navia/NaviaOrb';
 
 const CATEGORY_COLORS: Record<NonNullable<PlannerDestination['category']>, { bg: string; fg: string; icon: React.ReactNode; label: string }> = {
   general:      { bg: '#334155', fg: '#fff', icon: <LabelIcon fontSize='inherit' />,       label: 'General'      },
@@ -34,7 +34,7 @@ export interface DestinationCardProps {
   canMoveDown?: boolean;
   readonly?: boolean;
   onRename?: (id: string, name: string) => void;
-  /** Day plan headline (e.g. "Coffee & explore the market") ,separate from Google place name */
+  /** Day plan headline (e.g. "Coffee & explore the market") - separate from Google place name */
   onChangeTitle?: (id: string, title: string) => void;
   onChangeCategory?: (id: string, category: PlannerDestination['category']) => void;
   onToggleComplete?: (id: string) => void;
@@ -83,7 +83,7 @@ const buildGoogleMapsUrl = (dest: { name: string; placeId?: string; lat?: number
 
 type PlanLaneKey = 'spots' | 'stay' | 'notes';
 
-/* Inline location chip ,opens Google Maps; edit via pencil */
+/* Inline location chip - opens Google Maps; edit via pencil */
 const LocationTag: React.FC<{
   name: string;
   placeId?: string;
@@ -167,7 +167,7 @@ const LocationTag: React.FC<{
   );
 };
 
-/** Integrated itinerary lanes ,part of the card, not a separate button row */
+/** Integrated itinerary lanes - part of the card, not a separate button row */
 const JourneyPlanStrip: React.FC<{
   activeLane: PlanLaneKey | null;
   placeName: string;
@@ -322,8 +322,8 @@ const JourneyPlanStrip: React.FC<{
             '&:hover': naviaThinking ? {} : { bgcolor: 'rgba(255,56,92,0.04)' },
           })}
         >
-          <AutoAwesomeIcon sx={{ fontSize: 17, color: '#FF385C', mb: .25, opacity: naviaThinking ? .5 : 1 }} />
-          <Typography sx={{ fontSize: 9, fontWeight: 700, letterSpacing: '-0.1px' }}>{naviaThinking ? '…' : 'Navia'}</Typography>
+          <NaviaOrb size={17} processing={naviaThinking} style={{ marginBottom: 2 }} />
+          <Typography sx={{ fontSize: 9, fontWeight: 700, letterSpacing: '-0.1px' }}>{naviaThinking ? 'Planning…' : 'Navia'}</Typography>
         </Box>
       )}
     </Box>
@@ -454,7 +454,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
         {...(dragHandleProps || {})}
         sx={(t) => ({
           width: { xs: 68, sm: 96 }, flexShrink: 0, position: 'relative', overflow: 'hidden',
-          cursor: isDragging ? 'grabbing' : 'grab',
+          cursor: dragHandleProps ? (isDragging ? 'grabbing' : 'grab') : 'default',
           bgcolor: t.palette.mode === 'dark' ? '#1a1d22' : '#f1f3f5',
           // Category color tint when no photo
           ...(!resolvedPhoto ? { background: `linear-gradient(160deg, ${catInfo.bg}55, ${catInfo.bg}22)` } : {}),
@@ -679,8 +679,8 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
                 py: .65, cursor: 'pointer', color: '#E31C5F', borderTop: '1px solid', borderColor: 'divider',
               }}
             >
-              <AutoAwesomeIcon sx={{ fontSize: 14, color: '#FF385C' }} />
-              <Typography sx={{ fontSize: 11, fontWeight: 600 }}>{naviaThinking ? 'Navia is thinking…' : 'Ask Navia to plan this stop'}</Typography>
+              <NaviaOrb size={14} processing={naviaThinking} />
+              <Typography sx={{ fontSize: 11, fontWeight: 600 }}>{naviaThinking ? 'Navia is planning this stop…' : 'Ask Navia to plan this stop'}</Typography>
             </Box>
           )}
         </Box>

@@ -68,7 +68,7 @@ function App() {
             <Route path="/navia" element={<NaviaPage />} />
             <Route path="/settings" element={<Settings />} />
           </Route>
-          {/* Semi-public routes: full app layout but no auth gate ,guests can browse, login prompted on action */}
+          {/* Semi-public routes: full app layout but no auth gate - guests can browse, login prompted on action */}
           <Route element={<AuthenticatedLayout />}>
             <Route path="/community" element={<Community />} />
             <Route path="/traveler/:userId" element={<TravelerProfile />} />
@@ -96,7 +96,7 @@ function App() {
           <Route path="/contact-us" element={<ContactPage />} />
           <Route path="/about-us" element={<AboutPage />} />
         
-          {/* Blog routes ,public, no auth required (SEO) */}
+          {/* Blog routes - public, no auth required (SEO) */}
           <Route path="/blog" element={<BlogsList />} />
           <Route path="/blog/:slug" element={<BlogPost />} />
           <Route path="/discover" element={<DiscoveryPage />} />

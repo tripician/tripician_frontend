@@ -42,7 +42,7 @@ interface PublicUser {
 }
 
 /**
- * Public traveler profile ,Instagram-style activity view for any community
+ * Public traveler profile - Instagram-style activity view for any community
  * member: identity, follow stats, and their published trips.
  */
 const TravelerProfile: React.FC = () => {
@@ -161,7 +161,7 @@ const TravelerProfile: React.FC = () => {
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <Seo
-        title={user ? `${user.name} ,Traveler` : 'Traveler profile'}
+        title={user ? `${user.name} - Traveler` : 'Traveler profile'}
         description={user ? `Published trips and travel activity from ${user.name} on Tripician.` : 'Traveler profile on Tripician.'}
         path={`/traveler/${userId}`}
         noindex
@@ -235,7 +235,7 @@ const TravelerProfile: React.FC = () => {
                         <Typography noWrap sx={{ fontSize: 13.5 }}>{locationLine}</Typography>
                       </Box>
                     )}
-                    {/* Stats ,Instagram-style inline row */}
+                    {/* Stats - Instagram-style inline row */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, mt: 1.25 }}>
                       {statItems.map(s => (
                         <Typography key={s.label} sx={{ fontSize: 14, color: 'text.secondary' }}>

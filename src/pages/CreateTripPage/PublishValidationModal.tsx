@@ -127,7 +127,7 @@ const PublishValidationModal: React.FC<Props> = ({ open, onClose, checks }) => {
               label="Description has at least 10 words"
               helperText={
                 !checks.hasDescription
-                  ? `Currently ${checks.wordCount} ${checks.wordCount === 1 ? 'word' : 'words'} ,add ${10 - checks.wordCount} more.`
+                  ? `Currently ${checks.wordCount} ${checks.wordCount === 1 ? 'word' : 'words'} - add ${10 - checks.wordCount} more.`
                   : undefined
               }
             />
@@ -139,7 +139,7 @@ const PublishValidationModal: React.FC<Props> = ({ open, onClose, checks }) => {
                 !checks.allDatesCovered
                   ? checks.expectedNights === 0
                     ? 'Set your trip start and end dates first.'
-                    : `${checks.coveredNights} of ${checks.expectedNights} ${checks.expectedNights === 1 ? 'night' : 'nights'} covered ,plan the remaining days.`
+                    : `${checks.coveredNights} of ${checks.expectedNights} ${checks.expectedNights === 1 ? 'night' : 'nights'} covered - plan the remaining days.`
                   : undefined
               }
             />

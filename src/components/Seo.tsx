@@ -6,7 +6,7 @@ export const SITE_NAME = 'Tripician';
 export const DEFAULT_OG_IMAGE = `${SITE_URL}/og-cover.jpg`;
 
 interface SeoProps {
-  /** Page title; ` ,Tripician` is appended unless it already mentions the brand */
+  /** Page title; ` - Tripician` is appended unless it already mentions the brand */
   title: string;
   description: string;
   /** Path beginning with '/', used for canonical + og:url */

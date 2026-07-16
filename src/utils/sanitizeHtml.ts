@@ -4,7 +4,7 @@
  * sanitizeHtml: allowlist sanitizer for rich-text notes (contentEditable
  * output). Strips every element/attribute outside a small formatting set, so
  * stored HTML from other users can never execute script in a viewer's browser.
- * Defense-in-depth ,server-side sanitization remains the long-term home.
+ * Defense-in-depth - server-side sanitization remains the long-term home.
  *
  * safeExternalUrl: normalizes user-provided profile/social links so
  * window.open can never receive a javascript:/data: URI.
