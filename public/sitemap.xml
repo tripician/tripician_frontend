@@ -102,4 +102,34 @@
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
+  <url>
+    <loc>https://tripician.com/trip/indonesia-19057b02-34b4-462e-86b0-1a04a040929d</loc>
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://tripician.com/trip/coffee-trails-coastal-sunsets-6f168b6b-c64c-4692-8445-75bc7cbacc8c</loc>
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://tripician.com/trip/exploring-south-east-asia-d0aae827-f61f-4de6-a7ee-ff7f4799f790</loc>
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://tripician.com/trip/explore-ethiopia-cf06aea9-a154-4c3f-8902-d826046ae220</loc>
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://tripician.com/trip/nepal-escape-626bc85a-4f34-4de0-8e8e-5b2724dfd277</loc>
+    <lastmod>2026-07-16</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
 </urlset>
