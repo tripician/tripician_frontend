@@ -1,9 +1,8 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import mapboxgl, { Map } from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 
-mapboxgl.accessToken =
-  (import.meta.env.VITE_MAPBOX_TOKEN as string) ||
-  "pk.eyJ1Ijoic3JpZGVlcGthciIsImEiOiJjbWlrZGF5cTAwNGkyM2ZzN3NiZXBxMzQ5In0.pHt1LLCU2bY_Z7q1mZhKBA";
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN as string;
 
 export interface TravelMapProps {
   visited?: string[];
@@ -37,6 +36,7 @@ const TravelMap: React.FC<TravelMapProps> = ({
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const rotateTimer = useRef<number | null>(null);
   const userInteractedRef = useRef<boolean>(false);
+  const [mapError, setMapError] = useState<string | null>(null);
 
   const createLayer = (id: string, codes: string[], color: string) => ({
     id,
@@ -80,22 +80,38 @@ const TravelMap: React.FC<TravelMapProps> = ({
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    const map = new mapboxgl.Map({
-      container: mapContainerRef.current,
-      style: "mapbox://styles/mapbox/light-v11",
-      projection: "globe",
-      center: [0, 20],
-      zoom: 1,
-      minZoom: 1,
-      maxZoom: 1,
-      pitch: 5,
-      antialias: true,
-      attributionControl: !disableAttribution,
-      scrollZoom: false,
-      doubleClickZoom: false,
-    });
+    if (!mapboxgl.accessToken) {
+      setMapError("Map is not configured (missing Mapbox token).");
+      return;
+    }
+
+    let map: Map;
+    try {
+      map = new mapboxgl.Map({
+        container: mapContainerRef.current,
+        style: "mapbox://styles/mapbox/light-v11",
+        projection: "globe",
+        center: [0, 20],
+        zoom: 1,
+        minZoom: 1,
+        maxZoom: 1,
+        pitch: 5,
+        antialias: true,
+        attributionControl: !disableAttribution,
+        scrollZoom: false,
+        doubleClickZoom: false,
+      });
+    } catch (err) {
+      console.error("[TravelMap] failed to initialise", err);
+      setMapError("Map could not be loaded.");
+      return;
+    }
 
     mapRef.current = map;
+    map.on("error", (e) => {
+      console.error("[TravelMap] mapbox error", e?.error ?? e);
+      setMapError("Map could not be loaded.");
+    });
 
     const markInteraction = () => {
       userInteractedRef.current = true;
@@ -266,6 +282,26 @@ const TravelMap: React.FC<TravelMapProps> = ({
           background: "transparent",
         }}
       />
+
+      {mapError && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0,0,0,0.03)",
+            color: "rgba(0,0,0,0.4)",
+            fontSize: 13,
+            fontFamily: "'Inter', sans-serif",
+            textAlign: "center",
+            padding: 16,
+          }}
+        >
+          {mapError}
+        </div>
+      )}
     </div>
   );
 };
