@@ -10,7 +10,6 @@ Allow: /terms-and-conditions
 Allow: /privacy-policy
 Allow: /get-help
 Allow: /contact-us
-Disallow: /home
 Disallow: /dashboard
 Disallow: /profile
 Disallow: /settings
