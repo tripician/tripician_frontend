@@ -328,7 +328,7 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
                   }}
                 >
                   {/* The Navia orb renders larger than the other icons but must not
-                      stretch the pill height — negative margin lets it overflow. */}
+                      stretch the pill height, negative margin lets it overflow. */}
                   <Box sx={{ position: 'relative', display: 'flex', ...(item.id === 'navia' ? { my: -0.75 } : {}) }}>
                     <item.Icon size={item.id === 'navia' ? 30 : 20} stroke={1.9} color="currentColor" />
                     {item.id === 'risk' && (

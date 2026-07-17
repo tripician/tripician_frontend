@@ -1620,7 +1620,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				for (const [destIdx, dest] of destsToProcess.entries()) {
 					if (aiMsgIntervalRef.current) { clearInterval(aiMsgIntervalRef.current); aiMsgIntervalRef.current = null; }
 
-					// Extracted chat content: dispatch locally — no AI call, no credits.
+					// Extracted chat content: dispatch locally, no AI call, no credits.
 					const seed = seedStops?.[destIdx];
 					if (seed) {
 						setAiAutoMessage(`Placing ${dest.name}…`);
@@ -2140,7 +2140,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			setLastSavedDisplay(new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' }));
 			openToast('success', payload.trip.status==='DRAFT'? 'Saved':'Trip updated');
 			// NOTE: no refreshTripFromServer() here. The server round-trips our external
-			// ids (TripDay Meta), so there is nothing to reconcile — and the refetch it
+			// ids (TripDay Meta), so there is nothing to reconcile, and the refetch it
 			// used to do triggered a full Redux re-hydration that WIPED any edits made
 			// while the fetch was in flight (Navia-generated spots/notes vanishing).
 			// Server-authored changes still refresh via explicit paths (chat proposals).

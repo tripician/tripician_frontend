@@ -31,7 +31,7 @@ interface TripCreationModalProps {
 
 const VIBE_IDS = Object.keys(VIBES);
 
-/** A name the traveler will actually keep — editable, never demanded. */
+/** A name the traveler will actually keep, editable, never demanded. */
 const suggestTripName = (countries: string[]): string => {
   if (countries.length === 0) return '';
   if (countries.length === 1) return `Trip to ${countries[0]}`;
@@ -258,7 +258,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
                   Where to next?
                 </Typography>
                 <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', fontFamily: "'Inter', sans-serif", mt: 0.75 }}>
-                  A destination is all it takes — everything else can wait.
+                  A destination is all it takes, everything else can wait.
                 </Typography>
               </Box>
               <IconButton onClick={handleClose} size="small" sx={{ color: 'text.disabled', mt: 0.5, '&:hover': { color: 'text.primary', bgcolor: 'action.hover' } }}>
@@ -270,7 +270,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
               <Alert severity="error" onClose={() => setErrorMsg(null)} sx={{ mb: 2, borderRadius: '12px' }}>{errorMsg}</Alert>
             )}
 
-            {/* Destination — the one thing we ask for */}
+            {/* Destination, the one thing we ask for */}
             <Box className="gs-modal-field" sx={{ mb: 2.5 }}>
               <Typography sx={labelSx}>Destination</Typography>
               <Autocomplete
@@ -306,7 +306,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
               />
             </Box>
 
-            {/* Trip name — pre-filled, theirs to change */}
+            {/* Trip name, pre-filled, theirs to change */}
             <Box className="gs-modal-field" sx={{ mb: 2.5 }}>
               <Typography sx={labelSx}>Trip name</Typography>
               <TextField
@@ -321,7 +321,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
               />
             </Box>
 
-            {/* Dates — explicitly optional */}
+            {/* Dates, explicitly optional */}
             <Box className="gs-modal-field" sx={{ mb: 2.5 }}>
               <Typography sx={labelSx}>
                 Dates
@@ -346,7 +346,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
               </Typography>
             </Box>
 
-            {/* Travel style — optional, one tap */}
+            {/* Travel style, optional, one tap */}
             <Box className="gs-modal-field" sx={{ mb: 1 }}>
               <Typography sx={labelSx}>
                 Travel style

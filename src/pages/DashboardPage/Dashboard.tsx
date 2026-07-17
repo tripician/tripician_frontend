@@ -580,7 +580,7 @@ const Dashboard: React.FC = () => {
                       ? 'Trips you bookmark from the community will live here for quick access.'
                       : tabValue === 2
                         ? 'When friends invite you to plan together, their trips will show up here.'
-                        : 'All it takes is a destination — Navia and your crew handle the rest.'
+                        : 'All it takes is a destination, Navia and your crew handle the rest.'
                   }
                   actionLabel={tabValue === 4 || tabValue === 2 ? 'Explore community trips' : 'Plan your first trip'}
                   onAction={tabValue === 4 || tabValue === 2 ? () => navigate('/community') : () => setCreateTripOpen(true)}
@@ -685,7 +685,7 @@ const Dashboard: React.FC = () => {
               {/* Panel footer */}
               <Box sx={{ px: 3, py: 1.25, borderTop: `1px solid ${theme.custom.surface.border}` }}>
                 <Typography sx={{ fontSize: 11.5, color: 'text.disabled' }}>
-                  Drag to spin the globe — it pauses while you explore.
+                  Drag to spin the globe, it pauses while you explore.
                 </Typography>
               </Box>
             </Box>

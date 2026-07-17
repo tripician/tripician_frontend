@@ -19,7 +19,7 @@ function renderInline(content: string, keyPrefix: string): React.ReactNode[] {
 }
 
 /**
- * Lightweight markdown renderer (no deps, React elements only — streaming-safe
+ * Lightweight markdown renderer (no deps, React elements only, streaming-safe
  * since it works line by line). The prompt bans tables/headings, but the model
  * can still slip; everything degrades to something readable:
  *  - #-headings → bold block lines
@@ -32,7 +32,7 @@ function renderMarkdown(text: string): React.ReactNode[] {
   const nodes: React.ReactNode[] = [];
 
   lines.forEach((line, li) => {
-    // Table separator row: only pipes / dashes / colons / spaces — pure noise.
+    // Table separator row: only pipes / dashes / colons / spaces, pure noise.
     if (/^\s*\|?[\s:|-]+\|?\s*$/.test(line) && line.includes('-') && line.includes('|')) {
       return;
     }
