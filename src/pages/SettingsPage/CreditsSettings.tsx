@@ -149,7 +149,7 @@ const CreditsSettings: React.FC = () => {
         <CardContent sx={{ p: 3 }}>
           <Typography sx={{ ...sectionTitleSx, mb: 0.5 }}>What a credit buys</Typography>
           <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', fontFamily: "'Inter',sans-serif", mb: 2.5 }}>
-            Simple, fixed prices — you always know the cost before Navia gets to work.
+            Simple, fixed prices, you always know the cost before Navia gets to work.
           </Typography>
 
           <Box sx={{ display: 'flex', flexDirection: 'column' }}>
@@ -187,7 +187,7 @@ const CreditsSettings: React.FC = () => {
           </Box>
 
           <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', fontFamily: "'Inter',sans-serif", mt: 2 }}>
-            Trip-wallet actions spend from the trip's shared balance — check it any time from the coin
+            Trip-wallet actions spend from the trip's shared balance, check it any time from the coin
             chip in that trip's chat panel. If Navia ever fails to answer, the credits come straight back.
           </Typography>
         </CardContent>
@@ -209,7 +209,7 @@ const CreditsSettings: React.FC = () => {
 
           {!loading && !error && (history?.entries?.length ?? 0) === 0 && (
             <Typography sx={{ fontSize: '0.82rem', color: 'text.disabled', fontFamily: "'Inter',sans-serif", py: 1 }}>
-              Nothing yet — say hello to Navia and your first entry will appear here.
+              Nothing yet, say hello to Navia and your first entry will appear here.
             </Typography>
           )}
 

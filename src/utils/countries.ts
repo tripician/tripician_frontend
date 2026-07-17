@@ -1,6 +1,6 @@
 /**
  * Canonical country list used by trip creation and chat→trip conversion.
- * Spellings must stay stable — trips store these strings verbatim.
+ * Spellings must stay stable, trips store these strings verbatim.
  */
 export const COUNTRIES = [
   "Afghanistan",
@@ -280,7 +280,7 @@ const COUNTRY_ALIASES: Record<string, string> = {
 
 /**
  * Maps a free-text country name (e.g. from AI extraction) to the canonical
- * COUNTRIES spelling. Falls back to the raw input when nothing matches —
+ * COUNTRIES spelling. Falls back to the raw input when nothing matches,
  * the backend accepts arbitrary strings, so an unmapped name still works.
  */
 export function matchCountryName(raw: string): string {

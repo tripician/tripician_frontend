@@ -234,7 +234,7 @@ const TravelMap: React.FC<TravelMapProps> = ({
   // so the globe always fits the container instead of overflowing it.
   // (The old version forced the wrapper square-by-width: in a wide, short
   // container the globe's centre ended up hundreds of px below the visible
-  // area — a blank white box.)
+  // area, a blank white box.)
   useEffect(() => {
     const wrapper = wrapperRef.current;
     const inner = mapContainerRef.current;

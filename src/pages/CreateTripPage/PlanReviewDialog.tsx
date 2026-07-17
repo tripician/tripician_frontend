@@ -44,7 +44,7 @@ const scoreColor = (score: number) =>
   score >= 75 ? '#16a34a' : score >= 50 ? '#d97706' : '#dc2626';
 
 /**
- * "Review my plan" — whole-plan AI feedback for plan editors.
+ * "Review my plan", whole-plan AI feedback for plan editors.
  * Sends a compact snapshot of the LIVE Redux plan so unsaved edits are reviewed too.
  */
 const PlanReviewDialog: React.FC<PlanReviewDialogProps> = ({
@@ -67,7 +67,7 @@ const PlanReviewDialog: React.FC<PlanReviewDialogProps> = ({
       const foods = (d.foods ?? []).map(f => f.name).filter(Boolean);
       const stays = (d.stays ?? []).length;
       const parts = [
-        `${i + 1}. ${d.name}${d.title ? ` ("${d.title}")` : ''} — ${d.nights} night${d.nights === 1 ? '' : 's'}`,
+        `${i + 1}. ${d.name}${d.title ? ` ("${d.title}")` : ''}, ${d.nights} night${d.nights === 1 ? '' : 's'}`,
         d.startDate && d.endDate ? `dates ${d.startDate} to ${d.endDate}` : 'dates unset',
         spots.length ? `spots: ${spots.slice(0, 8).join(', ')}` : 'no spots planned',
         foods.length ? `foods: ${foods.slice(0, 6).join(', ')}` : 'no food ideas',
@@ -147,7 +147,7 @@ const PlanReviewDialog: React.FC<PlanReviewDialogProps> = ({
       <DialogContent sx={{ px: 3, pb: 3, pt: 0 }}>
         {!hasStops && !loading && !result && (
           <Typography sx={{ fontSize: '0.86rem', color: 'text.secondary', fontFamily: "'Inter',sans-serif", py: 3, textAlign: 'center' }}>
-            Add a stop or two first — then Navia will have a plan to review.
+            Add a stop or two first, then Navia will have a plan to review.
           </Typography>
         )}
 

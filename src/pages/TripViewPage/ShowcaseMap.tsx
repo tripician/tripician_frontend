@@ -39,7 +39,7 @@ function makeMarkerEl(index: number): HTMLElement {
 
 /**
  * Read-only route map for the public trip showcase.
- * Stops come in as props (no Redux) — markers + fitted bounds, nothing editable.
+ * Stops come in as props (no Redux), markers + fitted bounds, nothing editable.
  */
 const ShowcaseMap: React.FC<ShowcaseMapProps> = ({ stops }) => {
   const theme = useTheme();

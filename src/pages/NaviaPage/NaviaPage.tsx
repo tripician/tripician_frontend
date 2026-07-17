@@ -142,7 +142,7 @@ const NaviaPage: React.FC = () => {
     } catch (err) {
       console.error('[NaviaPage] chat-to-trip failed', err);
       setCreatingTrip(false);
-      setToast("Couldn't turn this chat into a trip — starting a fresh one.");
+      setToast("Couldn't turn this chat into a trip, starting a fresh one.");
       openCreateTrip();
     }
   }, [token, lastNaviaMsg, creatingTrip, messages, navigate, openCreateTrip]);
@@ -185,7 +185,7 @@ const NaviaPage: React.FC = () => {
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
           {credits !== null && (
-            <Tooltip title="Your personal credits — tap for details" arrow>
+            <Tooltip title="Your personal credits, tap for details" arrow>
               <Chip
                 icon={<IconCoins size={13} />}
                 label={credits}
@@ -279,7 +279,7 @@ const NaviaPage: React.FC = () => {
                 maxWidth: 420,
               }}
             >
-              Destinations, itineraries, budgets, hidden gems — ask away, and watch the
+              Destinations, itineraries, budgets, hidden gems, ask away, and watch the
               conversation become a real trip.
             </Typography>
             <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, justifyContent: 'center', maxWidth: 560 }}>

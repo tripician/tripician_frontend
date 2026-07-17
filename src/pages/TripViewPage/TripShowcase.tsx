@@ -1,9 +1,9 @@
 /**
- * TripShowcase — the public face of a published trip.
+ * TripShowcase, the public face of a published trip.
  *
  * Visitors should meet a finished story, not the workshop: no readiness
  * meters, no "add your lodging" prompts, no planner chrome. Editorial
- * hero, day-by-day route, live map, and one conversion action —
+ * hero, day-by-day route, live map, and one conversion action,
  * "Make it yours" (clone). Owners/members get an Edit shortcut.
  */
 import React from 'react';
@@ -307,7 +307,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
     }
   };
 
-  // ── Clone ("Make it yours") — the conversion action ──
+  // ── Clone ("Make it yours"), the conversion action ──
   const [cloning, setCloning] = React.useState(false);
   const [toast, setToast] = React.useState<string | null>(null);
   const handleClone = async () => {
@@ -320,7 +320,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
       if (newId) {
         navigate(`/tripplanner/${newId}`, { state: { tripId: newId, __ts: Date.now() } });
       } else {
-        setToast('Trip copied — find it on your dashboard.');
+        setToast('Trip copied, find it on your dashboard.');
       }
     } catch {
       setToast("Couldn't copy this trip right now. Please try again.");
@@ -486,7 +486,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
         </Box>
       </Box>
 
-      {/* ═══ STICKY DAY NAV — jump to any leg with one tap ═══ */}
+      {/* ═══ STICKY DAY NAV, jump to any leg with one tap ═══ */}
       {stops.length >= 2 && (
         <Box sx={{ position: 'sticky', top: 57, zIndex: 19, bgcolor: 'background.default', borderBottom: `1px solid ${border}` }}>
           <Box sx={{ maxWidth: 1280, mx: 'auto', px: { xs: 2, md: 4 }, py: 1, display: 'flex', gap: 0.75, overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
@@ -534,7 +534,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
             </Box>
           )}
 
-          {/* Trip-wide practical notes the planner wrote — visas, warnings, essentials */}
+          {/* Trip-wide practical notes the planner wrote, visas, warnings, essentials */}
           {importantNotes && (
             <Box sx={{ mb: 5, borderRadius: '16px', border: `1px solid ${border}`, bgcolor: 'background.paper', p: 2.5, display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
               <IconInfoCircle size={20} style={{ color: '#FF385C', flexShrink: 0, marginTop: 2 }} />
@@ -562,7 +562,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
 
           {stops.length === 0 && (
             <Typography sx={{ fontSize: 14.5, color: 'text.disabled', fontFamily: "'Inter',sans-serif" }}>
-              The itinerary is still being written — check back soon.
+              The itinerary is still being written, check back soon.
             </Typography>
           )}
 
@@ -815,7 +815,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: '#16a34a' }}>
                     <IconConfetti size={17} />
                     <Typography sx={{ fontSize: 13.5, fontWeight: 700, fontFamily: "'Inter',sans-serif" }}>
-                      All packed — go catch that flight.
+                      All packed, go catch that flight.
                     </Typography>
                   </Box>
                 ) : (
@@ -901,7 +901,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                 })}
               </Box>
               <Typography sx={{ fontSize: 11.5, color: 'text.disabled', fontFamily: "'Inter',sans-serif", mt: 1.5 }}>
-                Ticks here stay on this device — perfect for packing day. The planner keeps the master list.
+                Ticks here stay on this device, perfect for packing day. The planner keeps the master list.
               </Typography>
             </Box>
           )}
@@ -985,7 +985,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                   {cloning ? 'Copying…' : 'Make this trip yours'}
                 </Button>
                 <Typography sx={{ fontSize: 12, color: 'text.disabled', fontFamily: "'Inter',sans-serif", textAlign: 'center', mt: 1.25 }}>
-                  Copies the full route into your own planner — free, and yours to reshape.
+                  Copies the full route into your own planner, free, and yours to reshape.
                 </Typography>
               </>
             )}
