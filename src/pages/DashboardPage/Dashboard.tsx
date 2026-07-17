@@ -85,7 +85,10 @@ const Dashboard: React.FC = () => {
     visibility: t.visibility || t.Visibility || t.privacy || t.Privacy || 'PRIVATE',
     location: Array.isArray(t.countries) && t.countries.length ? t.countries[0] : 'Unknown',
     countries: Array.isArray(t.countries) ? t.countries : [],
-    image: (typeof t.photoUrl === 'string' && t.photoUrl.trim()) ? t.photoUrl : '',
+    image: (() => {
+      const cover = t.bannerPhotoUrl || t.BannerPhotoUrl || t.photoUrl || t.PhotoUrl;
+      return (typeof cover === 'string' && cover.trim()) ? cover : '';
+    })(),
     progress: typeof t.progress === 'number' ? t.progress : 0,
     edited: formatRelativeTime(t.updatedDate),
     members: (() => {

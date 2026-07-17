@@ -168,7 +168,10 @@ const Home: React.FC = () => {
           const trips = response.data || [];
           setPublicTrips(trips);
           // Kick off Unsplash fetches for trips without a user-uploaded photo
-          const needsImage = trips.filter((t: any) => !(typeof t.photoUrl === 'string' && t.photoUrl.trim()));
+          const needsImage = trips.filter((t: any) => {
+            const cover = t.bannerPhotoUrl || t.BannerPhotoUrl || t.photoUrl || t.PhotoUrl;
+            return !(typeof cover === 'string' && cover.trim());
+          });
           if (needsImage.length > 0) {
             Promise.all(
               needsImage.map(async (t: any) => {
@@ -597,7 +600,8 @@ const Home: React.FC = () => {
 
               {!loadingPublic && !publicError && publicTrips.length > 0 && (() => {
                 const getCover = (t: typeof publicTrips[0]): string => {
-                  if (typeof t.photoUrl === 'string' && t.photoUrl.trim()) return t.photoUrl;
+                  const cover = t.bannerPhotoUrl || t.BannerPhotoUrl || t.photoUrl || t.PhotoUrl;
+                  if (typeof cover === 'string' && cover.trim()) return cover;
                   const id = t.id || t.Id;
                   return (id && publicTripImages[id]) ? publicTripImages[id] : '';
                 };
@@ -1376,7 +1380,8 @@ const Home: React.FC = () => {
             {!loadingPublic && !publicError && publicTrips.length > 0 && (() => {
               // Helper: resolve cover image for a trip (user-uploaded first, then Unsplash, then empty)
               const getCover = (t: typeof publicTrips[0]): string => {
-                if (typeof t.photoUrl === 'string' && t.photoUrl.trim()) return t.photoUrl;
+                const cover = t.bannerPhotoUrl || t.BannerPhotoUrl || t.photoUrl || t.PhotoUrl;
+                if (typeof cover === 'string' && cover.trim()) return cover;
                 const id = t.id || t.Id;
                 return (id && publicTripImages[id]) ? publicTripImages[id] : '';
               };
