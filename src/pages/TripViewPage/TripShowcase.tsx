@@ -994,13 +994,24 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
       </Box>
 
       {/* ═══ COMMENTS ═══ */}
-      {isPublished && (
+      {isPublished ? (
         <Box sx={{ borderTop: `1px solid ${border}`, bgcolor: 'background.paper' }}>
           <Box sx={{ maxWidth: 760, mx: 'auto', px: { xs: 2, md: 4 }, py: { xs: 4, md: 6 } }}>
             <TripComments tripId={tripId} authToken={token ?? null} />
           </Box>
         </Box>
-      )}
+      ) : canEdit ? (
+        <Box sx={{ borderTop: `1px solid ${border}`, bgcolor: 'background.paper' }}>
+          <Box sx={{ maxWidth: 760, mx: 'auto', px: { xs: 2, md: 4 }, py: { xs: 4, md: 6 }, textAlign: 'center' }}>
+            <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: 'text.disabled' }}>
+              <IconLock size={12} />
+              <Typography component="span" sx={{ fontSize: 11, fontWeight: 600, fontFamily: "'Inter',sans-serif" }}>
+                Comments open once you publish this trip
+              </Typography>
+            </Box>
+          </Box>
+        </Box>
+      ) : null}
 
       <TripShareModal
         open={shareOpen}
