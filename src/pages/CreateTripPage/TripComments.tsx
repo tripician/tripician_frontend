@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Typography, TextField, Button, IconButton, Avatar, CircularProgress, Fade, Divider, Chip, Collapse } from '@mui/material';
+import { Box, Typography, TextField, Button, IconButton, Avatar, CircularProgress, Fade, Divider, Chip, Collapse, Snackbar } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
@@ -56,6 +56,9 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
   // Local comments state (source of truth from backend)
   const [comments, setComments] = React.useState<TripComment[]>([]);
   const [loadingComments, setLoadingComments] = React.useState(true);
+  const [loadError, setLoadError] = React.useState(false);
+  const [reloadKey, setReloadKey] = React.useState(0);
+  const [actionError, setActionError] = React.useState<string | null>(null);
 
   // Normalize a single backend comment DTO to TripComment
   const normalizeComment = (c: any): TripComment => ({
@@ -92,11 +95,16 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
         if (!active) return;
         const data = Array.isArray(resp?.data) ? resp.data : (Array.isArray(resp?.data?.comments) ? resp.data.comments : []);
         setComments(flattenComments(data));
+        setLoadError(false);
       })
-      .catch(() => {})
+      .catch((err) => {
+        if (!active) return;
+        console.error('Failed to load trip comments', err);
+        setLoadError(true);
+      })
       .finally(() => { if (active) setLoadingComments(false); });
     return () => { active = false; };
-  }, [tripId, authToken]);
+  }, [tripId, authToken, reloadKey]);
 
   const sorted = React.useMemo(() => [...comments].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()), [comments]);
 
@@ -143,10 +151,18 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
     const now = Date.now(); recentRef.current = recentRef.current.filter(t => now - t < FLOOD_WINDOW_MS); if (recentRef.current.length >= MAX_IN_WINDOW) { setFloodBlocked(true); setTimeout(() => setFloodBlocked(false), 4000); return; }
     recentRef.current.push(now);
     if (editingId) {
+      const id = editingId;
+      const original = comments.find(c => c.id === id);
       // Optimistic update
-      setComments(prev => prev.map(c => c.id === editingId ? { ...c, text: body, editedAt: new Date().toISOString() } : c));
+      setComments(prev => prev.map(c => c.id === id ? { ...c, text: body, editedAt: new Date().toISOString() } : c));
       setEditingId(null); setText('');
-      try { await apiServices.updateTripComment(authToken, tripId, editingId, body); } catch { /* revert not needed; UI stays */ }
+      try {
+        await apiServices.updateTripComment(authToken, tripId, id, body);
+      } catch (err) {
+        console.error('Failed to update comment', err);
+        if (original) setComments(prev => prev.map(c => c.id === id ? original : c));
+        setActionError("Couldn't save your edit. Please try again.");
+      }
     } else {
       // Optimistic insert
       const tempId = `tmp_${Date.now()}`;
@@ -157,8 +173,11 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
         const resp = await apiServices.createTripComment(authToken, tripId, body);
         const created = normalizeComment(resp?.data);
         setComments(prev => prev.map(c => c.id === tempId ? created : c));
-      } catch {
+      } catch (err) {
+        console.error('Failed to post comment', err);
         setComments(prev => prev.filter(c => c.id !== tempId));
+        setText(body);
+        setActionError("Couldn't post your comment. Please try again.");
       }
     }
   };
@@ -167,8 +186,15 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
   const cancelEdit = () => { setEditingId(null); setText(''); };
   const cancelReply = () => { setActiveReplyParentId(null); setReplyDraft(''); };
   const deleteComment = async (id: string) => {
+    const removed = comments.filter(c => c.id === id || c.parentId === id);
     setComments(prev => prev.filter(c => c.id !== id && c.parentId !== id));
-    try { if (authToken) await apiServices.deleteTripComment(authToken, tripId, id); } catch { /* already removed optimistically */ }
+    try {
+      if (authToken) await apiServices.deleteTripComment(authToken, tripId, id);
+    } catch (err) {
+      console.error('Failed to delete comment', err);
+      setComments(prev => [...prev, ...removed]);
+      setActionError("Couldn't delete your comment. Please try again.");
+    }
   };
   const sendReply = async (parentId: string) => {
     const body = replyDraft.trim(); if (!body || body.length > MAX_COMMENT_CHARS) return; if (!canPost || !authToken) return;
@@ -182,8 +208,12 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
       const resp = await apiServices.createTripComment(authToken, tripId, body, parentId);
       const created = normalizeComment(resp?.data);
       setComments(prev => prev.map(c => c.id === tempId ? created : c));
-    } catch {
+    } catch (err) {
+      console.error('Failed to post reply', err);
       setComments(prev => prev.filter(c => c.id !== tempId));
+      setActiveReplyParentId(parentId);
+      setReplyDraft(body);
+      setActionError("Couldn't post your reply. Please try again.");
     }
   };
   const toggleUpvoteLocal = (id: string) => {
@@ -217,7 +247,13 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
         <Box sx={{ maxWidth:900, width:'100%', mx:'auto', display:'flex', flexDirection:'column', gap:4 }}>
           {loadingOlder && <Box sx={{ display:'flex', justifyContent:'center' }}><CircularProgress size={18} /></Box>}
           {loadingComments && <Box sx={{ display:'flex', justifyContent:'center', pt:4 }}><CircularProgress size={22} /></Box>}
-          {!loadingComments && visibleSlice.length === 0 && !loadingOlder && <Typography variant='body2' color='text.secondary'>Be the first to comment on this trip.</Typography>}
+          {!loadingComments && loadError && (
+            <Box sx={{ display:'flex', flexDirection:'column', alignItems:'center', gap:1, pt:2 }}>
+              <Typography variant='body2' color='error'>Couldn't load comments. Check your connection and try again.</Typography>
+              <Button size='small' variant='outlined' onClick={()=> setReloadKey(k=> k+1)}>Retry</Button>
+            </Box>
+          )}
+          {!loadingComments && !loadError && visibleSlice.length === 0 && !loadingOlder && <Typography variant='body2' color='text.secondary'>Be the first to comment on this trip.</Typography>}
           {dayGroups.map(group => (
             <Box key={group.day} sx={{ display:'flex', flexDirection:'column', gap:3 }}>
               <Box sx={{ display:'flex', alignItems:'center', gap:1, opacity:.8 }}>
@@ -324,6 +360,13 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
       <Fade in={showJumpLatest} unmountOnExit>
         <Button size='small' variant='contained' onClick={()=> { if(scrollRef.current){ scrollRef.current.scrollTop = scrollRef.current.scrollHeight; autoStickRef.current = true; setShowJumpLatest(false);} }} sx={{ position:'fixed', bottom:118, right:42, borderRadius:24, textTransform:'none', boxShadow:3, px:1.4, py:0.35, fontSize:12 }}>Newest</Button>
       </Fade>
+      <Snackbar
+        open={actionError !== null}
+        autoHideDuration={4000}
+        onClose={()=> setActionError(null)}
+        message={actionError}
+        anchorOrigin={{ vertical:'bottom', horizontal:'center' }}
+      />
     </Box>
   );
 };
