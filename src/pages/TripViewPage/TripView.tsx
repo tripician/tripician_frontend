@@ -1,13 +1,12 @@
 // TripView: Read-only view of a trip with optional Edit transition to TripPlanner
 import React from 'react';
 import { Box, Button, Alert } from '@mui/material';
-import TripPlanner from '../CreateTripPage/TripPlanner';
+import TripShowcase from './TripShowcase';
 import PageLoader from '../../components/CommonComponents/PageLoader';
 import { useLocation, useNavigate, useParams } from 'react-router-dom';
 import { useSelector, useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../store';
 import type { RootState } from '../CreateTripPage/../../store';
-import TripPlannerNav from '../CreateTripPage/TripPlannerNav';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import { apiServices } from '../../services/APIs/apiServices';
@@ -156,11 +155,8 @@ const TripView: React.FC = () => {
     return (
       <Box sx={{ display:'flex', flexDirection:'column', height:'100vh' }}>
         <TopBar showSearch={false} />
-        <Box sx={{ display:'flex', flex:1 }}>
-          <TripPlannerNav active='plan' hideSections={['docs']} />
-          <Box sx={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}>
-            <PageLoader variant="inline" messages={['Loading trip details…', 'Fetching your itinerary…', 'Getting destination info…', 'Almost there…']} />
-          </Box>
+        <Box sx={{ flex:1, display:'flex', alignItems:'center', justifyContent:'center' }}>
+          <PageLoader variant="inline" messages={['Loading trip details…', 'Fetching the itinerary…', 'Getting destination info…', 'Almost there…']} />
         </Box>
       </Box>
     );
@@ -171,14 +167,11 @@ const TripView: React.FC = () => {
     return (
       <Box sx={{ display:'flex', flexDirection:'column', height:'100vh' }}>
         <TopBar showSearch={false} />
-        <Box sx={{ display:'flex', flex:1, minHeight:0 }}>
-          <TripPlannerNav active='plan' hideSections={['docs','news','packing']} />
-          <Box sx={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3, p:3 }}>
-            <Alert severity='warning' variant='outlined' sx={{ maxWidth:520, width:'100%' }}>
-              {fetchError === 'Trip not found' ? 'This trip does not exist or has been removed.' : 'This trip could not be loaded. You may not have permission to view it, or the link may be invalid.'}
-            </Alert>
-            <Button variant='outlined' onClick={() => navigate('/')} sx={{ textTransform:'none', borderRadius:2 }}>Back to Home</Button>
-          </Box>
+        <Box sx={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3, p:3 }}>
+          <Alert severity='warning' variant='outlined' sx={{ maxWidth:520, width:'100%' }}>
+            {fetchError === 'Trip not found' ? 'This trip does not exist or has been removed.' : 'This trip could not be loaded. You may not have permission to view it, or the link may be invalid.'}
+          </Alert>
+          <Button variant='outlined' onClick={() => navigate('/')} sx={{ textTransform:'none', borderRadius:2 }}>Back to Home</Button>
         </Box>
       </Box>
     );
@@ -188,12 +181,9 @@ const TripView: React.FC = () => {
     return (
       <Box sx={{ display:'flex', flexDirection:'column', height:'100vh' }}>
         <TopBar showSearch={false} />
-        <Box sx={{ display:'flex', flex:1, minHeight:0 }}>
-          <TripPlannerNav active='plan' hideSections={['docs','news','packing']} />
-          <Box sx={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3, p:3 }}>
-            <Alert severity='error' variant='outlined' sx={{ maxWidth:520, width:'100%' }}>This trip is private. Only the owner and members can access it.</Alert>
-            <Button variant='outlined' onClick={() => navigate('/')} sx={{ textTransform:'none', borderRadius:2 }}>Back to Home</Button>
-          </Box>
+        <Box sx={{ flex:1, display:'flex', flexDirection:'column', alignItems:'center', justifyContent:'center', gap:3, p:3 }}>
+          <Alert severity='error' variant='outlined' sx={{ maxWidth:520, width:'100%' }}>This trip is private. Only the owner and members can access it.</Alert>
+          <Button variant='outlined' onClick={() => navigate('/')} sx={{ textTransform:'none', borderRadius:2 }}>Back to Home</Button>
         </Box>
       </Box>
     );
@@ -234,7 +224,7 @@ const TripView: React.FC = () => {
   } : undefined;
 
   return (
-    <Box sx={{ display:'flex', flexDirection:'column', height:'100vh' }}>
+    <Box>
       <Seo
         title={seoCountries.length ? `${seoName} ,${seoCountries.slice(0, 2).join(' & ')} itinerary` : seoName}
         description={seoDescription}
@@ -243,18 +233,13 @@ const TripView: React.FC = () => {
         noindex={!isPublished}
         jsonLd={tripJsonLd}
       />
-      <TripPlanner
+      <TripShowcase
         tripId={tripId}
-        initialTrip={trip}
-        readOnly
-        hideSections={(!isOwner && !isMember) || isPrivate ? ['docs','packing'] : []}
-        isOwnerExternal={!!isOwner}
-        effectiveCanEdit={false}
-        canAccessDocs={isMember || isOwner}
-        onRequestEdit={handleEdit}
-        showPlannerActions={false}
-        showViewEditAction={isOwner || isMember}
-        isExternalNonOwner={!isOwner}
+        rawTrip={trip}
+        isOwner={!!isOwner}
+        isMember={!!isMember}
+        isPublished={!!isPublished}
+        onEdit={handleEdit}
       />
     </Box>
   );

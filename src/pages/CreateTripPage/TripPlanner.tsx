@@ -1216,7 +1216,18 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			p:privacy,
 			s:tripStartDate,
 			e:tripEndDate,
-			d:planner.destinations.map(d=> ({ id:d.id, n:d.name, sd:d.startDate, ed:d.endDate, nts:d.nights, lat:d.lat, lng:d.lng, tr:d.transport })),
+			// Every persisted, user-editable field must be in here: anything missing
+			// never flips isDirty, so autosave/Save silently skip it (this is exactly
+			// how Navia-generated spots/notes were being lost before).
+			d:planner.destinations.map(d=> ({
+				id:d.id, n:d.name, ti:d.title, sd:d.startDate, ed:d.endDate, nts:d.nights,
+				lat:d.lat, lng:d.lng, tr:d.transport, cat:d.category, cp:d.completed, bud:d.budget,
+				sp:(d.spots ?? []).map(s=> ({ n:s.name, ck:s.checked, ds:s.description })),
+				fd:(d.foods ?? []).map(f=> ({ n:f.name, ck:f.checked })),
+				no:d.notes ?? null,
+				st:(d.stays ?? []).map(s=> ({ n:s.name, r:s.reference })),
+				sn:d.stayNotes ?? null,
+			})),
 			c:currency,
 			in:importantNotes.trim(),
 			b:bannerUrl,
@@ -2128,9 +2139,11 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			}
 			setLastSavedDisplay(new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' }));
 			openToast('success', payload.trip.status==='DRAFT'? 'Saved':'Trip updated');
-			if (remoteRefreshKeyRef.current === refreshKeyAtSaveStart) {
-				void refreshTripFromServer();
-			}
+			// NOTE: no refreshTripFromServer() here. The server round-trips our external
+			// ids (TripDay Meta), so there is nothing to reconcile — and the refetch it
+			// used to do triggered a full Redux re-hydration that WIPED any edits made
+			// while the fetch was in flight (Navia-generated spots/notes vanishing).
+			// Server-authored changes still refresh via explicit paths (chat proposals).
 			return true;
 		} catch(err:any){
 			// Enhanced error logging
@@ -2155,7 +2168,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		} finally {
 			setSaving(false);
 		}
-	}, [authToken, saving, lastSaveTs, tripId, openToast, refreshTripFromServer]);
+	}, [authToken, saving, lastSaveTs, tripId, openToast]);
 
 	// ── Autosave ───────────────────────────────────────────────────────────────
 	// Debounce-persist 2.5s after the last change. Uses the same payload/commit
@@ -2169,6 +2182,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
 		autosaveTimerRef.current = window.setTimeout(() => {
 			autosaveTimerRef.current = null;
+			// Re-check at fire time: hydration commits update lastCommittedRef (a ref,
+			// no re-render) so a timer scheduled during a transient dirty window must
+			// not fire a ghost save on every page load.
+			if (computeSignatureRef.current() === lastCommittedRef.current) return;
 			const payload = buildPersistPayload(isDraft);
 			persistedPayloadRef.current = payload;
 			persistToBackend(payload).then((ok: boolean) => { if (ok) commitSnapshot(isDraft); });
