@@ -30,7 +30,6 @@ import type { RootState, AppDispatch } from '../../store';
 import { fetchUserProfile } from '../../store/userSlice';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
-import { useAuth0 } from '@auth0/auth0-react';
 import { fetchUnsplashImage } from '../../services/unsplashService';
 import ImageBadge from '../../components/ui/ImageBadge';
 import EmptyState from '../../components/ui/EmptyState';
