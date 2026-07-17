@@ -18,6 +18,7 @@ import type { RootState } from '../../store';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { tripPath } from '../../utils/tripSlug';
+import { safeExternalUrl } from '../../utils/sanitizeHtml';
 import Seo from '../../components/Seo';
 import CommunityTripCard from '../CommunityPage/CommunityTripCard';
 import SectionHeader from '../../components/ui/SectionHeader';
@@ -147,7 +148,10 @@ const TravelerProfile: React.FC = () => {
     { url: user.twitter, Icon: IconBrandX, label: 'X' },
     { url: user.facebook, Icon: IconBrandFacebook, label: 'Facebook' },
     { url: user.website, Icon: IconLink, label: 'Website' },
-  ].filter(s => s.url) : [];
+  ]
+    .filter(s => s.url && !String(s.url).toUpperCase().includes('NULL'))
+    .map(s => ({ ...s, url: safeExternalUrl(s.url) }))
+    .filter((s): s is { url: string; Icon: typeof IconLink; label: string } => !!s.url) : [];
 
   const locationLine = user ? [user.location, user.country].filter(Boolean).join(', ') : '';
   const showCover = !!user?.cover && !coverFailed;
