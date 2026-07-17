@@ -15,7 +15,6 @@ import {
   IconGenderBigender,
   IconHeart,
   IconLink,
-  IconLogout,
   IconMail,
   IconMap,
   IconMapPin,
@@ -31,13 +30,13 @@ import type { RootState, AppDispatch } from '../../store';
 import { fetchUserProfile } from '../../store/userSlice';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
-import { useAuth0 } from '@auth0/auth0-react';
 import { fetchUnsplashImage } from '../../services/unsplashService';
 import ImageBadge from '../../components/ui/ImageBadge';
 import EmptyState from '../../components/ui/EmptyState';
 import ErrorState from '../../components/ui/ErrorState';
 import { CardGridSkeleton } from '../../components/ui/Skeletons';
 import { staggerContainer, staggerItem, tabContent } from '../../utils/animations';
+import { safeExternalUrl } from '../../utils/sanitizeHtml';
 
 const CONTENT_MAX = 1200;
 
@@ -206,14 +205,12 @@ const Profile: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const theme = useTheme();
-  const { token, logout } = useAuthToken();
-  const { logout: auth0Logout } = useAuth0();
+  const { token } = useAuthToken();
   const { profile, loading, error } = useSelector((state: RootState) => state.user);
 
   const [activeTab, setActiveTab] = useState(0);
   const [myTrips, setMyTrips] = useState<any[]>([]);
   const [tripsLoading, setTripsLoading] = useState(true);
-  const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [followStats, setFollowStats] = useState<{ followers: number; following: number }>({ followers: 0, following: 0 });
   const [vibePassport, setVibePassport] = useState<{
     vibes: Array<{ name: string; count: number; percentage: number }>;
@@ -282,14 +279,6 @@ const Profile: React.FC = () => {
     })();
     return () => { active = false; };
   }, [token]);
-
-  const handleLogout = async () => {
-    setIsLoggingOut(true);
-    try {
-      await logout();
-      auth0Logout({ logoutParams: { returnTo: window.location.origin } });
-    } catch { /* ignore */ } finally { setIsLoggingOut(false); }
-  };
 
   const handleTripClick = (trip: any) => {
     const id = trip.id || trip.Id;
@@ -384,14 +373,17 @@ const Profile: React.FC = () => {
   const initials = [(profile.fname || '')[0], (profile.lname || '')[0]].filter(Boolean).join('').toUpperCase() || 'T';
   const hasDetails = profile.email || profile.phone || profile.country || (profile.gender && profile.gender !== 'NA') || profile.dateOfBirth;
   const bannerSrc = (!coverFailed && profile.coverpicture) || defaultBanner;
-  const locationLine = [profile.location, profile.country].filter(Boolean).join(', ');
+  const locationLine = profile.location;
 
   const socials = [
     { url: profile.instagram, Icon: IconBrandInstagram, label: 'Instagram' },
     { url: profile.twitter, Icon: IconBrandX, label: 'X' },
     { url: profile.facebook, Icon: IconBrandFacebook, label: 'Facebook' },
     { url: profile.website, Icon: IconLink, label: 'Website' },
-  ].filter(s => s.url);
+  ]
+    .filter(s => s.url && !String(s.url).toUpperCase().includes('NULL'))
+    .map(s => ({ ...s, url: safeExternalUrl(s.url) }))
+    .filter((s): s is { url: string; Icon: typeof IconLink; label: string } => !!s.url);
 
   const statItems = [
     { value: myTrips.length, label: myTrips.length === 1 ? 'trip' : 'trips' },
@@ -470,7 +462,7 @@ const Profile: React.FC = () => {
                 {socials.map(({ url, Icon, label }) => (
                   <Tooltip key={label} title={label}>
                     <IconButton
-                      component="a" href={url!} target="_blank" rel="noopener noreferrer" size="small"
+                      component="a" href={url} target="_blank" rel="noopener noreferrer" size="small"
                       sx={{ color: 'text.secondary', border: `1px solid ${theme.custom.surface.border}`, '&:hover': { color: 'text.primary' } }}
                     >
                       <Icon size={16} stroke={1.9} />
@@ -480,16 +472,6 @@ const Profile: React.FC = () => {
                 <Button variant="outlined" size="small" onClick={() => navigate('/settings')}>
                   Edit profile
                 </Button>
-                <Tooltip title="Sign out">
-                  <IconButton
-                    onClick={handleLogout}
-                    disabled={isLoggingOut}
-                    size="small"
-                    sx={{ color: 'text.secondary', border: `1px solid ${theme.custom.surface.border}`, '&:hover': { color: 'error.main' } }}
-                  >
-                    {isLoggingOut ? <CircularProgress size={14} /> : <IconLogout size={16} stroke={1.9} />}
-                  </IconButton>
-                </Tooltip>
               </Box>
             </Box>
           </motion.div>
