@@ -65,16 +65,17 @@ async function loadDefaultBanner(place: string): Promise<string | null> {
 
 const ProfileTripCard: React.FC<{ trip: any; onClick: () => void }> = ({ trip, onClick }) => {
   const theme = useTheme();
-  const [photo, setPhoto] = useState<string | null>(trip.photoUrl || null);
+  const cover = trip.bannerPhotoUrl || trip.BannerPhotoUrl || trip.photoUrl || trip.PhotoUrl || null;
+  const [photo, setPhoto] = useState<string | null>(cover);
 
   useEffect(() => {
-    if (trip.photoUrl) { setPhoto(trip.photoUrl); return; }
+    if (cover) { setPhoto(cover); return; }
     const q = (Array.isArray(trip.countries) && trip.countries[0]
       ? trip.countries[0] : trip.name || 'travel').split(',')[0];
     let cancelled = false;
     fetchUnsplashImage(q).then(url => { if (!cancelled && url) setPhoto(url); });
     return () => { cancelled = true; };
-  }, [trip.photoUrl, trip.countries, trip.name]);
+  }, [cover, trip.countries, trip.name]);
 
   const nights = trip.totalNights ?? trip.targetNights ?? null;
   const countries: string[] = Array.isArray(trip.countries) ? trip.countries : [];

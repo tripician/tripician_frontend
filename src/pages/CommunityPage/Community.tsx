@@ -56,17 +56,18 @@ const CATEGORIES: { id: string; label: string; Icon: React.ElementType }[] = [
 
 // ── small shared pieces ────────────────────────────────────────────────────
 
-/** Resolves a display photo for a trip: own photo first, Unsplash fallback. */
+/** Resolves a display photo for a trip: own cover photo first, Unsplash fallback. */
 const useTripPhoto = (trip: any) => {
-  const [photo, setPhoto] = React.useState<string | null>(trip?.photoUrl || null);
+  const cover = trip?.bannerPhotoUrl || trip?.BannerPhotoUrl || trip?.photoUrl || trip?.PhotoUrl || null;
+  const [photo, setPhoto] = React.useState<string | null>(cover);
   React.useEffect(() => {
     if (!trip) return;
-    if (trip.photoUrl) { setPhoto(trip.photoUrl); return; }
+    if (cover) { setPhoto(cover); return; }
     let cancelled = false;
     const query = (trip.countries?.[0] || trip.name || 'travel landscape').split(',')[0];
     fetchUnsplashImage(query).then(url => { if (!cancelled && url) setPhoto(url); });
     return () => { cancelled = true; };
-  }, [trip]);
+  }, [trip, cover]);
   return photo;
 };
 

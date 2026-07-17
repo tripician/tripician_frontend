@@ -19,16 +19,17 @@ interface TripCardProps { trip: any; onClick: () => void; }
 /** Published-trip card used on the Community explore grid and traveler profiles. */
 const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
   const theme = useTheme();
-  const [photo, setPhoto] = React.useState<string | null>(trip.photoUrl || null);
+  const cover = trip.bannerPhotoUrl || trip.BannerPhotoUrl || trip.photoUrl || trip.PhotoUrl || null;
+  const [photo, setPhoto] = React.useState<string | null>(cover);
   const [imgFailed, setImgFailed] = React.useState(false);
 
   React.useEffect(() => {
-    if (trip.photoUrl && !imgFailed) { setPhoto(trip.photoUrl); return; }
+    if (cover && !imgFailed) { setPhoto(cover); return; }
     const query = (trip.countries?.[0] || trip.name || 'travel').split(',')[0];
     let cancelled = false;
     fetchUnsplashImage(query).then(url => { if (!cancelled && url) setPhoto(url); });
     return () => { cancelled = true; };
-  }, [trip.photoUrl, trip.countries, trip.name, imgFailed]);
+  }, [cover, trip.countries, trip.name, imgFailed]);
 
   const vibe = VIBES[trip.vibe?.toLowerCase?.()] || null;
   const nights = typeof trip.totalNights === 'number' ? trip.totalNights
