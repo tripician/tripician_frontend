@@ -632,7 +632,7 @@ export default function LandingPage() {
   return (
     <div className="lp-root">
       <Seo
-        title="Tripician - AI-Powered Travel Planner & Trip Builder"
+        title="Tripician, an AI-Powered Travel Planner & Trip Builder"
         description="Plan your perfect trip with Tripician. AI-drafted itineraries, expert plan reviews, collaborative group planning, split expenses, travel risk monitoring, and a global community of travelers."
         path="/"
         jsonLd={[

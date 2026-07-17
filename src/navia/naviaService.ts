@@ -4,7 +4,7 @@ const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 function errorMessageForStatus(status: number): string {
   if (status === 401 || status === 403) return 'Please sign in to use Navia.';
   if (status === 400) return '⚠️ Navia needs a bit more context to help you. Try opening a trip and chatting from there!';
-  if (status === 402) return "You've used all your Navia credits. Top-ups are on the way — see Settings → Credits for your balance and usage.";
+  if (status === 402) return "You've used all your Navia credits. Top-ups are on the way, see Settings → Credits for your balance and usage.";
   if (status === 404) return 'z z z z z... 💤\n\nNavia is sleeping right now. Come back a little later and I\'ll be ready to plan your next adventure!';
   if (status === 429) return '⏳ Navia needs a breather - you\'ve hit the hourly limit. Try again in a little while!';
   if (status >= 500) return '😵 Navia bumped into something on the server. Give it a moment and try again!';
@@ -264,7 +264,7 @@ export interface ChatTripExtract {
 }
 
 /**
- * Turns a plan from the Navia chat into structured trip data (free — the chat
+ * Turns a plan from the Navia chat into structured trip data (free, the chat
  * that produced the plan already cost credits).
  */
 export async function extractTripFromChat(

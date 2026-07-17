@@ -698,7 +698,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
           </Typography>
         </Box>
         {tripCredits !== null && (
-          <Tooltip title="Trip credits — a shared wallet for the whole crew. Tap for details" arrow>
+          <Tooltip title="Trip credits, a shared wallet for the whole crew. Tap for details" arrow>
             <Chip
               label={`🪙 ${tripCredits}`}
               size="small"
@@ -720,7 +720,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
           onClose={() => setCreditAnchor(null)}
           wallet={tripWallet}
           title="Trip credits"
-          subtitle="A shared wallet — every member's AI requests on this trip spend from it."
+          subtitle="A shared wallet, every member's AI requests on this trip spend from it."
         />
         <Tooltip title={statusLabel} arrow>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
