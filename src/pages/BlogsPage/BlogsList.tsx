@@ -58,7 +58,7 @@ const BlogsList: React.FC = () => {
 
   const pageContent = (
     <Box sx={{ minHeight: '100vh', background: '#FAFAFA', fontFamily: "'Inter', sans-serif" }}>
-      {/* Nav — TopBar for logged-in, public nav for guests */}
+      {/* Nav - TopBar for logged-in, public nav for guests */}
       {isAuthenticated ? (
         <TopBar showSearch={false} logo={
           <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#111', fontFamily: "'Inter',sans-serif", letterSpacing: '-0.02em' }}>
@@ -372,7 +372,7 @@ const BlogsList: React.FC = () => {
   return (
     <>
       <Helmet>
-        <title>Travel Blog — Tips, Guides &amp; Destinations | Tripician</title>
+        <title>Travel Blog - Tips, Guides &amp; Destinations | Tripician</title>
         <meta name="description" content="Explore travel guides, destination tips, packing advice, and trip inspiration from the Tripician community." />
         <link rel="canonical" href="https://tripician.com/blog" />
         <meta property="og:title" content="Tripician Travel Blog" />

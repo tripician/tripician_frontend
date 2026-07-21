@@ -1,49 +1,15 @@
-﻿import React from 'react';
-import '../../assets/css/TripCard.css';
+import React from 'react';
+import { Avatar, AvatarGroup, Box, IconButton, LinearProgress, Tooltip, Typography, useTheme } from '@mui/material';
 import { motion } from 'framer-motion';
-import ShareRoundedIcon from '@mui/icons-material/ShareRounded';
-import DeleteRoundedIcon from '@mui/icons-material/DeleteRounded';
-import FavoriteRoundedIcon from '@mui/icons-material/FavoriteRounded';
-import FavoriteBorderRoundedIcon from '@mui/icons-material/FavoriteBorderRounded';
+import { IconBroadcast, IconMapPin, IconShare2, IconTrash } from '@tabler/icons-react';
+import ImageBadge from '../../components/ui/ImageBadge';
 
-// Deterministic avatar colour from name/id — cycles through a warm palette
-const AVATAR_COLORS = [
-  'linear-gradient(135deg,#FF385C,#D91A50)',
-  'linear-gradient(135deg,#0EA5E9,#0369A1)',
-  'linear-gradient(135deg,#10B981,#047857)',
-  'linear-gradient(135deg,#F59E0B,#B45309)',
-  'linear-gradient(135deg,#8B5CF6,#6D28D9)',
-  'linear-gradient(135deg,#EC4899,#BE185D)',
-  'linear-gradient(135deg,#14B8A6,#0F766E)',
-  'linear-gradient(135deg,#F97316,#C2410C)',
-];
+// Deterministic avatar colour from name/id - cycles through a warm palette
+const AVATAR_COLORS = ['#FF385C', '#0EA5E9', '#0FA968', '#F59E0B', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
 const avatarColor = (seed: string) => {
   let h = 0;
   for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
   return AVATAR_COLORS[h % AVATAR_COLORS.length];
-};
-
-const MemberAvatar: React.FC<{ member: { id?: string; name: string; profilePic: string }; zIndex: number }> = ({ member, zIndex }) => {
-  const [imgFailed, setImgFailed] = React.useState(false);
-  const initial = member.name?.charAt(0).toUpperCase() || '?';
-  const color = avatarColor(member.id || member.name || initial);
-  const showImg = !imgFailed && !!member.profilePic;
-  return (
-    <div
-      className="tc-member-avatar"
-      style={{ zIndex, background: showImg ? undefined : color }}
-      title={member.name}
-    >
-      {showImg ? (
-        <img
-          src={member.profilePic}
-          alt={member.name}
-          className="tc-member-avatar-img"
-          onError={() => setImgFailed(true)}
-        />
-      ) : initial}
-    </div>
-  );
 };
 
 interface TripCardProps {
@@ -59,11 +25,17 @@ interface TripCardProps {
   onClick?: () => void;
   onShare?: (e: React.MouseEvent) => void;
   onDelete?: (e: React.MouseEvent) => void;
+  tripStatus?: number;
+  isOwner?: boolean;
+  onGoLive?: () => void;
 }
 
+/** Personal trip card for the dashboard: cover, plan progress, members, actions. */
 const TripCard: React.FC<TripCardProps> = ({
-  title, image, description, progress, edited, members, countries, likes, owner, onClick, onShare, onDelete
+  title, image, description, progress, edited, members, countries, onClick, onShare, onDelete, tripStatus, isOwner, onGoLive,
 }) => {
+  const theme = useTheme();
+
   const countryDisplay = React.useMemo(() => {
     if (!countries || countries.length === 0) return null;
     const normalize = (c: string) => c ? c.charAt(0).toUpperCase() + c.slice(1).toLowerCase() : c;
@@ -75,157 +47,141 @@ const TripCard: React.FC<TripCardProps> = ({
     };
     const unique = countries.filter((c, i, arr) => c && arr.indexOf(c) === i && isReal(c)).map(normalize);
     if (unique.length === 0) return null;
-    return { list: unique.slice(0, 3), extra: Math.max(0, unique.length - 3), total: unique.length };
+    return `${unique.slice(0, 2).join(' · ')}${unique.length > 2 ? ` · +${unique.length - 2}` : ''}`;
   }, [countries]);
 
   const pct = typeof progress === 'number' ? Math.min(100, Math.max(0, progress)) : 0;
-  const isComplete = pct >= 100;
-  const radius = 11;
-  const circ = 2 * Math.PI * radius;
-  const dash = (pct / 100) * circ;
+  const inProgress = pct > 0 && pct < 100;
 
-  const [liked, setLiked] = React.useState(false);
-  const [likeCount, setLikeCount] = React.useState(likes ?? 0);
-  const handleLike = (e: React.MouseEvent) => {
-    e.stopPropagation();
-    setLiked(prev => !prev);
-    setLikeCount(prev => liked ? prev - 1 : prev + 1);
-  };
+  const actionSx = {
+    color: 'text.secondary',
+    p: 0.6,
+    '&:hover': { color: 'text.primary' },
+  } as const;
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 16, scale: 0.97 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ type: 'spring', stiffness: 260, damping: 22 }}
-      whileHover={{ y: -6, transition: { type: 'spring', stiffness: 300, damping: 18 } }}
-    >
-    <div
-      className="trip-card"
-      role={onClick ? 'button' : undefined}
-      tabIndex={onClick ? 0 : undefined}
-      onClick={onClick}
-      onKeyDown={(e) => { if (onClick && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); } }}
-    >
-      {/* Full-bleed image + gradient overlay */}
-      <div className="tc-image-wrap">
-        {image ? (
-          <img src={image} alt={title} className="tc-image" />
-        ) : (
-          <div className="tc-image-placeholder" />
-        )}
-        <div className="tc-overlay" />
-        <div className="tc-blur-layer" />
-      </div>
-
-      {/* Progress ring — top left */}
-      {!isComplete && pct > 0 && (
-        <div className="tc-ring-wrap" title={`${pct}% planned`}>
-          <svg width="32" height="32" viewBox="0 0 32 32">
-            <circle cx="16" cy="16" r={radius} fill="none" stroke="rgba(255,255,255,0.2)" strokeWidth="2.5" />
-            <circle cx="16" cy="16" r={radius} fill="none"
-              stroke="#FF385C" strokeWidth="2.5"
-              strokeDasharray={`${dash} ${circ}`} strokeLinecap="round"
-              transform="rotate(-90 16 16)" />
-          </svg>
-          <span className="tc-ring-label">{pct}<span style={{ fontSize: '0.32rem' }}>%</span></span>
-        </div>
-      )}
-
-      {/* Action buttons — top right, revealed on hover (delete only) */}
-      <div className="tc-actions">
-        {onDelete && (
-          <button className="tc-action-btn tc-action-delete"
-            onClick={(e) => { e.stopPropagation(); onDelete(e); }}
-            aria-label="Delete trip">
-            <DeleteRoundedIcon style={{ fontSize: 30 }} />
-          </button>
-        )}
-      </div>
-
-      {/* ── Blurred bottom panel ── */}
-      <div className="tc-body">
-
-        {/* 1. Title + share */}
-        <div className="tc-title-row">
-          <h3 className="tc-title">{title}</h3>
-          {onShare && (
-            <button className="tc-action-btn tc-action-share tc-share-inline"
-              onClick={(e) => { e.stopPropagation(); onShare(e); }}
-              aria-label="Share trip">
-              <ShareRoundedIcon style={{ fontSize: 20 }} />
-            </button>
+    <motion.div whileHover={{ y: -4 }} style={{ height: '100%' }}>
+      <Box
+        role={onClick ? 'button' : undefined}
+        tabIndex={onClick ? 0 : undefined}
+        onClick={onClick}
+        onKeyDown={(e) => { if (onClick && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); } }}
+        sx={{
+          height: '100%', display: 'flex', flexDirection: 'column',
+          borderRadius: '16px', overflow: 'hidden',
+          border: `1px solid ${theme.custom.surface.border}`,
+          bgcolor: 'background.paper',
+          boxShadow: theme.custom.shadows.card,
+          cursor: onClick ? 'pointer' : 'default',
+          transition: `box-shadow ${theme.custom.motion.duration.base} ${theme.custom.motion.easing.standard}`,
+          '&:hover': { boxShadow: theme.custom.shadows.cardHover },
+          '&:hover .trip-cover img': { transform: 'scale(1.04)' },
+          '&:focus-visible': { outline: `2px solid ${theme.custom.ring}`, outlineOffset: 2 },
+        }}
+      >
+        {/* Cover */}
+        <Box className="trip-cover" sx={{ position: 'relative', aspectRatio: '16 / 10', overflow: 'hidden', bgcolor: theme.custom.surface.active }}>
+          {image ? (
+            <Box component="img" src={image} alt={title} sx={{
+              width: '100%', height: '100%', objectFit: 'cover', display: 'block',
+              transition: `transform ${theme.custom.motion.duration.slow} ${theme.custom.motion.easing.standard}`,
+            }} />
+          ) : (
+            <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              <IconMapPin size={28} stroke={1.5} color={theme.palette.text.disabled} />
+            </Box>
           )}
-        </div>
+          {tripStatus === 1 && (
+            <ImageBadge sx={{ position: 'absolute', top: 12, left: 12 }}>
+              <Box sx={{
+                width: 6, height: 6, borderRadius: '50%', bgcolor: 'error.main',
+                animation: 'livePulse 1.6s ease-in-out infinite',
+                '@keyframes livePulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.35 } },
+              }} />
+              Live
+            </ImageBadge>
+          )}
+          {inProgress && (
+            <ImageBadge sx={{ position: 'absolute', top: 12, right: 12 }}>{pct}% planned</ImageBadge>
+          )}
+        </Box>
+        {inProgress && <LinearProgress variant="determinate" value={pct} sx={{ height: 3, borderRadius: 0 }} />}
 
-        {/* 2. Countries */}
-        {countryDisplay && (
-          <p className="tc-description" style={{ opacity: 0.75, marginBottom: description ? 2 : undefined }}>
-            {countryDisplay.list.join(', ')}{countryDisplay.extra > 0 ? `, +${countryDisplay.extra} more` : ''}
-          </p>
-        )}
+        {/* Body */}
+        <Box sx={{ px: 1.75, pt: 1.5, pb: 1.25, display: 'flex', flexDirection: 'column', gap: 0.5, flex: 1 }}>
+          <Typography noWrap sx={{ fontSize: 15, fontWeight: 650, letterSpacing: '-0.01em', color: 'text.primary' }}>
+            {title}
+          </Typography>
+          {countryDisplay && (
+            <Typography noWrap sx={{ fontSize: 13, color: 'text.secondary' }}>
+              {countryDisplay}
+            </Typography>
+          )}
+          {description && (
+            <Typography sx={{
+              fontSize: 12.5, lineHeight: 1.5, color: 'text.secondary',
+              display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+            }}>
+              {description}
+            </Typography>
+          )}
 
-        {/* 2b. Description */}
-        {description && (
-          <p className="tc-description">{description}</p>
-        )}
-
-        {/* 2b. Member avatars (max 5) + last-edited badge */}
-        {((members && members.length > 0) || edited) && (
-          <div className="tc-members-row">
-            <div className="tc-members-avatars">
-              {members && members.slice(0, 5).map((m, i) => (
-                <MemberAvatar key={m.id ?? i} member={m} zIndex={5 - i} />
-              ))}
-              {members && members.length > 5 && (
-                <div className="tc-member-avatar tc-member-avatar--more" style={{ zIndex: 0 }}>
-                  +{members.length - 5}
-                </div>
+          {/* Footer */}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mt: 'auto', pt: 1.25 }}>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+              {members && members.length > 0 && (
+                <AvatarGroup
+                  max={4}
+                  sx={{
+                    '& .MuiAvatar-root': {
+                      width: 24, height: 24, fontSize: 11, fontWeight: 700,
+                      border: `1.5px solid ${theme.palette.background.paper}`,
+                    },
+                  }}
+                >
+                  {members.map((m, i) => (
+                    <Avatar
+                      key={m.id ?? i}
+                      src={m.profilePic || undefined}
+                      alt={m.name}
+                      sx={{ bgcolor: avatarColor(m.id || m.name || String(i)) }}
+                    >
+                      {m.name?.charAt(0).toUpperCase() || '?'}
+                    </Avatar>
+                  ))}
+                </AvatarGroup>
               )}
-            </div>
-            {edited && <span className="tc-badge-info">{edited}</span>}
-          </div>
-        )}
+              {edited && (
+                <Typography noWrap sx={{ fontSize: 12, color: 'text.disabled' }}>{edited}</Typography>
+              )}
+            </Box>
 
-        {/* 4. Owner + likes row */}
-        {(owner || likes !== undefined) && (
-          <div className="tc-meta-row">
-            {owner && (
-              <div className="tc-owner">
-                <div className="tc-owner-avatar">{owner.charAt(0).toUpperCase()}</div>
-                <span className="tc-owner-name">{owner}</span>
-              </div>
-            )}
-            {likes !== undefined && (
-              <button
-                className={`tc-likes-btn${liked ? ' tc-likes-btn--liked' : ''}`}
-                onClick={handleLike}
-                aria-label={liked ? 'Unlike trip' : 'Like trip'}
-              >
-                {liked
-                  ? <FavoriteRoundedIcon style={{ fontSize: 18, color: '#FF385C' }} />
-                  : <FavoriteBorderRoundedIcon style={{ fontSize: 18, color: 'rgba(255,255,255,0.7)' }} />
-                }
-                <span className="tc-likes-count">{likeCount}</span>
-              </button>
-            )}
-          </div>
-        )}
-
-        {/* 5. Explore button */}
-        <div className="tc-open-btn-wrap">
-          <button className="tc-open-btn" onClick={onClick} tabIndex={-1}>
-            Explore
-          </button>
-        </div>
-
-        {/* Progress bar (in-progress trips only) */}
-        {pct > 0 && !isComplete && (
-          <div className="tc-progress-wrap">
-            <div className="tc-progress-fill" style={{ width: `${pct}%` }} />
-          </div>
-        )}
-      </div>
-    </div>
+            <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+              {isOwner && tripStatus === 0 && onGoLive && (
+                <Tooltip title="Go live & share your trip in real time" arrow placement="top">
+                  <IconButton size="small" onClick={() => onGoLive()} sx={{ ...actionSx, '&:hover': { color: 'error.main' } }} aria-label="Go live">
+                    <IconBroadcast size={16} stroke={1.9} />
+                  </IconButton>
+                </Tooltip>
+              )}
+              {onShare && (
+                <Tooltip title="Share" arrow placement="top">
+                  <IconButton size="small" onClick={(e) => onShare(e)} sx={actionSx} aria-label="Share trip">
+                    <IconShare2 size={16} stroke={1.9} />
+                  </IconButton>
+                </Tooltip>
+              )}
+              {onDelete && (
+                <Tooltip title="Delete" arrow placement="top">
+                  <IconButton size="small" onClick={(e) => onDelete(e)} sx={{ ...actionSx, '&:hover': { color: 'error.main' } }} aria-label="Delete trip">
+                    <IconTrash size={16} stroke={1.9} />
+                  </IconButton>
+                </Tooltip>
+              )}
+            </Box>
+          </Box>
+        </Box>
+      </Box>
     </motion.div>
   );
 };

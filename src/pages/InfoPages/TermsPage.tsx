@@ -40,7 +40,7 @@ const TermsPage: React.FC = () => {
     },
     {
       id: 'about',
-      title: '2. About Tripician — Planning Tool, Not a Travel Agency',
+      title: '2. About Tripician - Planning Tool, Not a Travel Agency',
       content: (
         <>
           <Warn>
@@ -54,7 +54,7 @@ const TermsPage: React.FC = () => {
             'Hold any ATOL, ABTA, IATA, or equivalent travel industry licence or accreditation',
             'Guarantee the accuracy, current validity, or legality of any destination information displayed',
           ]} />
-          <P>All actual travel arrangements — including but not limited to flights, accommodation, visas, travel insurance, and health requirements — are entirely your own responsibility. You must independently verify all travel information with official government sources, embassies, consulates, and relevant authorities before travelling.</P>
+          <P>All actual travel arrangements - including but not limited to flights, accommodation, visas, travel insurance, and health requirements - are entirely your own responsibility. You must independently verify all travel information with official government sources, embassies, consulates, and relevant authorities before travelling.</P>
         </>
       ),
     },
@@ -139,7 +139,7 @@ const TermsPage: React.FC = () => {
         <>
           <P>THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW. WE DISCLAIM ALL WARRANTIES INCLUDING WARRANTIES OF FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABILITY, AND NON-INFRINGEMENT.</P>
           <Warn>
-            <strong>Travel Information Disclaimer:</strong> All destination information, safety ratings, risk assessments, visa guidance, and AI-generated itinerary suggestions displayed within the Service are sourced from publicly available data and are provided for general informational purposes only. This information may be inaccurate, incomplete, out of date, or not applicable to your specific circumstances. You must independently verify all travel requirements — including entry requirements, visa regulations, health requirements, and safety conditions — with official government sources and relevant embassies before making any travel decisions. Tripician accepts no liability for decisions made based on information displayed in the Service.
+            <strong>Travel Information Disclaimer:</strong> All destination information, safety ratings, risk assessments, visa guidance, and AI-generated itinerary suggestions displayed within the Service are sourced from publicly available data and are provided for general informational purposes only. This information may be inaccurate, incomplete, out of date, or not applicable to your specific circumstances. You must independently verify all travel requirements - including entry requirements, visa regulations, health requirements, and safety conditions - with official government sources and relevant embassies before making any travel decisions. Tripician accepts no liability for decisions made based on information displayed in the Service.
           </Warn>
           <P>We do not warrant that the Service will be uninterrupted, error-free, or free from security vulnerabilities. We are not responsible for any data loss resulting from technical failures.</P>
         </>
@@ -249,7 +249,7 @@ const TermsPage: React.FC = () => {
 
       <Container maxWidth="lg" sx={{ py: { xs: 5, md: 7 } }}>
         <Box sx={{ display: 'flex', gap: { xs: 0, md: 5 }, alignItems: 'flex-start' }}>
-          {/* TOC — desktop only */}
+          {/* TOC - desktop only */}
           <Box sx={{ display: { xs: 'none', md: 'block' }, width: 210, flexShrink: 0, position: 'sticky', top: 72 }}>
             <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#aaa', letterSpacing: '0.1em', textTransform: 'uppercase', mb: 2 }}>Contents</Typography>
             {sections.map((s) => (

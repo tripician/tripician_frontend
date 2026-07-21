@@ -1,6 +1,7 @@
 import React from 'react';
-import { Box, Typography, TextField, Button, IconButton, Avatar, CircularProgress, Fade, Divider, Chip, Collapse } from '@mui/material';
+import { Box, Typography, TextField, Button, IconButton, Avatar, CircularProgress, Fade, Divider, Chip, Collapse, Snackbar } from '@mui/material';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import EditIcon from '@mui/icons-material/Edit';
 import ThumbUpAltOutlinedIcon from '@mui/icons-material/ThumbUpAltOutlined';
@@ -27,7 +28,8 @@ function renderMarkdown(md: string): React.ReactNode {
   let html = md
     .replace(/&/g,'&amp;')
     .replace(/</g,'&lt;')
-    .replace(/>/g,'&gt;');
+    .replace(/>/g,'&gt;')
+    .replace(/"/g,'&quot;'); // quote-escape blocks href attribute breakout in linkified URLs
   html = html.replace(/`([^`]+)`/g,'<code class="tc-code">$1</code>');
   html = html.replace(/\*\*([^*]+)\*\*/g,'<strong>$1</strong>');
   html = html.replace(/(^|\s)\*([^*]+)\*/g,'$1<em>$2</em>');
@@ -39,6 +41,7 @@ function renderMarkdown(md: string): React.ReactNode {
 
 const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
   const userProfile = useSelector((s: RootState) => s.user.profile);
+  const navigate = useNavigate();
 
   // Derive current-user display values from Redux profile
   const myName = userProfile
@@ -53,6 +56,9 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
   // Local comments state (source of truth from backend)
   const [comments, setComments] = React.useState<TripComment[]>([]);
   const [loadingComments, setLoadingComments] = React.useState(true);
+  const [loadError, setLoadError] = React.useState(false);
+  const [reloadKey, setReloadKey] = React.useState(0);
+  const [actionError, setActionError] = React.useState<string | null>(null);
 
   // Normalize a single backend comment DTO to TripComment
   const normalizeComment = (c: any): TripComment => ({
@@ -79,9 +85,9 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
     return flat;
   };
 
-  // Fetch comments from backend
+  // Fetch comments from backend - works for guests too (published trips are public)
   React.useEffect(() => {
-    if (!tripId || !authToken) { setLoadingComments(false); return; }
+    if (!tripId) { setLoadingComments(false); return; }
     let active = true;
     setLoadingComments(true);
     apiServices.getTripComments(authToken, tripId)
@@ -89,11 +95,16 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
         if (!active) return;
         const data = Array.isArray(resp?.data) ? resp.data : (Array.isArray(resp?.data?.comments) ? resp.data.comments : []);
         setComments(flattenComments(data));
+        setLoadError(false);
       })
-      .catch(() => {})
+      .catch((err) => {
+        if (!active) return;
+        console.error('Failed to load trip comments', err);
+        setLoadError(true);
+      })
       .finally(() => { if (active) setLoadingComments(false); });
     return () => { active = false; };
-  }, [tripId, authToken]);
+  }, [tripId, authToken, reloadKey]);
 
   const sorted = React.useMemo(() => [...comments].sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime()), [comments]);
 
@@ -140,10 +151,18 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
     const now = Date.now(); recentRef.current = recentRef.current.filter(t => now - t < FLOOD_WINDOW_MS); if (recentRef.current.length >= MAX_IN_WINDOW) { setFloodBlocked(true); setTimeout(() => setFloodBlocked(false), 4000); return; }
     recentRef.current.push(now);
     if (editingId) {
+      const id = editingId;
+      const original = comments.find(c => c.id === id);
       // Optimistic update
-      setComments(prev => prev.map(c => c.id === editingId ? { ...c, text: body, editedAt: new Date().toISOString() } : c));
+      setComments(prev => prev.map(c => c.id === id ? { ...c, text: body, editedAt: new Date().toISOString() } : c));
       setEditingId(null); setText('');
-      try { await apiServices.updateTripComment(authToken, tripId, editingId, body); } catch { /* revert not needed; UI stays */ }
+      try {
+        await apiServices.updateTripComment(authToken, tripId, id, body);
+      } catch (err) {
+        console.error('Failed to update comment', err);
+        if (original) setComments(prev => prev.map(c => c.id === id ? original : c));
+        setActionError("Couldn't save your edit. Please try again.");
+      }
     } else {
       // Optimistic insert
       const tempId = `tmp_${Date.now()}`;
@@ -154,8 +173,11 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
         const resp = await apiServices.createTripComment(authToken, tripId, body);
         const created = normalizeComment(resp?.data);
         setComments(prev => prev.map(c => c.id === tempId ? created : c));
-      } catch {
+      } catch (err) {
+        console.error('Failed to post comment', err);
         setComments(prev => prev.filter(c => c.id !== tempId));
+        setText(body);
+        setActionError("Couldn't post your comment. Please try again.");
       }
     }
   };
@@ -164,8 +186,15 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
   const cancelEdit = () => { setEditingId(null); setText(''); };
   const cancelReply = () => { setActiveReplyParentId(null); setReplyDraft(''); };
   const deleteComment = async (id: string) => {
+    const removed = comments.filter(c => c.id === id || c.parentId === id);
     setComments(prev => prev.filter(c => c.id !== id && c.parentId !== id));
-    try { if (authToken) await apiServices.deleteTripComment(authToken, tripId, id); } catch { /* already removed optimistically */ }
+    try {
+      if (authToken) await apiServices.deleteTripComment(authToken, tripId, id);
+    } catch (err) {
+      console.error('Failed to delete comment', err);
+      setComments(prev => [...prev, ...removed]);
+      setActionError("Couldn't delete your comment. Please try again.");
+    }
   };
   const sendReply = async (parentId: string) => {
     const body = replyDraft.trim(); if (!body || body.length > MAX_COMMENT_CHARS) return; if (!canPost || !authToken) return;
@@ -179,8 +208,12 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
       const resp = await apiServices.createTripComment(authToken, tripId, body, parentId);
       const created = normalizeComment(resp?.data);
       setComments(prev => prev.map(c => c.id === tempId ? created : c));
-    } catch {
+    } catch (err) {
+      console.error('Failed to post reply', err);
       setComments(prev => prev.filter(c => c.id !== tempId));
+      setActiveReplyParentId(parentId);
+      setReplyDraft(body);
+      setActionError("Couldn't post your reply. Please try again.");
     }
   };
   const toggleUpvoteLocal = (id: string) => {
@@ -202,16 +235,25 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
   const textareaRef = React.useRef<HTMLTextAreaElement|null>(null);
 
   return (
-    <Box sx={{ display:'flex', flexDirection:'column', height:'100%', position:'relative', pt:2, px:4 }}>
-      <Box sx={{ maxWidth:900, width:'100%', mx:'auto', display:'flex', alignItems:'center', justifyContent:'space-between', mb:1.5 }}>
-        <Typography variant='h6' sx={{ fontSize:19, fontWeight:600, letterSpacing:'-.3px' }}>Member discussion</Typography>
+    <Box sx={{ display:'flex', flexDirection:'column', height:'100%', position:'relative', pt:2, px:{ xs:2.5, xl:3 } }}>
+      <Box sx={{ maxWidth:900, width:'100%', mx:'auto', display:'flex', alignItems:'center', justifyContent:'space-between', mb:0.5 }}>
+        <Typography variant='h6' sx={{ fontSize:17, fontWeight:650, letterSpacing:'-.3px' }}>Comments</Typography>
         <Chip size='small' label={`${sorted.length} comment${sorted.length===1?'':'s'}`} sx={{ fontWeight:500, fontSize:12, bgcolor:(t)=> t.palette.mode==='dark'? '#1d2731':'#f3f4f6' }} />
       </Box>
+      <Typography sx={{ maxWidth:900, width:'100%', mx:'auto', fontSize:11.5, color:'text.secondary', mb:1.5 }}>
+        Public - visible to everyone who can see this trip
+      </Typography>
       <Box ref={scrollRef} onScroll={handleScroll} sx={{ flex:1, overflowY:'auto', pb:4 }}>
         <Box sx={{ maxWidth:900, width:'100%', mx:'auto', display:'flex', flexDirection:'column', gap:4 }}>
           {loadingOlder && <Box sx={{ display:'flex', justifyContent:'center' }}><CircularProgress size={18} /></Box>}
           {loadingComments && <Box sx={{ display:'flex', justifyContent:'center', pt:4 }}><CircularProgress size={22} /></Box>}
-          {!loadingComments && visibleSlice.length === 0 && !loadingOlder && <Typography variant='body2' color='text.secondary'>Be the first to start the conversation.</Typography>}
+          {!loadingComments && loadError && (
+            <Box sx={{ display:'flex', flexDirection:'column', alignItems:'center', gap:1, pt:2 }}>
+              <Typography variant='body2' color='error'>Couldn't load comments. Check your connection and try again.</Typography>
+              <Button size='small' variant='outlined' onClick={()=> setReloadKey(k=> k+1)}>Retry</Button>
+            </Box>
+          )}
+          {!loadingComments && !loadError && visibleSlice.length === 0 && !loadingOlder && <Typography variant='body2' color='text.secondary'>Be the first to comment on this trip.</Typography>}
           {dayGroups.map(group => (
             <Box key={group.day} sx={{ display:'flex', flexDirection:'column', gap:3 }}>
               <Box sx={{ display:'flex', alignItems:'center', gap:1, opacity:.8 }}>
@@ -298,19 +340,33 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
         </Box>
       </Box>
       <Divider sx={{ my:2 }} />
+      {!authToken ? (
+        <Box sx={{ display:'flex', alignItems:'center', justifyContent:'center', gap:1.5, pb:2, pt:0.5 }}>
+          <Typography variant='body2' sx={{ color:'text.secondary' }}>Sign in to join the conversation.</Typography>
+          <Button variant='contained' size='small' onClick={()=> navigate('/signin')}>Sign in</Button>
+        </Box>
+      ) : (
       <Box component='form' onSubmit={(e)=> { e.preventDefault(); send(); }} sx={{ maxWidth:900, width:'100%', mx:'auto', display:'flex', alignItems:'flex-start', gap:1.25, pb:1, position:'relative' }}>
         <Avatar src={myAvatar} imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any} sx={{ width:42, height:42, fontSize:16, bgcolor:'#FF385C' }}>{myInitial}</Avatar>
         <Box sx={{ flex:1, display:'flex', alignItems:'center', gap:1, background:(t)=> t.palette.mode==='dark'? '#111a23':'#fafafa', border:'1px solid', borderColor:(t)=> t.palette.divider, borderRadius:8, px:1.25, py:0.75 }}>
-          <TextField inputRef={textareaRef} value={text} onChange={e=> setText(e.target.value.slice(0, MAX_COMMENT_CHARS))} placeholder={editingId? 'Edit your comment...': canPost? 'Share your thoughts':'View only'} multiline minRows={1} maxRows={5} fullWidth variant='standard' InputProps={{ disableUnderline:true, sx:{ fontSize:14, lineHeight:1.5 } }} />
+          <TextField inputRef={textareaRef} value={text} onChange={e=> setText(e.target.value.slice(0, MAX_COMMENT_CHARS))} placeholder={editingId? 'Edit your comment...': canPost? 'Add a public comment…':'View only'} multiline minRows={1} maxRows={5} fullWidth variant='standard' InputProps={{ disableUnderline:true, sx:{ fontSize:14, lineHeight:1.5 } }} />
           {editingId && <Button onClick={cancelEdit} size='small' variant='text' sx={{ textTransform:'none', mr:1 }}>Cancel</Button>}
           <IconButton type='submit' disabled={!text.trim() || floodBlocked || !canPost} sx={{ bgcolor:(t)=> (!text.trim()||floodBlocked||!canPost)? 'action.disabledBackground': t.palette.primary.main, color:(t)=> (!text.trim()||floodBlocked||!canPost)? t.palette.text.disabled: t.palette.primary.contrastText, width:40, height:40, borderRadius:3, '&:hover':{ bgcolor:(t)=> (!text.trim()||floodBlocked||!canPost)? 'action.disabledBackground': t.palette.primary.dark } }}>
             {editingId? <EditIcon sx={{ fontSize:20 }} /> : <SendRoundedIcon sx={{ fontSize:20 }} />}
           </IconButton>
         </Box>
       </Box>
+      )}
       <Fade in={showJumpLatest} unmountOnExit>
         <Button size='small' variant='contained' onClick={()=> { if(scrollRef.current){ scrollRef.current.scrollTop = scrollRef.current.scrollHeight; autoStickRef.current = true; setShowJumpLatest(false);} }} sx={{ position:'fixed', bottom:118, right:42, borderRadius:24, textTransform:'none', boxShadow:3, px:1.4, py:0.35, fontSize:12 }}>Newest</Button>
       </Fade>
+      <Snackbar
+        open={actionError !== null}
+        autoHideDuration={4000}
+        onClose={()=> setActionError(null)}
+        message={actionError}
+        anchorOrigin={{ vertical:'bottom', horizontal:'center' }}
+      />
     </Box>
   );
 };

@@ -11,8 +11,8 @@ export interface FeatureFlags {
 }
 
 export const FEATURE_FLAGS: FeatureFlags = {
-  expenses: false,
-  comments: false,
+  expenses: true,
+  comments: true,
   docsUpload: false,
   docsSection: true, // keep Docs section visible but internally read-only/on-hold
   importExport: false

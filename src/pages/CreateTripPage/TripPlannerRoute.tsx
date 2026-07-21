@@ -2,7 +2,7 @@ import React from 'react';
 import { useParams, useLocation, Navigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { resetPlanner } from '../../store/plannerSlice';
-import TripPlanner from './TripPlanner';
+import TripPlanner, { type ChatSeedStop } from './TripPlanner';
 
 interface TripPlannerRouteLocationState {
   tripId?: string;
@@ -12,6 +12,8 @@ interface TripPlannerRouteLocationState {
   isOwner?: boolean;
   isMember?: boolean;
   canEdit?: boolean;
+  aiGenerated?: boolean; // flag: navigate from "Generate with AI" flow
+  chatSeed?: { stops: ChatSeedStop[] }; // extracted plan from the Navia home chat
 }
 
 const TripPlannerRoute: React.FC = () => {
@@ -20,15 +22,13 @@ const TripPlannerRoute: React.FC = () => {
   const location = useLocation();
   const state = (location.state || {}) as TripPlannerRouteLocationState;
 
-  if(!tripId) {
-    return <Navigate to="/error/404" replace />;
-  }
-
   // Prefer `state.trip`; fall back to `state.initialTrip` if provided and matching id
   const stateMatches = state.tripId === tripId;
   const passedTrip = stateMatches ? (state.trip || state.initialTrip) : undefined;
   const derivedIsOwner = stateMatches && typeof state.isOwner === 'boolean' ? state.isOwner : undefined;
   const derivedCanEdit = stateMatches && typeof state.canEdit === 'boolean' ? state.canEdit : undefined;
+  const derivedAiGenerated = stateMatches ? !!state.aiGenerated : false;
+  const derivedChatSeed = stateMatches && state.chatSeed?.stops?.length ? state.chatSeed : undefined;
 
   // Proactive planner reset when navigating to a new trip (route-level) before TripPlanner mounts.
   // This complements internal mismatch detection and ensures no stale itinerary flashes.
@@ -39,6 +39,10 @@ const TripPlannerRoute: React.FC = () => {
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [tripId, state.__ts]);
+
+  if(!tripId) {
+    return <Navigate to="/error/404" replace />;
+  }
   // Force component remount on tripId changes so internal refs (hydratedRef) don't carry over.
   return (
     <TripPlanner
@@ -48,6 +52,8 @@ const TripPlannerRoute: React.FC = () => {
       isOwnerExternal={derivedIsOwner ?? true}
       isExternalNonOwner={false}
       effectiveCanEdit={derivedCanEdit ?? true}
+      aiGenerated={derivedAiGenerated}
+      chatSeed={derivedChatSeed}
     />
   );
 };

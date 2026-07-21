@@ -1,25 +1,60 @@
-// naviaService.ts — SSE streaming client for Navia AI
+// naviaService.ts - SSE streaming client for Navia AI
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 function errorMessageForStatus(status: number): string {
   if (status === 401 || status === 403) return 'Please sign in to use Navia.';
   if (status === 400) return '⚠️ Navia needs a bit more context to help you. Try opening a trip and chatting from there!';
+  if (status === 402) return "You've used all your Navia credits. Top-ups are on the way, see Settings → Credits for your balance and usage.";
   if (status === 404) return 'z z z z z... 💤\n\nNavia is sleeping right now. Come back a little later and I\'ll be ready to plan your next adventure!';
+  if (status === 429) return '⏳ Navia needs a breather - you\'ve hit the hourly limit. Try again in a little while!';
   if (status >= 500) return '😵 Navia bumped into something on the server. Give it a moment and try again!';
   return '🤔 Hmm, something went sideways. Try again in a sec!';
+}
+
+/** Pulls a human-readable message out of a non-OK response body when possible. */
+async function readErrorBody(response: Response): Promise<string | null> {
+  try {
+    const text = await response.text();
+    if (!text) return null;
+    try {
+      const parsed = JSON.parse(text);
+      if (typeof parsed?.message === 'string' && parsed.message) return parsed.message;
+    } catch {
+      /* not JSON */
+    }
+    // Plain-text bodies from the rate limiter are already user-friendly.
+    if (text.length < 300 && !text.startsWith('<')) return text;
+    return null;
+  } catch {
+    return null;
+  }
 }
 
 /**
  * Streams Navia AI response chunks via SSE.
  * Routes to /api/navia/chat when tripId is provided, otherwise /api/navia/general-chat.
  */
+export interface NaviaHistoryMessage {
+  role: 'user' | 'navia' | 'assistant';
+  content: string;
+}
+
 export async function* streamNaviaResponse(
   tripId: string,
   userMessage: string,
   token?: string | null,
+  history?: NaviaHistoryMessage[],
 ): AsyncGenerator<string> {
   const endpoint = tripId ? '/api/navia/chat' : '/api/navia/general-chat';
-  const body = tripId ? { tripId, userMessage } : { userMessage };
+  const apiHistory = history
+    ?.filter(m => m.content.trim())
+    .map(m => ({
+      role: m.role === 'navia' ? 'assistant' : m.role,
+      content: m.content.trim(),
+    }));
+  const body = tripId
+    ? { tripId, userMessage, history: apiHistory }
+    : { userMessage, history: apiHistory };
 
   let response: Response;
   try {
@@ -32,18 +67,19 @@ export async function* streamNaviaResponse(
       body: JSON.stringify(body),
     });
   } catch {
-    yield "📡 Whoops! Can't find Navia — looks like she wandered off the network. Check your connection and try again!";
+    yield "📡 Whoops! Can't find Navia - looks like she wandered off the network. Check your connection and try again!";
     return;
   }
 
   if (!response.ok) {
-    console.error(`[Navia] HTTP ${response.status} from /api/navia/chat`);
-    yield errorMessageForStatus(response.status);
+    console.error(`[Navia] HTTP ${response.status} from ${endpoint}`);
+    const serverMessage = await readErrorBody(response);
+    yield serverMessage || errorMessageForStatus(response.status);
     return;
   }
 
   if (!response.body) {
-    yield '🫙 Navia sent back an empty reply — like an empty suitcase. Try again!';
+    yield '🫙 Navia sent back an empty reply - like an empty suitcase. Try again!';
     return;
   }
 
@@ -61,11 +97,31 @@ export async function* streamNaviaResponse(
       buffer = lines.pop() ?? '';
 
       for (const line of lines) {
-        const trimmed = line.trim();
-        if (!trimmed) continue;
-        if (!trimmed.startsWith('data: ')) continue;
+        // Do NOT trim the payload: token whitespace is significant.
+        if (!line.startsWith('data: ')) continue;
+        const data = line.slice(6);
 
-        const data = trimmed.slice(6);
+        // Each SSE event carries a JSON envelope so newlines inside tokens
+        // survive framing: {"d":"token"} | {"done":true} | {"error":"..."}
+        try {
+          const event = JSON.parse(data);
+          if (event && typeof event === 'object') {
+            if (typeof event.d === 'string') {
+              yield event.d;
+              continue;
+            }
+            if (event.done) return;
+            if (typeof event.error === 'string') {
+              yield event.error || 'An error occurred.';
+              return;
+            }
+            continue;
+          }
+        } catch {
+          /* fall through to legacy plain-text handling */
+        }
+
+        // Legacy framing (kept for older backends): raw text after "data: "
         if (data === '[DONE]') return;
         if (data.startsWith('[ERROR]')) {
           yield data.slice(7).trim() || 'An error occurred.';
@@ -78,3 +134,259 @@ export async function* streamNaviaResponse(
     reader.releaseLock();
   }
 }
+
+export interface PlanDestinationSpot {
+  name: string;
+  description?: string;
+}
+
+export interface PlanDestinationFood {
+  name: string;
+}
+
+export interface PlanDestinationResult {
+  spots: PlanDestinationSpot[];
+  foods: PlanDestinationFood[];
+  journalNotes: string;
+}
+
+export interface PlanDestinationRequest {
+  tripId: string;
+  destinationName: string;
+  planTitle?: string;
+  lat?: number;
+  lng?: number;
+  nights?: number;
+  category?: string;
+  vibe?: string;
+}
+
+/**
+ * Structured JSON plan for one destination stop (spots, foods, journal - no lodging).
+ */
+/** Error carrying the HTTP status so callers can special-case 402 (credits) and 429 (rate limit). */
+export class NaviaRequestError extends Error {
+  status: number;
+  constructor(status: number, message: string) {
+    super(message);
+    this.name = 'NaviaRequestError';
+    this.status = status;
+  }
+}
+
+async function postNaviaJson<T>(path: string, body: unknown, token?: string | null): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    method: 'POST',
+    headers: {
+      'Content-Type': 'application/json',
+      ...(token ? { Authorization: `Bearer ${token}` } : {}),
+    },
+    body: JSON.stringify(body),
+  });
+
+  if (!response.ok) {
+    const serverMessage = await readErrorBody(response);
+    throw new NaviaRequestError(response.status, serverMessage || errorMessageForStatus(response.status));
+  }
+
+  return response.json() as Promise<T>;
+}
+
+export async function planDestination(
+  request: PlanDestinationRequest,
+  token?: string | null,
+): Promise<PlanDestinationResult> {
+  return postNaviaJson<PlanDestinationResult>('/api/navia/plan-destination', request, token);
+}
+
+export interface SuggestItineraryStop {
+  name: string;
+  nights: number;
+}
+
+export interface SuggestItineraryResult {
+  stops: SuggestItineraryStop[];
+}
+
+export interface SuggestItineraryRequest {
+  tripId: string;
+  country: string;
+  totalNights: number;
+  vibe?: string;
+}
+
+/**
+ * Asks Navia to break a country into an ordered multi-city route whose nights sum to totalNights.
+ * Used by the "Generate with AI" flow so every day of the trip is covered with a real city.
+ */
+export async function suggestCountryItinerary(
+  request: SuggestItineraryRequest,
+  token?: string | null,
+): Promise<SuggestItineraryResult> {
+  return postNaviaJson<SuggestItineraryResult>('/api/navia/suggest-itinerary', request, token);
+}
+
+// ─── Trip brief (AI-written description) ────────────────────────────────────
+
+export interface TripBriefResult {
+  description: string;
+  highlights: string[];
+}
+
+/** Asks Navia to write a shareable 2-3 sentence trip description + highlight phrases. */
+export async function generateTripBrief(
+  tripId: string,
+  token?: string | null,
+): Promise<TripBriefResult> {
+  return postNaviaJson<TripBriefResult>('/api/navia/trip-brief', { tripId }, token);
+}
+
+// ─── Chat → trip (one-click conversion from the home chat) ──────────────────
+
+export interface ChatTripSpot {
+  name: string;
+  description: string;
+}
+
+export interface ChatTripStop {
+  name: string;
+  nights: number;
+  spots: ChatTripSpot[];
+  foods: string[];
+  notes: string;
+}
+
+export interface ChatTripExtract {
+  name: string;
+  countries: string[];
+  vibe: string | null;
+  stops: ChatTripStop[];
+}
+
+/**
+ * Turns a plan from the Navia chat into structured trip data (free, the chat
+ * that produced the plan already cost credits).
+ */
+export async function extractTripFromChat(
+  planText: string,
+  userPrompt: string | undefined,
+  token?: string | null,
+): Promise<ChatTripExtract> {
+  return postNaviaJson<ChatTripExtract>('/api/navia/chat-to-trip', { planText, userPrompt }, token);
+}
+
+// ─── Plan review (whole-plan AI feedback) ───────────────────────────────────
+
+export interface PlanReviewIssue {
+  severity: 'high' | 'medium' | 'low';
+  category: string;
+  title: string;
+  detail: string;
+  suggestion: string;
+}
+
+export interface PlanReviewResult {
+  score: number;
+  verdict: string;
+  strengths: string[];
+  issues: PlanReviewIssue[];
+  quickWins: string[];
+}
+
+/**
+ * Detailed AI review of the current plan (2 trip credits).
+ * planSummary is a compact client-built snapshot so unsaved edits count too.
+ */
+export async function reviewTripPlan(
+  tripId: string,
+  planSummary: string,
+  token?: string | null,
+): Promise<PlanReviewResult> {
+  return postNaviaJson<PlanReviewResult>('/api/navia/plan-review', { tripId, planSummary }, token);
+}
+
+// ─── Credits ────────────────────────────────────────────────────────────────
+
+export interface NaviaCreditBalance {
+  ownerType: 'user' | 'trip';
+  ownerId: string;
+  balance: number;
+  totalGranted: number;
+  totalSpent: number;
+}
+
+async function getNaviaJson<T>(path: string, token?: string | null): Promise<T> {
+  const response = await fetch(`${API_BASE}${path}`, {
+    headers: { ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+  });
+  if (!response.ok) {
+    const serverMessage = await readErrorBody(response);
+    throw new NaviaRequestError(response.status, serverMessage || errorMessageForStatus(response.status));
+  }
+  return response.json() as Promise<T>;
+}
+
+/** Personal wallet backing the home-page Navia chat. */
+export async function fetchMyCredits(token?: string | null): Promise<NaviaCreditBalance> {
+  const data = await getNaviaJson<{ success: boolean; data: NaviaCreditBalance }>('/api/navia/credits/me', token);
+  return data.data;
+}
+
+/** Shared group wallet: every member's AI usage on the trip spends from it. */
+export async function fetchTripCredits(tripId: string, token?: string | null): Promise<NaviaCreditBalance> {
+  const data = await getNaviaJson<{ success: boolean; data: NaviaCreditBalance }>(`/api/navia/credits/trip/${tripId}`, token);
+  return data.data;
+}
+
+/** One ledger row: positive delta = grant/refund, negative = spend. */
+export interface NaviaCreditHistoryEntry {
+  delta: number;
+  action: string;
+  createdAt: string;
+}
+
+export interface NaviaCreditHistory {
+  wallet: NaviaCreditBalance;
+  entries: NaviaCreditHistoryEntry[];
+}
+
+/** Personal wallet balance + recent activity, newest first. */
+export async function fetchMyCreditHistory(token?: string | null, limit = 50): Promise<NaviaCreditHistory> {
+  const data = await getNaviaJson<{ success: boolean; data: NaviaCreditHistory }>(
+    `/api/navia/credits/me/history?limit=${limit}`, token);
+  return data.data;
+}
+
+/** Human labels for ledger actions (mirrors backend action keys). */
+export const CREDIT_ACTION_LABELS: Record<string, string> = {
+  general_chat: 'Navia chat',
+  trip_chat: 'Trip chat',
+  trip_agent_mention: '@navia proposal',
+  plan_destination: 'Destination plan',
+  suggest_itinerary: 'Route suggestion',
+  trip_brief: 'Trip brief',
+  plan_review: 'AI plan review',
+  trial_grant: 'Welcome credits',
+  refund_general_chat: 'Refund · Navia chat',
+  refund_trip_chat: 'Refund · trip chat',
+  refund_plan_destination: 'Refund · destination plan',
+  refund_suggest_itinerary: 'Refund · route suggestion',
+  refund_trip_brief: 'Refund · trip brief',
+  refund_plan_review: 'Refund · AI plan review',
+};
+
+export function creditActionLabel(action: string): string {
+  return CREDIT_ACTION_LABELS[action]
+    ?? action.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
+}
+
+/** What credits buy (mirrors backend NaviaCreditCosts). */
+export const CREDIT_PRICES: { label: string; cost: number; wallet: 'personal' | 'trip' }[] = [
+  { label: 'Navia chat message', cost: 1, wallet: 'personal' },
+  { label: 'Trip chat message', cost: 1, wallet: 'trip' },
+  { label: '@navia proposal in trip chat', cost: 2, wallet: 'trip' },
+  { label: 'AI destination plan', cost: 2, wallet: 'trip' },
+  { label: 'AI route suggestion', cost: 2, wallet: 'trip' },
+  { label: 'AI trip brief', cost: 1, wallet: 'trip' },
+  { label: 'AI plan review', cost: 2, wallet: 'trip' },
+];

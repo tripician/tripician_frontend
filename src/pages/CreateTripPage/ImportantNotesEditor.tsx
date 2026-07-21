@@ -9,6 +9,7 @@ import FormatItalicIcon from '@mui/icons-material/FormatItalic';
 import HighlightIcon from '@mui/icons-material/Highlight';
 import TextIncreaseIcon from '@mui/icons-material/TextIncrease';
 import TextDecreaseIcon from '@mui/icons-material/TextDecrease';
+import { sanitizeHtml } from '../../utils/sanitizeHtml';
 
 interface ImportantNotesEditorProps {
   value?: string;           // If provided => controlled mode
@@ -22,7 +23,9 @@ const MAX_CHARS = 1000;
 const ImportantNotesEditor: React.FC<ImportantNotesEditorProps> = (props) => {
   const { value, onChange, compact, readOnly=false } = props;
   const isControlled = value !== undefined; // uncontrolled if prop omitted
-  const initial = (value ?? '');
+  // Externally-sourced HTML (saved notes may come from other trip members) is
+  // sanitized before it ever reaches innerHTML - stored-XSS defense.
+  const initial = sanitizeHtml(value ?? '');
   const ref = React.useRef<HTMLDivElement | null>(null);
   const [editing, setEditing] = React.useState(false);
   const [internal, setInternal] = React.useState(initial);
@@ -37,7 +40,7 @@ const ImportantNotesEditor: React.FC<ImportantNotesEditorProps> = (props) => {
     if(value !== prevValueRef.current){
       prevValueRef.current = value;
       if(!editing){
-        const next = value ?? '';
+        const next = sanitizeHtml(value ?? '');
         setInternal(next);
         setSaved(next);
         if(ref.current && ref.current.innerHTML !== next) ref.current.innerHTML = next;
@@ -166,8 +169,8 @@ const ImportantNotesEditor: React.FC<ImportantNotesEditorProps> = (props) => {
           {!readOnly && <Tooltip title='Increase font size'><span><IconButton size='small' onClick={(e)=> { e.stopPropagation(); changeFontSize(2); }}><TextIncreaseIcon fontSize='small' /></IconButton></span></Tooltip>}
           {!readOnly && <Tooltip title='Decrease font size'><span><IconButton size='small' onClick={(e)=> { e.stopPropagation(); changeFontSize(-2); }}><TextDecreaseIcon fontSize='small' /></IconButton></span></Tooltip>}
           <Box sx={{ flexGrow:1 }} />
-          {!readOnly && <Tooltip title='Cancel (Esc)'><span><IconButton size='small' onClick={(e)=> { e.stopPropagation(); setInternal(saved); if(ref.current) ref.current.innerHTML = saved; setEditing(false); }}>✕</IconButton></span></Tooltip>}
-          {!readOnly && <Tooltip title='Save (Enter)'><span><IconButton color='primary' size='small' onClick={(e)=> { e.stopPropagation(); setSaved(internal); if(isControlled){ prevValueRef.current = internal; } setEditing(false); }}>✓</IconButton></span></Tooltip>}
+          {!readOnly && <Tooltip title='Cancel (Esc)'><span><IconButton size='small' onClick={(e)=> { e.stopPropagation(); setInternal(saved); if(ref.current) ref.current.innerHTML = saved; setEditing(false); onChange?.(saved); }}>✕</IconButton></span></Tooltip>}
+          {!readOnly && <Tooltip title='Save (Enter)'><span><IconButton color='primary' size='small' onClick={(e)=> { e.stopPropagation(); setSaved(internal); if(isControlled){ prevValueRef.current = internal; } setEditing(false); onChange?.(internal); }}>✓</IconButton></span></Tooltip>}
         </Box>
         {/* Content area */}
         <Box
@@ -178,8 +181,8 @@ const ImportantNotesEditor: React.FC<ImportantNotesEditorProps> = (props) => {
           onInput={readOnly? undefined : handleInput}
           onKeyDown={(e)=> {
             if(readOnly) { e.preventDefault(); return; }
-            if(editing && e.key==='Escape'){ e.preventDefault(); setInternal(saved); if(ref.current) ref.current.innerHTML=saved; setEditing(false); }
-            if(editing && e.key==='Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); setSaved(internal); if(isControlled){ prevValueRef.current = internal; } setEditing(false); }
+            if(editing && e.key==='Escape'){ e.preventDefault(); setInternal(saved); if(ref.current) ref.current.innerHTML=saved; setEditing(false); onChange?.(saved); }
+            if(editing && e.key==='Enter' && (e.ctrlKey || e.metaKey)){ e.preventDefault(); setSaved(internal); if(isControlled){ prevValueRef.current = internal; } setEditing(false); onChange?.(internal); }
           }}
           sx={{ flex:1, px:1.25, py:.6, outline:'none', fontSize:13, lineHeight:1.5, overflow:'hidden', whiteSpace:'pre-wrap', wordBreak:'break-word', userSelect: editing? 'text':'none', opacity: readOnly? .75:1, '&:empty:before':{ content: 'attr(data-placeholder)', color:'text.secondary', opacity:.7, fontStyle:'italic' }, ...(editing? { overflowY:'auto', maxHeight:140 } : { display:'-webkit-box', WebkitLineClamp:3, WebkitBoxOrient:'vertical' }) }}
           data-placeholder='Pin your important notes here'

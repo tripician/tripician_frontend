@@ -116,7 +116,7 @@ function normalizeLocationCode(value?: string): string {
   return match ? match[0] : '';
 }
 
-// ─── Colour/icon helpers shared with AlertsPanel ──────────────────────────
+//  Colour/icon helpers shared with AlertsPanel 
 const ALERT_META: Record<string, { bg: string; border: string; iconColor: string; badgeColor: 'error' | 'warning' | 'info' | 'default'; description: string }> = {
   'Severe Weather': {
     bg: 'rgba(127,29,29,0.18)', border: 'rgba(239,68,68,0.45)', iconColor: '#f87171',
@@ -141,7 +141,7 @@ const ALERT_META: Record<string, { bg: string; border: string; iconColor: string
   'Transport Update': {
     bg: 'rgba(30,58,138,0.2)', border: 'rgba(96,165,250,0.4)', iconColor: '#60a5fa',
     badgeColor: 'info',
-    description: 'Disruptions to airports, airlines or rail services — including cancellations, strikes or major delays affecting your itinerary.'
+    description: 'Disruptions to airports, airlines or rail services - including cancellations, strikes or major delays affecting your itinerary.'
   }
 };
 
@@ -605,7 +605,7 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
   };
 
   const formatFxRate = (value?: number) => {
-    if (value == null || Number.isNaN(value)) return '—';
+    if (value == null || Number.isNaN(value)) return '-';
     if (value >= 100) return value.toFixed(0);
     if (value >= 10) return value.toFixed(2);
     if (value >= 1) return value.toFixed(3);
@@ -640,7 +640,7 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
           <Box sx={{ fontSize: 60, mb: 2.5, lineHeight: 1, filter: 'grayscale(0.1)' }}>🛰️</Box>
           <Typography variant='h6' sx={{ fontWeight: 800, mb: 1.5, letterSpacing: .3 }}>No Active Corridors</Typography>
           <Typography variant='body2' color='text.secondary' sx={{ lineHeight: 1.7, maxWidth: 360, mx: 'auto' }}>
-            Add destinations in your trip settings to unlock real-time intelligence — breaking news, live weather alerts, and currency rates curated for your itinerary.
+            Add destinations in your trip settings to unlock real-time intelligence - breaking news, live weather alerts, and currency rates curated for your itinerary.
           </Typography>
         </Box>
       </Box>
@@ -663,7 +663,7 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
         </Box>
       )}
 
-      {/* ── Premium Risk Monitor Banner ── */}
+      {/*  Premium Risk Monitor Banner  */}
       <Box sx={{
         mb: 3, color: '#f8fafc', borderRadius: { xs: 2.5, md: 3.5 },
         background: 'linear-gradient(135deg, #020a1c 0%, #0a1628 20%, #0d2146 50%, #1255b0 78%, #0288d1 100%)',
@@ -713,7 +713,7 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
             }}>
               <Typography sx={{ fontSize: '0.72rem', lineHeight: 1.55, color: 'rgba(255,255,255,0.72)', fontFamily: "'Inter', system-ui, sans-serif" }}>
                 <Box component='span' sx={{ fontWeight: 700, color: '#fbbf24' }}>⚠️ For reference only. </Box>
-                Risk data is sourced from automated feeds and ongoing research — it may be incomplete or inaccurate. Always check official government travel advisories before making travel decisions.
+                Risk data is sourced from automated feeds and ongoing research - it may be incomplete or inaccurate. Always check official government travel advisories before making travel decisions.
               </Typography>
             </Box>
           </Box>
@@ -958,11 +958,11 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
                           )}
                           <Box sx={{ minWidth: 0 }}>
                             {intel.weather.loading ? <Skeleton width={60} sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} /> : (
-                              <Typography variant='h6' sx={{ fontWeight: 700, lineHeight: 1 }}>{intel.weather.temperatureC != null ? `${intel.weather.temperatureC.toFixed(0)}°C` : '—'}</Typography>
+                              <Typography variant='h6' sx={{ fontWeight: 700, lineHeight: 1 }}>{intel.weather.temperatureC != null ? `${intel.weather.temperatureC.toFixed(0)}°C` : '-'}</Typography>
                             )}
                             {intel.weather.loading ? <Skeleton width={100} sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} /> : (
                               <Typography variant='caption' sx={{ opacity: .6, display: 'block', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                                {intel.weather.conditionText || '—'}{intel.weather.windKph != null ? ` • ${intel.weather.windKph.toFixed(0)} km/h wind` : ''}
+                                {intel.weather.conditionText || '-'}{intel.weather.windKph != null ? ` • ${intel.weather.windKph.toFixed(0)} km/h wind` : ''}
                               </Typography>
                             )}
                           </Box>
@@ -1009,7 +1009,7 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
               })}
             </Stack>
 
-            {/* ── Active Alerts Panel ── */}
+            {/*  Active Alerts Panel  */}
             <AlertsPanel articles={activeArticles} loading={loading} classifyImpact={classifyImpact} formatDate={formatDate} />
 
             <Card variant='outlined' sx={{ p: 2, borderRadius: 2.5 }}>

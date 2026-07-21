@@ -4,7 +4,7 @@
  * Custom react-snap wrapper.
  *
  * Problem: react-snap bundles Puppeteer v1.20.0 whose Chromium is ~v79.
- * Chrome 80 introduced optional chaining (?.) — Vite's output uses it, so
+ * Chrome 80 introduced optional chaining (?.) ,Vite's output uses it, so
  * react-snap's built-in Chromium throws "SyntaxError: Unexpected token '?'"
  * and snaps empty HTML shells instead of real content.
  *
@@ -147,7 +147,7 @@ async function main() {
       source: 'dist',
       port,
       include: ROUTES,
-      crawl: false, // all routes are explicit — don't rely on link crawling
+      crawl: false, // all routes are explicit ,don't rely on link crawling
       puppeteerArgs: [
         '--no-sandbox',
         '--disable-setuid-sandbox',

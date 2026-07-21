@@ -1,5 +1,5 @@
 /**
- * TripHeader — premium glassmorphism hero banner
+ * TripHeader - premium glassmorphism hero banner
  * Shows cover image, editable title, date range, nights ring, countries row.
  */
 import React from 'react';
@@ -49,7 +49,7 @@ const formatDateRange = (start: string | null, end: string | null): string => {
     } catch { return iso; }
   };
   if (!end || start === end) return fmt(start);
-  return `${fmt(start)} — ${fmt(end)}`;
+  return `${fmt(start)} ,${fmt(end)}`;
 };
 
 const TripHeader: React.FC<TripHeaderProps> = ({
@@ -106,7 +106,7 @@ const TripHeader: React.FC<TripHeaderProps> = ({
           />
         )}
 
-        {/* Gradient overlay — always present for legibility */}
+        {/* Gradient overlay - always present for legibility */}
         <Box sx={{
           position: 'absolute', inset: 0,
           background: hasBanner

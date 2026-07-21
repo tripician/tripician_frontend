@@ -6,6 +6,9 @@ export default defineConfig(({ mode }) => {
   const env = loadEnv(mode, process.cwd(), '');
   const enableNewsProxy = env.VITE_NEWS_PROXY === '1';
   return {
+    // Strip ALL console output and debugger statements from production bundles
+    // (applies to app code and bundled dependencies alike).
+    esbuild: mode === 'production' ? { drop: ['console', 'debugger'] } : undefined,
     build: {
       chunkSizeWarningLimit: 600,
       rollupOptions: {

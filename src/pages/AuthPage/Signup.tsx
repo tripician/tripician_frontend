@@ -3,7 +3,6 @@ import { motion } from 'framer-motion';
 import { useAuth0 } from '@auth0/auth0-react';
 import '../../assets/css/Signin.css';
 import '../../assets/css/Signup.css';
-import { KalaMandala } from '../../components/DecorativeComponents/KalaDecor';
 import { Eye, EyeOff, Plane, MapPin, Globe, Brain, Check, ArrowLeft } from 'lucide-react';
 import { authAPI } from '../../services/APIs/Auth/auth';
 import { useNavigate } from 'react-router-dom';
@@ -97,7 +96,11 @@ const Signup = () => {
         }, 2000);
       } catch (err: any) {
         console.error('Signup error:', err);
-        setError(err.response?.data?.message || 'An error occurred during signup. Please try again.');
+        const errData = err.response?.data;
+        const errMsg = typeof errData === 'string' ? errData
+          : errData?.message || errData?.title || errData?.error
+          || 'An error occurred during signup. Please try again.';
+        setError(errMsg);
       } finally {
         setLoading(false);
       }
@@ -115,7 +118,7 @@ const Signup = () => {
 
   return (
     <div className="auth-root">
-      {/* ── Left brand pane ─────────────────────────────────────── */}
+      {/*  Left brand pane  */}
       <motion.div
         className="auth-left"
         variants={fadeInLeft}
@@ -146,7 +149,7 @@ const Signup = () => {
             Join thousands of explorers planning smarter with Tripician.
           </motion.p>
           <motion.ul className="auth-left__perks" variants={staggerContainer(0.08, 0)}>
-            <motion.li variants={staggerItem}><Check size={14} /> Free forever — no credit card needed</motion.li>
+            <motion.li variants={staggerItem}><Check size={14} /> Free forever - no credit card needed</motion.li>
             <motion.li variants={staggerItem}><MapPin size={14} /> Unlimited trip itineraries</motion.li>
             <motion.li variants={staggerItem}><Globe size={14} /> 150+ destinations covered</motion.li>
             <motion.li variants={staggerItem}><Brain size={14} /> AI-powered trip suggestions</motion.li>
@@ -154,7 +157,7 @@ const Signup = () => {
         </motion.div>
       </motion.div>
 
-      {/* ── Right form pane ─────────────────────────────────────── */}
+      {/*  Right form pane  */}
       <motion.div
         className="auth-right"
         variants={fadeInRight}
@@ -166,10 +169,6 @@ const Signup = () => {
           <ArrowLeft size={15} />
           Back
         </button>
-        {/* Indian kala mandala — top-right corner */}
-        <KalaMandala size={380} color="#FF385C" opacity={0.07} style={{ position: 'absolute', top: -90, right: -90, zIndex: 0 }} />
-        {/* Indian kala mandala — bottom-left accent */}
-        <KalaMandala size={240} color="#D91A50" opacity={0.05} style={{ position: 'absolute', bottom: -60, left: -60, zIndex: 0 }} />
         <motion.div
           className="auth-card auth-card--signup"
           initial={{ opacity: 0, y: 30, scale: 0.97 }}

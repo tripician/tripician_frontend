@@ -30,7 +30,7 @@ const PrivacyPage: React.FC = () => {
           <P>Tripician ("we," "us," or "our") is committed to protecting your personal data. This Privacy Policy explains what information we collect, why we collect it, and how we use, share, and protect it when you access or use the Tripician platform ("the Service").</P>
           <P>By creating an account or using the Service, you acknowledge that you have read and understood this Privacy Policy. If you disagree with any part of this policy, please do not use the Service.</P>
           <P><strong>Data Controller:</strong> Tripician and its operators are the data controller responsible for personal data collected through the Service.</P>
-          <P><strong>Privacy enquiries:</strong> Email <Box component="a" href="mailto:support@tripician.com" sx={{ color: '#FF385C', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box> with the subject line "Privacy Request — [Your Name]".</P>
+          <P><strong>Privacy enquiries:</strong> Email <Box component="a" href="mailto:support@tripician.com" sx={{ color: '#FF385C', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box> with the subject line "Privacy Request ,[Your Name]".</P>
         </>
       ),
     },
@@ -40,10 +40,11 @@ const PrivacyPage: React.FC = () => {
       content: (
         <>
           <P><strong>Account Information:</strong> When you register, we collect your first name, last name, and email address. You may optionally provide a profile picture.</P>
-          <P><strong>Trip Data:</strong> All content you create within the Service — including trip names, destination details, travel dates, day-by-day itineraries, expense records, packing lists, notes, and any files you choose to upload.</P>
+          <P><strong>Trip Data:</strong> All content you create within the Service - including trip names, destination details, travel dates, day-by-day itineraries, expense records, packing lists, notes, and any files you choose to upload.</P>
           <P><strong>Usage Data:</strong> Information about how you interact with the Service, such as features used, pages visited, session timestamps, and error events.</P>
           <P><strong>Technical Data:</strong> Your IP address, browser type and version, operating system, device type, and referring URL, collected automatically when you access the Service.</P>
           <P><strong>Authentication Data:</strong> Login sessions and authentication tokens managed by Auth0, Inc. We do not store your raw password at any point.</P>
+          <P><strong>Security &amp; Accountability Logs:</strong> Each time you sign in, we record the time, your IP address, and coarse device information (device type, operating system, and browser family). We also measure aggregate time spent using the Service, including time spent in the trip planner, to keep accounts secure, investigate abuse, and understand feature engagement. These logs are visible only to authorised administrators.</P>
         </>
       ),
     },
@@ -90,9 +91,9 @@ const PrivacyPage: React.FC = () => {
           <P><strong>We do not sell, trade, or rent your personal information to any third party.</strong></P>
           <P>We share data with trusted third-party processors solely to operate the Service:</P>
           <Ul items={[
-            <><strong>Auth0, Inc.</strong> — manages user authentication. Your email and authentication credentials are processed under Auth0's Privacy Policy and a Data Processing Agreement.</>,
-            <><strong>Unsplash Inc.</strong> — provides destination photographs via its API. No personal data is shared with Unsplash. Image URLs are cached in your browser's local storage for performance only.</>,
-            <><strong>Infrastructure & Hosting Providers</strong> — our servers are hosted on third-party cloud infrastructure. Providers process data on our behalf under Data Processing Agreements and are contractually required to protect your data.</>,
+            <><strong>Auth0, Inc.</strong> - manages user authentication. Your email and authentication credentials are processed under Auth0's Privacy Policy and a Data Processing Agreement.</>,
+            <><strong>Unsplash Inc.</strong> - provides destination photographs via its API. No personal data is shared with Unsplash. Image URLs are cached in your browser's local storage for performance only.</>,
+            <><strong>Infrastructure & Hosting Providers</strong> - our servers are hosted on third-party cloud infrastructure. Providers process data on our behalf under Data Processing Agreements and are contractually required to protect your data.</>,
           ]} />
           <P><strong>Legal Disclosure:</strong> We may disclose your information if required by law, court order, or government authority. Where legally permitted, we will notify you before doing so.</P>
         </>
@@ -108,6 +109,7 @@ const PrivacyPage: React.FC = () => {
             'Deletion requests: Upon a verified account deletion request, we will permanently delete your personal data within 30 days, except where retention is required by law.',
             'Encrypted backups: Residual copies in encrypted backups are purged within 90 days of the deletion date.',
             'Usage logs: Anonymised and aggregated usage statistics may be retained for up to 24 months for security and service improvement.',
+            'Sign-in and session activity logs: retained for up to 12 months, then automatically deleted.',
           ]} />
         </>
       ),
@@ -136,7 +138,7 @@ const PrivacyPage: React.FC = () => {
             'Right to Limit Use of Sensitive Personal Information: We do not collect sensitive personal information as defined by CCPA/CPRA.',
             'Right to Non-Discrimination: We will not discriminate against you for exercising any CCPA rights.',
           ]} />
-          <P>To exercise any of these rights, email <Box component="a" href="mailto:support@tripician.com" sx={{ color: '#FF385C', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box> with the subject "Privacy Request — [Your Name]". We will respond within 30 days (GDPR/UK GDPR) or 45 days (CCPA/CPRA).</P>
+          <P>To exercise any of these rights, email <Box component="a" href="mailto:support@tripician.com" sx={{ color: '#FF385C', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box> with the subject "Privacy Request ,[Your Name]". We will respond within 30 days (GDPR/UK GDPR) or 45 days (CCPA/CPRA).</P>
         </>
       ),
     },
@@ -145,7 +147,7 @@ const PrivacyPage: React.FC = () => {
       title: '8. International Data Transfers',
       content: (
         <>
-          <P>If you are located in the EEA or UK and your data is transferred to countries outside those regions (for example, to our infrastructure or authentication providers), we ensure that appropriate safeguards are in place — such as Standard Contractual Clauses (SCCs) approved by the European Commission, or equivalent mechanisms compliant with applicable transfer rules.</P>
+          <P>If you are located in the EEA or UK and your data is transferred to countries outside those regions (for example, to our infrastructure or authentication providers), we ensure that appropriate safeguards are in place - such as Standard Contractual Clauses (SCCs) approved by the European Commission, or equivalent mechanisms compliant with applicable transfer rules.</P>
         </>
       ),
     },
@@ -187,7 +189,7 @@ const PrivacyPage: React.FC = () => {
         <>
           <P>For any privacy-related questions, data access or deletion requests, or complaints, please contact us:</P>
           <P><strong>Email:</strong> <Box component="a" href="mailto:support@tripician.com" sx={{ color: '#FF385C', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box></P>
-          <P><strong>Subject line format:</strong> "Privacy Request — [Your Name]"</P>
+          <P><strong>Subject line format:</strong> "Privacy Request ,[Your Name]"</P>
           <P>We are committed to resolving concerns promptly and transparently. If you are not satisfied with our response, you have the right to lodge a complaint with your applicable data protection authority.</P>
         </>
       ),
@@ -214,7 +216,7 @@ const PrivacyPage: React.FC = () => {
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, mt: 3, flexWrap: 'wrap' }}>
             <Box sx={{ background: 'rgba(255,56,92,0.08)', borderRadius: '20px', px: 2, py: 0.75, border: '1px solid rgba(255,56,92,0.15)' }}>
-              <Typography sx={{ fontSize: '0.78rem', color: '#FF385C', fontWeight: 600 }}>Last updated: May 1, 2026</Typography>
+              <Typography sx={{ fontSize: '0.78rem', color: '#FF385C', fontWeight: 600 }}>Last updated: July 21, 2026</Typography>
             </Box>
             <Box sx={{ background: 'rgba(0,0,0,0.04)', borderRadius: '20px', px: 2, py: 0.75, border: '1px solid rgba(0,0,0,0.08)' }}>
               <Typography sx={{ fontSize: '0.78rem', color: '#555', fontWeight: 500 }}>GDPR · UK GDPR · CCPA/CPRA</Typography>
@@ -225,7 +227,7 @@ const PrivacyPage: React.FC = () => {
 
       <Container maxWidth="lg" sx={{ py: { xs: 5, md: 7 } }}>
         <Box sx={{ display: 'flex', gap: { xs: 0, md: 5 }, alignItems: 'flex-start' }}>
-          {/* TOC — desktop only */}
+          {/* TOC - desktop only */}
           <Box sx={{ display: { xs: 'none', md: 'block' }, width: 210, flexShrink: 0, position: 'sticky', top: 72 }}>
             <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, color: '#aaa', letterSpacing: '0.1em', textTransform: 'uppercase', mb: 2 }}>Contents</Typography>
             {sections.map((s) => (

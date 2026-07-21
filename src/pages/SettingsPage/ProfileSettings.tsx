@@ -36,9 +36,13 @@ const ProfileSettings: React.FC = () => {
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
+  const [coverPicture, setCoverPicture] = useState<string | null>(null);
   const [isRemovingPhoto, setIsRemovingPhoto] = useState(false);
   const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
+  const [isUploadingCover, setIsUploadingCover] = useState(false);
+  const [isRemovingCover, setIsRemovingCover] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const coverInputRef = useRef<HTMLInputElement>(null);
   const [loading, setLoading] = useState(false); // initial fetch
   const [saving, setSaving] = useState(false);   // personal info save
   const [contactSaving, setContactSaving] = useState(false); // contact info save
@@ -117,7 +121,7 @@ const ProfileSettings: React.FC = () => {
             >
               {!profilePicture && (fname?.[0]?.toUpperCase() || 'U')}
             </Avatar>
-            {/* Hidden file picker — accepts jpg/png/webp up to 5 MB */}
+            {/* Hidden file picker - accepts jpg/png/webp up to 5 MB */}
             <input
               ref={fileInputRef}
               type="file"
@@ -179,7 +183,7 @@ const ProfileSettings: React.FC = () => {
                     throw new Error(`Cloudinary upload failed: ${errBody}`);
                   }
 
-                  // 3. Persist the URL to DB (non-fatal — endpoint may not exist yet)
+                  // 3. Persist the URL to DB (non-fatal - endpoint may not exist yet)
                   const newUrl = `${uploadData.fileUrl}?v=${uploadData.timestamp}`;
                   try {
                     await apiServices.saveProfilePictureUrl(authToken, uploadData.fileUrl);
@@ -234,7 +238,7 @@ const ProfileSettings: React.FC = () => {
                   setIsRemovingPhoto(true);
                   setError(null);
                   try {
-                    // DELETE /api/uploads/profile-photo/{userId} — removes from Cloudinary + clears DB
+                    // DELETE /api/uploads/profile-photo/{userId} - removes from Cloudinary + clears DB
                     await apiServices.removeProfilePhoto(authToken, Number(userId));
 
                     setProfilePicture(null);
@@ -259,15 +263,110 @@ const ProfileSettings: React.FC = () => {
               </Button>
             </Box>
           </Box>
-          <Typography
-            variant="body2"
-            sx={{
-              color: "text.secondary",
-              mt: 2,
-              fontSize: "0.875rem",
+          <Typography variant="body2" sx={{ color: "text.secondary", mt: 2, fontSize: "0.875rem" }}>
+            Recommended: Square image, at least 400×400px · Max 5 MB (JPG, PNG, WebP)
+          </Typography>
+        </CardContent>
+      </Card>
+
+      {/* Cover Photo Section */}
+      <Card sx={{ mb: 3, borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid', borderColor: 'divider' }}>
+        <CardContent sx={{ p: 3 }}>
+          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', mb: 2.5, color: 'text.primary', letterSpacing: '-0.01em' }}>
+            Cover Photo
+          </Typography>
+          {/* Hidden file picker for cover */}
+          <input
+            ref={coverInputRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp"
+            style={{ display: 'none' }}
+            onChange={async (e) => {
+              const file = e.target.files?.[0];
+              e.target.value = '';
+              if (!file || !authToken) return;
+              const userId = currentProfile?.id;
+              if (!userId) return;
+              if (file.size > 8 * 1024 * 1024) {
+                window.dispatchEvent(new CustomEvent('app:error', { detail: { message: 'Cover image must be under 8 MB.' } }));
+                return;
+              }
+              setIsUploadingCover(true);
+              try {
+                const { data: uploadData } = await apiServices.getCoverUploadUrl(authToken, String(userId));
+                const formData = new FormData();
+                formData.append('file', file);
+                formData.append('api_key', uploadData.apiKey);
+                formData.append('timestamp', String(uploadData.timestamp));
+                formData.append('signature', uploadData.signature);
+                formData.append('folder', uploadData.folder);
+                formData.append('public_id', uploadData.public_id);
+                const cloudRes = await fetch(uploadData.uploadUrl, { method: 'POST', body: formData });
+                if (!cloudRes.ok) throw new Error('Cloudinary upload failed');
+                const newUrl = `${uploadData.fileUrl}?v=${uploadData.timestamp}`;
+                await apiServices.saveCoverPictureUrl(authToken, uploadData.fileUrl);
+                setCoverPicture(newUrl);
+                const optimisticProfile = { ...(currentProfile ?? {}), coverpicture: newUrl } as any;
+                dispatch(setUserProfile(optimisticProfile));
+                await dispatch(fetchUserProfile({ force: true } as any)).unwrap().catch(() => {});
+                window.dispatchEvent(new CustomEvent('app:success', { detail: { message: 'Cover photo updated' } }));
+              } catch {
+                window.dispatchEvent(new CustomEvent('app:error', { detail: { message: 'Cover photo upload failed' } }));
+              } finally {
+                setIsUploadingCover(false);
+              }
             }}
-          >
-            Recommended: Square image, at least 400×400px · Max 5 MB (JPG, PNG, WebP)
+          />
+          {/* Cover preview */}
+          <Box
+            sx={{
+              width: '100%', height: 160, borderRadius: '12px', overflow: 'hidden', mb: 2,
+              background: coverPicture || (currentProfile as any)?.coverpicture
+                ? `url(${coverPicture || (currentProfile as any)?.coverpicture}) center/cover no-repeat`
+                : 'linear-gradient(135deg,#1a1a2e,#16213e)',
+              border: '1px solid', borderColor: 'divider',
+            }}
+          />
+          <Box sx={{ display: 'flex', gap: 2 }}>
+            <Button
+              variant="contained"
+              size="small"
+              disabled={isUploadingCover}
+              onClick={() => coverInputRef.current?.click()}
+              sx={{ textTransform: 'none', fontWeight: 600, px: 2.5, py: 1, borderRadius: '50px', background: 'linear-gradient(135deg,#FF385C,#D91A50)', boxShadow: '0 4px 12px rgba(255,56,92,0.28)', '&:hover': { background: 'linear-gradient(135deg,#E31C5F,#B01550)' } }}
+            >
+              {isUploadingCover ? <><CircularProgress size={14} sx={{ color: '#fff', mr: 1 }} />Uploading…</> : 'Upload Cover'}
+            </Button>
+            {(coverPicture || (currentProfile as any)?.coverpicture) && (
+              <Button
+                variant="text" color="error" size="small"
+                disabled={isRemovingCover}
+                onClick={async () => {
+                  const userId = currentProfile?.id;
+                  if (!userId || !authToken) return;
+                  const numericUserId = Number(userId);
+                  if (!Number.isFinite(numericUserId)) return;
+                  setIsRemovingCover(true);
+                  try {
+                    await apiServices.removeCoverPhoto(authToken, numericUserId);
+                    setCoverPicture(null);
+                    const optimisticProfile = { ...(currentProfile ?? {}), coverpicture: null } as any;
+                    dispatch(setUserProfile(optimisticProfile));
+                    window.dispatchEvent(new CustomEvent('app:success', { detail: { message: 'Cover photo removed' } }));
+                  } catch {
+                    window.dispatchEvent(new CustomEvent('app:error', { detail: { message: 'Failed to remove cover photo' } }));
+                  } finally {
+                    setIsRemovingCover(false);
+                  }
+                }}
+                sx={{ textTransform: 'none', fontWeight: 500, px: 2, py: 1 }}
+              >
+                {isRemovingCover ? 'Removing…' : 'Remove Cover'}
+              </Button>
+            )}
+          </Box>
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 2, fontSize: '0.875rem' }}>
+            Recommended: 1500×500px landscape image · Max 8 MB (JPG, PNG, WebP)
           </Typography>
         </CardContent>
       </Card>

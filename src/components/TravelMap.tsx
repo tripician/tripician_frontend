@@ -1,9 +1,8 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import mapboxgl, { Map } from "mapbox-gl";
+import "mapbox-gl/dist/mapbox-gl.css";
 
-mapboxgl.accessToken =
-  (import.meta.env.VITE_MAPBOX_TOKEN as string) ||
-  "pk.eyJ1Ijoic3JpZGVlcGthciIsImEiOiJjbWlrZGF5cTAwNGkyM2ZzN3NiZXBxMzQ5In0.pHt1LLCU2bY_Z7q1mZhKBA";
+mapboxgl.accessToken = import.meta.env.VITE_MAPBOX_TOKEN as string;
 
 export interface TravelMapProps {
   visited?: string[];
@@ -14,8 +13,6 @@ export interface TravelMapProps {
   disableAttribution?: boolean;
   persistUserControl?: boolean;
 }
-
-const DEFAULT_HEIGHT = 500;
 
 const highlightColors = {
   visited: "#0B5F89",
@@ -37,6 +34,7 @@ const TravelMap: React.FC<TravelMapProps> = ({
   const wrapperRef = useRef<HTMLDivElement | null>(null);
   const rotateTimer = useRef<number | null>(null);
   const userInteractedRef = useRef<boolean>(false);
+  const [mapError, setMapError] = useState<string | null>(null);
 
   const createLayer = (id: string, codes: string[], color: string) => ({
     id,
@@ -80,22 +78,38 @@ const TravelMap: React.FC<TravelMapProps> = ({
   useEffect(() => {
     if (!mapContainerRef.current) return;
 
-    const map = new mapboxgl.Map({
-      container: mapContainerRef.current,
-      style: "mapbox://styles/mapbox/light-v11",
-      projection: "globe",
-      center: [0, 20],
-      zoom: 1,
-      minZoom: 1,
-      maxZoom: 1,
-      pitch: 5,
-      antialias: true,
-      attributionControl: !disableAttribution,
-      scrollZoom: false,
-      doubleClickZoom: false,
-    });
+    if (!mapboxgl.accessToken) {
+      setMapError("Map is not configured (missing Mapbox token).");
+      return;
+    }
+
+    let map: Map;
+    try {
+      map = new mapboxgl.Map({
+        container: mapContainerRef.current,
+        style: "mapbox://styles/mapbox/light-v11",
+        projection: "globe",
+        center: [0, 20],
+        zoom: 1,
+        minZoom: 1,
+        maxZoom: 1,
+        pitch: 5,
+        antialias: true,
+        attributionControl: !disableAttribution,
+        scrollZoom: false,
+        doubleClickZoom: false,
+      });
+    } catch (err) {
+      console.error("[TravelMap] failed to initialise", err);
+      setMapError("Map could not be loaded.");
+      return;
+    }
 
     mapRef.current = map;
+    map.on("error", (e) => {
+      console.error("[TravelMap] mapbox error", e?.error ?? e);
+      setMapError("Map could not be loaded.");
+    });
 
     const markInteraction = () => {
       userInteractedRef.current = true;
@@ -215,21 +229,28 @@ const TravelMap: React.FC<TravelMapProps> = ({
     };
   }, []);
 
-  // -------------- MAKE GLOBE PERFECTLY CENTERED (SQUARE WRAPPER) --------------
+  // ----- KEEP THE GLOBE CENTERED & FULLY VISIBLE -----
+  // The map canvas is a centered square sized to the SMALLER wrapper dimension,
+  // so the globe always fits the container instead of overflowing it.
+  // (The old version forced the wrapper square-by-width: in a wide, short
+  // container the globe's centre ended up hundreds of px below the visible
+  // area, a blank white box.)
   useEffect(() => {
-    if (!wrapperRef.current) return;
+    const wrapper = wrapperRef.current;
+    const inner = mapContainerRef.current;
+    if (!wrapper || !inner) return;
 
-    const el = wrapperRef.current;
-
-    const setSquare = () => {
-      const w = el.getBoundingClientRect().width;
-      el.style.height = w + "px";
-      if (mapRef.current) mapRef.current.resize();
+    const fit = () => {
+      const rect = wrapper.getBoundingClientRect();
+      const side = Math.max(120, Math.min(rect.width, rect.height));
+      inner.style.width = `${side}px`;
+      inner.style.height = `${side}px`;
+      mapRef.current?.resize();
     };
 
-    setSquare();
-    const ro = new ResizeObserver(setSquare);
-    ro.observe(el);
+    fit();
+    const ro = new ResizeObserver(fit);
+    ro.observe(wrapper);
 
     return () => ro.disconnect();
   }, []);
@@ -240,7 +261,11 @@ const TravelMap: React.FC<TravelMapProps> = ({
       style={{
         position: "relative",
         width: "100%",
-        height: `${DEFAULT_HEIGHT}px`,
+        height: "100%",
+        minHeight: 200,
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
         borderRadius: 0,
         overflow: "hidden",
         background: "transparent",
@@ -261,11 +286,32 @@ const TravelMap: React.FC<TravelMapProps> = ({
       <div
         ref={mapContainerRef}
         style={{
-          position: "absolute",
-          inset: 0,
+          width: "100%",
+          height: "100%",
+          flexShrink: 0,
           background: "transparent",
         }}
       />
+
+      {mapError && (
+        <div
+          style={{
+            position: "absolute",
+            inset: 0,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            background: "rgba(0,0,0,0.03)",
+            color: "rgba(0,0,0,0.4)",
+            fontSize: 13,
+            fontFamily: "'Inter', sans-serif",
+            textAlign: "center",
+            padding: 16,
+          }}
+        >
+          {mapError}
+        </div>
+      )}
     </div>
   );
 };

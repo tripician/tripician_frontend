@@ -1,35 +1,24 @@
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,500;1,600;1,700&family=Inter:wght@300;400;500;600;700;800&display=swap');
+/* Fonts are loaded via <link rel="preconnect"> + stylesheet in index.html
+   (a CSS @import here delays first paint by chaining requests). */
 
-/* Navia streaming cursor */
-@keyframes navia-blink {
-  0%, 100% { opacity: 1; }
-  50% { opacity: 0; }
-}
-.navia-cursor {
-  animation: navia-blink 500ms step-start infinite;
-  font-weight: 300;
-  color: inherit;
-  opacity: 0.7;
-}
-
+/* ── Global design tokens (non-MUI contexts: raw CSS, canvas, mapbox) ── */
 :root {
-  font-family: 'Inter', system-ui, Avenir, Helvetica, Arial, sans-serif;
+  --color-brand: #ff385c;
+  --color-brand-hover: #e31c5f;
+  --color-brand-light: #fff0f3;
+  --color-surface-mid: #222235;
+  --radius-pill: 999px;
+  --radius-md: 12px;
+  --shadow-hover: 0 6px 24px rgba(0, 0, 0, 0.14);
+  --transition: all 0.2s ease;
+
+  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
-
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
 }
 
 body {
@@ -38,39 +27,108 @@ body {
   min-height: 100vh;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+a {
+  color: inherit;
+  text-decoration: inherit;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+/* ── Keyframes ────────────────────────────────────────────────────────── */
+
+/* Navia orb - pulsing glow while processing */
+@keyframes navia-orb-pulse {
+  0%,
+  100% {
+    filter: drop-shadow(0 0 4px rgba(255, 46, 66, 0.75))
+      drop-shadow(0 0 12px rgba(255, 46, 66, 0.4));
+  }
+  50% {
+    filter: drop-shadow(0 0 9px rgba(255, 66, 84, 0.95))
+      drop-shadow(0 0 26px rgba(255, 46, 66, 0.65));
+  }
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
+/* Navia orb - sheen rotation while processing */
+@keyframes navia-orb-spin {
+  from {
+    transform: rotate(0deg);
   }
-  a:hover {
-    color: #747bff;
+  to {
+    transform: rotate(360deg);
   }
-  button {
-    background-color: #f9f9f9;
+}
+
+/* Navia streaming cursor */
+@keyframes navia-blink {
+  0%,
+  100% {
+    opacity: 1;
+  }
+  50% {
+    opacity: 0;
+  }
+}
+.navia-cursor {
+  animation: navia-blink 500ms step-start infinite;
+  font-weight: 300;
+  color: inherit;
+  opacity: 0.7;
+}
+
+/* Radar ping ,Risk Monitor nav icon */
+@keyframes radar-ping {
+  0% {
+    transform: scale(1);
+    opacity: 0.8;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+/* Page header ,live badge dot pulse */
+@keyframes page-header-live-pulse {
+  0% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0.6);
+  }
+  70% {
+    box-shadow: 0 0 0 6px rgba(34, 197, 94, 0);
+  }
+  100% {
+    box-shadow: 0 0 0 0 rgba(34, 197, 94, 0);
+  }
+}
+
+/* Gentle shimmer for skeleton-adjacent placeholders */
+@keyframes shimmer {
+  0% {
+    background-position: -400px 0;
+  }
+  100% {
+    background-position: 400px 0;
+  }
+}
+
+/* Soft rise-in for staggered card entrances */
+@keyframes rise-in {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* ── Accessibility ────────────────────────────────────────────────────── */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
 }

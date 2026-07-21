@@ -1,10 +1,19 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
 // Removed differenceInDays dependency after simplifying chain recalculation (nights no longer auto-stretched)
 
+const makeLocalId = (prefix: string): string => {
+  if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
+    return `${prefix}_${crypto.randomUUID()}`;
+  }
+  return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
+};
+
 
 export interface PlannerDestination {
   id: string;
   name: string;
+  /** User-facing plan headline for this stop (e.g. "Coffee & explore the market") */
+  title?: string;
   startDate: string; // ISO date
   endDate: string;   // ISO date
   nights: number;
@@ -210,7 +219,7 @@ const plannerSlice = createSlice({
       const startDate = last ? last.endDate : (state.tripStartDate || new Date().toISOString().slice(0,10));
       const endDate = new Date(new Date(startDate).getTime() + useNights * 24*60*60*1000).toISOString().slice(0,10);
       state.destinations.push({
-        id: Date.now().toString(),
+        id: makeLocalId('dest'),
         name: action.payload.name,
         startDate,
         endDate,
@@ -303,7 +312,7 @@ const plannerSlice = createSlice({
     addStayEntry(state, action: PayloadAction<{ destinationId: string; name?: string; reference?: string }>) {
       const d = state.destinations.find(x=> x.id === action.payload.destinationId);
       if(!d) return; if(!d.stays) d.stays = [];
-      d.stays.push({ id: 'stay_'+Date.now()+'_'+Math.random().toString(36).slice(2), name: action.payload.name?.trim(), reference: action.payload.reference?.trim() });
+      d.stays.push({ id: makeLocalId('stay'), name: action.payload.name?.trim(), reference: action.payload.reference?.trim() });
     },
     updateStayEntry(state, action: PayloadAction<{ destinationId: string; stayId: string; patch: { name?: string; reference?: string } }>) {
       const d = state.destinations.find(x=> x.id === action.payload.destinationId);
@@ -323,6 +332,12 @@ const plannerSlice = createSlice({
       const d = state.destinations.find(x => x.id === action.payload.id);
       if (d) d.name = action.payload.name;
     },
+    setDestinationTitle(state, action: PayloadAction<{ id: string; title: string }>) {
+      const d = state.destinations.find(x => x.id === action.payload.id);
+      if (!d) return;
+      const trimmed = action.payload.title.trim();
+      d.title = trimmed.length > 0 ? trimmed : undefined;
+    },
     setDestinationCategory(state, action: PayloadAction<{ id: string; category: PlannerDestination['category'] }>) {
       const d = state.destinations.find(x => x.id === action.payload.id);
       if (d) d.category = action.payload.category || 'general';
@@ -339,10 +354,11 @@ const plannerSlice = createSlice({
       if (totalNights + source.nights > state.targetNights) return; // avoid exceeding target
       const clone: PlannerDestination = {
         ...source,
-        id: Date.now().toString() + '_' + Math.random().toString(36).slice(2),
+        id: makeLocalId('dest'),
         name: source.name + ' Copy',
-        spots: source.spots ? source.spots.map(s=> ({ ...s, id: s.name + Date.now() + Math.random().toString(36).slice(2), checked:false })) : [],
-        foods: source.foods ? source.foods.map(f=> ({ ...f, id: f.name + Date.now() + Math.random().toString(36).slice(2), checked:false })) : [],
+        title: source.title ? source.title + ' (copy)' : undefined,
+        spots: source.spots ? source.spots.map(s=> ({ ...s, id: makeLocalId('spot'), checked:false })) : [],
+        foods: source.foods ? source.foods.map(f=> ({ ...f, id: makeLocalId('food'), checked:false })) : [],
         docs: source.docs ? source.docs.map(doc => ({ ...doc, id: doc.id + '_copy_' + Math.random().toString(36).slice(2) })) : [],
         completed: false
       };
@@ -490,7 +506,7 @@ const plannerSlice = createSlice({
       if (!d.spots) d.spots = [];
       if (d.spots.some(s=> s.name.toLowerCase()===action.payload.name.toLowerCase())) return;
       d.spots.push({
-        id: action.payload.name + Date.now(),
+        id: makeLocalId('spot'),
         name: action.payload.name,
         mapUrl: action.payload.mapUrl,
         known: action.payload.known,
@@ -524,7 +540,7 @@ const plannerSlice = createSlice({
       const d = state.destinations.find(x=> x.id === action.payload.destinationId);
       if (!d) return; if (!d.foods) d.foods = [];
       if (d.foods.some(f=> f.name.toLowerCase()===action.payload.name.toLowerCase())) return;
-      d.foods.push({ id: action.payload.name + Date.now(), name: action.payload.name, checked:false });
+      d.foods.push({ id: makeLocalId('food'), name: action.payload.name, checked:false });
     },
     toggleFoodItem(state, action: PayloadAction<{ destinationId: string; foodId: string }>) {
       const d = state.destinations.find(x=> x.id === action.payload.destinationId);
@@ -536,6 +552,12 @@ const plannerSlice = createSlice({
       const d = state.destinations.find(x=> x.id === action.payload.destinationId);
       if (!d?.foods) return;
       d.foods = d.foods.filter(f=> f.id !== action.payload.foodId);
+    },
+    clearDestinationDiscover(state, action: PayloadAction<{ destinationId: string }>) {
+      const d = state.destinations.find(x => x.id === action.payload.destinationId);
+      if (!d) return;
+      d.spots = [];
+      d.foods = [];
     },
     reorderFoods(state, action: PayloadAction<{ destinationId: string; fromIndex: number; toIndex: number }>) {
       const d = state.destinations.find(x=> x.id === action.payload.destinationId);
@@ -643,6 +665,7 @@ export const {
   removeStayEntry,
   setStayNotes,
   renameDestination,
+  setDestinationTitle,
   setDestinationCategory,
   toggleDestinationCompleted,
   duplicateDestination,
@@ -658,7 +681,8 @@ export const {
   addFoodItem,
   toggleFoodItem,
   removeFoodItem,
-  reorderFoods
+  reorderFoods,
+  clearDestinationDiscover
 } = plannerSlice.actions;
 
 export const {

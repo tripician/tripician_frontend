@@ -64,10 +64,10 @@ export const publicAPI = {
   signup: (userData: SignupData) => apiClient.post('/auth/signup', userData),
   // New public signin endpoint
   signin: (credentials: SignInData) => apiClient.post('/auth/signin', credentials),
-  // Forgot password — always returns success for security (even if email not found)
+  // Forgot password - always returns success for security (even if email not found)
   forgotPassword: (email: string) => apiClient.post('/auth/forgot-password', { email }),
   // Social / OAuth sign-in (Google via Auth0)
-  socialCallback: (accessToken: string) => apiClient.post('/auth/social-callback', { accessToken }),
+  socialCallback: (idToken: string) => apiClient.post('/auth/social-callback', { AccessToken: idToken }),
   health: () => apiClient.get('/health'),
 };
 

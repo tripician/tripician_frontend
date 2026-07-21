@@ -8,7 +8,7 @@
   font-family: 'Inter', sans-serif;
 }
 
-/* ─── HERO ────────────────────────────────────────────────────── */
+/*  HERO  */
 .rm-hero {
   position: relative;
   padding: 72px 40px 60px;
@@ -52,7 +52,7 @@
   gap: 0;
 }
 
-/* Children start invisible + shifted down — GSAP animates them in */
+/* Children start invisible + shifted down ,GSAP animates them in */
 .rm-hero__content > * { opacity: 0; transform: translateY(28px); }
 
 /* LIVE eyebrow */
@@ -152,7 +152,7 @@
   font-weight: 700;
 }
 
-/* ─── SEARCH ──────────────────────────────────────────────────── */
+/*  SEARCH  */
 .rm-search-wrap {
   position: relative;
   width: 100%;
@@ -248,7 +248,7 @@
 .rm-dropdown__region { font-size: 0.75rem; color: rgba(241,245,249,0.42); }
 .rm-dropdown__risk   { font-size: 0.72rem; font-weight: 700; margin-left: auto; }
 
-/* ─── HERO CHIPS ──────────────────────────────────────────────── */
+/*  HERO CHIPS  */
 .rm-hero__chips {
   display: flex;
   align-items: center;
@@ -288,7 +288,7 @@
   color: #93c5fd;
 }
 
-/* ─── RESULTS CONTAINER ───────────────────────────────────────── */
+/*  RESULTS CONTAINER  */
 .rm-results {
   max-width: 1100px;
   margin: 0 auto;
@@ -330,7 +330,7 @@
   animation: rmPulse 1.4s ease-in-out infinite;
 }
 
-/* ─── STAT ROW ────────────────────────────────────────────────── */
+/*  STAT ROW  */
 .rm-stat-row {
   display: grid;
   grid-template-columns: 180px 1fr 1fr 1fr;
@@ -449,7 +449,7 @@
 .rm-fx-to    { font-size: 0.9rem;  font-weight: 700; color: #0f172a; }
 .rm-fx-ccy   { font-size: 0.72rem; font-weight: 600; color: #64748b; }
 
-/* ─── TAB BAR ─────────────────────────────────────────────────── */
+/*  TAB BAR  */
 .rm-tab-bar {
   display: flex;
   gap: 8px;
@@ -479,7 +479,7 @@
   background: rgba(29,78,216,0.04);
 }
 
-/* ─── TAB BODY ────────────────────────────────────────────────── */
+/*  TAB BODY  */
 .rm-tab-body { min-height: 300px; }
 
 /* News grid */
@@ -645,7 +645,7 @@
 
 .rm-currency-disclaimer { font-size: 0.72rem; color: #94a3b8; text-align: center; }
 
-/* ─── GLOBAL STATS STRIP ──────────────────────────────────────── */
+/*  GLOBAL STATS STRIP  */
 .rm-stats-strip {
   display: flex;
   align-items: center;
@@ -694,7 +694,7 @@
   flex-shrink: 0;
 }
 
-/* ─── RECENTLY CHECKED ────────────────────────────────────────── */
+/*  RECENTLY CHECKED  */
 .rm-recent {
   margin-bottom: 32px;
 }
@@ -736,7 +736,7 @@
 .rm-recent-chip__name   { font-size: 0.82rem; font-weight: 600; color: #0f172a; }
 .rm-recent-chip__badge  { font-size: 0.67rem; font-weight: 700; padding: 2px 7px; border-radius: 999px; }
 
-/* ─── WELCOME GRID ────────────────────────────────────────────── */
+/*  WELCOME GRID  */
 .rm-welcome {
   max-width: 1100px;
   margin: 0 auto;
@@ -762,7 +762,7 @@
   margin-bottom: 18px;
 }
 
-/* ─── RISK LEGEND ─────────────────────────────────────────────── */
+/*  RISK LEGEND  */
 .rm-legend {
   display: flex;
   align-items: center;
@@ -784,7 +784,7 @@
   flex-shrink: 0;
 }
 
-/* ─── REGION TABS ─────────────────────────────────────────────── */
+/*  REGION TABS  */
 .rm-region-tabs {
   display: flex;
   gap: 6px;
@@ -814,7 +814,7 @@
   color: #fff;
 }
 
-/* ─── WELCOME GRID ────────────────────────────────────────────── */
+/*  WELCOME GRID  */
 .rm-welcome-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(175px, 1fr));
@@ -877,7 +877,7 @@
   line-height: 1.5;
 }
 
-/* ─── RESPONSIVE ──────────────────────────────────────────────── */
+/*  RESPONSIVE  */
 @media (max-width: 1024px) {
   .rm-stat-row { grid-template-columns: repeat(2, 1fr); }
   .rm-stat-panel--gauge { grid-row: span 1; }
@@ -901,4 +901,86 @@
   .rm-welcome-grid { grid-template-columns: 1fr 1fr; }
   .rm-stats-strip__item { gap: 4px; }
   .rm-stats-strip__num { font-size: 1.1rem; }
+}
+
+/*  NEW HERO HEADER BLOCK  */
+.rm-hero__header-block {
+  display: flex;
+  align-items: center;
+  gap: 18px;
+  margin-bottom: 24px;
+  text-align: left;
+}
+
+.rm-hero__header-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 56px;
+  height: 56px;
+  border-radius: 14px;
+  background: rgba(255, 56, 92, 0.12);
+  border: 1px solid rgba(255, 56, 92, 0.28);
+  flex-shrink: 0;
+}
+
+.rm-hero__header-text {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.rm-hero__header-title-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+/* Override centered title for new layout */
+.rm-hero__title--inline {
+  margin: 0;
+  font-size: 1.9rem;
+  text-align: left;
+}
+
+/* LIVE pill badge */
+.rm-hero__live-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: rgba(34, 197, 94, 0.12);
+  border: 1px solid rgba(34, 197, 94, 0.30);
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: #22c55e;
+  font-family: 'Inter', sans-serif;
+  flex-shrink: 0;
+}
+
+.rm-hero__live-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: #22c55e;
+  position: relative;
+  flex-shrink: 0;
+}
+.rm-hero__live-dot::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+  border-radius: 50%;
+  background: rgba(34, 197, 94, 0.4);
+  animation: radar-ping 1.8s ease-out infinite;
+}
+
+@media (max-width: 768px) {
+  .rm-hero__header-block { gap: 12px; }
+  .rm-hero__header-icon  { width: 46px; height: 46px; border-radius: 10px; }
+  .rm-hero__title--inline { font-size: 1.45rem; }
 }
