@@ -178,6 +178,14 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
               {metaLine}
             </Typography>
           )}
+          {(trip.description || trip.Description) && (
+            <Typography sx={{
+              fontSize: 12.5, lineHeight: 1.55, color: 'text.secondary',
+              display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+            }}>
+              {trip.description || trip.Description}
+            </Typography>
+          )}
 
           {/* Footer row */}
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 'auto', pt: 1.25 }}>

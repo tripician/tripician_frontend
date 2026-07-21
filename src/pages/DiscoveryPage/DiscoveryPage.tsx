@@ -4,63 +4,39 @@ import {
   Typography,
   Chip,
   InputBase,
-  CircularProgress,
   Alert,
   Button,
-  Avatar,
+  useTheme,
 } from '@mui/material';
-import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
-import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
-import ExploreRoundedIcon from '@mui/icons-material/ExploreRounded';
-import CalendarTodayRoundedIcon from '@mui/icons-material/CalendarTodayRounded';
-import { Link } from 'react-router-dom';
+import { alpha } from '@mui/material/styles';
+import { IconCompass, IconSearch, IconWorld } from '@tabler/icons-react';
+import { Link, useNavigate } from 'react-router-dom';
 import { Helmet } from 'react-helmet-async';
 import { apiServices } from '../../services/APIs/apiServices';
-
-type DiscoverTrip = {
-  id: string;
-  name: string;
-  description: string;
-  countries: string[];
-  vibe: string;
-  imageUrl: string;
-  ownerName: string;
-  updatedAt: string | null;
-};
+import CommunityTripCard from '../CommunityPage/CommunityTripCard';
+import { tripPath } from '../../utils/tripSlug';
+import EmptyState from '../../components/ui/EmptyState';
+import { CardGridSkeleton } from '../../components/ui/Skeletons';
 
 const WEB_BASE = (import.meta.env.VITE_WEB_BASE_URL || 'https://tripician.com').replace(/\/$/, '');
 
-const normalizeTrip = (raw: any): DiscoverTrip | null => {
+const tripId = (raw: any): string | null => {
   const id = raw?.id || raw?.Id;
-  if (!id) return null;
-
-  const owner = raw?.owner || raw?.Owner || {};
-  const ownerName =
-    owner?.name ||
-    owner?.Name ||
-    raw?.ownerName ||
-    raw?.OwnerName ||
-    'Tripician Traveler';
-
-  const countriesRaw = raw?.countries || raw?.Countries || [];
-  const countries = Array.isArray(countriesRaw)
-    ? countriesRaw.filter((c: unknown) => typeof c === 'string' && c.trim().length > 0)
-    : [];
-
-  return {
-    id: String(id),
-    name: String(raw?.name || raw?.Name || 'Untitled Trip'),
-    description: String(raw?.description || raw?.Description || '').trim(),
-    countries,
-    vibe: String(raw?.vibe || raw?.Vibe || '').trim(),
-    imageUrl: String(raw?.bannerPhotoUrl || raw?.BannerPhotoUrl || raw?.imageUrl || raw?.ImageUrl || ''),
-    ownerName: String(ownerName),
-    updatedAt: raw?.updatedDate || raw?.UpdatedDate || raw?.updatedAt || raw?.UpdatedAt || null,
-  };
+  return id ? String(id) : null;
 };
+const tripName = (raw: any) => String(raw?.name || raw?.Name || 'Untitled Trip');
+const tripVibe = (raw: any) => String(raw?.vibe || raw?.Vibe || '').trim();
+const tripCountries = (raw: any): string[] => {
+  const c = raw?.countries || raw?.Countries || [];
+  return Array.isArray(c) ? c.filter((x: unknown) => typeof x === 'string' && x.trim().length > 0) : [];
+};
+const tripOwnerName = (raw: any) =>
+  raw?.owner?.name || raw?.Owner?.Name || raw?.ownerName || raw?.OwnerName || 'Tripician Traveler';
 
 const DiscoveryPage: React.FC = () => {
-  const [trips, setTrips] = React.useState<DiscoverTrip[]>([]);
+  const theme = useTheme();
+  const navigate = useNavigate();
+  const [trips, setTrips] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [error, setError] = React.useState<string | null>(null);
   const [query, setQuery] = React.useState('');
@@ -77,11 +53,7 @@ const DiscoveryPage: React.FC = () => {
         if (!active) return;
 
         const rows = Array.isArray(response?.data) ? response.data : [];
-        const mapped = rows
-          .map(normalizeTrip)
-          .filter((row: DiscoverTrip | null): row is DiscoverTrip => Boolean(row));
-
-        setTrips(mapped);
+        setTrips(rows.filter((row: any) => tripId(row)));
       } catch {
         if (!active) return;
         setError('Unable to load public trips right now. Please try again shortly.');
@@ -98,7 +70,8 @@ const DiscoveryPage: React.FC = () => {
   const vibeOptions = React.useMemo(() => {
     const set = new Set<string>();
     for (const trip of trips) {
-      if (trip.vibe) set.add(trip.vibe);
+      const v = tripVibe(trip);
+      if (v) set.add(v);
     }
     return ['All', ...Array.from(set).slice(0, 8)];
   }, [trips]);
@@ -107,17 +80,18 @@ const DiscoveryPage: React.FC = () => {
     const q = query.trim().toLowerCase();
 
     return trips.filter((trip) => {
-      const byVibe = activeVibe === 'All' ? true : trip.vibe.toLowerCase() === activeVibe.toLowerCase();
+      const vibe = tripVibe(trip);
+      const byVibe = activeVibe === 'All' ? true : vibe.toLowerCase() === activeVibe.toLowerCase();
       if (!byVibe) return false;
 
       if (!q) return true;
 
       const corpus = [
-        trip.name,
-        trip.description,
-        trip.ownerName,
-        trip.vibe,
-        ...trip.countries,
+        tripName(trip),
+        trip.description || trip.Description || '',
+        tripOwnerName(trip),
+        vibe,
+        ...tripCountries(trip),
       ]
         .join(' ')
         .toLowerCase();
@@ -130,8 +104,8 @@ const DiscoveryPage: React.FC = () => {
     const items = filteredTrips.slice(0, 20).map((trip, index) => ({
       '@type': 'ListItem',
       position: index + 1,
-      url: `${WEB_BASE}/trip/${trip.id}`,
-      name: trip.name,
+      url: `${WEB_BASE}${tripPath({ id: tripId(trip) || '', name: tripName(trip) })}`,
+      name: tripName(trip),
     }));
 
     return JSON.stringify(
@@ -173,165 +147,126 @@ const DiscoveryPage: React.FC = () => {
         <script type="application/ld+json">{listSchema}</script>
       </Helmet>
 
-      <Box
-        sx={{
-          minHeight: '100vh',
-          background:
-            'radial-gradient(1200px 500px at 10% -10%, rgba(255,56,92,0.18) 0%, rgba(255,56,92,0) 55%), radial-gradient(900px 420px at 100% 0%, rgba(14,165,233,0.16) 0%, rgba(14,165,233,0) 58%), #f6f7fb',
-          px: { xs: 2, md: 6 },
-          pb: { xs: 8, md: 10 },
-        }}
-      >
-        <Box
-          sx={{
-            maxWidth: 1200,
-            mx: 'auto',
-            pt: { xs: 4, md: 6 },
-          }}
-        >
+      <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+        <Box sx={{ maxWidth: 1280, mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 4, md: 6 }, pb: 10 }}>
+
+          {/* Page header */}
           <Box
             sx={{
               display: 'flex',
-              alignItems: { xs: 'flex-start', md: 'center' },
+              alignItems: { xs: 'flex-start', md: 'flex-end' },
               justifyContent: 'space-between',
               flexDirection: { xs: 'column', md: 'row' },
               gap: 2,
-              mb: 3,
             }}
           >
             <Box>
               <Typography
-                sx={{
-                  fontSize: 12,
-                  letterSpacing: '0.16em',
-                  fontWeight: 800,
-                  textTransform: 'uppercase',
-                  color: '#d91a50',
-                  mb: 0.75,
-                }}
-              >
-                Open Discovery Layer
-              </Typography>
-              <Typography
                 component="h1"
                 sx={{
-                  fontFamily: "'Playfair Display', Georgia, serif",
-                  fontStyle: 'italic',
-                  fontWeight: 800,
-                  lineHeight: 1.05,
-                  fontSize: { xs: '2rem', md: '3rem' },
-                  color: '#0f172a',
+                  fontFamily: theme.custom.fontDisplay,
+                  fontWeight: 700,
+                  fontSize: { xs: '1.9rem', md: '2.4rem' },
+                  letterSpacing: '-0.02em',
+                  lineHeight: 1.1,
+                  color: 'text.primary',
                 }}
               >
-                Discover Real Trips
-                <br />
-                Built By Travelers
+                Discover
               </Typography>
-              <Typography sx={{ mt: 1.5, color: '#475569', maxWidth: 760, fontSize: { xs: 14, md: 16 } }}>
-                Browse public itineraries, spot destination ideas, and open any trip to see the full route. Your private inputs stay private. Shared inspiration stays public.
+              <Typography sx={{ mt: 1, fontSize: 15, color: 'text.secondary', maxWidth: 560 }}>
+                Public trips from the Tripician community - open any itinerary to see the full route, stops, and story.
               </Typography>
             </Box>
-
-            <Button
-              component={Link}
-              to="/signup"
-              variant="contained"
-              sx={{
-                textTransform: 'none',
-                fontWeight: 700,
-                borderRadius: '999px',
-                px: 2.5,
-                py: 1,
-                background: 'linear-gradient(135deg,#ff385c,#d91a50)',
-                boxShadow: '0 8px 24px rgba(217,26,80,0.35)',
-              }}
-            >
-              Create Your Trip
+            <Button component={Link} to="/signup" variant="contained">
+              Create your trip
             </Button>
           </Box>
 
+          {/* Toolbar: vibe chips + search */}
           <Box
             sx={{
-              display: 'grid',
-              gridTemplateColumns: { xs: '1fr', md: '1.1fr 0.9fr' },
-              gap: 2,
-              mb: 3,
+              mt: { xs: 3, md: 4 },
+              display: 'flex',
+              gap: 1.5,
+              flexDirection: { xs: 'column-reverse', md: 'row' },
+              alignItems: { xs: 'stretch', md: 'center' },
+              justifyContent: 'space-between',
             }}
           >
-            <Box
-              sx={{
-                display: 'flex',
-                alignItems: 'center',
-                gap: 1.25,
-                px: 2,
-                py: 1.1,
-                borderRadius: '999px',
-                background: 'rgba(255,255,255,0.88)',
-                border: '1px solid rgba(15,23,42,0.08)',
-                boxShadow: '0 8px 24px rgba(2,6,23,0.06)',
-              }}
-            >
-              <SearchRoundedIcon sx={{ color: '#64748b' }} />
-              <InputBase
-                placeholder="Search by destination, vibe, country, or traveler"
-                value={query}
-                onChange={(e) => setQuery(e.target.value)}
-                sx={{ width: '100%', fontSize: 14.5 }}
-              />
-            </Box>
-
-            <Box sx={{ display: 'flex', gap: 1, flexWrap: 'wrap', alignItems: 'center' }}>
+            <Box sx={{
+              display: 'flex', gap: 1, minWidth: 0, overflowX: 'auto', pb: 0.5,
+              '::-webkit-scrollbar': { display: 'none' }, scrollbarWidth: 'none',
+            }}>
               {vibeOptions.map((vibe) => (
                 <Chip
                   key={vibe}
                   label={vibe}
                   onClick={() => setActiveVibe(vibe)}
                   sx={{
-                    borderRadius: '999px',
-                    fontWeight: 700,
-                    background:
-                      activeVibe === vibe
-                        ? 'linear-gradient(135deg,#ff385c,#d91a50)'
-                        : 'rgba(255,255,255,0.88)',
-                    color: activeVibe === vibe ? '#fff' : '#334155',
-                    border:
-                      activeVibe === vibe
-                        ? '1px solid transparent'
-                        : '1px solid rgba(15,23,42,0.1)',
+                    borderRadius: 999, height: 34, flexShrink: 0,
+                    fontWeight: 600, fontSize: 13,
+                    bgcolor: activeVibe === vibe ? 'text.primary' : 'background.paper',
+                    color: activeVibe === vibe ? 'background.paper' : 'text.secondary',
+                    border: `1px solid ${activeVibe === vibe ? 'transparent' : theme.custom.surface.border}`,
+                    '&:hover': { bgcolor: activeVibe === vibe ? 'text.primary' : theme.custom.surface.hover },
                   }}
                 />
               ))}
             </Box>
+            <Box sx={{
+              display: 'flex', alignItems: 'center', gap: 1.25,
+              height: 42, px: 2, borderRadius: 999,
+              border: `1px solid ${theme.custom.surface.border}`,
+              bgcolor: 'background.paper',
+              width: { xs: '100%', md: 320 }, flexShrink: 0,
+              transition: `box-shadow ${theme.custom.motion.duration.fast} ${theme.custom.motion.easing.standard}, border-color ${theme.custom.motion.duration.fast} ${theme.custom.motion.easing.standard}`,
+              '&:focus-within': {
+                borderColor: 'primary.main',
+                boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.14)}`,
+              },
+            }}>
+              <IconSearch size={17} stroke={1.9} color={theme.palette.text.disabled} style={{ flexShrink: 0 }} />
+              <InputBase
+                fullWidth
+                placeholder="Search destinations, vibes, travelers…"
+                value={query}
+                onChange={(e) => setQuery(e.target.value)}
+                sx={{ fontSize: 14, fontWeight: 500 }}
+              />
+            </Box>
           </Box>
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2.5, color: '#64748b' }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5 }}>
-              <PublicRoundedIcon sx={{ fontSize: 18 }} />
-              <Typography sx={{ fontSize: 13, fontWeight: 700 }}>
+          {/* Result count */}
+          {!loading && !error && filteredTrips.length > 0 && (
+            <Box sx={{ mt: 3, mb: 2, display: 'flex', alignItems: 'center', gap: 0.75, color: 'text.secondary' }}>
+              <IconWorld size={16} stroke={1.9} />
+              <Typography sx={{ fontSize: 13, fontWeight: 600 }}>
                 {filteredTrips.length} public trip{filteredTrips.length === 1 ? '' : 's'}
               </Typography>
             </Box>
-            <Typography sx={{ fontSize: 13 }}>
-              Crawlable trip links and SEO metadata enabled.
-            </Typography>
-          </Box>
+          )}
 
           {loading && (
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', py: 10 }}>
-              <CircularProgress size={28} />
+            <Box sx={{ mt: 4 }}>
+              <CardGridSkeleton count={6} minWidth={300} />
             </Box>
           )}
 
           {!loading && error && (
-            <Alert severity="warning" sx={{ borderRadius: 2.5 }}>
+            <Alert severity="warning" sx={{ mt: 4, borderRadius: 2.5 }}>
               {error}
             </Alert>
           )}
 
           {!loading && !error && filteredTrips.length === 0 && (
-            <Alert severity="info" sx={{ borderRadius: 2.5 }}>
-              No matching public trips found. Try a different keyword or vibe.
-            </Alert>
+            <EmptyState
+              icon={IconCompass}
+              title="No trips found"
+              description="Try a different search term, or clear the filters to see every public itinerary."
+              actionLabel={query.trim() || activeVibe !== 'All' ? 'Clear filters' : undefined}
+              onAction={() => { setQuery(''); setActiveVibe('All'); }}
+            />
           )}
 
           {!loading && !error && filteredTrips.length > 0 && (
@@ -339,128 +274,23 @@ const DiscoveryPage: React.FC = () => {
               sx={{
                 display: 'grid',
                 gridTemplateColumns: {
-                  xs: '1fr',
+                  xs: 'minmax(0, 1fr)',
                   sm: 'repeat(2, minmax(0, 1fr))',
                   lg: 'repeat(3, minmax(0, 1fr))',
                 },
-                gap: 2,
+                gap: 3,
               }}
             >
-              {filteredTrips.map((trip) => {
-                const excerpt = trip.description
-                  ? trip.description.slice(0, 148) + (trip.description.length > 148 ? '...' : '')
-                  : 'Open this itinerary to explore the route, destinations, and overall travel style.';
-
-                return (
-                  <Box
-                    key={trip.id}
-                    component={Link}
-                    to={`/trip/${trip.id}`}
-                    sx={{
-                      textDecoration: 'none',
-                      borderRadius: 3,
-                      overflow: 'hidden',
-                      background: 'rgba(255,255,255,0.94)',
-                      border: '1px solid rgba(15,23,42,0.08)',
-                      boxShadow: '0 10px 26px rgba(2,6,23,0.08)',
-                      transition: 'transform .22s ease, box-shadow .22s ease',
-                      '&:hover': {
-                        transform: 'translateY(-4px)',
-                        boxShadow: '0 16px 34px rgba(2,6,23,0.12)',
-                      },
-                    }}
-                  >
-                    <Box
-                      sx={{
-                        height: 170,
-                        background: trip.imageUrl
-                          ? `linear-gradient(180deg, rgba(15,23,42,0.15), rgba(15,23,42,0.55)), url(${trip.imageUrl}) center/cover no-repeat`
-                          : 'linear-gradient(135deg,#ffedd5,#fecdd3)',
-                        display: 'flex',
-                        alignItems: 'flex-start',
-                        justifyContent: 'space-between',
-                        p: 1.25,
-                      }}
-                    >
-                      <Chip
-                        size="small"
-                        icon={<ExploreRoundedIcon sx={{ fontSize: 14 }} />}
-                        label={trip.vibe || 'General'}
-                        sx={{
-                          bgcolor: 'rgba(15,23,42,0.58)',
-                          color: '#fff',
-                          fontWeight: 700,
-                          borderRadius: '999px',
-                          '& .MuiChip-icon': { color: '#fff' },
-                        }}
-                      />
-                    </Box>
-
-                    <Box sx={{ p: 1.8 }}>
-                      <Typography
-                        sx={{
-                          fontSize: 18,
-                          fontWeight: 800,
-                          color: '#0f172a',
-                          lineHeight: 1.2,
-                          mb: 1,
-                        }}
-                      >
-                        {trip.name}
-                      </Typography>
-
-                      <Typography sx={{ fontSize: 13.5, color: '#475569', lineHeight: 1.55, minHeight: 64 }}>
-                        {excerpt}
-                      </Typography>
-
-                      {trip.countries.length > 0 && (
-                        <Box sx={{ display: 'flex', gap: 0.75, flexWrap: 'wrap', mt: 1.25 }}>
-                          {trip.countries.slice(0, 3).map((country) => (
-                            <Chip
-                              key={`${trip.id}-${country}`}
-                              label={country}
-                              size="small"
-                              sx={{
-                                borderRadius: '999px',
-                                bgcolor: 'rgba(14,165,233,0.1)',
-                                color: '#0c4a6e',
-                                fontWeight: 700,
-                              }}
-                            />
-                          ))}
-                          {trip.countries.length > 3 && (
-                            <Chip
-                              label={`+${trip.countries.length - 3}`}
-                              size="small"
-                              sx={{ borderRadius: '999px', bgcolor: 'rgba(15,23,42,0.08)', color: '#334155' }}
-                            />
-                          )}
-                        </Box>
-                      )}
-
-                      <Box sx={{ mt: 1.75, pt: 1.3, borderTop: '1px dashed rgba(15,23,42,0.14)', display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                          <Avatar sx={{ width: 26, height: 26, fontSize: 12, bgcolor: '#ff385c' }}>
-                            {trip.ownerName.charAt(0).toUpperCase()}
-                          </Avatar>
-                          <Typography sx={{ fontSize: 12.5, color: '#334155', fontWeight: 700 }}>
-                            {trip.ownerName}
-                          </Typography>
-                        </Box>
-
-                        {trip.updatedAt && (
-                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#64748b' }}>
-                            <CalendarTodayRoundedIcon sx={{ fontSize: 13 }} />
-                            <Typography sx={{ fontSize: 11.5 }}>
-                              {new Date(trip.updatedAt).toLocaleDateString()}
-                            </Typography>
-                          </Box>
-                        )}
-                      </Box>
-                    </Box>
-                  </Box>
-                );
-              })}
+              {filteredTrips.map((trip, i) => (
+                <CommunityTripCard
+                  key={tripId(trip) || i}
+                  trip={trip}
+                  onClick={() => {
+                    const id = tripId(trip);
+                    if (id) navigate(tripPath({ id, name: tripName(trip) }), { state: { trip } });
+                  }}
+                />
+              ))}
             </Box>
           )}
         </Box>
