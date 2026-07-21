@@ -49,7 +49,9 @@ const DiscoveryPage: React.FC = () => {
       setLoading(true);
       setError(null);
       try {
-        const response = await apiServices.getPublicTrips();
+        // Published && !IsArchived - the same source Community uses. A trip's
+        // Visibility setting gates sections inside it, never whether it lists here.
+        const response = await apiServices.getPublishedTrips();
         if (!active) return;
 
         const rows = Array.isArray(response?.data) ? response.data : [];
