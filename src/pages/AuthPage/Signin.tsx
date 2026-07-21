@@ -181,8 +181,8 @@ const Signin = () => {
         initial="hidden"
         animate="visible"
       >
-        {/* Back button */}
-        <button className="auth-back-btn" onClick={() => window.history.length > 1 ? navigate(-1) : navigate('/')}>
+        {/* Back to landing */}
+        <button className="auth-back-btn" onClick={() => navigate('/')}>
           <ArrowLeft size={15} />
           Back
         </button>
