@@ -44,6 +44,7 @@ const PrivacyPage: React.FC = () => {
           <P><strong>Usage Data:</strong> Information about how you interact with the Service, such as features used, pages visited, session timestamps, and error events.</P>
           <P><strong>Technical Data:</strong> Your IP address, browser type and version, operating system, device type, and referring URL, collected automatically when you access the Service.</P>
           <P><strong>Authentication Data:</strong> Login sessions and authentication tokens managed by Auth0, Inc. We do not store your raw password at any point.</P>
+          <P><strong>Security &amp; Accountability Logs:</strong> Each time you sign in, we record the time, your IP address, and coarse device information (device type, operating system, and browser family). We also measure aggregate time spent using the Service, including time spent in the trip planner, to keep accounts secure, investigate abuse, and understand feature engagement. These logs are visible only to authorised administrators.</P>
         </>
       ),
     },
@@ -108,6 +109,7 @@ const PrivacyPage: React.FC = () => {
             'Deletion requests: Upon a verified account deletion request, we will permanently delete your personal data within 30 days, except where retention is required by law.',
             'Encrypted backups: Residual copies in encrypted backups are purged within 90 days of the deletion date.',
             'Usage logs: Anonymised and aggregated usage statistics may be retained for up to 24 months for security and service improvement.',
+            'Sign-in and session activity logs: retained for up to 12 months, then automatically deleted.',
           ]} />
         </>
       ),
@@ -214,7 +216,7 @@ const PrivacyPage: React.FC = () => {
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, mt: 3, flexWrap: 'wrap' }}>
             <Box sx={{ background: 'rgba(255,56,92,0.08)', borderRadius: '20px', px: 2, py: 0.75, border: '1px solid rgba(255,56,92,0.15)' }}>
-              <Typography sx={{ fontSize: '0.78rem', color: '#FF385C', fontWeight: 600 }}>Last updated: May 1, 2026</Typography>
+              <Typography sx={{ fontSize: '0.78rem', color: '#FF385C', fontWeight: 600 }}>Last updated: July 21, 2026</Typography>
             </Box>
             <Box sx={{ background: 'rgba(0,0,0,0.04)', borderRadius: '20px', px: 2, py: 0.75, border: '1px solid rgba(0,0,0,0.08)' }}>
               <Typography sx={{ fontSize: '0.78rem', color: '#555', fontWeight: 500 }}>GDPR · UK GDPR · CCPA/CPRA</Typography>

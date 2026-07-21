@@ -10,6 +10,7 @@ import AboutPage from './pages/InfoPages/AboutPage';
 import BlogsList from './pages/BlogsPage/BlogsList';
 import BlogPost from './pages/BlogsPage/BlogPost';
 import { useAuthToken } from './hooks/useAuth0Token';
+import { ActivityHeartbeat } from './hooks/useActivityHeartbeat';
 
 const Signin = lazy(() => import('./pages/AuthPage/Signin'))
 const Signup = lazy(() => import('./pages/AuthPage/Signup'))
@@ -108,6 +109,7 @@ function App() {
       <Suspense fallback={null}>
         <SuccessOverlay />
       </Suspense>
+      <ActivityHeartbeat />
     </div>
   )
 }

@@ -108,6 +108,35 @@ apiClient.interceptors.response.use(
   }
 );
 
+// Session/planner telemetry. Fire-and-forget: callers must swallow errors.
+export const telemetryAPI = {
+  heartbeat: (clientSessionId: string, plannerTripId?: string | null) =>
+    apiClient.post('/api/telemetry/heartbeat', {
+      clientSessionId,
+      plannerTripId: plannerTripId ?? null,
+    }),
+
+  // Final flush when the tab hides/closes. Raw fetch because axios has no
+  // keepalive; the request must be allowed to outlive the page.
+  flush: (clientSessionId: string, plannerTripId?: string | null) => {
+    try {
+      const token = localStorage.getItem('accessToken');
+      if (!token) return;
+      fetch(`${API_BASE_URL}/api/telemetry/heartbeat`, {
+        method: 'POST',
+        keepalive: true,
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({ clientSessionId, plannerTripId: plannerTripId ?? null }),
+      }).catch(() => {});
+    } catch {
+      // never let telemetry surface an error
+    }
+  },
+};
+
 // API service that accepts token
 export const apiServices = {
   // User Profile methods - matching your backend routes
