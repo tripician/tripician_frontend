@@ -6,6 +6,7 @@ import { Plane, MapPin, Globe, Brain, ArrowLeft, Mail } from 'lucide-react';
 import { authAPI } from '../../services/APIs/Auth/auth';
 import { useNavigate } from 'react-router-dom';
 import { fadeInLeft, fadeInRight, staggerContainer, staggerItem } from '../../utils/animations';
+import { validateEmailFormat } from '../../utils/emailValidation';
 
 const ForgotPassword = () => {
   const navigate = useNavigate();
@@ -21,12 +22,9 @@ const ForgotPassword = () => {
     event.preventDefault();
 
     const trimmedEmail = email.trim();
-    if (!trimmedEmail) {
-      setError('Please enter your email address.');
-      return;
-    }
-    if (!/\S+@\S+\.\S+/.test(trimmedEmail)) {
-      setError('Please enter a valid email address.');
+    const emailCheck = validateEmailFormat(trimmedEmail);
+    if (!emailCheck.valid) {
+      setError(emailCheck.error!);
       return;
     }
 

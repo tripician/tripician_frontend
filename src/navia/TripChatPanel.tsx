@@ -405,6 +405,30 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
 
   const [input, setInput] = useState('');
   const [showJump, setShowJump] = useState(false);
+
+  // One-time note when the chat flips solo → group: explains that @navia is now
+  // required to summon the AI, so returning solo users aren't surprised.
+  const [showGroupHint, setShowGroupHint] = useState(false);
+  const prevMemberCountRef = useRef(members.length);
+  useEffect(() => {
+    const prev = prevMemberCountRef.current;
+    const curr = members.length;
+    prevMemberCountRef.current = curr;
+    // prev === 1 (not <= 1) so the initial [] → N populate on load doesn't read
+    // as a join; a genuine real-time join always happens from a settled solo (1).
+    if (prev === 1 && curr > 1) {
+      try {
+        if (!localStorage.getItem(`tripician:naviaGroupHint:${tripId}`)) setShowGroupHint(true);
+      } catch {
+        setShowGroupHint(true);
+      }
+    }
+  }, [members.length, tripId]);
+  const dismissGroupHint = useCallback(() => {
+    setShowGroupHint(false);
+    try { localStorage.setItem(`tripician:naviaGroupHint:${tripId}`, '1'); } catch { /* best-effort */ }
+  }, [tripId]);
+
   const scrollRef = useRef<HTMLDivElement>(null);
   const endRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
@@ -484,8 +508,15 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
     setShowJump(false);
   };
 
-  // Detect @navia in input for hint
+  // Solo vs group: a trip is "solo" when the owner is its only participant.
+  // `members` mirrors the backend participant set (owner + active members), so
+  // members.length <= 1 here matches the server-side solo routing exactly.
+  // Solo → every message reaches Navia, so we drop all the @navia ceremony.
+  const isSolo = members.length <= 1;
+
+  // Detect @navia in input for hint (only relevant once the chat is a group)
   const isNaviaMention = NAVIA_MENTION_RE.test(input);
+  const showMentionCue = !isSolo && isNaviaMention;
 
   // All mentionable participants: Navia first, then trip members
   const mentionables = useMemo(() => [
@@ -694,7 +725,9 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
             Trip Discussion
           </Typography>
           <Typography noWrap sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.3 }}>
-            {members.length > 1 ? `${members.length} travelers` : 'Just you so far'} · <Box component='span' sx={{ color: 'primary.main', fontWeight: 600 }}>@navia</Box> for AI help
+            {isSolo
+              ? 'Just you & Navia · she replies to every message'
+              : <>{members.length} travelers · <Box component='span' sx={{ color: 'primary.main', fontWeight: 600 }}>@navia</Box> for AI help</>}
           </Typography>
         </Box>
         {tripCredits !== null && (
@@ -745,10 +778,12 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 6, gap: 1 }}>
             <NaviaLogo size={40} />
             <Typography sx={{ fontWeight: 700, fontSize: 14.5, letterSpacing: '-0.01em', color: 'text.primary' }}>
-              Plan it together
+              {isSolo ? 'Plan it with Navia' : 'Plan it together'}
             </Typography>
             <Typography sx={{ fontSize: 13, color: 'text.secondary', textAlign: 'center', maxWidth: 260, lineHeight: 1.55 }}>
-              All trip members can chat here. Type <Box component='span' sx={{ color: 'primary.main', fontWeight: 700 }}>@navia</Box> to get AI suggestions for your trip.
+              {isSolo
+                ? "It's just you and Navia here. Ask anything — routes, dates, places to add — and she'll suggest changes to your trip."
+                : <>All trip members can chat here. Type <Box component='span' sx={{ color: 'primary.main', fontWeight: 700 }}>@navia</Box> to get AI suggestions for your trip.</>}
             </Typography>
           </Box>
         )}
@@ -914,9 +949,43 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
             </Box>
           )}
         </AnimatePresence>
+        {/* Solo → group transition note (shown once per trip) */}
+        <AnimatePresence>
+          {showGroupHint && (
+            <motion.div
+              initial={{ opacity: 0, height: 0 }}
+              animate={{ opacity: 1, height: 'auto' }}
+              exit={{ opacity: 0, height: 0 }}
+              transition={{ duration: 0.18 }}
+            >
+              <Box sx={{
+                display: 'flex', alignItems: 'center', gap: 0.75, px: 1, py: 0.7, mb: 0.75,
+                background: isLight ? 'rgba(255,56,92,0.06)' : 'rgba(255,56,92,0.12)',
+                borderRadius: '8px', border: '1px solid rgba(255,56,92,0.18)',
+              }}>
+                <NaviaLogo size={16} />
+                <Typography sx={{ flex: 1, fontSize: 11.5, color: '#FF385C', fontWeight: 600, lineHeight: 1.4 }}>
+                  Others just joined. Now type <Box component='span' sx={{ fontWeight: 800 }}>@navia</Box> to bring Navia into the chat.
+                </Typography>
+                <Box
+                  component='button'
+                  onClick={dismissGroupHint}
+                  sx={{
+                    flexShrink: 0, border: 'none', background: 'transparent', cursor: 'pointer',
+                    color: '#FF385C', fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+                    px: 0.75, py: 0.25, borderRadius: '6px',
+                    '&:hover': { background: isLight ? 'rgba(255,56,92,0.10)' : 'rgba(255,56,92,0.18)' },
+                  }}
+                >
+                  Got it
+                </Box>
+              </Box>
+            </motion.div>
+          )}
+        </AnimatePresence>
         {/* @navia hint */}
         <AnimatePresence>
-          {isNaviaMention && (
+          {showMentionCue && (
             <motion.div
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}
@@ -939,14 +1008,14 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
 
         <Box sx={{
           display: 'flex', alignItems: 'flex-end', gap: 0.75,
-          border: `1.5px solid ${isNaviaMention ? 'rgba(255,56,92,0.50)' : (isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)')}`,
+          border: `1.5px solid ${showMentionCue ? 'rgba(255,56,92,0.50)' : (isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)')}`,
           borderRadius: '12px', px: 1.5, py: 0.75,
           background: isLight ? '#fafafa' : 'rgba(255,255,255,0.03)',
-          boxShadow: isNaviaMention ? '0 0 0 3px rgba(255,56,92,0.10)' : 'none',
+          boxShadow: showMentionCue ? '0 0 0 3px rgba(255,56,92,0.10)' : 'none',
           transition: 'border-color .2s, box-shadow .2s',
           '&:focus-within': {
-            borderColor: isNaviaMention ? 'rgba(255,56,92,0.60)' : (isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.22)'),
-            boxShadow: isNaviaMention ? '0 0 0 3px rgba(255,56,92,0.10)' : 'none',
+            borderColor: showMentionCue ? 'rgba(255,56,92,0.60)' : (isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.22)'),
+            boxShadow: showMentionCue ? '0 0 0 3px rgba(255,56,92,0.10)' : 'none',
           },
         }}>
           <TextField
@@ -956,7 +1025,14 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
                 const v = e.target.value.slice(0, MAX_CHARS);
                 setInput(v);
                 notifyTyping(v);
-                // @mention detection
+                // @mention detection — group chats only. In a solo trip there is
+                // no one to mention and every message already reaches Navia, so
+                // the autocomplete stays closed.
+                if (isSolo) {
+                  setMentionQuery(null);
+                  mentionStartRef.current = -1;
+                  return;
+                }
                 const cursor = (e.target as HTMLTextAreaElement).selectionStart ?? v.length;
                 const textUpToCursor = v.slice(0, cursor);
                 const match = textUpToCursor.match(/@(\w*)$/);
@@ -970,7 +1046,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
                 }
               }}
             onKeyDown={onKeyDown}
-            placeholder={token ? 'Message the group or type @navia' : 'Sign in to chat'}
+            placeholder={!token ? 'Sign in to chat' : (isSolo ? 'Message Navia — she replies to everything' : 'Message the group or type @navia')}
             multiline
             maxRows={4}
             disabled={!token}
@@ -1019,20 +1095,30 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
       </Box>
       <Box sx={{
         mt: 0.1,
-        mb: 2,
-        pr: 5,
+        mb: 1.5,
+        px: 2,
         display: 'flex',
-        justifyContent: 'right',
+        flexDirection: 'column',
+        justifyContent: 'center',
         alignItems: 'center',
-        gap: 0.5,
+        gap: 0.2,
       }}>
         <Typography sx={{
-          fontSize: 10,
+          fontSize: 9.5,
+          fontWeight: 500,
+          lineHeight: 1.3,
+          textAlign: 'center',
+          color: isLight ? 'rgba(0,0,0,0.34)' : 'rgba(255,255,255,0.34)',
+        }}>
+          Navia can make mistakes. Always verify travel details before booking.
+        </Typography>
+        <Typography sx={{
+          fontSize: 9,
           fontWeight: 600,
           letterSpacing: '0.4px',
           color: isLight
-            ? 'rgba(0,0,0,0.35)'
-            : 'rgba(255,255,255,0.35)',
+            ? 'rgba(0,0,0,0.28)'
+            : 'rgba(255,255,255,0.28)',
         }}>
           Powered by Navia AI
         </Typography>

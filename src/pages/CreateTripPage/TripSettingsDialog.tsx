@@ -219,7 +219,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
   };
 
   const handleSelectUser = (user: any) => {
-    if (!foundUser) return;
+    if (!user) return;
     if (pendingUsers.some(u => u.id === user.id)) { setSearchError('User already added'); return; }
     setPendingUsers(prev => [...prev, user]);
     setInviteEmail(''); setFoundUser(null); setUserSearchResults([]); setSearchError('');

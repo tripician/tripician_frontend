@@ -45,7 +45,6 @@ import AltRouteIcon from '@mui/icons-material/AltRoute';
 import PublishRoundedIcon from '@mui/icons-material/PublishRounded';
 import ChatRoundedIcon from '@mui/icons-material/ChatRounded';
 import CloseIcon from '@mui/icons-material/Close';
-import HomeOutlinedIcon from '@mui/icons-material/HomeOutlined';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 import FavoriteBorderIcon from '@mui/icons-material/FavoriteBorder';
 import FavoriteIcon from '@mui/icons-material/Favorite';
@@ -2491,24 +2490,41 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		];
 	}, [planner.destinations, planner.tripBudget, planner.expenses, packingCategories, tripMembers.length, tripStartDate, tripEndDate, totalNights, targetNights, computePublishChecks]);
 
-	if (isMobile && !readOnly) {
+	// Mobile users CAN plan trips now — we just greet them once with a soft
+	// disclaimer that the planner shines on a bigger screen, then let them in.
+	// The acknowledgement is remembered per-device so returning mobile planners
+	// aren't nagged on every visit.
+	const [mobilePlannerNoticeAck, setMobilePlannerNoticeAck] = React.useState<boolean>(() => {
+		try { return localStorage.getItem('tripician:mobilePlannerNoticeAck') === '1'; } catch { return false; }
+	});
+	if (isMobile && !readOnly && !mobilePlannerNoticeAck) {
 		return (
 			<Box sx={{
 				display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
 				minHeight: '100dvh', px: 3, textAlign: 'center', gap: 2,
 				background: theme.palette.background.default,
 			}}>
-				<Typography sx={{ fontSize: '2.5rem' }}>🖥️</Typography>
+				<Typography sx={{ fontSize: '2.5rem' }}>📱✨</Typography>
 				<Typography sx={{ fontFamily: "'Playfair Display', serif", fontWeight: 800, fontSize: '1.4rem', color: 'text.primary' }}>
-					Best experienced on desktop
+					Planning is better on a bigger screen
 				</Typography>
-				<Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.9rem', color: 'text.secondary', maxWidth: 320, lineHeight: 1.7 }}>
-					The trip planner is designed for a larger screen. Open Tripician on your computer to plan your trip in full detail.
+				<Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.9rem', color: 'text.secondary', maxWidth: 340, lineHeight: 1.7 }}>
+					You can absolutely plan right here on your phone. For the full experience — where every one of Navia's magical features has room to breathe — open Tripician on a tablet or computer.
 				</Typography>
 				<Button
 					variant="contained"
-					onClick={() => navigate('/home')}
+					onClick={() => {
+						try { localStorage.setItem('tripician:mobilePlannerNoticeAck', '1'); } catch { /* best-effort */ }
+						setMobilePlannerNoticeAck(true);
+					}}
 					sx={{ mt: 1, borderRadius: '50px', textTransform: 'none', fontFamily: "'Inter', sans-serif", background: '#FF385C', boxShadow: 'none', '&:hover': { background: '#E31C5F', boxShadow: 'none' } }}
+				>
+					Continue on this device
+				</Button>
+				<Button
+					variant="text"
+					onClick={() => navigate('/home')}
+					sx={{ borderRadius: '50px', textTransform: 'none', fontFamily: "'Inter', sans-serif", color: 'text.secondary', '&:hover': { background: 'transparent', color: 'text.primary' } }}
 				>
 					Back to Home
 				</Button>
@@ -2567,7 +2583,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			settingsDisabled={readOnly || !effectiveCanEdit}
 		/>
 			<Box sx={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, minHeight:0 }}>
-				<TopBar showSearch={false} logo={
+				<TopBar showSearch={false} showBurger={false} logo={
 					<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
 						<Tooltip title='Back'>
 							<IconButton
@@ -2585,23 +2601,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 								<ArrowBackIosNewIcon fontSize='small' />
 							</IconButton>
 						</Tooltip>
-						<Tooltip title='Go to dashboard'>
-							<IconButton
-								onClick={() => navigate('/dashboard')}
-								sx={{
-									width:40,
-									height:40,
-									borderRadius:'50%',
-									color:'text.secondary',
-									'&:hover':{ backgroundColor:'rgba(0,0,0,0.04)', color:'#FF385C' },
-								}}
-							>
-								<HomeOutlinedIcon fontSize='small' />
-							</IconButton>
-						</Tooltip>
 					</Box>
 				} centerNode={
-					<Typography noWrap sx={{ fontFamily:"'Playfair Display', Georgia, serif", fontWeight:700, fontStyle:'italic', fontSize:'1.2rem', letterSpacing:'-0.35px', lineHeight:1.15 }}>{title}</Typography>
+					<Typography noWrap sx={{ fontFamily:"'Inter', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif", fontWeight:800, fontSize:'1.2rem', letterSpacing:'-0.4px', lineHeight:1.15 }}>{title}</Typography>
 				} />
 				<Box ref={containerRef} sx={{ flex:1, display:'flex', position:'relative', minHeight:0 }}>
 					{/* Centre content column */}
@@ -2629,9 +2631,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					})}>
 						<Divider />
 						{section==='plan' && (
-						<Box sx={(t)=>({ display:'flex', alignItems:'center', px:2, gap:1, py:.75, borderBottom:`1px solid ${t.palette.divider}`, background: t.palette.mode==='light'? 'rgba(255,255,255,0.92)':'rgba(20,22,26,0.92)', backdropFilter:'blur(8px)', position:'sticky', top:0, zIndex:2 })}>
-							{/* Vital trip info - dates · stops · travelers */}
-							<Box sx={{ flex:1, minWidth:0, display:'flex', alignItems:'center', gap:1, overflowX:'auto', '::-webkit-scrollbar':{ display:'none' }, scrollbarWidth:'none' }}>
+						<Box sx={(t)=>({ display:'flex', alignItems:'center', flexWrap:{ xs:'wrap', md:'nowrap' }, rowGap:.75, px:2, gap:1, py:.75, borderBottom:`1px solid ${t.palette.divider}`, background: t.palette.mode==='light'? 'rgba(255,255,255,0.92)':'rgba(20,22,26,0.92)', backdropFilter:'blur(8px)', position:'sticky', top:0, zIndex:2 })}>
+							{/* Vital trip info - dates · stops · travelers. On phones these wrap into tidy rows instead of scrolling off-screen. */}
+							<Box sx={{ flex:1, minWidth:0, display:'flex', alignItems:'center', flexWrap:{ xs:'wrap', md:'nowrap' }, rowGap:.75, gap:1, overflowX:{ xs:'visible', md:'auto' }, '::-webkit-scrollbar':{ display:'none' }, scrollbarWidth:'none' }}>
 								<Tooltip title={(!readOnly && effectiveCanEdit) ? 'Edit trip dates' : 'Trip dates'} arrow placement='bottom'>
 									<Box
 										component='button'
@@ -2652,7 +2654,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 											: 'Set dates'}
 									</Box>
 								</Tooltip>
-								<Box sx={(t)=>({ display:'flex', alignItems:'center', gap:.6, height:32, px:1.2, borderRadius:'20px', flexShrink:0, border:`1px solid ${t.palette.divider}`, color:'text.primary', fontSize:12.5, fontWeight:600, lineHeight:1 })}>
+								<Box sx={(t)=>({ display:{ xs:'none', md:'flex' }, alignItems:'center', gap:.6, height:32, px:1.2, borderRadius:'20px', flexShrink:0, border:`1px solid ${t.palette.divider}`, color:'text.primary', fontSize:12.5, fontWeight:600, lineHeight:1 })}>
 									<PulseRouteIcon size={13} stroke={2} />
 									{planner.destinations.length} stop{planner.destinations.length !== 1 ? 's' : ''}
 								</Box>
@@ -2688,7 +2690,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 											type='button'
 											onClick={() => { setSectionDebug('plan'); setTab(1); }}
 											sx={(t) => ({
-												display:'flex', alignItems:'center', gap:.6, height:32, px:1.2, borderRadius:'20px', flexShrink:0,
+												display:{ xs:'none', md:'flex' }, alignItems:'center', gap:.6, height:32, px:1.2, borderRadius:'20px', flexShrink:0,
 												border:`1px solid ${t.palette.divider}`, bgcolor:'transparent',
 												color:'text.primary', fontFamily:'inherit', fontSize:12.5, fontWeight:600, lineHeight:1,
 												cursor:'pointer', transition:'all .15s',
@@ -2701,7 +2703,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 									</Tooltip>
 								)}
 							</Box>
-							<TripPulse dimensions={pulseDimensions} daysToGo={daysToGo} />
+							{/* Readiness ring — desktop only (mobile is draft-focused) */}
+							<Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', flexShrink: 0 }}>
+								<TripPulse dimensions={pulseDimensions} daysToGo={daysToGo} />
+							</Box>
 							<Tooltip title={`${totalNights} of ${targetNights} nights planned`} arrow placement='bottom'>
 							<Box sx={(t) => ({
 								position: 'relative', display: 'flex', alignItems: 'center', gap: .55,
@@ -2736,7 +2741,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 									type='button'
 									onClick={() => setPlanReviewOpen(true)}
 									sx={(t) => ({
-										display:'flex', alignItems:'center', gap:.6, height:32, px:1.2, borderRadius:'20px', flexShrink:0,
+										display:{ xs:'none', md:'flex' }, alignItems:'center', gap:.6, height:32, px:1.2, borderRadius:'20px', flexShrink:0,
 										border:`1px solid ${t.palette.divider}`, bgcolor:'transparent',
 										color:'text.primary', fontFamily:'inherit', fontSize:12.5, fontWeight:600, lineHeight:1,
 										cursor:'pointer', transition:'all .15s',
@@ -2750,7 +2755,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 							)}
 							{!readOnly && effectiveCanEdit && (
 							<Tooltip arrow placement='bottom' title={!isDraft ? 'Your trip is live visible to everyone' : saving ? 'Publishing...' : 'Make your trip public'}>
-								<span>
+								{/* Publish — desktop only; on mobile users draft & Save (no publishing) */}
+								<Box component='span' sx={{ display: { xs: 'none', md: 'inline-flex' } }}>
 									<Button
 										size='small'
 										variant='contained'
@@ -2819,7 +2825,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 											<><ShareRoundedIcon sx={{ fontSize: 13 }} /> Published</>
 										)}
 									</Button>
-								</span>
+								</Box>
 							</Tooltip>
 							)}
 							{!isDraft && (
@@ -2879,7 +2885,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 										placement='right' arrow
 										title={geocodedCount < 3 ? 'Add at least 3 destinations with coordinates to optimize' : optimizingRoute ? 'Optimizing' : 'Optimize route order'}
 									>
-										<span>
+										{/* Route optimization is a power feature — hidden on phones (map + settings only) */}
+										<Box component='span' sx={{ display: { xs: 'none', md: 'inline-flex' } }}>
 											<IconButton
 												aria-label='Optimize route'
 												onClick={handleOptimizeRouteClick}
@@ -2900,7 +2907,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 													: <AltRouteIcon sx={{ fontSize: 18 }} />
 												}
 											</IconButton>
-										</span>
+										</Box>
 									</Tooltip>
 								)}
 							{/* Settings  mobile only (desktop uses sidebar) */}
