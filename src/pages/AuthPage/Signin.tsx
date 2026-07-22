@@ -9,6 +9,7 @@ import { fetchUserProfile } from '../../store/userSlice';
 import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../store';
 import { fadeInLeft, fadeInRight, staggerContainer, staggerItem } from '../../utils/animations';
+import { validateEmailFormat } from '../../utils/emailValidation';
 
 const GoogleSVG = () => (
   <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -54,8 +55,9 @@ const Signin = () => {
       setError('Please fill in all fields.');
       return false;
     }
-    if (!/\S+@\S+\.\S+/.test(formData.email)) {
-      setError('Please enter a valid email address.');
+    const emailCheck = validateEmailFormat(formData.email);
+    if (!emailCheck.valid) {
+      setError(emailCheck.error!);
       return false;
     }
     return true;

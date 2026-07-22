@@ -70,6 +70,10 @@ export function useTripChat(
   const mountedRef = useRef(true);
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = useRef(false);
+  // Always-current myUserId for handlers captured inside the SignalR effect, which
+  // only re-subscribes on tripId/token — a captured myUserId would go stale.
+  const myUserIdRef = useRef(myUserId);
+  useEffect(() => { myUserIdRef.current = myUserId; }, [myUserId]);
 
   // Build a lookup for fast member enrichment
   const memberMap = useRef<Map<number | string, TripMember>>(new Map());
@@ -163,6 +167,19 @@ export function useTripChat(
       setMessages(prev => {
         // De-duplicate by id (in case REST response and push arrive together)
         if (prev.some(m => m.id === enriched.id)) return prev;
+        // If this is the server echo of my own just-sent message, swap it in place
+        // of the optimistic placeholder instead of appending a duplicate. Optimistic
+        // bubbles carry a temp `opt_` id, so they can't be matched by server id —
+        // without this the echo and the placeholder both render until the REST
+        // result later reconciles them (the visible "message twice" flicker).
+        if (enriched.userId != null && enriched.userId === myUserIdRef.current) {
+          const optIdx = prev.findIndex(m => m.id.startsWith('opt_') && m.message === enriched.message);
+          if (optIdx !== -1) {
+            const next = [...prev];
+            next[optIdx] = enriched;
+            return next;
+          }
+        }
         return [...prev, enriched];
       });
     });
@@ -216,9 +233,15 @@ export function useTripChat(
       if (!text.trim() || sending || !token) return;
       setSending(true);
       try {
-        // Optimistic insert for user messages (not @navia � those get a Navia reply pushed back)
+        // Optimistic insert for plain member-to-member messages only.
+        // Messages that route to Navia — an explicit @navia mention OR any message
+        // on a solo trip (owner is the only participant) — skip the optimistic echo
+        // and rely on the server's SignalR broadcast / REST result as the single
+        // source of truth. Otherwise the optimistic bubble and the server echo (which
+        // carry different ids and can't be de-duped) briefly render the message twice.
         const isNavia = /@navia\b/i.test(text);
-        if (!isNavia && myUserId != null) {
+        const routesToNavia = isNavia || members.length <= 1;
+        if (!routesToNavia && myUserId != null) {
           const optimistic: TripChatMessage = {
             id: `opt_${Date.now()}`,
             tripId,
@@ -249,7 +272,7 @@ export function useTripChat(
         if (mountedRef.current) setSending(false);
       }
     },
-    [tripId, token, sending, myUserId, enrich],
+    [tripId, token, sending, myUserId, enrich, members],
   );
 
   // ?? Proposal accept / reject ??????????????????????????????????????????????

@@ -7,6 +7,7 @@ import { Eye, EyeOff, Plane, MapPin, Globe, Brain, Check, ArrowLeft } from 'luci
 import { authAPI } from '../../services/APIs/Auth/auth';
 import { useNavigate } from 'react-router-dom';
 import { fadeInLeft, fadeInRight, staggerContainer, staggerItem } from '../../utils/animations';
+import { validateSignupEmail } from '../../utils/emailValidation';
 
 const GoogleSVG = () => (
   <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -58,6 +59,11 @@ const Signup = () => {
     const validateForm = () => {
       if (!formData.firstName || !formData.lastName || !formData.email || !formData.password) {
         setError('Please fill in all required fields.');
+        return false;
+      }
+      const emailCheck = validateSignupEmail(formData.email);
+      if (!emailCheck.valid) {
+        setError(emailCheck.error!);
         return false;
       }
       if (formData.password !== formData.confirmPassword) {
