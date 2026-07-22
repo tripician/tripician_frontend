@@ -19,9 +19,10 @@ interface TopBarProps {
   showSearch?: boolean;
   logo?: React.ReactNode; // custom logo element (left area when no search)
   centerNode?: React.ReactNode; // absolutely centered content (e.g., trip title + status)
+  showBurger?: boolean; // mobile nav burger; hide in focused contexts (e.g. the trip planner) that have their own exit
 }
 
-const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) => {
+const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode, showBurger = true }) => {
   const { profile } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
@@ -90,7 +91,8 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
 
         {/* Left Section - Search or Logo */}
         <Box sx={{ flexGrow: 1, display: 'flex', alignItems: 'center', pr: 2, gap: 1 }}>
-          {/* Burger - mobile/tablet only */}
+          {/* Burger - mobile/tablet only; hidden where the host page opts out (showBurger={false}) */}
+          {showBurger && (
           <IconButton
             size="small"
             onClick={() => window.dispatchEvent(new CustomEvent('nav:toggleMobile'))}
@@ -102,6 +104,7 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode }) 
           >
             <MenuRoundedIcon sx={{ fontSize: 22, color: 'text.secondary' }} />
           </IconButton>
+          )}
           {showSearch ? (
             <Box sx={{ maxWidth: 380, width: '100%' }}>
               <SearchBar />

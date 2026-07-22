@@ -196,6 +196,10 @@ const JourneyPlanStrip: React.FC<{
     key: PlanLaneKey;
     kicker: string;
     title: string;
+    /** Compact label for the mobile status line */
+    short: string;
+    /** Compact status for the mobile status line */
+    status: string;
     preview: string;
     empty: string;
     icon: React.ReactNode;
@@ -207,6 +211,8 @@ const JourneyPlanStrip: React.FC<{
       key: 'spots',
       kicker: 'Discover',
       title: 'Places to visit',
+      short: 'Places',
+      status: spots.length > 0 ? `${spotsChecked}/${spots.length}` : 'Add',
       preview: spotPreview || (foodsCount > 0 ? `${foodsCount} food picks` : ''),
       empty: `Build your ${placeName} list`,
       icon: <ExploreIcon sx={{ fontSize: 14 }} />,
@@ -218,6 +224,8 @@ const JourneyPlanStrip: React.FC<{
       key: 'stay',
       kicker: `${nights} night${nights !== 1 ? 's' : ''}`,
       title: 'Where you rest',
+      short: 'Stay',
+      status: stayCount === 0 ? 'Needed' : 'Booked',
       preview: stayPreview || '',
       empty: 'Add your lodging',
       icon: <HotelIcon sx={{ fontSize: 14 }} />,
@@ -228,6 +236,8 @@ const JourneyPlanStrip: React.FC<{
       key: 'notes',
       kicker: 'Journal',
       title: 'Trip notes',
+      short: 'Notes',
+      status: hasNotes ? 'Added' : 'Add',
       preview: notesPreview || '',
       empty: 'Reservations, timing, tips…',
       icon: <EditNoteIcon sx={{ fontSize: 14 }} />,
@@ -236,9 +246,50 @@ const JourneyPlanStrip: React.FC<{
   ];
 
   return (
-    <Box
+    <>
+      {/* Mobile: one compact, tappable status line (replaces the 3-column grid) */}
+      <Box
+        sx={(t) => ({
+          display: { xs: 'flex', md: 'none' },
+          alignItems: 'stretch',
+          borderTop: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
+        })}
+      >
+        {lanes.map((lane, idx) => {
+          const isActive = activeLane === lane.key;
+          const needsAttention = lane.key === 'stay' && stayCount === 0;
+          return (
+            <Box
+              key={lane.key}
+              onClick={(e) => { e.stopPropagation(); lane.onClick(); }}
+              sx={(t) => ({
+                flex: 1, minWidth: 0, display: 'flex', alignItems: 'center', gap: .6,
+                px: 1, py: .85, cursor: 'pointer',
+                borderRight: idx < 2 ? `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}` : 'none',
+                transition: 'background .15s',
+                '&:active': { bgcolor: 'rgba(255,56,92,0.06)' },
+              })}
+            >
+              <Box sx={{ color: (isActive || needsAttention) ? '#FF385C' : 'text.disabled', display: 'flex', flexShrink: 0 }}>
+                {lane.icon}
+              </Box>
+              <Box sx={{ minWidth: 0 }}>
+                <Typography noWrap sx={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, letterSpacing: '-0.2px', color: isActive ? '#FF385C' : 'text.primary' }}>
+                  {lane.short}
+                </Typography>
+                <Typography noWrap sx={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.02em', lineHeight: 1.15, color: needsAttention ? '#FF385C' : 'text.disabled' }}>
+                  {lane.status}
+                </Typography>
+              </Box>
+            </Box>
+          );
+        })}
+      </Box>
+
+      {/* Desktop / tablet: full 3 (+ Navia) column grid */}
+      <Box
       sx={(t) => ({
-        display: 'grid',
+        display: { xs: 'none', md: 'grid' },
         gridTemplateColumns: { xs: '1fr 1fr 1fr', md: '1fr 1fr 1fr auto' },
         alignItems: 'stretch',
         borderTop: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
@@ -326,7 +377,8 @@ const JourneyPlanStrip: React.FC<{
           <Typography sx={{ fontSize: 9, fontWeight: 700, letterSpacing: '-0.1px' }}>{naviaThinking ? 'Planning…' : 'Navia'}</Typography>
         </Box>
       )}
-    </Box>
+      </Box>
+    </>
   );
 };
 
@@ -546,14 +598,11 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
             {!hasPlanTitle && !editingTitle && onChangeTitle && (
               <Typography
                 onClick={() => setEditingTitle(true)}
-                sx={{ fontSize: 9.5, color: 'text.disabled', mt: .35, cursor: 'pointer', lineHeight: 1.2, '&:hover': { color: '#FF385C' } }}
+                sx={{ display: { xs: 'none', md: 'block' }, fontSize: 9.5, color: 'text.disabled', mt: .35, cursor: 'pointer', lineHeight: 1.2, '&:hover': { color: '#FF385C' } }}
               >
                 + Add what you&apos;re doing this day
               </Typography>
             )}
-            <Box sx={(t) => ({ display: { xs: 'flex', sm: 'none' }, alignItems: 'center', mt: .35, height: 18, fontSize: 9.5, fontWeight: 600, color: t.palette.text.secondary, letterSpacing: '-0.1px', whiteSpace: 'nowrap' })}>
-              {dateFmt(startDate)} → {dateFmt(endDate)}
-            </Box>
             {!editingTitle && onRequestNaviaTip && !readonly &&(
               <Box sx={{ display: { xs: 'none', sm: 'flex' }, gap: .4, flexWrap: 'nowrap', overflow: 'hidden', mt: .45 }}>
                 {['Best time?', 'Top picks?', 'Packing essentials?'].map(prompt => (
@@ -592,8 +641,8 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
           </Box>
 
 
-          {/* Date range */}
-          <Box sx={(t) => ({ height: 22, px: .75, borderRadius: '20px', border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`, fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, color: t.palette.text.secondary, display: { xs: 'none', sm: 'flex' }, alignItems: 'center', letterSpacing: '-0.2px' })}>
+          {/* Date range — desktop only on cards */}
+          <Box sx={(t) => ({ height: 22, px: .75, borderRadius: '20px', border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`, fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, color: t.palette.text.secondary, display: { xs: 'none', md: 'flex' }, alignItems: 'center', letterSpacing: '-0.2px' })}>
             {dateFmt(startDate)} &rarr; {dateFmt(endDate)}
           </Box>
 
@@ -606,7 +655,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
                 <Box
                   onClick={(e: any) => { e.stopPropagation(); setAlertAnchor(e.currentTarget); }}
                   sx={{
-                    position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    position: 'relative', display: { xs: 'none', md: 'flex' }, alignItems: 'center', justifyContent: 'center',
                     width: 26, height: 26, borderRadius: '8px', cursor: 'pointer',
                     color: '#ef4444',
                     '@keyframes warnPulse': { '0%,100%': { filter: 'drop-shadow(0 0 3px rgba(239,68,68,0.5))' }, '50%': { filter: 'drop-shadow(0 0 7px rgba(239,68,68,0.85))' } },

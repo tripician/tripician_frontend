@@ -468,7 +468,8 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
               ? '0 2px 20px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.04)'
               : '0 2px 14px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,1)',
             px: { xs: 1.5, sm: 2.5 }, py: { xs: 1.25, sm: 1.5 },
-            display: 'flex', alignItems: 'center', gap: { xs: 1.5, sm: 2 },
+            // Hidden on phones: the vitals-bar readiness ring is the single mobile progress signal.
+            display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: { xs: 1.5, sm: 2 },
           })}>
 
             {/* Percentage hero */}
