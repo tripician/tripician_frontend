@@ -61,7 +61,7 @@ const BlogsList: React.FC = () => {
       {/* Nav - TopBar for logged-in, public nav for guests */}
       {isAuthenticated ? (
         <TopBar showSearch={false} logo={
-          <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#111', fontFamily: "'Inter',sans-serif", letterSpacing: '-0.02em' }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#111', fontFamily: "'Inter',sans-serif", letterSpacing: '-0.02em' }}>
             Tripician <Box component="span" sx={{ fontWeight: 400, color: '#888' }}>/ Blog</Box>
           </Typography>
         } />
@@ -77,7 +77,7 @@ const BlogsList: React.FC = () => {
           <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 1, textDecoration: 'none' }}>
             {logoFullBlackUrl
               ? <Box component="img" src={logoFullBlackUrl} alt="Tripician" sx={{ height: 28, width: 'auto', display: 'block' }} />
-              : <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#111', fontFamily: "'Inter',sans-serif", letterSpacing: '-0.02em' }}>Tripician</Typography>
+              : <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#111', fontFamily: "'Inter',sans-serif", letterSpacing: '-0.02em' }}>Tripician</Typography>
             }
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
@@ -113,7 +113,7 @@ const BlogsList: React.FC = () => {
         <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, px: { xs: 3, md: 8 }, pb: { xs: 4, md: 6 }, maxWidth: 780 }}>
           <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, px: 1.2, py: 0.4, borderRadius: '50px', background: 'rgba(255,56,92,0.85)', mb: 1.5 }}>
             <AutoAwesomeRoundedIcon sx={{ fontSize: 12, color: '#fff' }} />
-            <Typography sx={{ fontSize: '0.65rem', fontWeight: 800, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'Inter',sans-serif" }}>
+            <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'Inter',sans-serif" }}>
               Featured
             </Typography>
           </Box>
@@ -121,7 +121,7 @@ const BlogsList: React.FC = () => {
           <Typography sx={{
             fontFamily: "'Playfair Display', serif",
             fontSize: { xs: '1.6rem', md: '2.4rem' },
-            fontWeight: 800, color: '#fff',
+            fontWeight: 700, color: '#fff',
             lineHeight: 1.15, letterSpacing: '-0.02em', mb: 1,
           }}>
             {hero.title}
@@ -149,7 +149,7 @@ const BlogsList: React.FC = () => {
           <Typography sx={{
             fontFamily: "'Playfair Display', serif",
             fontSize: { xs: '1.8rem', md: '2.6rem' },
-            fontWeight: 800, color: '#111',
+            fontWeight: 700, color: '#111',
             letterSpacing: '-0.03em', mb: 0.75, lineHeight: 1.1,
           }}>
             Travel Stories & Guides
@@ -293,7 +293,7 @@ const BlogsList: React.FC = () => {
 
                     <Typography sx={{
                       fontFamily: "'Inter',sans-serif",
-                      fontWeight: 800, fontSize: '1rem',
+                      fontWeight: 700, fontSize: '1rem',
                       color: '#111', lineHeight: 1.3,
                       letterSpacing: '-0.015em', mb: 1,
                       display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
@@ -345,7 +345,7 @@ const BlogsList: React.FC = () => {
           <Typography sx={{
             fontFamily: "'Playfair Display', serif",
             fontSize: { xs: '1.9rem', md: '3rem' },
-            fontWeight: 800, color: '#fff',
+            fontWeight: 700, color: '#fff',
             letterSpacing: '-0.03em', lineHeight: 1.1, mb: 1.5,
             position: 'relative', zIndex: 1,
           }}>
@@ -356,7 +356,7 @@ const BlogsList: React.FC = () => {
           </Typography>
           <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'center', flexWrap: 'wrap', position: 'relative', zIndex: 1 }}>
             <Button component={Link} to="/signup" variant="contained" size="large"
-              sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 800, fontSize: '1rem', px: 4.5, py: 1.6, borderRadius: '50px', textTransform: 'none', background: 'linear-gradient(135deg,#FF385C,#D91A50)', boxShadow: '0 8px 32px rgba(255,56,92,0.45)', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 14px 40px rgba(255,56,92,0.6)' }, transition: 'all 0.2s' }}>
+              sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '1rem', px: 4.5, py: 1.6, borderRadius: '50px', textTransform: 'none', background: 'linear-gradient(135deg,#FF385C,#D91A50)', boxShadow: '0 8px 32px rgba(255,56,92,0.45)', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 14px 40px rgba(255,56,92,0.6)' }, transition: 'all 0.2s' }}>
               Create free account →
             </Button>
             <Button component={Link} to="/signin" variant="outlined" size="large"

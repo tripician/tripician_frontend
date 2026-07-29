@@ -174,11 +174,11 @@ const NaviaPage: React.FC = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <NaviaOrb size={40} processing={isStreaming} />
           <Box>
-            <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 800, fontSize: '1.1rem', lineHeight: 1.2 }}>
+            <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.2 }}>
               Navia
             </Typography>
             <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', fontFamily: "'Inter',sans-serif" }}>
-              Your AI travel companion
+              Your travel companion
             </Typography>
           </Box>
         </Box>

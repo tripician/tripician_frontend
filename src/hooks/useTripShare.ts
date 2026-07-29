@@ -7,7 +7,10 @@ export interface TripShareData {
   cardImageUrl: string | null;
   error: string | null;
   shareText: string;
+  /** The link to hand out - server-rendered previews, redirects humans to the app. */
   tripUrl: string;
+  /** The canonical in-app URL, for "open in Tripician" style affordances. */
+  tripAppUrl: string;
   /** Raw blob - use for downloading */
   cardBlob: Blob | null;
 }
@@ -34,13 +37,31 @@ export function useTripShare(
   const WEB_BASE = import.meta.env.VITE_WEB_BASE_URL as string;
   const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) || WEB_BASE;
 
-  // Slugged link: keywords in shared URLs help CTR and search snippets
-  const tripUrl = `${WEB_BASE.replace(/\/$/, '')}${tripPath({ id: tripId, name: tripName })}`;
+  /**
+   * Shared links point at the backend's /t/{id} route, not directly at the SPA.
+   *
+   * The SPA sets its meta tags with JavaScript, and Facebook, WhatsApp and
+   * LinkedIn never run JavaScript - so a direct www link previewed as the same
+   * generic card for every trip, with no image. /t/{id} is server-rendered: it
+   * answers crawlers with that trip's real title, description and photo, and
+   * redirects people straight into the app. Same link, works for both.
+   *
+   * VITE_SHARE_BASE_URL lets this move to a prettier host (go.tripician.com)
+   * with a DNS record and no code change.
+   */
+  const SHARE_BASE = ((import.meta.env.VITE_SHARE_BASE_URL as string) || API_BASE).replace(/\/$/, '');
+  const tripUrl = `${SHARE_BASE}/t/${tripId}`;
+
+  /** The in-app URL, for "open" affordances and copy that should look canonical. */
+  const tripAppUrl = `${WEB_BASE.replace(/\/$/, '')}${tripPath({ id: tripId, name: tripName })}`;
 
   const shareText = `Discover this amazing ${tripName} itinerary, created with Tripician 🌍 ${destinationCount} destination${destinationCount !== 1 ? 's' : ''}, ${totalNights} night${totalNights !== 1 ? 's' : ''}.`
 
   useEffect(() => {
-    if (!tripId || !token) return;
+    // Bail cleanly, never leave the caller stuck on a skeleton. `isLoading`
+    // starts true, so an early return without this left guests staring at a
+    // shimmer forever on public trips.
+    if (!tripId) { setIsLoading(false); return; }
 
     let cancelled = false;
 
@@ -56,9 +77,11 @@ export function useTripShare(
       }, 3000);
 
       try {
+        // Anonymous is allowed for published trips - send the token only if we
+        // have one, so guests can share a public itinerary too.
         const response = await fetch(
           `${API_BASE.replace(/\/$/, '')}/api/trips/${tripId}/share-card`,
-          { headers: { Authorization: `Bearer ${token}` } },
+          token ? { headers: { Authorization: `Bearer ${token}` } } : undefined,
         );
 
         if (!response.ok) {
@@ -98,7 +121,7 @@ export function useTripShare(
         blobUrlRef.current = null;
       }
     };
-  }, [tripId, token]);
+  }, [tripId, token, API_BASE]);
 
-  return { isLoading, cardImageUrl, cardBlob, error, shareText, tripUrl };
+  return { isLoading, cardImageUrl, cardBlob, error, shareText, tripUrl, tripAppUrl };
 }

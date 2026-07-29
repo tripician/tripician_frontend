@@ -3,8 +3,10 @@ Allow: /
 Allow: /blog
 Allow: /blog/
 Allow: /community
+# /discover was a duplicate of /community and now 301s to it; leaving it
+# crawlable only invites duplicate-content indexing of a redirect.
+Disallow: /discover
 Allow: /trip/
-Allow: /discover
 Allow: /about-us
 Allow: /terms-and-conditions
 Allow: /privacy-policy

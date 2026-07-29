@@ -93,7 +93,7 @@ const CreditsSettings: React.FC = () => {
           {!loading && wallet && (
             <>
               <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
-                <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 800, fontSize: '2.4rem', lineHeight: 1, color: low ? 'error.main' : 'text.primary' }}>
+                <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '2.4rem', lineHeight: 1, color: low ? 'error.main' : 'text.primary' }}>
                   {wallet.balance}
                 </Typography>
                 <Typography sx={{ fontSize: '0.82rem', color: 'text.disabled', fontFamily: "'Inter',sans-serif" }}>

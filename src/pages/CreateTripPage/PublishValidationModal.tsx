@@ -91,7 +91,7 @@ const PublishValidationModal: React.FC<Props> = ({ open, onClose, checks }) => {
           gap: 1,
         }}
       >
-        {allPassed ? '✅ Ready to Publish' : 'Almost there!'}
+        {allPassed ? 'Ready to Publish' : 'Almost there!'}
       </DialogTitle>
 
       <DialogContent sx={{ pt: 0.5, pb: 0 }}>

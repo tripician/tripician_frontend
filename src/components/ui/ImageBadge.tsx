@@ -11,7 +11,7 @@ const ImageBadge: React.FC<{ children: React.ReactNode; sx?: object }> = ({ chil
       px: 1.1, py: 0.45, borderRadius: 999,
       bgcolor: isDark ? 'rgba(22,22,27,0.88)' : 'rgba(255,255,255,0.93)',
       color: 'text.primary',
-      fontSize: 11, fontWeight: 650, letterSpacing: '0.01em', lineHeight: 1,
+      fontSize: 11, fontWeight: 600, letterSpacing: '0.01em', lineHeight: 1,
       boxShadow: theme.custom.shadows.card,
       ...sx,
     }}>

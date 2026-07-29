@@ -14,7 +14,8 @@ const today = new Date().toISOString().split('T')[0];
 const staticRoutes = [
   { path: '/',                      priority: '1.0', changefreq: 'weekly'  },
   { path: '/community',             priority: '0.9', changefreq: 'daily'   },
-  { path: '/discover',              priority: '0.9', changefreq: 'daily'   },
+  // /discover was dropped: it redirects to /community, and listing a redirect
+  // in the sitemap is a crawl-budget own goal.
   { path: '/blog',                  priority: '0.9', changefreq: 'daily'   },
   { path: '/about-us',              priority: '0.6', changefreq: 'monthly' },
   { path: '/terms-and-conditions',  priority: '0.3', changefreq: 'monthly' },

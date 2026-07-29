@@ -27,7 +27,7 @@ const InfoPageShell: React.FC<Props> = ({ children }) => {
           <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 1, textDecoration: 'none' }}>
             {logoFullBlackUrl
               ? <Box component="img" src={logoFullBlackUrl} alt="Tripician" sx={{ height: 28, width: 'auto', display: 'block' }} />
-              : <Typography sx={{ fontWeight: 800, fontSize: '0.95rem', color: '#111', fontFamily: "'Inter',sans-serif", letterSpacing: '-0.02em' }}>Tripician</Typography>
+              : <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#111', fontFamily: "'Inter',sans-serif", letterSpacing: '-0.02em' }}>Tripician</Typography>
             }
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>

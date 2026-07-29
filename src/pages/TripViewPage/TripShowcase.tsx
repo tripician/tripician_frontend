@@ -8,12 +8,12 @@
  */
 import React from 'react';
 import {
-  Box, Typography, Button, Avatar, Chip, Divider, Snackbar, LinearProgress, useTheme,
+  Box, Typography, Button, Avatar, Chip, Divider, Snackbar, LinearProgress, Tooltip, useTheme,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   IconArrowLeft, IconHeart, IconHeartFilled, IconBookmark, IconBookmarkFilled,
-  IconShare2, IconPencil, IconCopy, IconMapPin, IconMoonStars, IconCalendar,
+  IconShare2, IconPencil, IconCopy, IconMapPin, IconMoonStars, IconCalendar, IconFileDownload,
   IconUsers, IconToolsKitchen2, IconNotes, IconRoute, IconInfoCircle, IconBed,
   IconWallet, IconExternalLink, IconPlane, IconTrain, IconBus, IconCar,
   IconSailboat, IconWalk, IconLuggage, IconStar, IconLock,
@@ -24,9 +24,13 @@ import dayjs from 'dayjs';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { fetchUnsplashImage } from '../../services/unsplashService';
+import { resolveTripCover } from '../../utils/tripCover';
 import { VIBES } from '../CommunityPage/vibes';
 import { safeExternalUrl } from '../../utils/sanitizeHtml';
 import TripShareModal from '../../components/TripShareModal';
+import ProvenanceChip from '../../components/CommonComponents/ProvenanceChip';
+import ExpandableText from '../../components/ui/ExpandableText';
+import type { SpotProvenance } from '../../store/plannerSlice';
 import TripComments from '../CreateTripPage/TripComments';
 import ShowcaseMap from './ShowcaseMap';
 
@@ -38,6 +42,8 @@ interface ShowcaseSpot {
   photoUrl?: string;
   mapsHref?: string;
   mustVisit?: boolean;
+  provenance?: SpotProvenance;
+  verifiedAt?: string;
 }
 interface ShowcaseStay { name: string; referenceHref?: string; referenceText?: string }
 interface ShowcaseStopFull {
@@ -136,6 +142,8 @@ function normaliseStops(rawTrip: any): ShowcaseStopFull[] {
           photoUrl: s.photoUrl || undefined,
           mapsHref: spotMapsHref(s, it.name || ''),
           mustVisit: s.mustVisit === true,
+          provenance: s.provenance === 'verified' || s.provenance === 'unchecked' ? s.provenance : undefined,
+          verifiedAt: typeof s.verifiedAt === 'string' ? s.verifiedAt : undefined,
         })),
       foods: (Array.isArray(it.foods) ? it.foods : [])
         .map((f: any) => (typeof f === 'string' ? f : f?.name))
@@ -254,14 +262,20 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
   React.useEffect(() => {
     let cancelled = false;
     (async () => {
-      const wanted: [string, string][] = [];
-      if (!heroPhotoFromTrip && countries[0]) wanted.push(['__hero', `${countries[0]} landscape travel`]);
-      stops.filter(s => !s.photoUrl).slice(0, 10).forEach(s => wanted.push([s.id, `${s.name} travel`]));
-      for (const [key, query] of wanted) {
+      // The hero goes through the shared resolver so this page and the trip's
+      // cards agree on one photo. Per-stop shots stay a plain Unsplash lookup.
+      if (!heroPhotoFromTrip) {
         try {
-          const url = await fetchUnsplashImage(query);
+          const heroUrl = await resolveTripCover({ countries, name });
           if (cancelled) return;
-          if (url) setPhotos(prev => (prev[key] ? prev : { ...prev, [key]: url }));
+          if (heroUrl) setPhotos(prev => (prev['__hero'] ? prev : { ...prev, __hero: heroUrl }));
+        } catch { /* photo is a nice-to-have */ }
+      }
+      for (const s of stops.filter(s => !s.photoUrl).slice(0, 10)) {
+        try {
+          const url = await fetchUnsplashImage(`${s.name} travel`, 'landscape');
+          if (cancelled) return;
+          if (url) setPhotos(prev => (prev[s.id] ? prev : { ...prev, [s.id]: url }));
         } catch { /* photo is a nice-to-have */ }
       }
     })();
@@ -330,6 +344,36 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
   };
 
   const [shareOpen, setShareOpen] = React.useState(false);
+
+  const [pdfBusy, setPdfBusy] = React.useState(false);
+  /**
+   * Downloads the itinerary PDF. Rendered by headless Chromium on the server so
+   * the photos and layout survive - a browser-side capture would drop the Google
+   * Places spot photos to CORS and render the map canvas blank.
+   */
+  const handleDownloadPdf = React.useCallback(async () => {
+    if (pdfBusy) return;
+    setPdfBusy(true);
+    try {
+      const apiBase = ((import.meta.env.VITE_API_BASE_URL as string) || '').replace(/\/$/, '');
+      // Members get the crew variant; the server ignores the flag for everyone else.
+      const url = `${apiBase}/api/trips/${tripId}/pdf${isOwner || isMember ? '?full=true' : ''}`;
+      const resp = await fetch(url, token ? { headers: { Authorization: `Bearer ${token}` } } : undefined);
+      if (!resp.ok) throw new Error(String(resp.status));
+
+      const blob = await resp.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = objectUrl;
+      a.download = `tripician-${(name || 'trip').replace(/\s+/g, '-').toLowerCase()}.pdf`;
+      a.click();
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 5000);
+    } catch {
+      setToast("Couldn't build the PDF right now. Please try again.");
+    } finally {
+      setPdfBusy(false);
+    }
+  }, [pdfBusy, tripId, isOwner, isMember, token, name]);
 
   const dateRange = startDate && endDate
     ? `${fmtDay(startDate)} – ${fmtFull(endDate)}`
@@ -433,7 +477,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
       <Box sx={{ position: 'sticky', top: 0, zIndex: 20, bgcolor: 'background.paper', borderBottom: `1px solid ${border}`, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
         <Box sx={{ maxWidth: 1280, mx: 'auto', px: { xs: 2, md: 4 }, py: 1.25, display: 'flex', alignItems: 'center', gap: 1 }}>
           <Typography noWrap sx={{ fontFamily: serif, fontWeight: 700, fontSize: 17, color: 'text.primary', flex: 1, minWidth: 0, mr: 1 }}>
-            {name}
+            Every stop tells a story.
           </Typography>
 
           <Button
@@ -460,6 +504,27 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
           >
             Share
           </Button>
+          {/* Members get the crew version (booking refs + packing); everyone else
+              gets the public itinerary. Rendered server-side, so it keeps the photos.
+              Labelled for the reason people press it - a copy that works on the
+              plane and at the border desk - with the tooltip carrying the mechanics. */}
+          <Tooltip title="Save the illustrated itinerary as a PDF you can read without signal">
+            {/* span, not the Button itself: a disabled button fires no pointer
+                events, so the tooltip would never open while the PDF builds.
+                The breakpoint lives here too, or the empty wrapper would still
+                claim a flex gap on mobile. */}
+            <Box component="span" sx={{ display: { xs: 'none', md: 'inline-flex' } }}>
+              <Button
+                size="small"
+                onClick={handleDownloadPdf}
+                disabled={pdfBusy}
+                startIcon={<IconFileDownload size={16} />}
+                sx={{ textTransform: 'none', fontWeight: 600, color: 'text.secondary', minWidth: 0, px: 1.25, borderRadius: '50px' }}
+              >
+                {pdfBusy ? 'Preparing…' : 'Take it offline'}
+              </Button>
+            </Box>
+          </Tooltip>
 
           {canEdit ? (
             <Button
@@ -526,7 +591,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
           {description && (
             <Box sx={{ mb: importantNotes ? 3.5 : 5 }}>
               <Typography sx={{ fontFamily: serif, fontWeight: 700, fontSize: 22, color: 'text.primary', mb: 1.5 }}>
-                About this trip
+                Where & how?
               </Typography>
               <Typography sx={{ fontFamily: "'Inter',sans-serif", fontSize: 16, lineHeight: 1.75, color: 'text.secondary', maxWidth: 680, whiteSpace: 'pre-line' }}>
                 {description}
@@ -542,9 +607,14 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                 <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled', fontFamily: "'Inter',sans-serif", mb: 0.75 }}>
                   Good to know
                 </Typography>
-                <Typography sx={{ fontSize: 14.5, color: 'text.secondary', fontFamily: "'Inter',sans-serif", lineHeight: 1.7, whiteSpace: 'pre-line' }}>
+                <ExpandableText
+                  lines={4}
+                  sx={{ fontSize: 14.5, color: 'text.secondary', fontFamily: "'Inter',sans-serif", lineHeight: 1.7, whiteSpace: 'pre-line' }}
+                  moreLabel="Read all"
+                  lessLabel="Show less"
+                >
                   {importantNotes}
-                </Typography>
+                </ExpandableText>
               </Box>
             </Box>
           )}
@@ -712,6 +782,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                                       <IconStar size={12} /> Must-see
                                     </Box>
                                   )}
+                                  <ProvenanceChip provenance={spot.provenance} verifiedAt={spot.verifiedAt} />
                                   {spot.mapsHref && (
                                     /* Row itself is the link; this is just the visual cue */
                                     <Box component="span" sx={{ display: 'inline-flex', alignItems: 'center', color: 'text.disabled' }}>
@@ -720,9 +791,12 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                                   )}
                                 </Box>
                                 {spot.description && (
-                                  <Typography sx={{ fontSize: 13.5, color: 'text.secondary', fontFamily: "'Inter',sans-serif", lineHeight: 1.55 }}>
+                                  <ExpandableText
+                                    lines={1}
+                                    sx={{ fontSize: 13.5, color: 'text.secondary', fontFamily: "'Inter',sans-serif", lineHeight: 1.55 }}
+                                  >
                                     {spot.description}
-                                  </Typography>
+                                  </ExpandableText>
                                 )}
                               </Box>
                             </Box>
@@ -756,9 +830,12 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                             </Box>
                           ))}
                           {stop.stayNotes && (
-                            <Typography sx={{ fontSize: 13.5, color: 'text.secondary', fontFamily: "'Inter',sans-serif", lineHeight: 1.55 }}>
+                            <ExpandableText
+                              lines={2}
+                              sx={{ fontSize: 13.5, color: 'text.secondary', fontFamily: "'Inter',sans-serif", lineHeight: 1.55, whiteSpace: 'pre-line' }}
+                            >
                               {stop.stayNotes}
-                            </Typography>
+                            </ExpandableText>
                           )}
                         </Box>
                       </Box>
@@ -782,9 +859,14 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                         <Typography sx={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled', fontFamily: "'Inter',sans-serif", mb: 0.5, display: 'flex', alignItems: 'center', gap: 0.6 }}>
                           <IconNotes size={13} /> Notes from the planner
                         </Typography>
-                        <Typography sx={{ fontSize: 14, color: 'text.secondary', fontFamily: "'Inter',sans-serif", lineHeight: 1.65, whiteSpace: 'pre-line' }}>
+                        <ExpandableText
+                          lines={3}
+                          sx={{ fontSize: 14, color: 'text.secondary', fontFamily: "'Inter',sans-serif", lineHeight: 1.65, whiteSpace: 'pre-line' }}
+                          moreLabel="Read the full note"
+                          lessLabel="Show less"
+                        >
                           {stop.notes}
-                        </Typography>
+                        </ExpandableText>
                       </Box>
                     )}
                     </>
@@ -993,10 +1075,21 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
         </Box>
       </Box>
 
-      {/* ═══ COMMENTS ═══ */}
+      {/* ═══ COMMENTS ═══
+          Given a heading and an invitation rather than being left as an unlabelled
+          footer: the discussion on a plan is the point of a community, and a plan
+          nobody can react to is just a document. */}
       {isPublished ? (
         <Box sx={{ borderTop: `1px solid ${border}`, bgcolor: 'background.paper' }}>
           <Box sx={{ maxWidth: 760, mx: 'auto', px: { xs: 2, md: 4 }, py: { xs: 4, md: 6 } }}>
+            <Typography sx={{ fontFamily: serif, fontWeight: 700, fontSize: 22, color: 'text.primary', mb: 0.75 }}>
+              {canEdit ? 'What travellers are saying' : `Been to ${countries[0] || 'these places'}?`}
+            </Typography>
+            <Typography sx={{ fontSize: 14.5, color: 'text.secondary', fontFamily: "'Inter',sans-serif", lineHeight: 1.6, mb: 2.5 }}>
+              {canEdit
+                ? 'Ask the community to look over your plan before you book - people who have been will tell you what you have missed.'
+                : `Tell ${ownerName.split(' ')[0]} what you would change, what they have missed, or what is worth skipping. That advice is the most useful thing on this page.`}
+            </Typography>
             <TripComments tripId={tripId} authToken={token ?? null} />
           </Box>
         </Box>
@@ -1020,6 +1113,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
         tripName={name}
         destinationCount={stops.length}
         totalNights={totalNights}
+        isOwner={isOwner}
       />
 
       <Snackbar

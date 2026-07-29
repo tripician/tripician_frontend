@@ -49,6 +49,12 @@ export interface PlannerDestination {
   completed?: boolean;
 }
 
+/**
+ * How a spot came to be in the plan. Rendered as a chip so nothing model-generated
+ * is ever presented as fact without a source. See services/placeVerification.ts.
+ */
+export type SpotProvenance = 'verified' | 'unchecked';
+
 export interface PlannerSpot {
   id: string;
   name: string;
@@ -58,6 +64,13 @@ export interface PlannerSpot {
   placeId?: string; // Google Places ID for fetching details/photos
   photoUrl?: string; // Cached first photo URL (small)
   description?: string; // One-line description fetched from Places (editorial summary or formatted address)
+  /** 'verified' = resolved to a real, operational place. Absent on pre-existing spots. */
+  provenance?: SpotProvenance;
+  /** ISO timestamp of the check that set `provenance`. */
+  verifiedAt?: string;
+  /** Coordinates from Places - used by the feasibility checks for same-day clustering. */
+  lat?: number;
+  lng?: number;
 }
 
 export interface PlannerFood {
@@ -500,7 +513,7 @@ const plannerSlice = createSlice({
       const idx = c.upvoterIds.indexOf(action.payload.userId);
       if(idx>=0) c.upvoterIds.splice(idx,1); else c.upvoterIds.push(action.payload.userId);
     },
-  addSpot(state, action: PayloadAction<{ destinationId: string; name: string; mapUrl?: string; known: boolean; placeId?: string; photoUrl?: string; description?: string }>) {
+  addSpot(state, action: PayloadAction<{ destinationId: string; name: string; mapUrl?: string; known: boolean; placeId?: string; photoUrl?: string; description?: string; provenance?: SpotProvenance; verifiedAt?: string; lat?: number; lng?: number }>) {
       const d = state.destinations.find(x=> x.id === action.payload.destinationId);
       if (!d) return;
       if (!d.spots) d.spots = [];
@@ -513,6 +526,10 @@ const plannerSlice = createSlice({
         placeId: action.payload.placeId,
         photoUrl: action.payload.photoUrl,
         description: action.payload.description,
+        provenance: action.payload.provenance,
+        verifiedAt: action.payload.verifiedAt,
+        lat: action.payload.lat,
+        lng: action.payload.lng,
         checked:false
       });
     },

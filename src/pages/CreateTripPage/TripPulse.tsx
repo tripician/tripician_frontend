@@ -99,8 +99,8 @@ const TripPulse: React.FC<TripPulseProps> = ({ dimensions, daysToGo }) => {
               style={{ transition: 'stroke-dashoffset .6s cubic-bezier(.4,0,.2,1), stroke .3s' }}
             />
           </Box>
-          <Typography sx={{ fontSize: 13, fontWeight: 750, lineHeight: 1, color: 'text.primary' }}>{score}%</Typography>
-          <Typography sx={{ display: { xs: 'none', md: 'block' }, fontSize: 11, fontWeight: 550, lineHeight: 1, color: 'text.secondary' }}>
+          <Typography sx={{ fontSize: 13, fontWeight: 700, lineHeight: 1, color: 'text.primary' }}>{score}%</Typography>
+          <Typography sx={{ display: { xs: 'none', md: 'block' }, fontSize: 11, fontWeight: 500, lineHeight: 1, color: 'text.secondary' }}>
             ready
           </Typography>
         </Box>
@@ -118,7 +118,7 @@ const TripPulse: React.FC<TripPulseProps> = ({ dimensions, daysToGo }) => {
         <Box sx={{ px: 2.25, pt: 2, pb: 1.75, background: theme.custom.gradients.brandSubtle, borderBottom: `1px solid ${theme.palette.divider}` }}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
             <Box>
-              <Typography sx={{ fontWeight: 800, fontSize: '0.92rem', lineHeight: 1.2 }}>Trip Pulse</Typography>
+              <Typography sx={{ fontWeight: 700, fontSize: '0.92rem', lineHeight: 1.2 }}>Trip Pulse</Typography>
               <Typography sx={{ fontSize: '0.7rem', color: 'text.secondary', mt: 0.25 }}>
                 {score >= 100
                   ? 'Everything is in place. Enjoy the anticipation!'
@@ -127,7 +127,7 @@ const TripPulse: React.FC<TripPulseProps> = ({ dimensions, daysToGo }) => {
                     : `${score}% ready`}
               </Typography>
             </Box>
-            <Typography sx={{ fontSize: '1.45rem', fontWeight: 800, color }}>{score}%</Typography>
+            <Typography sx={{ fontSize: '1.45rem', fontWeight: 700, color }}>{score}%</Typography>
           </Box>
           {/* Next best action */}
           {next && (
@@ -199,7 +199,7 @@ const TripPulse: React.FC<TripPulseProps> = ({ dimensions, daysToGo }) => {
                   )}
                 </Box>
                 <Box sx={{ flex: 1, minWidth: 0 }}>
-                  <Typography sx={{ fontSize: '0.8rem', fontWeight: 650, color: done ? 'text.secondary' : 'text.primary' }} noWrap>
+                  <Typography sx={{ fontSize: '0.8rem', fontWeight: 600, color: done ? 'text.secondary' : 'text.primary' }} noWrap>
                     {d.label}
                   </Typography>
                   <Typography sx={{ fontSize: '0.66rem', color: 'text.disabled' }} noWrap>

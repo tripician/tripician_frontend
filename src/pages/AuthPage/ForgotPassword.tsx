@@ -70,15 +70,15 @@ const ForgotPassword = () => {
             }
           </motion.div>
           <motion.h2 className="auth-left__title" variants={staggerItem}>
-            Plan Smarter.<br /><em>Travel Further.</em>
+            Let&apos;s get you<br /><em>back in.</em>
           </motion.h2>
           <motion.p className="auth-left__sub" variants={staggerItem}>
-            Your AI-powered companion for every adventure.
+            Your trips and saved itineraries are waiting where you left them.
           </motion.p>
           <motion.ul className="auth-left__perks" variants={staggerContainer(0.08, 0)}>
-            <motion.li variants={staggerItem}><MapPin size={14} /> Day-by-day itinerary planner</motion.li>
-            <motion.li variants={staggerItem}><Globe size={14} /> 150+ destinations covered</motion.li>
-            <motion.li variants={staggerItem}><Brain size={14} /> Smart AI trip suggestions</motion.li>
+            <motion.li variants={staggerItem}><Globe size={14} /> Real itineraries from travellers who took them</motion.li>
+            <motion.li variants={staggerItem}><MapPin size={14} /> Day-by-day planning with your crew</motion.li>
+            <motion.li variants={staggerItem}><Brain size={14} /> Every place checked against a live listing</motion.li>
           </motion.ul>
         </motion.div>
       </motion.div>

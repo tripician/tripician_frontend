@@ -1,7 +1,7 @@
 import React from 'react';
 import { Avatar, AvatarGroup, Box, IconButton, LinearProgress, Tooltip, Typography, useTheme } from '@mui/material';
 import { motion } from 'framer-motion';
-import { IconBroadcast, IconMapPin, IconShare2, IconTrash } from '@tabler/icons-react';
+import { IconBroadcast, IconMapPin, IconMessageCircle2, IconShare2, IconTrash } from '@tabler/icons-react';
 import ImageBadge from '../../components/ui/ImageBadge';
 
 // Deterministic avatar colour from name/id - cycles through a warm palette
@@ -28,11 +28,13 @@ interface TripCardProps {
   tripStatus?: number;
   isOwner?: boolean;
   onGoLive?: () => void;
+  /** Comments left by the community on this trip, replies included. */
+  commentsCount?: number;
 }
 
 /** Personal trip card for the dashboard: cover, plan progress, members, actions. */
 const TripCard: React.FC<TripCardProps> = ({
-  title, image, description, progress, edited, members, countries, onClick, onShare, onDelete, tripStatus, isOwner, onGoLive,
+  title, image, description, progress, edited, members, countries, onClick, onShare, onDelete, tripStatus, isOwner, onGoLive, commentsCount,
 }) => {
   const theme = useTheme();
 
@@ -109,7 +111,7 @@ const TripCard: React.FC<TripCardProps> = ({
 
         {/* Body */}
         <Box sx={{ px: 1.75, pt: 1.5, pb: 1.25, display: 'flex', flexDirection: 'column', gap: 0.5, flex: 1 }}>
-          <Typography noWrap sx={{ fontSize: 15, fontWeight: 650, letterSpacing: '-0.01em', color: 'text.primary' }}>
+          <Typography noWrap sx={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: 'text.primary' }}>
             {title}
           </Typography>
           {countryDisplay && (
@@ -153,6 +155,15 @@ const TripCard: React.FC<TripCardProps> = ({
               )}
               {edited && (
                 <Typography noWrap sx={{ fontSize: 12, color: 'text.disabled' }}>{edited}</Typography>
+              )}
+              {/* Replies on your own published trip - the nudge to go read them. */}
+              {typeof commentsCount === 'number' && commentsCount > 0 && (
+                <Tooltip title={`${commentsCount} ${commentsCount === 1 ? 'comment' : 'comments'} on this trip`} arrow placement="top">
+                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, flexShrink: 0, color: 'text.secondary' }}>
+                    <IconMessageCircle2 size={14} stroke={1.9} />
+                    <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{commentsCount}</Typography>
+                  </Box>
+                </Tooltip>
               )}
             </Box>
 

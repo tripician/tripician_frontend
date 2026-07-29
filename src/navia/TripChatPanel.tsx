@@ -44,6 +44,11 @@ import {
 import { fetchTripCredits, type NaviaCreditBalance } from './naviaService';
 import CreditUsagePopover from './CreditUsagePopover';
 import NaviaOrb from './NaviaOrb';
+import { renderMarkdown } from './markdown';
+import {
+  IconMapPin, IconInfoCircle, IconTrash, IconHelpCircle, IconCalendar,
+  IconAlertTriangle, IconTag, IconMail, IconUser, IconCoin,
+} from '@tabler/icons-react';
 
 // ??? Constants ????????????????????????????????????????????????????????????????
 
@@ -70,17 +75,17 @@ function getInitials(name?: string): string {
 
 // Event label map for System message ExecuteResult events
 // Keys mirror TripOperationExecutor's ExecuteResult.Event values exactly.
-const EVENT_LABELS: Record<string, { icon: string; label: (r: any) => string }> = {
-  destination_added:           { icon: '📍', label: r => `${r.destination} added to trip` },
-  destination_already_present: { icon: 'ℹ️', label: r => `${r.destination} already in trip` },
-  destination_removed:         { icon: '🗑️', label: r => `${r.destination} removed from trip` },
-  destination_not_found:       { icon: '❓', label: r => `${r.destination} not found in trip` },
-  dates_updated:               { icon: '📅', label: r => `Trip dates updated${r.startDate ? ` · start ${r.startDate}` : ''}${r.endDate ? ` · end ${r.endDate}` : ''}` },
-  dates_update_failed:         { icon: '⚠️', label: () => 'Date update failed' },
-  place_added:                 { icon: '🏷️', label: r => `${r.place} added to your itinerary` },
-  place_add_failed:            { icon: '⚠️', label: r => `Could not add ${r.place}` },
-  member_invite_noted:         { icon: '✉️', label: r => `Invite for "${r.memberName}" noted` },
-  execution_error:             { icon: '⚠️', label: r => r.summary ?? 'Execution error' },
+const EVENT_LABELS: Record<string, { Icon: React.ElementType; label: (r: any) => string }> = {
+  destination_added:           { Icon: IconMapPin,       label: r => `${r.destination} added to trip` },
+  destination_already_present: { Icon: IconInfoCircle,   label: r => `${r.destination} already in trip` },
+  destination_removed:         { Icon: IconTrash,        label: r => `${r.destination} removed from trip` },
+  destination_not_found:       { Icon: IconHelpCircle,   label: r => `${r.destination} not found in trip` },
+  dates_updated:               { Icon: IconCalendar,     label: r => `Trip dates updated${r.startDate ? ` · start ${r.startDate}` : ''}${r.endDate ? ` · end ${r.endDate}` : ''}` },
+  dates_update_failed:         { Icon: IconAlertTriangle, label: () => 'Date update failed' },
+  place_added:                 { Icon: IconTag,          label: r => `${r.place} added to your itinerary` },
+  place_add_failed:            { Icon: IconAlertTriangle, label: r => `Could not add ${r.place}` },
+  member_invite_noted:         { Icon: IconMail,         label: r => `Invite for "${r.memberName}" noted` },
+  execution_error:             { Icon: IconAlertTriangle, label: r => r.summary ?? 'Execution error' },
 };
 
 // ??? Sub-components ???????????????????????????????????????????????????????????
@@ -97,9 +102,7 @@ const SystemResultRow: React.FC<{ result: ReturnType<typeof parseSystemMetadata>
   return (
     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, py: 0.15 }}>
       {entry && (
-        <Typography component="span" sx={{ fontSize: 12, lineHeight: 1.4 }}>
-          {entry.icon}
-        </Typography>
+        <entry.Icon size={13} stroke={1.9} style={{ flexShrink: 0, opacity: 0.75 }} />
       )}
       <Typography sx={{ fontSize: 12.5, color: result.success ? 'text.primary' : 'error.main', lineHeight: 1.4 }}>
         {label}
@@ -139,30 +142,35 @@ const ProposalBubble: React.FC<ProposalBubbleProps> = ({ msg, actionState, onAcc
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
         <NaviaLogo size={16} />
-        <Typography sx={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.6px', textTransform: 'uppercase', color: '#FF385C' }}>
+        <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase', color: '#FF385C' }}>
           Navia Suggestion
         </Typography>
       </Box>
 
-      {/* Message text */}
-      <Typography sx={{ fontSize: 13.5, lineHeight: 1.65, color: isLight ? '#1a1a1a' : 'rgba(255,255,255,0.88)', mb: 1.25, whiteSpace: 'pre-line' }}>
-        {msg.message}
+      {/* Message text. Navia writes markdown, so "**Abu Dhabi**" has to arrive as
+          bold rather than as its own asterisks. */}
+      <Typography sx={{ fontSize: 13.5, lineHeight: 1.65, color: isLight ? '#1a1a1a' : 'rgba(255,255,255,0.88)', mb: 1.25 }}>
+        {renderMarkdown(msg.message)}
       </Typography>
 
       {/* Operation chips */}
       {ops.length > 0 && (
         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.5, mb: 1.25 }}>
           {ops.map((op, i) => {
-            const label = op.action === 'add_destination' ? `+ ${op.destination}`
-              : op.action === 'remove_destination' ? `− ${op.destination}`
-              : op.action === 'update_dates' ? `📅 ${op.startDate ?? ''}${op.startDate && op.endDate ? ' → ' : ''}${op.endDate ?? ''}`
-              : op.action === 'add_place' ? `📍 ${op.place}`
-              : op.action === 'add_member' ? `👤 ${op.memberName}`
-              : op.action;
+            // Icon in the chip's own icon slot rather than glued to the front of
+            // the label string, so it sits on the text baseline properly.
+            const { label, OpIcon } =
+                op.action === 'add_destination' ? { label: `+ ${op.destination}`, OpIcon: undefined }
+              : op.action === 'remove_destination' ? { label: `− ${op.destination}`, OpIcon: undefined }
+              : op.action === 'update_dates' ? { label: `${op.startDate ?? ''}${op.startDate && op.endDate ? ' → ' : ''}${op.endDate ?? ''}`, OpIcon: IconCalendar }
+              : op.action === 'add_place' ? { label: String(op.place), OpIcon: IconMapPin }
+              : op.action === 'add_member' ? { label: String(op.memberName), OpIcon: IconUser }
+              : { label: op.action, OpIcon: undefined };
             return (
               <Chip
                 key={i}
                 label={label}
+                icon={OpIcon ? <OpIcon size={12} stroke={1.9} /> : undefined}
                 size='small'
                 sx={{
                   fontSize: 11, height: 22, borderRadius: '6px',
@@ -315,8 +323,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ msg, isMine, isLight, sho
               {name}
             </Typography>
           )}
-          <Typography sx={{ fontSize: 'inherit', lineHeight: 'inherit', whiteSpace: 'pre-line', color: 'inherit' }}>
-            {msg.message}
+          {/* Same renderer for members and Navia: whoever writes markdown gets it
+              rendered, and plain text is unaffected. */}
+          <Typography sx={{ fontSize: 'inherit', lineHeight: 'inherit', color: 'inherit' }}>
+            {renderMarkdown(msg.message)}
           </Typography>
         </Box>
       </Box>
@@ -612,7 +622,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
         nodes.push(
           <Box key="unread-divider" sx={{ display: 'flex', alignItems: 'center', gap: 1, my: 1 }}>
             <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,56,92,0.35)' }} />
-            <Typography sx={{ fontSize: 10, fontWeight: 800, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#FF385C', flexShrink: 0 }}>
+            <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#FF385C', flexShrink: 0 }}>
               New
             </Typography>
             <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,56,92,0.35)' }} />
@@ -727,13 +737,14 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
           <Typography noWrap sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.3 }}>
             {isSolo
               ? 'Just you & Navia · she replies to every message'
-              : <>{members.length} travelers · <Box component='span' sx={{ color: 'primary.main', fontWeight: 600 }}>@navia</Box> for AI help</>}
+              : <>{members.length} travelers · <Box component='span' sx={{ color: 'primary.main', fontWeight: 600 }}>@navia</Box> to bring in the co-planner</>}
           </Typography>
         </Box>
         {tripCredits !== null && (
           <Tooltip title="Trip credits, a shared wallet for the whole crew. Tap for details" arrow>
             <Chip
-              label={`🪙 ${tripCredits}`}
+              label={String(tripCredits)}
+              icon={<IconCoin size={13} stroke={1.9} />}
               size="small"
               onClick={(e) => setCreditAnchor(e.currentTarget)}
               sx={{
@@ -753,7 +764,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
           onClose={() => setCreditAnchor(null)}
           wallet={tripWallet}
           title="Trip credits"
-          subtitle="A shared wallet, every member's AI requests on this trip spend from it."
+          subtitle="A shared wallet, every member's Navia requests on this trip spend from it."
         />
         <Tooltip title={statusLabel} arrow>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
@@ -783,7 +794,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
             <Typography sx={{ fontSize: 13, color: 'text.secondary', textAlign: 'center', maxWidth: 260, lineHeight: 1.55 }}>
               {isSolo
                 ? "It's just you and Navia here. Ask anything — routes, dates, places to add — and she'll suggest changes to your trip."
-                : <>All trip members can chat here. Type <Box component='span' sx={{ color: 'primary.main', fontWeight: 700 }}>@navia</Box> to get AI suggestions for your trip.</>}
+                : <>All trip members can chat here. Type <Box component='span' sx={{ color: 'primary.main', fontWeight: 700 }}>@navia</Box> to get suggestions for your trip.</>}
             </Typography>
           </Box>
         )}
@@ -932,6 +943,9 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography sx={{ fontSize: 13, fontWeight: 600, color: isLight ? '#111' : 'rgba(255,255,255,0.88)', lineHeight: 1.3, display: 'flex', alignItems: 'center', gap: 0.75 }}>
                       {s.displayName}
+                      {/* Deliberate exception to dropping "AI" from the UI: in a chat with
+                          real people, saying which speaker is a machine is disclosure that
+                          the reader needs. Keep this label. */}
                       {s.isNavia && (
                         <Chip
                           label="AI"
@@ -965,7 +979,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
               }}>
                 <NaviaLogo size={16} />
                 <Typography sx={{ flex: 1, fontSize: 11.5, color: '#FF385C', fontWeight: 600, lineHeight: 1.4 }}>
-                  Others just joined. Now type <Box component='span' sx={{ fontWeight: 800 }}>@navia</Box> to bring Navia into the chat.
+                  Others just joined. Now type <Box component='span' sx={{ fontWeight: 700 }}>@navia</Box> to bring Navia into the chat.
                 </Typography>
                 <Box
                   component='button'
@@ -1120,7 +1134,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
             ? 'rgba(0,0,0,0.28)'
             : 'rgba(255,255,255,0.28)',
         }}>
-          Powered by Navia AI
+          Navia drafts, you decide
         </Typography>
       </Box>
     </Box>
