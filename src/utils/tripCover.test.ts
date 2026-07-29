@@ -1,4 +1,6 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
+import { existsSync, readFileSync } from 'node:fs';
+import { fileURLToPath } from 'node:url';
 
 vi.mock('../services/unsplashService', () => ({
   fetchUnsplashImage: vi.fn(async () => 'https://images.unsplash.com/stub'),
@@ -135,14 +137,24 @@ describe('tripCoverQuery — the actual regression', () => {
  *
  * If this fails, copy frontend/src/assets/covers.json over
  * backend/src/tripician.WebApi.BusinessServices/ShareCardServices/Photos/Assets/country-covers.json.
+ *
+ * The check skips when the backend is not on disk. Deploys build from the
+ * frontend directory alone, so `../../../../backend` does not exist there - and
+ * a cross-project guard is worth keeping for the monorepo without making a
+ * frontend-only checkout unbuildable. It skips loudly rather than passing
+ * quietly, so a permanently-skipped test is visible in the run output.
  */
+const BACKEND_COVERS = fileURLToPath(new URL(
+  '../../../../backend/src/tripician.WebApi.BusinessServices/ShareCardServices/Photos/Assets/country-covers.json',
+  import.meta.url,
+));
+const backendPresent = existsSync(BACKEND_COVERS);
+
 describe('covers.json parity with the backend copy', () => {
-  it('is byte-for-byte the same data the server renders from', async () => {
-    const [frontend, backend] = await Promise.all([
-      import('../assets/covers.json'),
-      import('../../../../backend/src/tripician.WebApi.BusinessServices/ShareCardServices/Photos/Assets/country-covers.json'),
-    ]);
-    expect(backend.default).toEqual(frontend.default);
+  it.skipIf(!backendPresent)('is byte-for-byte the same data the server renders from', async () => {
+    const frontend = await import('../assets/covers.json');
+    const backend = JSON.parse(readFileSync(BACKEND_COVERS, 'utf8'));
+    expect(backend).toEqual(frontend.default);
   });
 });
 
