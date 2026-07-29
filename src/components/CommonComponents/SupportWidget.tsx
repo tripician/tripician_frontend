@@ -65,7 +65,8 @@ const SupportWidget: React.FC = () => {
     { icon: RocketLaunchRoundedIcon, text: 'Tripician 2.0 - new trip view & community feed.' },
     { icon: SecurityRoundedIcon,     text: 'Publish validation - title, description & all days planned before going live.' },
     { icon: SyncRoundedIcon,         text: 'Community Adventures - browse real trips with day plans, nights & live reactions.' },
-    { icon: RocketLaunchRoundedIcon, text: 'Navia AI - smarter trip co-planner inside every itinerary.' },
+    { icon: SecurityRoundedIcon,     text: 'Verified places - every suggested spot checked against a live listing, closed ones dropped.' },
+    { icon: RocketLaunchRoundedIcon, text: 'Reality check - travel time between stops, overloaded days & closures, measured not guessed.' },
     { icon: SecurityRoundedIcon,     text: 'Premium trip view sidebar - date range, traveller profiles & live reactions.' },
     { icon: SyncRoundedIcon,         text: 'Profile picture upload, preferences & dark / light theme toggle.' },
   ];
@@ -76,7 +77,7 @@ const SupportWidget: React.FC = () => {
     {
       icon: <NaviaOrb size={18} />,
       label: 'Ask Navia',
-      sub: 'Your AI travel companion',
+      sub: 'Your travel companion',
       onClick: () => { closeMenu(); navigate('/navia'); },
     },
     {
@@ -155,7 +156,7 @@ const SupportWidget: React.FC = () => {
         }}
       >
         <Box sx={{ px: 2, pt: 1.75, pb: 1.25 }}>
-          <Typography sx={{ fontWeight: 800, fontSize: '0.9rem', letterSpacing: '-0.01em' }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.9rem', letterSpacing: '-0.01em' }}>
             How can we help?
           </Typography>
           <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled' }}>
@@ -179,7 +180,7 @@ const SupportWidget: React.FC = () => {
               <ListItemText
                 primary={item.label}
                 secondary={item.sub}
-                primaryTypographyProps={{ fontSize: 13.5, fontWeight: 650 }}
+                primaryTypographyProps={{ fontSize: 13.5, fontWeight: 600 }}
                 secondaryTypographyProps={{ fontSize: 11, color: 'text.disabled' }}
               />
             </ListItemButton>
@@ -227,7 +228,7 @@ const SupportWidget: React.FC = () => {
             </List>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
               <Chip icon={<VerifiedRoundedIcon />} label={`Tripician v${appVersion}`} color="primary" size="small" />
-              <Chip icon={<PublicRoundedIcon />} label={`Navia AI v${naviaVersion}`} color="secondary" size="small" />
+              <Chip icon={<PublicRoundedIcon />} label={`Navia v${naviaVersion}`} color="secondary" size="small" />
             </Stack>
           </Stack>
         </DialogContent>

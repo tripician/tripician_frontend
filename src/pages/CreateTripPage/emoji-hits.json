@@ -1,0 +1,290 @@
+[
+ {
+  "file": "hooks/useTripShare.ts",
+  "line": 58,
+  "emoji": "🌍",
+  "text": "const shareText = `Discover this amazing ${tripName} itinerary, created with Tripician 🌍 "
+ },
+ {
+  "file": "navia/naviaService.ts",
+  "line": 6,
+  "emoji": "⚠",
+  "text": "if (status === 400) return '⚠️ Navia needs a bit more context to help you. Try opening a t"
+ },
+ {
+  "file": "navia/naviaService.ts",
+  "line": 8,
+  "emoji": "💤",
+  "text": "if (status === 404) return 'z z z z z... 💤\\n\\nNavia is sleeping right now. Come back a li"
+ },
+ {
+  "file": "navia/naviaService.ts",
+  "line": 9,
+  "emoji": "⏳",
+  "text": "if (status === 429) return '⏳ Navia needs a breather - you\\'ve hit the hourly limit. Try a"
+ },
+ {
+  "file": "navia/naviaService.ts",
+  "line": 10,
+  "emoji": "😵",
+  "text": "if (status >= 500) return '😵 Navia bumped into something on the server. Give it a moment "
+ },
+ {
+  "file": "navia/naviaService.ts",
+  "line": 11,
+  "emoji": "🤔",
+  "text": "return '🤔 Hmm, something went sideways. Try again in a sec!';"
+ },
+ {
+  "file": "navia/naviaService.ts",
+  "line": 70,
+  "emoji": "📡",
+  "text": "yield \"📡 Whoops! Can't find Navia - looks like she wandered off the network. Check your c"
+ },
+ {
+  "file": "navia/naviaService.ts",
+  "line": 82,
+  "emoji": "🫙",
+  "text": "yield '🫙 Navia sent back an empty reply - like an empty suitcase. Try again!';"
+ },
+ {
+  "file": "navia/useNavia.ts",
+  "line": 78,
+  "emoji": "😅",
+  "text": "? { ...m, content: \"😅 Oops, something unexpected happened. Give it another shot!\", isStre"
+ },
+ {
+  "file": "pages/CreateTripPage/DestinationCardsPanel.tsx",
+  "line": 633,
+  "emoji": "✈",
+  "text": "<Typography sx={{ fontSize: 22, mb: 1 }}>✈️</Typography>"
+ },
+ {
+  "file": "pages/CreateTripPage/ExpenseInsights.tsx",
+  "line": 222,
+  "emoji": "🎉",
+  "text": "All settled - nobody owes anything. 🎉"
+ },
+ {
+  "file": "pages/CreateTripPage/PublishValidationModal.tsx",
+  "line": 94,
+  "emoji": "✅",
+  "text": "{allPassed ? '✅ Ready to Publish' : 'Almost there!'}"
+ },
+ {
+  "file": "pages/CreateTripPage/TripPlanner.tsx",
+  "line": 664,
+  "emoji": "✈",
+  "text": "<Typography sx={{ fontSize: '3rem', opacity: 0.08 }}>✈</Typography>"
+ },
+ {
+  "file": "pages/CreateTripPage/TripPlanner.tsx",
+  "line": 2551,
+  "emoji": "📱✨",
+  "text": "<Typography sx={{ fontSize: '2.5rem' }}>📱✨</Typography>"
+ },
+ {
+  "file": "pages/CreateTripPage/TripSettingsDialog.tsx",
+  "line": 565,
+  "emoji": "📷",
+  "text": "📷&nbsp;Change cover"
+ },
+ {
+  "file": "pages/CreateTripPage/TripSettingsDialog.tsx",
+  "line": 656,
+  "emoji": "🌍",
+  "text": "{png ? <Box component=\"img\" src={png} alt=\"\" sx={{ width: 16, height: 12, borderRadius: '2"
+ },
+ {
+  "file": "pages/CreateTripPage/TripSettingsDialog.tsx",
+  "line": 680,
+  "emoji": "🌍",
+  "text": "{png ? <Box component=\"img\" src={png} alt=\"\" sx={{ width: 20, height: 15, borderRadius: '2"
+ },
+ {
+  "file": "pages/CreateTripPage/TripSettingsDialog.tsx",
+  "line": 803,
+  "emoji": "👑",
+  "text": "<Box sx={{ position: 'absolute', bottom: -2, right: -2, width: 14, height: 14, borderRadiu"
+ },
+ {
+  "file": "pages/InfoPages/AboutPage.tsx",
+  "line": 123,
+  "emoji": "©",
+  "text": "Tripician © {new Date().getFullYear()} ·{' '}"
+ },
+ {
+  "file": "pages/InfoPages/ContactPage.tsx",
+  "line": 162,
+  "emoji": "©",
+  "text": "Tripician © {new Date().getFullYear()} ·{' '}"
+ },
+ {
+  "file": "pages/InfoPages/HelpPage.tsx",
+  "line": 132,
+  "emoji": "©",
+  "text": "Tripician © {new Date().getFullYear()} ·{' '}"
+ },
+ {
+  "file": "pages/LandingPage/LandingPage.tsx",
+  "line": 1121,
+  "emoji": "©",
+  "text": "<span>© 2026 Tripician. All rights reserved.</span>"
+ },
+ {
+  "file": "pages/LandingPage/LandingPage.tsx",
+  "line": 1122,
+  "emoji": "♥",
+  "text": "<span>Made with ♥ for explorers</span>"
+ },
+ {
+  "file": "pages/PageLayout/CommonLayouts/Footer.tsx",
+  "line": 135,
+  "emoji": "©",
+  "text": "© {currentYear} Tripician. All rights reserved."
+ },
+ {
+  "file": "pages/RiskMonitorPage/RiskMonitor.tsx",
+  "line": 438,
+  "emoji": "↗",
+  "text": "? `Aggregated from ${advisory.sourcesActive} official government source${advisory.sourcesA"
+ },
+ {
+  "file": "pages/RiskMonitorPage/RiskMonitor.tsx",
+  "line": 439,
+  "emoji": "↗",
+  "text": ": 'View official advisory sources ↗'}"
+ },
+ {
+  "file": "services/APIs/alerts/alertService.ts",
+  "line": 23,
+  "emoji": "🌪",
+  "text": "'Severe Weather':   { color: '#ef4444', emoji: '🌪️' },"
+ },
+ {
+  "file": "services/APIs/alerts/alertService.ts",
+  "line": 24,
+  "emoji": "🛂",
+  "text": "'Travel Advisory':  { color: '#f59e0b', emoji: '🛂' },"
+ },
+ {
+  "file": "services/APIs/alerts/alertService.ts",
+  "line": 25,
+  "emoji": "🔒",
+  "text": "'Security Risk':    { color: '#f97316', emoji: '🔒' },"
+ },
+ {
+  "file": "services/APIs/alerts/alertService.ts",
+  "line": 26,
+  "emoji": "🏥",
+  "text": "'Health Alert':     { color: '#22c55e', emoji: '🏥' },"
+ },
+ {
+  "file": "services/APIs/alerts/alertService.ts",
+  "line": 27,
+  "emoji": "✈",
+  "text": "'Transport Update': { color: '#60a5fa', emoji: '✈️' },"
+ },
+ {
+  "file": "store/userSlice.ts",
+  "line": 142,
+  "emoji": "🔹",
+  "text": "// 🔹 Async thunk to fetch user profile"
+ },
+ {
+  "file": "utils/authDebug.ts",
+  "line": 10,
+  "emoji": "🐛",
+  "text": "console.log('🐛 DEBUG: Set expired token for testing');"
+ },
+ {
+  "file": "utils/authDebug.ts",
+  "line": 17,
+  "emoji": "🐛",
+  "text": "console.log('🐛 DEBUG: Cleared all auth data');"
+ },
+ {
+  "file": "utils/authDebug.ts",
+  "line": 24,
+  "emoji": "🐛",
+  "text": "console.log('🐛 DEBUG: Current auth state:', {"
+ },
+ {
+  "file": "utils/authDebug.ts",
+  "line": 36,
+  "emoji": "🐛",
+  "text": "console.log('🐛 DEBUG: Triggered logout event with reason:', reason);"
+ },
+ {
+  "file": "utils/authDebug.ts",
+  "line": 48,
+  "emoji": "🐛",
+  "text": "console.log('🐛 DEBUG: Backend connection test:', {"
+ },
+ {
+  "file": "utils/authDebug.ts",
+  "line": 55,
+  "emoji": "🐛",
+  "text": "console.log('🐛 DEBUG: Backend connection failed:', error);"
+ },
+ {
+  "file": "utils/authDebug.ts",
+  "line": 64,
+  "emoji": "🐛",
+  "text": "console.log('🐛 DEBUG: No token found for profile API test');"
+ },
+ {
+  "file": "utils/authDebug.ts",
+  "line": 69,
+  "emoji": "🐛",
+  "text": "console.log('🐛 DEBUG: Testing profile API call...');"
+ },
+ {
+  "file": "utils/authDebug.ts",
+  "line": 71,
+  "emoji": "🐛",
+  "text": "console.log('🐛 DEBUG: Profile API success:', response.data);"
+ },
+ {
+  "file": "utils/authDebug.ts",
+  "line": 74,
+  "emoji": "🐛",
+  "text": "console.log('🐛 DEBUG: Profile API error:', {"
+ },
+ {
+  "file": "utils/destinationMood.ts",
+  "line": 28,
+  "emoji": "🏊☕🚢",
+  "text": "highlights: ['Sunrise swim 🏊', 'Beachside café ☕', 'Sunset cruise 🚢'],"
+ },
+ {
+  "file": "utils/destinationMood.ts",
+  "line": 39,
+  "emoji": "🌅🛍🐫",
+  "text": "highlights: ['Sunrise dunes 🌅', 'Souk / bazaar 🛍️', 'Camel ride 🐫'],"
+ },
+ {
+  "file": "utils/destinationMood.ts",
+  "line": 51,
+  "emoji": "🏔🚡🏨",
+  "text": "highlights: ['Summit hike 🏔️', 'Scenic cable car 🚡', 'Alpine lodge 🏨'],"
+ },
+ {
+  "file": "utils/destinationMood.ts",
+  "line": 63,
+  "emoji": "🌿🦜🛶",
+  "text": "highlights: ['Canopy walk 🌿', 'Wildlife spotting 🦜', 'River kayak 🛶'],"
+ },
+ {
+  "file": "utils/destinationMood.ts",
+  "line": 75,
+  "emoji": "🍜🎨🍸",
+  "text": "highlights: ['Street food tour 🍜', 'Museum + gallery 🎨', 'Rooftop bar 🍸'],"
+ },
+ {
+  "file": "utils/destinationMood.ts",
+  "line": 84,
+  "emoji": "🗺📸✨",
+  "text": "highlights: ['Explore local culture 🗺️', 'Find the best view 📸', 'Ask Navia for tips ✨']"
+ }
+]

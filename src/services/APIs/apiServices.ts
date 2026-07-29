@@ -188,6 +188,13 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
+  // GET /api/trips/liked - trips the current user has liked. These are other
+  // people's trips, so they can never be derived from the dashboard payload.
+  getLikedTrips: (token: string) =>
+    apiClient.get('/api/trips/liked', {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
   // GET /api/trips/{tripId}/reactions - aggregate like/save/needswork counts + this user's state
   // Token is optional: anonymous visitors of a shared trip receive counts with user flags false.
   getTripReactions: (token: string | null | undefined, tripId: string) =>

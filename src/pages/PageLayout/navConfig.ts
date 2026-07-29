@@ -27,11 +27,12 @@ export interface AppNavItem {
 export const APP_NAV_ITEMS: AppNavItem[] = [
   {
     id: 'explore',
-    label: 'Explore',
-    shortLabel: 'Explore',
+    label: 'Community',
+    shortLabel: 'Community',
     path: '/community',
     Icon: IconUsersGroup,
     PageHeaderIcon: IconCampfire,
+    tooltip: 'Trips from travellers - read, comment, and ask the people who went',
   },
   {
     id: 'trips',
@@ -48,7 +49,7 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     path: '/navia',
     Icon: NaviaOrbIcon,
     PageHeaderIcon: IconSparkles,
-    tooltip: 'Navia - your AI travel companion',
+    tooltip: 'Navia - your travel companion',
   },
   {
     id: 'risk',

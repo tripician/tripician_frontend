@@ -1,0 +1,82 @@
+[
+  {
+    "slug": "hero",
+    "file": "/img/landing/hero.jpg",
+    "alt": "brown and white mountain under cloudy sky during daytime",
+    "photographer": "FUTC",
+    "photographerUrl": "https://unsplash.com/@futc",
+    "photoUrl": "https://unsplash.com/photos/brown-and-white-mountain-under-cloudy-sky-during-daytime-6h24vYjveXg"
+  },
+  {
+    "slug": "japan",
+    "file": "/img/landing/japan.jpg",
+    "alt": "brown and white temple under blue sky during daytime",
+    "photographer": "Yusheng Deng",
+    "photographerUrl": "https://unsplash.com/@akiradeng",
+    "photoUrl": "https://unsplash.com/photos/brown-and-white-temple-under-blue-sky-during-daytime-ckTdLBDn-s8"
+  },
+  {
+    "slug": "india",
+    "file": "/img/landing/india.jpg",
+    "alt": "a narrow street with a few buildings on both sides",
+    "photographer": "Recyclops Ss",
+    "photographerUrl": "https://unsplash.com/@recyclops_",
+    "photoUrl": "https://unsplash.com/photos/a-narrow-street-with-a-few-buildings-on-both-sides--hwSFmvAWfY"
+  },
+  {
+    "slug": "iceland",
+    "file": "/img/landing/iceland.jpg",
+    "alt": "waterfalls in forest nature photography",
+    "photographer": "Raphael Koh",
+    "photographerUrl": "https://unsplash.com/@dreamevile",
+    "photoUrl": "https://unsplash.com/photos/waterfalls-in-forest-nature-photography-aiKyJ6rHCP4"
+  },
+  {
+    "slug": "peru",
+    "file": "/img/landing/peru.jpg",
+    "alt": "green and brown mountain under white sky during daytime",
+    "photographer": "Jared Schwitzke",
+    "photographerUrl": "https://unsplash.com/@jaredschwitzke",
+    "photoUrl": "https://unsplash.com/photos/green-and-brown-mountain-under-white-sky-during-daytime-2vaOoaS_2go"
+  },
+  {
+    "slug": "vietnam",
+    "file": "/img/landing/vietnam.jpg",
+    "alt": "a group of boats floating on top of a body of water",
+    "photographer": "Marina Lobato",
+    "photographerUrl": "https://unsplash.com/@mlobatopl",
+    "photoUrl": "https://unsplash.com/photos/a-group-of-boats-floating-on-top-of-a-body-of-water-kG7pOXbBfNs"
+  },
+  {
+    "slug": "thailand",
+    "file": "/img/landing/thailand.jpg",
+    "alt": "white boat in between rocky mountains",
+    "photographer": "Robin Noguier",
+    "photographerUrl": "https://unsplash.com/@robinnoguier",
+    "photoUrl": "https://unsplash.com/photos/white-boat-in-between-rocky-mountains-sydwCr54rf0"
+  },
+  {
+    "slug": "greece",
+    "file": "/img/landing/greece.jpg",
+    "alt": "white and brown concrete houses on mountain near sea during daytime",
+    "photographer": "James Ting",
+    "photographerUrl": "https://unsplash.com/@jamesting",
+    "photoUrl": "https://unsplash.com/photos/white-and-brown-concrete-houses-on-mountain-near-sea-during-daytime-6N2mSJsKTtA"
+  },
+  {
+    "slug": "italy",
+    "file": "/img/landing/italy.jpg",
+    "alt": "white boat on body of water near green and brown mountain during daytime",
+    "photographer": "Tom Podmore",
+    "photographerUrl": "https://unsplash.com/@tompodmore86",
+    "photoUrl": "https://unsplash.com/photos/white-boat-on-body-of-water-near-green-and-brown-mountain-during-daytime-1zkHXas1GIo"
+  },
+  {
+    "slug": "og",
+    "file": "/og-cover.jpg",
+    "alt": "black concrete road between steppe",
+    "photographer": "Jeremy Bishop",
+    "photographerUrl": "https://unsplash.com/@jeremybishop",
+    "photoUrl": "https://unsplash.com/photos/black-concrete-road-between-steppe-QHZn3-0bbEM"
+  }
+]

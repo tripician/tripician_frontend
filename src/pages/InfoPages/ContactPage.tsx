@@ -40,7 +40,7 @@ const ContactPage: React.FC = () => {
             </Box>
             <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#FF385C', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Contact Us</Typography>
           </Box>
-          <Typography variant="h2" sx={{ fontWeight: 800, fontSize: { xs: '2rem', md: '2.8rem' }, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.15, mb: 2 }}>
+          <Typography variant="h2" sx={{ fontWeight: 700, fontSize: { xs: '2rem', md: '2.8rem' }, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.15, mb: 2 }}>
             We'd love to hear from you.
           </Typography>
           <Typography sx={{ fontSize: '1.05rem', color: '#666', lineHeight: 1.75 }}>

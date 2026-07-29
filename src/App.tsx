@@ -1,6 +1,5 @@
 import { Suspense, lazy } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
-import './App.css'
 import Landingpage from './pages/LandingPage/LandingPage'
 import ProtectedRoute from './services/APIs/Auth/ProtectedRoute'
 import GuestRoute from './services/APIs/Auth/GuestRoute'
@@ -30,7 +29,6 @@ const TripPlannerRoute = lazy(() => import('./pages/CreateTripPage/TripPlannerRo
 const TripView = lazy(() => import('./pages/TripViewPage/TripView'))
 const HelpPage = lazy(() => import('./pages/InfoPages/HelpPage'))
 const ContactPage = lazy(() => import('./pages/InfoPages/ContactPage'))
-const DiscoveryPage = lazy(() => import('./pages/DiscoveryPage/DiscoveryPage'))
 const NotFound404 = lazy(() => import('./pages/ErrorPages/ErrorPages').then((m) => ({ default: m.NotFound404 })))
 const InternalError500 = lazy(() => import('./pages/ErrorPages/ErrorPages').then((m) => ({ default: m.InternalError500 })))
 const UnauthorizedAccess = lazy(() => import('./pages/ErrorPages/ErrorPages').then((m) => ({ default: m.UnauthorizedAccess })))
@@ -100,7 +98,11 @@ function App() {
           {/* Blog routes - public, no auth required (SEO) */}
           <Route path="/blog" element={<BlogsList />} />
           <Route path="/blog/:slug" element={<BlogPost />} />
-          <Route path="/discover" element={<DiscoveryPage />} />
+          {/* /discover rendered a second copy of the published-trips feed under a
+              different name, with its own H1 and its own SEO - so the community
+              had two front doors and no single name. It now redirects to the one
+              that keeps it. `replace` so Back does not bounce the user. */}
+          <Route path="/discover" element={<Navigate to="/community" replace />} />
         
           {/* Final catch-all -> 404 page */}
           <Route path="*" element={<NotFound404 />} />

@@ -5,14 +5,17 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="%VITE_TRIPICIAN_LOGO_ICON_URL%" />
 
-    <!-- Primary SEO -->
-    <title>Tripician, A Global Travel Community &amp; AI Trip Planner</title>
-    <meta name="description" content="Join a global community of travellers and plan trips together with Navia, the world's first agentic travel AI. Group trip chat, vibe matching, live risk monitoring &amp; more - free forever." />
+    <!-- Primary SEO. These three descriptions must stay identical to each other
+         and to LandingPage's <Seo> props - they have drifted apart once before,
+         leaving the title saying "community" while the share cards said something
+         else entirely. -->
+    <title>Tripician, A Travel Community &amp; Group Trip Planner</title>
+    <meta name="description" content="Browse real itineraries published by travellers who took them - the route, the stays, the places worth the detour. Copy any trip into your own plan, and plan it with your crew. Free to join." />
     <link rel="canonical" href="https://tripician.com/" />
 
     <!-- Open Graph (Facebook, LinkedIn, WhatsApp) -->
-    <meta property="og:title" content="Tripician, A Global Travel Community &amp; AI Trip Planner" />
-    <meta property="og:description" content="Find your travel tribe and plan trips together with Navia, the world's first agentic travel AI. Group chat planning, vibe matching, and live risk monitoring - free forever." />
+    <meta property="og:title" content="Tripician, A Travel Community &amp; Group Trip Planner" />
+    <meta property="og:description" content="Browse real itineraries published by travellers who took them - the route, the stays, the places worth the detour. Copy any trip into your own plan, and plan it with your crew. Free to join." />
     <meta property="og:image" content="https://tripician.com/og-cover.jpg" />
     <meta property="og:url" content="https://tripician.com/" />
     <meta property="og:type" content="website" />
@@ -20,8 +23,8 @@
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Tripician, A Global Travel Community &amp; AI Trip Planner" />
-    <meta name="twitter:description" content="Find your travel tribe and plan trips together with Navia, the world's first agentic travel AI. Group chat planning, vibe matching, and live risk monitoring - free forever." />
+    <meta name="twitter:title" content="Tripician, A Travel Community &amp; Group Trip Planner" />
+    <meta name="twitter:description" content="Browse real itineraries published by travellers who took them - the route, the stays, the places worth the detour. Copy any trip into your own plan, and plan it with your crew. Free to join." />
     <meta name="twitter:image" content="https://tripician.com/og-cover.jpg" />
 
     <!-- Additional SEO -->
@@ -29,12 +32,19 @@
     <meta name="author" content="Tripician" />
     <meta name="theme-color" content="#ffffff" />
 
-    <!-- Fonts: preconnect + link beats CSS @import (no render-blocking CSS chain, earlier fetch) -->
+    <!-- Fonts: preconnect + link beats CSS @import (no render-blocking CSS chain, earlier fetch)
+
+         Inter is requested as a variable axis (400..700) rather than a static
+         weight list. The old list stopped at the values it named, and combined
+         with `font-synthesis: none` in index.css any weight not on it rounded to
+         the nearest one that was - so the 550/650/750 the theme asked for all
+         rendered as 600/700/800, i.e. heavier than written. The axis is also one
+         file instead of six. 700 is the top of the ladder by design. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;0,800;1,500;1,600;1,700&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"
     />
   </head>
   <body>

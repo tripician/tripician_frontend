@@ -221,7 +221,7 @@ const BlogPost: React.FC = () => {
             sx={{
               fontFamily: "'Playfair Display', serif",
               fontSize: { xs: '1.8rem', sm: '2.4rem', md: '3rem' },
-              fontWeight: 800,
+              fontWeight: 700,
               color: '#fff',
               lineHeight: 1.1,
               letterSpacing: '-0.02em',
@@ -281,7 +281,7 @@ const BlogPost: React.FC = () => {
               return (
                 <Typography key={i} variant="h3" sx={{
                   fontFamily: "'Inter', sans-serif",
-                  fontWeight: 800,
+                  fontWeight: 700,
                   fontSize: { xs: '1.25rem', md: '1.55rem' },
                   color: '#111',
                   letterSpacing: '-0.025em',
@@ -352,14 +352,14 @@ const BlogPost: React.FC = () => {
             <Box sx={{ position: 'relative', zIndex: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
                 <PersonAddAltRoundedIcon sx={{ color: '#FF385C', fontSize: 22 }} />
-                <Typography sx={{ fontSize: '0.72rem', fontWeight: 800, color: 'rgba(255,56,92,0.9)', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'Inter',sans-serif" }}>
+                <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'rgba(255,56,92,0.9)', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'Inter',sans-serif" }}>
                   Travel with people like you
                 </Typography>
               </Box>
               <Typography sx={{
                 fontFamily: "'Playfair Display', serif",
                 fontSize: { xs: '1.5rem', md: '2rem' },
-                fontWeight: 800,
+                fontWeight: 700,
                 color: '#fff',
                 lineHeight: 1.2,
                 letterSpacing: '-0.02em',
@@ -436,7 +436,7 @@ const BlogPost: React.FC = () => {
             boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
             mb: 2.5,
           }}>
-            <Typography sx={{ fontSize: '0.72rem', fontWeight: 800, color: '#999', letterSpacing: '0.1em', textTransform: 'uppercase', mb: 1.5, fontFamily: "'Inter',sans-serif" }}>
+            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#999', letterSpacing: '0.1em', textTransform: 'uppercase', mb: 1.5, fontFamily: "'Inter',sans-serif" }}>
               Quick facts
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2 }}>
@@ -463,7 +463,7 @@ const BlogPost: React.FC = () => {
               overflow: 'hidden', position: 'relative',
             }}>
               <Box sx={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,56,92,0.18)', filter: 'blur(20px)' }} />
-              <Typography sx={{ fontSize: '1rem', fontWeight: 800, color: '#fff', fontFamily: "'Inter',sans-serif", mb: 0.8, position: 'relative', zIndex: 1, lineHeight: 1.3 }}>
+              <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#fff', fontFamily: "'Inter',sans-serif", mb: 0.8, position: 'relative', zIndex: 1, lineHeight: 1.3 }}>
                 Plan {blog.city} with your tribe
               </Typography>
               <Typography sx={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.55)', fontFamily: "'Inter',sans-serif", mb: 2.5, position: 'relative', zIndex: 1, lineHeight: 1.6 }}>
@@ -566,7 +566,7 @@ const BlogPost: React.FC = () => {
           <Typography sx={{
             fontFamily: "'Playfair Display', serif",
             fontSize: { xs: '1.8rem', md: '2.6rem' },
-            fontWeight: 800,
+            fontWeight: 700,
             color: '#fff',
             letterSpacing: '-0.02em',
             lineHeight: 1.15,
@@ -586,7 +586,7 @@ const BlogPost: React.FC = () => {
               variant="contained"
               size="large"
               sx={{
-                fontFamily: "'Inter',sans-serif", fontWeight: 800, fontSize: '1rem',
+                fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '1rem',
                 px: 4, py: 1.5, borderRadius: '50px', textTransform: 'none',
                 background: '#fff', color: '#D91A50',
                 boxShadow: '0 8px 32px rgba(0,0,0,0.25)',

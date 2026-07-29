@@ -60,7 +60,7 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 52px 48px;
+  padding: 44px 40px;
   gap: 16px;
 }
 
@@ -86,7 +86,7 @@
 
 .auth-left__title {
   font-family: 'Playfair Display', serif;
-  font-size: clamp(2rem, 3.2vw, 2.85rem);
+  font-size: clamp(1.6rem, 2.2vw, 2.05rem);
   font-weight: 700;
   color: #fff;
   line-height: 1.13;
@@ -99,7 +99,7 @@
 }
 
 .auth-left__sub {
-  font-size: 0.93rem;
+  font-size: 0.9rem;
   color: rgba(255, 255, 255, 0.55);
   line-height: 1.68;
   margin: 0;
@@ -174,8 +174,8 @@
 .auth-right::before {
   content: '';
   position: absolute;
-  width: 420px;
-  height: 420px;
+  width: 260px;
+  height: 260px;
   top: -180px;
   right: -120px;
   border-radius: 50%;
@@ -185,8 +185,8 @@
 .auth-right::after {
   content: '';
   position: absolute;
-  width: 360px;
-  height: 360px;
+  width: 220px;
+  height: 220px;
   bottom: -140px;
   left: -100px;
   border-radius: 50%;
@@ -203,7 +203,7 @@
   background: #FFFFFF;
   border: 1px solid rgba(0, 0, 0, 0.08);
   border-radius: 20px;
-  padding: 44px 40px 40px;
+  padding: 32px 30px 30px;
   box-shadow: 0 4px 24px rgba(0, 0, 0, 0.08);
   display: flex;
   flex-direction: column;
@@ -230,7 +230,7 @@
 
 .auth-card__heading {
   font-family: 'Playfair Display', serif;
-  font-size: 1.85rem;
+  font-size: 1.5rem;
   font-weight: 700;
   color: #222222;
   margin: 0 0 8px;
@@ -302,7 +302,7 @@
   border: 1px solid rgba(0, 0, 0, 0.12);
   border-radius: 10px;
   color: #222222;
-  font-size: 0.92rem;
+  font-size: 0.9rem;
   font-family: 'Inter', sans-serif;
   padding: 12px 14px;
   outline: none;
@@ -367,7 +367,7 @@
   border: none;
   border-radius: 10px;
   font-family: 'Inter', sans-serif;
-  font-size: 0.93rem;
+  font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
   transition: all 0.25s ease;
@@ -443,7 +443,7 @@
   gap: 10px;
   background: #ffffff;
   border: 1.5px solid rgba(0, 0, 0, 0.13);
-  border-radius: 12px;
+  border-radius: 10px;
   color: #3c3c3c;
   font-family: 'Inter', sans-serif;
   font-size: 0.9rem;

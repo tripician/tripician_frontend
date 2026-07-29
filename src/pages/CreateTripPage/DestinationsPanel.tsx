@@ -18,6 +18,7 @@ import DescriptionIcon from '@mui/icons-material/Description';
 import DragIndicatorIcon from '@mui/icons-material/DragIndicator';
 import { useDispatch, useSelector } from 'react-redux';
 import { addSpot, toggleSpot, removeSpot, addFoodItem, toggleFoodItem, removeFoodItem, reorderSpots, reorderFoods } from '../../store/plannerSlice';
+import { getPlaceDetails } from '../../services/placeVerification';
 import ImageIcon from '@mui/icons-material/Image';
 import SearchIcon from '@mui/icons-material/Search';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
@@ -25,8 +26,6 @@ import MapIcon from '@mui/icons-material/Map';
 import HotelIcon from '@mui/icons-material/Hotel';
 import EditNoteIcon from '@mui/icons-material/EditNote';
 import UploadFileIcon from '@mui/icons-material/UploadFile';
-import SmartToyIcon from '@mui/icons-material/SmartToy';
-import AiActionButton from '../../components/CommonComponents/AiActionButton';
 import type { SxProps, Theme } from '@mui/material/styles';
 
 export interface DestinationRow {
@@ -46,6 +45,7 @@ interface DestinationsPanelProps {
   onAddDestination?: (name: string, coords?: { lat: number; lng: number }) => void;
   onRemoveDestination?: (id: string) => void;
   maxed?: boolean; // whether total nights reached target
+  onNaviaToast?: (type: 'success' | 'error' | 'info', message: string) => void;
 }
 
 
@@ -104,7 +104,7 @@ const getTransportIcon = (mode?: string) => {
   return found ? found.icon : <DirectionsBusIcon fontSize='small' color='disabled' />;
 };
 
-const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onChangeNights, onChangeTransport, onAddDestination, onRemoveDestination, maxed }) => {
+const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onChangeNights, onChangeTransport, onAddDestination, onRemoveDestination, maxed, onNaviaToast }) => {
   const [menuAnchor, setMenuAnchor] = React.useState<null | HTMLElement>(null);
   const [activeId, setActiveId] = React.useState<string | null>(null);
   // Refs for positioning transport pill under "Nights" column
@@ -172,7 +172,6 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
   const [spotSearch, setSpotSearch] = React.useState('');
   const [spotSearchLoading, setSpotSearchLoading] = React.useState(false);
   const [spotPredictions, setSpotPredictions] = React.useState<any[]>([]);
-  const placeDetailsCache = React.useRef<Record<string,{ photoUrl?: string; mapUrl?: string }>>({});
   const [foodInput, setFoodInput] = React.useState('');
   const placesServiceRef = React.useRef<any>(null);
   const scriptLoadingRef = React.useRef(false);
@@ -318,46 +317,31 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
   }, [newName, adding]);
 
   // --- Spot card helpers ---
-  const fetchPlacePhoto = React.useCallback((placeId:string): Promise<{ photoUrl?: string; mapUrl?: string; description?: string }> => {
-    if (placeDetailsCache.current[placeId]) return Promise.resolve(placeDetailsCache.current[placeId]);
-    return new Promise(resolve => {
-      const g = (window as any).google;
-      if (!g?.maps?.places) return resolve({});
-      const svc = new g.maps.places.PlacesService(document.createElement('div'));
-      // Request a few lightweight fields for description generation
-      svc.getDetails({ placeId, fields:['photos','url','editorial_summary','formatted_address','types','name'] }, (place:any, status:string) => {
-        if (status !== 'OK' || !place) { resolve({}); return; }
-        let photoUrl: string | undefined;
-        if (place.photos && place.photos.length) {
-          try { photoUrl = place.photos[0].getUrl({ maxWidth: 480, maxHeight: 320 }); } catch { /* ignore */ }
-        }
-        // Derive one-line description preference order: editorial summary, formatted address minus name, first type
-        let description: string | undefined;
-        if (place.editorial_summary?.overview) {
-          description = place.editorial_summary.overview.split(/\n|\.|!/)[0].trim();
-        }
-        if (!description && place.formatted_address) {
-          // remove leading name if repeated
-            const addr = place.formatted_address as string;
-            const nameLower = (place.name||'').toLowerCase();
-            description = addr.toLowerCase().startsWith(nameLower) ? addr.slice(place.name.length).replace(/^,\s*/, '') : addr;
-        }
-        if (!description && Array.isArray(place.types) && place.types.length) {
-          const typeMap: Record<string,string> = { tourist_attraction:'Tourist attraction', point_of_interest:'Point of interest' };
-          description = typeMap[place.types[0]] || place.types[0].replace(/_/g,' ');
-        }
-        const result = { photoUrl, mapUrl: place.url as string | undefined, description };
-        placeDetailsCache.current[placeId] = result;
-        resolve(result);
-      });
-    });
-  }, []);
-
+  // Place lookups go through services/placeVerification so every path in the app
+  // requests the same fields - including business_status, which is what stops a
+  // permanently-closed venue from landing in someone's itinerary.
   const addSpotFromPrediction = React.useCallback(async (p:any) => {
-    const { photoUrl, mapUrl, description } = await fetchPlacePhoto(p.place_id);
-    dispatch(addSpot({ destinationId: discoverOpenId!, name: p.description, known:true, mapUrl: mapUrl || `https://maps.google.com/?q=${encodeURIComponent(p.description)}`, placeId: p.place_id, photoUrl, description }));
+    const details = await getPlaceDetails(p.place_id);
+    if (details?.businessStatus === 'CLOSED_PERMANENTLY') {
+      onNaviaToast?.('info', `${p.description} is permanently closed, so we left it out.`);
+      setSpotSearch(''); setSpotPredictions([]);
+      return;
+    }
+    dispatch(addSpot({
+      destinationId: discoverOpenId!,
+      name: p.description,
+      known: true,
+      mapUrl: details?.mapUrl || `https://maps.google.com/?q=${encodeURIComponent(p.description)}`,
+      placeId: p.place_id,
+      photoUrl: details?.photoUrl,
+      description: details?.description,
+      lat: details?.lat,
+      lng: details?.lng,
+      provenance: details ? 'verified' : 'unchecked',
+      verifiedAt: details ? new Date().toISOString() : undefined,
+    }));
     setSpotSearch(''); setSpotPredictions([]);
-  }, [dispatch, discoverOpenId, fetchPlacePhoto]);
+  }, [dispatch, discoverOpenId, onNaviaToast]);
 
   const renderSpotCards = (spots:any[]) => (
     <Box sx={{ display:'flex', flexDirection:'column', gap:1, maxHeight:420, overflowY:'auto', pr:1 }}>
@@ -575,16 +559,6 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
           <>
             <CalendarMonthIcon fontSize='small' color='action' />
             <Typography variant='body2' color='text.secondary' onClick={()=>{ if(!maxed) setAdding(true); }} sx={{ cursor: maxed? 'not-allowed':'text', flex:1, opacity: maxed? .6:1 }}>{maxed? 'Night limit reached' : 'Add new destination...'}</Typography>
-      <AiActionButton
-        startIcon={<SmartToyIcon />}
-        onClick={()=>{
-          // Placeholder for future AI generation logic
-          // eslint-disable-next-line no-console
-          console.log('[AI] AI Suggest button clicked');
-        }}
-      >
-        AI Suggest
-      </AiActionButton>
           </>
         )}
         {/* Lean shadow below input area */}
@@ -745,17 +719,6 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
                         Powered by <Box component='img' alt='Google' src={import.meta.env.VITE_GOOGLE_LOGO || 'https://developers.google.com/static/maps/documentation/images/google_on_white.png'} sx={{ height:14 }} loading='lazy' />
                       </Typography>
                     )}
-                    <Box sx={{ position:'absolute', bottom:12, right:12 }}>
-                      <AiActionButton
-                        startIcon={<SmartToyIcon />}
-                        onClick={()=>{
-                          // eslint-disable-next-line no-console
-                            console.log('[AI] AI Suggest (discover dialog corner) clicked');
-                        }}
-                      >
-                        AI Suggest
-                      </AiActionButton>
-                    </Box>
                   </Paper>
                 </Box>
               </DialogContent>

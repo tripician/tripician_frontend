@@ -48,7 +48,7 @@ const Settings: React.FC = () => {
         <Box sx={{ width: { xs: '100%', md: 210 }, flexShrink: 0, position: { md: 'sticky' }, top: 88 }}>
           <Typography sx={{
             fontFamily: "'Playfair Display', serif",
-            fontWeight: 800,
+            fontWeight: 700,
             fontSize: '1.6rem',
             letterSpacing: '-0.03em',
             color: 'text.primary',

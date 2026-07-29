@@ -510,7 +510,7 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
                 <NotificationsActiveRoundedIcon sx={{ fontSize: 17, color: '#fff' }} />
               </Box>
               <Box>
-                <Typography sx={{ fontWeight: 800, fontSize: '0.88rem', lineHeight: 1.15 }}>Notifications</Typography>
+                <Typography sx={{ fontWeight: 700, fontSize: '0.88rem', lineHeight: 1.15 }}>Notifications</Typography>
                 {unreadCount > 0 && (
                   <Typography sx={{ fontSize: '0.66rem', color: 'primary.main', fontWeight: 700 }}>
                     {unreadCount} new

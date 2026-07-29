@@ -16,6 +16,7 @@ import {
   DndContext, DragOverlay, closestCenter, PointerSensor, useSensor, useSensors,
   type DragEndEvent,
 } from '@dnd-kit/core';
+import { IconPlane } from '@tabler/icons-react';
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
 import confetti from 'canvas-confetti';
@@ -37,11 +38,15 @@ import {
   addStayEntry, updateStayEntry, removeStayEntry, setStayNotes, clearDestinationDiscover
 } from '../../store/plannerSlice';
 import { planDestination, NaviaRequestError } from '../../navia/naviaService';
+import { resolveSpots, getPlaceDetails } from '../../services/placeVerification';
 import ValidatedFileInput from '../../components/CommonComponents/ValidatedFileInput';
 import SoonTag from '../../components/CommonComponents/SoonTag';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
 import { DEFAULT_DOC_RULE } from '../../utils/fileValidation';
 import { fetchDestinationAlerts, type DestinationAlerts } from '../../services/APIs/alerts/alertService';
+// Imports nothing itself - see the note in stopHoverBus about keeping the
+// mapbox-gl chunk out of this component's import graph.
+import { emitStopHover } from '../../utils/stopHoverBus';
 
 interface DestinationCardsPanelProps {
   maxed: boolean;
@@ -138,14 +143,25 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
       }
       const liveId = liveDest.id;
 
+      // Resolve every generated spot against Places before it reaches the plan:
+      // permanently-closed places are dropped, the rest carry a provenance chip.
+      const candidates = (result.spots ?? []).filter(s => s.name?.trim());
+      const resolvedSpots = await resolveSpots(candidates, dest.name);
+
       dispatch(clearDestinationDiscover({ destinationId: liveId }));
-      for (const spot of result.spots ?? []) {
-        if (!spot.name?.trim()) continue;
+      for (const spot of resolvedSpots) {
         dispatch(addSpot({
           destinationId: liveId,
-          name: spot.name.trim(),
-          description: spot.description?.trim(),
-          known: true,
+          name: spot.name,
+          description: spot.description,
+          mapUrl: spot.mapUrl,
+          photoUrl: spot.photoUrl,
+          placeId: spot.placeId,
+          provenance: spot.provenance,
+          verifiedAt: spot.verifiedAt,
+          lat: spot.lat,
+          lng: spot.lng,
+          known: Boolean(spot.mapUrl),
         }));
       }
       for (const food of result.foods ?? []) {
@@ -154,7 +170,17 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
       }
       const notes = (result.journalNotes ?? '').trim();
       if (notes) dispatch(setDestinationNotes({ id: liveId, notes }));
-      onNaviaToast?.('success', `Navia planned ${dest.name}`);
+
+      // Report what was actually confirmed rather than a blanket success.
+      const dropped = candidates.length - resolvedSpots.length;
+      const unchecked = resolvedSpots.filter(s => s.provenance === 'unchecked').length;
+      if (dropped > 0) {
+        onNaviaToast?.('info', `${dest.name} planned. ${dropped} place${dropped === 1 ? ' had' : 's had'} closed for good, so we left ${dropped === 1 ? 'it' : 'them'} out.`);
+      } else if (unchecked > 0) {
+        onNaviaToast?.('info', `${dest.name} planned. ${unchecked} of ${resolvedSpots.length} places had no listing to check - marked unchecked.`);
+      } else {
+        onNaviaToast?.('success', `${dest.name} planned - all ${resolvedSpots.length} places confirmed.`);
+      }
     } catch (err) {
       if (err instanceof NaviaRequestError && err.status === 402) {
         onNaviaToast?.('error', 'This trip is out of Navia credits.');
@@ -276,23 +302,28 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
     }); } catch{ setSpotSearchLoading(false); setSpotPredictions([]); }
   }, [ensurePlacesScript]);
   React.useEffect(()=> { const t=setTimeout(()=> triggerSpotSearch(spotSearch), 450); return ()=> clearTimeout(t); }, [spotSearch, triggerSpotSearch]);
-  const placeDetailsCache = React.useRef<Record<string,{ photoUrl?: string; mapUrl?: string; description?: string }>>({});
-  const fetchPlacePhoto = React.useCallback((placeId:string):Promise<{ photoUrl?:string; mapUrl?:string; description?:string }>=>(
-    placeDetailsCache.current[placeId] ? Promise.resolve(placeDetailsCache.current[placeId]) : new Promise(resolve=>{
-      const g=(window as any).google; if(!g?.maps?.places) return resolve({});
-      const svc=new g.maps.places.PlacesService(document.createElement('div'));
-      svc.getDetails({ placeId, fields:['photos','url','editorial_summary','formatted_address','types','name'] }, (pl:any, status:string)=>{
-        if(status!=='OK'||!pl) return resolve({});
-        let photoUrl: string | undefined; if(pl.photos && pl.photos.length){ try { photoUrl = pl.photos[0].getUrl({ maxWidth:480, maxHeight:320 }); } catch {} }
-        let description: string | undefined; if(pl.editorial_summary?.overview){ description = pl.editorial_summary.overview.split(/\n|\.|!/)[0].trim(); }
-        if(!description && pl.formatted_address){ const addr = pl.formatted_address as string; const nameLower=(pl.name||'').toLowerCase(); description = addr.toLowerCase().startsWith(nameLower)? addr.slice(pl.name.length).replace(/^,\s*/, ''): addr; }
-        if(!description && Array.isArray(pl.types) && pl.types.length){ description = pl.types[0].replace(/_/g,' '); }
-        const result={ photoUrl, mapUrl:pl.url as string|undefined, description }; placeDetailsCache.current[placeId]=result; resolve(result);
-      });
-    })
-  ), []);
-  const addSpotFromPrediction = (p:any) => { if(!discoverFor) return; fetchPlacePhoto(p.place_id).then(det=>{
-    dispatch(addSpot({ destinationId: discoverFor, name: p.description.split(',')[0], photoUrl: det.photoUrl, mapUrl: det.mapUrl, description: det.description, placeId: p.place_id, known:true })); setSpotSearch(''); setSpotPredictions([]);
+  const addSpotFromPrediction = (p:any) => { if(!discoverFor) return; getPlaceDetails(p.place_id).then(det=>{
+    // A user picked this from autocomplete, so it is verified by construction -
+    // unless Places says it has shut down, in which case don't let it in.
+    if (det?.businessStatus === 'CLOSED_PERMANENTLY') {
+      onNaviaToast?.('info', `${p.description.split(',')[0]} is permanently closed, so we left it out.`);
+      setSpotSearch(''); setSpotPredictions([]);
+      return;
+    }
+    dispatch(addSpot({
+      destinationId: discoverFor,
+      name: p.description.split(',')[0],
+      photoUrl: det?.photoUrl,
+      mapUrl: det?.mapUrl,
+      description: det?.description,
+      placeId: p.place_id,
+      lat: det?.lat,
+      lng: det?.lng,
+      provenance: det ? 'verified' : 'unchecked',
+      verifiedAt: det ? new Date().toISOString() : undefined,
+      known: true,
+    }));
+    setSpotSearch(''); setSpotPredictions([]);
   }); };
 
   const fetchNearbySuggestions = React.useCallback((dest: { lat?: number; lng?: number; name: string }) => {
@@ -348,8 +379,11 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
   const saveNotes = () => { if(notesFor) dispatch(setDestinationNotes({ id: notesFor, notes: notesDraft })); setNotesFor(null); };
   // Multi Stay panel
   const [stayFor, setStayFor] = React.useState<string | null>(null);
+  const [staySearch, setStaySearch] = React.useState('');
+  const [stayPredictions, setStayPredictions] = React.useState<any[]>([]);
+  const [staySearchLoading, setStaySearchLoading] = React.useState(false);
   const openStay = (id:string) => { setStayFor(id); };
-  const closeStayPanel = () => setStayFor(null);
+  const closeStayPanel = () => { setStayFor(null); setStaySearch(''); setStayPredictions([]); };
   const destinationStays = React.useMemo(()=> {
     if(!stayFor) return [] as Array<{ id:string; name?:string; reference?:string }>;
     const d = destinations.find(p=> p.id===stayFor);
@@ -360,6 +394,38 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
     const d = destinations.find(p=> p.id===stayFor);
     return d?.stayNotes || '';
   }, [stayFor, destinations]);
+  // Lodging autocomplete, mirroring the spots search. `lodging` keeps the list to
+  // places you can actually sleep in rather than every business on the street.
+  const triggerStaySearch = React.useCallback((query:string)=>{
+    if(!query.trim()){ setStayPredictions([]); setStaySearchLoading(false); return; }
+    const ready = ensurePlacesScript();
+    if(!ready || !placesServiceRef.current){ setStayPredictions([]); setStaySearchLoading(false); return; }
+    setStaySearchLoading(true);
+    try { placesServiceRef.current.getPlacePredictions({ input:query, types:['lodging'] }, (preds:any[]|null, status:string)=>{
+      setStaySearchLoading(false);
+      setStayPredictions(status==='OK' && Array.isArray(preds) ? preds.slice(0,6) : []);
+    }); } catch { setStaySearchLoading(false); setStayPredictions([]); }
+  }, [ensurePlacesScript]);
+  React.useEffect(()=> { const t=setTimeout(()=> triggerStaySearch(staySearch), 450); return ()=> clearTimeout(t); }, [staySearch, triggerStaySearch]);
+  // Load the SDK when the sheet opens, so the first keystroke searches instead of
+  // waiting for the script.
+  React.useEffect(()=> { if(stayFor) ensurePlacesScript(); }, [stayFor, ensurePlacesScript]);
+
+  const addStayFromPrediction = (p:any) => {
+    if(!stayFor) return;
+    const fallbackName = p.structured_formatting?.main_text || p.description?.split(',')[0] || p.description || '';
+    getPlaceDetails(p.place_id).then(det => {
+      dispatch(addStayEntry({
+        destinationId: stayFor,
+        name: det?.name || fallbackName,
+        // The map link is the most useful thing to carry: it survives, opens in
+        // one tap, and the user can still overwrite it with a booking ref.
+        reference: det?.mapUrl || det?.description || '',
+      }));
+      setStaySearch(''); setStayPredictions([]);
+    });
+  };
+
   const addProperty = () => { if(!stayFor) return; dispatch(addStayEntry({ destinationId: stayFor })); };
   const updatePropertyField = (stayId:string, patch: { name?:string; reference?:string }) => { if(!stayFor) return; dispatch(updateStayEntry({ destinationId: stayFor, stayId, patch })); };
   const deleteProperty = (stayId:string) => { if(!stayFor) return; dispatch(removeStayEntry({ destinationId: stayFor, stayId })); };
@@ -475,7 +541,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
             {/* Percentage hero */}
             <Box sx={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', width: { xs: 38, sm: 48 } }}>
               <Typography sx={{
-                fontSize: { xs: 18, sm: 22 }, fontWeight: 800, lineHeight: 1,
+                fontSize: { xs: 18, sm: 22 }, fontWeight: 700, lineHeight: 1,
                 fontFamily: "'Inter', sans-serif",
                 background: progressPct === 100 ? 'linear-gradient(135deg,#16a34a,#22c55e)' : 'linear-gradient(135deg,#FF385C,#E31C5F)',
                 WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
@@ -568,7 +634,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                 background: t.palette.mode === 'light' ? 'rgba(255,56,92,0.03)' : 'rgba(255,56,92,0.06)',
                 border: '1.5px dashed rgba(255,56,92,0.18)',
               })}>
-                <Typography sx={{ fontSize: 22, mb: 1 }}>✈️</Typography>
+                <Box sx={{ mb: 1, color: 'text.disabled', display: 'flex', justifyContent: 'center' }}><IconPlane size={22} stroke={1.6} /></Box>
                 <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
                   No destinations yet
                 </Typography>
@@ -613,7 +679,15 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                               transition: 'background 0.3s, box-shadow 0.3s',
                             }}>{idx + 1}</Box>
                           </Box>
-                          <Box sx={{ flex: 1, minWidth: 0 }}>
+                          {/* Hover here lifts this stop's marker on the map. The
+                              guard matters: dnd-kit moves elements under a
+                              stationary cursor while dragging, which otherwise
+                              fires a storm of enter/leave events. */}
+                          <Box
+                            sx={{ flex: 1, minWidth: 0 }}
+                            onMouseEnter={() => { if (!activeDragId) emitStopHover(d.id, 'card'); }}
+                            onMouseLeave={() => { if (!activeDragId) emitStopHover(null, 'card'); }}
+                          >
                           <DestinationCard
                             destination={d}
                             isDragging={isDragging}
@@ -887,6 +961,11 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
           onUpdateProperty={updatePropertyField}
           onDeleteProperty={deleteProperty}
           onStayNotesChange={saveStayNotes}
+          staySearch={staySearch}
+          onStaySearchChange={setStaySearch}
+          staySearchLoading={staySearchLoading}
+          stayPredictions={stayPredictions}
+          onAddStayFromPrediction={addStayFromPrediction}
         />
 
         {/* Docs Dialog */}

@@ -10,6 +10,12 @@ import { fetchCurrency, type CurrencyData } from '../../services/APIs/currency/c
 import { fetchNews, type TwinglyDocument, type FetchNewsParams } from '../../services/APIs/news/newsService';
 import { fetchAdvisory, advisoryScoreToBaseRisk, type AdvisoryData } from '../../services/APIs/alerts/advisoryService';
 import { flagEmojiFromCode } from '../../utils/countryFlags';
+import {
+  IconCircleCheck, IconAlertTriangle, IconAlertHexagon, IconBan,
+  IconWind, IconEPassport, IconLock, IconFirstAidKit, IconPlane,
+  IconCloudFilled, IconCurrencyDollar, IconDeviceDesktop,
+} from '@tabler/icons-react';
+import { wmoIcon } from '../../utils/weatherIcons';
 import '../../assets/css/RiskMonitor.css';
 
 //  Destination catalogue 
@@ -56,12 +62,20 @@ const POPULAR = ['jp', 'fr', 'ae', 'th', 'it', 'au', 'sg', 'gb'];
 const MAJOR_FX = ['USD', 'EUR', 'GBP', 'AUD', 'CAD', 'CHF', 'SGD', 'JPY'];
 const REGIONS  = ['All', 'Asia Pacific', 'Europe', 'North America', 'South America', 'Middle East', 'Africa'];
 
-//  Helpers 
+//  Helpers
+/*
+ * Icons on this page were emoji: coloured circles for risk level, pictograms for
+ * alert category and weather. Emoji render ~1.3x the metrics of the surrounding
+ * text, never match the icon set, and are the loudest "not a professional tool"
+ * signal in a product whose job here is to be believed about safety. Swapped for
+ * the Tabler set already used on the redesigned pages. The colour, not the
+ * glyph, carries severity.
+ */
 function riskProfile(score: number) {
-  if (score <= 20) return { label: 'Low Risk', color: '#22c55e', dim: 'rgba(34,197,94,0.15)',  icon: '🟢' };
-  if (score <= 45) return { label: 'Watch',    color: '#f59e0b', dim: 'rgba(245,158,11,0.15)', icon: '🟡' };
-  if (score <= 70) return { label: 'Advisory', color: '#ef4444', dim: 'rgba(239,68,68,0.15)',  icon: '🔴' };
-  return              { label: 'High Risk', color: '#dc2626', dim: 'rgba(220,38,38,0.2)',   icon: '⛔' };
+  if (score <= 20) return { label: 'Low Risk', color: '#22c55e', dim: 'rgba(34,197,94,0.15)',  Icon: IconCircleCheck };
+  if (score <= 45) return { label: 'Watch',    color: '#f59e0b', dim: 'rgba(245,158,11,0.15)', Icon: IconAlertTriangle };
+  if (score <= 70) return { label: 'Advisory', color: '#ef4444', dim: 'rgba(239,68,68,0.15)',  Icon: IconAlertHexagon };
+  return              { label: 'High Risk', color: '#dc2626', dim: 'rgba(220,38,38,0.2)',   Icon: IconBan };
 }
 
 function weatherContribution(weatherSev?: string): number {
@@ -91,25 +105,13 @@ function classifyAlert(title: string, body = ''): AlertType | null {
   return null;
 }
 
-const ALERT_META: Record<AlertType, { color: string; emoji: string }> = {
-  'Severe Weather':   { color: '#ef4444', emoji: '🌪️' },
-  'Travel Advisory':  { color: '#f59e0b', emoji: '🛂' },
-  'Security Risk':    { color: '#f97316', emoji: '🔒' },
-  'Health Alert':     { color: '#22c55e', emoji: '🏥' },
-  'Transport Update': { color: '#60a5fa', emoji: '✈️' },
+const ALERT_META: Record<AlertType, { color: string; Icon: React.ElementType }> = {
+  'Severe Weather':   { color: '#ef4444', Icon: IconWind },
+  'Travel Advisory':  { color: '#f59e0b', Icon: IconEPassport },
+  'Security Risk':    { color: '#f97316', Icon: IconLock },
+  'Health Alert':     { color: '#22c55e', Icon: IconFirstAidKit },
+  'Transport Update': { color: '#60a5fa', Icon: IconPlane },
 };
-
-function wmoEmoji(code: number | null): string {
-  if (code === null) return '🌡️';
-  if (code === 0)    return '☀️';
-  if (code <= 2)     return '🌤️';
-  if (code === 3)    return '☁️';
-  if (code <= 48)    return '🌫️';
-  if (code <= 57)    return '🌦️';
-  if (code <= 67)    return '🌧️';
-  if (code <= 77)    return '❄️';
-  return '⛈️';
-}
 
 //  Score Gauge 
 function ScoreGauge({ score, color }: { score: number; color: string }) {
@@ -223,8 +225,8 @@ export default function RiskMonitor() {
         display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
         minHeight: '100dvh', px: 3, textAlign: 'center', gap: 2.5,
       }}>
-        <Typography sx={{ fontSize: '3rem' }}>🖥️</Typography>
-        <Typography sx={{ fontFamily: "'Playfair Display', serif", fontWeight: 800, fontSize: '1.4rem' }}>
+        <IconDeviceDesktop size={40} stroke={1.5} style={{ opacity: 0.5 }} />
+        <Typography sx={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: '1.4rem' }}>
           Best on Desktop
         </Typography>
         <Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.9rem', color: 'rgba(0,0,0,0.55)', maxWidth: 300, lineHeight: 1.7 }}>
@@ -259,7 +261,7 @@ export default function RiskMonitor() {
           {/*  Research caution notice  */}
           <div className="rm-hero__caution">
             <span>
-              <strong>⚠️ For reference only.</strong> Scores blend aggregated official government advisories with automated weather and news signals - they may be incomplete or lag real events. Always confirm with your government's own travel advisory before making decisions.
+              <strong>For reference only.</strong> Scores blend aggregated official government advisories with automated weather and news signals - they may be incomplete or lag real events. Always confirm with your government's own travel advisory before making decisions.
             </span>
           </div>
 
@@ -371,7 +373,7 @@ export default function RiskMonitor() {
               background: risk.dim,
               border: `1px solid ${risk.color}33`,
             }}>
-              <span style={{ fontSize: 16, lineHeight: 1 }}>{risk.icon}</span>
+              <risk.Icon size={16} color={risk.color} stroke={1.9} style={{ flexShrink: 0 }} />
               <span style={{ fontSize: 12.5, color: 'rgba(255,255,255,0.82)', lineHeight: 1.5 }}>
                 <strong style={{ color: risk.color }}>Official guidance:</strong> {advisory.message}
               </span>
@@ -434,7 +436,7 @@ export default function RiskMonitor() {
 
             {/* Weather */}
             <div className="rm-stat-panel rm-stat-panel--weather">
-              <p className="rm-stat-panel__title">🌤️ Weather</p>
+              <p className="rm-stat-panel__title"><IconCloudFilled size={14} stroke={1.9} /> Weather</p>
               {loading ? (
                 <>
                   <Skeleton width="55%" height={34} sx={{ bgcolor: 'rgba(255,255,255,0.07)' }} />
@@ -443,16 +445,16 @@ export default function RiskMonitor() {
               ) : weather ? (
                 <>
                   <div className="rm-weather-main">
-                    <span className="rm-weather-emoji">{wmoEmoji(weather.conditionCode)}</span>
+                    <span className="rm-weather-emoji">{React.createElement(wmoIcon(weather.conditionCode), { size: 30, stroke: 1.6 })}</span>
                     <span className="rm-weather-temp">
                       {weather.temperatureC != null ? `${Math.round(weather.temperatureC)}°C` : '-'}
                     </span>
                   </div>
                   <p className="rm-weather-desc">{weather.conditionText ?? 'No data'}</p>
-                  <p className="rm-weather-wind">💨 {weather.windKph != null ? `${Math.round(weather.windKph)} km/h` : '-'}</p>
+                  <p className="rm-weather-wind"><IconWind size={13} stroke={1.9} /> {weather.windKph != null ? `${Math.round(weather.windKph)} km/h` : '-'}</p>
                   {weather.severity && weather.severity !== 'normal' && (
                     <span className="rm-weather-sev" data-sev={weather.severity}>
-                      ⚠️ {weather.severity.charAt(0).toUpperCase() + weather.severity.slice(1)}
+                      <IconAlertTriangle size={12} stroke={2} /> {weather.severity.charAt(0).toUpperCase() + weather.severity.slice(1)}
                     </span>
                   )}
                 </>
@@ -461,7 +463,7 @@ export default function RiskMonitor() {
 
             {/* Active alerts count */}
             <div className="rm-stat-panel rm-stat-panel--alert-count">
-              <p className="rm-stat-panel__title">⚠️ Active Alerts</p>
+              <p className="rm-stat-panel__title"><IconAlertTriangle size={14} stroke={1.9} /> Active Alerts</p>
               {loading
                 ? <Skeleton width="40%" height={48} sx={{ bgcolor: 'rgba(255,255,255,0.07)' }} />
                 : <span className={`rm-alert-big-num${alerts.length > 0 ? ' rm-alert-big-num--active' : ''}`}>{alerts.length}</span>
@@ -473,7 +475,7 @@ export default function RiskMonitor() {
 
             {/* Currency snapshot */}
             <div className="rm-stat-panel rm-stat-panel--fx">
-              <p className="rm-stat-panel__title">💱 {dest.currency} Exchange</p>
+              <p className="rm-stat-panel__title"><IconCurrencyDollar size={14} stroke={1.9} /> {dest.currency} Exchange</p>
               {loading || !currency
                 ? <>
                     <Skeleton width="70%" height={22} sx={{ bgcolor: 'rgba(255,255,255,0.07)', mb: 0.5 }} />
@@ -503,9 +505,9 @@ export default function RiskMonitor() {
                 className={`rm-tab-btn${tab === t ? ' rm-tab-btn--active' : ''}`}
                 onClick={() => setTab(t)}
               >
-                {t === 'news'     && `📰 News Feed`}
-                {t === 'alerts'   && `⚠️ Alerts (${loading ? '…' : alerts.length})`}
-                {t === 'currency' && `💱 Currency`}
+                {t === 'news'     && `News Feed`}
+                {t === 'alerts'   && `Alerts (${loading ? "…" : alerts.length})`}
+                {t === 'currency' && `Currency`}
               </button>
             ))}
           </div>
@@ -534,7 +536,7 @@ export default function RiskMonitor() {
                                 className="rm-news-alert-tag"
                                 style={{ color: ALERT_META[type].color, background: `${ALERT_META[type].color}1a`, borderColor: `${ALERT_META[type].color}33` }}
                               >
-                                {ALERT_META[type].emoji} {type}
+                                {React.createElement(ALERT_META[type].Icon, { size: 12, stroke: 1.9 })} {type}
                               </span>
                             )}
                             <p className="rm-news-title">{a.title}</p>
@@ -558,7 +560,7 @@ export default function RiskMonitor() {
                   : alerts.length === 0
                     ? (
                       <div className="rm-empty rm-empty--safe">
-                        <span className="rm-empty__icon">✅</span>
+                        <span className="rm-empty__icon"><IconCircleCheck size={30} stroke={1.6} /></span>
                         <span className="rm-empty__title">No Active Alerts for {dest.name}</span>
                         <span className="rm-empty__sub">Conditions appear normal. Always verify with official government sources before travel.</span>
                       </div>
@@ -570,7 +572,7 @@ export default function RiskMonitor() {
                           <div key={i} className="rm-alert-card" style={{ borderColor: `${meta.color}30`, '--ac': meta.color } as React.CSSProperties}>
                             <div className="rm-alert-card__top">
                               <span className="rm-alert-card__type" style={{ color: meta.color, background: `${meta.color}18`, borderColor: `${meta.color}30` }}>
-                                {meta.emoji} {type}
+                                {React.createElement(meta.Icon, { size: 12, stroke: 1.9 })} {type}
                               </span>
                               <span className="rm-alert-card__date">{new Date(a.timestamp).toLocaleDateString()}</span>
                             </div>

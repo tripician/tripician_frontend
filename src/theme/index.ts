@@ -180,23 +180,42 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
   const themeOptions: ThemeOptions = {
     custom,
     palette: { mode, ...p },
-    shape: { borderRadius: 12 },
+    // MUI multiplies every numeric `borderRadius` in `sx` by this token, so it is
+    // not a style choice - it is the unit those ~160 call sites were written
+    // against. It sat at 12, which silently tripled every one of them
+    // (`borderRadius: 2` rendered 24px, not 8px) and is why the UI read as
+    // uniformly blobby. Back to MUI's documented 4, so `1/1.5/2/3/4` mean
+    // 4/6/8/12/16px - which is what each author meant. Surfaces that want a
+    // card radius state it in px below.
+    shape: { borderRadius: 4 },
     shadows: softShadows(mode) as ThemeOptions['shadows'],
+    /**
+     * The scale. Nine steps, and they are the only sizes the product may use -
+     * an audit found 102 distinct font sizes in play, 34 of them between 10 and
+     * 15px, which is not hierarchy, it is noise. Reach for `variant=`, not
+     * `sx={{ fontSize }}`.
+     *
+     * Weights run 400/500/600/700 and stop there. Nothing above 700: the display
+     * sizes carry voice through size and negative tracking, the way Linear,
+     * Geist and Airbnb all do it, rather than through fat. The old 550/650/750
+     * values were never loaded by the font link at all, so they silently rounded
+     * UP - the app was rendering heavier than it was written.
+     */
     typography: {
       fontFamily: FONT_BODY,
-      h1: { fontWeight: 800, fontSize: 'clamp(2.25rem, 1.6rem + 2vw, 3.25rem)', letterSpacing: '-0.03em', lineHeight: 1.08 },
-      h2: { fontWeight: 800, fontSize: 'clamp(1.75rem, 1.35rem + 1.3vw, 2.375rem)', letterSpacing: '-0.025em', lineHeight: 1.14 },
-      h3: { fontWeight: 700, fontSize: 'clamp(1.5rem, 1.25rem + 0.8vw, 1.875rem)', letterSpacing: '-0.02em', lineHeight: 1.2 },
-      h4: { fontWeight: 700, fontSize: '1.375rem', letterSpacing: '-0.015em', lineHeight: 1.25 },
-      h5: { fontWeight: 700, fontSize: '1.125rem', letterSpacing: '-0.01em', lineHeight: 1.3 },
-      h6: { fontWeight: 650, fontSize: '1rem', letterSpacing: '-0.005em', lineHeight: 1.35 },
+      h1: { fontWeight: 700, fontSize: 'clamp(2rem, 1.5rem + 1.6vw, 2.75rem)', letterSpacing: '-0.03em', lineHeight: 1.1 },
+      h2: { fontWeight: 700, fontSize: 'clamp(1.625rem, 1.3rem + 1vw, 2.125rem)', letterSpacing: '-0.025em', lineHeight: 1.16 },
+      h3: { fontWeight: 700, fontSize: 'clamp(1.375rem, 1.2rem + 0.6vw, 1.625rem)', letterSpacing: '-0.02em', lineHeight: 1.22 },
+      h4: { fontWeight: 600, fontSize: '1.25rem', letterSpacing: '-0.015em', lineHeight: 1.3 },
+      h5: { fontWeight: 600, fontSize: '1.0625rem', letterSpacing: '-0.01em', lineHeight: 1.35 },
+      h6: { fontWeight: 600, fontSize: '0.9375rem', letterSpacing: '-0.005em', lineHeight: 1.4 },
       subtitle1: { fontWeight: 600, fontSize: '0.9375rem', lineHeight: 1.45 },
       subtitle2: { fontWeight: 600, fontSize: '0.8125rem', lineHeight: 1.4 },
       body1: { fontSize: '0.9375rem', lineHeight: 1.6 },
       body2: { fontSize: '0.875rem', lineHeight: 1.55 },
       caption: { fontSize: '0.75rem', lineHeight: 1.45 },
-      overline: { fontSize: '0.6875rem', fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase' },
-      button: { fontWeight: 650, letterSpacing: '0', textTransform: 'none' },
+      overline: { fontSize: '0.6875rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' },
+      button: { fontWeight: 600, letterSpacing: '0', textTransform: 'none' },
     },
     components: {
       MuiCssBaseline: {
@@ -231,7 +250,7 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
         styleOverrides: {
           root: {
             textTransform: 'none',
-            fontWeight: 650,
+            fontWeight: 600,
             borderRadius: 999,
             transition: `all ${custom.motion.duration.base} ${custom.motion.easing.standard}`,
             '&:focus-visible': { outline: `2px solid ${custom.ring}`, outlineOffset: 2 },
@@ -271,7 +290,9 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
       },
       MuiPaper: {
         styleOverrides: {
-          root: { backgroundImage: 'none' },
+          // Stated in px rather than inherited from `shape`, which is now 4 - a
+          // bare Paper is a card-like surface and wants a card-like corner.
+          root: { backgroundImage: 'none', borderRadius: 12 },
           outlined: { borderColor: custom.surface.border },
         },
       },
@@ -378,7 +399,7 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
         styleOverrides: {
           root: {
             textTransform: 'none',
-            fontWeight: 650,
+            fontWeight: 600,
             fontSize: '0.875rem',
             minHeight: 44,
             '&.Mui-selected': { color: BRAND.coral },
@@ -390,7 +411,7 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
           tooltip: {
             borderRadius: 8,
             fontSize: '0.75rem',
-            fontWeight: 550,
+            fontWeight: 500,
             padding: '6px 10px',
             backgroundColor: isLight ? '#1C1C21' : '#2E2E38',
           },
@@ -406,7 +427,7 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
       },
       MuiAvatar: {
         styleOverrides: {
-          root: { fontWeight: 700 },
+          root: { fontWeight: 600 },
         },
       },
       MuiAlert: {

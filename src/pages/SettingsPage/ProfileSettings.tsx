@@ -114,7 +114,7 @@ const ProfileSettings: React.FC = () => {
                 bgcolor: '#FF385C',
                 color: '#fff',
                 fontSize: '1.7rem',
-                fontWeight: 800,
+                fontWeight: 700,
                 fontFamily: "'Inter',sans-serif",
                 boxShadow: '0 4px 18px rgba(255,56,92,0.3)',
               }}

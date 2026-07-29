@@ -3,7 +3,16 @@ import { Helmet } from 'react-helmet-async';
 
 export const SITE_URL = 'https://tripician.com';
 export const SITE_NAME = 'Tripician';
-export const DEFAULT_OG_IMAGE = `${SITE_URL}/og-cover.jpg`;
+/**
+ * Site-wide social preview image.
+ *
+ * This path was always referenced but the file did not exist in public/, so it
+ * was never in the build output and every share of every page previewed with a
+ * missing image. The file is now real: 1200x630 and 88KB, comfortably under the
+ * ~300KB ceiling above which WhatsApp drops the preview entirely.
+ */
+export const DEFAULT_OG_IMAGE =
+  (import.meta.env.VITE_OG_COVER_URL as string) || `${SITE_URL}/og-cover.jpg`;
 
 interface SeoProps {
   /** Page title; ` - Tripician` is appended unless it already mentions the brand */
@@ -25,7 +34,10 @@ interface SeoProps {
  * OpenGraph/Twitter cards, and JSON-LD structured data.
  */
 const Seo: React.FC<SeoProps> = ({ title, description, path, image, type = 'website', noindex = false, jsonLd }) => {
-  const fullTitle = /tripician/i.test(title) ? title : `${title} ,${SITE_NAME}`;
+  // Separator was `,` with a leading space, so every page that did not already
+  // contain the brand rendered as "Community ,Tripician" in the tab and in
+  // search results.
+  const fullTitle = /tripician/i.test(title) ? title : `${title} | ${SITE_NAME}`;
   const url = `${SITE_URL}${path}`;
   const img = image || DEFAULT_OG_IMAGE;
   const blocks = jsonLd ? (Array.isArray(jsonLd) ? jsonLd : [jsonLd]) : [];

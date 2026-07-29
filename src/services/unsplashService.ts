@@ -14,9 +14,21 @@ function lsSet(key: string, value: string): void {
   try { localStorage.setItem(LS_PREFIX + key, value); } catch { /* quota exceeded - skip silently */ }
 }
 
-export async function fetchUnsplashImage(query: string): Promise<string | null> {
+export type UnsplashOrientation = 'portrait' | 'landscape' | 'squarish';
+
+/**
+ * @param orientation Defaults to portrait for backwards compatibility with the
+ *   card call sites. Wide slots (hero, banners, OG images) must pass 'landscape'
+ *   or they get a tall crop letterboxed into a wide box.
+ */
+export async function fetchUnsplashImage(
+  query: string,
+  orientation: UnsplashOrientation = 'portrait',
+): Promise<string | null> {
   if (!UNSPLASH_ACCESS_KEY || !query) return null;
-  const key = query.trim().toLowerCase();
+  // Orientation is part of the cache key: the same query in two orientations is
+  // two different photos, and collapsing them would serve one where the other belongs.
+  const key = `${query.trim().toLowerCase()}|${orientation}`;
 
   // 1. Memory cache (fastest - same session)
   if (imageCache.has(key)) return imageCache.get(key)!;
@@ -30,7 +42,7 @@ export async function fetchUnsplashImage(query: string): Promise<string | null> 
 
   const request = (async (): Promise<string | null> => {
     try {
-      const url = `${BASE_URL}?query=${encodeURIComponent(key)}&per_page=1&orientation=portrait`;
+      const url = `${BASE_URL}?query=${encodeURIComponent(query.trim())}&per_page=1&orientation=${orientation}`;
       const resp = await fetch(url, {
         headers: { Authorization: `Client-ID ${UNSPLASH_ACCESS_KEY}` },
       });

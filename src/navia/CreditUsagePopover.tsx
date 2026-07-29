@@ -62,7 +62,7 @@ const CreditUsagePopover: React.FC<CreditUsagePopoverProps> = ({
       </Typography>
 
       <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, mb: 0.75 }}>
-        <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 800, fontSize: '1.5rem', lineHeight: 1, color: low ? 'error.main' : 'text.primary' }}>
+        <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '1.5rem', lineHeight: 1, color: low ? 'error.main' : 'text.primary' }}>
           {wallet.balance}
         </Typography>
         <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', fontFamily: "'Inter',sans-serif" }}>

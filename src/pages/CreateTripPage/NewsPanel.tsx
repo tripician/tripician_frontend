@@ -13,6 +13,8 @@ import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
 import { fetchWeather } from '../../services/APIs/weather/weatherService';
 import { fetchCurrency } from '../../services/APIs/currency/currencyService';
 import { flagEmojiFromCode, countryNameFromCode, countryCodeFromName } from '../../utils/countryFlags';
+import { conditionIcon } from '../../utils/weatherIcons';
+import { IconSatellite, IconNews, IconBolt, IconFlame } from '@tabler/icons-react';
 
 const MAX_HERO = 4;
 const TRENDING_COUNT = 5;
@@ -208,7 +210,7 @@ const AlertsPanel: React.FC<AlertsPanelProps> = ({ articles, loading, classifyIm
           </Box>
         </Stack>
         <Box sx={{ px: 1.2, py: 0.4, borderRadius: 999, bgcolor: 'rgba(239,68,68,0.12)', border: '1px solid rgba(239,68,68,0.3)' }}>
-          <Typography variant='caption' sx={{ fontWeight: 800, color: '#ef4444', letterSpacing: .5 }}>{totalAlerts}</Typography>
+          <Typography variant='caption' sx={{ fontWeight: 700, color: '#ef4444', letterSpacing: .5 }}>{totalAlerts}</Typography>
         </Box>
       </Box>
 
@@ -589,19 +591,10 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
     ));
   };
 
+  /** Icon set is shared with the Risk Monitor - see utils/weatherIcons. */
   const renderWeatherGlyph = (icon?: string) => {
-    switch (icon) {
-      case 'thunder': return '⛈️';
-      case 'heavy-rain': return '🌧️';
-      case 'rain': return '🌦️';
-      case 'snow': return '❄️';
-      case 'fog': return '🌫️';
-      case 'drizzle': return '💧';
-      case 'clear': return '☀️';
-      case 'partly': return '⛅';
-      case 'cloudy': return '☁️';
-      default: return 'ℹ️';
-    }
+    const Icon = conditionIcon(icon ?? '');
+    return <Icon size={20} stroke={1.7} />;
   };
 
   const formatFxRate = (value?: number) => {
@@ -637,8 +630,8 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
     return (
       <Box sx={{ p: { xs: 2, md: 3 }, width: '100%', boxSizing: 'border-box', display: 'flex', alignItems: 'center', justifyContent: 'center', minHeight: 340 }}>
         <Box sx={{ textAlign: 'center', maxWidth: 420 }}>
-          <Box sx={{ fontSize: 60, mb: 2.5, lineHeight: 1, filter: 'grayscale(0.1)' }}>🛰️</Box>
-          <Typography variant='h6' sx={{ fontWeight: 800, mb: 1.5, letterSpacing: .3 }}>No Active Corridors</Typography>
+          <Box sx={{ mb: 2.5, lineHeight: 1, color: 'text.disabled' }}><IconSatellite size={44} stroke={1.4} /></Box>
+          <Typography variant='h6' sx={{ fontWeight: 700, mb: 1.5, letterSpacing: .3 }}>No Active Corridors</Typography>
           <Typography variant='body2' color='text.secondary' sx={{ lineHeight: 1.7, maxWidth: 360, mx: 'auto' }}>
             Add destinations in your trip settings to unlock real-time intelligence - breaking news, live weather alerts, and currency rates curated for your itinerary.
           </Typography>
@@ -680,13 +673,13 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
           {/* Left: title + description */}
           <Box sx={{ maxWidth: 500 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap', mb: 1.2 }}>
-              <Box sx={{ width: 38, height: 38, borderRadius: 2, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}>🛰️</Box>
-              <Typography variant='h5' sx={{ fontWeight: 800, letterSpacing: .3, fontSize: { xs: '1.15rem', md: '1.4rem' } }}>
+              <Box sx={{ width: 38, height: 38, borderRadius: 2, background: 'rgba(255,255,255,0.1)', border: '1px solid rgba(255,255,255,0.18)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 20, flexShrink: 0 }}><IconSatellite size={18} stroke={1.6} /></Box>
+              <Typography variant='h5' sx={{ fontWeight: 700, letterSpacing: .3, fontSize: { xs: '1.15rem', md: '1.4rem' } }}>
                 Travel Risk Monitor
                 <Box component='span' sx={{
                   display: 'inline-flex', alignItems: 'center', verticalAlign: 'middle',
                   ml: 1, px: 0.7, py: 0.25, borderRadius: '6px',
-                  fontSize: '0.38em', fontWeight: 800, letterSpacing: '0.12em',
+                  fontSize: '0.38em', fontWeight: 700, letterSpacing: '0.12em',
                   textTransform: 'uppercase', lineHeight: 1,
                   color: '#FF385C',
                   background: 'rgba(255,56,92,0.13)',
@@ -712,7 +705,7 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
               border: '1px solid rgba(251,191,36,0.28)',
             }}>
               <Typography sx={{ fontSize: '0.72rem', lineHeight: 1.55, color: 'rgba(255,255,255,0.72)', fontFamily: "'Inter', system-ui, sans-serif" }}>
-                <Box component='span' sx={{ fontWeight: 700, color: '#fbbf24' }}>⚠️ For reference only. </Box>
+                <Box component='span' sx={{ fontWeight: 700, color: '#fbbf24' }}>For reference only. </Box>
                 Risk data is sourced from automated feeds and ongoing research - it may be incomplete or inaccurate. Always check official government travel advisories before making travel decisions.
               </Typography>
             </Box>
@@ -726,7 +719,7 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
             ].map(stat => (
               <Box key={stat.label} sx={{ minWidth: 80, px: { xs: 1.5, md: 2 }, py: 1.5, borderRadius: 2.5, bgcolor: stat.accent, border: `1px solid ${stat.border}`, textAlign: 'center', backdropFilter: 'blur(12px)', transition: 'transform .2s', '&:hover': { transform: 'translateY(-2px)' } }}>
                 <Typography sx={{ fontSize: 10, letterSpacing: 1.4, opacity: .65, textTransform: 'uppercase', display: 'block', fontWeight: 600 }}>{stat.label}</Typography>
-                <Typography variant='h5' sx={{ fontWeight: 800, lineHeight: 1.1, color: stat.label === 'Alerts' && alertCount > 0 ? '#f87171' : 'inherit' }}>{stat.value}</Typography>
+                <Typography variant='h5' sx={{ fontWeight: 700, lineHeight: 1.1, color: stat.label === 'Alerts' && alertCount > 0 ? '#f87171' : 'inherit' }}>{stat.value}</Typography>
               </Box>
             ))}
           </Stack>
@@ -746,7 +739,7 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
       <Box sx={{ display: 'flex', flexDirection: { xs: 'column', xl: 'row' }, gap: { xs: 3, xl: 4 }, alignItems: 'stretch' }}>
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Box sx={{ mb: 2.5 }}>
-            <Typography variant='h6' sx={{ mb: 1.5, fontWeight: 800, letterSpacing: .3, display: 'flex', alignItems: 'center', gap: 1 }}>📰 Top Stories</Typography>
+            <Typography variant='h6' sx={{ mb: 1.5, fontWeight: 700, letterSpacing: .3, display: 'flex', alignItems: 'center', gap: 1 }}><IconNews size={17} stroke={1.8} /> Top Stories</Typography>
             {loading && !activeArticles.length ? HeroSkeletons : heroes.length ? (
               <Box sx={{
                 borderRadius: 3,
@@ -781,7 +774,7 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
                             <Stack direction='row' spacing={0.75} useFlexGap flexWrap='wrap'>
                               {buildStoryChips(lead, 'small', 'hero')}
                             </Stack>
-                            <Typography variant='h5' sx={{ fontWeight: 800, lineHeight: 1.1, color: '#f8fafc' }}>{lead.title}</Typography>
+                            <Typography variant='h5' sx={{ fontWeight: 700, lineHeight: 1.1, color: '#f8fafc' }}>{lead.title}</Typography>
                             {lead.summary && (
                               <Typography variant='body2' sx={{ color: 'rgba(226,232,240,0.85)', maxWidth: 520 }}>
                                 {lead.summary}
@@ -873,7 +866,7 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
           <Divider sx={{ mb: 2.5 }} />
 
           <Box>
-            <Typography variant='h6' sx={{ mb: 2, fontWeight: 800, letterSpacing: .3, display: 'flex', alignItems: 'center', gap: 1 }}>⚡ Latest</Typography>
+            <Typography variant='h6' sx={{ mb: 2, fontWeight: 700, letterSpacing: .3, display: 'flex', alignItems: 'center', gap: 1 }}><IconBolt size={17} stroke={1.8} /> Latest</Typography>
             {loading && !activeArticles.length && (
               <Box>
                 {Array.from({ length: 6 }).map((_, i) => (
@@ -1013,7 +1006,7 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
             <AlertsPanel articles={activeArticles} loading={loading} classifyImpact={classifyImpact} formatDate={formatDate} />
 
             <Card variant='outlined' sx={{ p: 2, borderRadius: 2.5 }}>
-              <Typography variant='subtitle1' fontWeight={800} sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 0.8 }}>🔥 Global Trending</Typography>
+              <Typography variant='subtitle1' fontWeight={800} sx={{ mb: 1.5, display: 'flex', alignItems: 'center', gap: 0.8 }}><IconFlame size={16} stroke={1.8} /> Global Trending</Typography>
               {loading && trending.length === 0 ? (
                 <Box>
                   {Array.from({ length: TRENDING_COUNT }).map((_, i) => (

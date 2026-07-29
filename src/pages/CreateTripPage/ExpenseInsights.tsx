@@ -120,7 +120,7 @@ export const GroupBalancesDialog: React.FC<GroupBalancesDialogProps> = ({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="sm" fullWidth>
-      <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+      <DialogTitle sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
         <IconScale size={20} color={theme.palette.primary.main} />
         Group balances
       </DialogTitle>
@@ -164,10 +164,10 @@ export const GroupBalancesDialog: React.FC<GroupBalancesDialogProps> = ({
                     </Avatar>
                     <Box sx={{ flex: 1, minWidth: 0 }}>
                       <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                        <Typography sx={{ fontSize: '0.85rem', fontWeight: 650 }} noWrap>
+                        <Typography sx={{ fontSize: '0.85rem', fontWeight: 600 }} noWrap>
                           {b.id === myUserId ? `${b.name} (you)` : b.name}
                         </Typography>
-                        <Typography sx={{ fontSize: '0.8rem', fontWeight: 750, color: barColor, flexShrink: 0, ml: 1 }}>
+                        <Typography sx={{ fontSize: '0.8rem', fontWeight: 700, color: barColor, flexShrink: 0, ml: 1 }}>
                           {gets ? `gets back ${cur}${b.net.toFixed(2)}` : owes ? `owes ${cur}${Math.abs(b.net).toFixed(2)}` : 'settled'}
                         </Typography>
                       </Box>
@@ -190,7 +190,7 @@ export const GroupBalancesDialog: React.FC<GroupBalancesDialogProps> = ({
               <>
                 <Divider />
                 <Box>
-                  <Typography sx={{ fontWeight: 750, fontSize: '0.85rem', mb: 1 }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: '0.85rem', mb: 1 }}>
                     Settle up ,{settlements.length} transfer{settlements.length === 1 ? '' : 's'}
                   </Typography>
                   <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.75 }}>
@@ -203,14 +203,14 @@ export const GroupBalancesDialog: React.FC<GroupBalancesDialogProps> = ({
                           background: theme.custom.surface.hover,
                         }}
                       >
-                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 650 }} noWrap>
+                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600 }} noWrap>
                           {s.from.id === myUserId ? 'You' : s.from.name}
                         </Typography>
                         <IconArrowRight size={14} color={theme.palette.text.disabled} style={{ flexShrink: 0 }} />
-                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 650, flex: 1 }} noWrap>
+                        <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, flex: 1 }} noWrap>
                           {s.to.id === myUserId ? 'you' : s.to.name}
                         </Typography>
-                        <Chip size="small" label={`${cur}${s.amount.toFixed(2)}`} sx={{ fontWeight: 750 }} />
+                        <Chip size="small" label={`${cur}${s.amount.toFixed(2)}`} sx={{ fontWeight: 700 }} />
                       </Box>
                     ))}
                   </Box>
@@ -218,8 +218,8 @@ export const GroupBalancesDialog: React.FC<GroupBalancesDialogProps> = ({
               </>
             )}
             {settlements.length === 0 && splitTotal > 0 && (
-              <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 650, textAlign: 'center' }}>
-                All settled - nobody owes anything. 🎉
+              <Typography variant="body2" sx={{ color: 'success.main', fontWeight: 600, textAlign: 'center' }}>
+                All settled - nobody owes anything.
               </Typography>
             )}
           </>
@@ -275,13 +275,13 @@ export const SpendBreakdownDialog: React.FC<SpendBreakdownDialogProps> = ({
 
   return (
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth>
-      <DialogTitle sx={{ fontWeight: 800, display: 'flex', alignItems: 'center', gap: 1 }}>
+      <DialogTitle sx={{ fontWeight: 700, display: 'flex', alignItems: 'center', gap: 1 }}>
         <IconChartPie2 size={20} color={theme.palette.primary.main} />
         Spend breakdown
       </DialogTitle>
       <DialogContent sx={{ display: 'flex', flexDirection: 'column', gap: 2.25 }}>
         <Box>
-          <Typography variant="h4" sx={{ fontWeight: 800 }}>
+          <Typography variant="h4" sx={{ fontWeight: 700 }}>
             {cur}{total.toFixed(2)}
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
@@ -323,7 +323,7 @@ export const SpendBreakdownDialog: React.FC<SpendBreakdownDialogProps> = ({
           <>
             <Divider />
             <Box>
-              <Typography sx={{ fontWeight: 750, fontSize: '0.8rem', mb: 0.75, color: 'text.secondary' }}>
+              <Typography sx={{ fontWeight: 700, fontSize: '0.8rem', mb: 0.75, color: 'text.secondary' }}>
                 Biggest line items
               </Typography>
               {topItems.map((e) => (

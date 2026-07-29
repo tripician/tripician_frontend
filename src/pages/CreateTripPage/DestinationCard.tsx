@@ -167,6 +167,9 @@ const LocationTag: React.FC<{
   );
 };
 
+/** Spot thumbnails shown in the "Places to visit" lane before it rolls into "+N". */
+const SPOT_THUMBS = 5;
+
 /** Integrated itinerary lanes - part of the card, not a separate button row */
 const JourneyPlanStrip: React.FC<{
   activeLane: PlanLaneKey | null;
@@ -178,7 +181,6 @@ const JourneyPlanStrip: React.FC<{
   stayPreview?: string;
   hasNotes: boolean;
   notesPreview?: string;
-  firstSpotPhoto?: string;
   spotsChecked: number;
   onSpots: () => void;
   onStay: () => void;
@@ -187,7 +189,7 @@ const JourneyPlanStrip: React.FC<{
   naviaThinking?: boolean;
 }> = ({
   activeLane, placeName, nights, spots, foodsCount, stayCount, stayPreview, hasNotes, notesPreview,
-  firstSpotPhoto, spotsChecked, onSpots, onStay, onNotes, onNavia, naviaThinking,
+  spotsChecked, onSpots, onStay, onNotes, onNavia, naviaThinking,
 }) => {
   const spotPreview = spots.slice(0, 2).map(s => s.name).join(' · ');
   const spotsProgress = spots.length > 0 ? spotsChecked / spots.length : 0;
@@ -225,12 +227,13 @@ const JourneyPlanStrip: React.FC<{
       kicker: `${nights} night${nights !== 1 ? 's' : ''}`,
       title: 'Where you rest',
       short: 'Stay',
-      status: stayCount === 0 ? 'Needed' : 'Booked',
+      // An empty lane says "Add", like the others - it is a blank field, not a
+      // problem, and nagging every stop that has no hotel yet reads as broken.
+      status: stayCount === 0 ? 'Add' : 'Booked',
       preview: stayPreview || '',
       empty: 'Add your lodging',
       icon: <HotelIcon sx={{ fontSize: 14 }} />,
       onClick: onStay,
-      hint: stayCount === 0 ? 'Needed' : undefined,
     },
     {
       key: 'notes',
@@ -257,7 +260,6 @@ const JourneyPlanStrip: React.FC<{
       >
         {lanes.map((lane, idx) => {
           const isActive = activeLane === lane.key;
-          const needsAttention = lane.key === 'stay' && stayCount === 0;
           return (
             <Box
               key={lane.key}
@@ -270,14 +272,14 @@ const JourneyPlanStrip: React.FC<{
                 '&:active': { bgcolor: 'rgba(255,56,92,0.06)' },
               })}
             >
-              <Box sx={{ color: (isActive || needsAttention) ? '#FF385C' : 'text.disabled', display: 'flex', flexShrink: 0 }}>
+              <Box sx={{ color: isActive ? '#FF385C' : 'text.disabled', display: 'flex', flexShrink: 0 }}>
                 {lane.icon}
               </Box>
               <Box sx={{ minWidth: 0 }}>
                 <Typography noWrap sx={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, letterSpacing: '-0.2px', color: isActive ? '#FF385C' : 'text.primary' }}>
                   {lane.short}
                 </Typography>
-                <Typography noWrap sx={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.02em', lineHeight: 1.15, color: needsAttention ? '#FF385C' : 'text.disabled' }}>
+                <Typography noWrap sx={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.02em', lineHeight: 1.15, color: 'text.disabled' }}>
                   {lane.status}
                 </Typography>
               </Box>
@@ -325,7 +327,7 @@ const JourneyPlanStrip: React.FC<{
                 {lane.kicker}
               </Typography>
               {lane.hint && (
-                <Typography sx={{ fontSize: 8.5, fontWeight: 700, color: lane.key === 'stay' && stayCount === 0 ? '#FF385C' : 'text.disabled', ml: 'auto', letterSpacing: '0.02em' }}>
+                <Typography sx={{ fontSize: 8.5, fontWeight: 700, color: 'text.disabled', ml: 'auto', letterSpacing: '0.02em' }}>
                   {lane.hint}
                 </Typography>
               )}
@@ -333,13 +335,42 @@ const JourneyPlanStrip: React.FC<{
             <Typography sx={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '-0.2px', lineHeight: 1.2, color: isActive ? '#FF385C' : 'text.primary', mb: .25 }}>
               {lane.title}
             </Typography>
-            {lane.key === 'spots' && firstSpotPhoto && (
-              <Box
-                component='img'
-                src={firstSpotPhoto}
-                alt='Top spot'
-                sx={{ width: 24, height: 24, borderRadius: '7px', objectFit: 'cover', mb: .35, border: '1px solid', borderColor: 'divider' }}
-              />
+            {lane.key === 'spots' && spots.length > 0 && (
+              /* The whole list at a glance, not just its first photo. A spot with
+                 no picture still takes a tile so the row and the names below it
+                 describe the same set. */
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: .35, mb: .35 }}>
+                {spots.slice(0, SPOT_THUMBS).map(s => (
+                  s.photoUrl ? (
+                    <Box
+                      key={s.id}
+                      component='img'
+                      src={s.photoUrl}
+                      alt={s.name}
+                      title={s.name}
+                      sx={{ width: 22, height: 22, borderRadius: '6px', objectFit: 'cover', flexShrink: 0, border: '1px solid', borderColor: 'divider' }}
+                    />
+                  ) : (
+                    <Box
+                      key={s.id}
+                      title={s.name}
+                      sx={{
+                        width: 22, height: 22, borderRadius: '6px', flexShrink: 0,
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        fontSize: 9.5, fontWeight: 700, color: '#FF385C',
+                        bgcolor: 'rgba(255,56,92,0.10)', border: '1px solid', borderColor: 'divider',
+                      }}
+                    >
+                      {s.name.trim().charAt(0).toUpperCase() || '?'}
+                    </Box>
+                  )
+                ))}
+                {spots.length > SPOT_THUMBS && (
+                  <Typography sx={{ fontSize: 9.5, fontWeight: 700, color: 'text.disabled', ml: .15 }}>
+                    +{spots.length - SPOT_THUMBS}
+                  </Typography>
+                )}
+              </Box>
             )}
             <Typography
               noWrap
@@ -629,13 +660,13 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
           <Box onClick={e => e.stopPropagation()} sx={{ display: 'flex', alignItems: 'center', bgcolor: 'rgba(255,56,92,0.07)', border: '1px solid rgba(255,56,92,0.2)', borderRadius: '20px', px: .5, height: 24, gap: .1, flexShrink: 0, mt: { xs: .2, sm: 0 } }}>
             {!readonly ? (<Box component='button' type='button'
               onClick={(e: any) => { e.stopPropagation(); onChangeNights?.(id, -1); }} disabled={nights <= 1}
-              style={{ border: 'none', background: 'transparent', cursor: nights > 1 ? 'pointer' : 'default', padding: '0 5px', fontSize: 14, fontWeight: 900, color: '#FF385C', opacity: nights > 1 ? 1 : .3, lineHeight: 1 }}>
+              style={{ border: 'none', background: 'transparent', cursor: nights > 1 ? 'pointer' : 'default', padding: '0 5px', fontSize: 14, fontWeight: 700, color: '#FF385C', opacity: nights > 1 ? 1 : .3, lineHeight: 1 }}>
               -
             </Box>) : ""}
             <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#FF385C', lineHeight: 1, px: .15, letterSpacing: '-0.2px' }}>{nights} night{nights !== 1 ? 's' : ''}</Typography>
             {!readonly ? (<Box component='button' type='button'
               onClick={(e: any) => { e.stopPropagation(); onChangeNights?.(id, +1); }}
-              style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '0 5px', fontSize: 14, fontWeight: 900, color: '#FF385C', lineHeight: 1 }}>
+              style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '0 5px', fontSize: 14, fontWeight: 700, color: '#FF385C', lineHeight: 1 }}>
               +
             </Box>) : ""}
           </Box>
@@ -712,7 +743,6 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
             stayPreview={stayPreviewName}
             hasNotes={hasNotes}
             notesPreview={notesPreviewLine}
-            firstSpotPhoto={spotsList.find((s) => !!s.photoUrl)?.photoUrl}
             spotsChecked={spotsChecked}
             onSpots={() => onOpenDiscover?.(id)}
             onStay={() => onOpenStay?.(id)}

@@ -23,5 +23,19 @@
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true
   },
-  "include": ["src"]
+  "include": ["src"],
+  /*
+   * Tests are not app code and must not gate `vite build`.
+   *
+   * Without this, `tsc -b` compiled every *.test.ts as part of the production
+   * build, so a test-only concern could fail a deploy - which is exactly what
+   * happened: tripCover.test.ts imports a JSON file from the backend to check
+   * the two copies have not drifted, and that path does not exist in a build
+   * rooted at frontend/tripician_frontend. It resolved locally (monorepo
+   * checkout) and failed in CI.
+   *
+   * Vitest transforms tests through Vite, not through this config, so they
+   * still run and are unaffected.
+   */
+  "exclude": ["src/**/*.test.ts", "src/**/*.test.tsx"]
 }

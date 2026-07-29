@@ -36,7 +36,7 @@ const AboutPage: React.FC = () => (
   <InfoPageShell>
     <Seo
       title="About Tripician - A Global Travel Community"
-      description="Tripician is a global community for travellers, built around Navia, the world's first agentic travel AI. Meet our story, mission, and what we stand for."
+      description="Tripician is a global community for travellers and a planner your whole group can edit, where every place is checked against a live listing. Meet our story, mission, and what we stand for."
       path="/about-us"
     />
     {/* Hero */}
@@ -48,12 +48,12 @@ const AboutPage: React.FC = () => (
           </Box>
           <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#FF385C', letterSpacing: '0.1em', textTransform: 'uppercase' }}>About Us</Typography>
         </Box>
-        <Typography variant="h2" sx={{ fontWeight: 800, fontSize: { xs: '2rem', md: '2.8rem' }, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.15, mb: 2 }}>
+        <Typography variant="h2" sx={{ fontWeight: 700, fontSize: { xs: '2rem', md: '2.8rem' }, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.15, mb: 2 }}>
           We believe great trips are built{' '}
           <Box component="span" sx={{ color: '#FF385C' }}>together</Box>.
         </Typography>
         <Typography sx={{ fontSize: '1.05rem', color: '#666', lineHeight: 1.75, maxWidth: 600 }}>
-          Tripician is a global community for travellers - the people who find their travel tribe here, plan as a crew, and let Navia, the world's first agentic travel AI, handle the busywork in between.
+          Tripician is a global community for travellers - the people who find their travel tribe here, plan as a crew, and let Navia handle the busywork in between.
         </Typography>
       </Container>
     </Box>
@@ -69,7 +69,10 @@ const AboutPage: React.FC = () => (
           They asked: why doesn't a single tool exist that handles everything - itineraries, day-by-day plans, expense tracking, packing lists, safety alerts, and real collaboration - without feeling like enterprise software?
         </Typography>
         <Typography sx={{ color: '#444', lineHeight: 1.85, fontSize: '0.95rem' }}>
-          Tripician is that place: a global community built entirely around the traveller, with an agentic AI co-planner - not a chatbot - working alongside your crew.
+          Tripician is that place: a global community built entirely around the traveller, with a co-planner that works alongside your crew instead of handing you a list and leaving.
+        </Typography>
+        <Typography sx={{ color: '#444', lineHeight: 1.85, mt: 2, fontSize: '0.95rem' }}>
+          One thing we decided early: a plan is only worth having if the places in it are real. So every place Navia drafts is matched against a live listing before it reaches you. Anything permanently closed is dropped, and anything we cannot confirm is labelled as such rather than quietly presented as fact.
         </Typography>
       </Box>
 
@@ -77,7 +80,7 @@ const AboutPage: React.FC = () => (
       <Box sx={{ background: 'linear-gradient(135deg,#FF385C,#D91A50)', borderRadius: '16px', p: { xs: 3, md: 5 }, mb: 3, color: '#fff' }}>
         <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.75, mb: 1.5 }}>Our Mission</Typography>
         <Typography sx={{ fontWeight: 700, fontSize: { xs: '1.1rem', md: '1.35rem' }, lineHeight: 1.5 }}>
-          "To build the global community where every traveller finds their tribe - and the world's smartest AI co-planner to plan with them."
+          "To build the global community where every traveller finds their tribe - and a plan they can trust enough to book."
         </Typography>
       </Box>
 
