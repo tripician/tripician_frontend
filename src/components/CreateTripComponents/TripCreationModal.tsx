@@ -254,7 +254,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
             {/* Header */}
             <Box className="gs-modal-field" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
               <Box>
-                <Typography sx={{ fontFamily: theme.custom?.fontDisplay ?? "'Playfair Display', serif", fontWeight: 800, fontSize: { xs: '1.55rem', md: '1.85rem' }, color: 'text.primary', lineHeight: 1.1, letterSpacing: '-0.03em' }}>
+                <Typography sx={{ fontFamily: theme.custom?.fontDisplay ?? "'Playfair Display', serif", fontWeight: 700, fontSize: { xs: '1.55rem', md: '1.85rem' }, color: 'text.primary', lineHeight: 1.1, letterSpacing: '-0.03em' }}>
                   Where to next?
                 </Typography>
                 <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', fontFamily: "'Inter', sans-serif", mt: 0.75 }}>

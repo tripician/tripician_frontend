@@ -5,7 +5,7 @@ import { motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
-import { fetchUnsplashImage } from '../../services/unsplashService';
+import { tripCoverPhoto, resolveTripCover } from '../../utils/tripCover';
 import TripCreationModal from '../../components/CreateTripComponents/TripCreationModal';
 import TripShareModal from '../../components/TripShareModal';
 import EmptyState from '../../components/ui/EmptyState';
@@ -19,9 +19,9 @@ import type { RootState, AppDispatch } from '../../store';
 import TravelMap from '../../components/TravelMap';
 import { countryAlpha3FromName } from '../../utils/countryFlags';
 import { tripPath } from '../../utils/tripSlug';
+import PageHeader from '../../components/ui/PageHeader';
 
 const Dashboard: React.FC = () => {
-  const demoDataEnabled = import.meta.env.DEV || String(import.meta.env.VITE_ENABLE_DEMO_DATA || '').toLowerCase() === 'true';
   const formatRelativeTime = (dateStr?: string) => {
     if (!dateStr) return '-';
     const then = new Date(dateStr).getTime();
@@ -48,6 +48,7 @@ const Dashboard: React.FC = () => {
   const [allPlans, setAllPlans] = useState<any[]>([]);
   const [plans, setPlans] = useState<any[]>([]);
   const [savedPlans, setSavedPlans] = useState<any[]>([]);
+  const [likedPlans, setLikedPlans] = useState<any[]>([]);
   const [savedLoading, setSavedLoading] = useState(false);
   const savedFetchedRef = useRef(false);
   const [tripImages, setTripImages] = useState<Record<string, string>>({});
@@ -85,12 +86,13 @@ const Dashboard: React.FC = () => {
     visibility: t.visibility || t.Visibility || t.privacy || t.Privacy || 'PRIVATE',
     location: Array.isArray(t.countries) && t.countries.length ? t.countries[0] : 'Unknown',
     countries: Array.isArray(t.countries) ? t.countries : [],
-    image: (() => {
-      const cover = t.bannerPhotoUrl || t.BannerPhotoUrl || t.photoUrl || t.PhotoUrl;
-      return (typeof cover === 'string' && cover.trim()) ? cover : '';
-    })(),
+    // Saved banner, else the curated country cover - resolved synchronously so the
+    // grid never pops, and shared with the community cards and the trip hero.
+    image: tripCoverPhoto(t) ?? '',
     progress: typeof t.progress === 'number' ? t.progress : 0,
     edited: formatRelativeTime(t.updatedDate),
+    commentsCount: typeof t.commentsCount === 'number' ? t.commentsCount
+      : typeof t.CommentsCount === 'number' ? t.CommentsCount : 0,
     members: (() => {
       const rawMembers = t.members || t.invitedUsers || [];
       const normalizeMember = (m: any) => {
@@ -157,6 +159,10 @@ const Dashboard: React.FC = () => {
       return ownerId ? ownerId === myId : true;
     })(),
     isPublished: t.published === true || t.isPublished === true || (typeof t.status === 'string' && t.status.toUpperCase() === 'PUBLISHED'),
+    // TripResponseDto.IsArchived serialises to `isArchived`. The profile's old
+    // Archived tab looked for `archived`/`status`, neither of which exists, so it
+    // was permanently empty.
+    isArchived: t.isArchived === true || t.IsArchived === true,
     tripStatus: typeof t.tripStatus === 'number' ? t.tripStatus : 0,
     ownerId: (() => {
       const o = t.owner || t.Owner;
@@ -214,13 +220,13 @@ const Dashboard: React.FC = () => {
         if(active){
           setAllPlans(mapped);
           setPlans(mapped);
-          // Kick off Unsplash fetches immediately - runs concurrently with state flush,
-          // so images arrive with minimal extra delay (or instantly from localStorage cache).
-          const tripsNeedingImage = mapped.filter((p: any) => !p.image && p.countries?.[0]);
+          // Most trips resolve synchronously via mapTripVM (banner or curated cover).
+          // Only the ones we still know nothing about need the async lookup.
+          const tripsNeedingImage = mapped.filter((p: any) => !p.image);
           if (tripsNeedingImage.length > 0) {
             Promise.all(
               tripsNeedingImage.map(async (p: any) => {
-                const url = await fetchUnsplashImage(p.countries[0]);
+                const url = await resolveTripCover(p);
                 return { id: p.id, url };
               })
             ).then((results) => {
@@ -290,101 +296,97 @@ const Dashboard: React.FC = () => {
     return d.toLocaleDateString('en-GB', { day: '2-digit', month: 'short', year: '2-digit' });
   };
 
-  const demoTrips = useMemo(() => {
-    if (!demoDataEnabled) return [] as any[];
-    const existingIds = new Set(allPlans.map((p) => String(p.id)));
-    const templates = [
-      { id: 'demo-1', title: 'Nordic Aurora Loop', location: 'Norway' },
-      { id: 'demo-2', title: 'Iberian Food Sprint', location: 'Spain' },
-      { id: 'demo-3', title: 'Balkan Budget Run', location: 'Croatia' },
-      { id: 'demo-4', title: 'Silk Road Cities', location: 'Turkey' },
-      { id: 'demo-5', title: 'Coastal Japan Arc', location: 'Japan' },
-      { id: 'demo-6', title: 'Andes to Atacama', location: 'Chile' },
-      { id: 'demo-7', title: 'Mediterranean Rail', location: 'Italy' },
-      { id: 'demo-8', title: 'Morocco Desert Route', location: 'Morocco' },
-    ];
-    return templates
-      .filter((t) => !existingIds.has(t.id))
-      .map((t, idx) => ({
-        id: t.id,
-        title: t.title,
-        description: 'Community-generated demo itinerary with active collaborators.',
-        visibility: 'EVERYONE',
-        location: t.location,
-        countries: [t.location],
-        image: '',
-        progress: 100,
-        edited: `${idx + 1}h ago`,
-        members: [
-          { id: `demo-u-${idx}-1`, name: 'Alex', profilePic: '' },
-          { id: `demo-u-${idx}-2`, name: 'Mina', profilePic: '' },
-          { id: `demo-u-${idx}-3`, name: 'Leo', profilePic: '' },
-        ],
-        startDate: null,
-        endDate: null,
-        isOwner: false,
-        isPublished: true,
-        ownerId: `demo-owner-${idx}`,
-      }));
-  }, [allPlans, demoDataEnabled]);
+  /*
+   * Eight hard-coded "demo" trips used to be spliced in here - Nordic Aurora
+   * Loop, Iberian Food Sprint, and so on - each with invented collaborators
+   * ("Alex", "Mina", "Leo") and an invented "3h ago" edit time, all flagged
+   * `isOwner: false, isPublished: true` so they landed in Shared with Me and
+   * Published.
+   *
+   * They were gated on `import.meta.env.DEV` with a `VITE_ENABLE_DEMO_DATA`
+   * escape hatch that is set in no env file, so they appeared on every dev run
+   * and inflated every count on the page: "All Trips · 20" and "Shared with Me
+   * · 11" for a user who actually has 9 trips and 3 invitations. That is also
+   * why this page and the profile disagreed about how many trips exist.
+   *
+   * Deleted rather than re-gated. Fake rows in a list of your own things are
+   * indistinguishable from a bug, and the counts have to be true.
+   */
+  const myTrips = allPlans.filter(plan => plan.isOwner);
+  const sharedTrips = allPlans.filter(plan => !plan.isOwner);
+  const publishedTrips = allPlans.filter(plan => plan.isPublished);
 
-  const allPlansWithDemo = useMemo(() => [...allPlans, ...demoTrips], [allPlans, demoTrips]);
-  const myTrips = allPlansWithDemo.filter(plan => plan.isOwner);
-  const sharedTrips = allPlansWithDemo.filter(plan => !plan.isOwner);
-  const publishedTrips = allPlansWithDemo.filter(plan => plan.isPublished);
-  // DEV: log raw published values to diagnose missing field from backend
-  if (import.meta.env.development) {
-    console.debug('[Dashboard] isPublished map:', allPlansWithDemo.map(p => ({ id: p.id, title: p.title, isPublished: p.isPublished })));
-  }
+  /*
+   * This page is the workspace: everything you can act on lives here, including
+   * the Saved, Liked and Archived lists that used to sit on the profile. The
+   * profile is an identity surface with a public twin at /traveler/:id, so
+   * private working state does not belong on it.
+   *
+   * `isArchived` is the DTO's actual field. The profile's Archived tab filtered
+   * on `t.archived` and `t.status`, neither of which exists on TripResponseDto,
+   * so it could never show anything.
+   */
+  const archivedTrips = allPlans.filter(plan => plan.isArchived);
+
+  const TAB_LISTS = useMemo(
+    () => [allPlans, myTrips, sharedTrips, publishedTrips, savedPlans, likedPlans, archivedTrips],
+    [allPlans, myTrips, sharedTrips, publishedTrips, savedPlans, likedPlans, archivedTrips],
+  );
 
   const handleTabChange = (_event: React.SyntheticEvent, newValue: number) => {
     setTabValue(newValue);
-    switch(newValue){
-      case 0: setPlans(allPlansWithDemo); break;
-      case 1: setPlans(myTrips); break;
-      case 2: setPlans(sharedTrips); break;
-      case 3: setPlans(publishedTrips); break;
-      case 4: setPlans(savedPlans); break;
-    }
+    setPlans(TAB_LISTS[newValue] ?? allPlans);
   };
 
   useEffect(() => {
-    if (tabValue === 0) setPlans(allPlansWithDemo);
-    if (tabValue === 1) setPlans(myTrips);
-    if (tabValue === 2) setPlans(sharedTrips);
-    if (tabValue === 3) setPlans(publishedTrips);
-  }, [tabValue, allPlansWithDemo, myTrips, sharedTrips, publishedTrips]);
+    setPlans(TAB_LISTS[tabValue] ?? allPlans);
+  }, [tabValue, TAB_LISTS, allPlans]);
 
-  // Lazily load the trips this user has saved (Saved Trips tab)
-    useEffect(() => {
-    const fetchSavedTrips = async (force = false) => {
+  /**
+   * Saved and liked trips - other people's trips you have bookmarked or liked.
+   * Fetched together because they are the same shape and the same cost, and both
+   * moved here from the profile in the same change.
+   */
+  useEffect(() => {
+    const fetchReactionLists = async () => {
       if (!token) return;
-      if (savedFetchedRef.current && !force) return;
+      if (savedFetchedRef.current) return;
       savedFetchedRef.current = true;
       setSavedLoading(true);
       try {
-        const resp = await apiServices.getSavedTrips(token);
-        const mapped = (resp.data || []).map((t: any) => mapTripVM(t));
-        setSavedPlans(mapped);
-        setPlans(prev => (tabValue === 4 ? mapped : prev));
-        // Fetch Unsplash images for saved trips lacking a photo
-        const needImg = mapped.filter((p: any) => !p.image && p.countries?.[0]);
+        // Settled: a failure on one list must not blank the other.
+        const [saved, liked] = await Promise.allSettled([
+          apiServices.getSavedTrips(token),
+          apiServices.getLikedTrips(token),
+        ]);
+        const mapList = (r: PromiseSettledResult<{ data?: unknown }>) =>
+          r.status === 'fulfilled' && Array.isArray(r.value?.data)
+            ? (r.value.data as any[]).map((t) => mapTripVM(t))
+            : [];
+
+        const savedMapped = mapList(saved);
+        const likedMapped = mapList(liked);
+        setSavedPlans(savedMapped);
+        setLikedPlans(likedMapped);
+
+        // Only rows with neither a banner nor a recognised country need a lookup.
+        const needImg = [...savedMapped, ...likedMapped].filter((p: any) => !p.image);
         if (needImg.length > 0) {
           const results = await Promise.all(
-            needImg.map(async (p: any) => ({ id: p.id, url: await fetchUnsplashImage(p.countries[0]) }))
+            needImg.map(async (p: any) => ({ id: p.id, url: await resolveTripCover(p) }))
           );
           const updates: Record<string, string> = {};
           results.forEach(({ id, url }) => { if (url) updates[id] = url; });
           if (Object.keys(updates).length > 0) setTripImages(prev => ({ ...prev, ...updates }));
         }
       } catch (err) {
-        console.error('[Dashboard] fetch saved trips failed', err);
+        console.error('[Dashboard] fetch saved/liked trips failed', err);
       } finally {
         setSavedLoading(false);
       }
     };
-    fetchSavedTrips()
-    }, [token, authLoading]);
+    fetchReactionLists();
+  }, [token, authLoading]);
   
   return (
     <Box sx={{ width: '100%', backgroundColor: 'background.default', minHeight: '100vh' }}>
@@ -393,23 +395,16 @@ const Dashboard: React.FC = () => {
 
         {/* ── Page header ── */}
         <motion.div variants={staggerItem}>
-          <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 2, mb: { xs: 3, md: 4 } }}>
-            <Box>
-              <Typography component="h1" sx={{
-                fontFamily: theme.custom.fontDisplay, fontWeight: 700,
-                fontSize: { xs: '1.9rem', md: '2.4rem' },
-                letterSpacing: '-0.02em', lineHeight: 1.1, color: 'text.primary',
-              }}>
-                Trips
-              </Typography>
-              <Typography sx={{ mt: 1, fontSize: 15, color: 'text.secondary' }}>
-                Every journey you're dreaming, drafting, and sharing - all in one place.
-              </Typography>
-            </Box>
-            <Button variant="contained" startIcon={<IconPlus size={16} />} onClick={() => setCreateTripOpen(true)} sx={{ flexShrink: 0 }}>
-              New trip
-            </Button>
-          </Box>
+          <PageHeader
+            title="Trips"
+            subtitle="Every journey you're dreaming, drafting, and sharing - all in one place."
+            sx={{ mb: { xs: 3, md: 4 } }}
+            action={
+              <Button variant="contained" startIcon={<IconPlus size={16} />} onClick={() => setCreateTripOpen(true)}>
+                New trip
+              </Button>
+            }
+          />
         </motion.div>
 
         {/* ── Split view: scrollable content left, sticky globe right (lg+) ── */}
@@ -532,11 +527,16 @@ const Dashboard: React.FC = () => {
             aria-label="trip tabs"
             sx={{ minHeight: 44, borderBottom: `1px solid ${theme.custom.surface.border}` }}
           >
-            <Tab disableRipple label={`All Trips${allPlansWithDemo.length ? ` · ${allPlansWithDemo.length}` : ''}`} />
+            {/* Order follows the workflow: what you own, what you were invited
+                to, what you shipped - then the two collection lists that moved
+                here off the profile, then the archive. */}
+            <Tab disableRipple label={`All Trips${allPlans.length ? ` · ${allPlans.length}` : ''}`} />
             <Tab disableRipple label={`My Trips${myTrips.length ? ` · ${myTrips.length}` : ''}`} />
             <Tab disableRipple label={`Shared with Me${sharedTrips.length ? ` · ${sharedTrips.length}` : ''}`} />
             <Tab disableRipple label={`Published${publishedTrips.length ? ` · ${publishedTrips.length}` : ''}`} />
-            <Tab disableRipple label={`Saved Trips${savedPlans.length ? ` · ${savedPlans.length}` : ''}`} />
+            <Tab disableRipple label={`Saved${savedPlans.length ? ` · ${savedPlans.length}` : ''}`} />
+            <Tab disableRipple label={`Liked${likedPlans.length ? ` · ${likedPlans.length}` : ''}`} />
+            <Tab disableRipple label={`Archived${archivedTrips.length ? ` · ${archivedTrips.length}` : ''}`} />
           </Tabs>
           <Box sx={{
             mt: 3,
@@ -604,6 +604,7 @@ const Dashboard: React.FC = () => {
                 onDelete={plan.isOwner ? () => setDeleteTarget({ id: plan.id, title: plan.title }) : undefined}
                 tripStatus={plan.tripStatus}
                 isOwner={plan.isOwner}
+                commentsCount={plan.commentsCount}
                 onGoLive={plan.isOwner && plan.tripStatus === 0 ? async () => {
                   if (!token) return;
                   await apiServices.setTripStatus(token, plan.id, 1);

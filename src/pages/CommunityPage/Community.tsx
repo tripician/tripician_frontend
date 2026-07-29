@@ -28,6 +28,7 @@ import { VIBES } from './vibes';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { apiServices } from '../../services/APIs/apiServices';
 import { fetchUnsplashImage } from '../../services/unsplashService';
+import { tripCoverPhoto, savedBanner, resolveTripCover } from '../../utils/tripCover';
 import blogsData from '../../assets/blogs/blogs.json';
 import Seo from '../../components/Seo';
 import { tripPath } from '../../utils/tripSlug';
@@ -35,6 +36,7 @@ import SectionHeader from '../../components/ui/SectionHeader';
 import EmptyState from '../../components/ui/EmptyState';
 import ErrorState from '../../components/ui/ErrorState';
 import { CardGridSkeleton } from '../../components/ui/Skeletons';
+import PageHeader from '../../components/ui/PageHeader';
 import { staggerContainer, staggerItem, tabContent } from '../../utils/animations';
 
 // ── constants ──────────────────────────────────────────────────────────────
@@ -56,16 +58,18 @@ const CATEGORIES: { id: string; label: string; Icon: React.ElementType }[] = [
 
 // ── small shared pieces ────────────────────────────────────────────────────
 
-/** Resolves a display photo for a trip: own cover photo first, Unsplash fallback. */
+/**
+ * Resolves a display photo for a trip. Delegates to utils/tripCover so this grid,
+ * the dashboard and the trip's own hero cannot drift onto different photos.
+ */
 const useTripPhoto = (trip: any) => {
-  const cover = trip?.bannerPhotoUrl || trip?.BannerPhotoUrl || trip?.photoUrl || trip?.PhotoUrl || null;
-  const [photo, setPhoto] = React.useState<string | null>(cover);
+  const cover = savedBanner(trip);
+  const [photo, setPhoto] = React.useState<string | null>(() => tripCoverPhoto(trip));
   React.useEffect(() => {
     if (!trip) return;
     if (cover) { setPhoto(cover); return; }
     let cancelled = false;
-    const query = (trip.countries?.[0] || trip.name || 'travel landscape').split(',')[0];
-    fetchUnsplashImage(query).then(url => { if (!cancelled && url) setPhoto(url); });
+    resolveTripCover(trip).then(url => { if (!cancelled && url) setPhoto(url); });
     return () => { cancelled = true; };
   }, [trip, cover]);
   return photo;
@@ -193,7 +197,7 @@ const FeatureTripCard: React.FC<{ trip: any; onClick: () => void }> = ({ trip, o
           </Typography>
         )}
         {metaLine && (
-          <Typography noWrap sx={{ fontSize: 13, fontWeight: 550, color: 'text.secondary' }}>
+          <Typography noWrap sx={{ fontSize: 13, fontWeight: 500, color: 'text.secondary' }}>
             {metaLine}
           </Typography>
         )}
@@ -268,7 +272,7 @@ const BlogCard: React.FC<{ blog: any; onNavigate: (path: string) => void }> = ({
             {blog.tag}
           </Typography>
         )}
-        <Typography noWrap sx={{ fontSize: 15, fontWeight: 650, letterSpacing: '-0.01em', color: 'text.primary' }}>
+        <Typography noWrap sx={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: 'text.primary' }}>
           {blog.city}, {blog.country}
         </Typography>
         {blog.description && (
@@ -281,7 +285,7 @@ const BlogCard: React.FC<{ blog: any; onNavigate: (path: string) => void }> = ({
         )}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, color: 'text.disabled', mt: 'auto', pt: 1 }}>
           <IconClock size={13} stroke={1.9} />
-          <Typography sx={{ fontSize: 12, fontWeight: 550 }}>{blog.readTime}</Typography>
+          <Typography sx={{ fontSize: 12, fontWeight: 500 }}>{blog.readTime}</Typography>
         </Box>
       </Box>
     </Box>
@@ -377,9 +381,14 @@ const Community: React.FC = () => {
     return () => { active = false; };
   }, []);
 
-  // Filter logic - default view ranks by community engagement so "Trending" is real
+  // Default view ranks by community engagement so "Trending" is real.
+  // Comments weigh heaviest: writing a reply costs far more than tapping a heart,
+  // so a trip people are actually discussing deserves to surface above one that
+  // simply collected likes.
   const engagementScore = (t: any) =>
-    (Number(t.likesCount ?? t.likes) || 0) + 2 * (Number(t.cloneCount) || 0);
+    (Number(t.likesCount ?? t.likes) || 0)
+    + 2 * (Number(t.cloneCount) || 0)
+    + 3 * (Number(t.commentsCount ?? t.CommentsCount) || 0);
 
   const filtered = React.useMemo(() => {
     let list = trips;
@@ -442,14 +451,18 @@ const Community: React.FC = () => {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+      {/* Nav label, page H1 and this title used to be three different words -
+          "Community", "Explore" and "Discover" - for one destination, with a
+          fourth copy of the same feed living at /discover. All four now say
+          Community. */}
       <Seo
-        title="Discover Trips, Travelers & Itineraries"
-        description="Explore real travel itineraries published by the Tripician community - trending journeys, travel companions, templates, and guides for your next adventure."
+        title="Community - Real Trips from Travellers"
+        description="Real itineraries published by the travellers who took them. Browse the community's trips, find people who travel like you, and copy any plan into your own."
         path="/community"
         jsonLd={{
           '@context': 'https://schema.org',
           '@type': 'CollectionPage',
-          name: 'Tripician Community - Trip Discovery',
+          name: 'Tripician Community',
           url: 'https://tripician.com/community',
           description: 'Real travel itineraries, trending journeys, and travel companions from the Tripician community.',
         }}
@@ -460,17 +473,10 @@ const Community: React.FC = () => {
 
           {/* ── Page header ── */}
           <motion.div variants={staggerItem}>
-            <Typography component="h1" sx={{
-              fontFamily: theme.custom.fontDisplay,
-              fontWeight: 700,
-              fontSize: { xs: '1.9rem', md: '2.4rem' },
-              letterSpacing: '-0.02em', lineHeight: 1.1, color: 'text.primary',
-            }}>
-              Explore
-            </Typography>
-            <Typography sx={{ mt: 1, fontSize: 15, color: 'text.secondary', maxWidth: 560 }}>
-              Real itineraries from travelers around the world.
-            </Typography>
+            <PageHeader
+              title="Community"
+              subtitle="Real itineraries, published by the travellers who took them."
+            />
           </motion.div>
 
           {/* ── View tabs ── */}
@@ -550,7 +556,7 @@ const Community: React.FC = () => {
                           : activeCategory === 'all' ? 'Trending journeys' : `${activeCategoryLabel} trips`}
                         subtitle={search.trim()
                           ? `${filtered.length} ${filtered.length === 1 ? 'trip matches' : 'trips match'} “${search.trim()}”`
-                          : `${filtered.length} published ${filtered.length === 1 ? 'itinerary' : 'itineraries'}, ranked by community engagement`}
+                          : `${filtered.length} ${filtered.length === 1 ? 'trip' : 'trips'} from travellers, ranked by what people are discussing`}
                       />
                       <Box sx={gridSx}>
                         <AnimatePresence mode="popLayout">
@@ -592,7 +598,7 @@ const Community: React.FC = () => {
                     <Box sx={{ mt: { xs: 5, md: 6 } }}>
                       <SectionHeader
                         title="Travelers right now"
-                        subtitle="People planning and publishing trips at this moment"
+                        subtitle="People who published trips"
                         action={
                           <Button variant="text" size="small" endIcon={<IconArrowRight size={15} />} onClick={() => setActiveView('crew')}>
                             See all
@@ -617,7 +623,7 @@ const Community: React.FC = () => {
                               {!t.avatar && (t.name || 'E').charAt(0).toUpperCase()}
                             </Avatar>
                             <Box sx={{ minWidth: 0 }}>
-                              <Typography noWrap sx={{ fontSize: 13, fontWeight: 650, color: 'text.primary', maxWidth: 130 }}>
+                              <Typography noWrap sx={{ fontSize: 13, fontWeight: 600, color: 'text.primary', maxWidth: 130 }}>
                                 {(t.name || 'Explorer').split(' ')[0]}
                               </Typography>
                               <Typography noWrap sx={{ fontSize: 11.5, color: 'text.secondary', maxWidth: 130 }}>
@@ -721,7 +727,7 @@ const Community: React.FC = () => {
                                 {!t.avatar && (t.name || 'E').charAt(0).toUpperCase()}
                               </Avatar>
                               <Box sx={{ flex: 1, minWidth: 0 }}>
-                                <Typography noWrap className="crew-name" sx={{ fontSize: 14.5, fontWeight: 650, color: 'text.primary', transition: 'color 120ms' }}>
+                                <Typography noWrap className="crew-name" sx={{ fontSize: 14.5, fontWeight: 600, color: 'text.primary', transition: 'color 120ms' }}>
                                   {t.name || 'Explorer'}
                                 </Typography>
                                 <Typography noWrap sx={{ fontSize: 12, color: 'text.secondary' }}>

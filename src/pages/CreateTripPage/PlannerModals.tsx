@@ -15,6 +15,7 @@ import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import NightsStayRoundedIcon from '@mui/icons-material/NightsStayRounded';
 import type { PlannerDestination, PlannerSpot } from '../../store/plannerSlice';
+import ProvenanceChip from '../../components/CommonComponents/ProvenanceChip';
 
 const GOOGLE_LOGO = import.meta.env.VITE_GOOGLE_LOGO
   || 'https://developers.google.com/static/maps/documentation/images/google_on_white.png';
@@ -117,7 +118,7 @@ export const DiscoverSheet: React.FC<DiscoverSheetProps> = ({
               <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#FF385C', mb: 0.4 }}>
                 Curate your day
               </Typography>
-              <Typography sx={{ fontWeight: 800, fontSize: 18, lineHeight: 1.2, letterSpacing: '-0.35px' }}>
+              <Typography sx={{ fontWeight: 700, fontSize: 18, lineHeight: 1.2, letterSpacing: '-0.35px' }}>
                 {displayTitle}
               </Typography>
               {planTitle && pd?.name && (
@@ -241,6 +242,19 @@ export const DiscoverSheet: React.FC<DiscoverSheetProps> = ({
             </Typography>
           </Box>
         )}
+        {/* Verification receipt: state plainly how much of this list we could confirm. */}
+        {tab === 'spots' && spots.some((s: PlannerSpot) => s.provenance) && (() => {
+          const withProvenance = spots.filter((s: PlannerSpot) => s.provenance);
+          const verified = withProvenance.filter((s: PlannerSpot) => s.provenance === 'verified').length;
+          const unchecked = withProvenance.length - verified;
+          return (
+            <Typography sx={{ fontSize: 11, color: 'text.secondary', pb: 1, pt: 0.5, lineHeight: 1.5 }}>
+              {unchecked === 0
+                ? `All ${verified} place${verified === 1 ? '' : 's'} confirmed as real and open.`
+                : `${verified} of ${withProvenance.length} places confirmed. ${unchecked} had no listing to check.`}
+            </Typography>
+          );
+        })()}
         {tab === 'spots' && spots.map((s: PlannerSpot) => (
           <Box
             key={s.id}
@@ -258,13 +272,16 @@ export const DiscoverSheet: React.FC<DiscoverSheetProps> = ({
               </Box>
             )}
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography sx={{
-                fontSize: 14, fontWeight: 600, lineHeight: 1.3,
-                textDecoration: s.checked ? 'line-through' : 'none',
-                color: s.checked ? 'text.disabled' : 'text.primary',
-              }}>
-                {s.name}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, flexWrap: 'wrap' }}>
+                <Typography sx={{
+                  fontSize: 14, fontWeight: 600, lineHeight: 1.3,
+                  textDecoration: s.checked ? 'line-through' : 'none',
+                  color: s.checked ? 'text.disabled' : 'text.primary',
+                }}>
+                  {s.name}
+                </Typography>
+                <ProvenanceChip provenance={s.provenance} verifiedAt={s.verifiedAt} />
+              </Box>
               {s.description && (
                 <Typography sx={{ fontSize: 11, color: 'text.secondary', mt: 0.2, display: '-webkit-box', WebkitLineClamp: 1, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                   {s.description}
@@ -339,12 +356,20 @@ export interface StaySheetProps {
   onUpdateProperty: (stayId: string, patch: { name?: string; reference?: string }) => void;
   onDeleteProperty: (stayId: string) => void;
   onStayNotesChange: (notes: string) => void;
+  /** Google lodging search - the same flow the spots sheet uses for places. */
+  staySearch: string;
+  onStaySearchChange: (v: string) => void;
+  staySearchLoading: boolean;
+  stayPredictions: any[];
+  onAddStayFromPrediction: (p: any) => void;
   readOnly?: boolean;
 }
 
 export const StaySheet: React.FC<StaySheetProps> = ({
   open, onClose, destination: d, stays, stayNotes,
-  onAddProperty, onUpdateProperty, onDeleteProperty, onStayNotesChange, readOnly,
+  onAddProperty, onUpdateProperty, onDeleteProperty, onStayNotesChange,
+  staySearch, onStaySearchChange, staySearchLoading, stayPredictions, onAddStayFromPrediction,
+  readOnly,
 }) => {
   const planTitle = (d as PlannerDestination & { title?: string })?.title?.trim();
   const nights = d?.nights ?? 1;
@@ -374,7 +399,7 @@ export const StaySheet: React.FC<StaySheetProps> = ({
               <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: '#6366f1' }}>
                 Rest & recharge
               </Typography>
-              <Typography sx={{ fontWeight: 800, fontSize: 17, lineHeight: 1.2, letterSpacing: '-0.3px' }}>
+              <Typography sx={{ fontWeight: 700, fontSize: 17, lineHeight: 1.2, letterSpacing: '-0.3px' }}>
                 {planTitle || d?.name || 'Stay'}
               </Typography>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5 }}>
@@ -390,6 +415,59 @@ export const StaySheet: React.FC<StaySheetProps> = ({
       </Box>
 
       <Box sx={{ flex: 1, overflowY: 'auto', px: 2.5, py: 1.5, display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {/* Look the property up rather than typing it: picking from Google fills in
+            the name and leaves the map link as the booking reference. */}
+        {!readOnly && (
+          <Box>
+            <Box sx={{ position: 'relative' }}>
+              <InputBase
+                value={staySearch}
+                onChange={e => onStaySearchChange(e.target.value)}
+                placeholder={`Search stays in ${d?.name || 'this area'}…`}
+                fullWidth
+                startAdornment={<SearchIcon sx={{ fontSize: 18, mr: 1, color: 'text.disabled' }} />}
+                sx={(t) => ({
+                  fontSize: 14, py: 1, px: 1.5, borderRadius: '14px',
+                  bgcolor: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : '#f8fafc',
+                  border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}`,
+                  '&:focus-within': { borderColor: 'rgba(99,102,241,0.45)', boxShadow: '0 0 0 3px rgba(99,102,241,0.10)' },
+                })}
+              />
+              {staySearchLoading && <LinearProgress sx={{ position: 'absolute', left: 8, right: 8, bottom: 0, height: 2, borderRadius: 1 }} />}
+            </Box>
+
+            {stayPredictions.length > 0 && (
+              <Box sx={{ mt: 1, display: 'flex', flexDirection: 'column', gap: 0.5 }}>
+                {stayPredictions.slice(0, 4).map(p => (
+                  <Box
+                    key={p.place_id}
+                    onClick={() => onAddStayFromPrediction(p)}
+                    sx={(t) => ({
+                      px: 1.25, py: 0.85, borderRadius: '10px', cursor: 'pointer',
+                      border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
+                      '&:hover': { bgcolor: 'rgba(99,102,241,0.06)', borderColor: 'rgba(99,102,241,0.3)' },
+                    })}
+                  >
+                    <Typography noWrap sx={{ fontSize: 13, fontWeight: 600 }}>
+                      {p.structured_formatting?.main_text || p.description?.split(',')[0] || p.description}
+                    </Typography>
+                    {(p.structured_formatting?.secondary_text || p.description) && (
+                      <Typography noWrap sx={{ fontSize: 11, color: 'text.secondary' }}>
+                        {p.structured_formatting?.secondary_text || p.description}
+                      </Typography>
+                    )}
+                  </Box>
+                ))}
+              </Box>
+            )}
+
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, opacity: 0.55, mt: 0.85 }}>
+              <Box component='img' alt='Google' src={GOOGLE_LOGO} sx={{ height: 11 }} />
+              <Typography sx={{ fontSize: 9.5, color: 'text.secondary' }}>Stay search powered by Google</Typography>
+            </Box>
+          </Box>
+        )}
+
         {stays.length === 0 && (
           <Box sx={(t) => ({
             textAlign: 'center', py: 3.5, px: 2, borderRadius: '16px',
@@ -450,7 +528,7 @@ export const StaySheet: React.FC<StaySheetProps> = ({
             })}
           >
             <AddRoundedIcon sx={{ fontSize: 18 }} />
-            Add another property
+            {stays.length === 0 ? 'Add a property manually' : 'Add another property'}
           </Box>
         )}
 

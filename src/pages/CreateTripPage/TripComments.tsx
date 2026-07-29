@@ -237,7 +237,7 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
   return (
     <Box sx={{ display:'flex', flexDirection:'column', height:'100%', position:'relative', pt:2, px:{ xs:2.5, xl:3 } }}>
       <Box sx={{ maxWidth:900, width:'100%', mx:'auto', display:'flex', alignItems:'center', justifyContent:'space-between', mb:0.5 }}>
-        <Typography variant='h6' sx={{ fontSize:17, fontWeight:650, letterSpacing:'-.3px' }}>Comments</Typography>
+        <Typography variant='h6' sx={{ fontSize:17, fontWeight: 600, letterSpacing:'-.3px' }}>Comments</Typography>
         <Chip size='small' label={`${sorted.length} comment${sorted.length===1?'':'s'}`} sx={{ fontWeight:500, fontSize:12, bgcolor:(t)=> t.palette.mode==='dark'? '#1d2731':'#f3f4f6' }} />
       </Box>
       <Typography sx={{ maxWidth:900, width:'100%', mx:'auto', fontSize:11.5, color:'text.secondary', mb:1.5 }}>

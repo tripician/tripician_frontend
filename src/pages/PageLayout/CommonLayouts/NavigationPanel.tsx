@@ -16,7 +16,14 @@ interface Props {
   children: React.ReactNode;
 }
 
-const MORE_NAV_IDS = ['risk'];
+/*
+ * Everything that is not in the bottom bar.
+ *
+ * `profile` was in neither: not the bottom nav, not this sheet, and not the
+ * account popover - so below the lg breakpoint the profile page was reachable
+ * only by typing the URL. A page you cannot navigate to is not a page.
+ */
+const MORE_NAV_IDS = ['risk', 'profile'];
 
 const NavigationPannel: React.FC<Props> = ({ children }) => {
   const navigate = useNavigate();

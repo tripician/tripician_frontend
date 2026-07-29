@@ -19,17 +19,32 @@ import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { generateTripBrief, NaviaRequestError } from '../../navia/naviaService';
 import NaviaOrb from '../../navia/NaviaOrb';
+import { VIBES as SHARED_VIBES } from '../CommunityPage/vibes';
+import { IconCamera, IconWorld, IconCrown } from '@tabler/icons-react';
 
-/*  Vibe cards  */
-const VIBES = [
-  { id: 'adventure', label: 'Adventure Junkie',  emoji: '🏔️', desc: 'Trails, peaks & adrenaline',        tagline: 'Born for the wild',          bg: '#F0FDF4', activeBg: 'linear-gradient(135deg,#059669,#047857)', activeColor: '#fff', activeBorder: '#059669' },
-  { id: 'culture',   label: 'Culture Seeker',    emoji: '🏛️', desc: 'History, art & local stories',      tagline: 'Every place has a tale',     bg: '#F5F3FF', activeBg: 'linear-gradient(135deg,#7C3AED,#5B21B6)', activeColor: '#fff', activeBorder: '#7C3AED' },
-  { id: 'romantic',  label: 'Party Lover',       emoji: '🎉', desc: 'Vibes, music & movement',            tagline: 'Life is a dance floor',      bg: '#FFF1F2', activeBg: 'linear-gradient(135deg,#FF385C,#D91A50)', activeColor: '#fff', activeBorder: '#FF385C' },
-  { id: 'luxury',    label: 'Slow Traveler',     emoji: '🌸', desc: 'Wander without a rush',              tagline: 'The journey is the goal',    bg: '#FFFBEB', activeBg: 'linear-gradient(135deg,#D97706,#B45309)', activeColor: '#fff', activeBorder: '#D97706' },
-  { id: 'spiritual', label: 'Spiritual Explorer',emoji: '🕌', desc: 'Temples, peace & inner purpose',     tagline: 'Travel as transformation',   bg: '#FEFCE8', activeBg: 'linear-gradient(135deg,#CA8A04,#A16207)', activeColor: '#fff', activeBorder: '#CA8A04' },
-  { id: 'urban',     label: 'Urban Explorer',    emoji: '🌆', desc: 'City breaks & hidden gems',          tagline: 'The city never sleeps',      bg: '#EFF6FF', activeBg: 'linear-gradient(135deg,#2563EB,#1D4ED8)', activeColor: '#fff', activeBorder: '#2563EB' },
-  { id: 'scenic',    label: 'Scenic Chaser',     emoji: '🌅', desc: 'Landscapes & golden hours',          tagline: 'Always chasing sunsets',     bg: '#ECFDF5', activeBg: 'linear-gradient(135deg,#10B981,#059669)', activeColor: '#fff', activeBorder: '#10B981' },
-];
+/*  Vibe cards
+ *
+ * Labels and icons come from the shared VIBES map so the planner, the community
+ * cards and the filter chips can never disagree about what a vibe is called or
+ * looks like - this list used to carry its own emoji and its own wording.
+ * Everything below is presentation this dialog alone needs.
+ */
+const VIBE_COPY: Record<string, { desc: string; tagline: string; bg: string; activeBg: string; activeColor: string; activeBorder: string }> = {
+  adventure: { desc: 'Trails, peaks & adrenaline',    tagline: 'Born for the wild',       bg: '#F0FDF4', activeBg: 'linear-gradient(135deg,#059669,#047857)', activeColor: '#fff', activeBorder: '#059669' },
+  culture:   { desc: 'History, art & local stories',  tagline: 'Every place has a tale',  bg: '#F5F3FF', activeBg: 'linear-gradient(135deg,#7C3AED,#5B21B6)', activeColor: '#fff', activeBorder: '#7C3AED' },
+  romantic:  { desc: 'Vibes, music & movement',       tagline: 'Life is a dance floor',   bg: '#FFF1F2', activeBg: 'linear-gradient(135deg,#FF385C,#D91A50)', activeColor: '#fff', activeBorder: '#FF385C' },
+  luxury:    { desc: 'Wander without a rush',         tagline: 'The journey is the goal', bg: '#FFFBEB', activeBg: 'linear-gradient(135deg,#D97706,#B45309)', activeColor: '#fff', activeBorder: '#D97706' },
+  spiritual: { desc: 'Temples, peace & inner purpose',tagline: 'Travel as transformation',bg: '#FEFCE8', activeBg: 'linear-gradient(135deg,#CA8A04,#A16207)', activeColor: '#fff', activeBorder: '#CA8A04' },
+  urban:     { desc: 'City breaks & hidden gems',     tagline: 'The city never sleeps',   bg: '#EFF6FF', activeBg: 'linear-gradient(135deg,#2563EB,#1D4ED8)', activeColor: '#fff', activeBorder: '#2563EB' },
+  scenic:    { desc: 'Landscapes & golden hours',     tagline: 'Always chasing sunsets',  bg: '#ECFDF5', activeBg: 'linear-gradient(135deg,#10B981,#059669)', activeColor: '#fff', activeBorder: '#10B981' },
+};
+
+const VIBES = Object.entries(SHARED_VIBES).map(([id, v]) => ({
+  id,
+  label: v.label,
+  Icon: v.Icon,
+  ...VIBE_COPY[id],
+}));
 
 interface Member { id: string; name: string; handle: string; email?: string; avatar?: string; role: 'Owner' | 'Editor' | 'Viewer'; }
 
@@ -486,7 +501,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                 <Box sx={{ width: 5, height: 5, borderRadius: '50%', background: primary, flexShrink: 0 }} />
                 <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: primary, fontFamily: "'Inter', sans-serif" }}>Trip Settings</Typography>
               </Box>
-              <Typography sx={(t: any) => ({ fontFamily: "'Playfair Display', serif", fontWeight: 800, fontSize: { xs: '1.5rem', md: '1.75rem' }, color: t.palette.mode === 'dark' ? '#fff' : '#111', lineHeight: 1.1, letterSpacing: '-0.03em', maxWidth: 340, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })}>
+              <Typography sx={(t: any) => ({ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: { xs: '1.5rem', md: '1.75rem' }, color: t.palette.mode === 'dark' ? '#fff' : '#111', lineHeight: 1.1, letterSpacing: '-0.03em', maxWidth: 340, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })}>
                 {title || 'Untitled Trip'}
               </Typography>
             </Box>
@@ -548,7 +563,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                   <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top,rgba(0,0,0,0.52) 0%,transparent 58%)', pointerEvents: 'none' }} />
                   <Box className="ban-ovr" sx={{ position: 'absolute', inset: 0, opacity: 0, transition: 'opacity 0.2s', background: 'rgba(0,0,0,0.34)', backdropFilter: 'blur(4px)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, px: 2.5, py: 1, borderRadius: 20, background: 'rgba(255,255,255,0.92)', color: '#111', fontSize: 12.5, fontWeight: 700, boxShadow: '0 4px 16px rgba(0,0,0,0.18)' }}>
-                      📷&nbsp;Change cover
+                      <IconCamera size={14} stroke={1.8} style={{ marginRight: 6, verticalAlign: '-2px' }} />Change cover
                     </Box>
                   </Box>
                 </Box>
@@ -639,7 +654,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                         const emoji = flagEmojiFromName(c);
                         return (
                           <Box key={c} sx={{ display: 'flex', alignItems: 'center', gap: 0.4, pl: 0.75, pr: 0.5, py: 0.3, borderRadius: 20, fontSize: 12, fontWeight: 600, background: 'rgba(255,56,92,0.08)', border: '1px solid rgba(255,56,92,0.2)', color: primary, flexShrink: 0 }}>
-                            {png ? <Box component="img" src={png} alt="" sx={{ width: 16, height: 12, borderRadius: '2px', objectFit: 'cover' }} /> : <Box sx={{ fontSize: 14, lineHeight: 1 }}>{emoji || '🌍'}</Box>}
+                            {png ? <Box component="img" src={png} alt="" sx={{ width: 16, height: 12, borderRadius: '2px', objectFit: 'cover' }} /> : <Box sx={{ fontSize: 14, lineHeight: 1, display: 'flex' }}>{emoji || <IconWorld size={14} stroke={1.7} />}</Box>}
                             {c}
                             <Box component="span" onClick={(e: any) => { e.stopPropagation(); onRemoveCountry?.(c); }} sx={{ display: 'flex', alignItems: 'center', ml: 0.2, cursor: 'pointer', opacity: 0.5, '&:hover': { opacity: 1 }, fontSize: 15, lineHeight: 1 }}>×</Box>
                           </Box>
@@ -663,7 +678,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                             const emoji = flagEmojiFromName(name);
                             return (
                               <Box key={name} onClick={() => { onAddCountry?.(name); setCountrySearch(''); setCountryDropOpen(false); }} sx={(t: any) => ({ display: 'flex', alignItems: 'center', gap: 1, px: 1.5, py: 0.9, fontSize: 13, cursor: 'pointer', '&:hover': { background: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(255,56,92,0.05)' } })}>
-                                {png ? <Box component="img" src={png} alt="" sx={{ width: 20, height: 15, borderRadius: '2px', objectFit: 'cover', flexShrink: 0 }} /> : <Box sx={{ fontSize: 16, lineHeight: 1 }}>{emoji || '🌍'}</Box>}
+                                {png ? <Box component="img" src={png} alt="" sx={{ width: 20, height: 15, borderRadius: '2px', objectFit: 'cover', flexShrink: 0 }} /> : <Box sx={{ fontSize: 16, lineHeight: 1, display: 'flex' }}>{emoji || <IconWorld size={16} stroke={1.7} />}</Box>}
                                 {name}
                               </Box>
                             );
@@ -715,7 +730,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                 {/* Active vibe banner */}
                 {vibe && activeVibeData && (
                   <Box sx={{ mb: 0.5, borderRadius: '14px', background: activeVibeData.activeBg, p: '12px 18px', display: 'flex', alignItems: 'center', gap: 1.5, boxShadow: `0 6px 20px ${activeVibeData.activeBorder}40` }}>
-                    <Typography sx={{ fontSize: '1.8rem', lineHeight: 1, flexShrink: 0 }}>{activeVibeData.emoji}</Typography>
+                    <activeVibeData.Icon size={26} stroke={1.6} color="#fff" style={{ flexShrink: 0 }} />
                     <Box sx={{ flex: 1 }}>
                       <Typography sx={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: '0.95rem', color: '#fff', lineHeight: 1.2 }}>{activeVibeData.label}</Typography>
                       <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.72)', fontFamily: "'Inter', sans-serif", mt: 0.2, fontStyle: 'italic' }}>{activeVibeData.tagline}</Typography>
@@ -746,7 +761,9 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                           '&:hover': !selected ? { border: `2px solid ${v.activeBorder}60`, background: v.bg, transform: 'translateY(-2px)', boxShadow: `0 6px 18px ${v.activeBorder}20` } : {},
                         }}
                       >
-                        <Typography sx={{ fontSize: '1.7rem', lineHeight: 1, mb: 0.7 }}>{v.emoji}</Typography>
+                        <Box sx={{ display: 'flex', justifyContent: 'center', mb: 0.7 }}>
+                          <v.Icon size={24} stroke={1.6} color={selected ? v.activeColor : v.activeBorder} />
+                        </Box>
                         <Typography sx={{ fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '0.69rem', color: selected ? '#fff' : '#333', lineHeight: 1.3 }}>{v.label}</Typography>
                         <Typography sx={{ fontSize: '0.58rem', color: selected ? 'rgba(255,255,255,0.72)' : '#AAAAAA', fontFamily: "'Inter', sans-serif", mt: 0.3, lineHeight: 1.3 }}>{v.desc}</Typography>
                       </Box>
@@ -784,7 +801,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                               sx={{ width: 38, height: 38, fontWeight: 700, fontSize: 13, bgcolor: isOwner ? primary : '#6b7280', border: isOwner ? `2.5px solid ${primary}` : '2.5px solid transparent', boxShadow: isOwner ? '0 0 0 2px rgba(255,56,92,0.25)' : 'none' }}
                             >{m.name?.[0]?.toUpperCase() ?? '?'}</Avatar>
                             {isOwner && (
-                              <Box sx={{ position: 'absolute', bottom: -2, right: -2, width: 14, height: 14, borderRadius: '50%', background: 'linear-gradient(135deg,#FF385C,#E31C5F)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}>👑</Box>
+                              <Box sx={{ position: 'absolute', bottom: -2, right: -2, width: 14, height: 14, borderRadius: '50%', background: 'linear-gradient(135deg,#FF385C,#E31C5F)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 8, boxShadow: '0 1px 4px rgba(0,0,0,0.2)' }}><IconCrown size={8} stroke={2.2} color='#fff' /></Box>
                             )}
                           </Box>
                           <Box sx={{ flex: 1, minWidth: 0 }}>
@@ -829,7 +846,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
               variant="contained"
               onClick={() => window.dispatchEvent(new CustomEvent('trip:settings:save'))}
               sx={{
-                textTransform: 'none', fontWeight: 800, fontSize: 14,
+                textTransform: 'none', fontWeight: 700, fontSize: 14,
                 borderRadius: 20, px: 4, py: 1,
                 background: 'linear-gradient(135deg,#FF385C,#E31C5F)',
                 boxShadow: '0 6px 20px rgba(255,56,92,0.35)',
@@ -878,7 +895,7 @@ function FieldBlock({ label, children, action }: { label: string; children: Reac
   return (
     <Box>
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mb: 0.85 }}>
-        <Typography sx={{ fontSize: 10.5, fontWeight: 800, textTransform: 'uppercase', letterSpacing: '1.1px', color: 'text.disabled' }}>
+        <Typography sx={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '1.1px', color: 'text.disabled' }}>
           {label}
         </Typography>
         {action}

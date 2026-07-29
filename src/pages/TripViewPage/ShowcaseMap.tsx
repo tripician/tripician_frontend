@@ -1,6 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
+import { greatCircle, isUsableCoord, routeBounds, type LngLat } from '../../utils/geo';
+import { makeStopMarker } from '../../components/map/stopMarker';
+import { BRAND } from '../../theme';
 import { Box, Typography, useTheme } from '@mui/material';
 
 export interface ShowcaseStop {
@@ -16,27 +19,6 @@ interface ShowcaseMapProps {
 const MAP_STYLE_LIGHT = 'mapbox://styles/mapbox/streets-v12';
 const MAP_STYLE_DARK = 'mapbox://styles/mapbox/navigation-night-v1';
 
-function makeMarkerEl(index: number): HTMLElement {
-  const num = index + 1;
-  const el = document.createElement('div');
-  el.style.width = '32px';
-  el.style.height = '40px';
-  el.innerHTML = `
-    <svg xmlns="http://www.w3.org/2000/svg" width="32" height="40" viewBox="0 0 36 44">
-      <defs>
-        <radialGradient id="sgrad${num}" cx="42%" cy="35%" r="58%" fx="42%" fy="35%">
-          <stop offset="0%" stop-color="#FF6B89"/>
-          <stop offset="100%" stop-color="#D91A50"/>
-        </radialGradient>
-      </defs>
-      <ellipse cx="18" cy="42" rx="7" ry="2.5" fill="rgba(0,0,0,0.18)"/>
-      <path d="M18 2C11.4 2 6 7.4 6 14c0 8 12 26 12 26S30 22 30 14C30 7.4 24.6 2 18 2z" fill="url(#sgrad${num})"/>
-      <circle cx="18" cy="14" r="7.5" fill="rgba(255,255,255,0.2)" stroke="rgba(255,255,255,0.55)" stroke-width="1"/>
-      <text x="18" y="18.5" text-anchor="middle" font-family="Inter,system-ui,sans-serif" font-weight="700" font-size="9.5" fill="#fff">${num}</text>
-    </svg>`;
-  return el;
-}
-
 /**
  * Read-only route map for the public trip showcase.
  * Stops come in as props (no Redux), markers + fitted bounds, nothing editable.
@@ -49,7 +31,13 @@ const ShowcaseMap: React.FC<ShowcaseMapProps> = ({ stops }) => {
   const [error, setError] = useState<string | null>(null);
 
   const token = import.meta.env.VITE_MAPBOX_TOKEN as string | undefined;
-  const withCoords = stops.filter(s => s.lat != null && s.lng != null);
+  // `!= null` admitted 0, which put a failed geocode at Null Island and then
+  // stretched the camera across two hemispheres to fit it. Index is kept so the
+  // marker numbers match the itinerary rather than the filtered list.
+  const indexed = stops
+    .map((s, index) => ({ s, index }))
+    .filter(({ s }) => isUsableCoord(s.lat, s.lng));
+  const withCoords = indexed.map(({ s }) => s);
 
   useEffect(() => {
     if (!token) { setError('Map unavailable'); return; }
@@ -75,17 +63,71 @@ const ShowcaseMap: React.FC<ShowcaseMapProps> = ({ stops }) => {
     map.on('error', () => setError('Map unavailable'));
 
     map.on('load', () => {
-      withCoords.forEach((s, idx) => {
-        new mapboxgl.Marker({ element: makeMarkerEl(idx) })
+      // Numbered by position in the itinerary, not among the mappable stops, so
+      // the numbers match the ones on the page.
+      indexed.forEach(({ s, index }) => {
+        const el = makeStopMarker({ index });
+        new mapboxgl.Marker({ element: el })
           .setLngLat([s.lng!, s.lat!])
           .addTo(map);
       });
-      if (withCoords.length > 1) {
-        const bounds = new mapboxgl.LngLatBounds();
-        withCoords.forEach(s => bounds.extend([s.lng!, s.lat!]));
-        map.fitBounds(bounds, { padding: 48, maxZoom: 9, duration: 0 });
-      } else if (withCoords.length === 1) {
-        map.jumpTo({ center: [withCoords[0].lng!, withCoords[0].lat!], zoom: 7 });
+
+      /*
+       * Arcs only - this page never calls the Directions API.
+       *
+       * TripShowcase is public and crawlable, so bots and link-preview fetchers
+       * would spend the routing quota before any human saw the page, and they
+       * would do it on every published trip. The planner is behind auth and is
+       * where road geometry earns its cost. A geodesic arc still shows the shape
+       * of the journey, which is what this page is for.
+       */
+      if (indexed.length > 1) {
+        const features = [];
+        for (let i = 0; i < indexed.length - 1; i++) {
+          const a = indexed[i].s;
+          const b = indexed[i + 1].s;
+          features.push({
+            type: 'Feature' as const,
+            properties: {},
+            geometry: {
+              type: 'LineString' as const,
+              coordinates: greatCircle({ lat: a.lat!, lng: a.lng! }, { lat: b.lat!, lng: b.lng! }),
+            },
+          });
+        }
+        map.addSource('tp-showcase-route', {
+          type: 'geojson',
+          data: { type: 'FeatureCollection', features },
+        });
+        map.addLayer({
+          id: 'tp-showcase-route-casing',
+          type: 'line',
+          source: 'tp-showcase-route',
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: {
+            'line-color': isLight ? 'rgba(255,255,255,0.95)' : 'rgba(10,10,14,0.85)',
+            'line-width': 5,
+          },
+        });
+        map.addLayer({
+          id: 'tp-showcase-route-line',
+          type: 'line',
+          source: 'tp-showcase-route',
+          layout: { 'line-cap': 'round', 'line-join': 'round' },
+          paint: {
+            'line-color': BRAND.coral,
+            'line-width': 2,
+            'line-dasharray': [1.5, 1.5],
+            'line-opacity': 0.9,
+          },
+        });
+      }
+
+      if (indexed.length > 1) {
+        const box = routeBounds(indexed.map(({ s }) => [s.lng!, s.lat!] as LngLat));
+        if (box) map.fitBounds([[box[0], box[1]], [box[2], box[3]]], { padding: 48, maxZoom: 9, duration: 0 });
+      } else if (indexed.length === 1) {
+        map.jumpTo({ center: [indexed[0].s.lng!, indexed[0].s.lat!], zoom: 7 });
       }
     });
 

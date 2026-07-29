@@ -7,10 +7,11 @@ import {
   IconHeart,
   IconHeartFilled,
   IconMapPin,
+  IconMessageCircle2,
 } from '@tabler/icons-react';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { apiServices } from '../../services/APIs/apiServices';
-import { fetchUnsplashImage } from '../../services/unsplashService';
+import { tripCoverPhoto, savedBanner, resolveTripCover } from '../../utils/tripCover';
 import ImageBadge from '../../components/ui/ImageBadge';
 import { VIBES } from './vibes';
 
@@ -19,16 +20,19 @@ interface TripCardProps { trip: any; onClick: () => void; }
 /** Published-trip card used on the Community explore grid and traveler profiles. */
 const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
   const theme = useTheme();
-  const cover = trip.bannerPhotoUrl || trip.BannerPhotoUrl || trip.photoUrl || trip.PhotoUrl || null;
-  const [photo, setPhoto] = React.useState<string | null>(cover);
+  // Resolved through the shared helper so this card, the dashboard card and the
+  // trip's own hero all land on the same photo. See utils/tripCover.ts.
+  const cover = savedBanner(trip);
+  const [photo, setPhoto] = React.useState<string | null>(() => tripCoverPhoto(trip));
   const [imgFailed, setImgFailed] = React.useState(false);
 
   React.useEffect(() => {
     if (cover && !imgFailed) { setPhoto(cover); return; }
-    const query = (trip.countries?.[0] || trip.name || 'travel').split(',')[0];
     let cancelled = false;
-    fetchUnsplashImage(query).then(url => { if (!cancelled && url) setPhoto(url); });
+    resolveTripCover(imgFailed ? { ...trip, bannerPhotoUrl: null, BannerPhotoUrl: null, photoUrl: null, PhotoUrl: null } : trip)
+      .then(url => { if (!cancelled && url) setPhoto(url); });
     return () => { cancelled = true; };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [cover, trip.countries, trip.name, imgFailed]);
 
   const vibe = VIBES[trip.vibe?.toLowerCase?.()] || null;
@@ -58,6 +62,9 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
   const [cloneCount, setCloneCount] = React.useState(
     typeof trip.cloneCount === 'number' ? trip.cloneCount : 0
   );
+  const commentCount: number =
+    typeof trip.commentsCount === 'number' ? trip.commentsCount :
+    typeof trip.CommentsCount === 'number' ? trip.CommentsCount : 0;
 
   const handleClone = React.useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
@@ -112,7 +119,7 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
   const footerActionSx = {
     display: 'inline-flex', alignItems: 'center', gap: 0.5,
     border: 'none', bgcolor: 'transparent', p: 0.5, borderRadius: 999,
-    fontFamily: 'inherit', fontSize: 12.5, fontWeight: 650, lineHeight: 1,
+    fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, lineHeight: 1,
     color: 'text.secondary', cursor: 'pointer',
     transition: `color ${theme.custom.motion.duration.fast} ${theme.custom.motion.easing.standard}`,
     '&:hover': { color: 'primary.main' },
@@ -170,7 +177,7 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
 
         {/* Card body */}
         <Box sx={{ px: 1.75, pt: 1.5, pb: 1.5, display: 'flex', flexDirection: 'column', gap: 0.5, flex: 1 }}>
-          <Typography noWrap sx={{ fontSize: 15, fontWeight: 650, letterSpacing: '-0.01em', color: 'text.primary' }}>
+          <Typography noWrap sx={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: 'text.primary' }}>
             {trip.name || 'Untitled Trip'}
           </Typography>
           {metaLine && (
@@ -198,6 +205,20 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
+              {/* Comments sit first: the conversation on a trip is the point of a
+                  community, and it's the signal that invites someone to open it. */}
+              <Tooltip
+                title={commentCount > 0
+                  ? `${commentCount} ${commentCount === 1 ? 'comment' : 'comments'}`
+                  : 'Be the first to comment'}
+                arrow
+                placement="top"
+              >
+                <Box sx={{ ...footerActionSx, cursor: 'inherit' }}>
+                  <IconMessageCircle2 size={15} stroke={1.9} />
+                  {commentCount > 0 && commentCount}
+                </Box>
+              </Tooltip>
               <Tooltip title={cloneLoading ? 'Cloning…' : 'Use as template'} arrow placement="top">
                 <Box component="button" type="button" onClick={handleClone} sx={footerActionSx}>
                   <IconCopy size={15} stroke={1.9} />

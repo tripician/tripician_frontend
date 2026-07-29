@@ -275,35 +275,9 @@ export async function extractTripFromChat(
   return postNaviaJson<ChatTripExtract>('/api/navia/chat-to-trip', { planText, userPrompt }, token);
 }
 
-// ─── Plan review (whole-plan AI feedback) ───────────────────────────────────
-
-export interface PlanReviewIssue {
-  severity: 'high' | 'medium' | 'low';
-  category: string;
-  title: string;
-  detail: string;
-  suggestion: string;
-}
-
-export interface PlanReviewResult {
-  score: number;
-  verdict: string;
-  strengths: string[];
-  issues: PlanReviewIssue[];
-  quickWins: string[];
-}
-
-/**
- * Detailed AI review of the current plan (2 trip credits).
- * planSummary is a compact client-built snapshot so unsaved edits count too.
- */
-export async function reviewTripPlan(
-  tripId: string,
-  planSummary: string,
-  token?: string | null,
-): Promise<PlanReviewResult> {
-  return postNaviaJson<PlanReviewResult>('/api/navia/plan-review', { tripId, planSummary }, token);
-}
+// Plan review used to be a model call that graded the model's own output. It is
+// now pages/CreateTripPage/feasibility.ts - deterministic checks over real
+// distances and opening hours, which cost nothing and cannot hallucinate.
 
 // ─── Credits ────────────────────────────────────────────────────────────────
 
@@ -365,14 +339,16 @@ export const CREDIT_ACTION_LABELS: Record<string, string> = {
   plan_destination: 'Destination plan',
   suggest_itinerary: 'Route suggestion',
   trip_brief: 'Trip brief',
-  plan_review: 'AI plan review',
+  // Plan review no longer costs credits, but old ledger rows still reference it -
+  // keep the label so past entries read as words rather than a raw action key.
+  plan_review: 'Plan review',
   trial_grant: 'Welcome credits',
   refund_general_chat: 'Refund · Navia chat',
   refund_trip_chat: 'Refund · trip chat',
   refund_plan_destination: 'Refund · destination plan',
   refund_suggest_itinerary: 'Refund · route suggestion',
   refund_trip_brief: 'Refund · trip brief',
-  refund_plan_review: 'Refund · AI plan review',
+  refund_plan_review: 'Refund · plan review',
 };
 
 export function creditActionLabel(action: string): string {
@@ -385,8 +361,7 @@ export const CREDIT_PRICES: { label: string; cost: number; wallet: 'personal' | 
   { label: 'Navia chat message', cost: 1, wallet: 'personal' },
   { label: 'Trip chat message', cost: 1, wallet: 'trip' },
   { label: '@navia proposal in trip chat', cost: 2, wallet: 'trip' },
-  { label: 'AI destination plan', cost: 2, wallet: 'trip' },
-  { label: 'AI route suggestion', cost: 2, wallet: 'trip' },
-  { label: 'AI trip brief', cost: 1, wallet: 'trip' },
-  { label: 'AI plan review', cost: 2, wallet: 'trip' },
+  { label: 'Drafting a stop', cost: 2, wallet: 'trip' },
+  { label: 'Drafting a route', cost: 2, wallet: 'trip' },
+  { label: 'Writing a trip description', cost: 1, wallet: 'trip' },
 ];

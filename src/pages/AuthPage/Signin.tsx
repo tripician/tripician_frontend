@@ -10,6 +10,7 @@ import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../store';
 import { fadeInLeft, fadeInRight, staggerContainer, staggerItem } from '../../utils/animations';
 import { validateEmailFormat } from '../../utils/emailValidation';
+import Seo from '../../components/Seo';
 
 const GoogleSVG = () => (
   <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -77,9 +78,11 @@ const Signin = () => {
         password: formData.password
       };
 
-      console.log('Sending signin data:', signInData);
+      // Never log `signInData` or the response: the first is the user's password
+      // in plain text, the second carries the access and refresh tokens. The
+      // production build strips console calls, but dev consoles and screen
+      // shares are not a safe place for either.
       const response = await authAPI.signin(signInData);
-      console.log('SignIn response:', response);
 
       if (response.data?.success && response.data?.accessToken) {
         localStorage.setItem('accessToken', response.data.accessToken);
@@ -138,6 +141,15 @@ const Signin = () => {
 
   return (
     <div className="auth-root">
+      {/* This page had no title or description at all and inherited index.html's,
+          so every sign-in tab read as the marketing homepage. noindex because
+          robots.txt already disallows it - the two should agree. */}
+      <Seo
+        title="Sign in"
+        description="Sign in to Tripician to reach your trips, your crew and the itineraries you saved from the community."
+        path="/signin"
+        noindex
+      />
       {/*  Left brand pane  */}
       <motion.div
         className="auth-left"
@@ -162,16 +174,19 @@ const Signin = () => {
               : <><Plane size={20} /><span>Tripician</span></>
             }
           </motion.div>
+          {/* The brand pane says what you are signing back into. "150+ destinations
+              covered" was here and counted nothing - no such figure exists
+              anywhere in the product. */}
           <motion.h2 className="auth-left__title" variants={staggerItem}>
-            Plan Smarter.<br /><em>Travel Further.</em>
+            Welcome back to<br /><em>the community.</em>
           </motion.h2>
           <motion.p className="auth-left__sub" variants={staggerItem}>
-            Your AI-powered companion for every adventure.
+            Your trips, your crew, and every itinerary you saved.
           </motion.p>
           <motion.ul className="auth-left__perks" variants={staggerContainer(0.08, 0)}>
-            <motion.li variants={staggerItem}><MapPin size={14} /> Day-by-day itinerary planner</motion.li>
-            <motion.li variants={staggerItem}><Globe size={14} /> 150+ destinations covered</motion.li>
-            <motion.li variants={staggerItem}><Brain size={14} /> Smart AI trip suggestions</motion.li>
+            <motion.li variants={staggerItem}><Globe size={14} /> Real itineraries from travellers who took them</motion.li>
+            <motion.li variants={staggerItem}><MapPin size={14} /> Day-by-day planning with your crew</motion.li>
+            <motion.li variants={staggerItem}><Brain size={14} /> Every place checked against a live listing</motion.li>
           </motion.ul>
         </motion.div>
       </motion.div>

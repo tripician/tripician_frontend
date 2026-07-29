@@ -1,7 +1,6 @@
-﻿import { useLayoutEffect, useState, useEffect, useRef } from 'react';
+﻿import { useLayoutEffect, useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
-import { fetchUnsplashImage } from '../../services/unsplashService';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import {
@@ -19,11 +18,14 @@ import {
   IconShield,
   IconBolt,
   IconSparkles,
-  IconDownload,
 } from '@tabler/icons-react';
 import '../../assets/css/LandingPage.css';
 import Seo, { SITE_URL } from '../../components/Seo';
 import NaviaOrb from '../../navia/NaviaOrb';
+import LpPhoto from './LpPhoto';
+import { HERO_IMAGE, OG_IMAGE, DESTINATION_TILES, TICKER, PHOTO_CREDITS } from './landingImages';
+import { apiServices } from '../../services/APIs/apiServices';
+import { tripPath } from '../../utils/tripSlug';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -36,13 +38,13 @@ const FEATURES = [
   },
   {
     icon: <IconUsers size={24} stroke={1.75} />,
-    title: 'Group Chat + AI Co-Planning',
+    title: 'One chat, one plan',
     desc: 'Every trip gets a shared chat where friends, family, and Navia plan together. Type @navia to propose changes, discuss them, and apply updates to the itinerary.',
   },
   {
     icon: <NaviaOrb size={24} />,
-    title: "World's First Agentic Travel AI",
-    desc: 'Give Navia a destination and it drafts the whole trip - route, stops, spots, and local food. Then it stays in the room: reading context, proposing edits, and applying what your group approves.',
+    title: 'Every place checked before you see it',
+    desc: 'Navia drafts the route, stops, spots and local food - then each place is matched against a live listing. Anything permanently closed is dropped, and anything we could not confirm says so.',
   },
   {
     icon: <IconShield size={24} stroke={1.75} />,
@@ -51,8 +53,8 @@ const FEATURES = [
   },
   {
     icon: <IconBrain size={24} stroke={1.75} />,
-    title: 'AI Plan Review',
-    desc: 'Before you fly, Navia reviews your plan like a seasoned tour designer - a readiness score, overpacked days, routing detours, and the quick wins that fix them.',
+    title: 'Reality check',
+    desc: 'Before you fly, we measure the plan: how many hours you actually lose getting between stops, which days are overloaded, and anything closed for the whole time you are in town.',
   },
   {
     icon: <IconMap size={24} stroke={1.75} />,
@@ -89,90 +91,122 @@ const PROBLEMS = [
   },
 ];
 
-const STEPS = [
+/**
+ * Each step carries a `visual`: a small mock of the real screen, built from divs
+ * rather than a screenshot so it stays sharp, themeable and needs no asset
+ * pipeline. Users told us the page read as "more words than an easy to understand
+ * process" - four numbered paragraphs with nothing to look at was the reason.
+ */
+const STEPS: {
+  num: string; title: string; desc: string; tag: string; visual: React.ReactNode;
+}[] = [
   {
     num: '01',
     title: 'Set your travel vibe',
     desc: 'Define your travel personality - culture seeker, adventure junkie, spiritual explorer, luxury traveler. Your vibe shapes every trip and person you discover.',
     tag: 'Your identity',
+    visual: (
+      <div className="lp-step-mock">
+        <div className="lp-step-mock__label">Pick your vibe</div>
+        <div className="lp-step-mock__chips">
+          <span className="is-on">Culture</span><span>Adventure</span>
+          <span>Slow travel</span><span className="is-on">Scenic</span><span>Urban</span>
+        </div>
+      </div>
+    ),
   },
   {
     num: '02',
-    title: 'Let Navia draft the plan',
-    desc: 'Name a destination and the world\'s first Agentic Travel AI drafts the rest - a day-by-day route, must-see spots, local food, and notes - ready for you to make your own.',
-    tag: 'Agentic AI',
+    title: 'Name a place, get a real plan',
+    desc: 'Navia drafts the route, the places worth your time, local food and notes. Every place is then matched against a live listing - anything closed for good is dropped before you ever see it.',
+    tag: 'Checked, not guessed',
+    visual: (
+      <div className="lp-step-mock">
+        <div className="lp-step-mock__label">Bangkok · 3 nights</div>
+        <div className="lp-step-mock__row"><span>Wat Arun</span><em className="ok">Verified</em></div>
+        <div className="lp-step-mock__row"><span>Grand Palace</span><em className="ok">Verified</em></div>
+        <div className="lp-step-mock__row"><span>Som Tam stall, Soi 38</span><em>Unchecked</em></div>
+        <div className="lp-step-mock__row is-cut"><span>Tickets Bar</span><em className="cut">Closed - removed</em></div>
+      </div>
+    ),
   },
   {
     num: '03',
-    title: 'Plan in group chat',
-    desc: 'Invite your crew, message in one shared trip chat, and summon @navia whenever the group needs alternate routes, destination ideas, or changes applied to the plan.',
-    tag: 'Group chat',
+    title: 'Decide it together',
+    desc: 'Invite your crew into one shared trip chat. Everyone suggests, everyone sees the same plan, and @navia turns the discussion into changes the group accepts or dismisses.',
+    tag: 'One shared plan',
+    visual: (
+      <div className="lp-step-mock">
+        <div className="lp-step-mock__msg">Maya: can we slow day 4 down?</div>
+        <div className="lp-step-mock__msg is-me">@navia swap the Fuji day</div>
+        <div className="lp-step-mock__proposal">
+          <strong>Suggestion</strong>
+          <span>− Fuji day trip</span><span>+ Hakone, 1 night</span>
+          <div className="lp-step-mock__actions"><b>Apply</b><i>Dismiss</i></div>
+        </div>
+      </div>
+    ),
   },
   {
     num: '04',
-    title: 'Travel with confidence',
-    desc: "Run Navia's plan review for a final readiness score, then hit the road with your itinerary, shared budget, packing list, and live risk monitoring in your pocket.",
-    tag: 'Real trips',
+    title: 'Check it before you book',
+    desc: 'The reality check measures your plan with real distances and opening hours - the hours you lose between stops, the days you have overloaded, anything shut for your whole stay.',
+    tag: 'Measured, not guessed',
+    visual: (
+      <div className="lp-step-mock">
+        <div className="lp-step-mock__score"><b>78</b><span>/ 100</span></div>
+        <div className="lp-step-mock__row is-warn"><span>Bangkok → Sukhothai</span><em>≈6.4h travel</em></div>
+        <div className="lp-step-mock__row is-warn"><span>Day 2 is overloaded</span><em>11.5h</em></div>
+        <div className="lp-step-mock__row"><span>Every place confirmed</span><em className="ok">Good</em></div>
+      </div>
+    ),
   },
 ];
 
-const SHOWCASE = [
-  {
-    title: 'Mediterranean Coast',
-    days: '10 days',
-    places: 8,
-    query: 'Mediterranean coast Greece',
-    gradient: 'linear-gradient(145deg, #005f8a 0%, #00aad4 100%)',
-  },
-  {
-    title: 'Southeast Asia Loop',
-    days: '21 days',
-    places: 12,
-    query: 'Southeast Asia Bali temple',
-    gradient: 'linear-gradient(145deg, #0d5c38 0%, #1ea865 100%)',
-  },
-  {
-    title: 'Patagonia Expedition',
-    days: '14 days',
-    places: 6,
-    query: 'Patagonia mountains landscape',
-    gradient: 'linear-gradient(145deg, #1e2e5c 0%, #4a6bb5 100%)',
-  },
-  {
-    title: 'Japan in Autumn',
-    days: '12 days',
-    places: 9,
-    query: 'Japan autumn Kyoto',
-    gradient: 'linear-gradient(145deg, #6e1428 0%, #d44460 100%)',
-  },
-];
+/**
+ * A published trip, reduced to what the community strip needs.
+ *
+ * Replaces both the invented SHOWCASE destinations and the three fabricated
+ * REVIEWS that used to live here - named people with invented trips, hardcoded
+ * as constants. The community section is now built from the community.
+ *
+ * Fields are read in both casings because the API's serializer is not
+ * consistent across endpoints; this mirrors DiscoveryPage's defensive shape.
+ * Returns null for a row that cannot be linked or labelled, which therefore
+ * must not render.
+ */
+interface LandingTrip {
+  id: string;
+  name: string;
+  href: string;
+  photo?: string;
+  countries?: string;
+  owner?: string;
+}
 
-const REVIEWS = [
-  {
-    quote:
-      'I always traveled alone because nobody I knew shared my travel style. Tripician matched me with three people planning the exact same Japan trip. We went together last spring - best decision I ever made.',
-    name: 'Priya K.',
-    place: 'Found her tribe · Japan',
-  },
-  {
-    quote:
-      'Five people across three countries, zero confusion, no duplicate bookings. The vibe matching meant we all had the same expectations before we even arrived. This is what group travel should feel like.',
-    name: 'James L.',
-    place: 'Group trip · Southeast Asia',
-  },
-  {
-    quote:
-      'Matched with a culture-seeker group for Istanbul. Same vibe, same pace, same priorities. Never once felt like I was compromising. Best trip I have ever taken.',
-    name: 'Sofia R.',
-    place: 'Culture trip · Istanbul',
-  },
-];
+const toLandingTrip = (raw: any): LandingTrip | null => {
+  const id = raw?.id || raw?.Id;
+  if (!id) return null;
 
-const TICKER_ITEMS = [
-  'Paris', 'Bali', 'Patagonia', 'Maldives', 'Rome',
-  'Santorini', 'Phuket', 'Tokyo', 'Barcelona', 'Iceland',
-  'Sahara', 'Kenya', 'Hawaii', 'Kyoto', 'Amazon',
-];
+  const name = String(raw?.name || raw?.Name || '').trim();
+  if (!name) return null;
+
+  const rawCountries = raw?.countries || raw?.Countries;
+  const countryList: string[] = Array.isArray(rawCountries)
+    ? rawCountries.filter((c: unknown) => typeof c === 'string' && c.trim())
+    : [];
+  const ownerName = raw?.owner?.name || raw?.Owner?.Name || raw?.ownerName || raw?.OwnerName;
+
+  return {
+    id: String(id),
+    name,
+    href: tripPath({ id: String(id), name }),
+    photo: raw?.bannerPhoto?.url || raw?.BannerPhoto?.Url || raw?.photoUrl || raw?.PhotoUrl || undefined,
+    countries: countryList.slice(0, 2).join(' · ') || undefined,
+    owner: typeof ownerName === 'string' && ownerName.trim() ? ownerName.trim() : undefined,
+  };
+};
+
 
 type AgentStepType = 'user' | 'think' | 'proposal' | 'system' | 'done';
 interface AgentStep { type: AgentStepType; text?: string; operations?: string[]; }
@@ -210,7 +244,7 @@ function AgentDemoWidget() {
         <span className="lp-agent-window__dot" style={{ background: '#ff5f57' }} />
         <span className="lp-agent-window__dot" style={{ background: '#febc2e' }} />
         <span className="lp-agent-window__dot" style={{ background: '#28c840' }} />
-        <span className="lp-agent-window__title"><NaviaOrb size={12} /> Navia - Agentic Travel AI</span>
+        <span className="lp-agent-window__title"><NaviaOrb size={12} /> Navia - trip group chat</span>
       </div>
       <div className="lp-agent-window__body">
         {AGENT_STEPS.map((step, i) => (
@@ -283,15 +317,15 @@ function AgentDemoWidget() {
 const LP_FAQS = [
   {
     q: 'What exactly is Tripician?',
-    a: "Tripician is a global community for travellers, built around Navia, the world's first agentic travel AI. Find your travel tribe, plan with your crew in a shared trip chat, build detailed itineraries - or let Navia draft and review them - track group expenses, manage packing lists, monitor travel risks, and connect with travellers who share your travel vibe. We are not a travel agency - we don't book flights or accommodation.",
+    a: "Tripician is a global community for travellers and a planner your whole group can edit. Find your travel tribe, plan with your crew in a shared trip chat, build detailed itineraries - or let Navia draft the first version - track group expenses, manage packing lists, monitor travel risks, and connect with travellers who share your travel vibe. We are not a travel agency - we don't book flights or accommodation.",
   },
   {
     q: 'Is Tripician free?',
-    a: 'Yes - planning, community, and collaboration are free. Navia AI runs on included credits: every traveler starts with 300 personal credits and each trip gets its own shared 300-credit wallet, enough for roughly a month of regular AI use. Top-up options are on the way, but the core planner will always stay free.',
+    a: 'Yes - planning, community, and collaboration are free. Drafting with Navia runs on included credits: every traveller starts with 300 personal credits and each trip gets its own shared 300-credit wallet, enough for roughly a month of regular use. The reality check costs nothing, because it is plain arithmetic rather than a model call. Top-up options are on the way, but the core planner will always stay free.',
   },
   {
-    q: 'What can Navia AI actually do?',
-    a: 'Navia is an agentic travel AI, not a chatbot. It drafts complete itineraries from a single destination, plans individual stops with spots and local food, joins your trip group chat where @navia turns requests into proposals your crew can accept or dismiss, writes your trip description, and reviews your finished plan with a readiness score, issues, and quick wins.',
+    q: 'Does Tripician use AI, and can I trust what it suggests?',
+    a: "Yes, and here is exactly how. Navia drafts routes, stops, local food and notes using a language model - so on its own it would occasionally suggest somewhere that has closed or never existed. That is why nothing it produces reaches you unchecked: every place is matched against a live listing first. Anything permanently closed is dropped before you see it, and anything without a listing is labelled \"unchecked\" rather than presented as fact. Separately, the reality check measures your plan with real distances and opening hours - no model involved - so it can tell you a leg will eat most of a day, or that a museum is shut for your whole stay.",
   },
   {
     q: 'What is "vibe matching"?',
@@ -352,7 +386,10 @@ function LandingFAQ() {
 export default function LandingPage() {
   const navigate = useNavigate();
   const { isAuthenticated, isLoading } = useAuth0();
-  const heroImageUrl = import.meta.env.VITE_LANDING_HERO_IMAGE_URL as string | undefined;
+  // Was reading VITE_LANDING_HERO_IMAGE_URL directly, which is set in no env file -
+  // so the hero always fell through to the bare gradient. HERO_IMAGE keeps the env
+  // override and adds a curated fallback, so a photo actually renders.
+  const heroImageUrl = HERO_IMAGE;
 
   // Redirect authenticated users - no spinner, page renders immediately for Googlebot
   useEffect(() => {
@@ -364,19 +401,28 @@ export default function LandingPage() {
   const logoFullWhiteUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_2_URL as string | undefined;
   const logoFullBlackUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_BLACK_2_URL as string | undefined;
 
-  const [showcaseImages, setShowcaseImages] = useState<Record<number, string>>({});
   const [isScrolled, setIsScrolled] = useState(false);
-  const deferredInstallPrompt = useRef<(Event & { prompt: () => Promise<void> }) | null>(null);
-  const [showInstallBtn, setShowInstallBtn] = useState(false);
+  const [recentTrips, setRecentTrips] = useState<LandingTrip[]>([]);
 
+  /**
+   * The community strip's content. Anonymous-safe: `/api/trips/published` is
+   * [AllowAnonymous], and a failure here must never break the marketing page -
+   * the section simply does not render, which is why the catch is silent and the
+   * initial state is an empty list rather than a spinner.
+   */
   useEffect(() => {
-    Promise.all(
-      SHOWCASE.map(async (card, i) => ({ i, url: await fetchUnsplashImage(card.query) }))
-    ).then(results => {
-      const imgs: Record<number, string> = {};
-      results.forEach(({ i, url }) => { if (url) imgs[i] = url; });
-      setShowcaseImages(imgs);
-    });
+    let active = true;
+    (async () => {
+      try {
+        const response = await apiServices.getPublishedTrips();
+        if (!active) return;
+        const rows = Array.isArray(response?.data) ? response.data : [];
+        setRecentTrips(rows.map(toLandingTrip).filter((t): t is LandingTrip => t !== null).slice(0, 4));
+      } catch {
+        /* no trips shown; the section unmounts itself */
+      }
+    })();
+    return () => { active = false; };
   }, []);
 
   // Nav goes solid once the hero photo scrolls behind it
@@ -387,25 +433,33 @@ export default function LandingPage() {
     return () => window.removeEventListener('scroll', onScroll);
   }, []);
 
-  // Capture PWA install prompt
-  useEffect(() => {
-    const handler = (e: Event) => {
-      e.preventDefault();
-      deferredInstallPrompt.current = e as Event & { prompt: () => Promise<void> };
-      setShowInstallBtn(true);
-    };
-    window.addEventListener('beforeinstallprompt', handler);
-    return () => window.removeEventListener('beforeinstallprompt', handler);
-  }, []);
-
-  const handleInstallApp = async () => {
-    if (!deferredInstallPrompt.current) return;
-    await deferredInstallPrompt.current.prompt();
-    deferredInstallPrompt.current = null;
-    setShowInstallBtn(false);
-  };
+  // The PWA install prompt lived here and could never fire: the project ships no
+  // web manifest, so `beforeinstallprompt` is never raised and the button it
+  // gated was permanently invisible. Removed with the button rather than left as
+  // machinery for a feature that does not exist.
 
   useLayoutEffect(() => {
+    /*
+     * Motion is opt-out at the OS level. Anyone who has asked their system to
+     * reduce motion gets the page fully composed and completely still - not a
+     * faster version of the same animation. Vestibular triggers are the reason
+     * the setting exists, and a marketing page is not worth making someone ill.
+     */
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
+      /*
+       * Must SET the resting values, not clearProps them. `.lp-nav`,
+       * `.lp-hero__eyebrow` and `.lp-hero__title .word` carry `opacity: 0` in
+       * the stylesheet while they wait for GSAP; clearing GSAP's inline styles
+       * just hands them back to that rule, and the hero renders blank. Inline
+       * values win, so state them.
+       */
+      gsap.set([
+        '.lp-nav', '.lp-hero__eyebrow', '.lp-hero__title .word',
+        '.lp-hero__subtitle', '.lp-hero__cta-group > *', '.lp-hero__scroll-indicator',
+      ], { opacity: 1, x: 0, y: 0, scale: 1 });
+      return;
+    }
+
     const ctx = gsap.context(() => {
 
       /*  1. HERO ENTRANCE  */
@@ -449,106 +503,138 @@ export default function LandingPage() {
         delay: 2.5,
       });
 
-      /*  2. STATS COUNTERS  */
-      document.querySelectorAll<HTMLElement>('.lp-stat__number').forEach((el) => {
-        const target = parseFloat(el.dataset.target ?? '0');
-        const suffix = el.dataset.suffix ?? '+';
-        ScrollTrigger.create({
-          trigger: el,
-          start: 'top 88%',
-          once: true,
-          onEnter: () => {
-            const proxy = { val: 0 };
-            gsap.to(proxy, {
-              val: target,
-              duration: 1.8,
-              ease: 'power2.out',
-              onUpdate: () => { el.textContent = Math.round(proxy.val).toLocaleString() + suffix; },
-            });
-          },
+      /* ── Hero depth ──────────────────────────────────────────────────────
+       * The photo drifts at roughly two-thirds scroll speed while the copy
+       * rises past it and dims. This is the single biggest contributor to a
+       * page feeling built rather than assembled, and the CSS was already set
+       * up for it - `.lp-hero__bg` carries `inset: -8%` and `will-change:
+       * transform` precisely so it can move without exposing an edge - but
+       * nothing had ever driven it.
+       *
+       * Scrubbed, so it is tied to the scroll position rather than played at
+       * it; `invalidateOnRefresh` keeps the distances right after a resize.
+       */
+      gsap.to('.lp-hero__bg', {
+        yPercent: 12,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '.lp-hero',
+          start: 'top top',
+          end: 'bottom top',
+          scrub: true,
+          invalidateOnRefresh: true,
+        },
+      });
+      gsap.to('.lp-hero__content', {
+        y: 64,
+        opacity: 0.25,
+        ease: 'none',
+        scrollTrigger: {
+          trigger: '.lp-hero',
+          start: 'top top',
+          end: 'bottom 30%',
+          scrub: true,
+          invalidateOnRefresh: true,
+        },
+      });
+
+      /* A ticking stats-counter animation lived here, bound to `.lp-stat__number`
+         elements that were removed with the fake-numbers band. It matched nothing
+         and ran on nothing - but it was a loaded gun: the next stats section to
+         use that class would have started animating counters again. Deleted with
+         the pattern it served. */
+
+      /* ── Section motion ──────────────────────────────────────────────────
+       * Every section previously ran the same gesture: y 40-60, opacity 0,
+       * fade up. Fourteen times. A single move repeated that often stops
+       * reading as motion at all - it just feels like the page is slow to
+       * arrive. So each section now has a gesture that suits its content, and
+       * entrances play ONCE rather than reversing on scroll-up (which was both
+       * busy and the cause of the "frozen mid-tween screenshot" artefact).
+       */
+
+      /** Type reveals from behind its own baseline, rather than fading. */
+      const revealTitle = (target: string, trigger: string) =>
+        gsap.from(target, {
+          clipPath: 'inset(0 0 100% 0)',
+          y: 18,
+          duration: 1,
+          ease: 'power3.out',
+          scrollTrigger: { trigger, start: 'top 84%', once: true },
         });
+
+      /** Cards settle in with depth, not just position. */
+      const revealCards = (target: string, trigger: string, each = 0.08) =>
+        gsap.from(target, {
+          y: 34,
+          scale: 0.965,
+          opacity: 0,
+          duration: 0.8,
+          ease: 'power3.out',
+          stagger: { each, from: 'start' },
+          scrollTrigger: { trigger, start: 'top 80%', once: true },
+        });
+
+      /*  Trust strip - items arrive laterally, so it reads as a row rather
+          than three things falling.  */
+      gsap.from('.lp-trust-bar__item', {
+        x: -14, opacity: 0, duration: 0.6, ease: 'power2.out', stagger: 0.1,
+        scrollTrigger: { trigger: '.lp-trust-bar', start: 'top 92%', once: true },
       });
 
-      /*  3. PROBLEM  */
-      gsap.from('.lp-problem__header', {
-        y: 42, opacity: 0, duration: 0.8,
-        scrollTrigger: { trigger: '.lp-problem', start: 'top 82%', toggleActions: 'play none none reverse' },
-      });
-      gsap.from('.lp-problem-card', {
-        y: 46, opacity: 0, duration: 0.65, stagger: 0.12,
-        scrollTrigger: { trigger: '.lp-problem__grid', start: 'top 80%', toggleActions: 'play none none reverse' },
-      });
-
-      /*  4. FEATURES  */
-      gsap.from('.lp-features__header', {
-        y: 42, opacity: 0, duration: 0.8,
-        scrollTrigger: { trigger: '.lp-features', start: 'top 82%', toggleActions: 'play none none reverse' },
-      });
-      gsap.from('.lp-feature-card', {
-        y: 58, opacity: 0, duration: 0.72, stagger: 0.09,
-        scrollTrigger: { trigger: '.lp-features__grid', start: 'top 78%', toggleActions: 'play none none reverse' },
+      /*  Community trips - the proof section, so it gets the most considered
+          entrance: a wave with real depth.  */
+      revealTitle('.lp-showcase__header > *', '.lp-showcase');
+      revealCards('.lp-showcase__card', '.lp-showcase__grid', 0.09);
+      gsap.from('.lp-showcase__footer', {
+        opacity: 0, y: 14, duration: 0.6, ease: 'power2.out',
+        scrollTrigger: { trigger: '.lp-showcase__footer', start: 'top 94%', once: true },
       });
 
-      /*  5. STEPS  */
-      gsap.from('.lp-steps__header', {
-        y: 42, opacity: 0, duration: 0.8,
-        scrollTrigger: { trigger: '.lp-steps', start: 'top 82%', toggleActions: 'play none none reverse' },
-      });
+      /*  Problem  */
+      revealTitle('.lp-problem__header > *', '.lp-problem');
+      revealCards('.lp-problem-card', '.lp-problem__grid', 0.1);
+
+      /*  Steps - the rail draws itself, then each step arrives against it.
+          Kept lateral because the rail is vertical; the cross-axis motion is
+          what makes the sequence legible.  */
+      revealTitle('.lp-steps__header > *', '.lp-steps');
       gsap.from('.lp-steps__line', {
-        scaleY: 0, transformOrigin: 'top center', duration: 1.6, ease: 'power2.inOut',
-        scrollTrigger: { trigger: '.lp-steps__list', start: 'top 78%', toggleActions: 'play none none reverse' },
+        scaleY: 0, transformOrigin: 'top center', duration: 1.5, ease: 'power2.inOut',
+        scrollTrigger: { trigger: '.lp-steps__list', start: 'top 78%', once: true },
       });
       gsap.from('.lp-step', {
-        x: -52, opacity: 0, duration: 0.8, stagger: 0.26,
-        scrollTrigger: { trigger: '.lp-steps__list', start: 'top 72%', toggleActions: 'play none none reverse' },
+        x: -40, opacity: 0, duration: 0.85, ease: 'power3.out', stagger: 0.2,
+        scrollTrigger: { trigger: '.lp-steps__list', start: 'top 74%', once: true },
       });
 
-      /*  6. SHOWCASE  */
-      gsap.from('.lp-showcase__header', {
-        y: 42, opacity: 0, duration: 0.8,
-        scrollTrigger: { trigger: '.lp-showcase', start: 'top 82%', toggleActions: 'play none none reverse' },
-      });
-      gsap.from('.lp-showcase__card', {
-        y: 52, opacity: 0, scale: 0.96, duration: 0.72, stagger: 0.14,
-        scrollTrigger: { trigger: '.lp-showcase__grid', start: 'top 82%', toggleActions: 'play none none reverse' },
-      });
+      /*  Features  */
+      revealTitle('.lp-features__header > *', '.lp-features');
+      revealCards('.lp-feature-card', '.lp-features__grid', 0.055);
 
-      /*  7. SOCIAL PROOF  */
-      gsap.from('.lp-social-proof .lp-section-title', {
-        y: 42, opacity: 0, duration: 0.8,
-        scrollTrigger: { trigger: '.lp-social-proof', start: 'top 82%', toggleActions: 'play none none reverse' },
-      });
-      gsap.from('.lp-review-card', {
-        y: 42, opacity: 0, duration: 0.65, stagger: 0.16,
-        scrollTrigger: { trigger: '.lp-reviews__grid', start: 'top 82%', toggleActions: 'play none none reverse' },
-      });
-
-      /*  8. CTA  */
-      gsap.from('.lp-cta__content', {
-        y: 62, opacity: 0, duration: 1, ease: 'power3.out',
-        scrollTrigger: { trigger: '.lp-cta', start: 'top 78%', toggleActions: 'play none none reverse' },
-      });
-
-      /*  9. AI agent + bento + risk preview  */
+      /*  Navia - the window is a screen, so it tilts up into place. This is the
+          one place a 3D transform earns itself.  */
       gsap.from('.lp-ai-agent__text > *', {
-        y: 40, opacity: 0, duration: 0.75, stagger: 0.12,
-        scrollTrigger: { trigger: '.lp-ai-agent__text', start: 'top 80%', toggleActions: 'play none none reverse' },
+        y: 26, opacity: 0, duration: 0.8, ease: 'power3.out', stagger: 0.1,
+        scrollTrigger: { trigger: '.lp-ai-agent__text', start: 'top 80%', once: true },
       });
       gsap.from('.lp-agent-window', {
-        y: 55, opacity: 0, scale: 0.97, duration: 0.85, ease: 'power3.out',
-        scrollTrigger: { trigger: '.lp-agent-window', start: 'top 82%', toggleActions: 'play none none reverse' },
+        y: 44, scale: 0.96, rotateX: 7, opacity: 0, duration: 1.1, ease: 'power3.out',
+        scrollTrigger: { trigger: '.lp-agent-window', start: 'top 84%', once: true },
       });
-      gsap.from('.lp-bento__header', {
-        y: 42, opacity: 0, duration: 0.8,
-        scrollTrigger: { trigger: '.lp-bento', start: 'top 82%', toggleActions: 'play none none reverse' },
-      });
-      gsap.from('.lp-bento-card', {
-        y: 50, opacity: 0, scale: 0.97, duration: 0.68, stagger: 0.09,
-        scrollTrigger: { trigger: '.lp-bento__grid', start: 'top 80%', toggleActions: 'play none none reverse' },
-      });
+
+      /*  Bento + risk  */
+      revealTitle('.lp-bento__header > *', '.lp-bento');
+      revealCards('.lp-bento-card', '.lp-bento__grid', 0.07);
       gsap.from('.lp-risk-preview__card', {
-        y: 60, opacity: 0, duration: 0.9, ease: 'power3.out',
-        scrollTrigger: { trigger: '.lp-risk-preview', start: 'top 80%', toggleActions: 'play none none reverse' },
+        y: 40, scale: 0.98, opacity: 0, duration: 1, ease: 'power3.out',
+        scrollTrigger: { trigger: '.lp-risk-preview', start: 'top 82%', once: true },
+      });
+
+      /*  Closing CTA  */
+      gsap.from('.lp-cta__content', {
+        y: 44, scale: 0.98, opacity: 0, duration: 1, ease: 'power3.out',
+        scrollTrigger: { trigger: '.lp-cta', start: 'top 80%', once: true },
       });
     });
 
@@ -559,16 +645,18 @@ export default function LandingPage() {
   return (
     <div className="lp-root">
       <Seo
-        title="Tripician, A Global Travel Community & AI Trip Planner"
-        description="Join a global community of travellers and plan trips together with Navia, the world's first agentic travel AI. Vibe matching, group trip chat, split expenses, and live risk monitoring - free forever."
+        title="Tripician, A Travel Community & Group Trip Planner"
+        description="Browse real itineraries published by travellers who took them - the route, the stays, the places worth the detour. Copy any trip into your own plan, and plan it with your crew. Every place is checked against a live listing. Free to join."
         path="/"
+        image={OG_IMAGE || undefined}
         jsonLd={[
           {
             '@context': 'https://schema.org',
             '@type': 'Organization',
             name: 'Tripician',
             url: SITE_URL,
-            logo: `${SITE_URL}/og-cover.jpg`,
+            // Was ${SITE_URL}/og-cover.jpg, a file that does not exist in public/.
+            logo: import.meta.env.VITE_TRIPICIAN_LOGO_ICON_URL || OG_IMAGE,
             sameAs: [],
           },
           {
@@ -608,11 +696,12 @@ export default function LandingPage() {
             <><IconPlane size={20} className="lp-nav__logo-icon" /><span>Tripician</span></>
           )}
         </div>
+        {/* Community leads the nav; Navia is a section further down the page, not
+            a peer of the product itself. */}
         <div className="lp-nav__links">
-          <a href="#features">Features</a>
-          <a href="#ai-agent">AI Agent</a>
-          <a href="/discover">Discover</a>
+          <a href="/community">Community</a>
           <a href="#how-it-works">How it works</a>
+          <a href="#features">Features</a>
         </div>
         <div className="lp-nav__actions">
           <button className="lp-btn lp-btn--ghost" onClick={() => navigate('/signin')}>Sign in</button>
@@ -627,34 +716,34 @@ export default function LandingPage() {
           style={heroImageUrl ? ({ '--lp-hero-photo': `url(${heroImageUrl})` } as React.CSSProperties) : undefined}
         />
 
+        {/* The hero has one job: say what this is. Visitors were asking "what does
+            Tripician actually do?", so the eyebrow names the category, the headline
+            says who writes the trips, and the subline says what you do with one.
+            Nothing here is clever, and that is the point. */}
         <div className="lp-hero__content">
-          <span className="lp-hero__eyebrow">            
-            <NaviaOrb size={13} /> WORLD'S FIRST AGENTIC TRAVEL AI
-          </span>
+          <span className="lp-hero__eyebrow">A travel community</span>
 
           <h1 className="lp-hero__title">
-            {['Every','Journey','Expands'].map((word, i) => (
+            {['Real','trips,','from','travellers'].map((word, i) => (
               <span key={i} className="word">{word}</span>
             ))}
-            <span className="word lp-hero__em">Your World.</span>
+            <span className="word lp-hero__em">who have actually been there.</span>
           </h1>
 
           <p className="lp-hero__subtitle">
-            Tripician is where tomorrow's adventures are written today.
+            Browse itineraries people took and published - the route, the stays, the places
+            worth the detour. Copy one into your own plan and make it yours.
           </p>
 
           <div className="lp-hero__cta-group">
-            <button className="lp-btn lp-btn--hero-primary" onClick={() => navigate('/signup')} aria-label="Start free - create an account">
-              Join Tripician <IconArrowRight size={17} aria-hidden="true" />
+            <button className="lp-btn lp-btn--hero-primary" onClick={() => navigate('/community')} aria-label="Explore real trips from the community">
+              Explore trips <IconArrowRight size={17} aria-hidden="true" />
             </button>
-            <button className="lp-btn lp-btn--hero-link lp-btn--hide-mobile" onClick={() => navigate('/discover')} aria-label="Explore real trips from the community">
-              Get Inspired <IconArrowRight size={16} aria-hidden="true" />
+            {/* Was hidden on mobile, which left phones with no route into the
+                community at all - the one thing the page is now about. */}
+            <button className="lp-btn lp-btn--hero-link" onClick={() => navigate('/signup')} aria-label="Create an account and start planning">
+              Start planning <IconArrowRight size={16} aria-hidden="true" />
             </button>
-            {showInstallBtn && (
-              <button className="lp-btn lp-btn--hero-install" onClick={handleInstallApp} aria-label="Add Tripician to Home Screen">
-                <IconDownload size={15} aria-hidden="true" /> Add to Home Screen
-              </button>
-            )}
           </div>
         </div>
 
@@ -663,11 +752,23 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/*  DESTINATION TICKER  */}
+      {/*  DESTINATION TICKER - names alone read as a word list; the thumbnails
+           make it scan as places. Every row now has one: the labels come from
+           the photo set rather than a parallel array that drifted out of sync.
+           Duplicated once so the marquee can loop seamlessly at -50%.  */}
       <div className="lp-ticker" aria-hidden="true">
         <div className="lp-ticker__track">
-          {[...TICKER_ITEMS, ...TICKER_ITEMS].map((dest, i) => (
-            <span key={i} className="lp-ticker__item">{dest}</span>
+          {[...TICKER, ...TICKER].map((dest, i) => (
+            <span key={i} className="lp-ticker__item">
+              <img
+                src={dest.url}
+                alt=""
+                loading="lazy"
+                decoding="async"
+                className="lp-ticker__thumb"
+              />
+              {dest.name}
+            </span>
           ))}
         </div>
       </div>
@@ -675,11 +776,66 @@ export default function LandingPage() {
       {/*  TRUST STRIP  */}
       <section className="lp-trust-bar" aria-label="Why travelers choose Tripician">
         <div className="lp-trust-bar__inner">
-          <span className="lp-trust-bar__item"><IconCheck size={16} stroke={2} /> <strong>Free forever</strong> - no credit card required</span>
-          <span className="lp-trust-bar__item"><IconUsers size={16} stroke={2} /> Real itineraries from real travelers</span>
-          <span className="lp-trust-bar__item"><IconMap size={16} stroke={2} /> <strong>50+ countries</strong> planned so far</span>
+          {/* "50+ countries planned so far" used to sit here. It was not counting
+              anything - no data source existed behind it - so it is gone. What
+              remains is checkable. */}
+          <span className="lp-trust-bar__item"><IconCheck size={16} stroke={2} /> <strong>Free</strong> - no credit card required</span>
+          <span className="lp-trust-bar__item"><IconUsers size={16} stroke={2} /> Itineraries published by the people who travelled them</span>
+          <span className="lp-trust-bar__item"><IconMap size={16} stroke={2} /> Every place checked against a live listing</span>
         </div>
       </section>
+
+      {/*  REAL TRIPS  ---------------------------------------------------------
+           This was four invented destinations with "View Trip" buttons that went
+           to /signup - a showcase of trips that did not exist. It is now the
+           actual published feed, which is both the honest version and a better
+           argument: the proof that this is a community is the community's work.
+           Renders nothing at all rather than a placeholder if the feed is empty. */}
+      {recentTrips.length > 0 && (
+        <section className="lp-showcase" id="explore">
+          <div className="lp-showcase__header">
+            <span className="lp-section-eyebrow">From the community</span>
+            <h2 className="lp-section-title">Trips people have already taken</h2>
+            <p className="lp-section-sub">
+              Every one of these was planned, travelled and published by a member. Open one to see
+              the full route, the stops and the stays.
+            </p>
+          </div>
+          <div className="lp-showcase__grid">
+            {recentTrips.map((trip) => (
+              <div
+                key={trip.id}
+                className="lp-showcase__card"
+                role="link"
+                tabIndex={0}
+                onClick={() => navigate(trip.href)}
+                onKeyDown={(e) => { if (e.key === 'Enter') navigate(trip.href); }}
+              >
+                {trip.photo
+                  ? <img src={trip.photo} alt="" className="lp-showcase__card-bg" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
+                  : <div className="lp-showcase__card-bg" style={{ background: 'var(--lp-card-alt)' }} />
+                }
+                <div className="lp-showcase__card-overlay" />
+                <div className="lp-showcase__card-content">
+                  <div className="lp-showcase__card-meta">
+                    {trip.countries && <span>{trip.countries}</span>}
+                    {trip.owner && <span>by {trip.owner}</span>}
+                  </div>
+                  <h3 className="lp-showcase__card-title">{trip.name}</h3>
+                  <span className="lp-showcase__card-btn">
+                    View itinerary <IconArrowRight size={13} />
+                  </span>
+                </div>
+              </div>
+            ))}
+          </div>
+          <div className="lp-showcase__footer">
+            <button className="lp-btn lp-btn--ghost" onClick={() => navigate('/community')}>
+              See all trips <IconArrowRight size={15} />
+            </button>
+          </div>
+        </section>
+      )}
 
       {/*  THE PROBLEM  */}
       <section className="lp-problem" id="problem">
@@ -698,8 +854,49 @@ export default function LandingPage() {
           ))}
         </div>
         <p className="lp-problem__bridge">
-          Tripician replaces all of it in <strong>one shared plan</strong>, an AI co-planner that actually drafts it, and a community that already travels your way.
+          Tripician replaces all of it with <strong>one shared plan</strong> your whole crew can edit, a co-planner that drafts the first version for you, and a community that already travels your way.
         </p>
+      </section>
+
+      {/*  DESTINATION BAND - breaks the long text run between the problem and
+           feature sections, and shows the places rather than naming them.  */}
+      {DESTINATION_TILES.length > 0 && (
+        <section className="lp-destband" aria-label="Destinations travellers are planning">
+          <div className="lp-destband__grid">
+            {DESTINATION_TILES.slice(0, 6).map((d) => (
+              <LpPhoto
+                key={d.name}
+                src={d.url}
+                alt={d.alt}
+                ratio="1 / 1"
+                rounded={14}
+                overlay={<span className="lp-destband__name">{d.name}</span>}
+              />
+            ))}
+          </div>
+        </section>
+      )}
+
+      {/*  HOW IT WORKS  */}
+      <section className="lp-steps" id="how-it-works">
+        <div className="lp-steps__header">
+          <span className="lp-section-eyebrow">How it works</span>
+          <h2 className="lp-section-title">From idea to adventure<br />in 4 simple steps</h2>
+        </div>
+        <div className="lp-steps__list">
+          <div className="lp-steps__line" />
+          {STEPS.map((step, i) => (
+            <div key={i} className="lp-step">
+              <div className="lp-step__num">{step.num}</div>
+              <div className="lp-step__body">
+                <span className="lp-step__tag">{step.tag}</span>
+                <h3 className="lp-step__title">{step.title}</h3>
+                <p className="lp-step__desc">{step.desc}</p>
+              </div>
+              <div className="lp-step__visual">{step.visual}</div>
+            </div>
+          ))}
+        </div>
       </section>
 
       {/*  FEATURES  */}
@@ -722,26 +919,26 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/*  AGENTIC AI DEMO  */}
+      {/*  NAVIA DEMO  */}
       <section className="lp-ai-agent" id="ai-agent">
         <div className="lp-ai-agent__inner">
           <div className="lp-ai-agent__text">
-            <span className="lp-section-eyebrow">World's first Agentic Travel AI</span>
+            <span className="lp-section-eyebrow">Meet Navia</span>
             <h2 className="lp-section-title">
-              Meet Navia,<br />your <span className="lp-ai-agent__title-highlight">AI trip agent</span> in group chat
+              A co-planner that <span className="lp-ai-agent__title-highlight">works inside</span> your group chat
             </h2>
             <p className="lp-ai-agent__desc">
-              Most travel AI gives you a list of suggestions. Navia <em>acts inside your planner</em> - joining the group chat, reading trip context, proposing itinerary changes, and helping your crew make decisions together.
+              Most trip planners hand you a list and leave. Navia <em>works inside your planner</em> - joining the group chat, reading the trip so far, and proposing changes your crew accepts or dismisses together. Nothing lands in the itinerary until someone says yes.
             </p>
             <ul className="lp-ai-agent__bullets">
               <li><NaviaOrb size={15} /> Summon @navia directly in trip group chat</li>
               <li><IconUsers size={15} /> Turns crew preferences into shared trip proposals</li>
               <li><IconBolt size={15} /> Applies accepted changes to the live itinerary</li>
-              <li><IconBrain size={15} /> Reviews your finished plan - score, issues &amp; quick wins</li>
+              <li><IconBrain size={15} /> Flags overloaded days and legs that eat a day of travel</li>
               <li><IconShield size={15} /> Integrated live risk &amp; weather monitoring</li>
             </ul>
             <button className="lp-btn lp-btn--hero-primary" onClick={() => navigate('/signup')}>
-              Try Navia for Free <IconArrowRight size={16} />
+              Start planning free <IconArrowRight size={16} />
             </button>
           </div>
           <div className="lp-ai-agent__widget">
@@ -750,33 +947,15 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/*  HOW IT WORKS  */}
-      <section className="lp-steps" id="how-it-works">
-        <div className="lp-steps__header">
-          <span className="lp-section-eyebrow">How it works</span>
-          <h2 className="lp-section-title">From idea to adventure<br />in 4 simple steps</h2>
-        </div>
-        <div className="lp-steps__list">
-          <div className="lp-steps__line" />
-          {STEPS.map((step, i) => (
-            <div key={i} className="lp-step">
-              <div className="lp-step__num">{step.num}</div>
-              <div className="lp-step__body">
-                <span className="lp-step__tag">{step.tag}</span>
-                <h3 className="lp-step__title">{step.title}</h3>
-                <p className="lp-step__desc">{step.desc}</p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/*  WHY DIFFERENT  */}
       <section className="lp-bento" id="why-different">
         <div className="lp-bento__header">
-          <span className="lp-section-eyebrow">What makes us different</span>
-          <h2 className="lp-section-title">Features no other<br />travel platform has</h2>
-          <p className="lp-section-sub">We built the capabilities that were missing from every tool we tried.</p>
+          {/* Was "Features no other travel platform has" - a claim we cannot
+              stand behind and nobody believes on sight. Describing the thing is
+              stronger than ranking it. */}
+          <span className="lp-section-eyebrow">Built for this</span>
+          <h2 className="lp-section-title">Three things worth<br />knowing about</h2>
+          <p className="lp-section-sub">The parts of Tripician that took the longest to get right.</p>
         </div>
         <div className="lp-bento__grid">
           {/* Risk Monitor */}
@@ -815,9 +994,9 @@ export default function LandingPage() {
           </div>
           {/* Agent */}
           <div className="lp-bento-card lp-bento-card--agent">
-            <span className="lp-bento-card__tag">World First</span>
-            <h3>Agentic AI + Group Chat</h3>
-            <p>Navia joins the trip conversation, understands each traveler, proposes itinerary edits, and applies approved changes to the shared plan.</p>
+            <span className="lp-bento-card__tag">Plans with your crew</span>
+            <h3>Navia in the group chat</h3>
+            <p>Navia joins the trip conversation, reads the plan so far, proposes itinerary edits, and applies only the changes your group approves.</p>
             <div className="lp-bento-agent-preview">
               <div className="lp-bento-agent-msg lp-bento-agent-msg--member">Maya: less walking on Day 4?</div>
               <div className="lp-bento-agent-msg lp-bento-agent-msg--user">@navia adjust Fuji day for the group</div>
@@ -840,35 +1019,6 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/*  SHOWCASE  */}
-      <section className="lp-showcase" id="explore">
-        <div className="lp-showcase__header">
-          <span className="lp-section-eyebrow">Popular destinations</span>
-          <h2 className="lp-section-title">Where will you go next?</h2>
-        </div>
-        <div className="lp-showcase__grid">
-          {SHOWCASE.map((card, i) => (
-            <div key={i} className="lp-showcase__card">
-              {showcaseImages[i]
-                ? <img src={showcaseImages[i]} alt={card.title} className="lp-showcase__card-bg" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
-                : <div className="lp-showcase__card-bg" style={{ background: card.gradient }} />
-              }
-              <div className="lp-showcase__card-overlay" />
-              <div className="lp-showcase__card-content">
-                <div className="lp-showcase__card-meta">
-                  <span>{card.days}</span>
-                  <span>{card.places} places</span>
-                </div>
-                <h3 className="lp-showcase__card-title">{card.title}</h3>
-                <button className="lp-showcase__card-btn" onClick={() => navigate('/signup')}>
-                  View Trip <IconArrowRight size={13} />
-                </button>
-              </div>
-            </div>
-          ))}
-        </div>
-      </section>
-
       {/*  RISK MONITOR TEASER  */}
       <section className="lp-risk-preview">
         <div className="lp-risk-preview__card">
@@ -881,46 +1031,26 @@ export default function LandingPage() {
             flight strikes, and currency volatility - all automatically cross-referenced
             against every destination in your active trip.
           </p>
-          <div className="lp-risk-preview__rows">
-            {[
-              { flag: '🇯🇵', name: 'Japan', status: 'Low Risk', statusColor: '#4ade80', detail: 'Clear skies · ¥ stable · 0 advisories' },
-              { flag: '🇫🇷', name: 'France', status: 'Watch', statusColor: '#fbbf24', detail: 'Transport strike · EUR −0.3% today' },
-              { flag: '🇹🇭', name: 'Thailand', status: 'Advisory', statusColor: '#f87171', detail: 'Monsoon season · Active travel advisory' },
-            ].map((r, i) => (
-              <div key={i} className="lp-risk-row">
-                <span className="lp-risk-row__flag">{r.flag}</span>
-                <span className="lp-risk-row__name">{r.name}</span>
-                <span className="lp-risk-row__status" style={{ color: r.statusColor }}>{r.status}</span>
-                <span className="lp-risk-row__detail">{r.detail}</span>
-              </div>
-            ))}
-          </div>
+          {/* This was a table of hardcoded "readings" - "EUR -0.3% today",
+              "Clear skies · ¥ stable · 0 advisories" - presented under a "Live"
+              badge as though it were current data for those countries. Replaced
+              with a plain description of what the monitor actually watches, which
+              is true whether or not anything is happening today. */}
+          <ul className="lp-risk-preview__list">
+            <li>Government travel advisories for every country in your plan</li>
+            <li>Severe weather and seasonal disruption on your dates</li>
+            <li>Strikes, border closures and currency swings worth knowing about</li>
+          </ul>
           <button className="lp-btn lp-btn--cta-primary" onClick={() => navigate('/signup')}>
             See the Risk Monitor <IconArrowRight size={16} />
           </button>
         </div>
       </section>
 
-      {/*  SOCIAL PROOF  */}
-      <section className="lp-social-proof">
-        <div className="lp-social-proof__inner">
-          <h2 className="lp-section-title">What travelers are saying</h2>
-          <div className="lp-reviews__grid">
-            {REVIEWS.map((r, i) => (
-              <div key={i} className="lp-review-card">
-                <p className="lp-review-card__quote">&quot;{r.quote}&quot;</p>
-                <div className="lp-review-card__author">
-                  <div className="lp-review-card__avatar">{r.name.charAt(0)}</div>
-                  <div>
-                    <div className="lp-review-card__name">{r.name}</div>
-                    <div className="lp-review-card__place">{r.place}</div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      </section>
+      {/* The testimonials section stood here: three quotes attributed to named
+          people, describing trips that never happened, hardcoded as constants.
+          Deleted rather than restyled. The community strip above is the proof,
+          and it is made of real trips. */}
 
       {/*  FAQ  */}
       <LandingFAQ />
@@ -958,7 +1088,7 @@ export default function LandingPage() {
                 ? <img src={logoFullBlackUrl} alt="Tripician" className="lp-logo-img lp-logo-img--footer" />
                 : (<><IconPlane size={18} /><span>Tripician</span></>)}
             </div>
-            <p>Find your tribe. Travel your way.<br />The community no other platform can build.</p>
+            <p>A travel community.<br />Real trips, published by the people who took them.</p>
           </div>
           <div className="lp-footer__links">
             <div className="lp-footer__col">
@@ -980,6 +1110,20 @@ export default function LandingPage() {
             </div>
           </div>
         </div>
+        {/* Photographer attribution. Unsplash's API terms require crediting the
+            photographer with a link to their profile and to Unsplash. */}
+        {PHOTO_CREDITS.length > 0 && (
+          <div className="lp-footer__credits">
+            Destination photography by{' '}
+            {PHOTO_CREDITS.map((c, i) => (
+              <span key={c.slug}>
+                {i > 0 && ', '}
+                <a href={c.photographerUrl} target="_blank" rel="noopener noreferrer">{c.photographer}</a>
+              </span>
+            ))}
+            {' '}on <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer">Unsplash</a>.
+          </div>
+        )}
         <div className="lp-footer__bottom">
           <span>© 2026 Tripician. All rights reserved.</span>
           <span>Made with ♥ for explorers</span>

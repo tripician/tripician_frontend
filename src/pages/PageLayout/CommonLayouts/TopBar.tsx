@@ -287,7 +287,7 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode, sh
               width: 60, height: 60,
               bgcolor: '#FF385C',
               fontFamily: "'Inter', sans-serif",
-              fontWeight: 800,
+              fontWeight: 700,
               fontSize: '1.5rem',
               color: '#fff',
               boxShadow: '0 4px 20px rgba(255,56,92,0.35)',

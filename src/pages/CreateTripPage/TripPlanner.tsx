@@ -32,10 +32,12 @@ import {
 	IconLuggage as PulseLuggageIcon,
 	IconUsers as PulseCrewIcon,
 	IconFileDescription as PulseStoryIcon,
+	IconShieldCheck,
+	IconPlane,
+	IconDeviceMobile,
 } from '@tabler/icons-react';
 import MapDrawer from './MapDrawer';
 import TripComments from './TripComments';
-import NaviaOrb from '../../navia/NaviaOrb';
 import PlanReviewDialog from './PlanReviewDialog';
 // Lazy map for the right-rail Map tab (same chunk as MapDrawer's panel)
 const SideMapPanel = React.lazy(() => import('./MapPanel'));
@@ -66,6 +68,7 @@ import { FEATURE_FLAGS } from '../../config/featureFlags';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useNavia, type UseNaviaReturn } from '../../navia/useNavia';
 import { planDestination } from '../../navia/naviaService';
+import { resolveSpots } from '../../services/placeVerification';
 import { suggestCountryItinerary, NaviaRequestError } from '../../navia/naviaService';
 import NaviaMessage from '../../navia/NaviaMessage';
 import { useAuthToken } from '../../hooks/useAuth0Token';
@@ -330,11 +333,11 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 					<Box sx={{ mt: 1.5, cursor: 'pointer' }} onClick={() => setCollapsed(false)}>
 						<Typography sx={{
 							writingMode: 'vertical-rl', textOrientation: 'mixed',
-							fontSize: 10, fontWeight: 800, letterSpacing: '0.18em',
+							fontSize: 10, fontWeight: 700, letterSpacing: '0.18em',
 							color: isLight ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)',
 							fontFamily: 'inherit', textTransform: 'uppercase',
 							userSelect: 'none',
-						}}>NAVIA AI</Typography>
+						}}>NAVIA</Typography>
 					</Box>
 				</Box>
 			) : (
@@ -360,13 +363,13 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 							</Box>
 						</Box>
 						<Box sx={{ flex: 1, minWidth: 0 }}>
-							<Typography sx={{ fontWeight: 800, fontSize: 14, lineHeight: 1, color: isLight ? '#0d0d0d' : '#f0f0f0', fontFamily: 'inherit', letterSpacing: -0.3 }}>
+							<Typography sx={{ fontWeight: 700, fontSize: 14, lineHeight: 1, color: isLight ? '#0d0d0d' : '#f0f0f0', fontFamily: 'inherit', letterSpacing: -0.3 }}>
 								Navia
 							</Typography>
 							<Box sx={{ display: { xs: 'flex', lg: 'none' }, alignItems: 'center', gap: 0.5, mt: 0.3 }}>
 								<Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#22c55e', boxShadow: '0 0 5px rgba(34,197,94,0.7)' }} />
 								<Typography sx={{ fontSize: 10.5, color: isLight ? 'rgba(0,0,0,0.50)' : 'rgba(255,255,255,0.45)', fontWeight: 500, fontFamily: 'inherit', letterSpacing: 0.2 }}>
-									AI Travel Assistant
+									Trip co-planner
 								</Typography>
 							</Box>
 						</Box>
@@ -660,7 +663,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 						background: 'linear-gradient(135deg, #1a1a2e 0%, #16213e 45%, #0f3460 100%)',
 						display: 'flex', alignItems: 'center', justifyContent: 'center',
 					}}>
-						<Typography sx={{ fontSize: '3rem', opacity: 0.08 }}>✈</Typography>
+						<Box sx={{ opacity: 0.08, color: 'text.primary' }}><IconPlane size={44} stroke={1.4} /></Box>
 					</Box>
 				)}
 				{/* Multi-stop gradient overlay */}
@@ -687,7 +690,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 								'50%': { opacity: 0.6, transform: 'scale(0.85)' },
 							},
 						}} />
-						<Typography sx={{ fontSize: '0.58rem', fontWeight: 800, color: '#4ade80', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
+						<Typography sx={{ fontSize: '0.58rem', fontWeight: 700, color: '#4ade80', letterSpacing: '0.12em', textTransform: 'uppercase' }}>
 							Live
 						</Typography>
 					</Box>
@@ -696,7 +699,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 				<Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, px: 2, pb: 1.75 }}>
 					<Typography sx={{
 						fontFamily: "'Playfair Display', serif",
-						fontWeight: 800, fontStyle: 'italic',
+						fontWeight: 700, fontStyle: 'italic',
 						fontSize: '1.18rem', color: '#fff',
 						textShadow: '0 2px 12px rgba(0,0,0,0.6)',
 						lineHeight: 1.25,
@@ -706,7 +709,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 						<Avatar
 							src={ownerInfo.avatar ?? undefined}
 							imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any}
-							sx={{ width: 16, height: 16, fontSize: '0.48rem', fontWeight: 800,
+							sx={{ width: 16, height: 16, fontSize: '0.48rem', fontWeight: 700,
 								background: 'linear-gradient(135deg,#FF385C,#D91A50)', color: '#fff',
 								border: '1.5px solid rgba(255,255,255,0.5)', flexShrink: 0 }}
 						>{ownerDisplayName[0]?.toUpperCase()}</Avatar>
@@ -733,7 +736,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 						borderImage: 'linear-gradient(to bottom, #FF385C, #E31C5F55) 1',
 					}}>
 						<Typography sx={{
-							fontSize: '0.58rem', fontWeight: 800, letterSpacing: '0.18em',
+							fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.18em',
 							textTransform: 'uppercase', color: textMuted, fontFamily: 'inherit', mb: 0.6,
 						}}>
 							About this trip
@@ -775,7 +778,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 										{label}
 									</Typography>
 									{value ? (
-										<Typography sx={{ fontSize: '1rem', fontWeight: 800, color: textPrimary, fontFamily: 'inherit', lineHeight: 1.1 }}>
+										<Typography sx={{ fontSize: '1rem', fontWeight: 700, color: textPrimary, fontFamily: 'inherit', lineHeight: 1.1 }}>
 											{value}
 										</Typography>
 									) : (
@@ -871,7 +874,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 							borderBottom: `1px solid ${border}`,
 							display: 'flex', alignItems: 'center', justifyContent: 'space-between',
 						}}>
-							<Typography sx={{ fontSize: '0.58rem', fontWeight: 800, letterSpacing: '0.18em', textTransform: 'uppercase', color: textMuted, fontFamily: 'inherit' }}>
+							<Typography sx={{ fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.18em', textTransform: 'uppercase', color: textMuted, fontFamily: 'inherit' }}>
 								Travellers
 							</Typography>
 							<Box sx={{
@@ -902,7 +905,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 												src={avatarSrc ?? undefined}
 												imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any}
 												sx={{
-													width: 30, height: 30, fontSize: '0.62rem', fontWeight: 800, flexShrink: 0,
+													width: 30, height: 30, fontSize: '0.62rem', fontWeight: 700, flexShrink: 0,
 													background: isOwnerMember
 														? 'linear-gradient(135deg,#FF385C,#D91A50)'
 														: (isLight ? '#e8e8e8' : 'rgba(255,255,255,0.10)'),
@@ -923,7 +926,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 													border: '1px solid rgba(255,56,92,0.30)',
 													flexShrink: 0,
 												}}>
-													<Typography sx={{ fontSize: '0.51rem', fontWeight: 800, color: '#FF385C', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'inherit' }}>
+													<Typography sx={{ fontSize: '0.51rem', fontWeight: 700, color: '#FF385C', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'inherit' }}>
 														Host
 													</Typography>
 												</Box>
@@ -1218,10 +1221,13 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			// Every persisted, user-editable field must be in here: anything missing
 			// never flips isDirty, so autosave/Save silently skip it (this is exactly
 			// how Navia-generated spots/notes were being lost before).
+			// Deliberately excluded: spot.verifiedAt. It is re-stamped on every
+			// re-verification, so hashing it would leave the plan permanently dirty
+			// and fire an autosave loop.
 			d:planner.destinations.map(d=> ({
 				id:d.id, n:d.name, ti:d.title, sd:d.startDate, ed:d.endDate, nts:d.nights,
 				lat:d.lat, lng:d.lng, tr:d.transport, cat:d.category, cp:d.completed, bud:d.budget,
-				sp:(d.spots ?? []).map(s=> ({ n:s.name, ck:s.checked, ds:s.description })),
+				sp:(d.spots ?? []).map(s=> ({ n:s.name, ck:s.checked, ds:s.description, pid:s.placeId ?? null, pv:s.provenance ?? null })),
 				fd:(d.foods ?? []).map(f=> ({ n:f.name, ck:f.checked })),
 				no:d.notes ?? null,
 				st:(d.stays ?? []).map(s=> ({ n:s.name, r:s.reference })),
@@ -1614,6 +1620,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		(async () => {
 			let planned = 0;
 			let failed = 0;
+			// Verification tallies, so the completion toast can state what was actually
+			// confirmed rather than claiming a blanket success.
+			let droppedTotal = 0;
+			let uncheckedTotal = 0;
 			let creditBlocked = aiCreditBlockedRef.current;
 			try {
 				for (const [destIdx, dest] of destsToProcess.entries()) {
@@ -1623,10 +1633,26 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					const seed = seedStops?.[destIdx];
 					if (seed) {
 						setAiAutoMessage(`Placing ${dest.name}…`);
+						// Chat-extracted places are still model output - check them too.
+						const seedCandidates = (seed.spots ?? []).filter(s => s.name?.trim());
+						const seedResolved = await resolveSpots(seedCandidates, dest.name);
+						droppedTotal += seedCandidates.length - seedResolved.length;
+						uncheckedTotal += seedResolved.filter(s => s.provenance === 'unchecked').length;
 						dispatch(clearDestinationDiscover({ destinationId: dest.id }));
-						for (const spot of seed.spots ?? []) {
-							if (!spot.name?.trim()) continue;
-							dispatch(addSpot({ destinationId: dest.id, name: spot.name.trim(), description: spot.description?.trim(), known: true }));
+						for (const spot of seedResolved) {
+							dispatch(addSpot({
+								destinationId: dest.id,
+								name: spot.name,
+								description: spot.description,
+								mapUrl: spot.mapUrl,
+								photoUrl: spot.photoUrl,
+								placeId: spot.placeId,
+								provenance: spot.provenance,
+								verifiedAt: spot.verifiedAt,
+								lat: spot.lat,
+								lng: spot.lng,
+								known: Boolean(spot.mapUrl),
+							}));
 						}
 						for (const food of seed.foods ?? []) {
 							if (!food?.trim()) continue;
@@ -1651,10 +1677,26 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 							category: dest.category,
 							vibe: vibe ?? undefined,
 						}, authToken);
+						const candidates = (result.spots ?? []).filter(s => s.name?.trim());
+						setAiAutoMessage(`Checking places in ${dest.name}…`);
+						const resolved = await resolveSpots(candidates, dest.name);
+						droppedTotal += candidates.length - resolved.length;
+						uncheckedTotal += resolved.filter(s => s.provenance === 'unchecked').length;
 						dispatch(clearDestinationDiscover({ destinationId: dest.id }));
-						for (const spot of result.spots ?? []) {
-							if (!spot.name?.trim()) continue;
-							dispatch(addSpot({ destinationId: dest.id, name: spot.name.trim(), description: spot.description?.trim(), known: true }));
+						for (const spot of resolved) {
+							dispatch(addSpot({
+								destinationId: dest.id,
+								name: spot.name,
+								description: spot.description,
+								mapUrl: spot.mapUrl,
+								photoUrl: spot.photoUrl,
+								placeId: spot.placeId,
+								provenance: spot.provenance,
+								verifiedAt: spot.verifiedAt,
+								lat: spot.lat,
+								lng: spot.lng,
+								known: Boolean(spot.mapUrl),
+							}));
 						}
 						for (const food of result.foods ?? []) {
 							if (!food.name?.trim()) continue;
@@ -1681,11 +1723,15 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				} else if (planned === 0 && failed > 0) {
 					openToast('error', 'Navia could not plan your stops right now. Your route was saved - try "Plan with Navia" on each stop shortly.');
 				} else if (failed > 0) {
-					openToast('info', `Trip generated! ${failed} stop${failed === 1 ? '' : 's'} could not be planned - use "Plan with Navia" to retry.`);
+					openToast('info', `Trip drafted. ${failed} stop${failed === 1 ? '' : 's'} could not be planned - use "Plan this stop" to retry.`);
+				} else if (droppedTotal > 0) {
+					openToast('info', `Your trip is ready. ${droppedTotal} place${droppedTotal === 1 ? ' had' : 's had'} closed for good, so we left ${droppedTotal === 1 ? 'it' : 'them'} out.`);
+				} else if (uncheckedTotal > 0) {
+					openToast('info', `Your trip is ready. ${uncheckedTotal} place${uncheckedTotal === 1 ? '' : 's'} had no listing to check - marked unchecked.`);
 				} else if (seedStops) {
-					openToast('success', 'Your chat is now a trip - Navia carried everything over.');
+					openToast('success', 'Your chat is now a trip - every place confirmed.');
 				} else {
-					openToast('success', 'Your trip has been generated with AI!');
+					openToast('success', 'Your trip is ready - every place confirmed.');
 				}
 			}
 		})();
@@ -2023,7 +2069,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				stay, // deprecated single stay (retained for backward compatibility)
 				stays: multiStays,
 				stayNotes: stayNotesUnified,
-				spots:(d.spots||[]).map(s=> ({ id:s.id, name:s.name, placeId:s.placeId ?? null, checked:!!s.checked, photoUrl:s.photoUrl ?? null, description:s.description ?? null, mapUrl:s.mapUrl ?? null, known: !!s.known })),
+				spots:(d.spots||[]).map(s=> ({ id:s.id, name:s.name, placeId:s.placeId ?? null, checked:!!s.checked, photoUrl:s.photoUrl ?? null, description:s.description ?? null, mapUrl:s.mapUrl ?? null, known: !!s.known, provenance:s.provenance ?? null, verifiedAt:s.verifiedAt ?? null, lat:s.lat ?? null, lng:s.lng ?? null })),
 				foods:(d.foods||[]).map(f=> ({ id:f.id, name:f.name, checked:!!f.checked, known: !!(f as any).known })),
 				docs:(d.docs||[]).map(doc=> ({ id:doc.id, originalName:doc.originalName, mimeType:doc.mimeType, url:doc.url }))
 			};
@@ -2504,8 +2550,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				minHeight: '100dvh', px: 3, textAlign: 'center', gap: 2,
 				background: theme.palette.background.default,
 			}}>
-				<Typography sx={{ fontSize: '2.5rem' }}>📱✨</Typography>
-				<Typography sx={{ fontFamily: "'Playfair Display', serif", fontWeight: 800, fontSize: '1.4rem', color: 'text.primary' }}>
+				<Box sx={{ color: 'text.disabled' }}><IconDeviceMobile size={36} stroke={1.4} /></Box>
+				<Typography sx={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: '1.4rem', color: 'text.primary' }}>
 					Planning is better on a bigger screen
 				</Typography>
 				<Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.9rem', color: 'text.secondary', maxWidth: 340, lineHeight: 1.7 }}>
@@ -2562,8 +2608,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						to: { opacity: 1, transform: 'translateY(0)' },
 					},
 				}}>{aiAutoMessage}</Typography>
-				<Typography sx={{ fontSize: '0.72rem', color: 'rgba(0,0,0,0.35)', fontFamily: "'Inter', sans-serif" }}>
-					Powered by Navia AI
+				{/* Disclosure at the point of generation - state that this is drafted, not
+				    researched, exactly where it matters. We disclose; we don't advertise. */}
+				<Typography sx={{ fontSize: '0.72rem', color: 'rgba(0,0,0,0.35)', fontFamily: "'Inter', sans-serif", textAlign: 'center', maxWidth: 320, lineHeight: 1.5 }}>
+					Drafted automatically, then every place checked against a live listing.
 				</Typography>
 			</Box>
 		)}
@@ -2603,7 +2651,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						</Tooltip>
 					</Box>
 				} centerNode={
-					<Typography noWrap sx={{ fontFamily:"'Inter', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif", fontWeight:800, fontSize:'1.2rem', letterSpacing:'-0.4px', lineHeight:1.15 }}>{title}</Typography>
+					<Typography noWrap sx={{ fontFamily:"'Inter', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif", fontWeight: 700, fontSize:'1.2rem', letterSpacing:'-0.4px', lineHeight:1.15 }}>{title}</Typography>
 				} />
 				<Box ref={containerRef} sx={{ flex:1, display:'flex', position:'relative', minHeight:0 }}>
 					{/* Centre content column */}
@@ -2735,7 +2783,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 							</Box>
 						</Tooltip>
 							{!readOnly && effectiveCanEdit && (
-							<Tooltip title="Get Navia's detailed feedback on this plan (2 trip credits)" arrow placement='bottom'>
+							<Tooltip title='Check this plan against real distances, opening hours and time budgets' arrow placement='bottom'>
 								<Box
 									component='button'
 									type='button'
@@ -2748,8 +2796,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 										'&:hover': { borderColor:'rgba(255,56,92,0.4)', color:'#FF385C' },
 									})}
 								>
-									<NaviaOrb size={14} />
-									AI review
+									<IconShieldCheck size={14} />
+									Reality check
 								</Box>
 							</Tooltip>
 							)}
@@ -2956,6 +3004,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 											onChangeTransport={handleChangeTransport}
 											onAddDestination={handleAddDestination}
 											onRemoveDestination={handleRemoveDestination}
+											onNaviaToast={openToast}
 										/>
 									)}
 								</Box>
@@ -3092,7 +3141,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
                                                             </Tooltip>
                                                             {(((!readOnly && effectiveCanEdit)
                                                                     ? [
-                                                                            { id: 'chat', label: 'Discussion', tip: 'Group chat - type @navia for AI help', disabled: false },
+                                                                            { id: 'chat', label: 'Discussion', tip: 'Group chat - type @navia to bring in the co-planner', disabled: false },
                                                                             ...(ENABLE_COMMENTS ? [{ id: 'comments', label: 'Comments', tip: isDraft ? 'Publish this trip to enable public comments' : 'Public comments on this trip', disabled: isDraft }] : []),
                                                                             { id: 'map', label: 'Map', tip: 'Trip map - see your route at a glance', disabled: false },
                                                                     ]
@@ -3148,7 +3197,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
                                                                                                                             position: 'absolute', top: 1, right: 1,
                                                                                                                             minWidth: 15, height: 15, px: 0.35, borderRadius: 999,
                                                                                                                             bgcolor: 'error.main', color: '#fff',
-                                                                                                                            fontSize: 9, fontWeight: 800, lineHeight: 1,
+                                                                                                                            fontSize: 9, fontWeight: 700, lineHeight: 1,
                                                                                                                             display: 'flex', alignItems: 'center', justifyContent: 'center',
                                                                                                                             writingMode: 'horizontal-tb', letterSpacing: 0,
                                                                                                                     }}>
@@ -3206,13 +3255,11 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				</Box>
 
 		</Drawer>
-		{/* AI plan review (editors only; stays mounted so results survive close/reopen) */}
+		{/* Reality check (editors only) - deterministic, so it re-runs instantly on open */}
 		{!readOnly && effectiveCanEdit && (
 			<PlanReviewDialog
 				open={planReviewOpen}
 				onClose={() => setPlanReviewOpen(false)}
-				tripId={tripId}
-				token={authToken}
 				tripName={title}
 				tripVibe={vibe}
 			/>
@@ -3516,7 +3563,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			>
 				{/* Tripician logo mark */}
 				<Box sx={{ width: 56, height: 56, borderRadius: '16px', background: 'linear-gradient(135deg,#FF385C,#E31C5F)', display: { xs: 'flex', lg: 'none' }, alignItems: 'center', justifyContent: 'center', mb: 0.5, boxShadow: '0 8px 32px rgba(255,56,92,0.45)' }}>
-					<Typography sx={{ fontSize: 26, color: '#fff', fontWeight: 800, fontFamily: "'Playfair Display', serif", fontStyle: 'italic', lineHeight: 1 }}>T</Typography>
+					<Typography sx={{ fontSize: 26, color: '#fff', fontWeight: 700, fontFamily: "'Playfair Display', serif", fontStyle: 'italic', lineHeight: 1 }}>T</Typography>
 				</Box>
 				<Typography sx={{ fontSize: { xs: '1.6rem', sm: '2.2rem' }, fontWeight: 700, color: '#fff', textAlign: 'center', fontFamily: "'Playfair Display', serif", lineHeight: 1.15 }}>
 					Your adventure is ready.

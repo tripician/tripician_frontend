@@ -25,6 +25,17 @@ const MapDrawer: React.FC<MapDrawerProps> = ({ open, onClose, destinations }) =>
   const isLight = theme.palette.mode === 'light';
   const isMobile = useMediaQuery(theme.breakpoints.down('md'));
 
+  /**
+   * `keepMounted` renders the drawer's children from first paint, so the map was
+   * being constructed - WebGL context, basemap tiles, and now route lookups -
+   * on every planner page load for a panel most users never open. It also
+   * defeated the `React.lazy` on MapPanel. Latch on first open instead: the
+   * drawer keeps its mounted-transition behaviour once opened, and costs nothing
+   * before that.
+   */
+  const [hasOpened, setHasOpened] = React.useState(false);
+  React.useEffect(() => { if (open) setHasOpened(true); }, [open]);
+
   return (
     <Drawer
       anchor="right"
@@ -133,9 +144,11 @@ const MapDrawer: React.FC<MapDrawerProps> = ({ open, onClose, destinations }) =>
 
       {/* Map - fills remaining space */}
       <Box sx={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
-        <React.Suspense fallback={<Box sx={{ p: 2, color: 'text.secondary', fontSize: 13 }}>Loading map...</Box>}>
-          <MapPanel widthFraction={1} />
-        </React.Suspense>
+        {hasOpened && (
+          <React.Suspense fallback={<Box sx={{ p: 2, color: 'text.secondary', fontSize: 13 }}>Loading map...</Box>}>
+            <MapPanel widthFraction={1} />
+          </React.Suspense>
+        )}
       </Box>
     </Drawer>
   );

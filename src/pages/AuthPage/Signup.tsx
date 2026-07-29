@@ -8,6 +8,7 @@ import { authAPI } from '../../services/APIs/Auth/auth';
 import { useNavigate } from 'react-router-dom';
 import { fadeInLeft, fadeInRight, staggerContainer, staggerItem } from '../../utils/animations';
 import { validateSignupEmail } from '../../utils/emailValidation';
+import Seo from '../../components/Seo';
 
 const GoogleSVG = () => (
   <svg width="18" height="18" viewBox="0 0 48 48" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
@@ -94,7 +95,6 @@ const Signup = () => {
         };
 
         const response = await authAPI.signup(signupData);
-        console.log('Signup response:', response);
         setSuccess(response.data.message || 'Signup successful! Please check your email for verification.');
 
         setTimeout(() => {
@@ -124,6 +124,12 @@ const Signup = () => {
 
   return (
     <div className="auth-root">
+      <Seo
+        title="Create your account"
+        description="Join Tripician - a travel community whose members publish the trips they actually took. Free to join."
+        path="/signup"
+        noindex
+      />
       {/*  Left brand pane  */}
       <motion.div
         className="auth-left"
@@ -148,17 +154,20 @@ const Signup = () => {
               : <><Plane size={20} /><span>Tripician</span></>
             }
           </motion.div>
+          {/* Says what you are joining, not how many others joined. "Join thousands
+              of explorers" and "150+ destinations covered" were both invented and
+              are gone. */}
           <motion.h2 className="auth-left__title" variants={staggerItem}>
-            Your journey<br /><em>begins here.</em>
+            Join a community<br /><em>of travellers.</em>
           </motion.h2>
           <motion.p className="auth-left__sub" variants={staggerItem}>
-            Join thousands of explorers planning smarter with Tripician.
+            Read the trips other people actually took, then plan your own from one.
           </motion.p>
           <motion.ul className="auth-left__perks" variants={staggerContainer(0.08, 0)}>
-            <motion.li variants={staggerItem}><Check size={14} /> Free forever - no credit card needed</motion.li>
-            <motion.li variants={staggerItem}><MapPin size={14} /> Unlimited trip itineraries</motion.li>
-            <motion.li variants={staggerItem}><Globe size={14} /> 150+ destinations covered</motion.li>
-            <motion.li variants={staggerItem}><Brain size={14} /> AI-powered trip suggestions</motion.li>
+            <motion.li variants={staggerItem}><Globe size={14} /> Browse and copy real published itineraries</motion.li>
+            <motion.li variants={staggerItem}><MapPin size={14} /> Plan day by day with your crew</motion.li>
+            <motion.li variants={staggerItem}><Brain size={14} /> Every place checked against a live listing</motion.li>
+            <motion.li variants={staggerItem}><Check size={14} /> Free to join - no credit card needed</motion.li>
           </motion.ul>
         </motion.div>
       </motion.div>
@@ -192,7 +201,7 @@ const Signup = () => {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             transition={{ delay: 0.35, duration: 0.4 }}
-          >Discover journeys that match your vibe</motion.p>
+          >Free to join. Start from someone else&apos;s trip.</motion.p>
 
           {error && <div className="auth-alert auth-alert--error">{error}</div>}
           {success && <div className="auth-alert auth-alert--success">{success}</div>}
