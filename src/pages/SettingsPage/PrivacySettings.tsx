@@ -1,6 +1,9 @@
 import React, { useState, useEffect, useCallback } from "react";
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { useNavigate } from 'react-router-dom';
+import { useDispatch } from 'react-redux';
+import { clearUser } from '../../store/userSlice';
+import { clearSessionData } from '../../utils/authSession';
 import {
   Box,
   Card,
@@ -63,6 +66,7 @@ const PrivacySettings: React.FC = () => {
   // Reactive auth token (ensures re-fetch once token resolves after login)
   const { token: authToken } = useAuthToken();
   const navigate = useNavigate();
+  const dispatch = useDispatch();
 
   // Fetch initial privacy settings from backend
   const fetchPrivacy = useCallback(async () => {
@@ -197,9 +201,11 @@ const PrivacySettings: React.FC = () => {
     try {
       const { apiServices } = await import('../../services/APIs/apiServices');
       await apiServices.deleteAccount(authToken);
-      // Clear all local auth state and redirect to sign-in
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
+      // Wipe every trace of the deleted account, not just its tokens. Leaving
+      // `userProfile` behind here is what once carried a deleted account's name
+      // and email into the next user's session.
+      clearSessionData();
+      dispatch(clearUser());
       window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: 'account_deleted' } }));
       navigate('/signin');
     } catch (err: any) {

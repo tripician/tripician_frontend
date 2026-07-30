@@ -36,6 +36,7 @@ import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../../store';
 import { clearUser } from '../../../store/userSlice';
+import { clearSessionData } from '../../../utils/authSession';
 import { APP_NAV_ITEMS, navItemFromPath } from '../navConfig';
 import Badge from '@mui/material/Badge';
 import {
@@ -223,8 +224,7 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
 
   const handleLogout = () => {
     try {
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
+      clearSessionData();
       dispatch(clearUser());
       setAnchorEl(null);
       navigate('/signin');

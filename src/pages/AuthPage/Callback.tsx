@@ -5,6 +5,7 @@ import { Box, CircularProgress, Typography } from '@mui/material';
 import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../store';
 import { fetchUserProfile } from '../../store/userSlice';
+import { clearSessionData } from '../../utils/authSession';
 import { authAPI } from '../../services/APIs/Auth/auth';
 
 const Callback = () => {
@@ -64,14 +65,21 @@ const Callback = () => {
         } catch {}
 
         if (response.data?.success && response.data?.accessToken) {
+          // Start from a clean browser: whoever was signed in here before must
+          // leave nothing that this session could read. This is the path a user
+          // takes when signing into a second Google account after deleting a
+          // first one, which is exactly where the stale-identity bug surfaced.
+          clearSessionData();
+
           localStorage.setItem('accessToken', response.data.accessToken);
           if (response.data.refreshToken) {
             localStorage.setItem('refreshToken', response.data.refreshToken);
           }
           try {
-            // Ensure profile is loaded using the exact token we just received to avoid races
+            // Ensure profile is loaded using the exact token we just received to avoid races.
+            // `force` skips the cache outright - belt and braces alongside clearSessionData().
             // eslint-disable-next-line @typescript-eslint/no-floating-promises
-            await dispatch(fetchUserProfile({ token: response.data.accessToken })).unwrap();
+            await dispatch(fetchUserProfile({ token: response.data.accessToken, force: true })).unwrap();
           } catch (e) {
             // If profile fetch fails, still navigate to signin for now
             console.error('[Callback] fetchUserProfile failed after token exchange', e);

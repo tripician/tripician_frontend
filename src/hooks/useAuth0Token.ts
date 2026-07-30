@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
+import { clearSessionData } from '../utils/authSession';
 
 interface AuthState {
   isAuthenticated: boolean;
@@ -48,6 +49,10 @@ export const useAuthToken = () => {
   useEffect(() => {
     const handleAuthLogout = (e: CustomEvent) => {
       console.log('Global logout triggered:', e.detail?.reason);
+      // A forced logout (expired token, deleted account) must leave nothing
+      // behind either - this listener used to update React state only, so the
+      // previous account's cached data outlived the session that owned it.
+      clearSessionData();
       setAuthState({
         isAuthenticated: false,
         token: null,
@@ -104,11 +109,8 @@ export const useAuthToken = () => {
       console.error('Logout API call failed:', error);
       // Continue with client-side cleanup even if API call fails
     } finally {
-      // Always clear all auth-related local storage and update state
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      localStorage.removeItem('userProfile');
-      sessionStorage.clear();
+      // Always clear every trace of the session, even if the API call failed
+      clearSessionData();
 
       setAuthState({
         isAuthenticated: false,
