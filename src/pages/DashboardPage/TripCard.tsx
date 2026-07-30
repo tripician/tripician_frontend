@@ -38,6 +38,16 @@ const TripCard: React.FC<TripCardProps> = ({
 }) => {
   const theme = useTheme();
 
+  /*
+   * A cover URL can be dead - the previous curated set 404ed in its entirety, and
+   * a banner saved on a trip can rot the same way. Without this the card rendered
+   * the browser's broken-image glyph with the trip title as alt text; now a failed
+   * load falls through to the same placeholder an image-less trip gets. Keyed by
+   * URL so a later, working cover is given its own chance to load.
+   */
+  const [failedImage, setFailedImage] = React.useState<string | null>(null);
+  const showImage = !!image && image !== failedImage;
+
   const countryDisplay = React.useMemo(() => {
     if (!countries || countries.length === 0) return null;
     const normalize = (c: string) => c ? c.charAt(0).toUpperCase() + c.slice(1).toLowerCase() : c;
@@ -83,8 +93,8 @@ const TripCard: React.FC<TripCardProps> = ({
       >
         {/* Cover */}
         <Box className="trip-cover" sx={{ position: 'relative', aspectRatio: '16 / 10', overflow: 'hidden', bgcolor: theme.custom.surface.active }}>
-          {image ? (
-            <Box component="img" src={image} alt={title} sx={{
+          {showImage ? (
+            <Box component="img" src={image} alt={title} onError={() => setFailedImage(image!)} sx={{
               width: '100%', height: '100%', objectFit: 'cover', display: 'block',
               transition: `transform ${theme.custom.motion.duration.slow} ${theme.custom.motion.easing.standard}`,
             }} />

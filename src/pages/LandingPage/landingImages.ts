@@ -46,6 +46,31 @@ export function photoAlt(slug: string, fallback: string): string {
 export const HERO_IMAGE =
   (import.meta.env.VITE_LANDING_HERO_IMAGE_URL as string) || photo('hero');
 
+/**
+ * Optional cinematic loop layered over HERO_IMAGE, which stays the poster.
+ *
+ * Self-hosted for the same reasons as the photos, and kept small on purpose: this
+ * is the 720p rendition at 2.4 MB, not the 1080p at 5.1 MB, because it renders
+ * under a three-stop scrim at `inset: -8%` where softness in moving footage costs
+ * far less than the extra bytes. It is also loaded lazily and conditionally - see
+ * the gating in LandingPage.tsx - so it never competes with the poster for LCP.
+ *
+ * Env var wins so it can be pointed at a CDN copy without a rebuild.
+ */
+export const HERO_VIDEO =
+  (import.meta.env.VITE_LANDING_HERO_VIDEO_URL as string) || '/video/landing/hero.mp4';
+
+/**
+ * Attribution for the hero loop. Separate from PHOTO_CREDITS because that set is
+ * Unsplash and this is Pexels - two sources, two required link-backs, and merging
+ * them would credit the wrong site.
+ */
+export const HERO_VIDEO_CREDIT = {
+  photographer: 'Adrian Hoparda',
+  photographerUrl: 'https://www.pexels.com/@adrian-hoparda-1684220',
+  videoUrl: 'https://www.pexels.com/video/drone-footage-of-mountains-4250075/',
+};
+
 /** Destination tiles for the photo band that breaks up the long text run. */
 export const DESTINATION_TILES: { name: string; url?: string; alt: string }[] = [
   { name: 'Japan',    url: photo('japan'),    alt: photoAlt('japan', 'Japan') },
