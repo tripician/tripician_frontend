@@ -23,6 +23,7 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import { apiServices } from '../../services/APIs/apiServices';
 import { matchCountryName } from '../../utils/countries';
+import { scheduleFeedbackPrompt } from '../../utils/feedbackPrompt';
 
 const STARTERS = [
   'Plan a 7-day trip to Japan for two people',
@@ -90,6 +91,17 @@ const NaviaPage: React.FC = () => {
 
   const isEmpty = messages.length === 0;
 
+  // One of the two moments that can nudge a first-time user toward feedback -
+  // ten seconds after they start actually chatting with Navia, not merely
+  // having the page open. Fires once from the first message; does not restart
+  // on every later one. See utils/feedbackPrompt.ts.
+  const hasSentMessage = !isEmpty;
+  useEffect(() => {
+    if (!hasSentMessage) return;
+    const timer = setTimeout(() => scheduleFeedbackPrompt('navia_used'), 10_000);
+    return () => clearTimeout(timer);
+  }, [hasSentMessage]);
+
   // ── One-click chat → trip ────────────────────────────────────────────────
   // Navia extracts the plan into structured data, the trip is created, and the
   // planner opens with everything seeded. Fallback: the blank creation modal.
@@ -135,6 +147,7 @@ const NaviaPage: React.FC = () => {
       if (!createdId) throw new Error('Trip created but no id returned');
 
       const tripResp = await apiServices.getTripById(token, createdId);
+      scheduleFeedbackPrompt('trip_created');
       navigate(`/tripplanner/${createdId}`, {
         state: { tripId: createdId, trip: tripResp.data, chatSeed: { stops: extracted.stops } },
       });

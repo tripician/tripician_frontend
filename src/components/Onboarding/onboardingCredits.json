@@ -1,0 +1,23 @@
+[
+  {
+    "slug": "community",
+    "file": "/img/onboarding/community.jpg",
+    "photographer": "Vitaly Gariev",
+    "photographerUrl": "https://www.pexels.com/@silverkblack",
+    "photoUrl": "https://www.pexels.com/photo/group-of-friends-exploring-city-with-map-36729290/"
+  },
+  {
+    "slug": "itinerary",
+    "file": "/img/onboarding/itinerary.jpg",
+    "photographer": "Hanna Auramenka",
+    "photographerUrl": "https://www.pexels.com/@hannaauramenka",
+    "photoUrl": "https://www.pexels.com/photo/woman-in-brown-blazer-sitting-by-the-table-and-looking-at-a-book-8409623/"
+  },
+  {
+    "slug": "reality-check",
+    "file": "/img/onboarding/reality-check.jpg",
+    "photographer": "Maël  BALLAND",
+    "photographerUrl": "https://www.pexels.com/@toulouse",
+    "photoUrl": "https://www.pexels.com/photo/person-looking-at-a-map-3604968/"
+  }
+]

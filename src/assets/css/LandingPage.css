@@ -180,19 +180,50 @@
   position: absolute;
   inset: -8%;
   background-color: #171018;
-  background-image:
-    linear-gradient(180deg, rgba(16,16,20,0.35) 0%, rgba(16,16,20,0.15) 45%, rgba(16,16,20,0.8) 100%),
-    var(--lp-hero-photo, none);
+  background-image: var(--lp-hero-photo, none);
   background-size: cover;
   background-position: center;
   will-change: transform;
 }
+/*
+   The darkening scrim used to be the first layer of `background-image` here. It is
+   its own pseudo-element now so the hero video can sit BETWEEN the poster photo and
+   the scrim: generated content paints after in-flow children, so ::after covers
+   .lp-hero__video without either one needing a z-index, and the video can cross-fade
+   over the poster instead of the poster having to disappear (background-image is not
+   animatable, so swapping it popped).
+*/
+.lp-hero__bg::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(180deg, rgba(16,16,20,0.35) 0%, rgba(16,16,20,0.15) 45%, rgba(16,16,20,0.8) 100%);
+}
 /* Fallback wash when no photo URL is provided */
 .lp-hero__bg--fallback {
-  background-image:
-    linear-gradient(180deg, rgba(16,16,20,0.3) 0%, rgba(16,16,20,0.15) 45%, rgba(16,16,20,0.82) 100%),
-    linear-gradient(160deg, #2a1420 0%, #1c1018 55%, #12090e 100%);
+  background-image: linear-gradient(160deg, #2a1420 0%, #1c1018 55%, #12090e 100%);
 }
+.lp-hero__bg--fallback::after {
+  background: linear-gradient(180deg, rgba(16,16,20,0.3) 0%, rgba(16,16,20,0.15) 45%, rgba(16,16,20,0.82) 100%);
+}
+
+/*
+   Decorative hero loop. Starts transparent and fades up only once the browser says
+   it can actually play, so a slow or failed video never leaves a blank hero - the
+   poster photo underneath is what visitors see until then, and it is also what wins
+   LCP. Never the other way round.
+*/
+.lp-hero__video {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 1.4s cubic-bezier(0.25, 0.46, 0.45, 0.94);
+  pointer-events: none;
+}
+.lp-hero__video--ready { opacity: 1; }
 
 .lp-hero__content {
   position: relative;
@@ -752,6 +783,10 @@
 .lp-showcase__card:focus-visible { outline: 2px solid var(--lp-primary); outline-offset: 3px; }
 .lp-showcase__card { position: relative; border-radius: 18px; overflow: hidden; height: 320px; cursor: pointer; border: 1px solid var(--lp-border); }
 .lp-showcase__card-bg { position: absolute; inset: 0; transition: transform 0.6s cubic-bezier(0.25, 0.46, 0.45, 0.94); }
+/* No photo resolved. The card's title and meta are #fff and its overlay only
+   darkens the lower half, so a light fill left the text unreadable and the card
+   looking broken. A dark ground keeps it legible and deliberate. */
+.lp-showcase__card-bg--empty { background: linear-gradient(150deg, #2c3038 0%, #1a1d23 100%); }
 .lp-showcase__card:hover .lp-showcase__card-bg { transform: scale(1.05); }
 .lp-showcase__card-overlay { position: absolute; inset: 0; background: linear-gradient(to top, rgba(0,0,0,0.75) 0%, rgba(0,0,0,0.15) 48%, transparent 100%); z-index: 1; }
 .lp-showcase__card-content { position: absolute; bottom: 0; left: 0; right: 0; padding: 20px; display: flex; flex-direction: column; gap: 6px; z-index: 2; }
