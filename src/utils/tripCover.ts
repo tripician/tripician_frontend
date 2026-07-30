@@ -8,15 +8,26 @@
  * therefore showed one image on its card and another on its own page.
  *
  * The fix is not just "use the same query": it's to prefer a deterministic
- * source. `assets/covers.json` maps countries to curated Cloudinary covers, so
+ * source. `assets/covers.json` maps countries to curated Pexels CDN URLs, so
  * the same country always resolves to the same image everywhere, instantly,
  * with no API call and no rate limit.
  *
- * NOTE: covers.json is only partly filled - 24 of its 82 entries have a URL, the
- * rest are empty-string placeholders. `curatedCover` therefore treats an empty
- * value as absent, and countries without a cover fall through to Unsplash using
- * the one canonical query below. That fallback is still consistent everywhere
- * precisely because every caller goes through this module.
+ * Those covers were Cloudinary uploads until every one of them started 404ing -
+ * the images had been deleted from the account - which is why cards rendered as
+ * broken images. They are now `images.pexels.com` links. Pexels rather than
+ * Unsplash because Unsplash's demo tier allows 50 requests/hour, which is the
+ * same budget the runtime fallback below draws on, and its API terms want a
+ * credit per displayed photo; Pexels asks only for one link back to Pexels.
+ *
+ * All 82 entries are filled, so `curatedCover` resolves synchronously for every
+ * country in the file. It still treats an empty value as absent, because the map
+ * is hand-maintained and a placeholder returning '' would satisfy every `??` in
+ * the chain and render a broken <img> forever.
+ *
+ * A country absent from the map entirely - the file lists 81 places, not every
+ * country on earth - falls through to Unsplash via the one canonical query below.
+ * That fallback stays consistent everywhere precisely because every caller goes
+ * through this module.
  */
 
 import covers from '../assets/covers.json';

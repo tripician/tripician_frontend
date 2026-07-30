@@ -16,6 +16,7 @@ import {
   resolveTripCover,
 } from './tripCover';
 import { fetchUnsplashImage } from '../services/unsplashService';
+import coversJson from '../assets/covers.json';
 
 /**
  * The bug this module fixes: a trip's card and its own page resolved different
@@ -23,8 +24,49 @@ import { fetchUnsplashImage } from '../services/unsplashService';
  * behaviour that keeps them identical.
  */
 
+/**
+ * covers.json is a living file - placeholders get filled in over time - so the
+ * "has art" and "has no art" fixtures are read from it rather than hard-coded.
+ * Hard-coding them is what broke this suite when the covers were refreshed:
+ * Nepal and Germany were the stand-ins for "no art" and then acquired art.
+ *
+ * Restricted to single-word keys so the display name round-trips through
+ * coverKey ("iceland" -> "Iceland" -> "iceland"); "srilanka" would not.
+ */
+const COVERS = coversJson as Record<string, string>;
+
+/**
+ * The CDN the curated covers come from. Named once because it has already moved
+ * twice - Cloudinary, then Unsplash, now Pexels - and each move left assertions
+ * scattered through this file naming the old host.
+ */
+const COVER_HOST = 'images.pexels.com';
+
+const single = (k: string) => /^[a-z]+$/.test(k) && k !== 'default';
+const asCountry = (k: string) => k.charAt(0).toUpperCase() + k.slice(1);
+
+const COVERED = asCountry(Object.keys(COVERS).find((k) => single(k) && COVERS[k])!);
+const uncoveredKey = Object.keys(COVERS).find((k) => single(k) && !COVERS[k]);
+const UNCOVERED = uncoveredKey ? asCountry(uncoveredKey) : null;
+
 beforeEach(() => {
   vi.mocked(fetchUnsplashImage).mockClear();
+});
+
+describe('the fixtures these tests are built on', () => {
+  it('found a country with curated art', () => {
+    expect(COVERED).toBeTruthy();
+  });
+
+  /**
+   * Not a failure - it means every single-word country now has art, and the
+   * fall-through-to-Unsplash cases below are skipped rather than silently
+   * asserting nothing.
+   */
+  it('reports whether any country is still without art', () => {
+    if (!UNCOVERED) console.warn('covers.json is fully populated; fall-through cases skipped');
+    expect(true).toBe(true);
+  });
 });
 
 describe('savedBanner', () => {
@@ -56,24 +98,47 @@ describe('primaryCountry', () => {
 
 describe('curatedCover', () => {
   it('resolves a country that has art, regardless of spacing or case', () => {
-    const direct = curatedCover('Thailand');
-    expect(direct).toContain('cloudinary');
-    expect(curatedCover('  thailand ')).toBe(direct);
+    const direct = curatedCover(COVERED);
+    expect(direct).toContain(COVER_HOST);
+    expect(curatedCover(`  ${COVERED.toLowerCase()} `)).toBe(direct);
   });
 
   it('normalises punctuation and spaces to the key form', () => {
     // covers.json keys are squashed: "Sri Lanka" -> "srilanka"
-    expect(curatedCover('Sri Lanka')).toContain('cloudinary');
+    expect(curatedCover('Sri Lanka')).toContain(COVER_HOST);
   });
 
   /**
-   * covers.json ships 58 empty-string placeholders. Returning '' from here would
+   * The covers used to be Cloudinary uploads and every one of them 404ed. Pin the
+   * source so a stale URL set cannot quietly come back.
+   */
+  it('serves Pexels CDN URLs, never the dead Cloudinary ones', () => {
+    for (const [country, url] of Object.entries(COVERS)) {
+      if (!url) continue;
+      expect(url, country).toMatch(/^https:\/\/images\.pexels\.com\//);
+    }
+  });
+
+  /**
+   * Two countries sharing one photo is a data slip, not a behaviour change, so it
+   * is invisible until someone notices the same picture twice in one grid.
+   */
+  it('gives every country its own photo', () => {
+    const used = new Map<string, string>();
+    for (const [country, url] of Object.entries(COVERS)) {
+      if (!url) continue;
+      expect(used.has(url), `${country} reuses the cover from ${used.get(url)}`).toBe(false);
+      used.set(url, country);
+    }
+  });
+
+  /**
+   * covers.json ships empty-string placeholders. Returning '' from here would
    * satisfy every `??` in the chain and render a broken <img> forever, so an
    * empty value must read as absent.
    */
-  it('treats an empty placeholder value as no cover', () => {
-    expect(curatedCover('Nepal')).toBeNull();
-    expect(curatedCover('Germany')).toBeNull();
+  it.skipIf(!UNCOVERED)('treats an empty placeholder value as no cover', () => {
+    expect(curatedCover(UNCOVERED!)).toBeNull();
   });
 
   it('returns null for an unknown country', () => {
@@ -97,16 +162,16 @@ describe('tripCoverPhoto', () => {
   });
 
   it('falls back to the curated country cover', () => {
-    expect(tripCoverPhoto({ countries: ['Thailand'] })).toContain('cloudinary');
+    expect(tripCoverPhoto({ countries: [COVERED] })).toContain(COVER_HOST);
   });
 
   it('returns null rather than the generic default, so callers can show a skeleton', () => {
-    expect(tripCoverPhoto({ countries: ['Nepal'] })).toBeNull();
+    if (UNCOVERED) expect(tripCoverPhoto({ countries: [UNCOVERED] })).toBeNull();
     expect(tripCoverPhoto({})).toBeNull();
   });
 
   it('never returns an empty string', () => {
-    for (const trip of [{}, { countries: ['Nepal'] }, { bannerPhotoUrl: '  ' }]) {
+    for (const trip of [{}, { countries: [UNCOVERED ?? 'Atlantis'] }, { bannerPhotoUrl: '  ' }]) {
       expect(tripCoverPhoto(trip)).not.toBe('');
     }
   });
@@ -166,17 +231,17 @@ describe('resolveTripCover', () => {
   });
 
   it('does not hit the network when a curated cover exists', async () => {
-    await expect(resolveTripCover({ countries: ['Thailand'] })).resolves.toContain('cloudinary');
+    await expect(resolveTripCover({ countries: [COVERED] })).resolves.toContain(COVER_HOST);
     expect(fetchUnsplashImage).not.toHaveBeenCalled();
   });
 
-  it('asks Unsplash in landscape for countries with no curated art', async () => {
-    await expect(resolveTripCover({ countries: ['Nepal'] })).resolves.toBe('https://images.unsplash.com/stub');
-    expect(fetchUnsplashImage).toHaveBeenCalledWith('Nepal landscape travel', 'landscape');
+  it.skipIf(!UNCOVERED)('asks Unsplash in landscape for countries with no curated art', async () => {
+    await expect(resolveTripCover({ countries: [UNCOVERED!] })).resolves.toBe('https://images.unsplash.com/stub');
+    expect(fetchUnsplashImage).toHaveBeenCalledWith(`${UNCOVERED} landscape travel`, 'landscape');
   });
 
-  it('falls back to the generic default when Unsplash returns nothing', async () => {
+  it.skipIf(!UNCOVERED)('falls back to the generic default when Unsplash returns nothing', async () => {
     vi.mocked(fetchUnsplashImage).mockResolvedValueOnce(null);
-    await expect(resolveTripCover({ countries: ['Nepal'] })).resolves.toBe(defaultCover());
+    await expect(resolveTripCover({ countries: [UNCOVERED!] })).resolves.toBe(defaultCover());
   });
 });

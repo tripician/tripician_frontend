@@ -1,4 +1,4 @@
-﻿import { useLayoutEffect, useState, useEffect } from 'react';
+﻿import { useLayoutEffect, useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth0 } from '@auth0/auth0-react';
 import gsap from 'gsap';
@@ -23,9 +23,10 @@ import '../../assets/css/LandingPage.css';
 import Seo, { SITE_URL } from '../../components/Seo';
 import NaviaOrb from '../../navia/NaviaOrb';
 import LpPhoto from './LpPhoto';
-import { HERO_IMAGE, OG_IMAGE, DESTINATION_TILES, TICKER, PHOTO_CREDITS } from './landingImages';
+import { HERO_IMAGE, HERO_VIDEO, HERO_VIDEO_CREDIT, OG_IMAGE, DESTINATION_TILES, TICKER, PHOTO_CREDITS } from './landingImages';
 import { apiServices } from '../../services/APIs/apiServices';
 import { tripPath } from '../../utils/tripSlug';
+import { tripCoverPhoto, resolveTripCover, type TripCoverSource } from '../../utils/tripCover';
 
 gsap.registerPlugin(ScrollTrigger);
 
@@ -182,6 +183,8 @@ interface LandingTrip {
   photo?: string;
   countries?: string;
   owner?: string;
+  /** Kept so the async cover pass can re-resolve without re-reading the raw row. */
+  cover: TripCoverSource;
 }
 
 const toLandingTrip = (raw: any): LandingTrip | null => {
@@ -197,13 +200,32 @@ const toLandingTrip = (raw: any): LandingTrip | null => {
     : [];
   const ownerName = raw?.owner?.name || raw?.Owner?.Name || raw?.ownerName || raw?.OwnerName;
 
+  /*
+   * This page used to read the banner straight off the row and stop there, which
+   * is why the showcase rendered as four blank tiles: a published trip with no
+   * uploaded banner got `undefined` and no fallback, so every card was the empty
+   * grey box with unreadable white text over it. Going through tripCover gives it
+   * the same saved-banner -> curated-country-cover -> Unsplash chain as the
+   * community grid and the trip's own hero, so the same trip looks the same in
+   * all three places.
+   *
+   * `bannerPhoto.url` is this endpoint's shape; tripCover reads the flat
+   * `bannerPhotoUrl` variants, so hand it a normalised source.
+   */
+  const cover: TripCoverSource = {
+    bannerPhotoUrl: raw?.bannerPhoto?.url || raw?.BannerPhoto?.Url || raw?.photoUrl || raw?.PhotoUrl || null,
+    countries: countryList,
+    name,
+  };
+
   return {
     id: String(id),
     name,
     href: tripPath({ id: String(id), name }),
-    photo: raw?.bannerPhoto?.url || raw?.BannerPhoto?.Url || raw?.photoUrl || raw?.PhotoUrl || undefined,
+    photo: tripCoverPhoto(cover) ?? undefined,
     countries: countryList.slice(0, 2).join(' · ') || undefined,
     owner: typeof ownerName === 'string' && ownerName.trim() ? ownerName.trim() : undefined,
+    cover,
   };
 };
 
@@ -417,12 +439,94 @@ export default function LandingPage() {
         const response = await apiServices.getPublishedTrips();
         if (!active) return;
         const rows = Array.isArray(response?.data) ? response.data : [];
-        setRecentTrips(rows.map(toLandingTrip).filter((t): t is LandingTrip => t !== null).slice(0, 4));
+        const trips = rows.map(toLandingTrip).filter((t): t is LandingTrip => t !== null).slice(0, 4);
+        setRecentTrips(trips);
+
+        /*
+         * Second pass for the cards tripCoverPhoto could not resolve synchronously -
+         * a country with no curated cover yet. Only those hit the network, and only
+         * after the section has already painted with the covers we did have, so the
+         * grid fills in rather than popping wholesale.
+         */
+        const missing = trips.filter((t) => !t.photo);
+        if (!missing.length) return;
+        const resolved = await Promise.all(
+          missing.map(async (t) => [t.id, await resolveTripCover(t.cover)] as const),
+        );
+        if (!active) return;
+        const byId = new Map(resolved.filter(([, url]) => !!url));
+        if (!byId.size) return;
+        setRecentTrips((prev) => prev.map((t) => (byId.has(t.id) ? { ...t, photo: byId.get(t.id)! } : t)));
       } catch {
         /* no trips shown; the section unmounts itself */
       }
     })();
     return () => { active = false; };
+  }, []);
+
+  /**
+   * The hero loop. Deliberately *not* rendered on first paint.
+   *
+   * `heroVideoSrc` stays null until after the window load event, so the poster
+   * photo is what paints and what LCP measures - attaching a 2.4 MB video to the
+   * DOM up front would make the headline wait behind it. `heroVideoReady` then
+   * gates the fade, so a video that stalls or 404s leaves the poster in place
+   * rather than a black rectangle.
+   *
+   * Four conditions have to hold before it loads at all:
+   *  - reduced motion is not requested. A 12-second loop is exactly the kind of
+   *    ambient movement that setting exists to stop, and the rest of this page
+   *    already honours it.
+   *  - the viewport is wide. A landscape drone shot cropped to a phone's portrait
+   *    aspect shows almost nothing, and it is several MB on a connection the
+   *    visitor may well be paying for by the megabyte.
+   *  - Save-Data is off.
+   *  - the connection is not 2g/3g.
+   */
+  const [heroVideoSrc, setHeroVideoSrc] = useState<string | null>(null);
+  const [heroVideoReady, setHeroVideoReady] = useState(false);
+
+  useEffect(() => {
+    if (!HERO_VIDEO) return;
+    if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) return;
+    if (window.matchMedia('(max-width: 768px)').matches) return;
+
+    // navigator.connection is not in every browser's lib.dom, hence the cast.
+    const conn = (navigator as unknown as {
+      connection?: { saveData?: boolean; effectiveType?: string };
+    }).connection;
+    if (conn?.saveData) return;
+    if (conn?.effectiveType && /2g|3g/.test(conn.effectiveType)) return;
+
+    const attach = () => setHeroVideoSrc(HERO_VIDEO);
+    if (document.readyState === 'complete') {
+      attach();
+      return;
+    }
+    window.addEventListener('load', attach, { once: true });
+    return () => window.removeEventListener('load', attach);
+  }, []);
+
+  /**
+   * A cover URL that 404s. The banner saved on a trip can be a dead link - the
+   * whole previous cover set was - and a broken image on the front page is worse
+   * than no image, so drop the banner and re-resolve from the country.
+   *
+   * The ref is the loop guard: if the replacement is dead too, `onError` fires
+   * again, and without it we would keep resolving to the same URL forever. One
+   * retry per card, then it settles on the empty state.
+   */
+  const retriedCoversRef = useRef<Set<string>>(new Set());
+  const retryCover = useCallback((trip: LandingTrip) => {
+    setRecentTrips((prev) => prev.map((t) => (t.id === trip.id ? { ...t, photo: undefined } : t)));
+    if (retriedCoversRef.current.has(trip.id)) return;
+    retriedCoversRef.current.add(trip.id);
+
+    const withoutBanner: TripCoverSource = { ...trip.cover, bannerPhotoUrl: null };
+    resolveTripCover(withoutBanner).then((url) => {
+      if (!url || url === trip.photo) return;
+      setRecentTrips((prev) => prev.map((t) => (t.id === trip.id ? { ...t, photo: url } : t)));
+    });
   }, []);
 
   // Nav goes solid once the hero photo scrolls behind it
@@ -714,7 +818,27 @@ export default function LandingPage() {
         <div
           className={`lp-hero__bg${!heroImageUrl ? ' lp-hero__bg--fallback' : ''}`}
           style={heroImageUrl ? ({ '--lp-hero-photo': `url(${heroImageUrl})` } as React.CSSProperties) : undefined}
-        />
+        >
+          {/* Purely decorative, so aria-hidden and no track: it carries no
+              information the headline below does not already state. muted +
+              playsInline are what make autoplay legal on iOS and in Chrome. */}
+          {heroVideoSrc && (
+            <video
+              className={`lp-hero__video${heroVideoReady ? ' lp-hero__video--ready' : ''}`}
+              src={heroVideoSrc}
+              poster={heroImageUrl}
+              autoPlay
+              muted
+              loop
+              playsInline
+              preload="auto"
+              aria-hidden="true"
+              tabIndex={-1}
+              onCanPlay={() => setHeroVideoReady(true)}
+              onError={() => setHeroVideoSrc(null)}
+            />
+          )}
+        </div>
 
         {/* The hero has one job: say what this is. Visitors were asking "what does
             Tripician actually do?", so the eyebrow names the category, the headline
@@ -812,8 +936,14 @@ export default function LandingPage() {
                 onKeyDown={(e) => { if (e.key === 'Enter') navigate(trip.href); }}
               >
                 {trip.photo
-                  ? <img src={trip.photo} alt="" className="lp-showcase__card-bg" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }} />
-                  : <div className="lp-showcase__card-bg" style={{ background: 'var(--lp-card-alt)' }} />
+                  ? <img
+                      src={trip.photo}
+                      alt=""
+                      className="lp-showcase__card-bg"
+                      style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', inset: 0 }}
+                      onError={() => retryCover(trip)}
+                    />
+                  : <div className="lp-showcase__card-bg lp-showcase__card-bg--empty" />
                 }
                 <div className="lp-showcase__card-overlay" />
                 <div className="lp-showcase__card-content">
@@ -1122,6 +1252,11 @@ export default function LandingPage() {
               </span>
             ))}
             {' '}on <a href="https://unsplash.com" target="_blank" rel="noopener noreferrer">Unsplash</a>.
+            {' '}Hero video by{' '}
+            <a href={HERO_VIDEO_CREDIT.photographerUrl} target="_blank" rel="noopener noreferrer">
+              {HERO_VIDEO_CREDIT.photographer}
+            </a>
+            {' '}on <a href="https://www.pexels.com" target="_blank" rel="noopener noreferrer">Pexels</a>.
           </div>
         )}
         <div className="lp-footer__bottom">

@@ -7,6 +7,7 @@ import { fetchUserProfile } from '../../../store/userSlice';
 import { Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
 import TripCreationModal from '../../../components/CreateTripComponents/TripCreationModal';
 import SupportWidget from '../../../components/CommonComponents/SupportWidget';
+import OnboardingCarousel from '../../../components/Onboarding/OnboardingCarousel';
 import AppShellHeader from './AppShellHeader';
 import AppBottomNav from './AppBottomNav';
 import { AppShellProvider } from '../AppShellContext';
@@ -116,6 +117,7 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
 
         <TripCreationModal open={createTripOpen} onClose={() => setCreateTripOpen(false)} />
         {!hideSupportWidget && <SupportWidget />}
+        {!hideSupportWidget && <OnboardingCarousel />}
       </Box>
     </AppShellProvider>
   );

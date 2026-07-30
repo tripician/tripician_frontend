@@ -22,6 +22,7 @@ import gsap from 'gsap';
 import { VIBES } from '../../pages/CommunityPage/vibes';
 import { COUNTRIES } from '../../utils/countries';
 import NaviaOrb from '../../navia/NaviaOrb';
+import { scheduleFeedbackPrompt } from '../../utils/feedbackPrompt';
 
 interface TripCreationModalProps {
   open: boolean;
@@ -143,6 +144,9 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
 
       if (messageInterval) clearInterval(messageInterval);
       handleClose();
+      // One of the two moments that can nudge a first-time user toward feedback -
+      // see utils/feedbackPrompt.ts. A no-op after the first trip ever created.
+      scheduleFeedbackPrompt('trip_created');
       navigate(`/tripplanner/${createdId}`, {
         state: { tripId: createdId, trip: tripData, ...(generateWithAI ? { aiGenerated: true } : {}) },
       });
