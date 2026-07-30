@@ -14,6 +14,7 @@ import { CardGridSkeleton } from '../../components/ui/Skeletons';
 import { IconArrowRight, IconMapPlus, IconPlus } from '@tabler/icons-react';
 import { staggerContainer, staggerItem } from '../../utils/animations';
 import { clearUser } from '../../store/userSlice';
+import { clearSessionData } from '../../utils/authSession';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import TravelMap from '../../components/TravelMap';
@@ -67,10 +68,7 @@ const Dashboard: React.FC = () => {
 
   const handleLogout = () => {
       try {
-        // Remove stored tokens (adjust keys as needed)
-        localStorage.removeItem('accessToken');
-        localStorage.removeItem('refreshToken');
-        // Clear redux user state
+        clearSessionData();
         dispatch(clearUser());
         navigate('/signin');
       } catch (e) {

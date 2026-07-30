@@ -6,6 +6,7 @@ import { Eye, EyeOff, Plane, MapPin, Globe, Brain, ArrowLeft } from 'lucide-reac
 import { authAPI } from '../../services/APIs/Auth/auth';
 import { useNavigate } from 'react-router-dom';
 import { fetchUserProfile } from '../../store/userSlice';
+import { clearSessionData } from '../../utils/authSession';
 import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../store';
 import { fadeInLeft, fadeInRight, staggerContainer, staggerItem } from '../../utils/animations';
@@ -85,14 +86,19 @@ const Signin = () => {
       const response = await authAPI.signin(signInData);
 
       if (response.data?.success && response.data?.accessToken) {
+        // Start from a clean browser: whoever was signed in here before must
+        // leave nothing that this session could read.
+        clearSessionData();
+
         localStorage.setItem('accessToken', response.data.accessToken);
         if (response.data.refreshToken) {
           localStorage.setItem('refreshToken', response.data.refreshToken);
         }
 
-        // Ensure profile is fetched using this exact token before navigating to avoid race
+        // Ensure profile is fetched using this exact token before navigating to avoid race.
+        // `force` skips the cache outright - belt and braces alongside clearSessionData().
         try {
-          await dispatch(fetchUserProfile({ token: response.data.accessToken })).unwrap();
+          await dispatch(fetchUserProfile({ token: response.data.accessToken, force: true })).unwrap();
         } catch (e) {
           console.error('[Signin] fetchUserProfile failed after signin', e);
           setError('Failed to load user profile after sign in. Please try again.');

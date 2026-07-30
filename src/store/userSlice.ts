@@ -1,6 +1,7 @@
 // src/store/userSlice.ts
 import { createSlice, createAsyncThunk, type PayloadAction } from "@reduxjs/toolkit";
 import { apiServices } from "../services/APIs/apiServices";
+import { tokenSubject } from "../utils/authSession";
 
 interface BioHighlight {
   key: string;
@@ -118,23 +119,54 @@ const normalizeProfile = (raw: any, previous: UserProfile | null = null): UserPr
   return base;
 };
 
+const PROFILE_CACHE_KEY = 'userProfile';
+
+/**
+ * The cached profile is stored tagged with the `sub` of the token that produced
+ * it, and is only ever handed back for that same account.
+ *
+ * Without this tag the cache was just "the last profile anyone loaded on this
+ * browser": deleting an account left it behind, the next sign-in read it
+ * instead of calling the API, and account A's identity rendered inside account
+ * B's session. An untagged (pre-fix) entry fails the check and is refetched.
+ */
+interface CachedProfileEnvelope {
+  sub: string;
+  profile: UserProfile;
+}
+
+const currentToken = (): string | null => {
+  try { return localStorage.getItem('accessToken'); } catch { return null; }
+};
+
+/** Cached profile for this exact account, or null - never a different account's. */
+const readCachedProfile = (token?: string | null): UserProfile | null => {
+  const sub = tokenSubject(token ?? currentToken());
+  if (!sub) return null;
+  try {
+    const raw = localStorage.getItem(PROFILE_CACHE_KEY);
+    if (!raw) return null;
+    const parsed = JSON.parse(raw) as Partial<CachedProfileEnvelope>;
+    if (!parsed || parsed.sub !== sub || !parsed.profile) return null;
+    return normalizeProfile(parsed.profile);
+  } catch {
+    return null;
+  }
+};
+
+const writeCachedProfile = (profile: UserProfile | null, token?: string | null): void => {
+  try {
+    if (!profile) { localStorage.removeItem(PROFILE_CACHE_KEY); return; }
+    const sub = tokenSubject(token ?? currentToken());
+    // No identifiable account means no cache: an untagged entry is exactly the
+    // bug this replaced.
+    if (!sub) { localStorage.removeItem(PROFILE_CACHE_KEY); return; }
+    localStorage.setItem(PROFILE_CACHE_KEY, JSON.stringify({ sub, profile } satisfies CachedProfileEnvelope));
+  } catch { /* private mode - the app works fine without the cache */ }
+};
+
 const initialState: UserState = {
-  profile: (() => {
-    try {
-      const cached = localStorage.getItem('userProfile');
-      if (!cached) return null;
-      const parsed = JSON.parse(cached);
-      const normalized = normalizeProfile(parsed);
-      if (normalized) {
-        try {
-          localStorage.setItem('userProfile', JSON.stringify(normalized));
-        } catch {}
-      }
-      return normalized;
-    } catch {
-      return null;
-    }
-  })(),
+  profile: readCachedProfile(),
   loading: false,
   error: null,
 };
@@ -153,33 +185,17 @@ export const fetchUserProfile = createAsyncThunk<
 
       const force = Boolean(arg?.force);
 
+      // Only ever a cache belonging to THIS token's account; see readCachedProfile.
       if (!force) {
-        // Try cache first
-        const cached = localStorage.getItem('userProfile');
-        if (cached) {
-          try {
-            const parsed = JSON.parse(cached);
-            if (parsed) {
-              const normalized = normalizeProfile(parsed);
-              if (normalized && normalized.id) {
-                return normalized;
-              }
-            }
-          } catch {
-            // ignore malformed cache, proceed to network
-          }
-        }
+        const cached = readCachedProfile(tokenToUse);
+        if (cached && cached.id) return cached;
       }
 
       // Fallback to API using the provided token (or the one from storage)
       const response = await apiServices.getUserProfile(tokenToUse);
       const normalized = normalizeProfile(response.data);
       if (!normalized) throw new Error('Invalid profile data');
-      if (normalized.id) {
-        try {
-          localStorage.setItem('userProfile', JSON.stringify(normalized));
-        } catch {}
-      }
+      if (normalized.id) writeCachedProfile(normalized, tokenToUse);
       return normalized;
     } catch (err: any) {
       return rejectWithValue(err.response?.data?.message || err.message);
@@ -194,30 +210,20 @@ const userSlice = createSlice({
     clearUser: (state) => {
       state.profile = null;
       state.error = null;
-      try {
-        localStorage.removeItem('userProfile');
-      } catch {}
+      writeCachedProfile(null);
     },
     setUserProfile: (state, action: PayloadAction<UserProfile | null>) => {
       if (action.payload === null) {
         state.profile = null;
         state.error = null;
-        try {
-          localStorage.removeItem('userProfile');
-        } catch {}
+        writeCachedProfile(null);
         return;
       }
 
       const normalized = normalizeProfile(action.payload, state.profile);
       state.profile = normalized;
       state.error = null;
-      try {
-        if (normalized) {
-          localStorage.setItem('userProfile', JSON.stringify(normalized));
-        } else {
-          localStorage.removeItem('userProfile');
-        }
-      } catch {}
+      writeCachedProfile(normalized);
     },
   },
   extraReducers: (builder) => {
@@ -229,11 +235,7 @@ const userSlice = createSlice({
       .addCase(fetchUserProfile.fulfilled, (state, action: PayloadAction<UserProfile>) => {
         state.loading = false;
         state.profile = normalizeProfile(action.payload, state.profile);
-        if (state.profile && state.profile.id) {
-          try {
-            localStorage.setItem('userProfile', JSON.stringify(state.profile));
-          } catch {}
-        }
+        if (state.profile && state.profile.id) writeCachedProfile(state.profile);
       })
       .addCase(fetchUserProfile.rejected, (state, action) => {
         state.loading = false;

@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useNavigate, useLocation, useMatch } from 'react-router-dom';
 import Footer from './Footer';
-import { useDispatch, useSelector } from 'react-redux';
-import type { RootState, AppDispatch } from '../../../store';
+import { useDispatch } from 'react-redux';
+import type { AppDispatch } from '../../../store';
 import { fetchUserProfile } from '../../../store/userSlice';
 import { Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
 import TripCreationModal from '../../../components/CreateTripComponents/TripCreationModal';
@@ -30,7 +30,6 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
-  const { profile } = useSelector((state: RootState) => state.user);
 
   const [createTripOpen, setCreateTripOpen] = useState(false);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
@@ -45,9 +44,16 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
 
   const openCreateTrip = () => setCreateTripOpen(true);
 
+  /*
+   * Revalidate against the server once per mount rather than only when the
+   * profile is missing. `if (!profile)` meant a cached profile was never
+   * re-checked, so a wrong one could not correct itself - not even on a hard
+   * refresh, since the store rehydrates from that same cache on boot. That is
+   * why the stale-identity bug looked unfixable from the user's side.
+   */
   useEffect(() => {
-    if (!profile) dispatch(fetchUserProfile());
-  }, [dispatch, profile]);
+    dispatch(fetchUserProfile({ force: true }));
+  }, [dispatch]);
 
   useEffect(() => {
     const handler = () => openCreateTrip();

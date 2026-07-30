@@ -12,6 +12,7 @@ import SearchBar from "../../../components/CommonComponents/SearchBar";
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../../store';
 import { clearUser } from '../../../store/userSlice';
+import { clearSessionData } from '../../../utils/authSession';
 import { useNavigate } from 'react-router-dom';
 import { useAuthToken } from '../../../hooks/useAuth0Token';
 
@@ -46,10 +47,7 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode, sh
 
   const handleLogout = () => {
     try {
-      // Remove stored tokens (adjust keys as needed)
-      localStorage.removeItem('accessToken');
-      localStorage.removeItem('refreshToken');
-      // Clear redux user state
+      clearSessionData();
       dispatch(clearUser());
       handleClose();
       navigate('/signin');
