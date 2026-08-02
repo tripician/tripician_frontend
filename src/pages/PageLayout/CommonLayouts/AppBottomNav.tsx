@@ -104,9 +104,12 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip, onMoreMenu })
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            background: (t) => t.custom.gradients.brand,
+            bgcolor: 'primary.main',
             color: '#fff',
-            boxShadow: (t) => t.custom.shadows.brandMd,
+            /* Neutral, not coral. This tile genuinely floats over scrolling
+               content and has no border, so it keeps an elevation cue - but a
+               grey one, which reads as depth rather than as brand glow. */
+            boxShadow: (t) => t.custom.shadows.card,
           }}
         >
           <AddRoundedIcon sx={{ fontSize: 28 }} />

@@ -116,7 +116,6 @@ const ProfileSettings: React.FC = () => {
                 fontSize: '1.7rem',
                 fontWeight: 700,
                 fontFamily: "'Inter',sans-serif",
-                boxShadow: '0 4px 18px rgba(255,56,92,0.3)',
               }}
             >
               {!profilePicture && (fname?.[0]?.toUpperCase() || 'U')}
@@ -223,7 +222,7 @@ const ProfileSettings: React.FC = () => {
                   console.log('[Upload] button clicked, ref:', fileInputRef.current);
                   fileInputRef.current?.click();
                 }}
-                sx={{ textTransform: "none", fontWeight: 600, px: 2.5, py: 1, borderRadius: '50px', background: 'linear-gradient(135deg,#FF385C,#D91A50)', boxShadow: '0 4px 12px rgba(255,56,92,0.28)', '&:hover': { background: 'linear-gradient(135deg,#E31C5F,#B01550)' } }}
+                sx={{ textTransform: "none", fontWeight: 600, px: 2.5, py: 1 }}
               >
                 {isUploadingPhoto ? <><CircularProgress size={14} sx={{ color: '#fff', mr: 1 }} />Uploading…</> : 'Upload New Photo'}
               </Button>
@@ -333,7 +332,7 @@ const ProfileSettings: React.FC = () => {
               size="small"
               disabled={isUploadingCover}
               onClick={() => coverInputRef.current?.click()}
-              sx={{ textTransform: 'none', fontWeight: 600, px: 2.5, py: 1, borderRadius: '50px', background: 'linear-gradient(135deg,#FF385C,#D91A50)', boxShadow: '0 4px 12px rgba(255,56,92,0.28)', '&:hover': { background: 'linear-gradient(135deg,#E31C5F,#B01550)' } }}
+              sx={{ textTransform: 'none', fontWeight: 600, px: 2.5, py: 1 }}
             >
               {isUploadingCover ? <><CircularProgress size={14} sx={{ color: '#fff', mr: 1 }} />Uploading…</> : 'Upload Cover'}
             </Button>
@@ -547,10 +546,6 @@ const ProfileSettings: React.FC = () => {
                 fontWeight: 600,
                 px: 3,
                 py: 1.5,
-                borderRadius: '50px',
-                background: 'linear-gradient(135deg, #FF385C 0%, #D91A50 100%)',
-                boxShadow: '0 4px 14px rgba(255,56,92,0.3)',
-                "&:hover": { background: 'linear-gradient(135deg, #E31C5F 0%, #B01550 100%)', boxShadow: '0 8px 24px rgba(255,56,92,0.42)' },
               }}
             >
               {saving ? "Saving..." : "Save"}

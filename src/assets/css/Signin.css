@@ -1,7 +1,7 @@
 /* 
    Auth.css  (shared by Signin & Signup)  , Tripician dark theme
     */
-@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,600;0,700;1,500;1,700&family=Inter:wght@300;400;500;600&display=swap');
+/* Fonts come from the <link> in index.html - see the note in LandingPage.css. */
 
 /*  ROOT  */
 .auth-root {
@@ -71,7 +71,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-display);
   font-size: 1.22rem;
   font-weight: 700;
   color: #fff;
@@ -85,7 +85,7 @@
 }
 
 .auth-left__title {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-display);
   font-size: clamp(1.6rem, 2.2vw, 2.05rem);
   font-weight: 700;
   color: #fff;
@@ -93,6 +93,8 @@
   margin: 0;
   letter-spacing: -0.025em;
 }
+/* Real italic, not a synthesised one: index.html requests the `1,600` cut
+   precisely so this works under `font-synthesis: none`. */
 .auth-left__title em {
   font-style: italic;
   color: #FF8A9F;
@@ -103,7 +105,9 @@
   color: rgba(255, 255, 255, 0.55);
   line-height: 1.68;
   margin: 0;
-  font-weight: 300;
+  /* 400, not 300: the Inter axis in index.html starts at 400 and
+     `font-synthesis: none` will not invent a lighter cut. */
+  font-weight: 400;
   max-width: 320px;
 }
 
@@ -161,14 +165,13 @@
   font-family: 'Inter', sans-serif;
   letter-spacing: 0.01em;
   cursor: pointer;
-  transition: color 0.18s, border-color 0.18s, box-shadow 0.18s, transform 0.15s;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06);
+  transition: color 0.18s, border-color 0.18s, background 0.18s;
+  box-shadow: none;
 }
 .auth-back-btn:hover {
   color: #FF385C;
   border-color: rgba(255, 56, 92, 0.3);
-  box-shadow: 0 3px 12px rgba(255, 56, 92, 0.12);
-  transform: translateX(-2px);
+  background: #fff;
 }
 
 .auth-right::before {
@@ -214,7 +217,7 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-display);
   font-size: 1.18rem;
   font-weight: 700;
   color: #fff;
@@ -229,7 +232,7 @@
 }
 
 .auth-card__heading {
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-display);
   font-size: 1.5rem;
   font-weight: 700;
   color: #222222;
@@ -243,7 +246,9 @@
   color: #717171;
   margin: 0 0 26px;
   text-align: center;
-  font-weight: 300;
+  /* 400, not 300: the Inter axis in index.html starts at 400 and
+     `font-synthesis: none` will not invent a lighter cut. */
+  font-weight: 400;
 }
 
 /*  ALERTS  */
@@ -370,25 +375,38 @@
   font-size: 0.9rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all 0.25s ease;
+  transition:
+    background-color 0.15s cubic-bezier(0.2, 0, 0, 1),
+    color 0.15s cubic-bezier(0.2, 0, 0, 1),
+    box-shadow 0.15s cubic-bezier(0.2, 0, 0, 1);
   padding: 13px 20px;
   margin-top: 4px;
   letter-spacing: 0.01em;
 }
+/*
+   This one had drifted furthest of the three button systems - `0 8px 28px/.30`
+   growing to `0 14px 38px/.44` on hover, matching neither theme token nor the
+   landing page. It is now the same rule as `.lp-btn--primary`: flat fill, no
+   shadow, hover inverts to a white ground with a 2px ring.
+*/
 .auth-btn--primary {
   background: #FF385C;
   color: #fff;
-  box-shadow: 0 8px 28px rgba(255, 56, 92, 0.30);
+  box-shadow: none;
 }
 .auth-btn--primary:hover:not(:disabled) {
-  background: #E31C5F;
-  transform: translateY(-1px);
-  box-shadow: 0 14px 38px rgba(255, 56, 92, 0.44);
+  background: #fff;
+  color: #FF385C;
+  box-shadow: 0 0 0 2px #FF385C;
+}
+.auth-btn--primary:active:not(:disabled) {
+  background: #FFF1F4;
+  color: #E31C5F;
+  box-shadow: 0 0 0 2px #E31C5F;
 }
 .auth-btn--primary:disabled {
   opacity: 0.52;
   cursor: not-allowed;
-  transform: none;
 }
 
 /*  SWITCH LINE  */
@@ -450,19 +468,21 @@
   font-weight: 600;
   padding: 12px 20px;
   cursor: pointer;
-  transition: background 0.2s, border-color 0.2s, box-shadow 0.25s, transform 0.15s, color 0.2s;
-  box-shadow: 0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(66,133,244,0.06);
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+  box-shadow: none;
   white-space: nowrap;
   letter-spacing: 0.015em;
 }
+/* A bordered white button already has an edge, so it borrows the edge rather
+   than a shadow: the border darkens and the ground tints. The blue-tinted glow
+   this replaced was reading as a Google-branded halo it had no business having. */
 .auth-social-btn:hover:not(:disabled) {
-  background: #f8fbff;
-  box-shadow: 0 4px 20px rgba(66,133,244,0.14), 0 1px 4px rgba(0,0,0,0.06);
-  transform: translateY(-1px);
+  background: #f7f7f8;
+  border-color: rgba(0, 0, 0, 0.24);
 }
 .auth-social-btn:active:not(:disabled) {
-  transform: translateY(0);
-  box-shadow: 0 1px 6px rgba(0,0,0,0.08);
+  background: #efeff1;
+  border-color: rgba(0, 0, 0, 0.3);
 }
 .auth-social-btn:disabled {
   opacity: 0.45;

@@ -6,6 +6,7 @@ import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../store';
 import { fetchUserProfile } from '../../store/userSlice';
 import { clearSessionData } from '../../utils/authSession';
+import { peekPendingPrompt } from '../../utils/pendingNaviaPrompt';
 import { authAPI } from '../../services/APIs/Auth/auth';
 
 const Callback = () => {
@@ -87,7 +88,9 @@ const Callback = () => {
             setTimeout(() => navigate('/signin'), 2000);
             return;
           }
-          navigate('/home', { replace: true });
+          // See the note in Signin.tsx - same hand-off, but this is the path
+          // that survived a full page reload out to Auth0 and back.
+          navigate(peekPendingPrompt() ? '/navia' : '/home', { replace: true });
         } else {
           console.error('[Callback] Unexpected response:', response.data);
           setCallbackError('Unexpected response from server.');

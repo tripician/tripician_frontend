@@ -38,6 +38,24 @@ const DEVICE_PREFERENCE_PREFIXES: readonly string[] = [
   'unsplash_v1_',
 ];
 
+/**
+ * sessionStorage keys that survive teardown.
+ *
+ * This is not user data leaking across accounts - it is an intent the visitor
+ * expressed BEFORE they had an account (the prompt typed into the landing
+ * hero), and it is the reason the sign-up they are completing right now
+ * exists. Both sign-in paths call clearSessionData() immediately before storing
+ * the new token, so without this the prompt is destroyed one line ahead of the
+ * redirect meant to carry it.
+ *
+ * Same bar as DEVICE_PREFERENCE_KEYS: add a key here only if it would be
+ * harmless in a stranger's hands. A trip prompt is; a chat transcript is not,
+ * which is why `navia-chat-*` is still wiped below.
+ */
+const PRESERVED_SESSION_KEYS: readonly string[] = [
+  'tripician:pendingNaviaPrompt',
+];
+
 function isDevicePreference(key: string): boolean {
   return DEVICE_PREFERENCE_KEYS.includes(key)
     || DEVICE_PREFERENCE_PREFIXES.some((prefix) => key.startsWith(prefix));
@@ -77,10 +95,19 @@ export function clearSessionData(): void {
     } catch { /* nothing more we can do; the session ends regardless */ }
   }
 
-  // Navia chat transcripts live here (`navia-chat-*`) and are per-account.
+  // Navia chat transcripts live here (`navia-chat-*`) and are per-account, so
+  // the default is still a full clear - the allowlist is lifted out and put back.
   const session = safeSessionStorage();
   if (session) {
-    try { session.clear(); } catch { /* as above */ }
+    try {
+      const preserved = PRESERVED_SESSION_KEYS
+        .map((key) => [key, session.getItem(key)] as const)
+        .filter((entry): entry is readonly [string, string] => entry[1] !== null);
+
+      session.clear();
+
+      for (const [key, value] of preserved) session.setItem(key, value);
+    } catch { /* as above */ }
   }
 }
 

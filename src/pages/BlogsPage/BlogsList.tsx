@@ -86,7 +86,7 @@ const BlogsList: React.FC = () => {
               Sign in
             </Button>
             <Button size="small" component={Link} to="/signup" variant="contained"
-              sx={{ fontSize: '0.78rem', fontWeight: 700, borderRadius: '50px', textTransform: 'none', background: 'linear-gradient(135deg,#FF385C,#D91A50)', boxShadow: '0 3px 12px rgba(255,56,92,0.3)', '&:hover': { boxShadow: '0 6px 20px rgba(255,56,92,0.45)' } }}>
+              className="t-invert" sx={{ fontSize: '0.78rem', fontWeight: 700 }}>
               Join free
             </Button>
           </Box>
@@ -119,7 +119,7 @@ const BlogsList: React.FC = () => {
           </Box>
           <Chip label={hero.tag} size="small" sx={{ background: heroTag.bg, color: heroTag.color, fontWeight: 700, fontSize: '0.7rem', mb: 1.5, display: 'flex', width: 'fit-content' }} />
           <Typography sx={{
-            fontFamily: "'Playfair Display', serif",
+            fontFamily: (t) => t.custom.fontDisplay,
             fontSize: { xs: '1.6rem', md: '2.4rem' },
             fontWeight: 700, color: '#fff',
             lineHeight: 1.15, letterSpacing: '-0.02em', mb: 1,
@@ -147,7 +147,7 @@ const BlogsList: React.FC = () => {
         {/* Header */}
         <Box sx={{ mb: 5 }}>
           <Typography sx={{
-            fontFamily: "'Playfair Display', serif",
+            fontFamily: (t) => t.custom.fontDisplay,
             fontSize: { xs: '1.8rem', md: '2.6rem' },
             fontWeight: 700, color: '#111',
             letterSpacing: '-0.03em', mb: 0.75, lineHeight: 1.1,
@@ -343,7 +343,7 @@ const BlogsList: React.FC = () => {
         }}>
           <Box sx={{ position: 'absolute', top: '-30%', left: '50%', transform: 'translateX(-50%)', width: 700, height: 400, borderRadius: '50%', background: 'rgba(255,56,92,0.1)', filter: 'blur(80px)', pointerEvents: 'none' }} />
           <Typography sx={{
-            fontFamily: "'Playfair Display', serif",
+            fontFamily: (t) => t.custom.fontDisplay,
             fontSize: { xs: '1.9rem', md: '3rem' },
             fontWeight: 700, color: '#fff',
             letterSpacing: '-0.03em', lineHeight: 1.1, mb: 1.5,
@@ -356,7 +356,7 @@ const BlogsList: React.FC = () => {
           </Typography>
           <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'center', flexWrap: 'wrap', position: 'relative', zIndex: 1 }}>
             <Button component={Link} to="/signup" variant="contained" size="large"
-              sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '1rem', px: 4.5, py: 1.6, borderRadius: '50px', textTransform: 'none', background: 'linear-gradient(135deg,#FF385C,#D91A50)', boxShadow: '0 8px 32px rgba(255,56,92,0.45)', '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 14px 40px rgba(255,56,92,0.6)' }, transition: 'all 0.2s' }}>
+              className="t-invert" sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '1rem', px: 4.5, py: 1.6 }}>
               Create free account →
             </Button>
             <Button component={Link} to="/signin" variant="outlined" size="large"

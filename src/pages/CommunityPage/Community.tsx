@@ -37,6 +37,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import ErrorState from '../../components/ui/ErrorState';
 import { CardGridSkeleton } from '../../components/ui/Skeletons';
 import PageHeader from '../../components/ui/PageHeader';
+import QuickPlanCard from '../../navia/QuickPlanCard';
 import { staggerContainer, staggerItem, tabContent } from '../../utils/animations';
 
 // ── constants ──────────────────────────────────────────────────────────────
@@ -307,7 +308,8 @@ const Community: React.FC = () => {
   const [search, setSearch] = React.useState('');
 
   const [activeView, setActiveView] = React.useState<ViewId>('trips');
-  const [crewDest, setCrewDest] = React.useState('');
+  const [crewQuery, setCrewQuery] = React.useState('');
+  const [crewQueryApplied, setCrewQueryApplied] = React.useState('');
   const [crewVibe, setCrewVibe] = React.useState('');
   const [crewTravelers, setCrewTravelers] = React.useState<any[]>([]);
   const [crewLoading, setCrewLoading] = React.useState(false);
@@ -317,17 +319,40 @@ const Community: React.FC = () => {
   const [connectedIds, setConnectedIds] = React.useState<Set<number>>(new Set());
   const [crewSuggestions, setCrewSuggestions] = React.useState<any[]>([]);
 
+  // Typing fires a request per keystroke without this, and the crew query fans
+  // out across every public account server-side.
+  React.useEffect(() => {
+    const t = setTimeout(() => setCrewQueryApplied(crewQuery.trim()), 300);
+    return () => clearTimeout(t);
+  }, [crewQuery]);
+
   const fetchCrew = React.useCallback(async () => {
     setCrewLoading(true);
     try {
-      const resp = await apiServices.getTravelersCrew(crewDest.trim() || undefined, crewVibe || undefined);
+      /*
+       * The directory has two modes and one control.
+       *
+       * Idle, it shows people who have published something - a wall of members
+       * with nothing on their card is a worse answer than a short list of
+       * travellers you can actually learn something from. The moment someone
+       * types, `publishedOnly` drops and the search reaches every member, which
+       * is the only way "find Rahul" can work for someone who just signed up.
+       */
+      const q = crewQueryApplied;
+      const resp = await apiServices.getTravelersCrew(
+        undefined,
+        crewVibe || undefined,
+        undefined,
+        !q,
+        q || undefined,
+      );
       setCrewTravelers(resp.data || []);
     } catch {
       setCrewTravelers([]);
     } finally {
       setCrewLoading(false);
     }
-  }, [crewDest, crewVibe]);
+  }, [crewQueryApplied, crewVibe]);
 
   React.useEffect(() => {
     if (activeView === 'crew') { fetchCrew(); }
@@ -371,10 +396,16 @@ const Community: React.FC = () => {
     return () => { active = false; };
   }, [token, reloadKey]);
 
-  // Auto-fetch crew suggestions for the "Travelers right now" strip
+  // Auto-fetch crew suggestions for the "Travelers right now" strip.
+  //
+  // `publishedOnly` because this strip is subtitled "People who published trips"
+  // and has to keep that promise. The Find crew tab below deliberately lists
+  // every public account, including members with nothing published yet - this
+  // strip is the narrower question, so it asks for it rather than filtering the
+  // wider answer and depending on publishers happening to sort first.
   React.useEffect(() => {
     let active = true;
-    apiServices.getTravelersCrew(undefined, undefined).then(r => {
+    apiServices.getTravelersCrew(undefined, undefined, undefined, true).then(r => {
       if (!active) return;
       setCrewSuggestions((r.data || []).slice(0, 10));
     }).catch(() => {});
@@ -476,6 +507,23 @@ const Community: React.FC = () => {
             <PageHeader
               title="Community"
               subtitle="Real itineraries, published by the travellers who took them."
+              action={<QuickPlanCard token={token} />}
+              /*
+               * Top-aligned, not bottom-aligned. PageHeader's default is
+               * `flex-end`, which is right for a lone button but wrong here: the
+               * card is taller than the title block, so bottom-alignment pushed
+               * "Community" down by the difference and opened a dead band above
+               * the h1. Aligning to the top puts the heading back at the top of
+               * the page and lets the card hang toward the tabs, which have their
+               * own margin to absorb it.
+               *
+               * Stacks under the title on phones - the card holds a real input,
+               * so sharing a row with an h1 at 390px is not an option.
+               */
+              sx={{
+                flexDirection: { xs: 'column', md: 'row' },
+                alignItems: { xs: 'stretch', md: 'flex-start' },
+              }}
             />
           </motion.div>
 
@@ -659,28 +707,39 @@ const Community: React.FC = () => {
               {/* ══ Find crew view ══ */}
               {activeView === 'crew' && (
                 <>
-                  <Box sx={{
-                    mt: 3, display: 'flex', gap: 1.5,
-                    flexDirection: { xs: 'column', md: 'row' },
-                    alignItems: { xs: 'stretch', md: 'center' },
-                  }}>
+                  {/* Search leads, filters follow. The old layout put a narrow
+                      destination box beside the vibe chips, which read as one more
+                      filter among several - so nothing on the tab suggested you
+                      could look someone up. */}
+                  <Box sx={{ mt: 3.5, maxWidth: 620 }}>
                     <SearchField
-                      value={crewDest}
-                      onChange={setCrewDest}
-                      placeholder="Destination (e.g. Japan, Bali…)"
-                      sx={{ width: { xs: '100%', md: 320 }, flexShrink: 0 }}
+                      value={crewQuery}
+                      onChange={setCrewQuery}
+                      placeholder="Search travellers by name or destination…"
+                      sx={{ width: '100%', height: 50 }}
                     />
-                    <Box sx={{ ...hiddenScrollbarSx, gap: 1 }}>
-                      {['', 'adventure', 'culture', 'urban', 'scenic', 'spiritual'].map(v => (
-                        <FilterChip
-                          key={v || 'any'}
-                          label={v ? (VIBES[v]?.label || v) : 'Any vibe'}
-                          active={crewVibe === v}
-                          onClick={() => setCrewVibe(v)}
-                        />
-                      ))}
-                    </Box>
                   </Box>
+
+                  <Box sx={{ ...hiddenScrollbarSx, gap: 1, mt: 2 }}>
+                    {['', 'adventure', 'culture', 'urban', 'scenic', 'spiritual'].map(v => (
+                      <FilterChip
+                        key={v || 'any'}
+                        label={v ? (VIBES[v]?.label || v) : 'Any vibe'}
+                        active={crewVibe === v}
+                        onClick={() => setCrewVibe(v)}
+                      />
+                    ))}
+                  </Box>
+
+                  {/* Says what you are looking at, so a short list reads as an
+                      answer rather than as something failing to load. */}
+                  {!crewLoading && crewTravelers.length > 0 && (
+                    <Typography sx={{ mt: 3, fontSize: 13, color: 'text.secondary' }}>
+                      {crewQueryApplied
+                        ? `${crewTravelers.length} ${crewTravelers.length === 1 ? 'traveller' : 'travellers'} matching “${crewQueryApplied}”`
+                        : `Travellers who have published trips · search to find anyone`}
+                    </Typography>
+                  )}
 
                   {crewLoading ? (
                     <Box sx={{ mt: 4, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,1fr)', md: 'repeat(3,1fr)', lg: 'repeat(4,1fr)' }, gap: 2.5 }}>
@@ -698,11 +757,23 @@ const Community: React.FC = () => {
                       ))}
                     </Box>
                   ) : crewTravelers.length === 0 ? (
-                    <EmptyState
-                      icon={IconUsers}
-                      title="No travelers found"
-                      description="Try a different destination or remove the vibe filter to see more people."
-                    />
+                    /* Two different dead ends, and telling them apart is the
+                       difference between "you typo'd" and "nobody is here yet". */
+                    crewQueryApplied ? (
+                      <EmptyState
+                        icon={IconUsers}
+                        title={`No traveller matches “${crewQueryApplied}”`}
+                        description="Try part of a name, or a country someone has published a trip to."
+                      />
+                    ) : (
+                      <EmptyState
+                        icon={IconUsers}
+                        title="No published travellers yet"
+                        description={crewVibe
+                          ? 'Nobody has published a trip with this vibe. Clear the filter, or search for someone by name.'
+                          : 'Once people publish their trips they will show up here. You can still search for any member by name.'}
+                      />
+                    )
                   ) : (
                     <Box sx={{ mt: 4, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,1fr)', md: 'repeat(3,1fr)', lg: 'repeat(4,1fr)' }, gap: 2.5 }}>
                       {crewTravelers.map((t: any) => {
@@ -715,6 +786,14 @@ const Community: React.FC = () => {
                               border: `1px solid ${theme.custom.surface.border}`,
                               bgcolor: 'background.paper',
                               boxShadow: theme.custom.shadows.card,
+                              /* Equal height, button pinned to the bottom. Search
+                                 results mix publishers (who have a destinations
+                                 line) with members who do not, and a grid of cards
+                                 whose buttons sit at different heights is the main
+                                 thing that reads as unfinished. */
+                              height: '100%',
+                              display: 'flex',
+                              flexDirection: 'column',
                               transition: `box-shadow ${theme.custom.motion.duration.base} ${theme.custom.motion.easing.standard}, transform ${theme.custom.motion.duration.base} ${theme.custom.motion.easing.standard}`,
                               '&:hover': { boxShadow: theme.custom.shadows.cardHover, transform: 'translateY(-2px)' },
                             }}
@@ -730,14 +809,21 @@ const Community: React.FC = () => {
                                 <Typography noWrap className="crew-name" sx={{ fontSize: 14.5, fontWeight: 600, color: 'text.primary', transition: 'color 120ms' }}>
                                   {t.name || 'Explorer'}
                                 </Typography>
+                                {/* The roster now includes members who have not published
+                                    yet, so "0 trips" is a normal state rather than an
+                                    error - say something human instead of a zero. */}
                                 <Typography noWrap sx={{ fontSize: 12, color: 'text.secondary' }}>
-                                  {t.tripCount} trip{t.tripCount !== 1 ? 's' : ''}
+                                  {t.tripCount > 0
+                                    ? `${t.tripCount} trip${t.tripCount !== 1 ? 's' : ''}`
+                                    : 'New here'}
                                   {t.vibe ? ` · ${VIBES[t.vibe?.toLowerCase?.()]?.label || t.vibe}` : ''}
                                 </Typography>
                               </Box>
                             </Box>
                             {Array.isArray(t.destinations) && t.destinations.length > 0 && (
-                              <Typography noWrap sx={{ fontSize: 12.5, color: 'text.secondary', mb: 1.5 }}>
+                              /* Same subhead treatment as the trip cards: bold for
+                                 structure, held back so it does not fight the name. */
+                              <Typography noWrap sx={{ fontSize: 12.5, fontWeight: 600, letterSpacing: '-0.005em', color: 'text.secondary', opacity: 0.72, mb: 1.5 }}>
                                 {t.destinations.slice(0, 3).join(' · ')}
                                 {t.destinations.length > 3 ? ` · +${t.destinations.length - 3}` : ''}
                               </Typography>
@@ -749,9 +835,12 @@ const Community: React.FC = () => {
                               variant="outlined"
                               disabled={connectingId === t.userId}
                               startIcon={isConnected ? <IconCheck size={15} /> : <IconUserPlus size={15} />}
-                              sx={isConnected
-                                ? { borderColor: 'success.main', color: 'success.main', '&:hover': { borderColor: 'success.main', color: 'success.main', bgcolor: alpha(theme.palette.success.main, 0.06) } }
-                                : undefined}
+                              sx={{
+                                mt: 'auto', // pins to the card's bottom edge
+                                ...(isConnected
+                                  ? { borderColor: 'success.main', color: 'success.main', '&:hover': { borderColor: 'success.main', color: 'success.main', bgcolor: alpha(theme.palette.success.main, 0.06) } }
+                                  : {}),
+                              }}
                             >
                               {connectingId === t.userId ? 'Connecting…' : isConnected ? 'Following' : 'Connect'}
                             </Button>

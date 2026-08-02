@@ -108,7 +108,7 @@
 .rm-hero__title {
   font-size: 2.6rem;
   font-weight: 700;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-display);
   font-style: italic;
   color: #f1f5f9;
   margin: 0 0 14px;
@@ -307,7 +307,7 @@
 
 .rm-dest-bar__left    { display: flex; align-items: center; gap: 14px; }
 .rm-dest-bar__flag    { font-size: 2.4rem; line-height: 1; }
-.rm-dest-bar__name    { font-size: 1.4rem; font-weight: 700; font-family: 'Playfair Display', serif; color: #0f172a; margin: 0 0 2px; }
+.rm-dest-bar__name    { font-size: 1.4rem; font-weight: 700; font-family: var(--font-display); color: #0f172a; margin: 0 0 2px; }
 .rm-dest-bar__region  { font-size: 0.82rem; color: #64748b; margin: 0; }
 .rm-dest-bar__updated { font-size: 0.75rem; color: #94a3b8; }
 .rm-dest-bar__live {
@@ -746,7 +746,7 @@
 .rm-welcome__heading {
   font-size: 1.05rem;
   font-weight: 700;
-  font-family: 'Playfair Display', serif;
+  font-family: var(--font-display);
   color: #0f172a;
   margin: 0;
   letter-spacing: -0.01em;

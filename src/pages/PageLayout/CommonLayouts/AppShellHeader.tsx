@@ -415,10 +415,9 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
                   display: { xs: 'inline-flex', sm: 'none' },
                   width: 40,
                   height: 40,
-                  background: theme.custom.gradients.brand,
+                  bgcolor: 'primary.main',
                   color: '#fff',
-                  boxShadow: theme.custom.shadows.brandSm,
-                  '&:hover': { background: theme.custom.gradients.brandHover },
+                  '&:hover': { bgcolor: 'primary.dark' },
                 }}
               >
                 <AddRoundedIcon fontSize="small" />
@@ -462,7 +461,6 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
                       height: 36,
                       bgcolor: 'primary.main',
                       fontSize: '0.85rem',
-                      boxShadow: theme.custom.shadows.brandSm,
                     }}
                   >
                     {!profile?.profilepicture && initials}
@@ -504,7 +502,6 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
                   display: 'flex',
                   alignItems: 'center',
                   justifyContent: 'center',
-                  boxShadow: theme.custom.shadows.brandSm,
                 }}
               >
                 <NotificationsActiveRoundedIcon sx={{ fontSize: 17, color: '#fff' }} />
@@ -612,7 +609,6 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
                         bgcolor: 'primary.main',
                         flexShrink: 0,
                         mt: 0.9,
-                        boxShadow: '0 0 6px rgba(255,56,92,0.7)',
                       }}
                     />
                   )}

@@ -39,7 +39,17 @@
          with `font-synthesis: none` in index.css any weight not on it rounded to
          the nearest one that was - so the 550/650/750 the theme asked for all
          rendered as 600/700/800, i.e. heavier than written. The axis is also one
-         file instead of six. 700 is the top of the ladder by design. -->
+         file instead of six. 700 is the top of the ladder by design.
+
+         Playfair Display is the display face - mastheads, the auth panel, the
+         landing hero. A geometric sans was tried here and pulled back out: it
+         was clean at UI sizes but at display sizes it read as interface chrome
+         rather than as a heading, because it spoke in the same voice as the body
+         text. The serif is the one thing on the page that is not the UI.
+
+         The `1,600` axis is a real italic cut, not a synthesised oblique -
+         `font-synthesis: none` in index.css means an unrequested italic would
+         render upright, so the emphasis in the auth panel depends on it. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link

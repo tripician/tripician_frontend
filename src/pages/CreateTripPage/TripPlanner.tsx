@@ -323,9 +323,8 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 				<Box sx={{ flex: 1, display: { xs: 'flex', lg: 'none' }, flexDirection: 'column', alignItems: 'center', gap: 1.5, pt: 1.5 }}>
 					<Box sx={{
 						width: 28, height: 28, borderRadius: '8px', flexShrink: 0,
-						background: 'linear-gradient(135deg,#FF385C 0%,#D91A50 100%)',
+						bgcolor: '#FF385C',
 						display: { xs: 'flex', lg: 'none' }, alignItems: 'center', justifyContent: 'center',
-						boxShadow: '0 2px 8px rgba(255,56,92,0.35)',
 						cursor: 'pointer',
 					}} onClick={() => setCollapsed(false)}>
 						<ChevronRightIcon sx={{ fontSize: 16, color: '#fff' }} />
@@ -354,9 +353,8 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 						{/* AI avatar */}
 						<Box sx={{
 							width: 32, height: 32, borderRadius: '10px', flexShrink: 0,
-							background: 'linear-gradient(135deg,#FF385C 0%,#D91A50 100%)',
+							bgcolor: '#FF385C',
 							display: { xs: 'flex', lg: 'none' }, alignItems: 'center', justifyContent: 'center',
-							boxShadow: '0 3px 12px rgba(255,56,92,0.40)',
 						}}>
 							<Box component='svg' viewBox='0 0 24 24' sx={{ width: 16, height: 16 }}>
 								<path fill='#fff' d='M12 2a10 10 0 110 20A10 10 0 0112 2zm0 2a8 8 0 100 16A8 8 0 0012 4zm0 12a1 1 0 110 2 1 1 0 010-2zm.5-8v6h-1V8h1z'/>
@@ -483,10 +481,9 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 								disabled={!input.trim() || isStreaming}
 								sx={{
 									width: 32, height: 32, borderRadius: '9px', flexShrink: 0, mb: 0.1,
-									background: (input.trim() && !isStreaming) ? 'linear-gradient(135deg,#FF385C,#D91A50)' : 'transparent',
+									background: (input.trim() && !isStreaming) ? '#FF385C' : 'transparent',
 									color: (input.trim() && !isStreaming) ? '#fff' : (isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.20)'),
-									boxShadow: (input.trim() && !isStreaming) ? '0 2px 10px rgba(255,56,92,0.35)' : 'none',
-									transition: 'background .18s, color .18s, box-shadow .18s',
+									transition: 'background .18s, color .18s',
 									'&:hover': { background: (input.trim() && !isStreaming) ? '#D91A50' : undefined },
 									'&.Mui-disabled': { background: 'transparent', color: isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.15)' },
 								}}
@@ -698,7 +695,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 				{/* Title block */}
 				<Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, px: 2, pb: 1.75 }}>
 					<Typography sx={{
-						fontFamily: "'Playfair Display', serif",
+						fontFamily: theme.custom.fontDisplay,
 						fontWeight: 700, fontStyle: 'italic',
 						fontSize: '1.18rem', color: '#fff',
 						textShadow: '0 2px 12px rgba(0,0,0,0.6)',
@@ -710,7 +707,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 							src={ownerInfo.avatar ?? undefined}
 							imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any}
 							sx={{ width: 16, height: 16, fontSize: '0.48rem', fontWeight: 700,
-								background: 'linear-gradient(135deg,#FF385C,#D91A50)', color: '#fff',
+								bgcolor: '#FF385C', color: '#fff',
 								border: '1.5px solid rgba(255,255,255,0.5)', flexShrink: 0 }}
 						>{ownerDisplayName[0]?.toUpperCase()}</Avatar>
 						<Typography sx={{ fontSize: '0.63rem', color: 'rgba(255,255,255,0.72)', fontFamily: 'inherit', letterSpacing: '0.01em' }}>
@@ -907,11 +904,10 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 												sx={{
 													width: 30, height: 30, fontSize: '0.62rem', fontWeight: 700, flexShrink: 0,
 													background: isOwnerMember
-														? 'linear-gradient(135deg,#FF385C,#D91A50)'
+														? '#FF385C'
 														: (isLight ? '#e8e8e8' : 'rgba(255,255,255,0.10)'),
 													color: isOwnerMember ? '#fff' : textPrimary,
 													border: `2px solid ${isOwnerMember ? 'rgba(255,56,92,0.35)' : border}`,
-													boxShadow: isOwnerMember ? '0 2px 8px rgba(255,56,92,0.28)' : 'none',
 												}}
 											>{initial}</Avatar>
 											<Typography sx={{
@@ -968,17 +964,9 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 					<Button
 						fullWidth variant="contained" onClick={() => { onRequestEdit?.(); }}
 						sx={{
-							textTransform: 'none', borderRadius: '12px', fontFamily: 'inherit',
+							borderRadius: '12px', fontFamily: 'inherit',
 							fontWeight: 700, fontSize: '0.84rem',
-							background: 'linear-gradient(135deg, #FF385C 0%, #E31C5F 55%, #c91855 100%)',
-							color: '#fff', py: 1,
-							boxShadow: '0 4px 14px rgba(255,56,92,0.38)',
-							'&:hover': {
-								background: 'linear-gradient(135deg, #ff4d6d 0%, #E31C5F 55%, #b5144c 100%)',
-								boxShadow: '0 6px 20px rgba(255,56,92,0.50)',
-								transform: 'translateY(-1px)',
-							},
-							transition: 'all .2s ease',
+							py: 1,
 						}}
 					>
 						Edit Trip
@@ -993,7 +981,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 						fontWeight: 600, fontSize: '0.82rem',
 						borderColor: 'rgba(255,56,92,0.35)', color: '#FF385C',
 						py: 0.88,
-						'&:hover': { borderColor: '#FF385C', background: 'rgba(255,56,92,0.05)', transform: 'translateY(-1px)' },
+						'&:hover': { borderColor: '#FF385C', background: 'rgba(255,56,92,0.05)' },
 						transition: 'all .2s ease',
 					}}
 				>
@@ -2551,7 +2539,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				background: theme.palette.background.default,
 			}}>
 				<Box sx={{ color: 'text.disabled' }}><IconDeviceMobile size={36} stroke={1.4} /></Box>
-				<Typography sx={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: '1.4rem', color: 'text.primary' }}>
+				<Typography sx={{ fontFamily: (t) => t.custom.fontDisplay, fontWeight: 700, fontSize: '1.4rem', color: 'text.primary' }}>
 					Planning is better on a bigger screen
 				</Typography>
 				<Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.9rem', color: 'text.secondary', maxWidth: 340, lineHeight: 1.7 }}>
@@ -2834,34 +2822,22 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 											letterSpacing: '-0.1px',
 											gap: .4,
 											flexShrink: 0,
-											transition: 'all .25s cubic-bezier(.4,0,.2,1)',
+											transition: 'background-color .15s cubic-bezier(.4,0,.2,1)',
+											/* Draft = the action (coral). Published = a state, not an action (green).
+											   Both are flat now: the three-stop gradients and the green
+											   `0 0 14px 2px` spread-glow were doing the job colour already does. */
 											...(isDraft ? {
-												background: 'linear-gradient(135deg, #FF385C 0%, #E31C5F 55%, #c91855 100%)',
+												bgcolor: '#FF385C',
 												color: '#fff',
-												boxShadow: '0 2px 10px rgba(255,56,92,0.40), 0 1px 3px rgba(0,0,0,0.15)',
 												border: '1px solid rgba(255,255,255,0.15)',
-												'&:hover': {
-													background: 'linear-gradient(135deg, #ff4d6d 0%, #E31C5F 55%, #b5144c 100%)',
-													boxShadow: '0 4px 18px rgba(255,56,92,0.55), 0 1px 4px rgba(0,0,0,0.18)',
-													transform: 'translateY(-1px)',
-												},
-												'&:active': { transform: 'translateY(0)', boxShadow: '0 2px 8px rgba(255,56,92,0.4)' },
-												'&.Mui-disabled': {
-													background: 'linear-gradient(135deg, #FF385C, #E31C5F)',
-													color: 'rgba(255,255,255,0.7)',
-													boxShadow: 'none',
-												},
+												'&:hover': { bgcolor: '#E31C5F' },
+												'&:active': { bgcolor: '#D91A50' },
+												'&.Mui-disabled': { bgcolor: '#FF385C', color: 'rgba(255,255,255,0.7)' },
 											} : {
-												background: 'linear-gradient(135deg, #1b5e20 0%, #2e7d32 100%)',
+												bgcolor: '#2e7d32',
 												color: '#fff',
-												boxShadow: '0 0 14px 2px rgba(46,125,50,0.4)',
 												border: '1px solid rgba(255,255,255,0.12)',
-												'&.Mui-disabled': {
-													background: 'linear-gradient(135deg, #1b5e20, #2e7d32)',
-													color: '#fff',
-													opacity: 1,
-													boxShadow: '0 0 14px 2px rgba(46,125,50,0.4)',
-												},
+												'&.Mui-disabled': { bgcolor: '#2e7d32', color: '#fff', opacity: 1 },
 											}),
 										}}
 									>
@@ -2922,7 +2898,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 											color: 'text.secondary', backdropFilter: 'blur(10px)',
 											boxShadow: '0 2px 12px rgba(0,0,0,0.13)',
 											transition: 'all .15s',
-											'&:hover': { bgcolor: 'rgba(255,56,92,0.08)', borderColor: 'rgba(255,56,92,0.38)', color: '#FF385C', boxShadow: '0 4px 18px rgba(255,56,92,0.18)', transform: 'translateY(-1px)' },
+											'&:hover': { bgcolor: 'rgba(255,56,92,0.08)', borderColor: 'rgba(255,56,92,0.38)', color: '#FF385C' },
 										})}
 									>
 										<MapOutlinedIcon sx={{ fontSize: 18 }} />
@@ -2946,7 +2922,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 													color: 'text.secondary', backdropFilter: 'blur(10px)',
 													boxShadow: '0 2px 12px rgba(0,0,0,0.13)',
 													transition: 'all .15s',
-													'&:hover': { bgcolor: 'rgba(99,102,241,0.08)', borderColor: 'rgba(99,102,241,0.38)', color: '#6366f1', boxShadow: '0 4px 18px rgba(99,102,241,0.18)', transform: 'translateY(-1px)' },
+													'&:hover': { bgcolor: 'rgba(99,102,241,0.08)', borderColor: 'rgba(99,102,241,0.38)', color: '#6366f1' },
 													'&.Mui-disabled': { bgcolor: t.palette.mode === 'dark' ? 'rgba(18,20,24,0.5)' : 'rgba(255,255,255,0.55)', color: 'text.disabled', boxShadow: 'none', border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'}` },
 												})}
 											>
@@ -2971,7 +2947,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 											color: 'text.secondary', backdropFilter: 'blur(10px)',
 											boxShadow: '0 2px 12px rgba(0,0,0,0.13)',
 											transition: 'all .15s',
-											'&:hover': { bgcolor: 'rgba(255,56,92,0.08)', borderColor: 'rgba(255,56,92,0.38)', color: '#FF385C', boxShadow: '0 4px 18px rgba(255,56,92,0.18)', transform: 'translateY(-1px)' },
+											'&:hover': { bgcolor: 'rgba(255,56,92,0.08)', borderColor: 'rgba(255,56,92,0.38)', color: '#FF385C' },
 										})}
 									>
 										<TuneRoundedIcon sx={{ fontSize: 18 }} />
@@ -3220,11 +3196,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				sx={{
 					position: 'fixed', bottom: 86, right: 20,
 					display: { xs: 'flex', lg: 'none' },
-					background: 'linear-gradient(135deg,#FF385C,#E31C5F)',
+					bgcolor: '#FF385C',
 					color: '#fff', width: 56, height: 56,
-					boxShadow: '0 6px 24px rgba(255,56,92,0.45)',
 					zIndex: 1200,
-					'&:hover': { background: 'linear-gradient(135deg,#E31C5F,#c91855)' },
+					'&:hover': { bgcolor: '#E31C5F' },
 				}}
 			>
 				<ChatRoundedIcon />
@@ -3562,13 +3537,13 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				}}
 			>
 				{/* Tripician logo mark */}
-				<Box sx={{ width: 56, height: 56, borderRadius: '16px', background: 'linear-gradient(135deg,#FF385C,#E31C5F)', display: { xs: 'flex', lg: 'none' }, alignItems: 'center', justifyContent: 'center', mb: 0.5, boxShadow: '0 8px 32px rgba(255,56,92,0.45)' }}>
-					<Typography sx={{ fontSize: 26, color: '#fff', fontWeight: 700, fontFamily: "'Playfair Display', serif", fontStyle: 'italic', lineHeight: 1 }}>T</Typography>
+				<Box sx={{ width: 56, height: 56, borderRadius: '16px', bgcolor: '#FF385C', display: { xs: 'flex', lg: 'none' }, alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
+					<Typography sx={{ fontSize: 26, color: '#fff', fontWeight: 700, fontFamily: (t) => t.custom.fontDisplay, fontStyle: 'italic', lineHeight: 1 }}>T</Typography>
 				</Box>
-				<Typography sx={{ fontSize: { xs: '1.6rem', sm: '2.2rem' }, fontWeight: 700, color: '#fff', textAlign: 'center', fontFamily: "'Playfair Display', serif", lineHeight: 1.15 }}>
+				<Typography sx={{ fontSize: { xs: '1.6rem', sm: '2.2rem' }, fontWeight: 700, color: '#fff', textAlign: 'center', fontFamily: (t) => t.custom.fontDisplay, lineHeight: 1.15 }}>
 					Your adventure is ready.
 				</Typography>
-				<Typography sx={{ fontSize: { xs: '1.1rem', sm: '1.4rem' }, fontWeight: 600, color: '#e8436a', fontStyle: 'italic', textAlign: 'center', fontFamily: "'Playfair Display', serif", lineHeight: 1.2, maxWidth: 400, px: 2 }}>
+				<Typography sx={{ fontSize: { xs: '1.1rem', sm: '1.4rem' }, fontWeight: 600, color: '#e8436a', fontStyle: 'italic', textAlign: 'center', fontFamily: (t) => t.custom.fontDisplay, lineHeight: 1.2, maxWidth: 400, px: 2 }}>
 					{title}
 				</Typography>
 				<Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', mt: 2 }}>Click anywhere to dismiss</Typography>
@@ -3577,7 +3552,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						variant='contained'
 						startIcon={<ShareRoundedIcon />}
 						onClick={() => { setShowCelebration(false); setShareModalOpen(true); }}
-						sx={{ borderRadius: '40px', px: 3, py: 1, textTransform: 'none', fontWeight: 700, fontSize: 14, background: 'linear-gradient(135deg,#FF385C,#E31C5F)', boxShadow: '0 4px 16px rgba(255,56,92,0.40)', '&:hover': { background: 'linear-gradient(135deg,#E31C5F,#c91855)' } }}
+						sx={{ px: 3, py: 1, fontWeight: 700, fontSize: 14 }}
 					>Share this plan</Button>
 					<Button
 						variant='outlined'

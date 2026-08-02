@@ -61,7 +61,7 @@ const NaviaMessageComponent: React.FC<NaviaMessageProps> = ({
           fontFamily: 'Inter, sans-serif',
 
           background: isUser
-            ? 'linear-gradient(135deg,#FF385C,#D91A50)'
+            ? '#FF385C'
             : isLight
             ? '#FFFFFF'
             : 'rgba(255,255,255,0.05)',
