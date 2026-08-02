@@ -47,7 +47,7 @@ const Settings: React.FC = () => {
         <motion.div variants={staggerItem}>
         <Box sx={{ width: { xs: '100%', md: 210 }, flexShrink: 0, position: { md: 'sticky' }, top: 88 }}>
           <Typography sx={{
-            fontFamily: "'Playfair Display', serif",
+            fontFamily: (t) => t.custom.fontDisplay,
             fontWeight: 700,
             fontSize: '1.6rem',
             letterSpacing: '-0.03em',

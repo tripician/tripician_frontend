@@ -368,12 +368,24 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  // GET /api/trips/crew - find travelers whose published trips match destination/vibe
-  getTravelersCrew: (destination?: string, vibe?: string, month?: number) => {
+  // GET /api/trips/crew - the public traveller roster.
+  // `q` searches names and published countries in one field. `publishedOnly`
+  // narrows to people who have actually published a trip - the directory browses
+  // with it on and searches with it off, so an idle page shows people worth
+  // seeing while a search still reaches every member.
+  getTravelersCrew: (
+    destination?: string,
+    vibe?: string,
+    month?: number,
+    publishedOnly?: boolean,
+    q?: string,
+  ) => {
     const params = new URLSearchParams();
     if (destination) params.set('destination', destination);
     if (vibe) params.set('vibe', vibe);
     if (month) params.set('month', String(month));
+    if (publishedOnly) params.set('publishedOnly', 'true');
+    if (q) params.set('q', q);
     return apiClient.get<Array<{
       userId: number;
       name: string;

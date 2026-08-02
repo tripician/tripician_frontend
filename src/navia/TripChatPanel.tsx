@@ -194,12 +194,12 @@ const ProposalBubble: React.FC<ProposalBubbleProps> = ({ msg, actionState, onAcc
             sx={{
               display: 'flex', alignItems: 'center', gap: 0.5,
               px: 1.5, py: 0.6, borderRadius: '8px', border: 'none', cursor: 'pointer',
-              background: 'linear-gradient(135deg,#FF385C,#D91A50)',
+              bgcolor: '#FF385C',
               color: '#fff', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit',
-              boxShadow: '0 2px 10px rgba(255,56,92,0.35)',
-              transition: 'opacity .15s, transform .1s',
-              '&:hover': { opacity: 0.9, transform: 'translateY(-1px)' },
-              '&:disabled': { opacity: 0.55, cursor: 'not-allowed', transform: 'none' },
+              transition: 'background-color .15s',
+              '&:hover': { bgcolor: '#E31C5F' },
+              '&:active': { bgcolor: '#D91A50' },
+              '&:disabled': { opacity: 0.55, cursor: 'not-allowed' },
             }}
           >
             {actionState === 'accepting'
@@ -313,7 +313,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ msg, isMine, isLight, sho
             borderRadius: isMine ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
             fontSize: 13.5, lineHeight: 1.6, fontFamily: 'inherit', wordBreak: 'break-word',
             background: isMine
-              ? 'linear-gradient(135deg,#FF385C,#E31C5F)'
+              ? '#FF385C'
               : (isLight ? '#f3f4f6' : 'rgba(255,255,255,0.07)'),
             color: isMine ? '#fff' : (isLight ? '#1a1a1a' : 'rgba(255,255,255,0.88)'),
           }}
@@ -1086,10 +1086,9 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
             disabled={!input.trim() || sending || !token}
             sx={{
               width: 34, height: 34, borderRadius: '9px', flexShrink: 0, mb: 0.1,
-              background: (input.trim() && !sending && token) ? 'linear-gradient(135deg,#FF385C,#D91A50)' : 'transparent',
+              background: (input.trim() && !sending && token) ? '#FF385C' : 'transparent',
               color: (input.trim() && !sending && token) ? '#fff' : (isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.20)'),
-              boxShadow: (input.trim() && !sending && token) ? '0 2px 10px rgba(255,56,92,0.35)' : 'none',
-              transition: 'background .18s, color .18s, box-shadow .18s',
+              transition: 'background .18s, color .18s',
               '&:hover': { background: (input.trim() && !sending && token) ? '#D91A50' : undefined },
               '&.Mui-disabled': { background: 'transparent' },
             }}

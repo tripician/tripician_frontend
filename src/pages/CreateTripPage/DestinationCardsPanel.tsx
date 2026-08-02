@@ -580,16 +580,14 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                       <Box sx={{
                         width: { xs: 24, sm: 28 }, height: { xs: 24, sm: 28 }, borderRadius: '50%',
                         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                        bgcolor: 'background.paper',
+                        /* Fill is stated once rather than set on the base and again in
+                           the `isDone` spread - two `bgcolor` keys in one object is a
+                           TS2783 and reads as a bug even where it isn't. */
+                        bgcolor: isDone
+                          ? (progressPct === 100 && i === completionSignals.length - 1 ? '#16a34a' : '#FF385C')
+                          : 'background.paper',
                         transition: 'all 0.3s cubic-bezier(.4,0,.2,1)',
-                        ...(isDone ? {
-                          background: progressPct === 100 && i === completionSignals.length - 1
-                            ? 'linear-gradient(135deg,#16a34a,#22c55e)'
-                            : 'linear-gradient(135deg,#FF385C,#E31C5F)',
-                          boxShadow: progressPct === 100 && i === completionSignals.length - 1
-                            ? '0 2px 10px rgba(22,163,74,0.4)'
-                            : '0 2px 10px rgba(255,56,92,0.35)',
-                        } : isNext ? {
+                        ...(isDone ? {} : isNext ? {
                           border: '2px solid rgba(255,56,92,0.5)',
                           '@keyframes nextPulse': { '0%,100%': { boxShadow: '0 0 0 0 rgba(255,56,92,0.22)' }, '50%': { boxShadow: '0 0 0 5px rgba(255,56,92,0)' } },
                           animation: 'nextPulse 2s ease-in-out infinite',
@@ -670,12 +668,10 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                             <Box sx={{
                               position: 'absolute', top: '50%', transform: 'translateY(-50%)', zIndex: 1,
                               width: 22, height: 22, borderRadius: '50%',
-                              background: (checklists[d.id]?.accommodation && checklists[d.id]?.transport && checklists[d.id]?.activities)
-                                ? 'linear-gradient(135deg,#16a34a,#22c55e)' : 'linear-gradient(135deg,#e8436a,#E31C5F)',
+                              bgcolor: (checklists[d.id]?.accommodation && checklists[d.id]?.transport && checklists[d.id]?.activities)
+                                ? '#16a34a' : '#FF385C',
                               color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
                               fontSize: 11, fontWeight: 700,
-                              boxShadow: (checklists[d.id]?.accommodation && checklists[d.id]?.transport && checklists[d.id]?.activities)
-                                ? '0 2px 8px rgba(22,163,74,0.4)' : '0 2px 8px rgba(232,67,106,0.4)',
                               transition: 'background 0.3s, box-shadow 0.3s',
                             }}>{idx + 1}</Box>
                           </Box>
@@ -939,7 +935,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
               <Button
                 variant='contained'
                 onClick={saveNotes}
-                sx={{ borderRadius:2, textTransform:'none', fontWeight:700, fontSize:13, px:3, background:'linear-gradient(135deg,#FF385C,#E31C5F)', boxShadow:'none', '&:hover':{ background:'linear-gradient(135deg,#e02d50,#c91855)', boxShadow:'0 4px 16px rgba(255,56,92,0.35)' } }}
+                sx={{ borderRadius:2, fontWeight:700, fontSize:13, px:3 }}
               >Save</Button>
             </Box>
           )}

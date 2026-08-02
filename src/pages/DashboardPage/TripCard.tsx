@@ -124,8 +124,9 @@ const TripCard: React.FC<TripCardProps> = ({
           <Typography noWrap sx={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: 'text.primary' }}>
             {title}
           </Typography>
+          {/* Bold and held back - same subhead treatment as CommunityTripCard. */}
           {countryDisplay && (
-            <Typography noWrap sx={{ fontSize: 13, color: 'text.secondary' }}>
+            <Typography noWrap sx={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.005em', color: 'text.secondary', opacity: 0.72 }}>
               {countryDisplay}
             </Typography>
           )}

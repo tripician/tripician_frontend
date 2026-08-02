@@ -749,8 +749,21 @@ export default function LandingPage() {
   return (
     <div className="lp-root">
       <Seo
-        title="Tripician, A Travel Community & Group Trip Planner"
-        description="Browse real itineraries published by travellers who took them - the route, the stays, the places worth the detour. Copy any trip into your own plan, and plan it with your crew. Every place is checked against a live listing. Free to join."
+        /*
+         * Leads with what people search for, not with the brand. `Seo` appends
+         * " | Tripician", so this renders at 56 characters - inside the ~60 that
+         * Google shows before truncating. Brand-first only pays once the brand
+         * is the query, which it is not yet. "Free" lives in the description
+         * rather than here; the two keyword phrases are worth more than the word.
+         */
+        title="Real Travel Itineraries & Group Trip Planner"
+        /*
+         * 152 characters. The previous one ran to 237, so search results cut it
+         * mid-sentence and the strongest half of the pitch never rendered.
+         * Front-loads the differentiator (real, published itineraries) and ends
+         * on the barrier-remover.
+         */
+        description="Browse real trip itineraries published by the travellers who took them. Copy any route into your own plan and organise it with your crew. Free to join."
         path="/"
         image={OG_IMAGE || undefined}
         jsonLd={[
@@ -761,7 +774,10 @@ export default function LandingPage() {
             url: SITE_URL,
             // Was ${SITE_URL}/og-cover.jpg, a file that does not exist in public/.
             logo: import.meta.env.VITE_TRIPICIAN_LOGO_ICON_URL || OG_IMAGE,
-            sameAs: [],
+            description: 'A travel community where people publish the trips they actually took, and plan new ones together.',
+            // `sameAs: []` was emitted as an empty array, which asserts "this
+            // organisation has no other web presence". Omitted until there are
+            // real profile URLs to list.
           },
           {
             '@context': 'https://schema.org',
@@ -782,6 +798,26 @@ export default function LandingPage() {
               name: f.q,
               acceptedAnswer: { '@type': 'Answer', text: f.a },
             })),
+          },
+          /*
+           * The product itself, which nothing described before. This is the block
+           * that lets a travel-planner query match the app rather than only the
+           * marketing copy, and `price: 0` is what makes "free" a machine-readable
+           * fact instead of a claim in a sentence.
+           */
+          {
+            '@context': 'https://schema.org',
+            '@type': 'SoftwareApplication',
+            name: 'Tripician',
+            url: SITE_URL,
+            applicationCategory: 'TravelApplication',
+            operatingSystem: 'Web',
+            description: 'Plan trips with a group, browse itineraries published by other travellers, and build a day-by-day plan where every place is checked against a live listing.',
+            offers: {
+              '@type': 'Offer',
+              price: '0',
+              priceCurrency: 'USD',
+            },
           },
         ]}
       />
@@ -860,9 +896,25 @@ export default function LandingPage() {
           </p>
 
           <div className="lp-hero__cta-group">
-            <button className="lp-btn lp-btn--hero-primary" onClick={() => navigate('/community')} aria-label="Explore real trips from the community">
+            {/* An anchor, not a button. This is the hero's route to /community -
+                the most important indexable page on the site - and a click handler
+                is not a link: crawlers do not run it, and neither does middle-click
+                or ctrl+click. The modifier check preserves open-in-new-tab; a plain
+                left click still navigates through the router without a reload.
+                The sibling CTAs stay buttons: /signup and /signin are Disallowed in
+                robots.txt, so there is nothing to crawl there. */}
+            <a
+              className="lp-btn lp-btn--hero-primary"
+              href="/community"
+              onClick={(e) => {
+                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+                e.preventDefault();
+                navigate('/community');
+              }}
+              aria-label="Explore real trips from the community"
+            >
               Explore trips <IconArrowRight size={17} aria-hidden="true" />
-            </button>
+            </a>
             {/* Was hidden on mobile, which left phones with no route into the
                 community at all - the one thing the page is now about. */}
             <button className="lp-btn lp-btn--hero-link" onClick={() => navigate('/signup')} aria-label="Create an account and start planning">
@@ -1225,11 +1277,19 @@ export default function LandingPage() {
               <h4>Product</h4>
               <a href="#features">Features</a>
               <a href="#how-it-works">How it works</a>
-              <a href="/docs">Docs</a>
+              <a href="/community">Community</a>
+              {/* `/docs` used to sit here. There is no /docs route in App.tsx, so
+                  it resolved to the catch-all 404 - a dead internal link on the
+                  highest-authority page on the site, which is both a crawl-budget
+                  leak and a quality signal. Restore it when the route exists. */}
             </div>
             <div className="lp-footer__col">
               <h4>Company</h4>
               <a href="/about-us">About Us</a>
+              {/* The blog is in sitemap.xml and allowed in robots.txt but had no
+                  link from the homepage, which is the page with the most authority
+                  to pass to it. */}
+              <a href="/blog">Blog</a>
               <a href="/get-help">Get Help</a>
               <a href="/contact-us">Contact Us</a>
             </div>

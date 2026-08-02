@@ -303,7 +303,9 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
           borderRadius: '24px',
           overflow: 'hidden',
           bgcolor: t.palette.mode === 'dark' ? '#111214' : '#FFFFFF',
-          boxShadow: '0 40px 100px rgba(0,0,0,0.18), 0 12px 32px rgba(255,56,92,0.12)',
+          /* Composite: the neutral layer stays (a dialog needs to lift off the
+             backdrop), the coral layer it was paired with does not. */
+          boxShadow: t.custom.shadows.overlay,
           maxHeight: '92vh',
           '::-webkit-scrollbar': { display: 'none' },
           scrollbarWidth: 'none',
@@ -360,10 +362,8 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                   onClick={handleSearchUser}
                   variant="contained"
                   sx={{
-                    m: 0.6, px: 2.5, textTransform: 'none', borderRadius: 2.5,
-                    background: 'linear-gradient(135deg,#FF385C,#E31C5F)',
-                    fontWeight: 700, fontSize: 13, boxShadow: 'none',
-                    '&:hover': { background: 'linear-gradient(135deg,#e02d50,#c91855)', boxShadow: 'none' },
+                    m: 0.6, px: 2.5, borderRadius: 2.5,
+                    fontWeight: 700, fontSize: 13,
                   }}
                 >{inviting ? 'Searching…' : 'Search'}</Button>
               </Box>
@@ -456,7 +456,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
 
             <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'flex-end', mt: 1 }}>
               <Button variant="outlined" onClick={handleDiscard} disabled={addingMembers} sx={{ textTransform: 'none', borderRadius: 20, px: 3, fontWeight: 600 }}>Discard</Button>
-              <Button variant="contained" onClick={handleDone} disabled={addingMembers} sx={{ textTransform: 'none', borderRadius: 20, px: 3.5, fontWeight: 700, background: 'linear-gradient(135deg,#FF385C,#E31C5F)', boxShadow: '0 4px 14px rgba(255,56,92,0.25)', '&:hover': { background: 'linear-gradient(135deg,#e02d50,#c91855)' } }}>
+              <Button variant="contained" onClick={handleDone} disabled={addingMembers} sx={{ px: 3.5, fontWeight: 700 }}>
                 {addingMembers ? 'Adding…' : 'Done'}
               </Button>
             </Box>
@@ -501,7 +501,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                 <Box sx={{ width: 5, height: 5, borderRadius: '50%', background: primary, flexShrink: 0 }} />
                 <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', color: primary, fontFamily: "'Inter', sans-serif" }}>Trip Settings</Typography>
               </Box>
-              <Typography sx={(t: any) => ({ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: { xs: '1.5rem', md: '1.75rem' }, color: t.palette.mode === 'dark' ? '#fff' : '#111', lineHeight: 1.1, letterSpacing: '-0.03em', maxWidth: 340, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })}>
+              <Typography sx={(t: any) => ({ fontFamily: t.custom.fontDisplay, fontWeight: 700, fontSize: { xs: '1.5rem', md: '1.75rem' }, color: t.palette.mode === 'dark' ? '#fff' : '#111', lineHeight: 1.1, letterSpacing: '-0.03em', maxWidth: 340, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' })}>
                 {title || 'Untitled Trip'}
               </Typography>
             </Box>
@@ -528,7 +528,6 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                     transition: 'all 0.2s ease',
                     userSelect: 'none',
                     '&:hover': isActive ? {} : { background: 'rgba(0,0,0,0.09)', color: 'text.primary' },
-                    boxShadow: isActive ? '0 4px 12px rgba(255,56,92,0.30)' : 'none',
                   }}
                 >{label}</Box>
               );
@@ -732,7 +731,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                   <Box sx={{ mb: 0.5, borderRadius: '14px', background: activeVibeData.activeBg, p: '12px 18px', display: 'flex', alignItems: 'center', gap: 1.5, boxShadow: `0 6px 20px ${activeVibeData.activeBorder}40` }}>
                     <activeVibeData.Icon size={26} stroke={1.6} color="#fff" style={{ flexShrink: 0 }} />
                     <Box sx={{ flex: 1 }}>
-                      <Typography sx={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: '0.95rem', color: '#fff', lineHeight: 1.2 }}>{activeVibeData.label}</Typography>
+                      <Typography sx={{ fontFamily: (t) => t.custom.fontDisplay, fontWeight: 700, fontSize: '0.95rem', color: '#fff', lineHeight: 1.2 }}>{activeVibeData.label}</Typography>
                       <Typography sx={{ fontSize: '0.7rem', color: 'rgba(255,255,255,0.72)', fontFamily: "'Inter', sans-serif", mt: 0.2, fontStyle: 'italic' }}>{activeVibeData.tagline}</Typography>
                     </Box>
                     <Box onClick={() => onChangeVibe?.('')} sx={{ px: 1.2, py: 0.4, borderRadius: '20px', bgcolor: 'rgba(255,255,255,0.18)', border: '1px solid rgba(255,255,255,0.25)', cursor: 'pointer', '&:hover': { bgcolor: 'rgba(255,255,255,0.28)' } }}>
@@ -846,13 +845,9 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
               variant="contained"
               onClick={() => window.dispatchEvent(new CustomEvent('trip:settings:save'))}
               sx={{
-                textTransform: 'none', fontWeight: 700, fontSize: 14,
-                borderRadius: 20, px: 4, py: 1,
-                background: 'linear-gradient(135deg,#FF385C,#E31C5F)',
-                boxShadow: '0 6px 20px rgba(255,56,92,0.35)',
+                fontWeight: 700, fontSize: 14,
+                px: 4, py: 1,
                 letterSpacing: '.01em',
-                '&:hover': { background: 'linear-gradient(135deg,#e02d50,#c91855)', boxShadow: '0 8px 28px rgba(255,56,92,0.45)', transform: 'translateY(-1px)' },
-                transition: 'all .2s',
               }}
             >Save changes</Button>
           </Box>

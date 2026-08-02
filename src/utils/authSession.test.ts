@@ -85,6 +85,24 @@ describe('clearSessionData - what a session leaves behind', () => {
   });
 
   /**
+   * The one sessionStorage exception. Both sign-in paths call clearSessionData()
+   * immediately BEFORE storing the new token, so without the allowlist the
+   * landing-hero prompt is destroyed one line ahead of the redirect meant to
+   * carry it - a deterministic failure, not a race. The transcript beside it
+   * must still die: that is another account's conversation, the prompt is this
+   * visitor's own unauthenticated intent.
+   */
+  it('keeps the pre-account landing prompt, which sign-in is about to consume', () => {
+    session.setItem('navia-chat-general', '[{"content":"my private plans"}]');
+    session.setItem('tripician:pendingNaviaPrompt', '{"prompt":"10 days in Japan","ts":1}');
+
+    clearSessionData();
+
+    expect(session.getItem('navia-chat-general')).toBeNull();
+    expect(session.getItem('tripician:pendingNaviaPrompt')).toBe('{"prompt":"10 days in Japan","ts":1}');
+  });
+
+  /**
    * Default-deny: anything not explicitly allowlisted is treated as user data.
    * This is what stops a newly-added key from leaking until someone remembers it.
    */

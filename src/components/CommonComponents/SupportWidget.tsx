@@ -170,7 +170,6 @@ const SupportWidget: React.FC = () => {
               '&:hover': {
                 background: isLight ? '#fff' : '#22304a',
                 color: '#FF385C',
-                transform: 'translateY(-2px)',
               },
             }}
           >

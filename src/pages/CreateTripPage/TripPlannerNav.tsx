@@ -120,10 +120,7 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
                 color: selected
                   ? '#FF385C'
                   : (theme.palette.mode === 'light' ? '#717171' : 'rgba(255,255,255,0.5)'),
-                boxShadow: selected
-                  ? '0 4px 18px rgba(255,56,92,0.28)'
-                  : 'none',
-                transition: 'background .2s ease, color .2s ease, transform .2s ease, box-shadow .2s ease',
+                                transition: 'background .2s ease, color .2s ease, box-shadow .2s ease',
                 userSelect: 'none',
                 outline: 'none',
                 fontFamily: "'Inter', system-ui, sans-serif",
@@ -131,7 +128,6 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
                   boxShadow: '0 0 0 2px rgba(255,56,92,0.55)'
                 },
                 '&:hover': isDisabled ? {} : {
-                  transform: 'translateY(-2px)',
                   background: theme.palette.mode === 'light'
                     ? 'rgba(255,56,92,0.07)'
                     : 'rgba(255,56,92,0.13)',

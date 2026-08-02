@@ -157,12 +157,7 @@ const PublishValidationModal: React.FC<Props> = ({ open, onClose, checks }) => {
             textTransform: 'none',
             fontWeight: 700,
             px: 2.5,
-            background: 'linear-gradient(135deg, #FF385C 0%, #E31C5F 55%, #c91855 100%)',
-            color: '#fff',
-            '&:hover': {
-              background: 'linear-gradient(135deg, #ff4d6d 0%, #E31C5F 55%, #b5144c 100%)',
-            },
-          }}
+                      }}
         >
           Got it
         </Button>
