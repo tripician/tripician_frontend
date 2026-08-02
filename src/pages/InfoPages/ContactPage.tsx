@@ -35,7 +35,7 @@ const ContactPage: React.FC = () => {
       <Box sx={{ background: 'linear-gradient(135deg,#FFF5F6 0%,#FFFAFA 100%)', borderBottom: '1px solid rgba(0,0,0,0.06)', px: { xs: 3, md: 8 }, py: { xs: 6, md: 8 } }}>
         <Container maxWidth="md">
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
-            <Box sx={{ width: 40, height: 40, borderRadius: '12px', background: 'linear-gradient(135deg,#FF385C,#D91A50)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(255,56,92,0.3)' }}>
+            <Box sx={{ width: 40, height: 40, borderRadius: '12px', background: 'linear-gradient(135deg,#FF385C,#D91A50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <ContactMailRoundedIcon sx={{ color: '#fff', fontSize: 22 }} />
             </Box>
             <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#FF385C', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Contact Us</Typography>
@@ -111,7 +111,8 @@ const ContactPage: React.FC = () => {
               variant="contained"
               endIcon={<SendRoundedIcon />}
               fullWidth
-              sx={{ borderRadius: '50px', fontWeight: 700, textTransform: 'none', py: 1.4, background: 'linear-gradient(135deg,#FF385C,#D91A50)', boxShadow: '0 4px 16px rgba(255,56,92,0.35)', '&:hover': { boxShadow: '0 6px 24px rgba(255,56,92,0.5)' } }}
+              className="t-invert"
+              sx={{ fontWeight: 700, py: 1.4 }}
             >
               Open in Email App
             </Button>

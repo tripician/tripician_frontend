@@ -9,6 +9,9 @@
   --color-surface-mid: #222235;
   --radius-pill: 999px;
   --radius-md: 12px;
+  /* Display face for raw-CSS surfaces (landing, auth, risk monitor). The TSX
+     equivalent is `theme.custom.fontDisplay` - keep the two in step. */
+  --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
   --shadow-hover: 0 6px 24px rgba(0, 0, 0, 0.14);
   --transition: all 0.2s ease;
 

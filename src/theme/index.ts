@@ -26,7 +26,7 @@ declare module '@mui/material/styles' {
 }
 
 export interface CustomTokens {
-  /** Display serif for editorial headings (hero, page titles) */
+  /** Geometric display sans for headings (hero, page titles). Weights 600/700 only. */
   fontDisplay: string;
   gradients: {
     /** Primary brand gradient - CTAs */
@@ -39,10 +39,20 @@ export interface CustomTokens {
     sunset: string;
   };
   shadows: {
-    /** Small brand-tinted glow for primary CTAs */
-    brandSm: string;
-    /** Larger brand-tinted glow (hover) */
-    brandMd: string;
+    /**
+     * The hover ring: a zero-blur, zero-offset box-shadow that sits exactly on
+     * a control's edge. This is NOT a glow and must never grow a blur radius.
+     *
+     * It replaces `brandSm`/`brandMd`, a pair of blurred coral drop-shadows
+     * that sat under every primary CTA and grew on hover. That - gradient fill
+     * plus coloured glow plus a `translateY` lift - is the single loudest
+     * "generated UI" tell there is, and it was the specific thing users were
+     * reacting to. The names were deleted rather than retuned so the compiler
+     * would stop at every call site and force a decision at each one.
+     */
+    ringBrand: string;
+    /** Softer ring for INPUT focus (not buttons) - still zero blur, wider spread */
+    ringFocus: string;
     /** Soft ambient card shadow */
     card: string;
     /** Card hover lift */
@@ -78,6 +88,20 @@ export const BRAND = {
 } as const;
 
 const FONT_BODY = "'Inter', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif";
+/*
+ * The display face is a SERIF, and that is the point.
+ *
+ * It was briefly swapped to Poppins to match a geometric-sans reference. At UI
+ * sizes that was fine; at display sizes it was not - "Welcome back", "Community",
+ * "Trips" all read as interface chrome rather than as a masthead, because a
+ * geometric sans set large is just a bigger version of the same voice the body
+ * text already speaks. The serif is the only thing on the page that is not the
+ * UI, which is exactly what makes a heading feel authored.
+ *
+ * So: this face is for headings that carry voice - page mastheads, the auth
+ * panel, the landing hero, card titles in editorial contexts. Buttons, labels,
+ * inputs and body copy stay on FONT_BODY. The two are not interchangeable.
+ */
 const FONT_DISPLAY = "'Playfair Display', Georgia, 'Times New Roman', serif";
 
 // ── Palettes ──────────────────────────────────────────────────────────────
@@ -153,8 +177,8 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
       sunset: 'linear-gradient(135deg, #FF385C 0%, #FF7854 60%, #FFB03A 100%)',
     },
     shadows: {
-      brandSm: '0 4px 14px rgba(255,56,92,0.32)',
-      brandMd: '0 8px 26px rgba(255,56,92,0.42)',
+      ringBrand: `0 0 0 2px ${BRAND.coral}`,
+      ringFocus: `0 0 0 3px ${alpha(BRAND.coral, 0.16)}`,
       card: isLight ? '0 1px 2px rgba(16,16,20,0.04), 0 4px 16px rgba(16,16,20,0.06)' : '0 1px 2px rgba(0,0,0,0.4), 0 4px 16px rgba(0,0,0,0.35)',
       cardHover: isLight ? '0 4px 8px rgba(16,16,20,0.06), 0 12px 32px rgba(16,16,20,0.11)' : '0 4px 8px rgba(0,0,0,0.45), 0 12px 32px rgba(0,0,0,0.5)',
       overlay: isLight ? '0 12px 24px rgba(16,16,20,0.10), 0 24px 60px rgba(16,16,20,0.14)' : '0 12px 24px rgba(0,0,0,0.5), 0 24px 60px rgba(0,0,0,0.6)',
@@ -203,6 +227,16 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
      */
     typography: {
       fontFamily: FONT_BODY,
+      /*
+       * These deliberately do NOT set a fontFamily. `variant="h1"` is used for
+       * plenty of purely functional headings (dialog titles, section labels),
+       * and forcing the serif onto all of them turns structural markup into an
+       * aesthetic decision. The display face is opt-in via `custom.fontDisplay`
+       * at the places that actually want a masthead voice.
+       *
+       * Tracking is tuned for Inter: negative, because Inter's default fit is
+       * loose at display sizes.
+       */
       h1: { fontWeight: 700, fontSize: 'clamp(2rem, 1.5rem + 1.6vw, 2.75rem)', letterSpacing: '-0.03em', lineHeight: 1.1 },
       h2: { fontWeight: 700, fontSize: 'clamp(1.625rem, 1.3rem + 1vw, 2.125rem)', letterSpacing: '-0.025em', lineHeight: 1.16 },
       h3: { fontWeight: 700, fontSize: 'clamp(1.375rem, 1.2rem + 0.6vw, 1.625rem)', letterSpacing: '-0.02em', lineHeight: 1.22 },
@@ -245,6 +279,16 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
           },
         },
       },
+      /**
+       * A button has one rest state and one hover state, and the hover is a
+       * COLOUR change - never a shadow that grows, never a lift. Everything a
+       * button needs is stated here, so a call site should not be reaching for
+       * `sx={{ boxShadow }}` or `sx={{ background: linear-gradient(...) }}`.
+       *
+       * `transition: all` is gone with the glow. It was animating `transform`
+       * and `box-shadow` - the two properties this system no longer uses on a
+       * button - which is what made every hover feel like it inflated.
+       */
       MuiButton: {
         defaultProps: { disableElevation: true },
         styleOverrides: {
@@ -252,29 +296,89 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
             textTransform: 'none',
             fontWeight: 600,
             borderRadius: 999,
-            transition: `all ${custom.motion.duration.base} ${custom.motion.easing.standard}`,
+            boxShadow: 'none',
+            transition: [
+              `background-color ${custom.motion.duration.fast} ${custom.motion.easing.standard}`,
+              `border-color ${custom.motion.duration.fast} ${custom.motion.easing.standard}`,
+              `color ${custom.motion.duration.fast} ${custom.motion.easing.standard}`,
+              `box-shadow ${custom.motion.duration.fast} ${custom.motion.easing.standard}`,
+            ].join(', '),
+            '&:hover': { boxShadow: 'none' },
+            '&:active': { boxShadow: 'none' },
+            '&.Mui-disabled': { boxShadow: 'none' },
             '&:focus-visible': { outline: `2px solid ${custom.ring}`, outlineOffset: 2 },
+
+            /*
+             * Opt-in inversion: `<Button variant="contained" className="t-invert">`.
+             *
+             * For marketing and auth CTAs that sit on a page background with
+             * room to breathe (InfoPages, blog, empty states). Inverting to a
+             * white fill needs something behind it to invert AGAINST, which a
+             * dense planner toolbar does not have - there the fill just
+             * disappears into the card. So the app default is a flat darken
+             * below, and this is the exception you ask for by name.
+             */
+            '&.t-invert.MuiButton-containedPrimary:hover': {
+              backgroundColor: p.background.paper,
+              color: BRAND.coral,
+              boxShadow: custom.shadows.ringBrand,
+            },
+            '&.t-invert.MuiButton-containedPrimary:active': {
+              backgroundColor: alpha(BRAND.coral, 0.06),
+              color: BRAND.coralDark,
+              boxShadow: `0 0 0 2px ${BRAND.coralDark}`,
+            },
           },
           sizeLarge: { padding: '10px 24px', fontSize: '0.9375rem' },
           sizeMedium: { padding: '7px 18px', fontSize: '0.875rem' },
           sizeSmall: { padding: '4px 12px', fontSize: '0.8125rem' },
-          containedPrimary: {
-            background: custom.gradients.brand,
-            boxShadow: custom.shadows.brandSm,
-            '&:hover': { background: custom.gradients.brandHover, boxShadow: custom.shadows.brandMd },
+
+          /* Filled non-primary (secondary/error/success/...). MUI's own hover is
+             already `palette[color].dark`, i.e. a flat darken - all this has to
+             do is stop elevation and gradients coming back. */
+          contained: {
+            backgroundImage: 'none',
             '&.Mui-disabled': {
-              background: isLight ? 'rgba(28,28,33,0.10)' : 'rgba(245,245,247,0.10)',
+              backgroundColor: isLight ? 'rgba(28,28,33,0.10)' : 'rgba(245,245,247,0.10)',
               color: p.text.disabled,
-              boxShadow: 'none',
             },
           },
+
+          /* The in-app primary: flat coral, darkening in two steps.
+             `&:active` is stated AFTER `&:hover` deliberately - equal
+             specificity, so source order is what decides. */
+          containedPrimary: {
+            backgroundColor: BRAND.coral,
+            backgroundImage: 'none',
+            color: '#fff',
+            '&:hover': { backgroundColor: BRAND.coralDark },
+            '&:active': { backgroundColor: BRAND.coralDeep },
+            '&.Mui-disabled': {
+              backgroundColor: isLight ? 'rgba(28,28,33,0.10)' : 'rgba(245,245,247,0.10)',
+              color: p.text.disabled,
+            },
+          },
+
           outlined: {
             borderColor: custom.surface.border,
             color: p.text.primary,
             '&:hover': { borderColor: BRAND.coral, color: BRAND.coral, backgroundColor: alpha(BRAND.coral, 0.04) },
+            '&:active': { borderColor: BRAND.coralDark, color: BRAND.coralDark, backgroundColor: alpha(BRAND.coral, 0.09) },
           },
+          outlinedPrimary: {
+            borderColor: alpha(BRAND.coral, 0.4),
+            color: BRAND.coral,
+            '&:hover': { borderColor: BRAND.coral, backgroundColor: alpha(BRAND.coral, 0.05) },
+          },
+
           text: {
             '&:hover': { backgroundColor: custom.surface.hover },
+            '&:active': { backgroundColor: custom.surface.active },
+          },
+          textPrimary: {
+            color: BRAND.coral,
+            '&:hover': { backgroundColor: alpha(BRAND.coral, 0.06) },
+            '&:active': { backgroundColor: alpha(BRAND.coral, 0.11) },
           },
         },
       },
@@ -282,9 +386,35 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
         styleOverrides: {
           root: {
             borderRadius: 12,
-            transition: `background ${custom.motion.duration.fast} ${custom.motion.easing.standard}`,
-            '&:hover': { backgroundColor: custom.surface.hover },
+            boxShadow: 'none',
+            transition: `background-color ${custom.motion.duration.fast} ${custom.motion.easing.standard}, color ${custom.motion.duration.fast} ${custom.motion.easing.standard}`,
+            '&:hover': { backgroundColor: custom.surface.hover, boxShadow: 'none' },
             '&:focus-visible': { outline: `2px solid ${custom.ring}`, outlineOffset: 2 },
+          },
+        },
+      },
+      /*
+       * A Fab genuinely floats over scrolling content and has no border, so it
+       * is the one control that keeps a shadow - but a NEUTRAL grey one, which
+       * reads as elevation rather than as brand glow. The rule this change
+       * enforces is "no coral glow", not "no depth anywhere".
+       */
+      MuiFab: {
+        styleOverrides: {
+          root: {
+            boxShadow: custom.shadows.card,
+            backgroundImage: 'none',
+            textTransform: 'none',
+            fontWeight: 600,
+            transition: `background-color ${custom.motion.duration.fast} ${custom.motion.easing.standard}`,
+            '&:hover': { boxShadow: custom.shadows.cardHover },
+            '&:active': { boxShadow: custom.shadows.card },
+            '&:focus-visible': { outline: `2px solid ${custom.ring}`, outlineOffset: 2 },
+          },
+          primary: {
+            backgroundColor: BRAND.coral,
+            color: '#fff',
+            '&:hover': { backgroundColor: BRAND.coralDark },
           },
         },
       },
@@ -375,7 +505,7 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
               borderColor: isLight ? 'rgba(28,28,33,0.22)' : 'rgba(245,245,247,0.24)',
             },
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': { borderColor: BRAND.coral, borderWidth: 1.5 },
-            '&.Mui-focused': { boxShadow: `0 0 0 3px ${alpha(BRAND.coral, 0.14)}` },
+            '&.Mui-focused': { boxShadow: custom.shadows.ringFocus },
           },
         },
       },
@@ -386,8 +516,13 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
       },
       MuiChip: {
         styleOverrides: {
-          root: { borderRadius: 999, fontWeight: 600 },
+          /* Chips are labels, not CTAs: flat, no elevation, no gradient. */
+          root: { borderRadius: 999, fontWeight: 600, boxShadow: 'none', backgroundImage: 'none' },
           outlined: { borderColor: custom.surface.border },
+          clickable: {
+            '&:hover': { boxShadow: 'none' },
+            '&:focus-visible': { outline: `2px solid ${custom.ring}`, outlineOffset: 2 },
+          },
         },
       },
       MuiTabs: {

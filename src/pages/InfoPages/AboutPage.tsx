@@ -43,7 +43,7 @@ const AboutPage: React.FC = () => (
     <Box sx={{ background: 'linear-gradient(135deg,#FFF5F6 0%,#FFFAFA 100%)', borderBottom: '1px solid rgba(0,0,0,0.06)', px: { xs: 3, md: 8 }, py: { xs: 6, md: 8 } }}>
       <Container maxWidth="md">
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
-          <Box sx={{ width: 40, height: 40, borderRadius: '12px', background: 'linear-gradient(135deg,#FF385C,#D91A50)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 16px rgba(255,56,92,0.3)' }}>
+          <Box sx={{ width: 40, height: 40, borderRadius: '12px', background: 'linear-gradient(135deg,#FF385C,#D91A50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <ExploreRoundedIcon sx={{ color: '#fff', fontSize: 22 }} />
           </Box>
           <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#FF385C', letterSpacing: '0.1em', textTransform: 'uppercase' }}>About Us</Typography>
@@ -108,8 +108,11 @@ const AboutPage: React.FC = () => (
         <Typography sx={{ fontWeight: 700, color: '#111', mb: 1.5, fontSize: '1.15rem' }}>Ready to plan your next adventure?</Typography>
         <Typography sx={{ color: '#666', mb: 3, fontSize: '0.92rem' }}>Join travellers already using Tripician to plan smarter.</Typography>
         <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', flexWrap: 'wrap' }}>
-          <Button component={Link} to="/signup" variant="contained"
-            sx={{ borderRadius: '50px', fontWeight: 700, textTransform: 'none', px: 4, background: 'linear-gradient(135deg,#FF385C,#D91A50)', boxShadow: '0 4px 16px rgba(255,56,92,0.35)', '&:hover': { boxShadow: '0 6px 24px rgba(255,56,92,0.5)' } }}>
+          {/* `t-invert`: marketing surface, so this takes the white-ground hover
+              from the theme rather than the in-app darken. Fill, radius and
+              hover all come from `MuiButton` now. */}
+          <Button component={Link} to="/signup" variant="contained" className="t-invert"
+            sx={{ fontWeight: 700, px: 4 }}>
             Start for free
           </Button>
           <Button component={Link} to="/contact-us" variant="outlined"

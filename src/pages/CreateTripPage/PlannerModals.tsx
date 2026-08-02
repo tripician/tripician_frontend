@@ -215,7 +215,7 @@ export const DiscoverSheet: React.FC<DiscoverSheetProps> = ({
                   bgcolor: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : '#fff',
                   border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`,
                   transition: 'all .14s',
-                  '&:hover': { borderColor: 'rgba(255,56,92,0.35)', color: '#FF385C', transform: 'translateY(-1px)' },
+                  '&:hover': { borderColor: 'rgba(255,56,92,0.35)', color: '#FF385C' },
                 })}
               >
                 <AddRoundedIcon sx={{ fontSize: 14, opacity: 0.7 }} />
@@ -332,9 +332,7 @@ export const DiscoverSheet: React.FC<DiscoverSheetProps> = ({
           variant='contained'
           onClick={onClose}
           sx={{
-            borderRadius: '12px', textTransform: 'none', fontWeight: 700, fontSize: 13, px: 3,
-            background: 'linear-gradient(135deg,#FF385C,#E31C5F)', boxShadow: '0 4px 20px rgba(255,56,92,0.3)',
-            '&:hover': { background: 'linear-gradient(135deg,#e02d50,#c91855)' },
+            borderRadius: '12px', fontWeight: 700, fontSize: 13, px: 3,
           }}
         >
           Done · {tab === 'spots' ? `${spots.length} places` : `${foods.length} items`}

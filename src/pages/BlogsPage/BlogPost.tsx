@@ -98,7 +98,6 @@ const BlogPost: React.FC = () => {
         width: `${readProgress}%`,
         background: 'linear-gradient(90deg, #FF385C, #D91A50)',
         transition: 'width 0.1s linear',
-        boxShadow: '0 0 12px rgba(255,56,92,0.5)',
       }} />
 
       {/* Nav - TopBar for logged-in, public nav for guests */}
@@ -139,7 +138,7 @@ const BlogPost: React.FC = () => {
               Sign in
             </Button>
             <Button size="small" component={Link} to="/signup" variant="contained"
-              sx={{ fontSize: '0.78rem', fontWeight: 700, borderRadius: '50px', textTransform: 'none', background: 'linear-gradient(135deg,#FF385C,#D91A50)', boxShadow: '0 3px 12px rgba(255,56,92,0.3)', '&:hover': { boxShadow: '0 6px 20px rgba(255,56,92,0.45)' } }}>
+              className="t-invert" sx={{ fontSize: '0.78rem', fontWeight: 700 }}>
               Join free
             </Button>
           </Box>
@@ -219,7 +218,7 @@ const BlogPost: React.FC = () => {
           <Typography
             variant="h1"
             sx={{
-              fontFamily: "'Playfair Display', serif",
+              fontFamily: (t) => t.custom.fontDisplay,
               fontSize: { xs: '1.8rem', sm: '2.4rem', md: '3rem' },
               fontWeight: 700,
               color: '#fff',
@@ -268,7 +267,7 @@ const BlogPost: React.FC = () => {
                   color: '#111',
                   lineHeight: 1.8,
                   mb: 4,
-                  fontFamily: "'Playfair Display', serif",
+                  fontFamily: (t) => t.custom.fontDisplay,
                   fontStyle: 'italic',
                   borderLeft: '3px solid #FF385C',
                   pl: 3,
@@ -357,7 +356,7 @@ const BlogPost: React.FC = () => {
                 </Typography>
               </Box>
               <Typography sx={{
-                fontFamily: "'Playfair Display', serif",
+                fontFamily: (t) => t.custom.fontDisplay,
                 fontSize: { xs: '1.5rem', md: '2rem' },
                 fontWeight: 700,
                 color: '#fff',
@@ -373,13 +372,10 @@ const BlogPost: React.FC = () => {
                     component={Link}
                     to="/signup"
                     variant="contained"
+                    className="t-invert"
                     sx={{
                       fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.9rem',
-                      px: 3.5, py: 1.3, borderRadius: '50px', textTransform: 'none',
-                      background: 'linear-gradient(135deg,#FF385C,#D91A50)',
-                      boxShadow: '0 6px 24px rgba(255,56,92,0.45)',
-                      '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 10px 32px rgba(255,56,92,0.6)' },
-                      transition: 'all 0.2s',
+                      px: 3.5, py: 1.3,
                     }}
                   >
                     Create free account →
@@ -403,13 +399,10 @@ const BlogPost: React.FC = () => {
                   component={Link}
                   to="/dashboard"
                   variant="contained"
+                  className="t-invert"
                   sx={{
                     fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.9rem',
-                    mt: 2.5, px: 3.5, py: 1.3, borderRadius: '50px', textTransform: 'none',
-                    background: 'linear-gradient(135deg,#FF385C,#D91A50)',
-                    boxShadow: '0 6px 24px rgba(255,56,92,0.4)',
-                    '&:hover': { transform: 'translateY(-2px)', boxShadow: '0 10px 32px rgba(255,56,92,0.55)' },
-                    transition: 'all 0.2s',
+                    mt: 2.5, px: 3.5, py: 1.3,
                   }}
                 >
                   Start planning your trip →
@@ -475,13 +468,11 @@ const BlogPost: React.FC = () => {
                 to="/signup"
                 variant="contained"
                 size="small"
+                className="t-invert"
                 sx={{
                   fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.82rem',
-                  py: 1.1, borderRadius: '50px', textTransform: 'none',
-                  background: 'linear-gradient(135deg,#FF385C,#D91A50)',
-                  boxShadow: '0 4px 16px rgba(255,56,92,0.4)',
+                  py: 1.1,
                   position: 'relative', zIndex: 1,
-                  '&:hover': { boxShadow: '0 8px 24px rgba(255,56,92,0.55)' },
                 }}
               >
                 Join for free →
@@ -564,7 +555,7 @@ const BlogPost: React.FC = () => {
         }}>
           <Box sx={{ position: 'absolute', top: '-50%', left: '50%', transform: 'translateX(-50%)', width: 600, height: 600, borderRadius: '50%', background: 'rgba(255,255,255,0.06)', pointerEvents: 'none' }} />
           <Typography sx={{
-            fontFamily: "'Playfair Display', serif",
+            fontFamily: (t) => t.custom.fontDisplay,
             fontSize: { xs: '1.8rem', md: '2.6rem' },
             fontWeight: 700,
             color: '#fff',

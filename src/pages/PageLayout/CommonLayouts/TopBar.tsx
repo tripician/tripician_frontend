@@ -149,12 +149,6 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode, sh
                   fontSize: '0.82rem',
                   px: 1.75,
                   py: 0.65,
-                  background: 'linear-gradient(135deg,#FF385C 0%,#D91A50 100%)',
-                  boxShadow: '0 4px 14px rgba(255,56,92,0.35)',
-                  '&:hover': {
-                    background: 'linear-gradient(135deg,#E31C5F 0%,#B01550 100%)',
-                    boxShadow: '0 6px 20px rgba(255,56,92,0.45)',
-                  },
                 }}
               >
                 Sign Up
@@ -211,7 +205,6 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode, sh
                   fontWeight: 700,
                   fontSize: '0.85rem',
                   letterSpacing: '-0.01em',
-                  boxShadow: '0 2px 10px rgba(255,56,92,0.3)',
                 }}
               >{!profile?.profilepicture && initials}</Avatar>
             </Box>
@@ -288,7 +281,6 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode, sh
               fontWeight: 700,
               fontSize: '1.5rem',
               color: '#fff',
-              boxShadow: '0 4px 20px rgba(255,56,92,0.35)',
             }}
           >{!profile?.profilepicture && initials}</Avatar>
           <Box sx={{ textAlign: 'center', minWidth: 0, width: '100%' }}>

@@ -180,8 +180,13 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
           <Typography noWrap sx={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: 'text.primary' }}>
             {trip.name || 'Untitled Trip'}
           </Typography>
+          {/* Weight carries the structure, opacity keeps it in its place. At 400
+              this line sat at the same visual level as the description below it
+              and stopped reading as the title's subhead; at full-strength 600 it
+              competed with the title itself. Bold and held back is the pairing
+              that makes the hierarchy legible at a glance. */}
           {metaLine && (
-            <Typography noWrap sx={{ fontSize: 13, color: 'text.secondary' }}>
+            <Typography noWrap sx={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.005em', color: 'text.secondary', opacity: 0.72 }}>
               {metaLine}
             </Typography>
           )}

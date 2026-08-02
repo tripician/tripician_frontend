@@ -275,6 +275,35 @@ export async function extractTripFromChat(
   return postNaviaJson<ChatTripExtract>('/api/navia/chat-to-trip', { planText, userPrompt }, token);
 }
 
+export interface DraftTripFromPrompt {
+  name: string;
+  countries: string[];
+  vibe: string | null;
+  /** Total nights, always >= 1. */
+  nights: number;
+  /** yyyy-MM-dd when the request implied timing, else null. */
+  startDate: string | null;
+}
+
+/**
+ * Reads a one-line request ("weekend in Rome") into a trip skeleton the client
+ * can create a trip from.
+ *
+ * This is only the shape of the trip. The route and the places still come from
+ * suggest-itinerary and plan-destination once the planner opens - which is what
+ * makes a one-sentence trip identical to one built through the create dialog,
+ * rather than a second, thinner generation path.
+ *
+ * Costs 1 personal credit; the trip does not exist yet, so there is no trip
+ * wallet to bill.
+ */
+export async function draftTripFromPrompt(
+  prompt: string,
+  token?: string | null,
+): Promise<DraftTripFromPrompt> {
+  return postNaviaJson<DraftTripFromPrompt>('/api/navia/draft-trip', { prompt }, token);
+}
+
 // Plan review used to be a model call that graded the model's own output. It is
 // now pages/CreateTripPage/feasibility.ts - deterministic checks over real
 // distances and opening hours, which cost nothing and cannot hallucinate.

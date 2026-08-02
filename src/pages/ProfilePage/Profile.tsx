@@ -185,8 +185,9 @@ const ProfileTripCard: React.FC<{ trip: any; onClick: () => void; showOwner?: bo
             {trip.name || 'Untitled Journey'}
           </Typography>
 
+          {/* Bold and held back - same subhead treatment as CommunityTripCard. */}
           {metaLine && (
-            <Typography noWrap sx={{ fontSize: 13, color: 'text.secondary', lineHeight: 1.4 }}>
+            <Typography noWrap sx={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.005em', color: 'text.secondary', opacity: 0.72, lineHeight: 1.4 }}>
               {metaLine}
             </Typography>
           )}

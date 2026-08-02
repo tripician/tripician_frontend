@@ -24,6 +24,7 @@ import type { RootState } from '../../store';
 import { apiServices } from '../../services/APIs/apiServices';
 import { matchCountryName } from '../../utils/countries';
 import { scheduleFeedbackPrompt } from '../../utils/feedbackPrompt';
+import { takePendingPrompt } from '../../utils/pendingNaviaPrompt';
 
 const STARTERS = [
   'Plan a 7-day trip to Japan for two people',
@@ -45,6 +46,34 @@ const NaviaPage: React.FC = () => {
   const [input, setInput] = useState('');
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
+
+  /*
+   * Replay of the prompt typed on the landing hero, before this visitor had an
+   * account. Three things make it fragile, and all three are handled here:
+   *
+   *  1. `useAuthToken` resolves in a mount effect, so `token` is null on the
+   *     first render even though ProtectedRoute already confirmed the session.
+   *     Streaming with a null token is a guaranteed 401 - NaviaController is
+   *     [Authorize] class-wide - so the replay waits for it.
+   *  2. StrictMode double-invokes effects in development. `takePendingPrompt`
+   *     removes before it returns and the ref latches, so a second invocation
+   *     is a no-op rather than a duplicate message.
+   *  3. `useNavia` restores `messages` from session storage in its own mount
+   *     effect. Gating on `token` puts this a render later, so it cannot be
+   *     clobbered by that restore.
+   *
+   * Calls `sendMessage` directly rather than dispatching `navia:send`: the
+   * function is already in hand, and that window event binds one handler to two
+   * names, which is one more thing to get wrong.
+   */
+  const replayedRef = useRef(false);
+  useEffect(() => {
+    if (!token || replayedRef.current) return;
+    const pending = takePendingPrompt();
+    if (!pending) return;
+    replayedRef.current = true;
+    sendMessage(pending);
+  }, [token, sendMessage]);
 
   const greetingName = profile?.fname?.trim();
 
@@ -346,12 +375,6 @@ const NaviaPage: React.FC = () => {
                     fontWeight: 700,
                     fontSize: '0.8rem',
                     px: 2,
-                    background: 'linear-gradient(135deg,#FF385C,#D91A50)',
-                    boxShadow: '0 4px 14px rgba(255,56,92,0.32)',
-                    '&:hover': {
-                      background: 'linear-gradient(135deg,#E31C5F,#B01550)',
-                      boxShadow: '0 6px 20px rgba(255,56,92,0.42)',
-                    },
                   }}
                 >
                   {creatingTrip ? 'Building your trip…' : 'Create this trip'}
@@ -440,18 +463,10 @@ const NaviaPage: React.FC = () => {
               width: 36,
               height: 36,
               borderRadius: '10px',
-              background:
-                input.trim() && !isStreaming
-                  ? 'linear-gradient(135deg,#FF385C,#D91A50)'
-                  : undefined,
+              bgcolor: input.trim() && !isStreaming ? '#FF385C' : undefined,
               color: input.trim() && !isStreaming ? '#fff' : 'text.disabled',
               transition: 'all 0.15s ease',
-              '&:hover': {
-                background:
-                  input.trim() && !isStreaming
-                    ? 'linear-gradient(135deg,#E31C5F,#B01550)'
-                    : undefined,
-              },
+              '&:hover': { bgcolor: input.trim() && !isStreaming ? '#E31C5F' : undefined },
             }}
           >
             <IconSend size={18} />

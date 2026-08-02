@@ -35,8 +35,8 @@ const InfoPageShell: React.FC<Props> = ({ children }) => {
               sx={{ fontSize: '0.78rem', fontWeight: 600, borderRadius: '50px', textTransform: 'none', borderColor: 'rgba(0,0,0,0.2)', color: '#333', '&:hover': { borderColor: '#FF385C', color: '#FF385C' } }}>
               Sign in
             </Button>
-            <Button size="small" component={Link} to="/signup" variant="contained"
-              sx={{ fontSize: '0.78rem', fontWeight: 700, borderRadius: '50px', textTransform: 'none', background: 'linear-gradient(135deg,#FF385C,#D91A50)', boxShadow: '0 3px 12px rgba(255,56,92,0.3)' }}>
+            <Button size="small" component={Link} to="/signup" variant="contained" className="t-invert"
+              sx={{ fontSize: '0.78rem', fontWeight: 700 }}>
               Join free
             </Button>
           </Box>

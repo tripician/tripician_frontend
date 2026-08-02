@@ -70,7 +70,6 @@ const MapDrawer: React.FC<MapDrawerProps> = ({ open, onClose, destinations }) =>
             width: 34, height: 34, borderRadius: '10px',
             background: 'linear-gradient(135deg,#FF385C,#D91A50)',
             display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 4px 14px rgba(255,56,92,0.32)',
           }}>
             <MapOutlinedIcon sx={{ color: '#fff', fontSize: 17 }} />
           </Box>

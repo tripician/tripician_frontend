@@ -268,10 +268,6 @@ const PreferencesSettings: React.FC = () => {
             fontWeight: 600,
             px: 3,
             py: 1.5,
-            borderRadius: '50px',
-            background: 'linear-gradient(135deg, #FF385C 0%, #D91A50 100%)',
-            boxShadow: '0 4px 14px rgba(255,56,92,0.3)',
-            "&:hover": { background: 'linear-gradient(135deg, #E31C5F 0%, #B01550 100%)', boxShadow: '0 8px 24px rgba(255,56,92,0.42)' },
           }}
         >
           {saving ? 'Saving...' : 'Save'}

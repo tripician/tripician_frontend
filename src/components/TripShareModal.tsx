@@ -5,6 +5,7 @@ import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
 import IosShareRoundedIcon from '@mui/icons-material/IosShareRounded';
 import { useTripShare } from '../hooks/useTripShare';
+import { BRAND } from '../theme';
 
 // Props
 interface TripShareModalProps {
@@ -431,10 +432,9 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
           justifyContent: 'center',
           gap: '8px',
           outline: 'none',
-          boxShadow: theme.custom.shadows.brandSm,
-          transition: `filter ${theme.custom.motion.duration.fast} ${theme.custom.motion.easing.standard}`,
-          '&:hover:not(:disabled)': { filter: 'brightness(0.94)' },
-          '&:active:not(:disabled)': { transform: 'scale(0.99)' },
+          transition: `background-color ${theme.custom.motion.duration.fast} ${theme.custom.motion.easing.standard}`,
+          '&:hover:not(:disabled)': { backgroundColor: BRAND.coralDark },
+          '&:active:not(:disabled)': { backgroundColor: BRAND.coralDeep },
           boxSizing: 'border-box',
         }}
       >

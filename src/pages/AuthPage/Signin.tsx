@@ -7,6 +7,7 @@ import { authAPI } from '../../services/APIs/Auth/auth';
 import { useNavigate } from 'react-router-dom';
 import { fetchUserProfile } from '../../store/userSlice';
 import { clearSessionData } from '../../utils/authSession';
+import { peekPendingPrompt } from '../../utils/pendingNaviaPrompt';
 import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../store';
 import { fadeInLeft, fadeInRight, staggerContainer, staggerItem } from '../../utils/animations';
@@ -110,7 +111,11 @@ const Signin = () => {
         setFormData({ email: '', password: '' });
 
         setTimeout(() => {
-          navigate('/home');
+          // A prompt typed on the landing hero is the reason this sign-in is
+          // happening. Take them to it rather than to the generic /home.
+          // `peek`, not `take`: consuming it belongs to NaviaPage, so a failed
+          // navigation cannot silently eat the prompt.
+          navigate(peekPendingPrompt() ? '/navia' : '/home');
         }, 1500);
       } else {
         setError('Unexpected response from server. Please try again.');

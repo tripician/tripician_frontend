@@ -226,7 +226,7 @@ export default function RiskMonitor() {
         minHeight: '100dvh', px: 3, textAlign: 'center', gap: 2.5,
       }}>
         <IconDeviceDesktop size={40} stroke={1.5} style={{ opacity: 0.5 }} />
-        <Typography sx={{ fontFamily: "'Playfair Display', serif", fontWeight: 700, fontSize: '1.4rem' }}>
+        <Typography sx={{ fontFamily: (t) => t.custom.fontDisplay, fontWeight: 700, fontSize: '1.4rem' }}>
           Best on Desktop
         </Typography>
         <Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.9rem', color: 'rgba(0,0,0,0.55)', maxWidth: 300, lineHeight: 1.7 }}>
