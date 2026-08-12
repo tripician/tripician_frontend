@@ -37,21 +37,47 @@ export const packingPresets: { id: string; name: string; type: PackingCategoryTy
   { id: 'motorcycling', name:'Motorcycling', type:'group', items:['Helmet','Jacket','Gloves','Boots','Tool Kit','Rain Gear'] }
 ];
 
-const defaultCategories: PackingCategory[] = [
+const STARTER_LISTS: { id: string; name: string; type: PackingCategoryType; items: string[] }[] = [
   { id: 'clothing', name: 'Clothing', type:'individual', items: [
     'Belt(s)','Boots','Bra(s)','Dress','Flip Flops','Hat','Heels','Hoodie','Jacket','Jeans','Pants','Sandals','Scarf','Shirt(s)','Shorts','Skirt','Sleepwear','Socks','Sunglasses','Sweater','Swimsuit','T-Shirt(s)','Underwear','Watch'
-  ].map(n=> ({ id: nanoid(), name:n, qty:1, checked:false })) },
+  ] },
   { id: 'essentials', name: 'Essentials', type:'individual', items: [
     'Passport','ID / Driver License','Wallet','Credit Card','Cash','Tickets','Phone','Charger','Power Bank','Adapter','Medication','Insurance Docs','Itinerary Print','Emergency Contacts','Glasses / Contacts','Keys','Health Card','Local SIM','Guidebook','Pen'
-  ].map(n=> ({ id: nanoid(), name:n, qty:1, checked:false })) },
+  ] },
   { id: 'toiletries', name: 'Toiletries', type:'individual', items: [
     'Toothbrush','Toothpaste','Floss','Deodorant','Razor','Shaving Cream','Brush / Comb','Shampoo','Conditioner','Body Wash','Face Wash','Moisturizer','Sunscreen','Lip Balm','Makeup','Makeup Remover','Perfume','Nail Clippers','First Aid Kit','Hand Sanitizer','Tissues','Wet Wipes','Feminine Products','Contacts Solution','Cotton Swabs','Tweezers'
-  ].map(n=> ({ id: nanoid(), name:n, qty:1, checked:false })) }
+  ] }
 ];
 
+/** Total items in the starter list, so callers can say how big it is before adding it. */
+export const STARTER_LIST_SIZE = STARTER_LISTS.reduce((n, c) => n + c.items.length, 0);
+
+/**
+ * Builds the 70-item starter list.
+ *
+ * This used to BE `initialState.categories`, which meant every trip ever created
+ * arrived with 70 pre-written items nobody had asked for, saved into the trip and
+ * shown on the public trip page as "0 of 70 packed". A list that is entirely
+ * ours is not a packing list, it is a suggestion pretending to be one, and it
+ * made the section look abandoned on every trip that had it. It is now opt-in.
+ *
+ * A function rather than a const because the ids come from `nanoid()`: a
+ * module-level constant would generate them once and hand the same ids to two
+ * trips, and to a second copy added into the same list.
+ */
+export function buildStarterCategories(): PackingCategory[] {
+  return STARTER_LISTS.map(c => ({
+    id: c.id,
+    name: c.name,
+    type: c.type,
+    items: c.items.map(n => ({ id: nanoid(), name: n, qty: 1, checked: false })),
+  }));
+}
+
+/** Empty. Nothing is packed until someone says so. */
 const initialState: PackingState = {
-  categories: defaultCategories,
-  activeCategoryId: 'clothing'
+  categories: [],
+  activeCategoryId: undefined
 };
 
 interface TogglePayload { categoryId: string; itemId: string; }
@@ -63,10 +89,32 @@ const packingSlice = createSlice({
   name: 'packing',
   initialState,
   reducers: {
-    /** Replace the whole packing state (hydration from persisted per-trip data) */
+    /**
+     * Replace the whole packing state (hydration from persisted per-trip data).
+     *
+     * Replaces unconditionally. It used to fall back to whatever was already in
+     * the store when the payload was empty, which was invisible while every trip
+     * was seeded with the same defaults, but is a cross-trip leak now that a trip
+     * can legitimately have no list: opening trip B would show trip A's items.
+     */
     loadPacking(state, action: PayloadAction<PackingState>) {
-      state.categories = action.payload.categories?.length ? action.payload.categories : state.categories;
-      state.activeCategoryId = action.payload.activeCategoryId ?? state.activeCategoryId;
+      state.categories = Array.isArray(action.payload.categories) ? action.payload.categories : [];
+      state.activeCategoryId = action.payload.activeCategoryId ?? state.categories[0]?.id;
+    },
+    /** Clear on trip switch, so nothing carries over from the last trip. */
+    resetPacking() {
+      return { categories: [], activeCategoryId: undefined };
+    },
+    /**
+     * Adds the standard Clothing / Essentials / Toiletries list on request.
+     * Skips any of the three the trip already has, so pressing it twice cannot
+     * produce two Clothing lists.
+     */
+    addStarterList(state) {
+      const existing = new Set(state.categories.map(c => c.id));
+      const added = buildStarterCategories().filter(c => !existing.has(c.id));
+      state.categories.push(...added);
+      state.activeCategoryId = state.activeCategoryId ?? added[0]?.id ?? state.categories[0]?.id;
     },
     setActiveCategory(state, action: PayloadAction<string>) { state.activeCategoryId = action.payload; },
     toggleItem(state, action: PayloadAction<TogglePayload>) {
@@ -99,5 +147,5 @@ const packingSlice = createSlice({
   }
 });
 
-export const { loadPacking, setActiveCategory, toggleItem, addItem, updateQuantity, addCategory, removeCategory } = packingSlice.actions;
+export const { loadPacking, resetPacking, addStarterList, setActiveCategory, toggleItem, addItem, updateQuantity, addCategory, removeCategory } = packingSlice.actions;
 export default packingSlice.reducer;
