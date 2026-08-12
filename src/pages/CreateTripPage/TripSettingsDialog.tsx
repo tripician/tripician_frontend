@@ -32,8 +32,10 @@ import { IconCamera, IconWorld, IconCrown } from '@tabler/icons-react';
 const VIBE_COPY: Record<string, { desc: string; tagline: string; bg: string; activeBg: string; activeColor: string; activeBorder: string }> = {
   adventure: { desc: 'Trails, peaks & adrenaline',    tagline: 'Born for the wild',       bg: '#F0FDF4', activeBg: 'linear-gradient(135deg,#059669,#047857)', activeColor: '#fff', activeBorder: '#059669' },
   culture:   { desc: 'History, art & local stories',  tagline: 'Every place has a tale',  bg: '#F5F3FF', activeBg: 'linear-gradient(135deg,#7C3AED,#5B21B6)', activeColor: '#fff', activeBorder: '#7C3AED' },
-  romantic:  { desc: 'Vibes, music & movement',       tagline: 'Life is a dance floor',   bg: '#FFF1F2', activeBg: 'linear-gradient(135deg,#FF385C,#D91A50)', activeColor: '#fff', activeBorder: '#FF385C' },
-  luxury:    { desc: 'Wander without a rush',         tagline: 'The journey is the goal', bg: '#FFFBEB', activeBg: 'linear-gradient(135deg,#D97706,#B45309)', activeColor: '#fff', activeBorder: '#D97706' },
+  party:     { desc: 'Music, nights & movement',      tagline: 'Life is a dance floor',   bg: '#FDF2F8', activeBg: 'linear-gradient(135deg,#DB2777,#9D174D)', activeColor: '#fff', activeBorder: '#DB2777' },
+  slow:      { desc: 'Wander without a rush',         tagline: 'The journey is the goal', bg: '#F0FDFA', activeBg: 'linear-gradient(135deg,#0D9488,#0F766E)', activeColor: '#fff', activeBorder: '#0D9488' },
+  romantic:  { desc: 'Quiet corners & long dinners',  tagline: 'Somewhere lovely, together', bg: '#FFF1F2', activeBg: 'linear-gradient(135deg,#FF385C,#D91A50)', activeColor: '#fff', activeBorder: '#FF385C' },
+  luxury:    { desc: 'Fine stays & unhurried days',   tagline: 'Comfort the whole way',   bg: '#FFFBEB', activeBg: 'linear-gradient(135deg,#D97706,#B45309)', activeColor: '#fff', activeBorder: '#D97706' },
   spiritual: { desc: 'Temples, peace & inner purpose',tagline: 'Travel as transformation',bg: '#FEFCE8', activeBg: 'linear-gradient(135deg,#CA8A04,#A16207)', activeColor: '#fff', activeBorder: '#CA8A04' },
   urban:     { desc: 'City breaks & hidden gems',     tagline: 'The city never sleeps',   bg: '#EFF6FF', activeBg: 'linear-gradient(135deg,#2563EB,#1D4ED8)', activeColor: '#fff', activeBorder: '#2563EB' },
   scenic:    { desc: 'Landscapes & golden hours',     tagline: 'Always chasing sunsets',  bg: '#ECFDF5', activeBg: 'linear-gradient(135deg,#10B981,#059669)', activeColor: '#fff', activeBorder: '#10B981' },

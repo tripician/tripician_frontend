@@ -8,6 +8,7 @@ import {
   IconButton,
   Autocomplete,
   Chip,
+  useMediaQuery,
   useTheme,
 } from "@mui/material";
 import { DatePicker, LocalizationProvider } from '@mui/x-date-pickers';
@@ -23,10 +24,32 @@ import { VIBES } from '../../pages/CommunityPage/vibes';
 import { COUNTRIES } from '../../utils/countries';
 import NaviaOrb from '../../navia/NaviaOrb';
 import { scheduleFeedbackPrompt } from '../../utils/feedbackPrompt';
+import FilterChip from '../ui/FilterChip';
+import SegmentedControl from '../ui/SegmentedControl';
+import {
+  DEFAULT_TRIP_PREFERENCES,
+  type TripCompany,
+  type TripDietary,
+  type TripPace,
+} from '../../utils/tripPreferences';
+import {
+  COMPANY_OPTIONS,
+  DIETARY_OPTIONS,
+  INTEREST_OPTIONS,
+  PACE_OPTIONS,
+} from './preferenceOptions';
 
 interface TripCreationModalProps {
   open: boolean;
   onClose: () => void;
+  /** Prefill, used when a failed chat-to-trip hands its extract over to the form. */
+  initial?: {
+    name?: string;
+    countries?: string[];
+    vibe?: string | null;
+    startDate?: string | null;
+    endDate?: string | null;
+  };
 }
 
 
@@ -48,15 +71,64 @@ const AI_LOADING_MESSAGES = [
   'Adding the finishing touches…',
 ];
 
-const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) => {
+/**
+ * Zone divider: a short uppercase kicker with a hairline running out from it.
+ *
+ * The two zones ask for different kinds of thing, so they need to look like
+ * different kinds of thing. Without this the form was one undifferentiated stack
+ * of labels, which is what made a longer version of it feel like a chore.
+ */
+const ZoneHeading: React.FC<{ label: string; sx?: object }> = ({ label, sx }) => (
+  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, ...sx }}>
+    <Typography variant="overline" sx={{ color: 'text.disabled', lineHeight: 1, whiteSpace: 'nowrap' }}>
+      {label}
+    </Typography>
+    <Box sx={(t) => ({ flex: 1, height: '1px', bgcolor: t.custom.surface.border })} />
+  </Box>
+);
+
+/**
+ * One mood question. The question carries the weight, the control sits under it.
+ *
+ * Asked in plain language rather than labelled `PACE · OPTIONAL`, because the point
+ * of this half of the dialog is to read as someone asking rather than a form
+ * demanding. The `hint` slot is where the consequence of the answer goes, which is
+ * the only reason anyone would bother reading past the first option.
+ */
+const Question: React.FC<{
+  question: string;
+  hint?: string;
+  children: React.ReactNode;
+}> = ({ question, hint, children }) => (
+  <Box>
+    <Typography sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', lineHeight: 1.35 }}>
+      {question}
+    </Typography>
+    <Box sx={{ mt: 1.1, display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>{children}</Box>
+    {hint && (
+      <Typography sx={{ mt: 0.85, fontSize: '0.75rem', lineHeight: 1.45, color: 'text.disabled' }}>
+        {hint}
+      </Typography>
+    )}
+  </Box>
+);
+
+const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose, initial }) => {
   const theme = useTheme();
   const apiBase = import.meta.env.VITE_API_BASE_URL;
+  const atLeastSm = useMediaQuery(theme.breakpoints.up('sm'));
   const [selectedCountries, setSelectedCountries] = useState<string[]>([]);
   const [tripName, setTripName] = useState('');
   const [nameEdited, setNameEdited] = useState(false);
   const [startDate, setStartDate] = useState<Dayjs | null>(null);
   const [endDate, setEndDate] = useState<Dayjs | null>(null);
   const [vibe, setVibe] = useState<string | null>(null);
+  // Every mood question opens on an answer, so none of them can hold up the
+  // button and every trip still arrives carrying real values instead of nulls.
+  const [pace, setPace] = useState<TripPace>(DEFAULT_TRIP_PREFERENCES.pace);
+  const [company, setCompany] = useState<TripCompany>(DEFAULT_TRIP_PREFERENCES.company);
+  const [interests, setInterests] = useState<string[]>(DEFAULT_TRIP_PREFERENCES.interests);
+  const [dietary, setDietary] = useState<TripDietary>(DEFAULT_TRIP_PREFERENCES.dietary);
   const [submitting, setSubmitting] = useState(false);
   const [aiGenerating, setAiGenerating] = useState(false);
   const [aiMessage, setAiMessage] = useState('');
@@ -78,6 +150,10 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
     setTripName(event.target.value);
     setNameEdited(event.target.value.trim().length > 0);
     if (event.target.value.trim()) setFieldErrors(prev => ({ ...prev, name: undefined }));
+  };
+
+  const toggleInterest = (value: string) => {
+    setInterests(prev => (prev.includes(value) ? prev.filter(i => i !== value) : [...prev, value]));
   };
 
   const validate = () => {
@@ -102,6 +178,10 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
     // Every new trip opens in the simple planner - the reviews that prompted this
     // ("from where should I start?") all came from the first five minutes.
     plannerMode: 'Easy' as const,
+    // The whole reason this dialog exists. Stored on the trip at creation and read
+    // server-side by every generative call, so the first draft is already informed
+    // rather than being corrected afterwards.
+    preferences: { pace, company, interests, dietary },
     ...(generateWithAI ? { generateWithAI: true } : {}),
   });
 
@@ -171,6 +251,10 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
     setStartDate(null);
     setEndDate(null);
     setVibe(null);
+    setPace(DEFAULT_TRIP_PREFERENCES.pace);
+    setCompany(DEFAULT_TRIP_PREFERENCES.company);
+    setInterests(DEFAULT_TRIP_PREFERENCES.interests);
+    setDietary(DEFAULT_TRIP_PREFERENCES.dietary);
     setFieldErrors({});
     setErrorMsg(null);
   };
@@ -180,7 +264,19 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
     onClose();
   };
 
-  // GSAP: modal entrance
+  // Prefill on open. The only caller is the chat-to-trip fallback, which used to
+  // open this form blank and throw away everything Navia had already read out of
+  // the conversation.
+  useEffect(() => {
+    if (!open || !initial) return;
+    if (initial.countries?.length) setSelectedCountries(initial.countries);
+    if (initial.name) { setTripName(initial.name); setNameEdited(true); }
+    if (initial.vibe) setVibe(initial.vibe);
+  }, [open, initial]);
+
+  // GSAP: modal entrance. The context is scoped to the panel so `.gs-modal-field`
+  // matches only this instance's fields - the selector is global otherwise, and
+  // more than one of these can be mounted at a time.
   useEffect(() => {
     if (!open) return;
     const ctx = gsap.context(() => {
@@ -190,12 +286,13 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
       gsap.from('.gs-modal-field', {
         y: 18, opacity: 0, duration: 0.4, stagger: 0.07, delay: 0.15, ease: 'power2.out',
       });
-    });
+    }, modalBoxRef);
     return () => ctx.revert();
   }, [open]);
 
   const canFinish = tripName.trim().length > 0 && selectedCountries.length > 0;
   const busy = submitting || aiGenerating;
+  const paceEffect = PACE_OPTIONS.find(o => o.value === pace)?.effect;
 
   const fieldSx = {
     '& .MuiOutlinedInput-root': {
@@ -222,7 +319,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
         <Box
           ref={modalBoxRef}
           sx={{
-            width: { xs: '96vw', sm: '520px' },
+            width: { xs: '96vw', sm: '560px' },
             maxWidth: '96vw',
             maxHeight: '94vh',
             bgcolor: 'background.paper',
@@ -249,26 +346,44 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
             </Box>
           )}
 
-          <Box sx={{
-            p: { xs: '24px 20px 20px', md: '28px 36px 24px' },
+          {/*
+            Scroll region. The scrollbar used to be hidden inside a 94vh panel with
+            the buttons at the bottom of the scrolled content, so on a phone there
+            was no signal that anything continued below the fold and no way to reach
+            the CTA without discovering the scroll. It is now a thin visible bar and
+            the actions are pinned outside this box.
+          */}
+          <Box sx={(t) => ({
+            p: { xs: '22px 18px 18px', md: '28px 32px 24px' },
             overflowY: 'auto',
+            overscrollBehavior: 'contain',
             display: 'flex', flexDirection: 'column',
             flex: 1,
-            scrollbarWidth: 'none',
-            '&::-webkit-scrollbar': { display: 'none' },
-          }}>
+            scrollbarWidth: 'thin',
+            scrollbarColor: `${t.custom.surface.active} transparent`,
+            '&::-webkit-scrollbar': { width: 6 },
+            '&::-webkit-scrollbar-track': { background: 'transparent' },
+            '&::-webkit-scrollbar-thumb': { backgroundColor: t.custom.surface.active, borderRadius: 3 },
+          })}>
 
             {/* Header */}
-            <Box className="gs-modal-field" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', mb: 3 }}>
+            <Box className="gs-modal-field" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1.5, mb: 3 }}>
               <Box>
                 <Typography sx={{ fontFamily: theme.custom.fontDisplay, fontWeight: 700, fontSize: { xs: '1.55rem', md: '1.85rem' }, color: 'text.primary', lineHeight: 1.1, letterSpacing: '-0.03em' }}>
                   Where to next?
                 </Typography>
-                <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', fontFamily: "'Inter', sans-serif", mt: 0.75 }}>
-                  A destination is all it takes, everything else can wait.
+                {/*
+                  This used to say a destination was all it takes and everything else
+                  could wait. That is no longer true, and saying it was the reason
+                  people skipped the fields that most improve their first draft. The
+                  line now states the trade instead: answer more, get a closer plan.
+                */}
+                <Typography sx={{ fontSize: '0.8rem', lineHeight: 1.5, color: 'text.secondary', fontFamily: "'Inter', sans-serif", mt: 0.75 }}>
+                  Your answers decide which places Navia picks, what it suggests you eat,
+                  and how much it fits into a day.
                 </Typography>
               </Box>
-              <IconButton onClick={handleClose} size="small" sx={{ color: 'text.disabled', mt: 0.5, '&:hover': { color: 'text.primary', bgcolor: 'action.hover' } }}>
+              <IconButton onClick={handleClose} size="small" sx={{ color: 'text.disabled', mt: 0.5, flexShrink: 0, '&:hover': { color: 'text.primary', bgcolor: 'action.hover' } }}>
                 <IconX size={18} />
               </IconButton>
             </Box>
@@ -277,8 +392,11 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
               <Alert severity="error" onClose={() => setErrorMsg(null)} sx={{ mb: 2, borderRadius: '12px' }}>{errorMsg}</Alert>
             )}
 
-            {/* Destination, the one thing we ask for */}
-            <Box className="gs-modal-field" sx={{ mb: 2.5 }}>
+            {/* ── Zone 1: the facts ─────────────────────────────────────────── */}
+            <ZoneHeading label="The basics" sx={{ mb: 2 }} />
+
+            {/* Destination, the one thing we insist on */}
+            <Box className="gs-modal-field" sx={{ mb: 2.25 }}>
               <Typography sx={labelSx}>Destination</Typography>
               <Autocomplete
                 multiple
@@ -304,7 +422,9 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
                     {...params}
                     placeholder={selectedCountries.length === 0 ? 'Japan, Italy, Peru…' : 'Add another country'}
                     variant="outlined"
-                    autoFocus
+                    /* Focusing on a phone throws the keyboard over a panel that is
+                       already 94vh, hiding the form the moment it opens. */
+                    autoFocus={atLeastSm}
                     error={!!fieldErrors.countries}
                     helperText={fieldErrors.countries}
                     sx={fieldSx}
@@ -314,7 +434,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
             </Box>
 
             {/* Trip name, pre-filled, theirs to change */}
-            <Box className="gs-modal-field" sx={{ mb: 2.5 }}>
+            <Box className="gs-modal-field" sx={{ mb: 2.25 }}>
               <Typography sx={labelSx}>Trip name</Typography>
               <TextField
                 placeholder="We'll suggest one from your destination"
@@ -328,12 +448,9 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
               />
             </Box>
 
-            {/* Dates, explicitly optional */}
-            <Box className="gs-modal-field" sx={{ mb: 2.5 }}>
-              <Typography sx={labelSx}>
-                Dates
-                <Box component="span" sx={{ textTransform: 'none', letterSpacing: 0, fontWeight: 500, color: 'text.disabled', ml: 0.75 }}>· optional</Box>
-              </Typography>
+            {/* Dates */}
+            <Box className="gs-modal-field" sx={{ mb: 3.5 }}>
+              <Typography sx={labelSx}>When</Typography>
               <Box sx={{ display: 'flex', flexDirection: { xs: 'column', sm: 'row' }, gap: { xs: 1, sm: 1.5 } }}>
                 <DatePicker
                   value={startDate}
@@ -347,56 +464,141 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
                   slotProps={{ textField: { placeholder: 'End date', fullWidth: true, sx: fieldSx } }}
                 />
               </Box>
-              {fieldErrors.dates && <Typography variant="caption" sx={{ color: 'error.main', mt: 0.5, display: 'block' }}>{fieldErrors.dates}</Typography>}
-              <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled', mt: 0.75, fontFamily: "'Inter', sans-serif" }}>
-                Still dreaming? Leave them blank and decide later.
-              </Typography>
+              {fieldErrors.dates
+                ? <Typography variant="caption" sx={{ color: 'error.main', mt: 0.5, display: 'block' }}>{fieldErrors.dates}</Typography>
+                : (
+                  /* Not marked optional any more, because the month is what lets
+                     Navia route around a monsoon or a closed season. Rough dates
+                     genuinely help, and you can still move them later. */
+                  <Typography sx={{ mt: 0.85, fontSize: '0.75rem', lineHeight: 1.45, color: 'text.disabled' }}>
+                    Rough dates are fine, and you can change them later. The month is
+                    what lets Navia plan around the season.
+                  </Typography>
+                )}
             </Box>
 
-            {/* Travel style, optional, one tap */}
-            <Box className="gs-modal-field" sx={{ mb: 1 }}>
-              <Typography sx={labelSx}>
-                Travel style
-                <Box component="span" sx={{ textTransform: 'none', letterSpacing: 0, fontWeight: 500, color: 'text.disabled', ml: 0.75 }}>· optional</Box>
-              </Typography>
-              <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
+            {/* ── Zone 2: the mood ──────────────────────────────────────────── */}
+            <ZoneHeading label="How you travel" sx={{ mb: 1.25 }} />
+            <Typography className="gs-modal-field" sx={{ fontSize: '0.8rem', lineHeight: 1.5, color: 'text.secondary', fontFamily: "'Inter', sans-serif", mb: 2.5 }}>
+              Four quick answers, already filled in with the usual case. Change the ones
+              that are wrong for this trip.
+            </Typography>
+
+            <Box className="gs-modal-field" sx={{ display: 'flex', flexDirection: 'column', gap: 2.75 }}>
+              <Question question="How full should the days be?" hint={paceEffect}>
+                <SegmentedControl
+                  options={PACE_OPTIONS.map(o => ({ value: o.value, label: o.label }))}
+                  value={pace}
+                  onChange={setPace}
+                  aria-label="Trip pace"
+                />
+              </Question>
+
+              <Question question="Who is going?">
+                {COMPANY_OPTIONS.map(opt => (
+                  <FilterChip
+                    key={opt.value}
+                    label={opt.label}
+                    Icon={opt.Icon}
+                    active={company === opt.value}
+                    onClick={() => setCompany(opt.value)}
+                  />
+                ))}
+              </Question>
+
+              <Question
+                question="What pulls you in?"
+                hint={interests.length === 0
+                  ? 'Pick any that apply. Leave it empty and you get the usual highlights.'
+                  : undefined}
+              >
+                {INTEREST_OPTIONS.map(opt => (
+                  <FilterChip
+                    key={opt.value}
+                    label={opt.label}
+                    Icon={opt.Icon}
+                    role="checkbox"
+                    active={interests.includes(opt.value)}
+                    onClick={() => toggleInterest(opt.value)}
+                  />
+                ))}
+              </Question>
+
+              <Question
+                question="Anything you do not eat?"
+                hint={dietary === 'none' ? undefined : 'Every dish Navia names will fit this.'}
+              >
+                {DIETARY_OPTIONS.map(opt => (
+                  <FilterChip
+                    key={opt.value}
+                    label={opt.label}
+                    Icon={opt.Icon}
+                    active={dietary === opt.value}
+                    onClick={() => setDietary(opt.value)}
+                  />
+                ))}
+              </Question>
+
+              <Question
+                question="And the overall style?"
+                hint="Sets the tone, and it is how other travellers find your trip once you publish it."
+              >
                 {VIBE_IDS.map((id) => {
                   const { label, Icon } = VIBES[id];
-                  const selected = vibe === id;
                   return (
-                    <Chip
+                    <FilterChip
                       key={id}
                       label={label}
-                      icon={<Icon size={14} />}
+                      Icon={Icon}
+                      active={vibe === id}
                       onClick={() => setVibe(prev => (prev === id ? null : id))}
-                      variant={selected ? 'filled' : 'outlined'}
-                      sx={{
-                        fontFamily: "'Inter', sans-serif",
-                        fontWeight: 600,
-                        fontSize: '0.76rem',
-                        borderRadius: '50px',
-                        cursor: 'pointer',
-                        transition: 'all 0.15s ease',
-                        ...(selected
-                          ? { bgcolor: 'text.primary', color: 'background.paper', '& .MuiChip-icon': { color: 'inherit' }, '&:hover': { bgcolor: 'text.primary' } }
-                          : { borderColor: 'divider', color: 'text.secondary', '& .MuiChip-icon': { color: 'inherit' }, '&:hover': { borderColor: 'text.primary', color: 'text.primary', bgcolor: 'transparent' } }),
-                      }}
                     />
                   );
                 })}
-              </Box>
+              </Question>
             </Box>
+          </Box>
 
-            {/* Footer actions */}
-            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1.5, mt: 3, pt: 2, borderTop: '1px solid', borderColor: 'divider' }}>
+          {/*
+            Pinned actions. Outside the scroll region so the way forward is always
+            on screen, which is the whole reason a longer form is safe here.
+          */}
+          <Box
+            sx={(t) => ({
+              flexShrink: 0,
+              px: { xs: 2.25, md: 4 },
+              py: { xs: 1.75, md: 2 },
+              borderTop: `1px solid ${t.custom.surface.border}`,
+              bgcolor: 'background.paper',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: { xs: 'stretch', sm: 'space-between' },
+              gap: 1.25,
+            })}
+          >
+            <Typography sx={{ display: { xs: 'none', sm: 'block' }, fontSize: '0.7rem', lineHeight: 1.45, color: 'text.disabled', fontFamily: "'Inter', sans-serif", maxWidth: 180 }}>
+              Invite your crew and shape the details inside the planner.
+            </Typography>
+            {/* Stacked on a phone. Side by side, the two labels plus their icons come
+                to about 310px, which is wider than a 360px viewport leaves once the
+                footer padding is taken off, so `nowrap` was overflowing. DOM order
+                matches visual order, and the primary action lands nearest the thumb. */}
+            <Box sx={{
+              display: 'flex',
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: { xs: 'stretch', sm: 'center' },
+              gap: 1,
+              flex: { xs: 1, sm: 'none' },
+            }}>
               <Button
                 variant="outlined"
                 onClick={() => createAndOpen(true)}
                 disabled={!canFinish || busy}
                 startIcon={<NaviaOrb size={16} processing={aiGenerating} />}
                 sx={{
-                  fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '0.84rem',
-                  px: 2.5, py: 1.2, borderRadius: '50px', textTransform: 'none',
+                  fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '0.82rem',
+                  px: { xs: 1.5, sm: 2.25 }, py: 1.1, borderRadius: '50px', textTransform: 'none',
+                  flex: { xs: 1, sm: 'none' }, whiteSpace: 'nowrap',
                 }}
               >
                 Let Navia draft it
@@ -407,17 +609,14 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
                 disabled={!canFinish || busy}
                 endIcon={<IconArrowRight size={16} />}
                 sx={{
-                  fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '0.88rem',
-                  px: 3, py: 1.2, borderRadius: '50px', textTransform: 'none',
+                  fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '0.86rem',
+                  px: { xs: 1.75, sm: 2.75 }, py: 1.1, borderRadius: '50px', textTransform: 'none',
+                  flex: { xs: 1, sm: 'none' }, whiteSpace: 'nowrap',
                 }}
               >
                 {submitting ? 'Creating…' : 'Start planning'}
               </Button>
             </Box>
-            <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled', fontFamily: "'Inter', sans-serif", textAlign: 'right', mt: 1 }}>
-              Invite your crew and shape the details inside the planner.
-            </Typography>
-
           </Box>
         </Box>
       </LocalizationProvider>

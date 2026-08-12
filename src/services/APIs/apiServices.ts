@@ -1,5 +1,6 @@
 // api/apiService.ts - This is the ONLY additional file you need
 import axios from 'axios';
+import type { TripPreferences } from '../../utils/tripPreferences';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 // Debug log once (safe in dev; minimal noise in prod)
@@ -232,6 +233,12 @@ export const apiServices = {
     vibe?: string | null;
     /** Which planner surface the trip opens in. Omitted => Easy (the server default). */
     plannerMode?: 'Easy' | 'Advanced';
+    /**
+     * The create dialog's mood answers. Stored on the trip and read server-side by
+     * every generative Navia call, so the first draft is already informed.
+     * Omitted by the one-sentence shortcut, which has nothing to send.
+     */
+    preferences?: TripPreferences;
   }) => {
     // Validate description length if present
     if (data.description && data.description.length > 300) {

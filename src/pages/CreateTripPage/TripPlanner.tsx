@@ -86,6 +86,7 @@ import { suggestCountryItinerary, NaviaRequestError } from '../../navia/naviaSer
 import NaviaMessage from '../../navia/NaviaMessage';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { normalizeTrip, parsePlannerMode, plannerModeToWire, type NormalizedTrip, type PlannerMode } from '../../utils/normalizeTrip';
+import { parseTripPreferences } from '../../utils/tripPreferences';
 import EasyPlanHeader from './EasyPlanHeader';
 import SegmentedControl from '../../components/ui/SegmentedControl';
 import { countryNameFromCode } from '../../utils/countryFlags';
@@ -1512,7 +1513,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			effectiveTarget = (planner.targetNights || 1); lockTarget = false;
 		}
 		dispatch(resetPlanner({ tripId: meta.id }));
-		// Server-persisted extras (TripExtras table): budget, expenses, packing
+		// Server-persisted extras (TripExtras table): budget, expenses, packing, preferences
 		const rawExtras: any = remoteTrip || initialTrip || {};
 		dispatch(loadState({
 			destinations: cleanedDestinations,
@@ -1528,7 +1529,11 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			expenses: Array.isArray(rawExtras.expenses) ? rawExtras.expenses : [],
 			simplifyGroupExpenses: false,
 			expenseVisibilityEmails: [],
-			comments: []
+			comments: [],
+			// What they answered at creation. Reality check reads the pace from
+			// here, and the save below sends the whole object back so a plan save
+			// cannot silently drop what the prompts read.
+			preferences: parseTripPreferences(rawExtras.preferences) ?? undefined
 		}));
 		if (rawExtras.packing && Array.isArray(rawExtras.packing.categories) && rawExtras.packing.categories.length > 0) {
 			dispatch(loadPacking(rawExtras.packing));
@@ -2326,6 +2331,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			expenses: planner.expenses || [],
 			budget: planner.tripBudget ?? null,
 			packing: { categories: packingCategories },
+			// Sent back verbatim so a plan save cannot blank what the generative
+			// prompts read. Omitted when the trip predates the question, which the
+			// server reads as "leave the stored value alone".
+			...(planner.preferences ? { preferences: planner.preferences } : {}),
 			docs: [],
 			comments: [],
 			pinnedDocIds: planner.pinnedDocIds || [],
@@ -2334,7 +2343,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			destinationDocsCount: planner.destinations.reduce((sum, d) => sum + (d.docs?.length || 0), 0),
 			version: 1
 		};
-	}, [planner.destinations, planner.expenses, planner.tripBudget, packingCategories, planner.pinnedDocIds, planner.globalDocs, planner.visaDocs, tripId, title, currency, tripStartDate, tripEndDate, targetNights, totalNights, geocodedCount, importantNotes, vibe, tripDescription, bannerUrl, derivePrivacyFromDraft, plannerMode]);
+	}, [planner.destinations, planner.expenses, planner.tripBudget, planner.preferences, packingCategories, planner.pinnedDocIds, planner.globalDocs, planner.visaDocs, tripId, title, currency, tripStartDate, tripEndDate, targetNights, totalNights, geocodedCount, importantNotes, vibe, tripDescription, bannerUrl, derivePrivacyFromDraft, plannerMode]);
 
 
 	// Persist helper (debounced save)

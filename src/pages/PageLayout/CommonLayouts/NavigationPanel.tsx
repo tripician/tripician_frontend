@@ -10,7 +10,7 @@ import SupportWidget from '../../../components/CommonComponents/SupportWidget';
 import OnboardingCarousel from '../../../components/Onboarding/OnboardingCarousel';
 import AppShellHeader from './AppShellHeader';
 import AppBottomNav from './AppBottomNav';
-import { AppShellProvider } from '../AppShellContext';
+import { AppShellProvider, type CreateTripPrefill } from '../AppShellContext';
 import { APP_NAV_ITEMS } from '../navConfig';
 
 interface Props {
@@ -32,6 +32,7 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
 
   const [createTripOpen, setCreateTripOpen] = useState(false);
+  const [createTripPrefill, setCreateTripPrefill] = useState<CreateTripPrefill | undefined>(undefined);
   const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
   const plannerMatch = useMatch('/tripplanner/:tripId');
@@ -42,7 +43,16 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
     [activeTripId, location.pathname],
   );
 
-  const openCreateTrip = () => setCreateTripOpen(true);
+  const openCreateTrip = (prefill?: CreateTripPrefill) => {
+    setCreateTripPrefill(prefill);
+    setCreateTripOpen(true);
+  };
+  const closeCreateTrip = () => {
+    setCreateTripOpen(false);
+    // Cleared on close so the next plain "Plan a trip" does not inherit whatever
+    // the last caller happened to know.
+    setCreateTripPrefill(undefined);
+  };
 
   /*
    * Revalidate against the server once per mount rather than only when the
@@ -56,7 +66,7 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
   }, [dispatch]);
 
   useEffect(() => {
-    const handler = () => openCreateTrip();
+    const handler = (e: Event) => openCreateTrip((e as CustomEvent<CreateTripPrefill | undefined>).detail);
     window.addEventListener('trip:create', handler);
     return () => window.removeEventListener('trip:create', handler);
   }, []);
@@ -121,7 +131,9 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
           </Box>
         </Drawer>
 
-        <TripCreationModal open={createTripOpen} onClose={() => setCreateTripOpen(false)} />
+        {/* The app's single create dialog. Pages call openCreateTrip rather than
+            mounting their own copy. */}
+        <TripCreationModal open={createTripOpen} onClose={closeCreateTrip} initial={createTripPrefill} />
         {!hideSupportWidget && <SupportWidget />}
         {!hideSupportWidget && <OnboardingCarousel />}
       </Box>

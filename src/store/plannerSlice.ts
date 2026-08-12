@@ -1,4 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import type { TripPreferences } from '../utils/tripPreferences';
 // Removed differenceInDays dependency after simplifying chain recalculation (nights no longer auto-stretched)
 
 const makeLocalId = (prefix: string): string => {
@@ -131,6 +132,13 @@ export interface PlannerState {
   expenseVisibilityEmails?: string[];
   /** Chat-style comments associated with the trip */
   comments?: TripComment[];
+  /**
+   * What the traveller answered when they created the trip: pace, who is going,
+   * interests, dietary. Lives here rather than in TripPlanner local state because
+   * Reality check reads the pace straight from the store, and the plan save has to
+   * round-trip the whole object so it survives a reload.
+   */
+  preferences?: TripPreferences;
 }
 
 export interface TripComment {
@@ -663,6 +671,10 @@ const plannerSlice = createSlice({
         tripId: action.payload.tripId
       };
     },
+    /** Set once on hydration, from what the trip was created with. */
+    setTripPreferences(state, action: PayloadAction<TripPreferences | undefined>) {
+      state.preferences = action.payload;
+    },
     markSaved(state) {
       state.lastSaved = new Date().toISOString();
     }
@@ -734,7 +746,7 @@ export const {
 } = plannerSlice.actions;
 
 export const { addComment, addReply, updateComment, removeComment, toggleUpvote } = plannerSlice.actions;
-export const { resetPlanner } = plannerSlice.actions;
+export const { resetPlanner, setTripPreferences } = plannerSlice.actions;
 
 // Doc actions already re-exported above
 

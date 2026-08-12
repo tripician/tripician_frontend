@@ -388,7 +388,7 @@ const Profile: React.FC = () => {
    * are private working state, and this page has a public twin, so keeping them
    * here meant one careless change away from showing strangers what you had
    * bookmarked. Every mutating action already lived on Trips - this page's own
-   * "New trip" button is a redirect to it.
+   * "Plan a trip" button is a redirect to it.
    *
    * `isOwned` also matters: /api/trips/dashboard returns owned UNION
    * member-of, so the unfiltered list counted other people's trips as yours.

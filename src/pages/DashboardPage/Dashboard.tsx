@@ -6,12 +6,11 @@ import { useNavigate } from 'react-router-dom';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { tripCoverPhoto, resolveTripCover } from '../../utils/tripCover';
-import TripCreationModal from '../../components/CreateTripComponents/TripCreationModal';
 import TripShareModal from '../../components/TripShareModal';
 import EmptyState from '../../components/ui/EmptyState';
 import SectionHeader from '../../components/ui/SectionHeader';
 import { CardGridSkeleton } from '../../components/ui/Skeletons';
-import { IconArrowRight, IconMapPlus, IconPlus } from '@tabler/icons-react';
+import { IconArrowRight, IconMapPlus } from '@tabler/icons-react';
 import { staggerContainer, staggerItem } from '../../utils/animations';
 import { clearUser } from '../../store/userSlice';
 import { clearSessionData } from '../../utils/authSession';
@@ -21,6 +20,8 @@ import TravelMap from '../../components/TravelMap';
 import { countryAlpha3FromName } from '../../utils/countryFlags';
 import { tripPath } from '../../utils/tripSlug';
 import PageHeader from '../../components/ui/PageHeader';
+import QuickPlanCard from '../../navia/QuickPlanCard';
+import { useAppShell } from '../PageLayout/AppShellContext';
 
 const Dashboard: React.FC = () => {
   const formatRelativeTime = (dateStr?: string) => {
@@ -57,7 +58,10 @@ const Dashboard: React.FC = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const [createTripOpen, setCreateTripOpen] = useState(false);
+  // The create dialog is mounted once by the app shell. This page used to mount a
+  // second copy, which meant two of them alive on /dashboard sharing one global
+  // GSAP selector.
+  const { openCreateTrip } = useAppShell();
   const theme = useTheme();
   
   useSelector((state: RootState) => state.user);
@@ -393,15 +397,15 @@ const Dashboard: React.FC = () => {
 
         {/* ── Page header ── */}
         <motion.div variants={staggerItem}>
+          {/* The Navia card replaces what was a "New trip" button in this slot.
+              Starting a trip from a sentence is the thing worth putting in the page's
+              most prominent position; the blank-form route is still one tap away in
+              the top nav's "Plan a trip" and from the empty state below. */}
           <PageHeader
             title="Trips"
             subtitle="Every journey you're dreaming, drafting, and sharing - all in one place."
             sx={{ mb: { xs: 3, md: 4 } }}
-            action={
-              <Button variant="contained" startIcon={<IconPlus size={16} />} onClick={() => setCreateTripOpen(true)}>
-                New trip
-              </Button>
-            }
+            action={<QuickPlanCard token={token} />}
           />
         </motion.div>
 
@@ -584,7 +588,7 @@ const Dashboard: React.FC = () => {
                         : 'All it takes is a destination, Navia and your crew handle the rest.'
                   }
                   actionLabel={tabValue === 4 || tabValue === 2 ? 'Explore community trips' : 'Plan your first trip'}
-                  onAction={tabValue === 4 || tabValue === 2 ? () => navigate('/community') : () => setCreateTripOpen(true)}
+                  onAction={tabValue === 4 || tabValue === 2 ? () => navigate('/community') : openCreateTrip}
                 />
               </Box>
             )}
@@ -727,7 +731,6 @@ const Dashboard: React.FC = () => {
         message={snackbar}
         anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
       />
-      <TripCreationModal open={createTripOpen} onClose={() => setCreateTripOpen(false)} />
 
       {/* Share modal */}
       {shareTripId && shareTripMeta && (

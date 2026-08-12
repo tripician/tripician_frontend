@@ -23,6 +23,9 @@ export function useFeasibility(): FeasibilityReport {
   const destinations = useSelector((s: RootState) => s.planner.destinations);
   const tripStartDate = useSelector((s: RootState) => s.planner.tripStartDate);
   const tripEndDate = useSelector((s: RootState) => s.planner.tripEndDate);
+  // The pace they asked for at creation. Undefined on trips made before we asked,
+  // which the engine reads as the balanced default.
+  const pace = useSelector((s: RootState) => s.planner.preferences?.pace);
 
   return React.useMemo(() => {
     const stops: FeasibilityStop[] = destinations.map(d => ({
@@ -35,8 +38,8 @@ export function useFeasibility(): FeasibilityReport {
       startDate: d.startDate,
       stays: d.stays ?? [],
     }));
-    return runFeasibility({ stops, tripStartDate, tripEndDate });
-  }, [destinations, tripStartDate, tripEndDate]);
+    return runFeasibility({ stops, tripStartDate, tripEndDate, pace });
+  }, [destinations, tripStartDate, tripEndDate, pace]);
 }
 
 export default useFeasibility;

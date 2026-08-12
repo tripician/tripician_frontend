@@ -149,6 +149,34 @@ describe('checkDayBudget - "I wouldn\'t visit Lumpini park in a three day trip"'
     expect(checkDayBudget([stop('Bangkok', { nights: 2, spots })])).toHaveLength(1);
     expect(checkDayBudget([stop('Bangkok', { nights: 10, spots })])).toHaveLength(0);
   });
+
+  /*
+   * The day used to be a flat 8 hours for everyone, so the check enforced one
+   * stranger's stamina on every trip. It now comes from the pace the traveller
+   * asked for when they created the trip.
+   */
+  it('measures the same plan against the pace the traveller asked for', () => {
+    const spots = Array.from({ length: 6 }, (_, i) => spot(`Place ${i}`));
+    const bangkok = stop('Bangkok', { ...BANGKOK, nights: 2, spots });
+
+    // 6 places at 2h plus 5 local hops at 0.4h is 14h over 2 days, so 7h a day.
+    expect(checkDayBudget([bangkok], 'slow')).toHaveLength(1);   // 5h days: too much
+    expect(checkDayBudget([bangkok], 'balanced')).toHaveLength(0); // 8h days: fits
+    expect(checkDayBudget([bangkok], 'packed')).toHaveLength(0);   // 11h days: fits easily
+  });
+
+  it('treats an unanswered pace as balanced, so older trips report the same as before', () => {
+    const spots = Array.from({ length: 12 }, (_, i) => spot(`Place ${i}`));
+    const bangkok = stop('Bangkok', { nights: 2, spots });
+    expect(checkDayBudget([bangkok])).toEqual(checkDayBudget([bangkok], 'balanced'));
+    expect(checkDayBudget([bangkok], null)).toEqual(checkDayBudget([bangkok], 'balanced'));
+  });
+
+  it('names the hours it is judging against, so the finding is checkable', () => {
+    const spots = Array.from({ length: 12 }, (_, i) => spot(`Place ${i}`));
+    const [finding] = checkDayBudget([stop('Bangkok', { nights: 2, spots })], 'slow');
+    expect(finding.detail).toContain('5h');
+  });
 });
 
 describe('daysAtStop / closedForWholeStay', () => {

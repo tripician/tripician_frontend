@@ -25,6 +25,7 @@ import {
 } from '@tabler/icons-react';
 import CommunityTripCard from './CommunityTripCard';
 import { VIBES } from './vibes';
+import FilterChip from '../../components/ui/FilterChip';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { apiServices } from '../../services/APIs/apiServices';
 import { fetchUnsplashImage } from '../../services/unsplashService';
@@ -76,37 +77,8 @@ const useTripPhoto = (trip: any) => {
   return photo;
 };
 
-/** Filter chip used for categories and crew vibes. Active = inverted fill. */
-const FilterChip: React.FC<{
-  label: string;
-  active: boolean;
-  onClick: () => void;
-  Icon?: React.ElementType;
-}> = ({ label, active, onClick, Icon }) => {
-  const theme = useTheme();
-  return (
-    <Box
-      component="button"
-      type="button"
-      onClick={onClick}
-      sx={{
-        display: 'inline-flex', alignItems: 'center', gap: 0.75, flexShrink: 0,
-        height: 34, px: 1.75, borderRadius: 999,
-        border: `1px solid ${active ? 'transparent' : theme.custom.surface.border}`,
-        bgcolor: active ? 'text.primary' : 'background.paper',
-        color: active ? 'background.paper' : 'text.secondary',
-        fontFamily: 'inherit', fontSize: 13, fontWeight: 600, lineHeight: 1,
-        cursor: 'pointer',
-        transition: `all ${theme.custom.motion.duration.fast} ${theme.custom.motion.easing.standard}`,
-        '&:hover': active ? {} : { borderColor: 'text.disabled', color: 'text.primary' },
-        '&:focus-visible': { outline: `2px solid ${theme.custom.ring}`, outlineOffset: 2 },
-      }}
-    >
-      {Icon && <Icon size={15} stroke={1.9} />}
-      {label}
-    </Box>
-  );
-};
+/* FilterChip moved to components/ui/FilterChip.tsx when the create dialog needed
+   the same chip. Imported above. */
 
 /** Rounded search field matching the theme's focused-input treatment. */
 const SearchField: React.FC<{
@@ -504,26 +476,12 @@ const Community: React.FC = () => {
 
           {/* ── Page header ── */}
           <motion.div variants={staggerItem}>
+            {/* Layout for a tall action slot now lives in PageHeader itself, so
+                this page and Trips cannot drift apart again. */}
             <PageHeader
               title="Community"
               subtitle="Real itineraries, published by the travellers who took them."
               action={<QuickPlanCard token={token} />}
-              /*
-               * Top-aligned, not bottom-aligned. PageHeader's default is
-               * `flex-end`, which is right for a lone button but wrong here: the
-               * card is taller than the title block, so bottom-alignment pushed
-               * "Community" down by the difference and opened a dead band above
-               * the h1. Aligning to the top puts the heading back at the top of
-               * the page and lets the card hang toward the tabs, which have their
-               * own margin to absorb it.
-               *
-               * Stacks under the title on phones - the card holds a real input,
-               * so sharing a row with an h1 at 390px is not an option.
-               */
-              sx={{
-                flexDirection: { xs: 'column', md: 'row' },
-                alignItems: { xs: 'stretch', md: 'flex-start' },
-              }}
             />
           </motion.div>
 

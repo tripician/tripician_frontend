@@ -141,6 +141,9 @@ const NaviaPage: React.FC = () => {
   const handleCreateFromChat = useCallback(async () => {
     if (!token || !lastNaviaMsg || creatingTrip) return;
     setCreatingTrip(true);
+    // Held outside the try so the fallback can hand whatever was read out of the
+    // chat to the create dialog instead of opening it blank.
+    let salvaged: { name?: string; countries?: string[]; vibe?: string | null } | undefined;
     try {
       // The user message that produced this plan gives the extractor context.
       const planIdx = messages.findIndex((m) => m.id === lastNaviaMsg.id);
@@ -153,12 +156,15 @@ const NaviaPage: React.FC = () => {
       const countries = Array.from(new Set(
         extracted.countries.map(matchCountryName).filter(Boolean),
       ));
-      if (countries.length === 0 && extracted.stops.length === 0) {
-        throw new Error('Nothing usable extracted');
-      }
 
       const name = extracted.name?.trim()
         || (countries.length > 0 ? `Trip to ${countries[0]}` : 'My Navia Trip');
+
+      salvaged = { name, countries, vibe: extracted.vibe ?? null };
+
+      if (countries.length === 0 && extracted.stops.length === 0) {
+        throw new Error('Nothing usable extracted');
+      }
 
       const createResp = await apiServices.createTrip(token, {
         name,
@@ -185,8 +191,10 @@ const NaviaPage: React.FC = () => {
     } catch (err) {
       console.error('[NaviaPage] chat-to-trip failed', err);
       setCreatingTrip(false);
-      setToast("Couldn't turn this chat into a trip, starting a fresh one.");
-      openCreateTrip();
+      setToast(salvaged
+        ? "Couldn't build that automatically, so here it is in the form."
+        : "Couldn't turn this chat into a trip, starting a fresh one.");
+      openCreateTrip(salvaged);
     }
   }, [token, lastNaviaMsg, creatingTrip, messages, navigate, openCreateTrip]);
 
