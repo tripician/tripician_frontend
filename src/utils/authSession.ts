@@ -31,6 +31,10 @@ const DEVICE_PREFERENCE_KEYS: readonly string[] = [
   'tripician:onboardingSeen',
   'tripician:feedbackPromptShown',
   'tripician:mobilePlannerNoticeAck',
+  // "I have already been shown the planner tour" - a bare flag, no trip or user in
+  // it, and re-running a walkthrough at someone who has seen it is a worse
+  // outcome than the flag persisting.
+  'tripician:plannerTourSeen',
 ];
 
 /** Same rule, for families of keys. `unsplash_v1_*` is a public image-URL cache. */

@@ -3,6 +3,7 @@ import { Box, Modal, IconButton, Button, Typography, useTheme } from '@mui/mater
 import { motion, AnimatePresence } from 'framer-motion';
 import { IconX, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { ONBOARDING_SLIDES } from './onboardingSlides';
+import { markWalkthroughShown, walkthroughShownThisSession } from '../../utils/walkthroughCoordinator';
 
 const SEEN_KEY = 'tripician:onboardingSeen';
 
@@ -32,7 +33,14 @@ const OnboardingCarousel: React.FC = () => {
 
   useEffect(() => {
     if (hasSeenOnboarding()) return;
-    const t = setTimeout(() => setOpen(true), 500);
+    // Stand down if the planner tour already ran this session - a new user should
+    // not get two walkthroughs back to back. This deck keeps its own once-ever
+    // flag unburned, so it simply appears on a later visit instead.
+    if (walkthroughShownThisSession()) return;
+    const t = setTimeout(() => {
+      markWalkthroughShown('appCarousel');
+      setOpen(true);
+    }, 500);
     return () => clearTimeout(t);
   }, []);
 

@@ -793,7 +793,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
             </Typography>
             <Typography sx={{ fontSize: 13, color: 'text.secondary', textAlign: 'center', maxWidth: 260, lineHeight: 1.55 }}>
               {isSolo
-                ? "It's just you and Navia here. Ask anything — routes, dates, places to add — and she'll suggest changes to your trip."
+                ? "It's just you and Navia here. Ask anything: routes, dates, places to add. She'll suggest changes to your trip."
                 : <>All trip members can chat here. Type <Box component='span' sx={{ color: 'primary.main', fontWeight: 700 }}>@navia</Box> to get suggestions for your trip.</>}
             </Typography>
           </Box>
@@ -1039,7 +1039,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
                 const v = e.target.value.slice(0, MAX_CHARS);
                 setInput(v);
                 notifyTyping(v);
-                // @mention detection — group chats only. In a solo trip there is
+                // @mention detection, group chats only. In a solo trip there is
                 // no one to mention and every message already reaches Navia, so
                 // the autocomplete stays closed.
                 if (isSolo) {
@@ -1060,7 +1060,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
                 }
               }}
             onKeyDown={onKeyDown}
-            placeholder={!token ? 'Sign in to chat' : (isSolo ? 'Message Navia — she replies to everything' : 'Message the group or type @navia')}
+            placeholder={!token ? 'Sign in to chat' : (isSolo ? 'Message Navia, she replies to everything' : 'Message the group or type @navia')}
             multiline
             maxRows={4}
             disabled={!token}

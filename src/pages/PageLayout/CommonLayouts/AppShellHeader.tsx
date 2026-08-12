@@ -398,19 +398,27 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
             </>
           ) : isAuthenticated ? (
             <>
-              {/* Primary CTA */}
+              {/*
+                Primary CTA. "New Trip" named an object; this names the activity,
+                which matters now that the dialog behind it asks how you like to
+                travel rather than just taking a destination. Deliberately not
+                "Plan in detail": this is the button most people press by reflex,
+                and a label that advertises effort would put them off a form that
+                does not actually hold anyone up. The dialog's own subtitle sets
+                the expectation the moment it opens.
+              */}
               <Button
                 onClick={onCreateTrip}
                 variant="contained"
                 startIcon={<AddRoundedIcon sx={{ fontSize: 20 }} />}
                 sx={{ display: { xs: 'none', sm: 'inline-flex' }, flexShrink: 0, fontSize: '0.84rem', fontWeight: 700 }}
               >
-                New Trip
+                Plan a trip
               </Button>
 
               <IconButton
                 onClick={onCreateTrip}
-                aria-label="Create new trip"
+                aria-label="Plan a trip"
                 sx={{
                   display: { xs: 'inline-flex', sm: 'none' },
                   width: 40,

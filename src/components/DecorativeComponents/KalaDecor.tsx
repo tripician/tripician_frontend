@@ -2,9 +2,9 @@
  * KalaDecor - Rich Indian kala / zentangle mandala SVG components.
  *
  * Three distinct highly-detailed patterns:
- *   <KalaMandala />   – Spiral-core → petal rings → triangle band → leaf crown → dot border
- *   <KalaLotus />     – Volute centre → lotus petals → scale arcs → feather crown → hatch ring
- *   <KalaGeometric /> – Star polygon core → diamond lattice → arch band → petal tips → triangle crown
+ *   <KalaMandala />   - Spiral-core → petal rings → triangle band → leaf crown → dot border
+ *   <KalaLotus />     - Volute centre → lotus petals → scale arcs → feather crown → hatch ring
+ *   <KalaGeometric /> - Star polygon core → diamond lattice → arch band → petal tips → triangle crown
  *
  * Props: size, color, opacity, style, className
  */

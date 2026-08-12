@@ -71,7 +71,7 @@ export function useTripChat(
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = useRef(false);
   // Always-current myUserId for handlers captured inside the SignalR effect, which
-  // only re-subscribes on tripId/token — a captured myUserId would go stale.
+  // only re-subscribes on tripId/token; a captured myUserId would go stale.
   const myUserIdRef = useRef(myUserId);
   useEffect(() => { myUserIdRef.current = myUserId; }, [myUserId]);
 
@@ -169,8 +169,8 @@ export function useTripChat(
         if (prev.some(m => m.id === enriched.id)) return prev;
         // If this is the server echo of my own just-sent message, swap it in place
         // of the optimistic placeholder instead of appending a duplicate. Optimistic
-        // bubbles carry a temp `opt_` id, so they can't be matched by server id —
-        // without this the echo and the placeholder both render until the REST
+        // bubbles carry a temp `opt_` id, so they can't be matched by server id.
+        // Without this the echo and the placeholder both render until the REST
         // result later reconciles them (the visible "message twice" flicker).
         if (enriched.userId != null && enriched.userId === myUserIdRef.current) {
           const optIdx = prev.findIndex(m => m.id.startsWith('opt_') && m.message === enriched.message);
@@ -234,8 +234,8 @@ export function useTripChat(
       setSending(true);
       try {
         // Optimistic insert for plain member-to-member messages only.
-        // Messages that route to Navia — an explicit @navia mention OR any message
-        // on a solo trip (owner is the only participant) — skip the optimistic echo
+        // Messages that route to Navia (an explicit @navia mention, OR any message
+        // on a solo trip where the owner is the only participant) skip the optimistic echo
         // and rely on the server's SignalR broadcast / REST result as the single
         // source of truth. Otherwise the optimistic bubble and the server echo (which
         // carry different ids and can't be de-duped) briefly render the message twice.

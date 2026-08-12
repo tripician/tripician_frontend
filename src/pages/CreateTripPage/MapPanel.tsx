@@ -3,6 +3,7 @@ import mapboxgl from 'mapbox-gl';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import { Box, IconButton, Tooltip, CircularProgress, Typography, useTheme } from '@mui/material';
 import MyLocationIcon from '@mui/icons-material/MyLocation';
+import { IconMapPinOff } from '@tabler/icons-react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import type { PlannerDestination } from '../../store/plannerSlice';
@@ -14,6 +15,16 @@ import { BRAND } from '../../theme';
 
 const DEFAULT_CENTER: [number, number] = [20, 20]; // [lng, lat] - world overview
 const DEFAULT_ZOOM = 1.6;
+
+/**
+ * Camera for a trip with exactly one located stop, and for the recenter button.
+ *
+ * There are no bounds to fit with a single point, so the zoom is a judgement:
+ * 8 sat at region level and left a city looking like an empty patch of terrain
+ * under the `faded` basemap. 9.5 puts the town and its surroundings in frame,
+ * which is what "this is where you're going" should look like.
+ */
+const SINGLE_STOP_ZOOM = 9.5;
 
 /**
  * Mapbox Standard, configured per theme rather than swapped for a different
@@ -74,9 +85,16 @@ function legLabel(leg: LegRoute): string {
     : `${leg.distanceKm.toFixed(1)} km`;
 }
 
-interface MapPanelProps { widthFraction?: number }
+interface MapPanelProps {
+  /**
+   * Shown over the map when no stop has usable coordinates. Without it the panel
+   * renders a fully-interactive globe at its default camera, which reads as a
+   * broken map rather than "nothing to draw yet".
+   */
+  emptyHint?: string;
+}
 
-const MapPanel: React.FC<MapPanelProps> = () => {
+const MapPanel: React.FC<MapPanelProps> = ({ emptyHint }) => {
   const theme = useTheme();
   const isLight = theme.palette.mode === 'light';
   const destinations = useSelector((s: RootState) => s.planner.destinations);
@@ -157,7 +175,9 @@ const MapPanel: React.FC<MapPanelProps> = () => {
       'line-color': BRAND.coral,
       'line-opacity': 0.85,
       'line-width': ['interpolate', ['linear'], ['zoom'], 4, 2, 12, 3.5],
-      'line-dasharray': [1.5, 1.5],
+      // Longer dashes than the original [1.5, 1.5]: at 2px wide that read as a
+      // dotted stipple at trip zooms rather than a deliberate "approximate" leg.
+      'line-dasharray': [2.5, 2],
     }, ['==', ['get', 'kind'], 'arc']);
 
     if (!map.getLayer(LYR_LABEL)) {
@@ -355,8 +375,8 @@ const MapPanel: React.FC<MapPanelProps> = () => {
       map.fitBounds([[box[0], box[1]], [box[2], box[3]]], { padding: pad, maxZoom: 11, duration });
     } else if (withCoords.length === 1) {
       const center: [number, number] = [withCoords[0].lng!, withCoords[0].lat!];
-      if (reduced) map.jumpTo({ center, zoom: 8 });
-      else map.flyTo({ center, zoom: 8, duration });
+      if (reduced) map.jumpTo({ center, zoom: SINGLE_STOP_ZOOM });
+      else map.flyTo({ center, zoom: SINGLE_STOP_ZOOM, duration });
     }
   };
 
@@ -463,10 +483,13 @@ const MapPanel: React.FC<MapPanelProps> = () => {
     // panning the map as the pointer crosses rows turns it into a slot machine.
   }), []);
 
+  /** Stops the map can actually draw. Drives the recenter button and the empty state. */
+  const mappableCount = destinations.filter((d) => isUsableCoord(d.lat, d.lng)).length;
+
   const centerOnFirst = useCallback(() => {
     const first = destinations.find((d) => isUsableCoord(d.lat, d.lng));
     if (mapRef.current && first) {
-      mapRef.current.flyTo({ center: [first.lng!, first.lat!], zoom: 8, duration: 600 });
+      mapRef.current.flyTo({ center: [first.lng!, first.lat!], zoom: SINGLE_STOP_ZOOM, duration: 600 });
     }
   }, [destinations]);
 
@@ -491,13 +514,44 @@ const MapPanel: React.FC<MapPanelProps> = () => {
         </Box>
       )}
 
+      {/* Nothing mappable: the camera never moves off its default globe, so say so
+          instead of leaving the user staring at Africa wondering what broke. */}
+      {!loading && !error && mappableCount === 0 && (
+        <Box sx={(t) => ({
+          position: 'absolute', inset: 0, zIndex: 8,
+          display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+          gap: 1, px: 4, textAlign: 'center',
+          bgcolor: t.palette.background.default,
+        })}>
+          <Box sx={{ color: 'text.disabled', display: 'flex' }}>
+            <IconMapPinOff size={26} stroke={1.6} />
+          </Box>
+          <Typography variant="body2" fontWeight={600}>
+            {destinations.length === 0 ? 'No stops yet' : 'Nothing to map yet'}
+          </Typography>
+          <Typography variant="caption" color="text.secondary" sx={{ maxWidth: 260, lineHeight: 1.5 }}>
+            {emptyHint ?? (destinations.length === 0
+              ? 'Add a stop and it appears here with your route.'
+              : "We're still pinning down where these stops are.")}
+          </Typography>
+        </Box>
+      )}
+
       {!loading && !error && (
-        <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', flexDirection: 'column', gap: 1, zIndex: 5 }}>
-          <Tooltip title="Centre on first destination" placement="left">
-            <IconButton size="small" onClick={centerOnFirst}
-              sx={{ bgcolor: 'background.paper', boxShadow: 1, '&:hover': { bgcolor: 'background.paper' } }}>
-              <MyLocationIcon fontSize="small" />
-            </IconButton>
+        <Box sx={{ position: 'absolute', top: 8, right: 8, display: 'flex', flexDirection: 'column', gap: 1, zIndex: 9 }}>
+          <Tooltip
+            title={mappableCount === 0 ? 'No located stops to centre on' : 'Centre on first destination'}
+            placement="left"
+          >
+            {/* A disabled IconButton swallows pointer events, so the tooltip needs a
+                live wrapper - the reason it is off is the only time it matters. */}
+            <Box component="span" sx={{ display: 'inline-flex' }}>
+              <IconButton size="small" onClick={centerOnFirst} disabled={mappableCount === 0}
+                aria-label="Centre on first destination"
+                sx={{ bgcolor: 'background.paper', boxShadow: 1, '&:hover': { bgcolor: 'background.paper' }, '&.Mui-disabled': { bgcolor: 'background.paper', opacity: 0.5 } }}>
+                <MyLocationIcon fontSize="small" />
+              </IconButton>
+            </Box>
           </Tooltip>
         </Box>
       )}

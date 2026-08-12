@@ -1,6 +1,6 @@
 import type { NavigateFunction } from 'react-router-dom';
 
-// Basic logger – could be replaced with remote logging (Sentry, etc.)
+// Basic logger - could be replaced with remote logging (Sentry, etc.)
 export function logError(context: string, error: unknown, extra?: Record<string, any>) {
   // eslint-disable-next-line no-console
   console.error(`[Error] ${context}:`, error, extra);

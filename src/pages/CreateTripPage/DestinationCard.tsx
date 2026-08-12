@@ -306,6 +306,9 @@ const JourneyPlanStrip: React.FC<{
         return (
           <Box
             key={lane.key}
+            // Tour anchor for the Journal lane - the Advanced-mode equivalent of
+            // SimpleDestinationCard's note button.
+            data-tour={lane.key === 'notes' ? 'stop-note' : undefined}
             onClick={(e) => { e.stopPropagation(); lane.onClick(); }}
             sx={(t) => ({
               position: 'relative', cursor: 'pointer', minWidth: 0, px: { xs: 1, sm: 1.25 }, py: 1,
@@ -538,6 +541,10 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
         sx={(t) => ({
           width: { xs: 68, sm: 96 }, flexShrink: 0, position: 'relative', overflow: 'hidden',
           cursor: dragHandleProps ? (isDragging ? 'grabbing' : 'grab') : 'default',
+          // Required for a touch drag: without it the browser treats the gesture as
+          // a page scroll and dnd-kit never sees it, so reordering silently does
+          // nothing on a phone. Only applied when this panel IS the handle.
+          ...(dragHandleProps ? { touchAction: 'none' } : {}),
           bgcolor: t.palette.mode === 'dark' ? '#1a1d22' : '#f1f3f5',
           // Category color tint when no photo
           ...(!resolvedPhoto ? { background: `linear-gradient(160deg, ${catInfo.bg}55, ${catInfo.bg}22)` } : {}),
@@ -672,7 +679,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
           </Box>
 
 
-          {/* Date range — desktop only on cards */}
+          {/* Date range, desktop only on cards */}
           <Box sx={(t) => ({ height: 22, px: .75, borderRadius: '20px', border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`, fontSize: 10, fontWeight: 600, whiteSpace: 'nowrap', flexShrink: 0, color: t.palette.text.secondary, display: { xs: 'none', md: 'flex' }, alignItems: 'center', letterSpacing: '-0.2px' })}>
             {dateFmt(startDate)} &rarr; {dateFmt(endDate)}
           </Box>

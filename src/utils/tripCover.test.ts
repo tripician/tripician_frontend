@@ -177,7 +177,7 @@ describe('tripCoverPhoto', () => {
   });
 });
 
-describe('tripCoverQuery — the actual regression', () => {
+describe('tripCoverQuery: the actual regression', () => {
   it('is identical for the same trip however it is described', () => {
     const asCard = { countries: ['Thailand'], name: 'Bangkok run' };
     const asHero = { countries: ['Thailand'], name: 'Bangkok run' };

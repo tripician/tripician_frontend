@@ -1,5 +1,6 @@
 // api/apiService.ts - This is the ONLY additional file you need
 import axios from 'axios';
+import type { TripPreferences } from '../../utils/tripPreferences';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 // Debug log once (safe in dev; minimal noise in prod)
@@ -96,7 +97,7 @@ apiClient.interceptors.response.use(
         originalConfig.baseURL = httpBase;
         (originalConfig as any)._protocolRetry = true;
         // eslint-disable-next-line no-console
-        console.warn('[apiServices] HTTPS connection refused – retrying via HTTP', { httpBase });
+        console.warn('[apiServices] HTTPS connection refused - retrying via HTTP', { httpBase });
         return apiClient.request(originalConfig);
       } catch (retryErr) {
         // eslint-disable-next-line no-console
@@ -230,6 +231,14 @@ export const apiServices = {
     invites?: string[];
     description?: string | null;
     vibe?: string | null;
+    /** Which planner surface the trip opens in. Omitted => Easy (the server default). */
+    plannerMode?: 'Easy' | 'Advanced';
+    /**
+     * The create dialog's mood answers. Stored on the trip and read server-side by
+     * every generative Navia call, so the first draft is already informed.
+     * Omitted by the one-sentence shortcut, which has nothing to send.
+     */
+    preferences?: TripPreferences;
   }) => {
     // Validate description length if present
     if (data.description && data.description.length > 300) {
@@ -274,6 +283,8 @@ export const apiServices = {
       countries?: string[];
       description?: string | null;
       vibe?: string | null;
+      /** Easy | Advanced. Omitted leaves the stored mode untouched. */
+      plannerMode?: 'Easy' | 'Advanced';
       // rating?: number | null; // Do NOT send rating from client
     };
     itinerary: Array<{
@@ -443,6 +454,8 @@ export const apiServices = {
     bannerPhotoId?: string;
     privacy?: string;
     photoUrl?: string;
+    /** Easy | Advanced. Omitted leaves the stored mode untouched. */
+    plannerMode?: 'Easy' | 'Advanced';
     // rating?: number | null; // Do NOT send rating from client
   }) => {
     if (data.description && data.description.length > 300) {

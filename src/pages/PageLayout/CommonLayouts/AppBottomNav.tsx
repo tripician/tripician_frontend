@@ -5,9 +5,9 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import MoreHorizRoundedIcon from '@mui/icons-material/MoreHorizRounded';
 import { APP_NAV_ITEMS } from '../navConfig';
 
-/** Items shown LEFT of the New Trip FAB */
+/** Items shown LEFT of the plan-a-trip FAB */
 const MOBILE_NAV_LEFT = ['explore', 'trips'] as const;
-/** Items shown RIGHT of the New Trip FAB */
+/** Items shown RIGHT of the plan-a-trip FAB */
 const MOBILE_NAV_RIGHT = ['navia'] as const;
 
 interface AppBottomNavProps {
@@ -79,11 +79,11 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip, onMoreMenu })
         );
       })}
 
-      {/*  New Trip FAB - centre slot  */}
+      {/*  Plan-a-trip FAB - centre slot  */}
       <Box
         component="button"
         onClick={onCreateTrip}
-        aria-label="Create new trip"
+        aria-label="Plan a trip"
         sx={{
           flex: 1,
           display: 'flex',
@@ -114,8 +114,10 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip, onMoreMenu })
         >
           <AddRoundedIcon sx={{ fontSize: 28 }} />
         </Box>
-        <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: 'primary.main', mt: 0.25, fontFamily: "'Inter',sans-serif" }}>
-          New Trip
+        {/* 11 characters at 0.62rem is about 34px, inside a flex:1 slot that is
+            ~72px on a 360px phone, so it fits without wrapping. */}
+        <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: 'primary.main', mt: 0.25, fontFamily: "'Inter',sans-serif", whiteSpace: 'nowrap' }}>
+          Plan a trip
         </Typography>
       </Box>
 
