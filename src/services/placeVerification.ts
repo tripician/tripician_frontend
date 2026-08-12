@@ -104,6 +104,59 @@ export function peekPlaceDetails(placeId: string): PlaceDetails | undefined {
   return volatileDetails.get(placeId);
 }
 
+/** Shared with the panel-local loaders so the SDK script is never injected twice. */
+const GM_SCRIPT_ID = 'gm-sdk';
+let placesReadyPromise: Promise<boolean> | null = null;
+
+/**
+ * Resolves once the Maps SDK is usable, injecting it if nobody has yet.
+ *
+ * The planner's Places loaders are panel-local (`DestinationCardsPanel`,
+ * `DestinationsPanel`), so anything outside those panels - the AI generation
+ * paths, which run before any panel has mounted its effect - had no way to know
+ * whether Places was available. Without this they geocode into a void: a bare
+ * `placesAvailable()` check is `false` at that moment and the call silently
+ * no-ops on exactly the path that needs it.
+ *
+ * Returns `false` rather than throwing when there is no API key or the script
+ * fails, so callers degrade to "no coordinates" instead of breaking generation.
+ */
+export function ensurePlacesReady(timeoutMs = 8000): Promise<boolean> {
+  if (placesAvailable()) return Promise.resolve(true);
+  if (placesReadyPromise) return placesReadyPromise;
+
+  const key = (import.meta as any).env?.VITE_GOOGLE_MAPS_API_KEY as string | undefined;
+  if (!key) return Promise.resolve(false);
+
+  placesReadyPromise = new Promise<boolean>(resolve => {
+    const started = Date.now();
+    const poll = () => {
+      if (placesAvailable()) { resolve(true); return; }
+      if (Date.now() - started > timeoutMs) { resolve(false); return; }
+      setTimeout(poll, 120);
+    };
+
+    // A panel may already have injected it and still be loading - wait, never
+    // append a second copy (two Maps SDK loads log a console error and can
+    // clobber each other's namespace).
+    if (!document.getElementById(GM_SCRIPT_ID)) {
+      const s = document.createElement('script');
+      s.id = GM_SCRIPT_ID;
+      s.src = `https://maps.googleapis.com/maps/api/js?key=${key}&libraries=places&v=quarterly`;
+      s.async = true;
+      s.defer = true;
+      s.onerror = () => resolve(false);
+      document.head.appendChild(s);
+    }
+    poll();
+  }).finally(() => {
+    // Let a later call retry if this attempt failed (offline, transient block).
+    if (!placesAvailable()) placesReadyPromise = null;
+  });
+
+  return placesReadyPromise;
+}
+
 /**
  * Guards against Places confidently returning something unrelated - searching
  * "Riverside cafe" in Bangkok should not silently become "Riverside Plaza Hotel".
@@ -201,6 +254,47 @@ function findPlaceId(name: string, context: string): Promise<string | null> {
       resolve(id);
     });
   });
+}
+
+/**
+ * Coordinates for a place name, or null.
+ *
+ * Exists because Navia only ever tells us a stop's *name* - `SuggestItineraryStop`
+ * is `{ name, nights }` with no geometry - so an AI-drafted route had no
+ * coordinates at all and the map could never fit to it.
+ *
+ * Composed from the same `findPlaceId` + `getPlaceDetails` pair the spot resolver
+ * uses, which is the point: it inherits `searchCache` (a re-generate does not
+ * re-bill Places), the in-flight dedupe, and the `looksLikeSamePlace` guard
+ * against Places confidently returning something unrelated.
+ *
+ * @param name    the place to locate, e.g. "Gangtok"
+ * @param context disambiguating region, usually the trip's country. Pass '' for none.
+ */
+export async function resolvePlaceLocation(
+  name: string,
+  context = '',
+): Promise<{ lat: number; lng: number; placeId: string } | null> {
+  const cleaned = name.trim();
+  if (!cleaned || !placesAvailable()) return null;
+
+  let placeId: string | null = null;
+  try {
+    placeId = await findPlaceId(cleaned, context);
+  } catch {
+    return null;
+  }
+  if (!placeId) return null;
+
+  const details = await getPlaceDetails(placeId).catch(() => null);
+  // isUsableCoord lives in utils/geo and would be a circular-ish import here for
+  // one check, so the same three conditions are applied inline: present, finite,
+  // and not the (0,0) Null Island sentinel a failed lookup produces.
+  if (!details || typeof details.lat !== 'number' || typeof details.lng !== 'number') return null;
+  if (!Number.isFinite(details.lat) || !Number.isFinite(details.lng)) return null;
+  if (details.lat === 0 && details.lng === 0) return null;
+
+  return { lat: details.lat, lng: details.lng, placeId: details.placeId };
 }
 
 /** Runs `worker` over `items` with bounded concurrency, preserving input order. */

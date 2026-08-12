@@ -1,4 +1,5 @@
 import { createSlice, type PayloadAction } from '@reduxjs/toolkit';
+import type { TripPreferences } from '../utils/tripPreferences';
 // Removed differenceInDays dependency after simplifying chain recalculation (nights no longer auto-stretched)
 
 const makeLocalId = (prefix: string): string => {
@@ -131,6 +132,13 @@ export interface PlannerState {
   expenseVisibilityEmails?: string[];
   /** Chat-style comments associated with the trip */
   comments?: TripComment[];
+  /**
+   * What the traveller answered when they created the trip: pace, who is going,
+   * interests, dietary. Lives here rather than in TripPlanner local state because
+   * Reality check reads the pace straight from the store, and the plan save has to
+   * round-trip the whole object so it survives a reload.
+   */
+  preferences?: TripPreferences;
 }
 
 export interface TripComment {
@@ -343,7 +351,17 @@ const plannerSlice = createSlice({
     },
     renameDestination(state, action: PayloadAction<{ id: string; name: string }>) {
       const d = state.destinations.find(x => x.id === action.payload.id);
-      if (d) d.name = action.payload.name;
+      if (!d) return;
+      const next = action.payload.name;
+      if (d.name.trim().toLowerCase() === next.trim().toLowerCase()) { d.name = next; return; }
+      // A rename points the stop at a DIFFERENT place, so the old geometry is now
+      // a lie - it would leave the map pin and the route leg on the previous city.
+      // Cleared rather than re-resolved here (reducers must stay synchronous); the
+      // planner's backfill sweep picks the stop up and geocodes the new name.
+      d.name = next;
+      d.lat = undefined;
+      d.lng = undefined;
+      d.placeId = undefined;
     },
     setDestinationTitle(state, action: PayloadAction<{ id: string; title: string }>) {
       const d = state.destinations.find(x => x.id === action.payload.id);
@@ -653,6 +671,10 @@ const plannerSlice = createSlice({
         tripId: action.payload.tripId
       };
     },
+    /** Set once on hydration, from what the trip was created with. */
+    setTripPreferences(state, action: PayloadAction<TripPreferences | undefined>) {
+      state.preferences = action.payload;
+    },
     markSaved(state) {
       state.lastSaved = new Date().toISOString();
     }
@@ -724,7 +746,7 @@ export const {
 } = plannerSlice.actions;
 
 export const { addComment, addReply, updateComment, removeComment, toggleUpvote } = plannerSlice.actions;
-export const { resetPlanner } = plannerSlice.actions;
+export const { resetPlanner, setTripPreferences } = plannerSlice.actions;
 
 // Doc actions already re-exported above
 

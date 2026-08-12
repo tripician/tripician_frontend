@@ -11,6 +11,7 @@ import MapOutlinedIcon from '@mui/icons-material/MapOutlined';
 import RouteIcon from '@mui/icons-material/Route';
 const MapPanel = React.lazy(() => import('./MapPanel'));
 import type { PlannerDestination } from '../../store/plannerSlice';
+import { isUsableCoord } from '../../utils/geo';
 
 interface MapDrawerProps {
   open: boolean;
@@ -35,6 +36,18 @@ const MapDrawer: React.FC<MapDrawerProps> = ({ open, onClose, destinations }) =>
    */
   const [hasOpened, setHasOpened] = React.useState(false);
   React.useEffect(() => { if (open) setHasOpened(true); }, [open]);
+
+  /**
+   * Stops the map can draw, carrying their ORIGINAL index. The number has to match
+   * the marker on the map and the card in the rail, so it comes from the full array
+   * - renumbering the filtered list would shift every later stop out of step.
+   */
+  const mappable = React.useMemo(
+    () => destinations
+      .map((dest, index) => ({ dest, index }))
+      .filter(({ dest }) => isUsableCoord(dest.lat, dest.lng)),
+    [destinations],
+  );
 
   return (
     <Drawer
@@ -103,8 +116,10 @@ const MapDrawer: React.FC<MapDrawerProps> = ({ open, onClose, destinations }) =>
         </IconButton>
       </Box>
 
-      {/* Legend bar */}
-      {destinations.length > 0 && (
+      {/* Legend bar. Only stops the map can actually draw get a chip - a numbered
+          chip for a stop with no pin is a legend entry pointing at nothing, which
+          is how this drawer used to show "1 Gangtok" above an empty globe. */}
+      {mappable.length > 0 && (
         <Box sx={{
           display: 'flex', alignItems: 'center', gap: 1, overflowX: 'auto',
           px: 2, py: 1,
@@ -113,8 +128,8 @@ const MapDrawer: React.FC<MapDrawerProps> = ({ open, onClose, destinations }) =>
           scrollbarWidth: 'none',
           '&::-webkit-scrollbar': { display: 'none' },
         }}>
-          {destinations.map((dest, i) => (
-            <Box key={dest.id || i} sx={{
+          {mappable.map(({ dest, index }) => (
+            <Box key={dest.id || index} sx={{
               display: 'flex', alignItems: 'center', gap: 0.6, flexShrink: 0,
               bgcolor: isLight ? 'rgba(255,56,92,0.07)' : 'rgba(255,56,92,0.12)',
               border: '1px solid rgba(255,56,92,0.20)',
@@ -127,7 +142,7 @@ const MapDrawer: React.FC<MapDrawerProps> = ({ open, onClose, destinations }) =>
                 fontSize: 9, fontWeight: 700, color: '#fff', flexShrink: 0,
                 fontFamily: "'Inter', sans-serif",
               }}>
-                {i + 1}
+                {index + 1}
               </Box>
               <Typography sx={{
                 fontSize: 11, fontWeight: 600, whiteSpace: 'nowrap',
@@ -145,7 +160,7 @@ const MapDrawer: React.FC<MapDrawerProps> = ({ open, onClose, destinations }) =>
       <Box sx={{ flex: 1, overflow: 'hidden', position: 'relative' }}>
         {hasOpened && (
           <React.Suspense fallback={<Box sx={{ p: 2, color: 'text.secondary', fontSize: 13 }}>Loading map...</Box>}>
-            <MapPanel widthFraction={1} />
+            <MapPanel />
           </React.Suspense>
         )}
       </Box>

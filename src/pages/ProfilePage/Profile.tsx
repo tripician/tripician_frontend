@@ -118,7 +118,7 @@ const ProfileTripCard: React.FC<{ trip: any; onClick: () => void; showOwner?: bo
     const fmt = (d: Date, withYear: boolean) =>
       d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', ...(withYear ? { year: 'numeric' } : {}) });
     if (!e || Number.isNaN(e.getTime())) return fmt(s, true);
-    return `${fmt(s, s.getFullYear() !== e.getFullYear())} – ${fmt(e, true)}`;
+    return `${fmt(s, s.getFullYear() !== e.getFullYear())} - ${fmt(e, true)}`;
   })();
 
   return (
@@ -388,7 +388,7 @@ const Profile: React.FC = () => {
    * are private working state, and this page has a public twin, so keeping them
    * here meant one careless change away from showing strangers what you had
    * bookmarked. Every mutating action already lived on Trips - this page's own
-   * "New trip" button is a redirect to it.
+   * "Plan a trip" button is a redirect to it.
    *
    * `isOwned` also matters: /api/trips/dashboard returns owned UNION
    * member-of, so the unfiltered list counted other people's trips as yours.

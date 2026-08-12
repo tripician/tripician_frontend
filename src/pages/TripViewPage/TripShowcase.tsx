@@ -376,7 +376,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
   }, [pdfBusy, tripId, isOwner, isMember, token, name]);
 
   const dateRange = startDate && endDate
-    ? `${fmtDay(startDate)} – ${fmtFull(endDate)}`
+    ? `${fmtDay(startDate)} - ${fmtFull(endDate)}`
     : startDate ? `From ${fmtFull(startDate)}` : null;
 
   const border = theme.custom.surface.border;
@@ -388,14 +388,14 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
   // Meta separator dot
   const Dot = () => <Box component="span" sx={{ mx: 1, opacity: 0.55 }}>·</Box>;
 
-  // Day ranges per stop, tour-operator style ("Day 1–3" = arrive day 1, leave day 3).
+  // Day ranges per stop, tour-operator style ("Day 1-3" = arrive day 1, leave day 3).
   const stopMeta = React.useMemo(() => {
     let cursor = 1;
     return stops.map((s) => {
       const from = cursor;
       const to = from + Math.max(1, s.nights) - (s.nights > 0 ? 0 : 1);
       cursor = from + Math.max(s.nights, 1);
-      return { from, to, dayLabel: s.nights > 1 ? `Day ${from}–${to}` : `Day ${from}` };
+      return { from, to, dayLabel: s.nights > 1 ? `Day ${from}-${to}` : `Day ${from}` };
     });
   }, [stops]);
 

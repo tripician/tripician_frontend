@@ -41,7 +41,7 @@ const FAQS = [
   },
   {
     q: 'The app is not working as expected - what should I do?',
-    a: 'Try refreshing the page or clearing your browser cache. If the issue persists, email support@tripician.com with a description of the problem, your device and browser details, and any error messages you see. We typically respond within 1–2 business days.',
+    a: 'Try refreshing the page or clearing your browser cache. If the issue persists, email support@tripician.com with a description of the problem, your device and browser details, and any error messages you see. We typically respond within 1-2 business days.',
   },
 ];
 
@@ -105,7 +105,7 @@ const HelpPage: React.FC = () => {
           <EmailRoundedIcon sx={{ fontSize: 40, mb: 2, opacity: 0.9 }} />
           <Typography sx={{ fontWeight: 700, fontSize: '1.2rem', mb: 1 }}>Still need help?</Typography>
           <Typography sx={{ opacity: 0.85, mb: 3, fontSize: '0.92rem', lineHeight: 1.7 }}>
-            Our support team is ready to help. Email us and we'll respond within 1–2 business days.
+            Our support team is ready to help. Email us and we'll respond within 1-2 business days.
           </Typography>
           <Button
             variant="contained"

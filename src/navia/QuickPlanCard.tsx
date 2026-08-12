@@ -8,17 +8,6 @@ import { stashPendingPrompt } from '../utils/pendingNaviaPrompt';
 import { apiServices } from '../services/APIs/apiServices';
 import { scheduleFeedbackPrompt } from '../utils/feedbackPrompt';
 
-/*
- * Two, and they must never wrap. Three wrapped 2 + 1 inside the card, and a
- * ragged orphan row is the loudest signal that a layout was assembled rather
- * than composed. The row below is `nowrap`, so this can only be a deliberate
- * single line.
- */
-const SUGGESTIONS = [
-  'Weekend in Rome',
-  '10 days in Bali',
-];
-
 /* Shown while the trip is being created. The heavy work (route, then places per
    stop) happens after navigation, under the planner's own overlay - these cover
    the two calls before that. */
@@ -47,8 +36,14 @@ interface QuickPlanCardProps {
  * rather than inventing a parallel one:
  *
  *   prompt -> POST /api/navia/draft-trip   (name, countries, vibe, nights)
- *          -> POST /api/trips              (the real trip, same payload the dialog sends)
+ *          -> POST /api/trips              (the real trip)
  *          -> /tripplanner/:id  state.aiGenerated
+ *
+ * The one field this path cannot send is `preferences` (pace, who is going,
+ * interests, dietary), because nobody was asked. A sentence is all we have. The
+ * backend treats a trip with no stored preferences exactly as it did before they
+ * existed, so this stays the fast lane rather than a degraded one, and the dialog
+ * stays the path for anyone who wants the plan tuned to them.
  *
  * That last flag is what TripPlanner already watches. Its Phase 1 splits the
  * nights across the countries and calls suggest-itinerary for the route; Phase 2
@@ -118,6 +113,7 @@ export const QuickPlanCard: React.FC<QuickPlanCardProps> = ({ token }) => {
         currencyCode: 'USD',
         vibe: draft.vibe ?? '',
         invites: [] as string[],
+        plannerMode: 'Easy', // every new trip opens in the simple planner
       });
 
       // The backend has returned this as id / Id / tripId depending on the DTO.
@@ -151,8 +147,8 @@ export const QuickPlanCard: React.FC<QuickPlanCardProps> = ({ token }) => {
       onSubmit={(e: React.FormEvent) => { e.preventDefault(); submit(value); }}
       sx={(t) => ({
         width: { xs: '100%', md: 380, lg: 420 },
-        px: 2.25,
-        py: 2,
+        px: { xs: 2.25, sm: 2.5 },
+        py: 2.25,
         // Same card language as the trip grid below it.
         borderRadius: '16px',
         bgcolor: 'background.paper',
@@ -163,22 +159,50 @@ export const QuickPlanCard: React.FC<QuickPlanCardProps> = ({ token }) => {
         backgroundImage: t.custom.gradients.brandSubtle,
         display: 'flex',
         flexDirection: 'column',
-        gap: 1.5,
+        gap: 1.75,
       })}
     >
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.1 }}>
-        <NaviaOrb size={17} processing={busy} />
+      {/*
+        Title + one supporting line, so the card has a hierarchy instead of a flat
+        stack of same-weight text. The old single 16px line was the whole problem:
+        a display serif at 1rem is too small to read as display type, so it just
+        looked cramped. At 21px with tight tracking the display serif works.
+
+        On the copy: the title states the TRADE rather than naming the feature.
+        "Draft a plan with Navia" described a button; a title built around what you
+        put in and what you get out is the only reason anyone would pick this over
+        the blank form.
+
+        The eyebrow carries the orb, which does two jobs: it labels the shortcut and
+        it keeps the Navia mark on the block without the orb having to align against
+        a three-line text stack. It also hands the headline the card's full width.
+        Plain uppercase overline rather than a filled pill on purpose - the input and
+        the two suggestion chips are already paper-on-wash, and a fourth pill would
+        both crowd the card and look tappable when it is only a label.
+      */}
+      <Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.85 }}>
+          <NaviaOrb size={14} processing={busy} />
+          {/* `overline` already uppercases and letter-spaces via the theme. */}
+          <Typography variant="overline" sx={{ color: 'primary.main', lineHeight: 1 }}>
+            Quick start
+          </Typography>
+        </Box>
         <Typography
           component="h2"
           sx={(t) => ({
             fontFamily: t.custom.fontDisplay,
-            fontSize: '1rem',
+            fontSize: '1.3125rem',
             fontWeight: 600,
-            lineHeight: 1.25,
+            lineHeight: 1.2,
+            letterSpacing: '-0.01em',
             color: 'text.primary',
           })}
         >
-          Quickly design a trip with Navia
+          One sentence, a whole trip
+        </Typography>
+        <Typography sx={{ mt: 0.5, fontSize: '0.8125rem', lineHeight: 1.45, color: 'text.secondary' }}>
+          Say where and how long. Navia drafts the skeleton: the route, the stops and the notes.
         </Typography>
       </Box>
 
@@ -187,9 +211,9 @@ export const QuickPlanCard: React.FC<QuickPlanCardProps> = ({ token }) => {
           display: 'flex',
           alignItems: 'center',
           gap: 1,
-          pl: 1.75,
+          pl: 2,
           pr: 0.625,
-          py: 0.625,
+          py: 0.875,
           borderRadius: '999px',
           bgcolor: 'background.paper',
           border: `1px solid ${t.custom.surface.border}`,
@@ -204,7 +228,7 @@ export const QuickPlanCard: React.FC<QuickPlanCardProps> = ({ token }) => {
           disabled={busy}
           placeholder="Three days in Lisbon, food and jazz…"
           inputProps={{ 'aria-label': 'Describe the trip you want and Navia will plan it', maxLength: 280 }}
-          sx={{ flex: 1, minWidth: 0, fontSize: '0.8125rem', color: 'text.primary' }}
+          sx={{ flex: 1, minWidth: 0, fontSize: '0.875rem', color: 'text.primary' }}
         />
         <IconButton
           type="submit"
@@ -212,8 +236,8 @@ export const QuickPlanCard: React.FC<QuickPlanCardProps> = ({ token }) => {
           aria-label="Build this trip with Navia"
           sx={(t) => ({
             flexShrink: 0,
-            width: 30,
-            height: 30,
+            width: 32,
+            height: 32,
             borderRadius: '50%',
             bgcolor: 'primary.main',
             color: '#fff',
@@ -228,51 +252,21 @@ export const QuickPlanCard: React.FC<QuickPlanCardProps> = ({ token }) => {
         </IconButton>
       </Box>
 
-      {/* One row, three states: suggestions -> progress -> error. Keeping them in
-          the same slot stops the card changing height mid-flow. */}
-      <Box sx={{ minHeight: 26, display: 'flex', alignItems: 'center', gap: 0.875, flexWrap: 'nowrap', overflow: 'hidden' }}>
-        {error ? (
-          <Typography sx={{ fontSize: '0.6875rem', color: 'error.main' }}>{error}</Typography>
-        ) : busy ? (
-          <Typography sx={{ fontSize: '0.6875rem', color: 'text.secondary' }}>{busyMsg}</Typography>
-        ) : (
-          <>
-            <Typography
-              component="span"
-              sx={{ flexShrink: 0, fontSize: '0.6875rem', fontWeight: 500, color: 'text.secondary', opacity: 0.7 }}
-            >
-              Suggestions
-            </Typography>
-            {SUGGESTIONS.map((s) => (
-              <Box
-                key={s}
-                component="button"
-                type="button"
-                onClick={() => submit(s)}
-                sx={(t) => ({
-                  flexShrink: 0,
-                  px: 1.125,
-                  py: 0.4375,
-                  borderRadius: '999px',
-                  border: `1px solid ${t.custom.surface.border}`,
-                  bgcolor: 'background.paper',
-                  color: 'text.secondary',
-                  fontFamily: 'inherit',
-                  fontSize: '0.6875rem',
-                  fontWeight: 500,
-                  cursor: 'pointer',
-                  whiteSpace: 'nowrap',
-                  transition: `background-color ${t.custom.motion.duration.fast} ${t.custom.motion.easing.standard}, border-color ${t.custom.motion.duration.fast} ${t.custom.motion.easing.standard}, color ${t.custom.motion.duration.fast} ${t.custom.motion.easing.standard}`,
-                  '&:hover': { borderColor: 'primary.main', color: 'primary.main' },
-                  '&:focus-visible': { outline: `2px solid ${t.custom.ring}`, outlineOffset: 2 },
-                })}
-              >
-                {s}
-              </Box>
-            ))}
-          </>
-        )}
-      </Box>
+      {/*
+        Status line, rendered only while it has something to say.
+        This used to be a permanent slot holding "Try" plus two example chips, with
+        progress and errors borrowing the same row so the card never changed height.
+        With the chips gone there is nothing to show at rest, and a reserved 26px of
+        empty space at the bottom of the card is worse than the small growth when you
+        submit. The inner minHeight keeps busy and error from jostling each other.
+      */}
+      {(busy || error) && (
+        <Box sx={{ minHeight: 20, display: 'flex', alignItems: 'center' }}>
+          <Typography sx={{ fontSize: '0.75rem', color: error ? 'error.main' : 'text.secondary' }}>
+            {error ?? busyMsg}
+          </Typography>
+        </Box>
+      )}
     </Box>
   );
 };

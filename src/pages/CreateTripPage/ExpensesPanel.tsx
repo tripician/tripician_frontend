@@ -1,5 +1,5 @@
 // ExpensesPanel - authoritative implementation. Feature visibility is gated at the parent tab.
-// To temporarily hide this feature, disable/hide its tab in the parent component – do NOT edit or strip this file.
+// To temporarily hide this feature, disable/hide its tab in the parent component - do NOT edit or strip this file.
 import React from 'react';
 import { useDispatch, useSelector } from 'react-redux';
 import { Box, Typography, Paper, Button, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Divider, Chip, Tooltip, InputAdornment, ToggleButtonGroup, ToggleButton, Collapse } from '@mui/material';

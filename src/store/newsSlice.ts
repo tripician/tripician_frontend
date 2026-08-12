@@ -33,7 +33,7 @@ export const loadNews = createAsyncThunk<{ articles: NewsArticle[]; locations: s
     ));
     const activeLocations = normalized.length ? normalized : [];
     if (activeLocations.length === 0) {
-      // Nothing selected – return empty payload without hitting the API.
+      // Nothing selected - return empty payload without hitting the API.
       return { articles: [], locations: [] };
     }
     // Debug log start

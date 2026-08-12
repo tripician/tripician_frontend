@@ -19,7 +19,6 @@ import {
 import { IconPlane } from '@tabler/icons-react';
 import { SortableContext, useSortable, verticalListSortingStrategy, arrayMove } from '@dnd-kit/sortable';
 import { CSS } from '@dnd-kit/utilities';
-import confetti from 'canvas-confetti';
 import type { DestinationCardChecklist } from './DestinationCard';
 import SearchIcon from '@mui/icons-material/Search';
 import DeleteOutlineIcon from '@mui/icons-material/DeleteOutline';
@@ -27,6 +26,7 @@ import UploadFileIcon from '@mui/icons-material/UploadFile';
 import CloseIcon from '@mui/icons-material/Close';
 import NotesIcon from '@mui/icons-material/Notes';
 import DestinationCard from './DestinationCard';
+import SimpleDestinationCard from './SimpleDestinationCard';
 import { DiscoverSheet, StaySheet } from './PlannerModals';
 import { useDispatch, useSelector, useStore } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
@@ -34,7 +34,7 @@ import {
   addDestination, removeDestination, duplicateDestination, toggleDestinationCompleted, setDestinationCategory, renameDestination, setDestinationTitle,
   setDestinationNotes, addDestinationDoc, removeDestinationDoc,
   addSpot, toggleSpot, removeSpot, addFoodItem, toggleFoodItem, removeFoodItem,
-  updateDestinationNights, reorderChainExact,
+  updateDestinationNights, reorderChainExact, setTargetNights,
   addStayEntry, updateStayEntry, removeStayEntry, setStayNotes, clearDestinationDiscover
 } from '../../store/plannerSlice';
 import { planDestination, NaviaRequestError } from '../../navia/naviaService';
@@ -47,21 +47,53 @@ import { fetchDestinationAlerts, type DestinationAlerts } from '../../services/A
 // Imports nothing itself - see the note in stopHoverBus about keeping the
 // mapbox-gl chunk out of this component's import graph.
 import { emitStopHover } from '../../utils/stopHoverBus';
+import NaviaOrb from '../../navia/NaviaOrb';
 
 interface DestinationCardsPanelProps {
   maxed: boolean;
   readOnly?: boolean;
   canAccessDocs?: boolean;
   canEdit?: boolean;
-  isPublished?: boolean;
   tripId?: string;
   authToken?: string | null;
   tripVibe?: string | null;
+  /** Trip countries, used to anchor "add a stop" suggestions when the route is empty. */
+  tripCountries?: string[];
   onRequestNaviaTip?: (destinationName: string) => void;
   onNaviaToast?: (type: 'success' | 'error' | 'info', message: string) => void;
+  /**
+   * Easy mode: render the minimal stop cards and drop every advanced surface
+   * (progress stepper, Discover/Stay/Docs sheets, per-stop Navia). Nothing is
+   * deleted - the data is still in the store, just not shown.
+   */
+  easy?: boolean;
+  /** Easy mode only: called from a card's "saved in Advanced" hint. */
+  onSwitchToAdvanced?: () => void;
+  /**
+   * Send a message to Navia. The planner implementation also reveals the chat
+   * panel - firing the bare `navia:send` event would otherwise drop the reply
+   * into a panel the user cannot see (in Easy the map is the default tab).
+   */
+  onAskNavia?: (message: string) => void;
+  /**
+   * Easy mode: fill in what the plan is still missing (stops for uncovered nights,
+   * notes for note-less stops). This mutates the plan directly - it is not a chat
+   * message - so the card needs the planner's own routine, not `navia:send`.
+   */
+  onCompletePlan?: () => void;
+  /** True while onCompletePlan is running, so the card can show it is working. */
+  completingPlan?: boolean;
 }
 
-const DEFAULT_DESTINATION_SUGGESTIONS = [
+/**
+ * Last-resort suggestions, used ONLY when there is genuinely no context to work
+ * from - no stops on the route and no country on the trip.
+ *
+ * These used to be shown unconditionally, which is how someone planning Sikkim
+ * was offered Paris and Cape Town. Anything better than this list is derived from
+ * the trip itself in `fetchDestinationSuggestions`.
+ */
+const FALLBACK_DESTINATION_SUGGESTIONS = [
   'Paris',
   'Tokyo',
   'New York',
@@ -105,12 +137,32 @@ const SortableCardWrapper: React.FC<{
 };
 
 const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
-  maxed, readOnly=false, canEdit=false, isPublished=false, tripId, authToken, tripVibe,
-  onRequestNaviaTip, onNaviaToast,
+  maxed, readOnly=false, canEdit=false, tripId, authToken, tripVibe, tripCountries,
+  onRequestNaviaTip, onNaviaToast, easy=false, onSwitchToAdvanced, onAskNavia,
+  onCompletePlan, completingPlan=false,
 }) => {
   const dispatch = useDispatch<AppDispatch>();
   const store = useStore<RootState>();
   const destinations = useSelector((s:RootState)=> s.planner.destinations);
+
+  const askNavia = React.useCallback((message: string) => {
+    if (onAskNavia) { onAskNavia(message); return; }
+    window.dispatchEvent(new CustomEvent('navia:send', { detail: { message } }));
+  }, [onAskNavia]);
+
+  /**
+   * Easy mode has no night-budget UI at all, so a stop must never be silently
+   * refused: both `addDestination` and `updateDestinationNights` bail without
+   * feedback once `targetNights` has no headroom left. Raising the target first
+   * makes nights follow the stops the user adds, which is the only model that
+   * makes sense when the target itself is invisible.
+   */
+  const ensureNightHeadroom = React.useCallback((nights = 1) => {
+    if (!easy) return;
+    const st = store.getState().planner;
+    const total = st.destinations.reduce((a, d) => a + (d.nights || 0), 0);
+    if (st.targetNights - total < nights) dispatch(setTargetNights(total + nights));
+  }, [easy, store, dispatch]);
 
   const handlePlanDestination = React.useCallback(async (destinationId: string) => {
     const dest = destinations.find(d => d.id === destinationId);
@@ -235,7 +287,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
         const lng = place.geometry?.location?.lng();
         let photoUrl: string | undefined;
         if(place.photos && place.photos.length){ try { photoUrl = place.photos[0].getUrl({ maxWidth:800, maxHeight:600 }); } catch {} }
-        if(name) dispatch(addDestination({ name, lat, lng, placeId:p.place_id, photoUrl }));
+        if(name) { ensureNightHeadroom(); dispatch(addDestination({ name, lat, lng, placeId:p.place_id, photoUrl })); }
         setSearchValue(''); setPredictions([]);
       }
     });
@@ -261,12 +313,13 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
       if (place.photos && place.photos.length) {
         try { photoUrl = place.photos[0].getUrl({ maxWidth: 800, maxHeight: 600 }); } catch {}
       }
+      ensureNightHeadroom();
       dispatch(addDestination({ name, lat, lng, placeId: place.place_id, photoUrl }));
       setSearchValue('');
       setPredictions([]);
       setGhostSearchOpen(false);
     });
-  }, [dispatch, readOnly]);
+  }, [dispatch, readOnly, ensureNightHeadroom]);
 
   /* -------------------------- Discover dialog (spots) -------------------------- */
   const [discoverFor, setDiscoverFor] = React.useState<string | null>(null);
@@ -363,6 +416,77 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
     });
   }, []);
 
+  /* ------------------- Contextual "add a stop" suggestions ------------------- */
+  /**
+   * Suggestions for the NEXT stop, derived from the trip rather than a global list.
+   *
+   * Anchored on the last stop when there is one ("towns near Gangtok" → Pelling,
+   * Ravangla, Lachung), else on the trip's country ("places to visit in India").
+   * The hardcoded world-cities list is only reached when the trip has neither.
+   */
+  const [destSuggestions, setDestSuggestions] = React.useState<QuickSuggestion[]>([]);
+  const [destSuggestLoading, setDestSuggestLoading] = React.useState(false);
+  const [destSuggestLabel, setDestSuggestLabel] = React.useState('Suggested destinations');
+  /** Context already fetched, so reopening the search doesn't re-bill Places. */
+  const destSuggestKeyRef = React.useRef<string | null>(null);
+
+  const fetchDestinationSuggestions = React.useCallback(() => {
+    const lastStop = destinations[destinations.length - 1];
+    const country = tripCountries?.find(c => c && c.trim());
+
+    const anchor = lastStop?.name?.trim()
+      ? { key: `stop:${lastStop.name.toLowerCase()}`, query: `towns near ${lastStop.name}`, label: `Near ${lastStop.name}` }
+      : country
+        ? { key: `country:${country.toLowerCase()}`, query: `top places to visit in ${country}`, label: `Popular in ${country}` }
+        : null;
+
+    // No context at all - the global list is the honest answer.
+    if (!anchor) {
+      destSuggestKeyRef.current = 'global';
+      setDestSuggestLabel('Suggested destinations');
+      setDestSuggestions(FALLBACK_DESTINATION_SUGGESTIONS.map(name => ({ name })));
+      return;
+    }
+    if (destSuggestKeyRef.current === anchor.key) return;
+    destSuggestKeyRef.current = anchor.key;
+    setDestSuggestLabel(anchor.label);
+
+    const g = (window as any).google;
+    if (!g?.maps?.places) { setDestSuggestions([]); return; }
+
+    setDestSuggestLoading(true);
+    // Never suggest somewhere already on the route.
+    const taken = new Set(destinations.map(d => d.name.trim().toLowerCase()));
+    const svc = new g.maps.places.PlacesService(document.createElement('div'));
+    try {
+      svc.textSearch({ query: anchor.query }, (results: any[] | null, status: string) => {
+        setDestSuggestLoading(false);
+        if (status !== 'OK' || !Array.isArray(results)) { setDestSuggestions([]); return; }
+        const items: QuickSuggestion[] = [];
+        for (const r of results) {
+          const name = typeof r.name === 'string' ? r.name.trim() : '';
+          if (!name || taken.has(name.toLowerCase())) continue;
+          if (items.some(i => i.name.toLowerCase() === name.toLowerCase())) continue;
+          items.push({ name, placeId: r.place_id });
+          if (items.length >= 8) break;
+        }
+        setDestSuggestions(items);
+      });
+    } catch {
+      setDestSuggestLoading(false);
+      setDestSuggestions([]);
+    }
+  }, [destinations, tripCountries]);
+
+  // Fetch when the inline search opens, not on mount: this is a billed Places call
+  // and most sessions never open it.
+  React.useEffect(() => {
+    if (!ghostSearchOpen || readOnly) return;
+    ensurePlacesScript();
+    const t = setTimeout(fetchDestinationSuggestions, 150);
+    return () => clearTimeout(t);
+  }, [ghostSearchOpen, readOnly, ensurePlacesScript, fetchDestinationSuggestions]);
+
   React.useEffect(() => {
     if (!discoverFor || discoverTab !== 'spots') { setNearbySpots([]); return; }
     const d = destinations.find(p => p.id === discoverFor);
@@ -438,7 +562,9 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
   /* ------------------------------ Destination alerts ----------------------------- */
   const [alertsMap, setAlertsMap] = React.useState<Record<string, DestinationAlerts>>({});
   React.useEffect(() => {
-    if (destinations.length === 0) { setAlertsMap({}); return; }
+    // Easy mode has no alert badge to render, so skip the per-stop advisory fetch
+    // rather than paying for N requests nothing consumes.
+    if (easy || destinations.length === 0) { setAlertsMap({}); return; }
     let cancelled = false;
     destinations.forEach(d => {
       fetchDestinationAlerts(d.id, d.name).then(result => {
@@ -446,7 +572,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
       });
     });
     return () => { cancelled = true; };
-  }, [destinations.map(d => d.id + ':' + d.name).join(',')]);
+  }, [easy, destinations.map(d => d.id + ':' + d.name).join(',')]);
 
   /*  Per-destination checklist (local, kept in sync across renders)  */
   const [checklists, setChecklists] = React.useState<Record<string, DestinationCardChecklist>>({});
@@ -470,159 +596,37 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
     dispatch(reorderChainExact({ ids: newIds }));
   }, [destinations, dispatch, readOnly]);
 
-  /*  Completion signals (Feature 3)  */
-  const completionSignals = React.useMemo(() => {
-    const hasDestinations = destinations.length > 0;
-    const hasDates = destinations.some(d => !!d.startDate);
-    const hasAccommodation = destinations.some(d => {
-      const cl = checklists[d.id];
-      const hasStay = Array.isArray((d as any).stays) ? (d as any).stays.length > 0 : !!((d as any).stay?.name || (d as any).stay?.reference);
-      return cl?.accommodation || hasStay;
-    });
-    const hasActivities = destinations.some(d => {
-      const cl = checklists[d.id];
-      return cl?.activities || ((d as any).spots?.length > 0) || ((d as any).foods?.length > 0);
-    });
-    return [
-      { label: 'Destinations added', done: hasDestinations },
-      { label: 'Dates set', done: hasDates },
-      { label: 'Accommodation', done: hasAccommodation },
-      { label: 'Activities added', done: hasActivities },
-      { label: 'Plan published', done: isPublished },
-    ];
-  }, [destinations, checklists, isPublished]);
-  const completedSignals = completionSignals.filter(s => s.done).length;
-  const progressPct = Math.round((completedSignals / completionSignals.length) * 100);
-
-  /* Fire confetti when progress hits 100% */
-  const prevProgressRef = React.useRef(0);
-  React.useEffect(() => {
-    if (progressPct === 100 && prevProgressRef.current < 100) {
-      confetti({ particleCount: 120, spread: 80, origin: { y: 0.6 }, colors: ['#e8436a', '#FF385C', '#fff', '#f0abfc'] });
-    }
-    prevProgressRef.current = progressPct;
-  }, [progressPct]);
 
   /* --------------------------- Timeline rail helper -------------------------- */
   // Color for the connector segment leaving a given destination index (in-flow rail).
   const segmentColor = React.useCallback((di: number, dark: boolean): string => {
+    const neutral = dark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)';
+    // Amber/green rails encode "this stop has a stay, transport and activities" -
+    // all advanced concepts. In Easy the rail is just a route line.
+    if (easy) return neutral;
     const dd = destinations[di];
     const cl = dd ? checklists[dd.id] : undefined;
     const hasAlert = (dd ? alertsMap[dd.id]?.alerts.length ?? 0 : 0) > 0;
     const allDone = cl?.accommodation && cl?.transport && cl?.activities;
     if (hasAlert) return 'linear-gradient(180deg,#BA7517,#F59E0B)';
     if (allDone) return 'linear-gradient(180deg,#16a34a,#22c55e)';
-    return dark ? 'rgba(255,255,255,0.14)' : 'rgba(0,0,0,0.12)';
-  }, [destinations, checklists, alertsMap]);
+    return neutral;
+  }, [destinations, checklists, alertsMap, easy]);
+
+  /** 1-based first day of each stop, so a card can label itself "Day 3-5". */
+  const dayStarts = React.useMemo(() => {
+    let acc = 1;
+    return destinations.map(d => {
+      const from = acc;
+      acc += Math.max(1, d.nights || 1);
+      return from;
+    });
+  }, [destinations]);
 
   /* --------------------------------- Render --------------------------------- */
   return (
     <Fade in timeout={300}>
-      <Box sx={{ px:2.5, pt:2, pb:1.5, display:'flex', flexDirection:'column', gap:1.5, position:'relative' }}>
-
-        {/*  Progress milestone stepper  */}
-        {destinations.length > 0 && (
-          <Box sx={(t) => ({
-            maxWidth: 900, mx: 'auto', width: '100%', mb: 0.5,
-            borderRadius: '16px',
-            border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.07)'}`,
-            background: t.palette.mode === 'dark'
-              ? 'rgba(22,24,28,0.92)'
-              : 'rgba(255,255,255,0.97)',
-            backdropFilter: 'blur(12px)',
-            boxShadow: t.palette.mode === 'dark'
-              ? '0 2px 20px rgba(0,0,0,0.28), inset 0 1px 0 rgba(255,255,255,0.04)'
-              : '0 2px 14px rgba(0,0,0,0.06), inset 0 1px 0 rgba(255,255,255,1)',
-            px: { xs: 1.5, sm: 2.5 }, py: { xs: 1.25, sm: 1.5 },
-            // Hidden on phones: the vitals-bar readiness ring is the single mobile progress signal.
-            display: { xs: 'none', md: 'flex' }, alignItems: 'center', gap: { xs: 1.5, sm: 2 },
-          })}>
-
-            {/* Percentage hero */}
-            <Box sx={{ flexShrink: 0, display: 'flex', flexDirection: 'column', alignItems: 'center', width: { xs: 38, sm: 48 } }}>
-              <Typography sx={{
-                fontSize: { xs: 18, sm: 22 }, fontWeight: 700, lineHeight: 1,
-                fontFamily: "'Inter', sans-serif",
-                background: progressPct === 100 ? 'linear-gradient(135deg,#16a34a,#22c55e)' : 'linear-gradient(135deg,#FF385C,#E31C5F)',
-                WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent',
-                transition: 'all 0.4s',
-              }}>{progressPct}%</Typography>
-              <Typography sx={{ fontSize: 9, fontWeight: 600, color: 'text.disabled', letterSpacing: '0.07em', textTransform: 'uppercase', mt: 0.3 }}>
-                done
-              </Typography>
-            </Box>
-
-            {/* 1px vertical divider */}
-            <Box sx={(t) => ({ width: '1px', alignSelf: 'stretch', flexShrink: 0, bgcolor: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.07)' : 'rgba(0,0,0,0.08)' })} />
-
-            {/* Stepper - absolute track line + evenly spaced circles */}
-            <Box sx={{ flex: 1, minWidth: 0, position: 'relative', pt: { xs: 0.5, sm: 0.75 }, pb: { xs: 0.25, sm: 0.5 } }}>
-              {/* Grey track */}
-              <Box sx={(t) => ({
-                position: 'absolute', top: { xs: 16, sm: 20 }, left: '5%', right: '5%', height: '2px', borderRadius: 1,
-                bgcolor: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)',
-              })} />
-              {/* Rose filled track */}
-              <Box sx={{
-                position: 'absolute', top: { xs: 16, sm: 20 }, left: '5%', height: '2px', borderRadius: 1,
-                width: `${Math.max(0, progressPct - 10)}%`,
-                background: progressPct === 100 ? 'linear-gradient(90deg,#16a34a,#22c55e)' : 'linear-gradient(90deg,#FF385C,#E31C5F)',
-                transition: 'width 0.6s cubic-bezier(.4,0,.2,1)',
-              }} />
-              {/* Steps row */}
-              <Box sx={{ display: 'flex', justifyContent: 'space-between', position: 'relative', zIndex: 1 }}>
-                {completionSignals.map((s, i) => {
-                  const isDone = s.done;
-                  const isNext = !isDone && completionSignals.slice(0, i).every(x => x.done);
-                  return (
-                    <Box key={s.label} sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: { xs: 0.4, sm: 0.6 } }}>
-                      {/* Circle */}
-                      <Box sx={{
-                        width: { xs: 24, sm: 28 }, height: { xs: 24, sm: 28 }, borderRadius: '50%',
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                        /* Fill is stated once rather than set on the base and again in
-                           the `isDone` spread - two `bgcolor` keys in one object is a
-                           TS2783 and reads as a bug even where it isn't. */
-                        bgcolor: isDone
-                          ? (progressPct === 100 && i === completionSignals.length - 1 ? '#16a34a' : '#FF385C')
-                          : 'background.paper',
-                        transition: 'all 0.3s cubic-bezier(.4,0,.2,1)',
-                        ...(isDone ? {} : isNext ? {
-                          border: '2px solid rgba(255,56,92,0.5)',
-                          '@keyframes nextPulse': { '0%,100%': { boxShadow: '0 0 0 0 rgba(255,56,92,0.22)' }, '50%': { boxShadow: '0 0 0 5px rgba(255,56,92,0)' } },
-                          animation: 'nextPulse 2s ease-in-out infinite',
-                        } : {
-                          border: (t: any) => `2px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.1)'}`,
-                        }),
-                      }}>
-                        {isDone ? (
-                          <Box component='svg' viewBox='0 0 12 12' sx={{ width: { xs: 10, sm: 12 }, height: { xs: 10, sm: 12 } }}>
-                            <polyline points='2,6 5,9 10,3' fill='none' stroke='#fff' strokeWidth='2.2' strokeLinecap='round' strokeLinejoin='round' />
-                          </Box>
-                        ) : (
-                          <Typography sx={{ fontSize: { xs: 9, sm: 10 }, fontWeight: 700, lineHeight: 1, color: isNext ? '#FF385C' : 'text.disabled' }}>
-                            {i + 1}
-                          </Typography>
-                        )}
-                      </Box>
-                      {/* Label - hidden on xs */}
-                      <Typography sx={{
-                        display: { xs: 'none', sm: 'block' },
-                        fontSize: 9.5, fontWeight: isDone ? 700 : 500, textAlign: 'center', lineHeight: 1.25,
-                        whiteSpace: 'nowrap', letterSpacing: '-0.1px', transition: 'color 0.3s',
-                        color: isDone
-                          ? (t: any) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.72)' : 'rgba(0,0,0,0.62)'
-                          : 'text.disabled',
-                      }}>
-                        {s.label}
-                      </Typography>
-                    </Box>
-                  );
-                })}
-              </Box>
-            </Box>
-          </Box>
-        )}
+      <Box sx={{ px:{ xs:2, sm:2.5 }, pt:2, pb:1.5, display:'flex', flexDirection:'column', gap:1.5, position:'relative' }}>
 
         <Box sx={{ position: 'relative', maxWidth: 900, mx: 'auto', width: '100%' }}>
           {destinations.length === 0 && (
@@ -640,6 +644,12 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                   The creator hasn't added any stops to this trip yet.
                 </Typography>
               </Box>
+            ) : easy ? (
+              /* Easy mode says nothing here: the add-stop card below is already
+                 the loudest thing on an empty board, and a second "add a stop"
+                 message above it just doubles the noise for the exact user this
+                 mode exists for. */
+              null
             ) : (
               <Box sx={(t) => ({ mt: 3, p: 5, border: '2px dashed rgba(255,56,92,0.2)', borderRadius: 3, textAlign: 'center', fontSize: 14, color: t.palette.text.secondary })}>Click "+ Add your next stop" below to add your first destination.</Box>
             )
@@ -656,8 +666,13 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                   {destinations.map((d, idx) => (
                     <SortableCardWrapper key={d.id} id={d.id}>
                       {({ isDragging, dragHandleProps }) => (
-                        <Box sx={{ display: 'flex', alignItems: 'stretch', gap: 1 }}>
-                          {/* In-flow timeline rail: numbered node + connector (always visible, no measurement) */}
+                        <Box sx={{ display: 'flex', alignItems: 'stretch', gap: easy ? 0 : 1 }}>
+                          {/* In-flow timeline rail: numbered node + connector (always visible, no measurement).
+                              ADVANCED ONLY. Easy drops it entirely: the card carries a "Day 1-4" badge,
+                              a vertical stack already reads as ordered, and the 36px gutter it needed put
+                              every card on a different left edge from the header above them. With one stop
+                              there is no connector either, so the node rendered as a lone floating dot. */}
+                          {!easy && (
                           <Box sx={{ position: 'relative', width: 28, flexShrink: 0, display: 'flex', justifyContent: 'center' }}>
                             {idx > 0 && (
                               <Box sx={(t) => ({ position: 'absolute', top: -8, height: 'calc(50% + 8px)', width: 2, background: segmentColor(idx - 1, t.palette.mode === 'dark'), transition: 'background 0.3s' })} />
@@ -675,15 +690,35 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                               transition: 'background 0.3s, box-shadow 0.3s',
                             }}>{idx + 1}</Box>
                           </Box>
+                          )}
                           {/* Hover here lifts this stop's marker on the map. The
                               guard matters: dnd-kit moves elements under a
                               stationary cursor while dragging, which otherwise
                               fires a storm of enter/leave events. */}
                           <Box
+                            // Scroll target for reality-check findings and the tour.
+                            data-stop-id={d.id}
                             sx={{ flex: 1, minWidth: 0 }}
                             onMouseEnter={() => { if (!activeDragId) emitStopHover(d.id, 'card'); }}
                             onMouseLeave={() => { if (!activeDragId) emitStopHover(null, 'card'); }}
                           >
+                          {easy ? (
+                          <SimpleDestinationCard
+                            destination={d}
+                            dayFrom={dayStarts[idx] ?? 1}
+                            isDragging={isDragging}
+                            dragHandleProps={readOnly ? undefined : dragHandleProps}
+                            readonly={readOnly}
+                            onRename={readOnly ? undefined : (id, name) => dispatch(renameDestination({ id, name }))}
+                            onChangeNotes={readOnly ? undefined : (id, text) => dispatch(setDestinationNotes({ id, notes: text }))}
+                            onChangeNights={readOnly ? undefined : (id, delta) => {
+                              if (delta > 0) ensureNightHeadroom(delta);
+                              dispatch(updateDestinationNights({ id, delta }));
+                            }}
+                            onRemove={readOnly ? undefined : (id) => dispatch(removeDestination(id))}
+                            onSwitchToAdvanced={readOnly ? undefined : onSwitchToAdvanced}
+                          />
+                          ) : (
                           <DestinationCard
                             destination={d}
                             isDragging={isDragging}
@@ -707,6 +742,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                             alerts={alertsMap[d.id]?.alerts ?? []}
                             readonly={readOnly}
                           />
+                          )}
                           </Box>
                         </Box>
                       )}
@@ -717,17 +753,22 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
             </SortableContext>
             <DragOverlay>
               {activeDragId ? (() => {
-                const d = destinations.find(x => x.id === activeDragId);
+                const dragIdx = destinations.findIndex(x => x.id === activeDragId);
+                const d = destinations[dragIdx];
                 if (!d) return null;
                 return (
                   <Box sx={{ opacity: 0.85, pointerEvents: 'none' }}>
-                    <DestinationCard
-                      destination={d}
-                      isDragging
-                      checklist={checklists[d.id]}
-                      alertCount={alertsMap[d.id]?.alerts.length ?? 0}
-                      alerts={alertsMap[d.id]?.alerts ?? []}
-                    />
+                    {easy ? (
+                      <SimpleDestinationCard destination={d} dayFrom={dayStarts[dragIdx] ?? 1} isDragging />
+                    ) : (
+                      <DestinationCard
+                        destination={d}
+                        isDragging
+                        checklist={checklists[d.id]}
+                        alertCount={alertsMap[d.id]?.alerts.length ?? 0}
+                        alerts={alertsMap[d.id]?.alerts ?? []}
+                      />
+                    )}
                   </Box>
                 );
               })() : null}
@@ -739,7 +780,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
             <>
               {ghostSearchOpen ? (
                 /* Inline search input - replaces ghost card */
-                <Box sx={{ position: 'relative', mt: 1, ml: '36px' }}>
+                <Box sx={{ position: 'relative', mt: 1, ml: easy ? 0 : '36px' }}>
                   <Paper elevation={0} sx={(t) => ({
                     display: 'flex', alignItems: 'center', gap: 1, pl: 1.5, pr: 0.75, py: 0.65,
                     borderRadius: '12px',
@@ -781,65 +822,157 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                       {!loadingPred && predictions.length === 0 && <Box sx={{ px: 2, py: 1, fontSize: 12, opacity: 0.65 }}>No matches</Box>}
                     </Paper>
                   )}
-                  {!searchValue && (
+                  {!searchValue && (destSuggestLoading || destSuggestions.length > 0) && (
                     <Paper elevation={2} sx={{ position: 'absolute', top: '100%', left: 0, mt: 0.75, width: '100%', zIndex: 20, borderRadius: '12px', p: 1, border: '1px solid', borderColor: 'divider' }}>
-                      <Typography sx={{ px: 1, py: 0.6, fontSize: 11, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'text.secondary' }}>
-                        Suggested destinations
+                      <Typography variant='overline' sx={{ display: 'block', px: 1, py: 0.6, color: 'text.secondary' }}>
+                        {destSuggestLabel}
                       </Typography>
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.7, px: 0.7, pb: 0.6 }}>
-                        {DEFAULT_DESTINATION_SUGGESTIONS.map((name) => (
-                          <Button
-                            key={name}
-                            size='small'
-                            onClick={() => addDestinationFromQuery(name)}
-                            sx={{
-                              textTransform: 'none', borderRadius: '999px', fontSize: 12,
-                              border: '1px solid', borderColor: 'divider', color: 'text.secondary',
-                              '&:hover': { borderColor: 'rgba(255,56,92,0.4)', color: '#FF385C', bgcolor: 'rgba(255,56,92,0.05)' },
-                            }}
-                          >
-                            {name}
-                          </Button>
-                        ))}
-                      </Box>
+                      {destSuggestLoading ? (
+                        <Box sx={{ px: 1, pb: 1, fontSize: 12, color: 'text.secondary' }}>Looking for places near you…</Box>
+                      ) : (
+                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.7, px: 0.7, pb: 0.6 }}>
+                          {destSuggestions.map((item) => (
+                            <Button
+                              key={item.placeId || item.name}
+                              size='small'
+                              onClick={() => {
+                                // A placeId means we already know exactly which place this
+                                // is - skip the text lookup and its extra billed call.
+                                if (item.placeId) selectPrediction({ place_id: item.placeId, description: item.name });
+                                else addDestinationFromQuery(item.name);
+                                setGhostSearchOpen(false);
+                              }}
+                              sx={{
+                                textTransform: 'none', borderRadius: '999px', fontSize: 12,
+                                border: '1px solid', borderColor: 'divider', color: 'text.secondary',
+                                '&:hover': { borderColor: 'rgba(255,56,92,0.4)', color: '#FF385C', bgcolor: 'rgba(255,56,92,0.05)' },
+                              }}
+                            >
+                              {item.name}
+                            </Button>
+                          ))}
+                        </Box>
+                      )}
                     </Paper>
                   )}
                 </Box>
               ) : (
-                /* Ghost card */
+                /* Ghost card. In Easy this is the single primary action on the
+                   page, so it grows and speaks in the first person when the
+                   board is still empty. */
                 <Box
+                  data-tour='add-stop'
                   onClick={() => { if (!maxed) setGhostSearchOpen(true); }}
-                  sx={{
-                    mt: 1, ml: '36px', height: 56, border: '1.5px dashed',
-                    borderColor: (t) => t.palette.mode === 'dark' ? 'rgba(255,255,255,0.12)' : 'rgba(0,0,0,0.12)',
-                    borderRadius: '12px', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  sx={(t) => ({
+                    mt: 1,
+                    // Line up with the cards, which sit to the right of the 28px
+                    // timeline rail plus its 8px gap. With no stops there is no
+                    // rail to line up with, so the CTA takes the full width.
+                    // Easy has no rail to clear, so nothing to indent past.
+                    ml: easy ? 0 : '36px',
+                    height: easy && destinations.length === 0 ? 84 : easy ? 60 : 56,
+                    // Neutral, not coral-filled. The Navia card below already carries
+                    // the one brand-tinted surface on this board; a second filled
+                    // coral block turned the page into a gradient sandwich. Coral is
+                    // kept for the glyph and the hover state - the interactive parts.
+                    border: '1.5px dashed',
+                    borderColor: t.custom.surface.border,
+                    borderRadius: easy ? '16px' : '12px',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
                     gap: 1, cursor: maxed ? 'default' : 'pointer',
-                    '&:hover': maxed ? {} : { borderColor: 'rgba(255,56,92,0.40)', background: 'rgba(255,56,92,0.025)' },
-                    transition: 'border-color .15s, background .15s',
+                    bgcolor: 'transparent',
+                    '&:hover': maxed ? {} : { borderColor: 'rgba(255,56,92,0.40)', background: t.custom.surface.brandTint },
+                    transition: `border-color ${t.custom.motion.duration.fast} ${t.custom.motion.easing.standard}, background ${t.custom.motion.duration.fast} ${t.custom.motion.easing.standard}`,
                     opacity: maxed ? 0.5 : 1,
-                  }}
+                  })}
                 >
-                  <Box component='svg' viewBox='0 0 24 24' sx={{ width: 18, height: 18, color: '#e8436a', flexShrink: 0 }}>
+                  <Box component='svg' viewBox='0 0 24 24' sx={{ width: easy ? 20 : 18, height: easy ? 20 : 18, color: 'primary.main', flexShrink: 0 }}>
                     <path fill='currentColor' d='M19 11h-6V5h-2v6H5v2h6v6h2v-6h6z'/>
                   </Box>
-                  <Typography sx={{ fontSize: 13, color: 'text.secondary', fontWeight: 500 }}>Add your next stop</Typography>
+                  <Typography
+                    sx={{
+                      fontSize: easy && destinations.length === 0 ? 14.5 : 13,
+                      color: 'text.primary',
+                      fontWeight: easy && destinations.length === 0 ? 600 : 500,
+                    }}
+                  >
+                    {easy && destinations.length === 0 ? 'Add your first stop' : 'Add your next stop'}
+                  </Typography>
                 </Box>
               )}
-              <Typography
-                onClick={() => window.dispatchEvent(new CustomEvent('navia:send', { detail: { message: 'Can you suggest more destinations to complete my route?' } }))}
-                sx={{ mt: 2, textAlign: 'center', fontSize: 12, color: 'text.secondary', cursor: 'pointer', '&:hover': { color: '#FF385C' }, transition: 'color .15s' }}
-              >
-                Not sure what to add? Ask Navia to complete your route →
-              </Typography>
-              {destinations.length >= 2 && (
-                <Typography sx={{ mt: 1.5, textAlign: 'center', fontSize: 11, color: 'text.secondary' }}>
-                  ⠿ Drag stops to reorder your journey
-                </Typography>
+              {easy ? (
+                /* Easy mode's one Navia entry point. The per-stop orb and prompt
+                   chips are gone, so this card carries the whole feature: draft
+                   the route when there is nothing, extend it once there is. */
+                <Box
+                  component='button'
+                  type='button'
+                  data-tour='navia'
+                  disabled={completingPlan}
+                  onClick={() => {
+                    if (onCompletePlan) { onCompletePlan(); return; }
+                    // No planner routine wired (shouldn't happen in the app) - fall
+                    // back to asking in chat rather than doing nothing.
+                    askNavia(destinations.length === 0
+                      ? 'Plan my whole trip - suggest a route with the right number of nights in each place.'
+                      : 'Complete the rest of my plan - suggest the remaining stops for this route.');
+                  }}
+                  sx={(t) => ({
+                    mt: 2, ml: 0, width: '100%',
+                    display: 'flex', alignItems: 'center', gap: 1.25,
+                    px: 2, py: 1.5, textAlign: 'left',
+                    borderRadius: '16px',
+                    border: `1px solid ${t.custom.surface.border}`,
+                    backgroundImage: t.custom.gradients.brandSubtle,
+                    backgroundColor: 'background.paper',
+                    cursor: completingPlan ? 'default' : 'pointer',
+                    fontFamily: 'inherit',
+                    transition: `box-shadow ${t.custom.motion.duration.base} ${t.custom.motion.easing.standard}`,
+                    '&:hover': completingPlan ? {} : { boxShadow: t.custom.shadows.card },
+                    '&:focus-visible': { outline: `2px solid ${t.custom.ring}`, outlineOffset: 2 },
+                  })}
+                >
+                  <NaviaOrb size={20} processing={completingPlan} />
+                  <Box sx={{ minWidth: 0 }}>
+                    <Typography sx={{ fontSize: 14, fontWeight: 600, lineHeight: 1.3, color: 'text.primary' }}>
+                      {completingPlan
+                        ? 'Navia is working on your plan…'
+                        : destinations.length === 0 ? 'Plan the whole trip with Navia' : 'Complete the rest of my plan'}
+                    </Typography>
+                    <Typography sx={{ fontSize: 12, color: 'text.secondary', lineHeight: 1.45, mt: 0.15 }}>
+                      {completingPlan
+                        ? 'This takes a moment - it checks every place against a real listing.'
+                        : destinations.length === 0
+                          ? 'Navia drafts the route and writes notes for each stop.'
+                          : 'Navia fills the nights you haven’t placed yet and writes notes for stops that have none.'}
+                    </Typography>
+                  </Box>
+                </Box>
+              ) : (
+                <>
+                  <Typography
+                    data-tour='navia'
+                    onClick={() => askNavia('Can you suggest more destinations to complete my route?')}
+                    sx={{ mt: 2, textAlign: 'center', fontSize: 12, color: 'text.secondary', cursor: 'pointer', '&:hover': { color: '#FF385C' }, transition: 'color .15s' }}
+                  >
+                    Not sure what to add? Ask Navia to complete your route →
+                  </Typography>
+                  {destinations.length >= 2 && (
+                    <Typography sx={{ mt: 1.5, textAlign: 'center', fontSize: 11, color: 'text.secondary' }}>
+                      ⠿ Drag stops to reorder your journey
+                    </Typography>
+                  )}
+                </>
               )}
             </>
           )}
         </Box>
 
+        {/* Advanced-only surfaces. Easy mode never opens them, and leaving them
+            mounted would keep their Places autocomplete effects alive for a
+            sheet that has no way to appear. */}
+        {!easy && (
+        <>
         <DiscoverSheet
           open={!!discoverFor}
           onClose={() => setDiscoverFor(null)}
@@ -894,7 +1027,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
             </IconButton>
           </Box>
 
-          {/* Body – flat notepad */}
+          {/* Body - flat notepad */}
           <Box sx={(t)=>({
             mx:0, px:3, pt:2, pb:2,
             background: t.palette.mode==='dark'
@@ -1002,6 +1135,8 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
           </DialogContent>
           <DialogActions><Button onClick={()=> setDocsFor(null)}>Close</Button></DialogActions>
         </Dialog>
+        </>
+        )}
       </Box>
     </Fade>
   );

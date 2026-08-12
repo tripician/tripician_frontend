@@ -5,6 +5,30 @@
 // }
 // We deliberately drop wide key / fallback scanning to reduce overhead.
 
+/**
+ * Which planner surface a trip opens in. Mirrors the backend
+ * `Tripician.WebApi.Models.TripCoreModel.PlannerMode` enum (Easy = 0, Advanced = 1).
+ */
+export type PlannerMode = 'easy' | 'advanced';
+
+/**
+ * The backend serialises this enum as a PascalCase string, but older payloads and
+ * some list endpoints can hand back the raw int - accept both rather than silently
+ * dropping a trip into the wrong planner.
+ */
+export const parsePlannerMode = (value: unknown): PlannerMode | null => {
+  if (typeof value === 'number') return value === 0 ? 'easy' : value === 1 ? 'advanced' : null;
+  if (typeof value !== 'string') return null;
+  const v = value.trim().toLowerCase();
+  if (v === 'easy' || v === '0') return 'easy';
+  if (v === 'advanced' || v === '1') return 'advanced';
+  return null;
+};
+
+/** Wire form the API expects (PascalCase, matching the C# enum member names). */
+export const plannerModeToWire = (mode: PlannerMode): 'Easy' | 'Advanced' =>
+  mode === 'easy' ? 'Easy' : 'Advanced';
+
 export interface NormalizedTripMeta {
   id: string;
   name: string;
@@ -18,6 +42,7 @@ export interface NormalizedTripMeta {
   vibe?: string | null; // optional trip vibe
   photoUrl?: string | null; // trip banner/cover photo URL
   published?: boolean; // whether the trip has been explicitly published (visible to global community)
+  plannerMode?: PlannerMode | null; // easy (minimal board) vs advanced (full planner)
 }
 
 export interface NormalizedTrip {
@@ -50,6 +75,7 @@ export function normalizeTrip(input: any): NormalizedTrip | null {
     : (typeof targetNightsRaw === 'string' && targetNightsRaw.trim() && !isNaN(Number(targetNightsRaw)) ? Number(targetNightsRaw) : null);
   const description = typeof tripRoot.description === 'string' ? tripRoot.description : null;
   const vibe = typeof tripRoot.vibe === 'string' ? tripRoot.vibe : null;
+  const plannerMode = parsePlannerMode(tripRoot.plannerMode ?? tripRoot.PlannerMode);
   const photoUrl = typeof tripRoot.photoUrl === 'string' && tripRoot.photoUrl.trim().length ? tripRoot.photoUrl : null;
   const published =
     typeof tripRoot.published === 'boolean'
@@ -71,7 +97,7 @@ export function normalizeTrip(input: any): NormalizedTrip | null {
     Array.isArray(tripRoot.destinations) ? tripRoot.destinations :
     Array.isArray(tripRoot.Destinations) ? tripRoot.Destinations :
     [];
-  return { meta: { id, name, visibility, startDate, endDate, currencyCode, targetNights, importantNotes, description, vibe, photoUrl, published }, itinerary, raw: input };
+  return { meta: { id, name, visibility, startDate, endDate, currencyCode, targetNights, importantNotes, description, vibe, photoUrl, published, plannerMode }, itinerary, raw: input };
 }
 
 export default normalizeTrip;

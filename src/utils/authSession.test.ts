@@ -116,6 +116,7 @@ describe('clearSessionData - what a session leaves behind', () => {
     local.setItem('tripician:onboardingSeen', '1');
     local.setItem('tripician:feedbackPromptShown', '1');
     local.setItem('tripician:mobilePlannerNoticeAck', '1');
+    local.setItem('tripician:plannerTourSeen', '1');
     local.setItem('unsplash_v1_japan|landscape', 'https://images.unsplash.com/x');
 
     clearSessionData();
@@ -123,6 +124,7 @@ describe('clearSessionData - what a session leaves behind', () => {
     expect(local.getItem('tripician:onboardingSeen')).toBe('1');
     expect(local.getItem('tripician:feedbackPromptShown')).toBe('1');
     expect(local.getItem('tripician:mobilePlannerNoticeAck')).toBe('1');
+    expect(local.getItem('tripician:plannerTourSeen')).toBe('1');
     expect(local.getItem('unsplash_v1_japan|landscape')).toBeTruthy();
   });
 

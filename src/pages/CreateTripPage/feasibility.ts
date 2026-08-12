@@ -16,9 +16,13 @@
 
 import type { PlannerSpot } from '../../store/plannerSlice';
 import { peekPlaceDetails, type PlaceOpeningHours } from '../../services/placeVerification';
+import { PACE_USABLE_HOURS, type TripPace } from '../../utils/tripPreferences';
 
 export type FindingSeverity = 'high' | 'medium' | 'low';
-export type FindingCategory = 'pacing' | 'routing' | 'logistics' | 'gaps' | 'variety';
+// 'variety' was declared here and labelled in the dialog but never emitted by any
+// check - a category that could only ever render as dead code. Removed rather than
+// left as a promise the engine does not keep.
+export type FindingCategory = 'pacing' | 'routing' | 'logistics' | 'gaps';
 
 export interface Finding {
   id: string;
@@ -46,6 +50,12 @@ export interface FeasibilityInput {
   stops: FeasibilityStop[];
   tripStartDate?: string | null;
   tripEndDate?: string | null;
+  /**
+   * The pace the traveller asked for when they created the trip. Sets how long a
+   * day is here, so someone who told us they travel packed is not judged against
+   * a stranger's idea of a full day. Absent means the balanced default.
+   */
+  pace?: TripPace | null;
 }
 
 export interface FeasibilityReport {
@@ -56,6 +66,12 @@ export interface FeasibilityReport {
   verdict: string;
   /** Total estimated hours lost to travel between stops. */
   transitHours: number;
+  /**
+   * How many findings are `high` severity - the ones that would actually bite on
+   * the ground. Exported (rather than left as a local, as it was) so the planner
+   * toolbar can say "2 to fix" without re-deriving it or opening the dialog.
+   */
+  highCount: number;
 }
 
 /* ------------------------------------------------------------------ */
@@ -161,8 +177,18 @@ export function dwellFor(spot: { types?: string[]; placeId?: string }): number {
   return DEFAULT_DWELL_HOURS;
 }
 
-/** Hours a traveller can realistically sightsee in one day, excluding meals and rest. */
-const USABLE_HOURS_PER_DAY = 8;
+/**
+ * Hours a traveller can realistically sightsee in one day, excluding meals and rest.
+ *
+ * This used to be a flat 8 for everybody, which meant the check enforced one
+ * stranger's stamina on every trip: it called a packed traveller's deliberately
+ * full days "overloaded", and let a slow traveller's plan through unquestioned.
+ * The number now comes from the pace they chose when they created the trip. 8 is
+ * still what an unanswered trip gets, so nothing that was previously reported
+ * changes for trips created before this existed.
+ */
+const usableHoursPerDay = (pace?: TripPace | null): number =>
+  PACE_USABLE_HOURS[pace ?? 'balanced'] ?? PACE_USABLE_HOURS.balanced;
 
 /* ------------------------------------------------------------------ */
 /* Opening hours                                                       */
@@ -238,8 +264,9 @@ export function checkTransit(stops: FeasibilityStop[]): { findings: Finding[]; t
  * count what the spots actually take, against the daylight the stop really has
  * once travel is deducted.
  */
-export function checkDayBudget(stops: FeasibilityStop[]): Finding[] {
+export function checkDayBudget(stops: FeasibilityStop[], pace?: TripPace | null): Finding[] {
   const findings: Finding[] = [];
+  const hoursPerDay = usableHoursPerDay(pace);
 
   for (const stop of stops) {
     const spots = stop.spots ?? [];
@@ -249,16 +276,16 @@ export function checkDayBudget(stops: FeasibilityStop[]): Finding[] {
     // N nights gives N+1 days on the ground, but arrival and departure days are
     // part days - treat the stay as N usable days rather than N+1.
     const usableDays = Math.max(1, stop.nights);
-    const capacity = usableDays * USABLE_HOURS_PER_DAY;
+    const capacity = usableDays * hoursPerDay;
     // Getting between spots inside a city is not free either.
     const localHops = Math.max(0, spots.length - 1) * 0.4;
     const needed = spotHours + localHops;
 
-    // No slack factor here on purpose. USABLE_HOURS_PER_DAY is already the generous
-    // reading - it assumes a traveller is out sightseeing for eight hours with meals
-    // and rest taken outside that budget. Once the arithmetic exceeds it, the day
-    // genuinely does not fit, and padding the threshold would just reproduce the
-    // over-stuffed itineraries this check exists to catch.
+    // No slack factor here on purpose. The hours figure is already the generous
+    // reading of the pace they asked for - it assumes they are out sightseeing for
+    // that long with meals and rest taken outside the budget. Once the arithmetic
+    // exceeds it, the day genuinely does not fit, and padding the threshold would
+    // just reproduce the over-stuffed itineraries this check exists to catch.
     if (needed > capacity) {
       const perDay = (needed / usableDays).toFixed(1);
       findings.push({
@@ -266,7 +293,7 @@ export function checkDayBudget(stops: FeasibilityStop[]): Finding[] {
         severity: needed > capacity * 1.35 ? 'high' : 'medium',
         category: 'pacing',
         title: `${stop.name} is overloaded for ${usableDays} day${usableDays === 1 ? '' : 's'}`,
-        detail: `${spots.length} places works out at about ${perDay}h of activity per day before meals, rest or getting lost. Around ${USABLE_HOURS_PER_DAY}h is a full day.`,
+        detail: `${spots.length} places works out at about ${perDay}h of activity per day before meals, rest or getting lost. Around ${hoursPerDay}h is a full day at the pace you picked.`,
         suggestion: `Cut to about ${Math.max(1, Math.floor(capacity / DEFAULT_DWELL_HOURS))} places, or add a night here.`,
         stopName: stop.name,
       });
@@ -352,7 +379,7 @@ export function checkGaps(stops: FeasibilityStop[]): Finding[] {
       severity: empty.length > stops.length / 2 ? 'medium' : 'low',
       category: 'gaps',
       title: `${empty.length} stop${empty.length === 1 ? ' has' : 's have'} nothing planned`,
-      detail: `${empty.map(s => s.name).join(', ')} — no places added yet.`,
+      detail: `${empty.map(s => s.name).join(', ')}: no places added yet.`,
       suggestion: `Plan the stop, or drop it if it was a placeholder.`,
     });
   }
@@ -439,7 +466,7 @@ export function runFeasibility(input: FeasibilityInput): FeasibilityReport {
     ...transit.findings,
     ...checkNightsFit(input),
     ...checkClosedForStay(stops),
-    ...checkDayBudget(stops),
+    ...checkDayBudget(stops, input.pace),
     ...checkCluster(stops),
     ...checkGaps(stops),
   ];
@@ -468,5 +495,6 @@ export function runFeasibility(input: FeasibilityInput): FeasibilityReport {
     score,
     verdict,
     transitHours: transit.totalHours,
+    highCount: highs,
   };
 }

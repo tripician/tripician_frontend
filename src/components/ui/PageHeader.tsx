@@ -5,7 +5,10 @@ import type { SxProps, Theme } from '@mui/material/styles';
 interface PageHeaderProps {
   title: string;
   subtitle?: string;
-  /** Right-aligned slot for a filter, count, or action button. */
+  /**
+   * Right-aligned slot. Holds a filter, a count, a button, or a whole card
+   * (QuickPlanCard on Community and Trips).
+   */
   action?: React.ReactNode;
   sx?: SxProps<Theme>;
 }
@@ -27,7 +30,34 @@ interface PageHeaderProps {
 export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, action, sx }) => (
   <Box
     sx={[
-      { display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between', gap: 2 },
+      {
+        display: 'flex',
+        /*
+         * Row only from `md`, and top-aligned.
+         *
+         * Both of these were per-page overrides on Community until Trips got the
+         * same card and rendered it differently, so the h1 sat at the top of one
+         * page and the bottom of the other. The rule belongs here, once.
+         *
+         * `md`, not `sm`: QuickPlanCard is `width: {xs:'100%', md:380}`, so
+         * between 600 and 899px it is still full width, and a `width: 100%` child
+         * with `flexShrink: 0` in a flex row simply overflows the viewport next to
+         * an h1. Anything wide enough to need this slot has the same problem, so
+         * the breakpoint tracks the card rather than the generic `sm`.
+         *
+         * `flex-start`, not `flex-end`: bottom-aligning was right when this slot
+         * held a lone small button, but a tall action pushes the title down by the
+         * height difference and opens a dead band above the page's own h1. The
+         * heading belongs at the top of the page; the action can hang toward
+         * whatever follows, which has its own margin to absorb it. A page whose
+         * action is short enough to want the old baseline alignment can still pass
+         * `sx={{ alignItems: 'flex-end' }}`, which lands after this block.
+         */
+        flexDirection: { xs: 'column', md: 'row' },
+        alignItems: { xs: 'stretch', md: 'flex-start' },
+        justifyContent: 'space-between',
+        gap: { xs: 2.5, md: 2 },
+      },
       ...(Array.isArray(sx) ? sx : [sx]),
     ]}
   >
