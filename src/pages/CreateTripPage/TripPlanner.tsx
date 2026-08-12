@@ -12,7 +12,7 @@ import { useSelector, useDispatch, useStore } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import { updateDestinationNights, setTransport, addDestination, removeDestination, reorderChainExact, addVisaDoc, removeVisaDoc, removeGlobalDoc, pinDoc, unpinDoc, loadState, resetPlanner, setTripDates, setTargetNights, addSpot, addFoodItem, setDestinationNotes, clearDestinationDiscover, setDestinationCoords } from '../../store/plannerSlice';
 import { togglePin as togglePinDocSlice, removeDocument as removeDocsSliceDocument } from '../../store/docsSlice';
-import { loadPacking } from '../../store/packingSlice';
+import { loadPacking, resetPacking } from '../../store/packingSlice';
 import { DEFAULT_DOC_RULE } from '../../utils/fileValidation'; // legacy use (validateFiles removed after refactor)
 import ValidatedFileInput from '../../components/CommonComponents/ValidatedFileInput';
 import CreateTripNav from './TripPlannerNav';
@@ -1535,10 +1535,22 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			// cannot silently drop what the prompts read.
 			preferences: parseTripPreferences(rawExtras.preferences) ?? undefined
 		}));
-		if (rawExtras.packing && Array.isArray(rawExtras.packing.categories) && rawExtras.packing.categories.length > 0) {
-			dispatch(loadPacking(rawExtras.packing));
-			packingHydratedRef.current = true;
+		// The server copy wins when there is one.
+		//
+		// The empty case only CLEARS on a genuine trip change, never on a re-hydration
+		// of the same trip. This effect re-runs whenever the server copy is refreshed,
+		// and a list the traveller has only just added is not saved yet at that moment,
+		// so clearing unconditionally would throw it away. Cross-trip carry-over is the
+		// thing being prevented here, and that only needs the id comparison.
+		const serverPacking = rawExtras.packing && Array.isArray(rawExtras.packing.categories) && rawExtras.packing.categories.length > 0
+			? rawExtras.packing
+			: null;
+		if (serverPacking) {
+			dispatch(loadPacking(serverPacking));
+		} else if (packingHydratedRef.current !== meta.id) {
+			dispatch(resetPacking());
 		}
+		packingHydratedRef.current = meta.id;
 		hydratedRef.current = `${meta.id}:${itinerary.length}:${refreshKey}`;
 		// Commit initial snapshot after first hydration.
 		// Use computeSignatureRef (not the closure-captured computeSignature) so the rAF
@@ -2330,7 +2342,12 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			legs,
 			expenses: planner.expenses || [],
 			budget: planner.tripBudget ?? null,
-			packing: { categories: packingCategories },
+			// null, not an empty object, when there is no list. The backend stores
+			// null for a non-object, and the public trip page hides the whole packing
+			// block when nothing comes back, so a trip nobody has packed for shows no
+			// section at all rather than an empty one. Simple-mode trips never open
+			// the packing surface, so this is what they always send.
+			packing: packingCategories.length > 0 ? { categories: packingCategories } : null,
 			// Sent back verbatim so a plan save cannot blank what the generative
 			// prompts read. Omitted when the trip predates the question, which the
 			// server reads as "leave the stored value alone".
@@ -2914,20 +2931,29 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	// ── Trip Pulse: readiness model ─────────────────────────────────────────
 	// ── Packing persistence (per-trip, localStorage) ──────────────────────────
 	// Until packing gets a backend field, hydrate/save per trip so refreshes don't lose the list.
-	const packingHydratedRef = React.useRef(false);
+	//
+	// The ref holds the trip id, not a boolean. As a boolean it latched on the
+	// first trip of the session and never hydrated again, so opening a second trip
+	// in the same SPA session showed the FIRST trip's list. That was invisible
+	// while every trip was seeded with the same 70 defaults; now that a trip can
+	// legitimately have no list, it would be a visible cross-trip leak.
+	const packingHydratedRef = React.useRef<string | null>(null);
 	React.useEffect(() => {
-		if (!tripId || packingHydratedRef.current) return;
-		packingHydratedRef.current = true;
+		if (!tripId || packingHydratedRef.current === tripId) return;
+		packingHydratedRef.current = tripId;
+		// Clear first: a trip with nothing stored must show nothing, not whatever
+		// the previous trip left in the store.
+		dispatch(resetPacking());
 		try {
 			const raw = localStorage.getItem(`tripPacking:${tripId}`);
 			if (raw) {
 				const parsed = JSON.parse(raw);
 				if (parsed && Array.isArray(parsed.categories)) dispatch(loadPacking(parsed));
 			}
-		} catch { /* corrupt entry - keep defaults */ }
+		} catch { /* corrupt entry - leave the list empty */ }
 	}, [tripId, dispatch]);
 	React.useEffect(() => {
-		if (!tripId || !packingHydratedRef.current) return;
+		if (!tripId || packingHydratedRef.current !== tripId) return;
 		try {
 			localStorage.setItem(`tripPacking:${tripId}`, JSON.stringify({ categories: packingCategories }));
 		} catch { /* storage full - non-fatal */ }

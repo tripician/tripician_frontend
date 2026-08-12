@@ -13,7 +13,9 @@ import CheckroomIcon from '@mui/icons-material/Checkroom';
 import Inventory2OutlinedIcon from '@mui/icons-material/Inventory2Outlined';
 import BackpackOutlinedIcon from '@mui/icons-material/BackpackOutlined';
 import GroupAddOutlinedIcon from '@mui/icons-material/GroupAddOutlined';
-import { setActiveCategory, toggleItem, addItem, updateQuantity, addCategory, removeCategory, packingPresets } from '../../store/packingSlice';
+import { setActiveCategory, toggleItem, addItem, updateQuantity, addCategory, removeCategory, addStarterList, packingPresets, STARTER_LIST_SIZE } from '../../store/packingSlice';
+import EmptyState from '../../components/ui/EmptyState';
+import { IconLuggage } from '@tabler/icons-react';
 
 const PackingPanel: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -29,7 +31,9 @@ const PackingPanel: React.FC = () => {
   const [editDialogOpen, setEditDialogOpen] = React.useState(false);
   const [filterPreset, setFilterPreset] = React.useState('');
   const [customCategoryName, setCustomCategoryName] = React.useState('');
-  const handleAddItem = () => { if(newItem.trim()){ dispatch(addItem({ categoryId: active.id, name:newItem.trim() })); setNewItem(''); } };
+  // `active` is undefined until a list exists, which is now the state every new
+  // trip starts in.
+  const handleAddItem = () => { if(active && newItem.trim()){ dispatch(addItem({ categoryId: active.id, name:newItem.trim() })); setNewItem(''); } };
   const openAddDialog = ()=> { setAddDialogOpen(true); setFilterPreset(''); };
   const selectPreset = (id:string)=> {
     const preset = packingPresets.find(p=> p.id===id);
@@ -43,6 +47,59 @@ const PackingPanel: React.FC = () => {
   const createCustom = ()=> { if(!customCategoryName.trim()) return; dispatch(addCategory({ name: customCategoryName.trim() })); setCustomCategoryName(''); setAddDialogOpen(false); };
   const openEditDialog = ()=> { setEditDialogOpen(true); };
   const applyEdit = ()=> { setEditDialogOpen(false); };
+
+  /* Reachable from both the empty state and the populated view, so it is declared
+     once rather than written into each branch. */
+  const presetDialog = (
+    <Dialog open={addDialogOpen} onClose={()=> setAddDialogOpen(false)} maxWidth='md' fullWidth>
+      <DialogTitle>Add category</DialogTitle>
+      <DialogContent dividers>
+        <TextField fullWidth size='small' placeholder='Search presets...' value={filterPreset} onChange={e=> setFilterPreset(e.target.value)} sx={{ mb:2 }} />
+        <Box sx={{ display:'grid', gap:2, gridTemplateColumns:{ xs:'1fr', sm:'1fr 1fr', md:'1fr 1fr 1fr' } }}>
+          {packingPresets.filter(p=> !filterPreset || p.name.toLowerCase().includes(filterPreset.toLowerCase())).map(p=> (
+            <Card key={p.id} sx={{ p:1.5, display:'flex', flexDirection:'column', gap:.75 }}>
+              <Typography variant='subtitle2' fontWeight={600}>{p.name}</Typography>
+              <Typography variant='caption' color='text.secondary' noWrap>{p.items.slice(0,4).join(', ')}{p.items.length>4?'…':''}</Typography>
+              <Button size='small' variant='outlined' sx={{ mt:.5, alignSelf:'flex-start' }} onClick={()=> selectPreset(p.id)}>Select</Button>
+            </Card>
+          ))}
+        </Box>
+        <Divider sx={{ my:2 }} />
+        <Box sx={{ display:'flex', gap:1 }}>
+          <TextField size='small' placeholder='Custom category name' value={customCategoryName} onChange={e=> setCustomCategoryName(e.target.value)} fullWidth />
+          <Button variant='contained' size='small' disabled={!customCategoryName.trim()} onClick={createCustom}>Create</Button>
+        </Box>
+      </DialogContent>
+      <DialogActions>
+        <Button onClick={()=> setAddDialogOpen(false)}>Close</Button>
+      </DialogActions>
+    </Dialog>
+  );
+
+  /*
+   * Nothing on the list yet.
+   *
+   * A trip no longer opens with 70 items we wrote, so this is the first thing
+   * every traveller sees here. The standard list is one press away, which is what
+   * the seeded default was really for, except now it is a choice and the trip
+   * stores nothing at all until it is made.
+   */
+  if (categories.length === 0) {
+    return (
+      <Box sx={{ display:'flex', alignItems:'center', justifyContent:'center', height:'100%', minHeight:320 }}>
+        <EmptyState
+          icon={IconLuggage}
+          title="Nothing packed yet"
+          description={`Start from the standard ${STARTER_LIST_SIZE}-item list of clothing, essentials and toiletries, or build your own from a preset like Hiking or Beach.`}
+          actionLabel="Use the standard list"
+          onAction={()=> dispatch(addStarterList())}
+          secondaryLabel="Pick a preset"
+          onSecondary={openAddDialog}
+        />
+        {presetDialog}
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ display:'flex', height:'100%', gap:3 }}>
@@ -134,30 +191,7 @@ const PackingPanel: React.FC = () => {
         </Box>
         {/* Footer summary & delete removed per request */}
       </Box>
-      {/* Add Category Dialog */}
-      <Dialog open={addDialogOpen} onClose={()=> setAddDialogOpen(false)} maxWidth='md' fullWidth>
-        <DialogTitle>Add category</DialogTitle>
-        <DialogContent dividers>
-          <TextField fullWidth size='small' placeholder='Search presets...' value={filterPreset} onChange={e=> setFilterPreset(e.target.value)} sx={{ mb:2 }} />
-          <Box sx={{ display:'grid', gap:2, gridTemplateColumns:{ xs:'1fr', sm:'1fr 1fr', md:'1fr 1fr 1fr' } }}>
-            {packingPresets.filter(p=> !filterPreset || p.name.toLowerCase().includes(filterPreset.toLowerCase())).map(p=> (
-              <Card key={p.id} sx={{ p:1.5, display:'flex', flexDirection:'column', gap:.75 }}>
-                <Typography variant='subtitle2' fontWeight={600}>{p.name}</Typography>
-                <Typography variant='caption' color='text.secondary' noWrap>{p.items.slice(0,4).join(', ')}{p.items.length>4?'…':''}</Typography>
-                <Button size='small' variant='outlined' sx={{ mt:.5, alignSelf:'flex-start' }} onClick={()=> selectPreset(p.id)}>Select</Button>
-              </Card>
-            ))}
-          </Box>
-          <Divider sx={{ my:2 }} />
-          <Box sx={{ display:'flex', gap:1 }}>
-            <TextField size='small' placeholder='Custom category name' value={customCategoryName} onChange={e=> setCustomCategoryName(e.target.value)} fullWidth />
-            <Button variant='contained' size='small' disabled={!customCategoryName.trim()} onClick={createCustom}>Create</Button>
-          </Box>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={()=> setAddDialogOpen(false)}>Close</Button>
-        </DialogActions>
-      </Dialog>
+      {presetDialog}
       {/* Edit Category Dialog */}
       <Dialog open={editDialogOpen} onClose={()=> setEditDialogOpen(false)} maxWidth='sm' fullWidth>
         <DialogTitle>Edit list</DialogTitle>
