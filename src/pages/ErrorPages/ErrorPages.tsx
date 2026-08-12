@@ -43,7 +43,7 @@ const ErrorShell: React.FC<BaseProps> = ({ title, subtitle, icon, actionLabel='G
 
 export const NotFound404: React.FC = () => (
   <ErrorShell
-    title='404 – Not Found'
+    title='404 - Not Found'
     subtitle="We couldn't find the page you were looking for. It may have been moved or removed."
     icon={<TravelExploreIcon sx={{ fontSize:96, color:'primary.main' }} />}
   />
@@ -51,7 +51,7 @@ export const NotFound404: React.FC = () => (
 
 export const InternalError500: React.FC = () => (
   <ErrorShell
-    title='500 – Server Error'
+    title='500 - Server Error'
     subtitle='Something broke on our side. The team has been notified. Please try again later.'
     icon={<ReportGmailerrorredIcon sx={{ fontSize:96, color:'error.main' }} />}
   />
@@ -77,7 +77,7 @@ export const UnderConstruction: React.FC = () => (
 
 export const SomethingWentWrong: React.FC = () => (
   <ErrorShell
-    title='Oops – Something Went Wrong'
+    title='Oops - Something Went Wrong'
     subtitle='An unexpected problem occurred. You can refresh the page or return home.'
     icon={<SentimentDissatisfiedIcon sx={{ fontSize:96, color:'secondary.main' }} />}
   />

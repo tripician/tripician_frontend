@@ -99,6 +99,9 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose }) 
     currencyCode: 'USD',
     vibe,
     invites: [] as string[],
+    // Every new trip opens in the simple planner - the reviews that prompted this
+    // ("from where should I start?") all came from the first five minutes.
+    plannerMode: 'Easy' as const,
     ...(generateWithAI ? { generateWithAI: true } : {}),
   });
 

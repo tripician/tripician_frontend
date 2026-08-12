@@ -343,7 +343,17 @@ const plannerSlice = createSlice({
     },
     renameDestination(state, action: PayloadAction<{ id: string; name: string }>) {
       const d = state.destinations.find(x => x.id === action.payload.id);
-      if (d) d.name = action.payload.name;
+      if (!d) return;
+      const next = action.payload.name;
+      if (d.name.trim().toLowerCase() === next.trim().toLowerCase()) { d.name = next; return; }
+      // A rename points the stop at a DIFFERENT place, so the old geometry is now
+      // a lie - it would leave the map pin and the route leg on the previous city.
+      // Cleared rather than re-resolved here (reducers must stay synchronous); the
+      // planner's backfill sweep picks the stop up and geocodes the new name.
+      d.name = next;
+      d.lat = undefined;
+      d.lng = undefined;
+      d.placeId = undefined;
     },
     setDestinationTitle(state, action: PayloadAction<{ id: string; title: string }>) {
       const d = state.destinations.find(x => x.id === action.payload.id);

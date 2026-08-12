@@ -235,7 +235,7 @@ const SupportWidget: React.FC = () => {
                 Got a second?
               </Typography>
               <Typography sx={{ fontSize: '0.76rem', lineHeight: 1.45, color: 'text.secondary' }}>
-                Tell us what's working (or not) — your first note earns <Box component="span" sx={{ fontWeight: 700, color: '#FF385C' }}>5 bonus AI credits</Box>.
+                Tell us what's working (or not). Your first note earns <Box component="span" sx={{ fontWeight: 700, color: '#FF385C' }}>5 bonus AI credits</Box>.
               </Typography>
             </Box>
           </motion.div>

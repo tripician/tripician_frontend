@@ -96,7 +96,7 @@ apiClient.interceptors.response.use(
         originalConfig.baseURL = httpBase;
         (originalConfig as any)._protocolRetry = true;
         // eslint-disable-next-line no-console
-        console.warn('[apiServices] HTTPS connection refused – retrying via HTTP', { httpBase });
+        console.warn('[apiServices] HTTPS connection refused - retrying via HTTP', { httpBase });
         return apiClient.request(originalConfig);
       } catch (retryErr) {
         // eslint-disable-next-line no-console
@@ -230,6 +230,8 @@ export const apiServices = {
     invites?: string[];
     description?: string | null;
     vibe?: string | null;
+    /** Which planner surface the trip opens in. Omitted => Easy (the server default). */
+    plannerMode?: 'Easy' | 'Advanced';
   }) => {
     // Validate description length if present
     if (data.description && data.description.length > 300) {
@@ -274,6 +276,8 @@ export const apiServices = {
       countries?: string[];
       description?: string | null;
       vibe?: string | null;
+      /** Easy | Advanced. Omitted leaves the stored mode untouched. */
+      plannerMode?: 'Easy' | 'Advanced';
       // rating?: number | null; // Do NOT send rating from client
     };
     itinerary: Array<{
@@ -443,6 +447,8 @@ export const apiServices = {
     bannerPhotoId?: string;
     privacy?: string;
     photoUrl?: string;
+    /** Easy | Advanced. Omitted leaves the stored mode untouched. */
+    plannerMode?: 'Easy' | 'Advanced';
     // rating?: number | null; // Do NOT send rating from client
   }) => {
     if (data.description && data.description.length > 300) {

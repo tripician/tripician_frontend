@@ -74,7 +74,7 @@ export function validateSignupEmail(email: string): EmailValidationResult {
   if (isDisposableEmail(email)) {
     return {
       valid: false,
-      error: "Please use a permanent email address — temporary/disposable emails aren't allowed.",
+      error: "Please use a permanent email address. Temporary or disposable emails aren't allowed.",
     };
   }
   return { valid: true };

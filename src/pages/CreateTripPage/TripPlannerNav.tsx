@@ -1,49 +1,16 @@
 import React from 'react';
 import { Box, Tooltip } from '@mui/material';
-import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
-import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ImportExportIcon from '@mui/icons-material/ImportExport';
 import SoonTag from '../../components/CommonComponents/SoonTag';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
-import NewspaperIcon from '@mui/icons-material/Newspaper';
-import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
 import { motion } from 'framer-motion';
-
-// Custom lightweight T-shirt icon (since Material baseline set lacks a direct Tshirt glyph)
-const TshirtIcon: React.FC<{ fontSize?: 'small' | 'medium' | 'large' }> = ({ fontSize = 'small' }) => {
-  const size = fontSize === 'small' ? 20 : fontSize === 'large' ? 32 : 24;
-  return (
-    <Box
-      component='svg'
-      viewBox='0 0 24 24'
-      sx={{ width: size, height: size, display: 'block' }}
-      focusable={false}
-      aria-hidden='true'
-    >
-      <path
-        fill='currentColor'
-        d='M16 3l-2 2h-4L8 3 3 5.5l1.5 3.5L7 8v11c0 .55.45 1 1 1h8c.55 0 1-.45 1-1V8l2.5 1 1.5-3.5L16 3z'
-      />
-    </Box>
-  );
-};
-
-interface NavItem { id: string; label: string; icon: React.ReactNode; }
-
-// Updated navigation: Plan, Budget, News, Packing, Docs
-const navItems: NavItem[] = [
-  { id: 'plan', label: 'Plan', icon: <CalendarMonthIcon fontSize='small' /> },
-  { id: 'budget', label: 'Budget', icon: <AccountBalanceWalletOutlinedIcon fontSize='small' /> },
-  { id: 'news', label: 'News', icon: <NewspaperIcon fontSize='small' /> },
-  { id: 'packing', label: 'Packing', icon: <TshirtIcon fontSize='small' /> },
-  { id: 'docs', label: 'Docs', icon: <InsertDriveFileIcon fontSize='small' /> }
-];
+import { visiblePlannerNavItems } from './plannerNavItems';
 
 interface TripPlannerNavProps { active?: string; onChange?: (id: string) => void; onSettingsClick?:()=>void; hideSections?: string[]; canAccessDocs?: boolean; docsEnabled?: boolean; settingsDisabled?: boolean; budgetEnabled?: boolean }
 
 const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChange, onSettingsClick, hideSections=[], canAccessDocs=true, docsEnabled=true, settingsDisabled=false, budgetEnabled=true }) => {
-  const { importExport, docsSection } = FEATURE_FLAGS;
+  const { importExport } = FEATURE_FLAGS;
   return (
     <Box
       sx={(theme) => ({
@@ -79,7 +46,7 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
         fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
       })}
     >
-  {navItems.filter(i=> !hideSections.includes(i.id) && (i.id!=='docs' || (canAccessDocs && docsSection)) && (i.id!=='budget' || budgetEnabled)).map(item => {
+  {visiblePlannerNavItems({ hideSections, canAccessDocs, docsEnabled, budgetEnabled }).map(item => {
         const selected = item.id === active;
         const isDocs = item.id==='docs';
   const disabledDocs = isDocs && !docsEnabled;

@@ -170,6 +170,7 @@ const NaviaPage: React.FC = () => {
         currencyCode: 'USD',
         vibe: extracted.vibe ?? null,
         invites: [] as string[],
+        plannerMode: 'Easy', // every new trip opens in the simple planner
       });
       const createdId: string | undefined =
         createResp?.data?.id || createResp?.data?.Id || createResp?.data?.tripId;

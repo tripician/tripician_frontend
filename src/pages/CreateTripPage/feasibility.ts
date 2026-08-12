@@ -18,7 +18,10 @@ import type { PlannerSpot } from '../../store/plannerSlice';
 import { peekPlaceDetails, type PlaceOpeningHours } from '../../services/placeVerification';
 
 export type FindingSeverity = 'high' | 'medium' | 'low';
-export type FindingCategory = 'pacing' | 'routing' | 'logistics' | 'gaps' | 'variety';
+// 'variety' was declared here and labelled in the dialog but never emitted by any
+// check - a category that could only ever render as dead code. Removed rather than
+// left as a promise the engine does not keep.
+export type FindingCategory = 'pacing' | 'routing' | 'logistics' | 'gaps';
 
 export interface Finding {
   id: string;
@@ -56,6 +59,12 @@ export interface FeasibilityReport {
   verdict: string;
   /** Total estimated hours lost to travel between stops. */
   transitHours: number;
+  /**
+   * How many findings are `high` severity - the ones that would actually bite on
+   * the ground. Exported (rather than left as a local, as it was) so the planner
+   * toolbar can say "2 to fix" without re-deriving it or opening the dialog.
+   */
+  highCount: number;
 }
 
 /* ------------------------------------------------------------------ */
@@ -352,7 +361,7 @@ export function checkGaps(stops: FeasibilityStop[]): Finding[] {
       severity: empty.length > stops.length / 2 ? 'medium' : 'low',
       category: 'gaps',
       title: `${empty.length} stop${empty.length === 1 ? ' has' : 's have'} nothing planned`,
-      detail: `${empty.map(s => s.name).join(', ')} — no places added yet.`,
+      detail: `${empty.map(s => s.name).join(', ')}: no places added yet.`,
       suggestion: `Plan the stop, or drop it if it was a placeholder.`,
     });
   }
@@ -468,5 +477,6 @@ export function runFeasibility(input: FeasibilityInput): FeasibilityReport {
     score,
     verdict,
     transitHours: transit.totalHours,
+    highCount: highs,
   };
 }

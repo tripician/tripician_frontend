@@ -118,6 +118,7 @@ export const QuickPlanCard: React.FC<QuickPlanCardProps> = ({ token }) => {
         currencyCode: 'USD',
         vibe: draft.vibe ?? '',
         invites: [] as string[],
+        plannerMode: 'Easy', // every new trip opens in the simple planner
       });
 
       // The backend has returned this as id / Id / tripId depending on the DTO.

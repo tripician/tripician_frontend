@@ -2,17 +2,24 @@ import React from 'react';
 import {
   Box, Dialog, DialogContent, Typography, Button, IconButton, Chip, LinearProgress, useTheme,
 } from '@mui/material';
-import { IconX, IconRefresh, IconCheck, IconRoute, IconShieldCheck } from '@tabler/icons-react';
+import { IconX, IconCheck, IconRoute, IconRulerMeasure, IconArrowRight } from '@tabler/icons-react';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
-import { runFeasibility, type FeasibilityReport, type FeasibilityStop } from './feasibility';
+import { type FeasibilityReport } from './feasibility';
+import { useFeasibility } from './useFeasibility';
 
 interface PlanReviewDialogProps {
   open: boolean;
   onClose: () => void;
-  tripName: string;
-  tripVibe?: string | null;
+  /**
+   * Jump to a stop on the board. Without this the dialog is a pure report - it had
+   * no callbacks at all, so it structurally could not act on the plan it critiques.
+   */
+  onGoToStop?: (stopName: string) => void;
 }
+// `tripName`/`tripVibe` were removed with the subtitle rewrite: the subtitle now
+// carries the trust claim ("measured, not guessed") instead of restating which trip
+// you are looking at, which a modal opened from that trip does not need to say.
 
 const SEVERITY_META: Record<string, { label: string; color: string; bg: string }> = {
   high:   { label: 'High',   color: '#dc2626', bg: 'rgba(220,38,38,0.10)' },
@@ -24,7 +31,6 @@ const CATEGORY_LABELS: Record<string, string> = {
   pacing: 'Pacing',
   routing: 'Routing',
   logistics: 'Logistics',
-  variety: 'Variety',
   gaps: 'Gaps',
 };
 
@@ -43,34 +49,17 @@ const formatHours = (h: number) => (h >= 1 ? `${h.toFixed(1)}h` : `${Math.round(
  * charge and no loading state.
  */
 const PlanReviewDialog: React.FC<PlanReviewDialogProps> = ({
-  open, onClose, tripName, tripVibe,
+  open, onClose, onGoToStop,
 }) => {
   const theme = useTheme();
-  const planner = useSelector((s: RootState) => s.planner);
-  // Bumping this re-runs the checks after the user edits the plan behind the dialog.
-  const [runId, setRunId] = React.useState(0);
+  const destinationCount = useSelector((s: RootState) => s.planner.destinations.length);
+  // Shared with the toolbar pill, so the number on the button and the findings in
+  // here are always the same computation. The memo re-runs on any plan edit, which
+  // is why the old explicit "Check again" button is gone - it was re-running
+  // something that had already re-run.
+  const report: FeasibilityReport = useFeasibility();
 
-  const report: FeasibilityReport = React.useMemo(() => {
-    const stops: FeasibilityStop[] = planner.destinations.map(d => ({
-      id: d.id,
-      name: d.name,
-      nights: d.nights || 0,
-      lat: d.lat,
-      lng: d.lng,
-      spots: d.spots ?? [],
-      startDate: d.startDate,
-      stays: d.stays ?? [],
-    }));
-    return runFeasibility({
-      stops,
-      tripStartDate: planner.tripStartDate,
-      tripEndDate: planner.tripEndDate,
-    });
-    // runId is an explicit re-run trigger, not a value the result depends on.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [planner.destinations, planner.tripStartDate, planner.tripEndDate, runId]);
-
-  const hasStops = planner.destinations.length > 0;
+  const hasStops = destinationCount > 0;
 
   return (
     <Dialog
@@ -82,13 +71,16 @@ const PlanReviewDialog: React.FC<PlanReviewDialogProps> = ({
     >
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 3, pt: 2.5, pb: 1.5 }}>
-        <IconShieldCheck size={24} color='#FF385C' />
+        <IconRulerMeasure size={24} color='#FF385C' />
         <Box sx={{ flex: 1, minWidth: 0 }}>
           <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '1.02rem', lineHeight: 1.2 }}>
             Reality check
           </Typography>
+          {/* The trust argument IS the subtitle: this is arithmetic, not a model
+              guessing. The old line listed the inputs but never made the claim,
+              which is the one thing that separates this from an AI suggestion. */}
           <Typography noWrap sx={{ fontSize: '0.74rem', color: 'text.secondary', fontFamily: "'Inter',sans-serif" }}>
-            {tripName}{tripVibe ? ` · ${tripVibe} style` : ''} · distances, opening hours and time budgets
+            Real distances, opening hours and day budgets. Measured, not guessed.
           </Typography>
         </Box>
         <IconButton size='small' onClick={onClose} sx={{ color: 'text.disabled' }}>
@@ -136,7 +128,7 @@ const PlanReviewDialog: React.FC<PlanReviewDialogProps> = ({
                 <IconRoute size={16} style={{ flexShrink: 0 }} />
                 <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary', fontFamily: "'Inter',sans-serif", lineHeight: 1.5 }}>
                   About <strong>{formatHours(report.transitHours)}</strong> of this trip is spent getting between stops
-                  {report.transitHours >= 8 ? ` — that's roughly ${Math.round(report.transitHours / 8)} full day${report.transitHours >= 16 ? 's' : ''} of travel.` : '.'}
+                  {report.transitHours >= 8 ? `, which is roughly ${Math.round(report.transitHours / 8)} full day${report.transitHours >= 16 ? 's' : ''} of travel.` : '.'}
                 </Typography>
               </Box>
             )}
@@ -181,9 +173,38 @@ const PlanReviewDialog: React.FC<PlanReviewDialogProps> = ({
                         <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', fontFamily: "'Inter',sans-serif", lineHeight: 1.5, mb: 0.5 }}>
                           {issue.detail}
                         </Typography>
+                        {/* "Try:" read like a debug prefix. The suggestion is the most
+                            useful line in the card, so it gets a real label. */}
                         <Typography sx={{ fontSize: '0.8rem', color: theme.palette.mode === 'light' ? '#B45309' : '#fbbf24', fontFamily: "'Inter',sans-serif", lineHeight: 1.5 }}>
-                          Try: {issue.suggestion}
+                          <Box component='span' sx={{ fontWeight: 700 }}>What to do: </Box>{issue.suggestion}
                         </Typography>
+                        {/* stopName was populated by four of the six checks and never
+                            rendered. Showing it turns "somewhere is overloaded" into
+                            "this stop is", and makes the finding navigable. */}
+                        {issue.stopName && onGoToStop && (
+                          <Box
+                            component='button'
+                            type='button'
+                            onClick={() => { onGoToStop(issue.stopName!); onClose(); }}
+                            sx={(t) => ({
+                              display: 'inline-flex', alignItems: 'center', gap: 0.4,
+                              mt: 1, p: 0, border: 'none', bgcolor: 'transparent',
+                              fontFamily: 'inherit', fontSize: '0.76rem', fontWeight: 600,
+                              color: 'text.secondary', cursor: 'pointer',
+                              transition: `color ${t.custom.motion.duration.fast} ${t.custom.motion.easing.standard}`,
+                              '&:hover': { color: 'primary.main' },
+                              '&:focus-visible': { outline: `2px solid ${t.custom.ring}`, outlineOffset: 2 },
+                            })}
+                          >
+                            Go to {issue.stopName}
+                            <IconArrowRight size={13} stroke={2} />
+                          </Box>
+                        )}
+                        {issue.stopName && !onGoToStop && (
+                          <Typography sx={{ mt: 0.75, fontSize: '0.76rem', fontWeight: 600, color: 'text.disabled', fontFamily: "'Inter',sans-serif" }}>
+                            {issue.stopName}
+                          </Typography>
+                        )}
                       </Box>
                     );
                   })}
@@ -200,15 +221,20 @@ const PlanReviewDialog: React.FC<PlanReviewDialogProps> = ({
               </Box>
             )}
 
-            <Box sx={{ display: 'flex', justifyContent: 'flex-end', pt: 0.5 }}>
+            {/* No "Check again": the report is a memo over the live plan, so it has
+                already re-run by the time you could press it. Closing to go fix
+                something is the only action left worth offering. */}
+            <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, pt: 0.5 }}>
+              <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', fontFamily: "'Inter',sans-serif", lineHeight: 1.45 }}>
+                Re-checks itself as you edit, so there is no need to run it again.
+              </Typography>
               <Button
-                variant='outlined'
+                variant='contained'
                 size='small'
-                startIcon={<IconRefresh size={14} />}
-                onClick={() => setRunId(n => n + 1)}
-                sx={{ textTransform: 'none', borderRadius: '50px', fontWeight: 700, fontSize: '0.78rem' }}
+                onClick={onClose}
+                sx={{ textTransform: 'none', borderRadius: '50px', fontWeight: 700, fontSize: '0.78rem', flexShrink: 0 }}
               >
-                Check again
+                {report.findings.length > 0 ? 'Got it' : 'Close'}
               </Button>
             </Box>
           </Box>

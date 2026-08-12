@@ -118,7 +118,7 @@ const ProfileTripCard: React.FC<{ trip: any; onClick: () => void; showOwner?: bo
     const fmt = (d: Date, withYear: boolean) =>
       d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', ...(withYear ? { year: 'numeric' } : {}) });
     if (!e || Number.isNaN(e.getTime())) return fmt(s, true);
-    return `${fmt(s, s.getFullYear() !== e.getFullYear())} – ${fmt(e, true)}`;
+    return `${fmt(s, s.getFullYear() !== e.getFullYear())} - ${fmt(e, true)}`;
   })();
 
   return (

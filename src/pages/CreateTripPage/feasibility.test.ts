@@ -290,6 +290,31 @@ describe('runFeasibility', () => {
     }
   });
 
+  // highCount drives the planner toolbar's "N to fix" label, so it has to agree
+  // with the findings it claims to summarise.
+  it('reports how many findings are high severity', () => {
+    const report = runFeasibility({
+      stops: [
+        stop('Bangkok', {
+          ...BANGKOK,
+          nights: 1,
+          spots: Array.from({ length: 20 }, (_, i) => spot(`Place ${i}`)),
+        }),
+        stop('Sukhothai', { ...SUKHOTHAI, nights: 1 }),
+      ],
+      tripStartDate: '2026-07-27',
+      tripEndDate: '2026-08-10',
+    });
+
+    expect(report.highCount).toBe(report.findings.filter(f => f.severity === 'high').length);
+    expect(report.highCount).toBeGreaterThan(0);
+  });
+
+  it('reports zero high-severity findings for a clean plan', () => {
+    const report = runFeasibility({ stops: [stop('Bangkok', { ...BANGKOK, nights: 3 })] });
+    expect(report.highCount).toBe(0);
+  });
+
   it('gives a clean plan a high score and credits verified places', () => {
     const report = runFeasibility({
       stops: [stop('Bangkok', {

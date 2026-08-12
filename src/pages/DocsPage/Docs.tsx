@@ -58,7 +58,7 @@ const Docs: React.FC = () => {
     source: 'global' as const
   }));
   const docs = React.useMemo(()=> {
-    // Avoid duplicating if sliceDocs already contains a doc with same base id (rare after bridging) – prefer sliceDoc entry
+    // Avoid duplicating if sliceDocs already contains a doc with same base id (rare after bridging) - prefer sliceDoc entry
     const baseIds = new Set(sliceDocs.map(d=> d.id));
     const plannerConverted = [...plannerVisa, ...plannerGlobal].filter(d=> !baseIds.has(d.originalId || ''));
     return [...sliceDocs, ...plannerConverted];

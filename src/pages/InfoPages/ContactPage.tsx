@@ -144,7 +144,7 @@ const ContactPage: React.FC = () => {
                 <Typography sx={{ fontWeight: 700, color: '#111', fontSize: '0.92rem' }}>Response Time</Typography>
               </Box>
               <Typography sx={{ fontSize: '0.87rem', color: '#555', lineHeight: 1.7 }}>
-                We typically respond within <strong>1–2 business days</strong>. For urgent issues, include "URGENT" in your subject line.
+                We typically respond within <strong>1-2 business days</strong>. For urgent issues, include "URGENT" in your subject line.
               </Typography>
             </Box>
 
