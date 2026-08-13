@@ -4,7 +4,6 @@ import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import {
   IconMap,
-  IconCompass,
   IconBrain,
   IconArrowRight,
   IconChevronDown,
@@ -15,8 +14,10 @@ import {
   IconLayoutGrid,
   IconCheck,
   IconShield,
+  IconRosetteDiscountCheckFilled,
+  IconUserCheck,
+  IconWallet,
   IconBolt,
-  IconSparkles,
 } from '@tabler/icons-react';
 import '../../assets/css/LandingPage.css';
 import Seo, { SITE_URL } from '../../components/Seo';
@@ -30,46 +31,46 @@ import { tripCoverPhoto, resolveTripCover, type TripCoverSource } from '../../ut
 gsap.registerPlugin(ScrollTrigger);
 
 /*  STATIC DATA  */
+/**
+ * The feature grid, cut to what actually earns trust and answers a real worry.
+ *
+ * It used to carry eight cards in roughly the order they were built. Three of them
+ * (Vibe Matching, the group chat, the Risk Monitor) each have their own richer section
+ * further down this page, so the grid was repeating the page back to itself, and two
+ * more (Interactive Maps, a day-by-day planner) are table stakes that every rival
+ * claims, which makes them worth nothing as a reason to choose this one.
+ *
+ * The first three are the ones we lead with, in that order: can I trust a stranger's
+ * itinerary, will it suit me, and will it hold up once I am standing there. The last two
+ * back them up. Nothing here is aspirational. Every claim describes something shipped,
+ * and the specifics are deliberate: a vague promise is indistinguishable from every
+ * other planner's vague promise.
+ */
 const FEATURES = [
   {
-    icon: <IconSparkles size={24} stroke={1.75} />,
-    title: 'Vibe Matching',
-    desc: 'Every trip, group, and profile is tagged with a travel personality. Culture seekers find culture seekers. Spiritual explorers find monastery routes. You never settle.',
+    icon: <IconRosetteDiscountCheckFilled size={24} />,
+    title: 'Tripician Verified',
+    desc: 'Some itineraries carry a verified mark. It means a person on our team read the whole plan and put our name on it, not a score an algorithm handed out. Verified trips sit at the top of the community.',
   },
   {
-    icon: <IconUsers size={24} stroke={1.75} />,
-    title: 'One chat, one plan',
-    desc: 'Every trip gets a shared chat where friends, family, and Navia plan together. Type @navia to propose changes, discuss them, and apply updates to the itinerary.',
+    icon: <IconUserCheck size={24} stroke={1.75} />,
+    title: 'Planned around how you travel',
+    desc: 'Tell us your pace, who is coming, what pulls you in and what you do not eat. Those answers travel with every request to Navia, so the places, the food and how much fits in a day come back shaped by them.',
+  },
+  {
+    icon: <IconBrain size={24} stroke={1.75} />,
+    title: 'We catch what breaks the trip',
+    desc: 'Before you book, we measure the plan against real distances and opening hours: the hours you lose getting between stops, the days you have overloaded for the pace you picked, and anything shut for your whole stay.',
   },
   {
     icon: <NaviaOrb size={24} />,
     title: 'Every place checked before you see it',
-    desc: 'Navia drafts the route, stops, spots and local food - then each place is matched against a live listing. Anything permanently closed is dropped, and anything we could not confirm says so.',
+    desc: 'Navia drafts the route, stops, spots and local food, then each place is matched against a live listing. Anything permanently closed is dropped, and anything we could not confirm says so instead of pretending.',
   },
   {
-    icon: <IconShield size={24} stroke={1.75} />,
-    title: 'Live Risk Monitor',
-    desc: 'Real-time travel advisories, severe weather, currency shifts and breaking news auto-mapped to every destination in your active plan.',
-  },
-  {
-    icon: <IconBrain size={24} stroke={1.75} />,
-    title: 'Reality check',
-    desc: 'Before you fly, we measure the plan: how many hours you actually lose getting between stops, which days are overloaded, and anything closed for the whole time you are in town.',
-  },
-  {
-    icon: <IconMap size={24} stroke={1.75} />,
-    title: 'Interactive Maps',
-    desc: 'Visualise your entire journey on a live map. Pin destinations, draw routes, and explore at a glance - solo or with your group.',
-  },
-  {
-    icon: <IconCompass size={24} stroke={1.75} />,
-    title: 'Day-by-Day Planner',
-    desc: 'Organise every day with destinations, stays, activities, and notes. Optimise your route with one click - then publish your trip so others can discover it.',
-  },
-  {
-    icon: <IconBolt size={24} stroke={1.75} />,
-    title: 'Budgets, Split Expenses & Packing',
-    desc: 'Set a trip budget, log shared costs, and settle up with the fewest transfers possible. Packing lists live right inside the trip, so nothing gets left behind.',
+    icon: <IconWallet size={24} stroke={1.75} />,
+    title: 'Nobody chases anybody for money',
+    desc: 'Set a trip budget, log shared costs as they happen, and settle up in the fewest transfers possible. Packing lists live inside the trip too, so nothing gets left behind.',
   },
 ];
 
@@ -1101,10 +1102,14 @@ export default function LandingPage() {
       {/*  FEATURES  */}
       <section className="lp-features" id="features">
         <div className="lp-features__header">
-          <span className="lp-section-eyebrow">Everything you need</span>
-          <h2 className="lp-section-title">Built around your travel personality</h2>
+          {/* Reworded with the grid. "Everything you need" and "built around your travel
+              personality" belonged to a list that led with Vibe Matching and tried to
+              cover the whole product. This one has a narrower job: answer the doubts a
+              stranger arrives with, in the order they arrive. */}
+          <span className="lp-section-eyebrow">Why people stay</span>
+          <h2 className="lp-section-title">A plan you can actually trust</h2>
           <p className="lp-section-sub">
-            From solo explorers to group adventures. Every feature is designed around who you are as a traveler, not just where you're going.
+            Anyone can generate an itinerary. These are the parts that decide whether it survives contact with the real world.
           </p>
         </div>
         <div className="lp-features__grid">
