@@ -19,6 +19,7 @@ import {
   IconSailboat, IconWalk, IconLuggage, IconStar, IconLock,
   IconCircle, IconCircleCheckFilled, IconShirt, IconId, IconDroplet,
   IconPlug, IconFirstAidKit, IconMountain, IconConfetti, IconChevronDown,
+  IconRosetteDiscountCheckFilled,
 } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { apiServices } from '../../services/APIs/apiServices';
@@ -29,6 +30,7 @@ import { VIBES } from '../CommunityPage/vibes';
 import { safeExternalUrl } from '../../utils/sanitizeHtml';
 import TripShareModal from '../../components/TripShareModal';
 import ProvenanceChip from '../../components/CommonComponents/ProvenanceChip';
+import VerifiedTripBadge from '../../components/CommonComponents/VerifiedTripBadge';
 import ExpandableText from '../../components/ui/ExpandableText';
 import type { SpotProvenance } from '../../store/plannerSlice';
 import TripComments from '../CreateTripPage/TripComments';
@@ -89,6 +91,9 @@ interface TripShowcaseProps {
 
 const fmtDay = (d?: string) => (d ? dayjs(d).format('MMM D') : null);
 const fmtDow = (d?: string) => (d ? dayjs(d).format('ddd, MMM D') : null);
+/* Month and year only. The exact day is noise for an editorial review, and the coarser
+   grain ages better on a page people revisit months later. */
+const fmtVerifiedMonth = (d?: string) => (d ? dayjs(d).format('MMMM YYYY') : null);
 const fmtFull = (d?: string) => (d ? dayjs(d).format('MMM D, YYYY') : null);
 
 /** Google-Maps link for a whole stop (coords first, name search fallback). */
@@ -290,6 +295,10 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
   const startDate: string | undefined = root.startDate || root.StartDate || undefined;
   const endDate: string | undefined = root.endDate || root.EndDate || undefined;
   const vibeId: string | null = (root.vibe || root.Vibe || null)?.toLowerCase?.() ?? null;
+  // Strict === true, not truthiness. This is an endorsement claim, so anything other
+  // than an explicit yes from the server has to read as "no badge".
+  const isVerified: boolean = root.verified === true || root.Verified === true;
+  const verifiedAt: string | undefined = root.verifiedAt || root.VerifiedAt || undefined;
   const owner = root.owner || root.Owner || {};
   const ownerName: string = owner.name || owner.Name || 'A Tripician traveler';
   const ownerAvatar: string | undefined = owner.profilePictureUrl || owner.ProfilePictureUrl || undefined;
@@ -567,9 +576,15 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
               {countries.join('  ·  ')}
             </Typography>
           )}
-          <Typography component="h1" sx={{ color: '#fff', fontFamily: serif, fontWeight: 700, fontSize: { xs: '2.1rem', sm: '2.8rem', md: '3.4rem' }, lineHeight: 1.08, letterSpacing: '-0.02em', maxWidth: 900, textShadow: '0 2px 24px rgba(0,0,0,0.35)' }}>
-            {name}
-          </Typography>
+          {/* Badge beside the h1, not inside it, so it keeps its own baseline against a
+              title that can wrap to three lines at this size. `alignSelf: flex-end` on
+              the wrapper would drop it to the last line's baseline; centre is steadier. */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, maxWidth: 900 }}>
+            <Typography component="h1" sx={{ color: '#fff', fontFamily: serif, fontWeight: 700, fontSize: { xs: '2.1rem', sm: '2.8rem', md: '3.4rem' }, lineHeight: 1.08, letterSpacing: '-0.02em', textShadow: '0 2px 24px rgba(0,0,0,0.35)' }}>
+              {name}
+            </Typography>
+            <VerifiedTripBadge verified={isVerified} verifiedAt={verifiedAt} variant="hero" />
+          </Box>
           <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', mt: 2, color: 'rgba(255,255,255,0.92)', fontFamily: "'Inter',sans-serif", fontSize: 14 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
               <Avatar src={ownerAvatar} sx={{ width: 26, height: 26, fontSize: 12, bgcolor: '#FF385C' }}>{ownerName[0]}</Avatar>
@@ -1295,6 +1310,18 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                   <vibe.Icon size={17} style={{ color: '#FF385C', flexShrink: 0 }} />
                   <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary', fontFamily: "'Inter',sans-serif" }}>
                     {vibe.label} trip
+                  </Typography>
+                </Box>
+              )}
+              {/* The claim in words. The hero carries a bare glyph, which is recognisable
+                  but says nothing; a reader who wants to know what the mark means finds
+                  the sentence here. Glyph plus prose is what makes it legible rather than
+                  decorative. */}
+              {isVerified && (
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
+                  <IconRosetteDiscountCheckFilled size={17} style={{ color: '#0EA5E9', flexShrink: 0 }} />
+                  <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary', fontFamily: "'Inter',sans-serif" }}>
+                    Tripician Verified{verifiedAt ? ` · ${fmtVerifiedMonth(verifiedAt)}` : ''}
                   </Typography>
                 </Box>
               )}
