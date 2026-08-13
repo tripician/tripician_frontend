@@ -165,6 +165,9 @@ const Dashboard: React.FC = () => {
     // was permanently empty.
     isArchived: t.isArchived === true || t.IsArchived === true,
     tripStatus: typeof t.tripStatus === 'number' ? t.tripStatus : 0,
+    // Strict === true: an endorsement claim must never render off a truthy accident.
+    verified: t.verified === true || t.Verified === true,
+    verifiedAt: t.verifiedAt ?? t.VerifiedAt ?? null,
     ownerId: (() => {
       const o = t.owner || t.Owner;
       return String(
@@ -604,6 +607,8 @@ const Dashboard: React.FC = () => {
                 onShare={() => handleShare(plan)}
                 onDelete={plan.isOwner ? () => setDeleteTarget({ id: plan.id, title: plan.title }) : undefined}
                 tripStatus={plan.tripStatus}
+                verified={plan.verified}
+                verifiedAt={plan.verifiedAt}
                 isOwner={plan.isOwner}
                 commentsCount={plan.commentsCount}
                 onGoLive={plan.isOwner && plan.tripStatus === 0 ? async () => {

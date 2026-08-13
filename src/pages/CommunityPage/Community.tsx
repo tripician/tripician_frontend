@@ -26,6 +26,8 @@ import {
 import CommunityTripCard from './CommunityTripCard';
 import { VIBES } from './vibes';
 import FilterChip from '../../components/ui/FilterChip';
+import { compareTripsForFeed } from '../../utils/tripRanking';
+import VerifiedTripBadge from '../../components/CommonComponents/VerifiedTripBadge';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { apiServices } from '../../services/APIs/apiServices';
 import { fetchUnsplashImage } from '../../services/unsplashService';
@@ -152,15 +154,27 @@ const FeatureTripCard: React.FC<{ trip: any; onClick: () => void }> = ({ trip, o
         <Typography variant="overline" sx={{ color: 'primary.main' }}>
           Trip of the day
         </Typography>
-        <Typography sx={{
-          fontFamily: theme.custom.fontDisplay,
-          fontWeight: 700,
-          fontSize: { xs: '1.55rem', md: '2.1rem' },
-          letterSpacing: '-0.02em', lineHeight: 1.15, color: 'text.primary',
-          display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-        }}>
-          {trip.name || 'Untitled Trip'}
-        </Typography>
+        {/* The badge needs its own flex row here rather than sitting inline: this title
+            is a clamped `-webkit-box`, so anything placed inside it becomes part of the
+            clamped text and can be truncated away. Centre-aligned, which reads right for
+            a one-line title and still looks deliberate when it wraps to two. */}
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
+          <Typography sx={{
+            fontFamily: theme.custom.fontDisplay,
+            fontWeight: 700,
+            fontSize: { xs: '1.55rem', md: '2.1rem' },
+            letterSpacing: '-0.02em', lineHeight: 1.15, color: 'text.primary',
+            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
+            minWidth: 0,
+          }}>
+            {trip.name || 'Untitled Trip'}
+          </Typography>
+          <VerifiedTripBadge
+            verified={trip.verified ?? trip.Verified}
+            verifiedAt={trip.verifiedAt ?? trip.VerifiedAt}
+            variant="hero"
+          />
+        </Box>
         {trip.description && (
           <Typography sx={{
             fontSize: 14.5, lineHeight: 1.6, color: 'text.secondary',
@@ -384,15 +398,9 @@ const Community: React.FC = () => {
     return () => { active = false; };
   }, []);
 
-  // Default view ranks by community engagement so "Trending" is real.
-  // Comments weigh heaviest: writing a reply costs far more than tapping a heart,
-  // so a trip people are actually discussing deserves to surface above one that
-  // simply collected likes.
-  const engagementScore = (t: any) =>
-    (Number(t.likesCount ?? t.likes) || 0)
-    + 2 * (Number(t.cloneCount) || 0)
-    + 3 * (Number(t.commentsCount ?? t.CommentsCount) || 0);
-
+  // Ordering lives in utils/tripRanking.ts so the rule is testable: Tripician Verified
+  // first as a hard tier, then community engagement, where comments weigh heaviest
+  // because writing a reply costs far more than tapping a heart.
   const filtered = React.useMemo(() => {
     let list = trips;
     if (activeCategory !== 'all') {
@@ -405,10 +413,18 @@ const Community: React.FC = () => {
         (t.description || '').toLowerCase().includes(q) ||
         (Array.isArray(t.countries) && t.countries.some((c: string) => c.toLowerCase().includes(q)))
       );
-    } else {
-      list = [...list].sort((a, b) => engagementScore(b) - engagementScore(a));
     }
-    return list;
+    /*
+     * Sorted in BOTH branches now. It used to live in an `else`, so searching returned
+     * raw server order.
+     *
+     * The server already orders verified-first, so `filter` alone would technically
+     * satisfy the tier here and this sort would be redundant. That is exactly why it is
+     * written out: leaving a visible product rule to be enforced only by an `OrderBy`
+     * three layers away in another language means the next person to add a sort, a
+     * paginated endpoint or a client-side merge breaks it and nothing says so.
+     */
+    return [...list].sort(compareTripsForFeed);
   }, [trips, activeCategory, search]);
 
   // Trip of the Day - deterministic daily rotation so every visit feels fresh

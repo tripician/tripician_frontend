@@ -13,6 +13,7 @@ import { useAuthToken } from '../../hooks/useAuth0Token';
 import { apiServices } from '../../services/APIs/apiServices';
 import { tripCoverPhoto, savedBanner, resolveTripCover } from '../../utils/tripCover';
 import ImageBadge from '../../components/ui/ImageBadge';
+import VerifiedTripBadge from '../../components/CommonComponents/VerifiedTripBadge';
 import { VIBES } from './vibes';
 
 interface TripCardProps { trip: any; onClick: () => void; }
@@ -177,9 +178,16 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
 
         {/* Card body */}
         <Box sx={{ px: 1.75, pt: 1.5, pb: 1.5, display: 'flex', flexDirection: 'column', gap: 0.5, flex: 1 }}>
-          <Typography noWrap sx={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: 'text.primary' }}>
-            {trip.name || 'Untitled Trip'}
-          </Typography>
+          {/* The badge is a SIBLING of the title, not a child of it. Inside the noWrap
+              Typography a long trip name would push it straight out of view, which is
+              the one placement that must never happen to an endorsement mark. minWidth:0
+              is what lets the title still truncate inside the flex row. */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+            <Typography noWrap sx={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: 'text.primary', minWidth: 0 }}>
+              {trip.name || 'Untitled Trip'}
+            </Typography>
+            <VerifiedTripBadge verified={trip.verified ?? trip.Verified} verifiedAt={trip.verifiedAt ?? trip.VerifiedAt} />
+          </Box>
           {/* Weight carries the structure, opacity keeps it in its place. At 400
               this line sat at the same visual level as the description below it
               and stopped reading as the title's subhead; at full-strength 600 it

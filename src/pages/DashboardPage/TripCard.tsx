@@ -3,6 +3,7 @@ import { Avatar, AvatarGroup, Box, IconButton, LinearProgress, Tooltip, Typograp
 import { motion } from 'framer-motion';
 import { IconBroadcast, IconMapPin, IconMessageCircle2, IconShare2, IconTrash } from '@tabler/icons-react';
 import ImageBadge from '../../components/ui/ImageBadge';
+import VerifiedTripBadge from '../../components/CommonComponents/VerifiedTripBadge';
 
 // Deterministic avatar colour from name/id - cycles through a warm palette
 const AVATAR_COLORS = ['#FF385C', '#0EA5E9', '#0FA968', '#F59E0B', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
@@ -26,6 +27,9 @@ interface TripCardProps {
   onShare?: (e: React.MouseEvent) => void;
   onDelete?: (e: React.MouseEvent) => void;
   tripStatus?: number;
+  /** Tripician Verified. Set by an admin; the owner cannot grant it. */
+  verified?: boolean;
+  verifiedAt?: string | null;
   isOwner?: boolean;
   onGoLive?: () => void;
   /** Comments left by the community on this trip, replies included. */
@@ -34,7 +38,7 @@ interface TripCardProps {
 
 /** Personal trip card for the dashboard: cover, plan progress, members, actions. */
 const TripCard: React.FC<TripCardProps> = ({
-  title, image, description, progress, edited, members, countries, onClick, onShare, onDelete, tripStatus, isOwner, onGoLive, commentsCount,
+  title, image, description, progress, edited, members, countries, onClick, onShare, onDelete, tripStatus, isOwner, onGoLive, commentsCount, verified, verifiedAt,
 }) => {
   const theme = useTheme();
 
@@ -121,9 +125,14 @@ const TripCard: React.FC<TripCardProps> = ({
 
         {/* Body */}
         <Box sx={{ px: 1.75, pt: 1.5, pb: 1.25, display: 'flex', flexDirection: 'column', gap: 0.5, flex: 1 }}>
-          <Typography noWrap sx={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: 'text.primary' }}>
-            {title}
-          </Typography>
+          {/* Badge as a sibling of the noWrap title, same reasoning as the community
+              card: inside it, a long trip name pushes the mark out of view. */}
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
+            <Typography noWrap sx={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: 'text.primary', minWidth: 0 }}>
+              {title}
+            </Typography>
+            <VerifiedTripBadge verified={verified} verifiedAt={verifiedAt} />
+          </Box>
           {/* Bold and held back - same subhead treatment as CommunityTripCard. */}
           {countryDisplay && (
             <Typography noWrap sx={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.005em', color: 'text.secondary', opacity: 0.72 }}>

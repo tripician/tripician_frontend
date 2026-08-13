@@ -42,6 +42,8 @@ export interface NormalizedTripMeta {
   vibe?: string | null; // optional trip vibe
   photoUrl?: string | null; // trip banner/cover photo URL
   published?: boolean; // whether the trip has been explicitly published (visible to global community)
+  verified?: boolean; // Tripician Verified: an admin reviewed this itinerary
+  verifiedAt?: string | null; // when the endorsement was granted; null when not verified
   plannerMode?: PlannerMode | null; // easy (minimal board) vs advanced (full planner)
 }
 
@@ -91,6 +93,20 @@ export function normalizeTrip(input: any): NormalizedTrip | null {
           : typeof tripRoot.IsPublished === 'boolean'
             ? tripRoot.IsPublished
             : undefined;
+  /*
+   * Resolves to `false`, not `undefined`. That is the OPPOSITE of `published` directly
+   * above, and the difference is deliberate rather than a copy-paste slip.
+   *
+   * `published` stays undefined when absent because the planner adopts it and writes it
+   * back, so "we were not told" must not be mistaken for "it is a draft". Nothing ever
+   * writes `verified` back from a client: it is an affirmative claim of endorsement that
+   * only an admin can grant. The safe reading of silence is therefore "no badge", and
+   * `=== true` keeps a truthy-adjacent value from rendering a claim we cannot support.
+   */
+  const verified = tripRoot.verified === true || tripRoot.Verified === true;
+  const verifiedAt = typeof tripRoot.verifiedAt === 'string' ? tripRoot.verifiedAt
+    : typeof tripRoot.VerifiedAt === 'string' ? tripRoot.VerifiedAt
+      : null;
   const itinerary =
     Array.isArray(input.itinerary) ? input.itinerary :
     Array.isArray(input.Itinerary) ? input.Itinerary :
@@ -101,7 +117,7 @@ export function normalizeTrip(input: any): NormalizedTrip | null {
     Array.isArray(tripRoot.destinations) ? tripRoot.destinations :
     Array.isArray(tripRoot.Destinations) ? tripRoot.Destinations :
     [];
-  return { meta: { id, name, visibility, startDate, endDate, currencyCode, targetNights, importantNotes, description, vibe, photoUrl, published, plannerMode }, itinerary, raw: input };
+  return { meta: { id, name, visibility, startDate, endDate, currencyCode, targetNights, importantNotes, description, vibe, photoUrl, published, verified, verifiedAt, plannerMode }, itinerary, raw: input };
 }
 
 export default normalizeTrip;
