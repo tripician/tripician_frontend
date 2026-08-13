@@ -1,6 +1,7 @@
 // api/apiService.ts - This is the ONLY additional file you need
 import axios from 'axios';
 import type { TripPreferences } from '../../utils/tripPreferences';
+import { forceSignOut, getFreshToken } from '../auth/tokenService';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
 // Debug log once (safe in dev; minimal noise in prod)
@@ -24,7 +25,7 @@ const mask = (s?: string | null) => {
 };
 
 // Log outgoing requests (helps diagnose missing Authorization header in prod)
-apiClient.interceptors.request.use((config) => {
+apiClient.interceptors.request.use(async (config) => {
   try {
     const authHeader = (config.headers as any)?.Authorization || (config.headers as any)?.authorization || '<none>';
     // eslint-disable-next-line no-console
@@ -34,11 +35,24 @@ apiClient.interceptors.request.use((config) => {
     console.warn('[apiServices] Request logging failed', e);
   }
   try {
-    // Attach token from localStorage if not already present on the request
+    /*
+     * Attach a FRESH token, overwriting whatever the caller passed.
+     *
+     * This used to only fill in a missing header, which made it dead code: every
+     * one of the ~28 service methods below sets `Authorization` explicitly from a
+     * token argument, so the condition never held and a stale token could never be
+     * corrected here. Overwriting is what makes this interceptor authoritative, and
+     * it is also why those `token` parameters do not need a 28-signature refactor:
+     * they are now harmless, and they still serve as the "use exactly this token"
+     * path that sign-in relies on immediately after storing one.
+     *
+     * `getFreshToken` returns null synchronously for a guest, so public browsing
+     * pays no latency for this.
+     */
     if (typeof window !== 'undefined') {
-      const token = localStorage.getItem('accessToken');
+      const token = await getFreshToken();
       const headersAny = config.headers as any;
-      if (token && !headersAny?.Authorization && !headersAny?.authorization) {
+      if (token) {
         headersAny.Authorization = `Bearer ${token}`;
       }
     }
@@ -57,33 +71,55 @@ apiClient.interceptors.response.use(
     // Centralize original config for possible retry logic
     const originalConfig = error.config;
 
-    // 401 handling (don't immediately clear tokens while debugging)
+    /*
+     * 401: refresh once, then retry once.
+     *
+     * The previous version could never fire. Its guard was `token && !hadAuth`, and
+     * an expired-token 401 always had an Authorization header, so the only requests
+     * it retried were ones that had never been authenticated in the first place. The
+     * real case, "this token just expired", fell straight through to a rejected
+     * promise, which is why an expired session showed a shell full of failing panels
+     * and no way out.
+     */
     if (error.response?.status === 401) {
-      try {
-        const reqUrl = originalConfig?.url;
-        const hadAuth = !!((originalConfig?.headers as any)?.Authorization || (originalConfig?.headers as any)?.authorization);
-        // eslint-disable-next-line no-console
-        console.warn('[apiServices] Received 401 for', reqUrl, 'hadAuthorization=', hadAuth);
+      const reqUrl = originalConfig?.url;
+      const serverCode = error.response?.data?.code;
 
-        // If this request hasn't been retried yet, try to attach token from storage and retry once
-        if (!originalConfig?._retried) {
-          (originalConfig as any)._retried = true;
-          const token = typeof window !== 'undefined' ? localStorage.getItem('accessToken') : null;
-          if (token && !hadAuth) {
-            // Attach token and retry
-            originalConfig.headers = { ...(originalConfig.headers || {}), Authorization: `Bearer ${token}` };
+      // Some 401s are not about expiry and a refresh cannot fix them. Retrying those
+      // would burn a refresh and then sign the user out for the wrong reason.
+      const unrefreshable = serverCode === 'MISSING_SUB_CLAIM' || serverCode === 'INVALID_TOKEN_TYPE';
+
+      if (!unrefreshable && originalConfig) {
+        try {
+          if ((originalConfig as any)._authRetried) {
+            // Already refreshed once for this request and still 401. The credential
+            // is not going to start working; end the session deliberately, once.
             // eslint-disable-next-line no-console
-            console.debug('[apiServices] Retrying request with attached token for', reqUrl);
-            return apiClient.request(originalConfig);
+            console.warn('[apiServices] 401 after refresh for', reqUrl, '- ending session');
+            forceSignOut('token_expired');
+          } else {
+            (originalConfig as any)._authRetried = true;
+            // Concurrent 401s all await the same in-flight refresh, so N failed
+            // requests cause one token exchange, not N.
+            const fresh = await getFreshToken({ force: true });
+            if (fresh) {
+              originalConfig.headers = { ...(originalConfig.headers || {}), Authorization: `Bearer ${fresh}` };
+              // eslint-disable-next-line no-console
+              console.debug('[apiServices] Retrying after token refresh for', reqUrl);
+              return apiClient.request(originalConfig);
+            }
+            // getFreshToken returning null means the token service has already
+            // decided what to do (sign out, or leave the session alone on a network
+            // failure). Do not second-guess it here.
           }
+        } catch (e) {
+          // eslint-disable-next-line no-console
+          console.warn('[apiServices] Error handling 401', e);
         }
-      } catch (e) {
-        // eslint-disable-next-line no-console
-        console.warn('[apiServices] Error handling 401', e);
       }
 
-      // Emit event for visibility but do not clear tokens here to avoid race-driven logout
-      try { window.dispatchEvent(new CustomEvent('auth:401', { detail: { url: originalConfig?.url, status: 401 } })); } catch {}
+      // Kept for telemetry//debugging visibility.
+      try { window.dispatchEvent(new CustomEvent('auth:401', { detail: { url: reqUrl, status: 401, code: serverCode } })); } catch {}
     }
 
     // Protocol fallback: If HTTPS localhost refuses connection, retry once over HTTP.
@@ -119,6 +155,11 @@ export const telemetryAPI = {
 
   // Final flush when the tab hides/closes. Raw fetch because axios has no
   // keepalive; the request must be allowed to outlive the page.
+  //
+  // Reads the stored token synchronously and does NOT refresh: `pagehide` cannot
+  // await anything, so there is no opportunity to. A dropped heartbeat when the
+  // token happened to expire is an acceptable loss for a telemetry ping, and it is
+  // the only request in the app deliberately outside the refresh path.
   flush: (clientSessionId: string, plannerTripId?: string | null) => {
     try {
       const token = localStorage.getItem('accessToken');
@@ -267,8 +308,23 @@ export const apiServices = {
     trip: {
       id: string;
       name: string;
-      status: 'DRAFT' | 'PUBLISHED';
-      privacy: string;
+      /**
+       * Publishing does NOT belong to this endpoint and must not be sent here.
+       *
+       * The server used to write `trip.Published` from this string whenever it was
+       * non-blank, and its permission bar is owner OR any active member, unlike
+       * PATCH /publish which is owner-only. So a client that filled this in could
+       * publish or unpublish someone else's trip as a mere member. The planner never
+       * sent it, and the server no longer reads it. Use `setTripPublished`.
+       */
+      status?: never;
+      /**
+       * Visibility does not belong here either. It is derived from the published
+       * state and set explicitly by `changeTripVisibility`; sending it from a plan
+       * save is what silently dropped published trips out of the public listing.
+       * Omitted leaves the stored visibility untouched.
+       */
+      privacy?: never;
       currency: string;
       startDate: string;
       endDate: string;

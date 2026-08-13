@@ -2,7 +2,7 @@
 import React from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { alpha } from '@mui/material/styles';
-import { Box, Typography, Divider, Button, Avatar, AvatarGroup, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Snackbar, Alert, useTheme, useMediaQuery, Drawer, Fab } from '@mui/material';
+import { Box, Typography, Divider, Button, Avatar, AvatarGroup, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Snackbar, Alert, Menu, MenuItem, ListItemIcon, useTheme, useMediaQuery, Drawer, Fab } from '@mui/material';
 // Props-based TripPlanner; tripId + optional initialTrip provided by route wrapper
 import DownloadIcon from '@mui/icons-material/Download';
 import PushPinIcon from '@mui/icons-material/PushPin';
@@ -69,6 +69,11 @@ import ReportProblemRoundedIcon from '@mui/icons-material/ReportProblemRounded';
 import { fetchUnsplashImage } from '../../services/unsplashService';
 import confetti from 'canvas-confetti';
 import ShareRoundedIcon from '@mui/icons-material/ShareRounded';
+import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
+import OpenInNewRoundedIcon from '@mui/icons-material/OpenInNewRounded';
+import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
+import VisibilityOffRoundedIcon from '@mui/icons-material/VisibilityOffRounded';
+import { tripPath } from '../../utils/tripSlug';
 import NightsStayRoundedIcon from '@mui/icons-material/NightsStayRounded';
 import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
@@ -282,6 +287,53 @@ export interface ChatSeedStop {
 	foods: string[];
 	notes: string;
 }
+
+/**
+ * The publish control's two looks, lifted out of the JSX so the draft button and
+ * the published badge cannot drift apart on padding or height. Draft is the action
+ * (coral); published is a state (green). Both are flat: the three-stop gradients
+ * and the green spread-glow they used to carry were doing the job colour already
+ * does.
+ */
+const PUBLISH_BUTTON_SX = {
+	base: {
+		ml: .5,
+		textTransform: 'none' as const,
+		borderRadius: '20px',
+		height: 32,
+		fontSize: 12,
+		fontWeight: 700,
+		minWidth: 0,
+		letterSpacing: '-0.1px',
+		gap: .4,
+		flexShrink: 0,
+		transition: 'background-color .15s cubic-bezier(.4,0,.2,1)',
+	},
+	get draft() {
+		return {
+			...this.base,
+			px: 1.6,
+			bgcolor: '#FF385C',
+			color: '#fff',
+			border: '1px solid rgba(255,255,255,0.15)',
+			'&:hover': { bgcolor: '#E31C5F' },
+			'&:active': { bgcolor: '#D91A50' },
+			'&.Mui-disabled': { bgcolor: '#FF385C', color: 'rgba(255,255,255,0.7)' },
+		};
+	},
+	get published() {
+		return {
+			...this.base,
+			px: 1.4,
+			bgcolor: '#2e7d32',
+			color: '#fff',
+			border: '1px solid rgba(255,255,255,0.12)',
+			'&:hover': { bgcolor: '#256628' },
+			'&.Mui-disabled': { bgcolor: '#2e7d32', color: '#fff', opacity: 1 },
+			'& .MuiButton-endIcon': { ml: .15 },
+		};
+	},
+};
 
 /* --- Persistent AI Chat Panel (GitHub Copilot-style right column) --- */
 const SUGGESTED_PROMPTS = [
@@ -1238,17 +1290,16 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		draft ? 'Trip Members' : 'Everyone'
 	), []);
 
-	// Map UI privacy values to server-expected privacy strings.
-	// UI values: 'Private' | 'Trip Members' | 'Everyone'
-	// Server expects: 'private' | 'members' | 'everyone' (case-insensitive; prefer lowercase)
-	const mapPrivacyForServer = React.useCallback((uiPrivacy: string | null | undefined): 'private' | 'members' | 'everyone' => {
-		if (!uiPrivacy) return 'private';
-		const v = String(uiPrivacy).trim().toLowerCase();
-		if (v === 'trip members' || v === 'trip_members' || v === 'members' || v === 'tripmembers') return 'members';
-		if (v === 'everyone' || v === 'public') return 'everyone';
-		// default to private for any unknown value
-		return 'private';
-	}, []);
+	// The "Published" badge's menu, and the confirmation it opens.
+	const [publishedMenuAnchor, setPublishedMenuAnchor] = React.useState<HTMLElement | null>(null);
+	const [unpublishConfirmOpen, setUnpublishConfirmOpen] = React.useState(false);
+
+	/* `mapPrivacyForServer` lived here and translated the UI privacy label into the
+	   server's 'private' | 'members' | 'everyone'. Its only caller was the plan-save
+	   payload, which no longer sends privacy at all (see buildPersistPayload), so it
+	   is gone. Visibility now travels one way only: through
+	   apiServices.changeTripVisibility, called explicitly by the publish and
+	   unpublish actions, which already send the enum name the API wants. */
 
 	// Convert a date string (YYYY-MM-DD or ISO) to full ISO8601 UTC timestamp
 	// If input is already an ISO datetime, return it unchanged. If it's date-only
@@ -1411,7 +1462,20 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				setCountries([]);
 			}
 		} catch {}
-		setPrivacy(derivePrivacyFromDraft(isDraft));
+		// Adopt the SERVER's published state.
+		//
+		// isDraft is seeded from location.state only (see its declaration), and
+		// TripPlannerRoute passes no state on a hard refresh or a direct URL, so an
+		// already-published trip used to open showing a coral "Publish" button with
+		// Comments disabled. Worse, the autosave then derived privacy from that wrong
+		// flag and quietly dropped the trip out of /api/trips/public. normalizeTrip has
+		// always parsed meta.published; nothing read it until now.
+		//
+		// Only trust it when the payload actually carried the field. A response shape
+		// that omits it must not be read as "unpublished".
+		const serverDraft = typeof meta.published === 'boolean' ? !meta.published : isDraft;
+		if (serverDraft !== isDraft) setIsDraft(serverDraft);
+		setPrivacy(derivePrivacyFromDraft(serverDraft));
 		const metaStart = sanitizeDateString(meta.startDate) || null;
 		const metaEnd = sanitizeDateString(meta.endDate) || null;
 		setTripStartDate(metaStart);
@@ -2320,7 +2384,18 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			trip: {
 				id: tripId,
 				name: title,
-				privacy: mapPrivacyForServer(derivePrivacyFromDraft(_draft)),
+				// Visibility is deliberately NOT sent from a plan save.
+				//
+				// It used to be derived from the local draft flag, so any autosave on a
+				// trip the planner wrongly believed was a draft wrote Visibility=Members
+				// on the server while Published stayed true. That silently pulled published
+				// trips out of /api/trips/public and the sitemap while leaving them in the
+				// community feed, which filters on Published and ignores Visibility.
+				//
+				// Visibility belongs to the publish action, which sets it explicitly via
+				// changeTripVisibility. Omitting the field here makes the server keep
+				// whatever is stored (its switch falls through to trip.Visibility on any
+				// unrecognised or absent value).
 				currency,
 				startDate: formatDateToIsoUtc(finalStart),
 				endDate: formatDateToIsoUtc(finalEnd),
@@ -2491,41 +2566,80 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		return { hasTitle, hasDescription, allDatesCovered, wordCount, expectedNights, coveredNights };
 	}, [title, tripDescription, tripStartDate, tripEndDate, planner.destinations]);
 
+	/**
+	 * Publish. Split from unpublish rather than being one branching handler.
+	 *
+	 * It used to be a single function with an if/else on isDraft, whose else branch
+	 * was unreachable because its only caller sat behind the same condition on a
+	 * button that was disabled once published. Two named functions cannot develop a
+	 * dead half.
+	 */
 	const handlePublish = async () => {
 		if(!currentUserIsOwner || !authToken) return; // safety
+		if(!isDraft) return;
 		// "Simple plans can't be published" is a rule, not just a hidden button.
 		// Enforce it here too so no other path (keyboard, a future shortcut, a
 		// stale handler) can publish a trip the user is drafting in Easy mode.
 		if(easy) return;
-		if(isDraft){
-			setSaving(true);
-			try {
-				// Publishing should always make the trip publicly readable.
-				await apiServices.changeTripVisibility(authToken, tripId, { visibility: 'Everyone' });
-				await apiServices.setTripPublished(authToken, tripId, true);
-				setPrivacy('Everyone');
-				commitSnapshot(false);
-				setShowCelebration(true);
-			} catch {
-				openToast('error', 'Failed to publish trip. Please try again.');
-			} finally {
-				setSaving(false);
-			}
-		} else {
-			// Unpublish -> revert to draft
-			setSaving(true);
-			try {
-				await apiServices.setTripPublished(authToken, tripId, false);
-				// Unpublished trips should default back to trip-members visibility.
-				await apiServices.changeTripVisibility(authToken, tripId, { visibility: 'Members' });
-				setPrivacy('Trip Members');
-				commitSnapshot(true);
-				openToast('info', 'Trip unpublished');
-			} catch {
-				openToast('error', 'Failed to unpublish trip. Please try again.');
-			} finally {
-				setSaving(false);
-			}
+		setSaving(true);
+		try {
+			// Publishing should always make the trip publicly readable.
+			await apiServices.changeTripVisibility(authToken, tripId, { visibility: 'Everyone' });
+			await apiServices.setTripPublished(authToken, tripId, true);
+			setPrivacy('Everyone');
+			commitSnapshot(false);
+			setShowCelebration(true);
+		} catch {
+			openToast('error', 'Failed to publish trip. Please try again.');
+		} finally {
+			setSaving(false);
+		}
+	};
+
+	/**
+	 * Unpublish. Reached only from the confirmation the Published badge menu opens.
+	 *
+	 * Order matters: clear Published first, then drop Visibility. If the second call
+	 * fails the trip is already out of every published listing, which is the
+	 * direction the user asked for. Doing it the other way round would leave a trip
+	 * that is still listed as published but no longer readable.
+	 */
+	const handleUnpublish = async () => {
+		if(!currentUserIsOwner || !authToken) return;
+		if(isDraft) return;
+		setSaving(true);
+		try {
+			await apiServices.setTripPublished(authToken, tripId, false);
+			// Unpublished trips default back to trip-members visibility.
+			await apiServices.changeTripVisibility(authToken, tripId, { visibility: 'Members' });
+			setPrivacy('Trip Members');
+			commitSnapshot(true);
+			openToast('info', 'Trip unpublished. Only you and your crew can see it now.');
+		} catch {
+			openToast('error', 'Failed to unpublish trip. Please try again.');
+		} finally {
+			setSaving(false);
+		}
+	};
+
+	/** The URL the public sees, slug included so it matches the sitemap canonical. */
+	const publicTripUrl = React.useMemo(
+		() => `${window.location.origin}${tripPath({ id: tripId, name: title })}`,
+		[tripId, title],
+	);
+
+	// Not memoized on purpose: it is handed to one menu item, so there is nothing to
+	// save, and `openToast` is recreated every render, which would make a useCallback
+	// here churn its own dependencies.
+	const handleCopyPublicLink = async () => {
+		setPublishedMenuAnchor(null);
+		try {
+			await navigator.clipboard.writeText(publicTripUrl);
+			openToast('success', 'Link copied');
+		} catch {
+			// Clipboard access is denied in some embedded/insecure contexts. Showing the
+			// URL is a worse experience than copying it, but better than silence.
+			openToast('info', publicTripUrl);
 		}
 	};
 
@@ -3419,15 +3533,17 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 							</Tooltip>
 							)}
 							{!readOnly && effectiveCanEdit && (
-							<Tooltip arrow placement='bottom' title={!isDraft ? 'Your trip is live visible to everyone' : saving ? 'Publishing...' : 'Make your trip public'}>
-								{/* Publish: desktop only; on mobile users draft & Save (no publishing) */}
-								<Box data-tour='publish' component='span' sx={{ display: { xs: 'none', md: 'inline-flex' } }}>
-									<Button
-										size='small'
-										variant='contained'
-										disabled={!isDraft || saving}
-										onClick={() => {
-											if (isDraft) {
+							<Box data-tour='publish' component='span' sx={{ display: { xs: 'none', md: 'inline-flex' } }}>
+								{isDraft ? (
+									<Tooltip arrow placement='bottom' title={saving ? 'Publishing...' : 'Make your trip public'}>
+										{/* span, not the Button: a disabled button fires no pointer events, so
+										    the tooltip would go silent for the whole time it is saving. */}
+										<Box component='span' sx={{ display: 'inline-flex' }}>
+										<Button
+											size='small'
+											variant='contained'
+											disabled={saving}
+											onClick={() => {
 												const checks = computePublishChecks();
 												const allPassed = checks.hasTitle && checks.hasDescription && checks.allDatesCovered;
 												if (!allPassed) {
@@ -3437,49 +3553,49 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 												}
 												handlePublish();
 												requestAnimationFrame(() => { lastCommittedRef.current = computeSignature(); });
-											}
-										}}
-										sx={{
-											ml: .5,
-											textTransform: 'none',
-											borderRadius: '20px',
-											px: isDraft ? 1.6 : 1.4,
-											height: 32,
-											fontSize: 12,
-											fontWeight: 700,
-											minWidth: 0,
-											letterSpacing: '-0.1px',
-											gap: .4,
-											flexShrink: 0,
-											transition: 'background-color .15s cubic-bezier(.4,0,.2,1)',
-											/* Draft = the action (coral). Published = a state, not an action (green).
-											   Both are flat now: the three-stop gradients and the green
-											   `0 0 14px 2px` spread-glow were doing the job colour already does. */
-											...(isDraft ? {
-												bgcolor: '#FF385C',
-												color: '#fff',
-												border: '1px solid rgba(255,255,255,0.15)',
-												'&:hover': { bgcolor: '#E31C5F' },
-												'&:active': { bgcolor: '#D91A50' },
-												'&.Mui-disabled': { bgcolor: '#FF385C', color: 'rgba(255,255,255,0.7)' },
-											} : {
-												bgcolor: '#2e7d32',
-												color: '#fff',
-												border: '1px solid rgba(255,255,255,0.12)',
-												'&.Mui-disabled': { bgcolor: '#2e7d32', color: '#fff', opacity: 1 },
-											}),
-										}}
-									>
-										{saving ? (
-											<><CircularProgress size={12} thickness={5} sx={{ color: 'inherit', mr: .4 }} />Publishing...</>
-										) : isDraft ? (
-											<><PublishRoundedIcon sx={{ fontSize: 13 }} /> Publish</>
-										) : (
-											<><ShareRoundedIcon sx={{ fontSize: 13 }} /> Published</>
-										)}
-									</Button>
-								</Box>
-							</Tooltip>
+											}}
+											sx={PUBLISH_BUTTON_SX.draft}
+										>
+											{saving ? (
+												<><CircularProgress size={12} thickness={5} sx={{ color: 'inherit', mr: .4 }} />Publishing...</>
+											) : (
+												<><PublishRoundedIcon sx={{ fontSize: 13 }} /> Publish</>
+											)}
+										</Button>
+										</Box>
+									</Tooltip>
+								) : (
+									/*
+									 * Published: a state, and now also a way back out.
+									 *
+									 * This was a disabled green button. `handlePublish` has always had an
+									 * unpublish branch and the API has always accepted `published: false`,
+									 * but nothing could reach either, so "Published" was a dead end that
+									 * people clicked at. It is now the affordance it looked like, without
+									 * putting an irreversible-feeling action one stray press from Save.
+									 */
+									<Tooltip arrow placement='bottom' title={saving ? 'Working...' : 'Your trip is live. Open the menu for options'}>
+										<Box component='span' sx={{ display: 'inline-flex' }}>
+										<Button
+											size='small'
+											variant='contained'
+											disabled={saving}
+											onClick={(e) => setPublishedMenuAnchor(e.currentTarget)}
+											aria-haspopup='menu'
+											aria-expanded={Boolean(publishedMenuAnchor)}
+											endIcon={<KeyboardArrowDownRoundedIcon sx={{ fontSize: 15 }} />}
+											sx={PUBLISH_BUTTON_SX.published}
+										>
+											{saving ? (
+												<><CircularProgress size={12} thickness={5} sx={{ color: 'inherit', mr: .4 }} />Working...</>
+											) : (
+												<><ShareRoundedIcon sx={{ fontSize: 13 }} /> Published</>
+											)}
+										</Button>
+										</Box>
+									</Tooltip>
+								)}
+							</Box>
 							)}
 							{!isDraft && (
 							<Tooltip arrow placement='bottom' title='Share this published trip'>
@@ -4034,6 +4150,94 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				onGoToStop={goToStop}
 			/>
 		)}
+
+			{/* ── "Published" badge menu ──────────────────────────────────────────
+			    Three things worth doing from a live trip: look at it as the public
+			    sees it, grab the link, or take it down. Sharing keeps its own button
+			    beside this one, so it is deliberately not repeated here. */}
+			<Menu
+				anchorEl={publishedMenuAnchor}
+				open={Boolean(publishedMenuAnchor)}
+				onClose={() => setPublishedMenuAnchor(null)}
+				anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+				transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+				slotProps={{ paper: { sx: { mt: .75, minWidth: 216, borderRadius: '12px' } } }}
+			>
+				<MenuItem
+					onClick={() => { setPublishedMenuAnchor(null); window.open(publicTripUrl, '_blank', 'noopener'); }}
+					sx={{ fontSize: 13.5 }}
+				>
+					<ListItemIcon sx={{ minWidth: 32 }}><OpenInNewRoundedIcon sx={{ fontSize: 17 }} /></ListItemIcon>
+					View public page
+				</MenuItem>
+				<MenuItem onClick={handleCopyPublicLink} sx={{ fontSize: 13.5 }}>
+					<ListItemIcon sx={{ minWidth: 32 }}><LinkRoundedIcon sx={{ fontSize: 17 }} /></ListItemIcon>
+					Copy link
+				</MenuItem>
+				{currentUserIsOwner && <Divider sx={{ my: .5 }} />}
+				{/* Owner only, mirroring the API: PATCH /publish is owner-gated, so a
+				    member seeing this item would only get a 403. */}
+				{currentUserIsOwner && (
+					<MenuItem
+						onClick={() => { setPublishedMenuAnchor(null); setUnpublishConfirmOpen(true); }}
+						sx={{ fontSize: 13.5, color: 'error.main' }}
+					>
+						<ListItemIcon sx={{ minWidth: 32 }}><VisibilityOffRoundedIcon sx={{ fontSize: 17, color: 'error.main' }} /></ListItemIcon>
+						Unpublish
+					</MenuItem>
+				)}
+			</Menu>
+
+			{/* ── Unpublish confirmation ──────────────────────────────────────────
+			    Every consequence listed here was checked against the code rather than
+			    guessed, because a dialog that overstates or understates what happens is
+			    worse than no dialog. Saved and liked cards really do survive: the
+			    reactions query filters on IsArchived only. */}
+			<Dialog
+				open={unpublishConfirmOpen}
+				onClose={() => setUnpublishConfirmOpen(false)}
+				maxWidth='xs'
+				fullWidth
+				slotProps={{ paper: { sx: { borderRadius: '16px' } } }}
+			>
+				<DialogTitle sx={(t) => ({ fontFamily: t.custom.fontDisplay, fontWeight: 700, fontSize: '1.15rem', pb: 1 })}>
+					Unpublish this trip?
+				</DialogTitle>
+				<DialogContent sx={{ pb: 1.5 }}>
+					<Typography sx={{ fontSize: '0.85rem', color: 'text.secondary', lineHeight: 1.55, mb: 1.5 }}>
+						It goes back to being yours and your crew's. You can publish it again whenever you like.
+					</Typography>
+					<Box component='ul' sx={{ m: 0, pl: 2.25, display: 'flex', flexDirection: 'column', gap: .75 }}>
+						{[
+							'It leaves the community feed straight away.',
+							'Public comments close. The ones already there are kept, and reopen if you publish again.',
+							'Anyone who saved or liked it keeps a card that no longer opens for them.',
+							'Search engines can take a while to catch up, because the sitemap is rebuilt on release.',
+						].map((line) => (
+							<Typography key={line} component='li' sx={{ fontSize: '0.8rem', color: 'text.secondary', lineHeight: 1.5 }}>
+								{line}
+							</Typography>
+						))}
+					</Box>
+				</DialogContent>
+				<DialogActions sx={{ px: 3, pb: 2.5, gap: 1 }}>
+					<Button
+						onClick={() => setUnpublishConfirmOpen(false)}
+						sx={{ textTransform: 'none', fontWeight: 600, borderRadius: '50px', px: 2 }}
+					>
+						Keep it published
+					</Button>
+					<Button
+						variant='contained'
+						color='error'
+						disabled={saving}
+						onClick={() => { setUnpublishConfirmOpen(false); handleUnpublish(); }}
+						sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '50px', px: 2.25 }}
+					>
+						Unpublish
+					</Button>
+				</DialogActions>
+			</Dialog>
 				{canAccessDocs && ENABLE_DOC_UPLOAD && (
 				<Dialog open={visaOpen} onClose={()=> setVisaOpen(false)} fullWidth maxWidth='sm'>
 					<DialogTitle>Visa Documents</DialogTitle>

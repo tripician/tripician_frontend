@@ -3,7 +3,7 @@ import { useAuthToken } from '../../hooks/useAuth0Token';
 import { useNavigate } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import { clearUser } from '../../store/userSlice';
-import { clearSessionData } from '../../utils/authSession';
+import { signOut } from '../../services/auth/signOut';
 import {
   Box,
   Card,
@@ -204,10 +204,12 @@ const PrivacySettings: React.FC = () => {
       // Wipe every trace of the deleted account, not just its tokens. Leaving
       // `userProfile` behind here is what once carried a deleted account's name
       // and email into the next user's session.
-      clearSessionData();
       dispatch(clearUser());
       window.dispatchEvent(new CustomEvent('auth:logout', { detail: { reason: 'account_deleted' } }));
-      navigate('/signin');
+      // The backend has already deleted the Auth0 user, so this only clears the
+      // local IdP cookie, which still matters: without it the browser keeps a
+      // session cookie for an account that no longer exists.
+      signOut(() => navigate('/signin', { replace: true }));
     } catch (err: any) {
       const msg = err?.response?.data?.message || 'Failed to delete account. Please try again.';
       setDeleteError(msg);

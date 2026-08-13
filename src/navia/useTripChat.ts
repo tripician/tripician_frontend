@@ -23,6 +23,8 @@ import {
   type TripChatMessage,
   type TripMember,
 } from './tripChatService';
+import { tokenSubject } from '../utils/authSession';
+import { getFreshToken } from '../services/auth/tokenService';
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
@@ -71,9 +73,22 @@ export function useTripChat(
   const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const isTypingRef = useRef(false);
   // Always-current myUserId for handlers captured inside the SignalR effect, which
-  // only re-subscribes on tripId/token; a captured myUserId would go stale.
+  // only re-subscribes on tripId/session; a captured myUserId would go stale.
   const myUserIdRef = useRef(myUserId);
   useEffect(() => { myUserIdRef.current = myUserId; }, [myUserId]);
+
+  /*
+   * Identifies the SESSION, not the credential.
+   *
+   * The effects below used to depend on `token`, which was harmless only because the
+   * token never changed. Now that it is renewed roughly hourly, depending on it would
+   * tear down and rebuild the hub connection on every refresh, dropping the user out
+   * of trip chat mid-conversation. `sub` is stable across refreshes for one account
+   * and changes when the account changes, which is exactly the re-subscribe boundary
+   * that is wanted. The credential itself now reaches SignalR through the async
+   * accessTokenFactory, so these effects do not need the string at all.
+   */
+  const sessionKey = tokenSubject(token) ?? (token ? 'unknown-subject' : null);
 
   // Build a lookup for fast member enrichment
   const memberMap = useRef<Map<number | string, TripMember>>(new Map());
@@ -96,7 +111,7 @@ export function useTripChat(
 
   // ?? Initial history load ??????????????????????????????????????????????????
   useEffect(() => {
-    if (!tripId || !token) return;
+    if (!tripId || !sessionKey) return;
     fetchTripChatMessages(tripId, token)
       .then(msgs => {
         if (!mountedRef.current) return;
@@ -119,11 +134,14 @@ export function useTripChat(
         }
       })
       .catch(() => { /* non-fatal */ });
-  }, [tripId, token, enrich]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [tripId, sessionKey, enrich]);
 
   // ?? SignalR connection ????????????????????????????????????????????????????
   useEffect(() => {
-    if (!tripId || !token) return;
+    // Gated on the SESSION, not on holding a token string, so a connection is not
+    // skipped merely because a refresh happens to be in flight at mount.
+    if (!tripId || !sessionKey) return;
 
     // Re-arm on every (re)connection: the cleanup below flips this to false when
     // tripId/token change, and a mount-only effect would never set it back,
@@ -132,7 +150,16 @@ export function useTripChat(
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(`${API_BASE}/hubs/trip-chat`, {
-        accessTokenFactory: () => token,
+        /*
+         * Async, and asked fresh on every attempt.
+         *
+         * This used to be `() => token`, closing over the string captured when the
+         * effect ran. withAutomaticReconnect re-invokes the factory on each retry,
+         * so once that token expired every reconnect resent the same dead
+         * credential and 401d until SignalR gave up. Chat and notifications simply
+         * died with no recovery.
+         */
+        accessTokenFactory: async () => (await getFreshToken()) ?? '',
         skipNegotiation: false,
         transport: signalR.HttpTransportType.WebSockets |
                    signalR.HttpTransportType.LongPolling,
@@ -223,7 +250,7 @@ export function useTripChat(
       connection.stop().catch(() => {});
     };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [tripId, token]);
+  }, [tripId, sessionKey]);
 
   useEffect(() => { mountedRef.current = true; }, []);
 
