@@ -36,7 +36,9 @@ import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../../store';
 import { clearUser } from '../../../store/userSlice';
-import { clearSessionData } from '../../../utils/authSession';
+import { signOut } from '../../../services/auth/signOut';
+import { getFreshToken } from '../../../services/auth/tokenService';
+import { tokenSubject } from '../../../utils/authSession';
 import { APP_NAV_ITEMS, navItemFromPath } from '../navConfig';
 import Badge from '@mui/material/Badge';
 import {
@@ -109,6 +111,8 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
   const unreadCount = useSelector((state: RootState) => state.notifications.unreadCount);
   const notifications = useSelector((state: RootState) => state.notifications.notifications);
   const { token, isAuthenticated, loading: authLoading } = useAuthToken();
+  // See the notification-hub effect below for why this exists.
+  const sessionKey = tokenSubject(token) ?? (token ? 'unknown-subject' : null);
   const notificationHubRef = React.useRef<signalR.HubConnection | null>(null);
 
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
@@ -138,8 +142,16 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
     };
   }, [dispatch]);
 
+  /*
+   * Keyed on the SESSION, not the token string.
+   *
+   * Depending on `token` was harmless while it never changed. Now that it is
+   * renewed, it would tear down and rebuild this hub on every refresh. sessionKey is
+   * stable across refreshes and changes on account switch, which is the boundary
+   * that actually matters.
+   */
   useEffect(() => {
-    if (!token) {
+    if (!sessionKey) {
       try { notificationHubRef.current?.stop(); } catch { /* already stopped */ }
       notificationHubRef.current = null;
       return;
@@ -152,7 +164,8 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
 
     const connection = new signalR.HubConnectionBuilder()
       .withUrl(`${API_BASE}/hubs/notifications`, {
-        accessTokenFactory: () => token,
+        // Async and asked fresh, so reconnects do not resend a dead token forever.
+        accessTokenFactory: async () => (await getFreshToken()) ?? '',
         transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling,
       })
       .withAutomaticReconnect()
@@ -195,7 +208,7 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
       }
       try { connection.stop(); } catch { /* already stopped */ }
     };
-  }, [dispatch, token]);
+  }, [dispatch, sessionKey]);
 
   const markAllRead = async () => {
     const accessToken = token || localStorage.getItem('accessToken');
@@ -224,10 +237,13 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
 
   const handleLogout = () => {
     try {
-      clearSessionData();
       dispatch(clearUser());
       setAnchorEl(null);
-      navigate('/signin');
+      // signOut clears storage AND ends the Auth0 session, then redirects. The
+      // `replace` fallback matters: pushing /signin used to leave the protected
+      // page underneath it, so Back landed on a page the guard immediately
+      // replaced with /signin again.
+      signOut(() => navigate('/signin', { replace: true }));
     } catch (e) {
       console.error('Logout error', e);
     }

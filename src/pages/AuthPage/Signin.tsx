@@ -7,6 +7,7 @@ import { authAPI } from '../../services/APIs/Auth/auth';
 import { useNavigate } from 'react-router-dom';
 import { fetchUserProfile } from '../../store/userSlice';
 import { clearSessionData } from '../../utils/authSession';
+import { setAccessToken, setRefreshToken } from '../../services/auth/sessionStatus';
 import { peekPendingPrompt } from '../../utils/pendingNaviaPrompt';
 import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../store';
@@ -40,7 +41,16 @@ const Signin = () => {
 
   // UI state
   const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
+  /*
+   * Seeded from `?expired=1`, which the token service appends when a session could
+   * not be renewed. Without it the user arrives at a blank sign-in form with no idea
+   * why they were thrown out mid-task, which reads as the app losing their work.
+   */
+  const [error, setError] = useState(() => (
+    new URLSearchParams(window.location.search).get('expired') === '1'
+      ? 'Your session ended. Please sign in again.'
+      : ''
+  ));
   const [success, setSuccess] = useState('');
 
   const handleInputChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
@@ -88,13 +98,20 @@ const Signin = () => {
 
       if (response.data?.success && response.data?.accessToken) {
         // Start from a clean browser: whoever was signed in here before must
-        // leave nothing that this session could read.
+        // leave nothing that this session could read. No `preserveAuth0Cache` here,
+        // unlike /callback: this path establishes no Auth0 SDK session, so there is
+        // nothing of ours in that cache worth keeping.
         clearSessionData();
 
-        localStorage.setItem('accessToken', response.data.accessToken);
+        // Refresh token first: it is what renews this session, and storing it after
+        // the access token would leave a window where a refresh has nothing to use.
         if (response.data.refreshToken) {
-          localStorage.setItem('refreshToken', response.data.refreshToken);
+          setRefreshToken(response.data.refreshToken);
         }
+        // `password`: renewals go through POST /auth/refresh, because this token came
+        // from the backend's confidential client and only it can redeem the refresh
+        // token Auth0 bound to that client.
+        setAccessToken(response.data.accessToken, 'password');
 
         // Ensure profile is fetched using this exact token before navigating to avoid race.
         // `force` skips the cache outright - belt and braces alongside clearSessionData().

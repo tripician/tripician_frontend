@@ -1,6 +1,5 @@
 ﻿import { useLayoutEffect, useState, useEffect, useRef, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { useAuth0 } from '@auth0/auth0-react';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import {
@@ -407,18 +406,36 @@ function LandingFAQ() {
 /*  COMPONENT  */
 export default function LandingPage() {
   const navigate = useNavigate();
-  const { isAuthenticated, isLoading } = useAuth0();
   // Was reading VITE_LANDING_HERO_IMAGE_URL directly, which is set in no env file -
   // so the hero always fell through to the bare gradient. HERO_IMAGE keeps the env
   // override and adds a curated fallback, so a photo actually renders.
   const heroImageUrl = HERO_IMAGE;
 
-  // Redirect authenticated users - no spinner, page renders immediately for Googlebot
-  useEffect(() => {
-    if (!isLoading && isAuthenticated) {
-      navigate('/home', { replace: true });
-    }
-  }, [isAuthenticated, isLoading, navigate]);
+  /*
+   * There used to be a redirect here: `useAuth0().isAuthenticated` -> navigate
+   * '/home' with replace. It was the cause of the production back-button loop,
+   * and it was prod-only for a reason worth writing down.
+   *
+   * This page asked the Auth0 SDK whether the user was signed in, while every
+   * route guard asks localStorage (`useAuthToken`). Those two disagree whenever
+   * the Auth0 session cookie outlives the local token, which is every in-app
+   * sign-out, because nothing used to end the IdP session. In production the app
+   * and Auth0 share a registrable domain (www.tripician.com / login.tripician.com)
+   * so the SDK's silent-auth iframe succeeds and the SDK says "signed in"; in dev
+   * it is cross-site, silent auth fails, and this effect never fired. Hence a bug
+   * nobody could reproduce locally.
+   *
+   * The chain was all `replace`, which is why Back could not escape it:
+   *   /        -> RootRedirect sees no token, renders this page
+   *            -> this effect replaces the "/" entry with "/home"
+   *   /home    -> ProtectedRoute sees no token, replaces that same entry with
+   *               "/signin"
+   *   Back     -> pops to that entry and runs the whole chain again
+   *
+   * RootRedirect (App.tsx) already decides what "/" shows, from the same source
+   * the guards use, so this effect was redundant as well as harmful. Do not
+   * reintroduce an auth redirect here: one source of truth, and it is not the SDK.
+   */
 
   const logoFullWhiteUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_2_URL as string | undefined;
   const logoFullBlackUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_BLACK_2_URL as string | undefined;

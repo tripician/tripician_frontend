@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { clearSessionData, tokenSubject } from './authSession';
+import { clearSessionData, decodeTokenClaims, isTokenUsable, tokenExpiresAtMs, tokenSubject } from './authSession';
 
 /**
  * These tests exist because of a real incident: a user deleted an account,
@@ -140,6 +140,44 @@ describe('clearSessionData - what a session leaves behind', () => {
     clearSessionData();
     expect(() => clearSessionData()).not.toThrow();
   });
+
+  /*
+   * The Auth0 SDK's cache holds the refresh token. Sign-out must destroy it, and
+   * exactly one caller (the /callback page, wiping the PREVIOUS account right after
+   * the SDK cached the NEW session) must not. Getting this backwards either leaves a
+   * live refresh token behind after sign-out, or breaks silent refresh on the
+   * browsers that cannot fall back to an iframe.
+   */
+  describe('the Auth0 SDK cache', () => {
+    const cacheKey = '@@auth0spajs@@::abc123::https://tripician-api::openid profile email offline_access';
+
+    it('is destroyed by default, because it holds the refresh token', () => {
+      local.setItem(cacheKey, '{"body":{"refresh_token":"secret"}}');
+      clearSessionData();
+      expect(local.getItem(cacheKey)).toBeNull();
+    });
+
+    it('survives only when the caller explicitly asks', () => {
+      local.setItem(cacheKey, '{"body":{"refresh_token":"secret"}}');
+      local.setItem('accessToken', 'a');
+      local.setItem('userProfile', '{"sub":"auth0|A"}');
+
+      clearSessionData({ preserveAuth0Cache: true });
+
+      expect(local.getItem(cacheKey)).toBe('{"body":{"refresh_token":"secret"}}');
+      // Everything else still goes, including the previous account's identity.
+      expect(local.getItem('accessToken')).toBeNull();
+      expect(local.getItem('userProfile')).toBeNull();
+    });
+
+    it('is not treated as a device preference', () => {
+      // A regression guard: adding this prefix to DEVICE_PREFERENCE_PREFIXES would
+      // make sign-out leave a usable refresh token on a shared computer.
+      local.setItem(cacheKey, 'x');
+      clearSessionData({ preserveAuth0Cache: false });
+      expect(local.getItem(cacheKey)).toBeNull();
+    });
+  });
 });
 
 describe('tokenSubject - which account a cache belongs to', () => {
@@ -172,5 +210,66 @@ describe('tokenSubject - which account a cache belongs to', () => {
     expect(tokenSubject('a.!!!not-base64!!!.c')).toBeNull();
     expect(tokenSubject(makeToken({ email: 'x@y.com' }))).toBeNull();
     expect(tokenSubject(makeToken({ sub: '   ' }))).toBeNull();
+  });
+});
+
+describe('isTokenUsable - the check that replaces "a token string exists"', () => {
+  const nowSec = () => Math.floor(Date.now() / 1000);
+
+  it('accepts a token with comfortable life left', () => {
+    expect(isTokenUsable(makeToken({ exp: nowSec() + 3600 }))).toBe(true);
+  });
+
+  it('rejects an expired token', () => {
+    expect(isTokenUsable(makeToken({ exp: nowSec() - 10 }))).toBe(false);
+  });
+
+  /*
+   * The skew defaults to the server's own ClockSkew (2 minutes). A token inside
+   * that window is refused deliberately: the server would accept it now, but might
+   * not by the time the request lands, and a 401 mid-flight is worse than a refresh.
+   */
+  it('rejects a token that expires inside the skew window', () => {
+    expect(isTokenUsable(makeToken({ exp: nowSec() + 30 }))).toBe(false);
+    expect(isTokenUsable(makeToken({ exp: nowSec() + 30 }), 5)).toBe(true);
+  });
+
+  /*
+   * Unreadable means "refresh", never "sign out". A decoder bug should cost one
+   * wasted round-trip, not log out every user at once.
+   */
+  it('treats anything unreadable as not usable', () => {
+    expect(isTokenUsable(null)).toBe(false);
+    expect(isTokenUsable(undefined)).toBe(false);
+    expect(isTokenUsable('')).toBe(false);
+    expect(isTokenUsable('not-a-jwt')).toBe(false);
+    expect(isTokenUsable('a.!!!not-base64!!!.c')).toBe(false);
+    expect(isTokenUsable(makeToken({ sub: 'auth0|a' }))).toBe(false);       // no exp at all
+    expect(isTokenUsable(makeToken({ exp: 'soon' }))).toBe(false);          // non-numeric exp
+    expect(isTokenUsable(makeToken({ exp: Number.NaN }))).toBe(false);
+  });
+});
+
+describe('tokenExpiresAtMs', () => {
+  it('converts exp seconds to milliseconds', () => {
+    expect(tokenExpiresAtMs(makeToken({ exp: 1_700_000_000 }))).toBe(1_700_000_000_000);
+  });
+
+  it('returns null when the token says nothing about expiry', () => {
+    expect(tokenExpiresAtMs(makeToken({ sub: 'x' }))).toBeNull();
+    expect(tokenExpiresAtMs('garbage')).toBeNull();
+  });
+});
+
+describe('decodeTokenClaims', () => {
+  it('returns the payload object', () => {
+    expect(decodeTokenClaims(makeToken({ sub: 'auth0|a', exp: 1, aud: 'x' })))
+      .toEqual({ sub: 'auth0|a', exp: 1, aud: 'x' });
+  });
+
+  it('returns null instead of throwing for junk', () => {
+    expect(decodeTokenClaims('a.!!!.c')).toBeNull();
+    expect(decodeTokenClaims('onlyonepart')).toBeNull();
+    expect(decodeTokenClaims(null)).toBeNull();
   });
 });
