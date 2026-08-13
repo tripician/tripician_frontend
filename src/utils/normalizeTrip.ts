@@ -77,6 +77,10 @@ export function normalizeTrip(input: any): NormalizedTrip | null {
   const vibe = typeof tripRoot.vibe === 'string' ? tripRoot.vibe : null;
   const plannerMode = parsePlannerMode(tripRoot.plannerMode ?? tripRoot.PlannerMode);
   const photoUrl = typeof tripRoot.photoUrl === 'string' && tripRoot.photoUrl.trim().length ? tripRoot.photoUrl : null;
+  // `undefined`, not `false`, when no shape carried the field. The planner adopts
+  // this as the trip's published state, and defaulting to `false` would tell it an
+  // already-published trip is a draft whenever a payload simply omits the flag.
+  // "We were not told" and "it is not published" are different facts.
   const published =
     typeof tripRoot.published === 'boolean'
       ? tripRoot.published
@@ -86,7 +90,7 @@ export function normalizeTrip(input: any): NormalizedTrip | null {
           ? tripRoot.isPublished
           : typeof tripRoot.IsPublished === 'boolean'
             ? tripRoot.IsPublished
-            : false;
+            : undefined;
   const itinerary =
     Array.isArray(input.itinerary) ? input.itinerary :
     Array.isArray(input.Itinerary) ? input.Itinerary :

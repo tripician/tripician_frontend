@@ -66,8 +66,28 @@ export const publicAPI = {
   signin: (credentials: SignInData) => apiClient.post('/auth/signin', credentials),
   // Forgot password - always returns success for security (even if email not found)
   forgotPassword: (email: string) => apiClient.post('/auth/forgot-password', { email }),
-  // Social / OAuth sign-in (Google via Auth0)
-  socialCallback: (idToken: string) => apiClient.post('/auth/social-callback', { AccessToken: idToken }),
+  // Social / OAuth sign-in (Google via Auth0). The token is an Auth0 access token
+  // for the API audience; the backend accepts either that or an id_token.
+  socialCallback: (accessToken: string) => apiClient.post('/auth/social-callback', { AccessToken: accessToken }),
+  /**
+   * Exchanges a refresh token from /auth/signin for a fresh access token.
+   *
+   * Server-side on purpose: Auth0 binds a refresh token to the client that minted
+   * it, and /auth/signin mints via the backend's confidential client, so the browser
+   * cannot redeem it directly.
+   *
+   * Lives on `publicAPI` because this client carries no auth and has no auth
+   * interceptors, which is what keeps a refresh from recursing into another refresh.
+   * The response's `refreshToken` is the rotated one when rotation is on and the one
+   * you sent when it is off, so callers can store it unconditionally.
+   */
+  refresh: (refreshToken: string) => apiClient.post<{
+    success: boolean;
+    accessToken: string;
+    refreshToken: string;
+    expiresIn: number;
+    tokenType: string;
+  }>('/auth/refresh', { refreshToken }),
   health: () => apiClient.get('/health'),
 };
 

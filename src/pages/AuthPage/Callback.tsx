@@ -6,11 +6,12 @@ import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../store';
 import { fetchUserProfile } from '../../store/userSlice';
 import { clearSessionData } from '../../utils/authSession';
+import { setAccessToken, setRefreshToken } from '../../services/auth/sessionStatus';
 import { peekPendingPrompt } from '../../utils/pendingNaviaPrompt';
 import { authAPI } from '../../services/APIs/Auth/auth';
 
 const Callback = () => {
-  const { getIdTokenClaims, isAuthenticated, isLoading, error } = useAuth0();
+  const { getAccessTokenSilently, isAuthenticated, isLoading, error } = useAuth0();
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   const didRun = useRef(false);
@@ -36,10 +37,24 @@ const Callback = () => {
 
     const exchange = async () => {
       try {
-        const idTokenClaims = await getIdTokenClaims();
-        const idToken = idTokenClaims?.__raw;
-        if (!idToken) {
-          setCallbackError('Missing id_token from Auth0.');
+        /*
+         * An ACCESS token for the API audience, not an id_token.
+         *
+         * This used to send `getIdTokenClaims().__raw`, which the backend echoed
+         * back and the app then used as its bearer credential for every request. That
+         * only worked because the Auth0 client id was listed as a valid audience, and
+         * an ID token is not an API credential: it is a statement about who the user
+         * is, for this app to read, with a short life and no renewal path of its own.
+         *
+         * `getAccessTokenSilently` returns a token scoped to VITE_AUTH0_AUDIENCE,
+         * which the backend already accepts, and which the SDK can renew silently
+         * from here on. Anyone still holding an old id_token migrates on their next
+         * request: `isLegacyIdToken` marks it unusable and the refresh path swaps it
+         * for a real access token.
+         */
+        const accessToken = await getAccessTokenSilently();
+        if (!accessToken) {
+          setCallbackError('Could not obtain an access token from Auth0.');
           setTimeout(() => navigate('/signin'), 2000);
           return;
         }
@@ -47,11 +62,10 @@ const Callback = () => {
         // Mask and log token info for debugging
         try {
           // eslint-disable-next-line no-console
-          console.debug('[Callback] Auth0 id_token (masked):', idToken ? `${idToken.slice(0,8)}...` : '<none>');
+          console.debug('[Callback] Auth0 access token (masked):', `${accessToken.slice(0,8)}...`);
         } catch {}
 
-        // Send id_token as AccessToken (PascalCase) to backend
-        const response = await authAPI.socialCallback(idToken);
+        const response = await authAPI.socialCallback(accessToken);
 
         // Log backend response (mask server token)
         try {
@@ -70,11 +84,20 @@ const Callback = () => {
           // leave nothing that this session could read. This is the path a user
           // takes when signing into a second Google account after deleting a
           // first one, which is exactly where the stale-identity bug surfaced.
-          clearSessionData();
+          //
+          // `preserveAuth0Cache` is not a convenience. The SDK cached THIS session
+          // moments ago (that is what made `isAuthenticated` true above), and that
+          // cache holds the refresh token silent renewal depends on. Without the
+          // flag, this line deletes the credential two lines before the access token
+          // is stored, and refresh then works in Chrome (hidden-iframe fallback) but
+          // fails in Safari and Firefox.
+          clearSessionData({ preserveAuth0Cache: true });
 
-          localStorage.setItem('accessToken', response.data.accessToken);
+          // `social`: renewals for this session go through the Auth0 SDK, not
+          // /auth/refresh, because the SPA flow issues no refresh token of its own.
+          setAccessToken(response.data.accessToken, 'social');
           if (response.data.refreshToken) {
-            localStorage.setItem('refreshToken', response.data.refreshToken);
+            setRefreshToken(response.data.refreshToken);
           }
           try {
             // Ensure profile is loaded using the exact token we just received to avoid races.
@@ -104,7 +127,7 @@ const Callback = () => {
     };
 
     exchange();
-  }, [isAuthenticated, isLoading, error, getIdTokenClaims, navigate, dispatch]);
+  }, [isAuthenticated, isLoading, error, getAccessTokenSilently, navigate, dispatch]);
 
   return (
     <Box

@@ -13,7 +13,7 @@ import { CardGridSkeleton } from '../../components/ui/Skeletons';
 import { IconArrowRight, IconMapPlus } from '@tabler/icons-react';
 import { staggerContainer, staggerItem } from '../../utils/animations';
 import { clearUser } from '../../store/userSlice';
-import { clearSessionData } from '../../utils/authSession';
+import { signOut } from '../../services/auth/signOut';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import TravelMap from '../../components/TravelMap';
@@ -72,9 +72,8 @@ const Dashboard: React.FC = () => {
 
   const handleLogout = () => {
       try {
-        clearSessionData();
         dispatch(clearUser());
-        navigate('/signin');
+        signOut(() => navigate('/signin', { replace: true }));
       } catch (e) {
         console.error('Logout error', e);
       }

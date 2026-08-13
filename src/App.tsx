@@ -41,11 +41,21 @@ if (import.meta.env.DEV) {
   import('./utils/authDebug');
 }
 
-// Smart root: authenticated users skip landing page and go straight to community
+/**
+ * Smart root: signed-in users skip the landing page and go straight to community.
+ *
+ * The single authority on what "/" shows. LandingPage used to run its own redirect
+ * from the Auth0 SDK's `isAuthenticated`, which disagreed with this and produced the
+ * production back-button loop; that effect is gone and must not come back.
+ *
+ * Reads the same status enum as the two route guards. `expired` renders the landing
+ * page rather than redirecting, which is right: someone whose session lapsed should
+ * see the front door, not be thrown at a guard that sends them somewhere else.
+ */
 function RootRedirect() {
-  const { isAuthenticated, loading } = useAuthToken();
-  if (loading) return <div style={{ minHeight: '100vh' }} />;
-  return isAuthenticated ? <Navigate to="/community" replace /> : <Landingpage />;
+  const { status } = useAuthToken();
+  if (status === 'refreshing') return <div style={{ minHeight: '100vh' }} />;
+  return status === 'valid' ? <Navigate to="/community" replace /> : <Landingpage />;
 }
 
 function App() {
