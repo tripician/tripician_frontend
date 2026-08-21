@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { BRAND } from '../../theme';
 import {
   Box,
   Typography,
@@ -10,6 +11,7 @@ import {
   Tooltip,
   Snackbar,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import { IconSend, IconTrash, IconSparkles, IconPlus, IconCoins } from '@tabler/icons-react';
 import { useNavia } from '../../navia/useNavia';
@@ -225,10 +227,10 @@ const NaviaPage: React.FC = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <NaviaOrb size={40} processing={isStreaming} />
           <Box>
-            <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.2 }}>
+            <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.2 }}>
               Navia
             </Typography>
-            <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', fontFamily: "'Inter',sans-serif" }}>
+            <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled',}}>
               Your travel companion
             </Typography>
           </Box>
@@ -246,14 +248,13 @@ const NaviaPage: React.FC = () => {
                   height: 24,
                   fontSize: '0.72rem',
                   fontWeight: 700,
-                  fontFamily: "'Inter',sans-serif",
                   borderRadius: '8px',
                   cursor: 'pointer',
-                  bgcolor: credits <= 10 ? 'rgba(239,68,68,0.10)' : 'rgba(255,56,92,0.07)',
-                  color: credits <= 10 ? '#ef4444' : '#FF385C',
-                  border: `1px solid ${credits <= 10 ? 'rgba(239,68,68,0.25)' : 'rgba(255,56,92,0.18)'}`,
+                  bgcolor: credits <= 10 ? 'rgba(239,68,68,0.10)' : alpha(BRAND.coral, 0.07),
+                  color: credits <= 10 ? '#ef4444' : BRAND.coral,
+                  border: `1px solid ${credits <= 10 ? 'rgba(239,68,68,0.25)' : alpha(BRAND.coral, 0.18)}`,
                   '& .MuiChip-icon': { color: 'inherit' },
-                  '&:hover': { bgcolor: credits <= 10 ? 'rgba(239,68,68,0.16)' : 'rgba(255,56,92,0.12)' },
+                  '&:hover': { bgcolor: credits <= 10 ? 'rgba(239,68,68,0.16)' : alpha(BRAND.coral, 0.12) },
                 }}
               />
             </Tooltip>
@@ -276,7 +277,7 @@ const NaviaPage: React.FC = () => {
                 height: 34,
                 borderRadius: '10px',
                 color: 'text.disabled',
-                '&:hover': { color: '#FF385C', bgcolor: 'rgba(255,56,92,0.07)' },
+                '&:hover': { color: 'primary.main', bgcolor: alpha(BRAND.coral, 0.07) },
               }}
             >
               <IconTrash size={17} />
@@ -314,7 +315,6 @@ const NaviaPage: React.FC = () => {
           >
             <Typography
               sx={{
-                fontFamily: "'Inter',sans-serif",
                 fontWeight: 700,
                 fontSize: { xs: '1.3rem', md: '1.6rem' },
                 letterSpacing: '-0.3px',
@@ -325,7 +325,6 @@ const NaviaPage: React.FC = () => {
             <Typography
               sx={{
                 color: 'text.secondary',
-                fontFamily: "'Inter',sans-serif",
                 fontSize: '0.95rem',
                 maxWidth: 420,
               }}
@@ -341,7 +340,6 @@ const NaviaPage: React.FC = () => {
                   onClick={() => handleStarter(s)}
                   icon={<IconSparkles size={12} />}
                   sx={{
-                    fontFamily: "'Inter',sans-serif",
                     fontWeight: 500,
                     fontSize: '0.78rem',
                     borderRadius: '50px',
@@ -350,9 +348,9 @@ const NaviaPage: React.FC = () => {
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                     '&:hover': {
-                      borderColor: '#FF385C',
-                      color: '#FF385C',
-                      bgcolor: 'rgba(255,56,92,0.06)',
+                      borderColor: 'primary.main',
+                      color: 'primary.main',
+                      bgcolor: alpha(BRAND.coral, 0.06),
                     },
                   }}
                   variant="outlined"
@@ -380,7 +378,6 @@ const NaviaPage: React.FC = () => {
                     ml: '52px',
                     borderRadius: '50px',
                     textTransform: 'none',
-                    fontFamily: "'Inter',sans-serif",
                     fontWeight: 700,
                     fontSize: '0.8rem',
                     px: 2,
@@ -401,7 +398,7 @@ const NaviaPage: React.FC = () => {
                       width: 7,
                       height: 7,
                       borderRadius: '50%',
-                      bgcolor: '#FF385C',
+                      bgcolor: 'primary.main',
                       opacity: 0.6,
                       animation: `naviaTypingDot 1.2s ${i * 0.2}s ease-in-out infinite`,
                       '@keyframes naviaTypingDot': {
@@ -442,8 +439,8 @@ const NaviaPage: React.FC = () => {
             py: 1.25,
             transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
             '&:focus-within': {
-              borderColor: '#FF385C',
-              boxShadow: '0 0 0 3px rgba(255,56,92,0.12)',
+              borderColor: 'primary.main',
+              boxShadow: `0 0 0 3px ${alpha(BRAND.coral, 0.12)}`,
             },
           }}
         >
@@ -458,7 +455,6 @@ const NaviaPage: React.FC = () => {
             onKeyDown={handleKeyDown}
             disabled={isStreaming}
             sx={{
-              fontFamily: "'Inter',sans-serif",
               fontSize: '0.92rem',
               lineHeight: 1.55,
               '& .MuiInputBase-input': { p: 0 },
@@ -472,10 +468,10 @@ const NaviaPage: React.FC = () => {
               width: 36,
               height: 36,
               borderRadius: '10px',
-              bgcolor: input.trim() && !isStreaming ? '#FF385C' : undefined,
+              bgcolor: input.trim() && !isStreaming ? 'primary.main' : undefined,
               color: input.trim() && !isStreaming ? '#fff' : 'text.disabled',
               transition: 'all 0.15s ease',
-              '&:hover': { bgcolor: input.trim() && !isStreaming ? '#E31C5F' : undefined },
+              '&:hover': { bgcolor: input.trim() && !isStreaming ? BRAND.coralDark : undefined },
             }}
           >
             <IconSend size={18} />
@@ -487,7 +483,6 @@ const NaviaPage: React.FC = () => {
             fontSize: '0.7rem',
             color: 'text.disabled',
             textAlign: 'center',
-            fontFamily: "'Inter',sans-serif",
           }}
         >
           Navia can make mistakes. Always verify travel details before booking.

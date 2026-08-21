@@ -1,7 +1,9 @@
 import React, { useEffect, useState } from 'react';
+import { BRAND } from '../../theme';
 import { Helmet } from 'react-helmet-async';
 import { useNavigate, Link } from 'react-router-dom';
 import { Box, Typography, Button, Chip } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { useSelector } from 'react-redux';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
 import NavigationPannel from '../PageLayout/CommonLayouts/NavigationPanel';
@@ -57,11 +59,11 @@ const BlogsList: React.FC = () => {
   const heroTag = TAG_COLORS[hero.tag] || { bg: '#F3F4F6', color: '#374151' };
 
   const pageContent = (
-    <Box sx={{ minHeight: '100vh', background: '#FAFAFA', fontFamily: "'Inter', sans-serif" }}>
+    <Box sx={{ minHeight: '100vh', background: '#FAFAFA',}}>
       {/* Nav - TopBar for logged-in, public nav for guests */}
       {isAuthenticated ? (
         <TopBar showSearch={false} logo={
-          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#111', fontFamily: "'Inter',sans-serif", letterSpacing: '-0.02em' }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#111', letterSpacing: '-0.02em' }}>
             Tripician <Box component="span" sx={{ fontWeight: 400, color: '#888' }}>/ Blog</Box>
           </Typography>
         } />
@@ -77,12 +79,12 @@ const BlogsList: React.FC = () => {
           <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 1, textDecoration: 'none' }}>
             {logoFullBlackUrl
               ? <Box component="img" src={logoFullBlackUrl} alt="Tripician" sx={{ height: 28, width: 'auto', display: 'block' }} />
-              : <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#111', fontFamily: "'Inter',sans-serif", letterSpacing: '-0.02em' }}>Tripician</Typography>
+              : <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#111', letterSpacing: '-0.02em' }}>Tripician</Typography>
             }
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button size="small" component={Link} to="/signin" variant="outlined"
-              sx={{ fontSize: '0.78rem', fontWeight: 600, borderRadius: '50px', textTransform: 'none', borderColor: 'rgba(0,0,0,0.2)', color: '#333', '&:hover': { borderColor: '#FF385C', color: '#FF385C' } }}>
+              sx={{ fontSize: '0.78rem', fontWeight: 600, borderRadius: '50px', textTransform: 'none', borderColor: 'rgba(0,0,0,0.2)', color: '#333', '&:hover': { borderColor: 'primary.main', color: 'primary.main' } }}>
               Sign in
             </Button>
             <Button size="small" component={Link} to="/signup" variant="contained"
@@ -111,9 +113,9 @@ const BlogsList: React.FC = () => {
         )}
         <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.8) 0%, rgba(0,0,0,0.3) 60%, transparent 100%)' }} />
         <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, px: { xs: 3, md: 8 }, pb: { xs: 4, md: 6 }, maxWidth: 780 }}>
-          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, px: 1.2, py: 0.4, borderRadius: '50px', background: 'rgba(255,56,92,0.85)', mb: 1.5 }}>
+          <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, px: 1.2, py: 0.4, borderRadius: '50px', background: alpha(BRAND.coral, 0.85), mb: 1.5 }}>
             <AutoAwesomeRoundedIcon sx={{ fontSize: 12, color: '#fff' }} />
-            <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'Inter',sans-serif" }}>
+            <Typography sx={{ fontSize: '0.65rem', fontWeight: 700, color: '#fff', letterSpacing: '0.1em', textTransform: 'uppercase',}}>
               Featured
             </Typography>
           </Box>
@@ -154,7 +156,7 @@ const BlogsList: React.FC = () => {
           }}>
             Travel Stories & Guides
           </Typography>
-          <Typography sx={{ fontSize: { xs: '0.95rem', md: '1.05rem' }, color: '#888', fontFamily: "'Inter',sans-serif" }}>
+          <Typography sx={{ fontSize: { xs: '0.95rem', md: '1.05rem' }, color: '#888',}}>
             Real destinations. Real vibes. Curated by the Tripician community.
           </Typography>
         </Box>
@@ -169,7 +171,7 @@ const BlogsList: React.FC = () => {
             border: '1.5px solid rgba(0,0,0,0.12)',
             background: '#fff',
             flex: 1, maxWidth: 360,
-            '&:focus-within': { borderColor: '#FF385C', boxShadow: '0 0 0 3px rgba(255,56,92,0.1)' },
+            '&:focus-within': { borderColor: 'primary.main', boxShadow: `0 0 0 3px ${alpha(BRAND.coral, 0.1)}` },
             transition: 'all 0.2s',
           }}>
             <SearchRoundedIcon sx={{ fontSize: 18, color: '#aaa' }} />
@@ -179,8 +181,7 @@ const BlogsList: React.FC = () => {
               value={searchQuery}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) => setSearchQuery(e.target.value)}
               sx={{
-                border: 'none', outline: 'none', background: 'transparent',
-                fontFamily: "'Inter',sans-serif", fontSize: '0.87rem', color: '#333',
+                border: 'none', outline: 'none', background: 'transparent', fontSize: '0.87rem', color: '#333',
                 flex: 1, minWidth: 0,
                 '&::placeholder': { color: '#bbb' },
               }}
@@ -198,20 +199,19 @@ const BlogsList: React.FC = () => {
                   component="button"
                   onClick={() => setActiveTag(tag)}
                   sx={{
-                    px: 1.8, py: 0.6, borderRadius: '50px', cursor: 'pointer',
-                    fontFamily: "'Inter',sans-serif", fontSize: '0.8rem', fontWeight: 600,
+                    px: 1.8, py: 0.6, borderRadius: '50px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 600,
                     border: active
-                      ? `1.5px solid ${ts ? ts.color : '#FF385C'}`
+                      ? `1.5px solid ${ts ? ts.color : 'primary.main'}`
                       : '1.5px solid rgba(0,0,0,0.1)',
                     background: active
-                      ? (ts ? ts.bg : 'rgba(255,56,92,0.08)')
+                      ? (ts ? ts.bg : alpha(BRAND.coral, 0.08))
                       : '#fff',
                     color: active
-                      ? (ts ? ts.color : '#FF385C')
+                      ? (ts ? ts.color : 'primary.main')
                       : '#666',
                     outline: 'none',
                     transition: 'all 0.18s ease',
-                    '&:hover': { borderColor: ts ? ts.color : '#FF385C', color: ts ? ts.color : '#FF385C' },
+                    '&:hover': { borderColor: ts ? ts.color : 'primary.main', color: ts ? ts.color : 'primary.main' },
                   }}
                 >
                   {tag}
@@ -224,7 +224,7 @@ const BlogsList: React.FC = () => {
         {/* Blog grid */}
         {filtered.length === 0 ? (
           <Box sx={{ textAlign: 'center', py: 10 }}>
-            <Typography sx={{ fontSize: '1.1rem', color: '#aaa', fontFamily: "'Inter',sans-serif" }}>
+            <Typography sx={{ fontSize: '1.1rem', color: '#aaa',}}>
               No posts match your search. Try a different vibe.
             </Typography>
           </Box>
@@ -271,8 +271,7 @@ const BlogsList: React.FC = () => {
                       px: 1.2, py: 0.4, borderRadius: '50px',
                       backdropFilter: 'blur(12px)',
                       background: 'rgba(255,255,255,0.9)',
-                      fontSize: '0.7rem', fontWeight: 700,
-                      fontFamily: "'Inter',sans-serif", color: '#111',
+                      fontSize: '0.7rem', fontWeight: 700, color: '#111',
                       boxShadow: '0 2px 8px rgba(0,0,0,0.14)',
                     }}>
                       {blog.badge}
@@ -285,14 +284,13 @@ const BlogsList: React.FC = () => {
                       <Chip label={blog.tag} size="small" sx={{ background: ts.bg, color: ts.color, fontWeight: 700, fontSize: '0.65rem', height: 20 }} />
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, ml: 'auto' }}>
                         <PlaceRoundedIcon sx={{ fontSize: 12, color: '#bbb' }} />
-                        <Typography sx={{ fontSize: '0.72rem', color: '#bbb', fontFamily: "'Inter',sans-serif" }}>
+                        <Typography sx={{ fontSize: '0.72rem', color: '#bbb',}}>
                           {blog.city}, {blog.country}
                         </Typography>
                       </Box>
                     </Box>
 
                     <Typography sx={{
-                      fontFamily: "'Inter',sans-serif",
                       fontWeight: 700, fontSize: '1rem',
                       color: '#111', lineHeight: 1.3,
                       letterSpacing: '-0.015em', mb: 1,
@@ -303,7 +301,6 @@ const BlogsList: React.FC = () => {
 
                     <Typography sx={{
                       fontSize: '0.83rem', color: '#888',
-                      fontFamily: "'Inter',sans-serif",
                       lineHeight: 1.65, mb: 2,
                       display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
                       flex: 1,
@@ -314,11 +311,10 @@ const BlogsList: React.FC = () => {
                     <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', pt: 1.5, borderTop: '1px solid rgba(0,0,0,0.06)' }}>
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4 }}>
                         <AccessTimeRoundedIcon sx={{ fontSize: 13, color: '#ccc' }} />
-                        <Typography sx={{ fontSize: '0.72rem', color: '#bbb', fontFamily: "'Inter',sans-serif" }}>{blog.readTime}</Typography>
+                        <Typography sx={{ fontSize: '0.72rem', color: '#bbb',}}>{blog.readTime}</Typography>
                       </Box>
                       <Typography sx={{
-                        fontSize: '0.78rem', fontWeight: 700, color: '#FF385C',
-                        fontFamily: "'Inter',sans-serif",
+                        fontSize: '0.78rem', fontWeight: 700, color: 'primary.main',
                       }}>
                         Read guide →
                       </Typography>
@@ -341,7 +337,7 @@ const BlogsList: React.FC = () => {
           position: 'relative',
           overflow: 'hidden',
         }}>
-          <Box sx={{ position: 'absolute', top: '-30%', left: '50%', transform: 'translateX(-50%)', width: 700, height: 400, borderRadius: '50%', background: 'rgba(255,56,92,0.1)', filter: 'blur(80px)', pointerEvents: 'none' }} />
+          <Box sx={{ position: 'absolute', top: '-30%', left: '50%', transform: 'translateX(-50%)', width: 700, height: 400, borderRadius: '50%', background: alpha(BRAND.coral, 0.1), filter: 'blur(80px)', pointerEvents: 'none' }} />
           <Typography sx={{
             fontFamily: (t) => t.custom.fontDisplay,
             fontSize: { xs: '1.9rem', md: '3rem' },
@@ -349,18 +345,18 @@ const BlogsList: React.FC = () => {
             letterSpacing: '-0.03em', lineHeight: 1.1, mb: 1.5,
             position: 'relative', zIndex: 1,
           }}>
-            Stop reading. <Box component="em" sx={{ color: '#FF385C' }}>Start traveling.</Box>
+            Stop reading. <Box component="em" sx={{ color: 'primary.main' }}>Start traveling.</Box>
           </Typography>
           <Typography sx={{ fontSize: { xs: '1rem', md: '1.1rem' }, color: 'rgba(255,255,255,0.6)', mb: 4, position: 'relative', zIndex: 1 }}>
             Match your vibe, build your crew, and go.
           </Typography>
           <Box sx={{ display: 'flex', gap: 1.5, justifyContent: 'center', flexWrap: 'wrap', position: 'relative', zIndex: 1 }}>
             <Button component={Link} to="/signup" variant="contained" size="large"
-              className="t-invert" sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '1rem', px: 4.5, py: 1.6 }}>
+              className="t-invert" sx={{ fontWeight: 700, fontSize: '1rem', px: 4.5, py: 1.6 }}>
               Create free account →
             </Button>
             <Button component={Link} to="/signin" variant="outlined" size="large"
-              sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: '1rem', px: 4, py: 1.6, borderRadius: '50px', textTransform: 'none', borderColor: 'rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.7)', '&:hover': { borderColor: 'rgba(255,255,255,0.5)', color: '#fff', background: 'rgba(255,255,255,0.06)' } }}>
+              sx={{ fontWeight: 600, fontSize: '1rem', px: 4, py: 1.6, borderRadius: '50px', textTransform: 'none', borderColor: 'rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.7)', '&:hover': { borderColor: 'rgba(255,255,255,0.5)', color: '#fff', background: 'rgba(255,255,255,0.06)' } }}>
               Sign in
             </Button>
           </Box>

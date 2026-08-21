@@ -65,7 +65,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, action,
       <Typography
         component="h1"
         variant="h1"
-        sx={(t) => ({ fontFamily: t.custom.fontDisplay, color: 'text.primary' })}
+        sx={{ color: 'text.primary' }}
       >
         {title}
       </Typography>

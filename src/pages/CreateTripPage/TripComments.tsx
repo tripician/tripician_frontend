@@ -304,7 +304,7 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
                           ); })}
                           {activeReplyParentId === c.id && (
                             <Box sx={{ display:'flex', gap:1, px:1, py:0.6, pr:1.5, mt:0.5, borderRadius:1, background:(t)=> t.palette.mode==='dark'? 'rgba(255,255,255,0.02)':'#fafbfc' }}>
-                              <Avatar src={myAvatar} imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any} sx={{ width:28, height:28, fontSize:12, bgcolor:'#FF385C' }}>{myInitial}</Avatar>
+                              <Avatar src={myAvatar} imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any} sx={{ width:28, height:28, fontSize:12, bgcolor:'primary.main' }}>{myInitial}</Avatar>
                               <Box component='form' onSubmit={(e)=> { e.preventDefault(); sendReply(c.id); }} sx={{ flex:1, display:'flex', alignItems:'center', gap:1 }}>
                                 <TextField value={replyDraft} onChange={e=> setReplyDraft(e.target.value.slice(0, MAX_COMMENT_CHARS))} placeholder='Reply...' multiline minRows={1} maxRows={4} fullWidth variant='standard' InputProps={{ disableUnderline:true, sx:{ fontSize:13, lineHeight:1.4 } }} />
                                 <IconButton disabled={!replyDraft.trim() || floodBlocked || !canPost} type='submit' sx={{ bgcolor:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? 'action.disabledBackground': t.palette.primary.main, color:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? t.palette.text.disabled: t.palette.primary.contrastText, width:32, height:32, borderRadius:2, '&:hover':{ bgcolor:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? 'action.disabledBackground': t.palette.primary.dark } }}>
@@ -320,7 +320,7 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
                     {replies.length===0 && activeReplyParentId === c.id && (
                       <Box sx={{ mt:1, borderLeft:'2px solid', borderColor:'divider', pl:2 }}>
                         <Box sx={{ display:'flex', gap:1, px:1, py:0.6, pr:1.5, borderRadius:1, background:(t)=> t.palette.mode==='dark'? 'rgba(255,255,255,0.02)':'#fafbfc' }}>
-                          <Avatar src={myAvatar} imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any} sx={{ width:28, height:28, fontSize:12, bgcolor:'#FF385C' }}>{myInitial}</Avatar>
+                          <Avatar src={myAvatar} imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any} sx={{ width:28, height:28, fontSize:12, bgcolor:'primary.main' }}>{myInitial}</Avatar>
                           <Box component='form' onSubmit={(e)=> { e.preventDefault(); sendReply(c.id); }} sx={{ flex:1, display:'flex', alignItems:'center', gap:1 }}>
                             <TextField value={replyDraft} onChange={e=> setReplyDraft(e.target.value.slice(0, MAX_COMMENT_CHARS))} placeholder='Reply...' multiline minRows={1} maxRows={4} fullWidth variant='standard' InputProps={{ disableUnderline:true, sx:{ fontSize:13, lineHeight:1.4 } }} />
                             <IconButton disabled={!replyDraft.trim() || floodBlocked || !canPost} type='submit' sx={{ bgcolor:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? 'action.disabledBackground': t.palette.primary.main, color:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? t.palette.text.disabled: t.palette.primary.contrastText, width:32, height:32, borderRadius:2, '&:hover':{ bgcolor:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? 'action.disabledBackground': t.palette.primary.dark } }}>
@@ -347,7 +347,7 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
         </Box>
       ) : (
       <Box component='form' onSubmit={(e)=> { e.preventDefault(); send(); }} sx={{ maxWidth:900, width:'100%', mx:'auto', display:'flex', alignItems:'flex-start', gap:1.25, pb:1, position:'relative' }}>
-        <Avatar src={myAvatar} imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any} sx={{ width:42, height:42, fontSize:16, bgcolor:'#FF385C' }}>{myInitial}</Avatar>
+        <Avatar src={myAvatar} imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any} sx={{ width:42, height:42, fontSize:16, bgcolor:'primary.main' }}>{myInitial}</Avatar>
         <Box sx={{ flex:1, display:'flex', alignItems:'center', gap:1, background:(t)=> t.palette.mode==='dark'? '#111a23':'#fafafa', border:'1px solid', borderColor:(t)=> t.palette.divider, borderRadius:8, px:1.25, py:0.75 }}>
           <TextField inputRef={textareaRef} value={text} onChange={e=> setText(e.target.value.slice(0, MAX_COMMENT_CHARS))} placeholder={editingId? 'Edit your comment...': canPost? 'Add a public comment…':'View only'} multiline minRows={1} maxRows={5} fullWidth variant='standard' InputProps={{ disableUnderline:true, sx:{ fontSize:14, lineHeight:1.5 } }} />
           {editingId && <Button onClick={cancelEdit} size='small' variant='text' sx={{ textTransform:'none', mr:1 }}>Cancel</Button>}

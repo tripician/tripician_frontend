@@ -23,6 +23,10 @@ import DestinationCardsPanel from './DestinationCardsPanel';
 import ExpensesPanel from './ExpensesPanel';
 import TripChatPanel from '../../navia/TripChatPanel';
 import PackingPanel from './PackingPanel';
+// Lazy: the story editor pulls in the whole After Story module, and most planner
+// sessions never open the tab. This is also the only import the planner has from
+// that module, which is what keeps the two separable.
+const AfterStoryPanel = React.lazy(() => import('../../afterstory/AfterStoryPanel'));
 import TripPulse, { type PulseDimension } from './TripPulse';
 import {
 	IconMapPin as PulseRouteIcon,
@@ -90,12 +94,15 @@ import { isUsableCoord } from '../../utils/geo';
 import { suggestCountryItinerary, NaviaRequestError } from '../../navia/naviaService';
 import NaviaMessage from '../../navia/NaviaMessage';
 import { useAuthToken } from '../../hooks/useAuth0Token';
-import { normalizeTrip, parsePlannerMode, plannerModeToWire, type NormalizedTrip, type PlannerMode } from '../../utils/normalizeTrip';
+import { normalizeTrip, parsePlannerMode, plannerModeToWire, parseFeatureVisibility, type NormalizedTrip, type PlannerMode, type TripFeatureVisibility } from '../../utils/normalizeTrip';
 import { parseTripPreferences } from '../../utils/tripPreferences';
 import EasyPlanHeader from './EasyPlanHeader';
+import PlannerHeaderShell from './PlannerHeaderShell';
 import SegmentedControl from '../../components/ui/SegmentedControl';
+import SaveIndicator, { type SaveState } from '../../components/ui/SaveIndicator';
 import { countryNameFromCode } from '../../utils/countryFlags';
 import { differenceInDays } from 'date-fns';
+import { BRAND } from '../../theme';
 
 type OwnerInfo = { id?: string; email?: string; name?: string; handle?: string; avatar?: string };
 
@@ -270,7 +277,6 @@ interface TripPlannerProps {
 	hideSections?: string[] | boolean;
 	canAccessDocs?: boolean;
 	effectiveCanEdit?: boolean; // editing permission after external view logic
-	showPlannerActions?: boolean; // show save/publish buttons
 	showViewEditAction?: boolean; // show Edit button when in view mode
 	onRequestEdit?: () => void;
 	isExternalNonOwner?: boolean; // viewing someone else's published trip
@@ -313,12 +319,12 @@ const PUBLISH_BUTTON_SX = {
 		return {
 			...this.base,
 			px: 1.6,
-			bgcolor: '#FF385C',
+			bgcolor: 'primary.main',
 			color: '#fff',
 			border: '1px solid rgba(255,255,255,0.15)',
-			'&:hover': { bgcolor: '#E31C5F' },
-			'&:active': { bgcolor: '#D91A50' },
-			'&.Mui-disabled': { bgcolor: '#FF385C', color: 'rgba(255,255,255,0.7)' },
+			'&:hover': { bgcolor: BRAND.coralDark },
+			'&:active': { bgcolor: BRAND.coralDeep },
+			'&.Mui-disabled': { bgcolor: 'primary.main', color: 'rgba(255,255,255,0.7)' },
 		};
 	},
 	get published() {
@@ -404,7 +410,6 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 			flexDirection: 'column',
 			borderLeft: `1px solid ${isLight ? 'rgba(0,0,0,0.08)' : 'rgba(255,255,255,0.07)'}`,
 			background: isLight ? '#ffffff' : '#0e1012',
-			fontFamily: "'Inter', system-ui, sans-serif",
 			overflow: 'hidden',
 			position: 'relative',
 			transition: 'width 0.22s cubic-bezier(.4,0,.2,1)',
@@ -416,7 +421,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 					sx={{
 						position: 'absolute', top: 0, left: 0, bottom: 0, width: 5,
 						cursor: 'col-resize', zIndex: 10,
-						'&:hover': { background: 'rgba(255,56,92,0.22)' },
+						'&:hover': { background: alpha(BRAND.coral, 0.22) },
 						transition: 'background 0.15s',
 					}}
 				/>
@@ -427,7 +432,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 				<Box sx={{ flex: 1, display: { xs: 'flex', lg: 'none' }, flexDirection: 'column', alignItems: 'center', gap: 1.5, pt: 1.5 }}>
 					<Box sx={{
 						width: 28, height: 28, borderRadius: '8px', flexShrink: 0,
-						bgcolor: '#FF385C',
+						bgcolor: 'primary.main',
 						display: { xs: 'flex', lg: 'none' }, alignItems: 'center', justifyContent: 'center',
 						cursor: 'pointer',
 					}} onClick={() => setCollapsed(false)}>
@@ -457,7 +462,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 						{/* AI avatar */}
 						<Box sx={{
 							width: 32, height: 32, borderRadius: '10px', flexShrink: 0,
-							bgcolor: '#FF385C',
+							bgcolor: 'primary.main',
 							display: { xs: 'flex', lg: 'none' }, alignItems: 'center', justifyContent: 'center',
 						}}>
 							<Box component='svg' viewBox='0 0 24 24' sx={{ width: 16, height: 16 }}>
@@ -477,7 +482,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 						</Box>
 						{/* Collapse button */}
 						<Tooltip title='Collapse panel' enterDelay={600}>
-							<IconButton size='small' onClick={() => setCollapsed(true)} sx={{ p: 0.5, color: 'text.disabled', '&:hover': { color: '#FF385C' }, mr: -0.5 }}>
+							<IconButton size='small' onClick={() => setCollapsed(true)} sx={{ p: 0.5, color: 'text.disabled', '&:hover': { color: 'primary.main' }, mr: -0.5 }}>
 								<ChevronRightIcon sx={{ fontSize: 16 }} />
 							</IconButton>
 						</Tooltip>
@@ -535,9 +540,9 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 										cursor: 'pointer', fontFamily: 'inherit',
 										transition: 'background .15s, border-color .15s, color .15s',
 										'&:hover': {
-											background: isLight ? 'rgba(255,56,92,0.06)' : 'rgba(255,56,92,0.10)',
-											borderColor: 'rgba(255,56,92,0.30)',
-											color: '#FF385C',
+											background: isLight ? alpha(BRAND.coral, 0.06) : alpha(BRAND.coral, 0.10),
+											borderColor: alpha(BRAND.coral, 0.30),
+											color: 'primary.main',
 										},
 									}}
 								>
@@ -560,8 +565,8 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 							background: isLight ? '#fafafa' : 'rgba(255,255,255,0.03)',
 							transition: 'border-color .2s, box-shadow .2s',
 							'&:focus-within': {
-								borderColor: 'rgba(255,56,92,0.60)',
-								boxShadow: '0 0 0 3px rgba(255,56,92,0.10)',
+								borderColor: alpha(BRAND.coral, 0.60),
+								boxShadow: `0 0 0 3px ${alpha(BRAND.coral, 0.10)}`,
 							},
 						}}>
 							<InputBase
@@ -574,7 +579,6 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 								maxRows={4}
 								sx={{
 									flex: 1, fontSize: 13, lineHeight: 1.5,
-									fontFamily: "'Inter', system-ui, sans-serif",
 									'& textarea': { padding: 0, color: isLight ? '#1a1a1a' : 'rgba(255,255,255,0.88)', resize: 'none' },
 									'& textarea::placeholder': { color: isLight ? 'rgba(0,0,0,0.32)' : 'rgba(255,255,255,0.25)', opacity: 1 },
 								}}
@@ -585,10 +589,10 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 								disabled={!input.trim() || isStreaming}
 								sx={{
 									width: 32, height: 32, borderRadius: '9px', flexShrink: 0, mb: 0.1,
-									background: (input.trim() && !isStreaming) ? '#FF385C' : 'transparent',
+									background: (input.trim() && !isStreaming) ? BRAND.coral : 'transparent',
 									color: (input.trim() && !isStreaming) ? '#fff' : (isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.20)'),
 									transition: 'background .18s, color .18s',
-									'&:hover': { background: (input.trim() && !isStreaming) ? '#D91A50' : undefined },
+									'&:hover': { background: (input.trim() && !isStreaming) ? BRAND.coralDeep : undefined },
 									'&.Mui-disabled': { background: 'transparent', color: isLight ? 'rgba(0,0,0,0.18)' : 'rgba(255,255,255,0.15)' },
 								}}
 							>
@@ -747,7 +751,6 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 			background: isLight
 				? 'linear-gradient(180deg, #fafafa 0%, #ffffff 120px)'
 				: 'linear-gradient(180deg, #0c0c12 0%, #0a0a0f 120px)',
-			fontFamily: "'Inter', system-ui, sans-serif",
 			overflow: 'hidden',
 			position: 'relative',
 		}}>
@@ -799,7 +802,6 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 				{/* Title block */}
 				<Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, px: 2, pb: 1.75 }}>
 					<Typography sx={{
-						fontFamily: theme.custom.fontDisplay,
 						fontWeight: 700, fontStyle: 'italic',
 						fontSize: '1.18rem', color: '#fff',
 						textShadow: '0 2px 12px rgba(0,0,0,0.6)',
@@ -811,7 +813,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 							src={ownerInfo.avatar ?? undefined}
 							imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any}
 							sx={{ width: 16, height: 16, fontSize: '0.48rem', fontWeight: 700,
-								bgcolor: '#FF385C', color: '#fff',
+								bgcolor: 'primary.main', color: '#fff',
 								border: '1.5px solid rgba(255,255,255,0.5)', flexShrink: 0 }}
 						>{ownerDisplayName[0]?.toUpperCase()}</Avatar>
 						<Typography sx={{ fontSize: '0.63rem', color: 'rgba(255,255,255,0.72)', fontFamily: 'inherit', letterSpacing: '0.01em' }}>
@@ -834,7 +836,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 				{description && (
 					<Box sx={{
 						pl: 1.5, borderLeft: '3px solid',
-						borderImage: 'linear-gradient(to bottom, #FF385C, #E31C5F55) 1',
+						borderImage: `linear-gradient(to bottom, ${BRAND.coral}, ${BRAND.coralDark}55) 1`,
 					}}>
 						<Typography sx={{
 							fontSize: '0.58rem', fontWeight: 700, letterSpacing: '0.18em',
@@ -855,7 +857,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 				<Box>
 					<Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 1 }}>
 						{[
-							{ Icon: NightsStayRoundedIcon, label: 'Nights',       value: totalNights   || null, accent: '#FF385C' },
+							{ Icon: NightsStayRoundedIcon, label: 'Nights',       value: totalNights   || null, accent: BRAND.coral },
 							{ Icon: AltRouteIcon,           label: 'Destinations', value: destinationCount || null, accent: '#7C3AED' },
 						].map(({ Icon, label, value, accent }) => (
 							<Box key={label} sx={{
@@ -900,7 +902,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 							border: `1px solid ${border}`,
 							display: 'flex', alignItems: 'center', gap: 1,
 						}}>
-							<Box sx={{ width: 7, height: 7, borderRadius: '50%', background: '#FF385C', flexShrink: 0 }} />
+							<Box sx={{ width: 7, height: 7, borderRadius: '50%', background: BRAND.coral, flexShrink: 0 }} />
 							<Typography sx={{ fontSize: '0.75rem', fontWeight: 600, color: textPrimary, fontFamily: 'inherit' }}>
 								{dateRange}
 							</Typography>
@@ -922,13 +924,13 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 								<IconButton size='small' aria-label='like'
 									onClick={(e: any) => { e.stopPropagation?.(); toggleReaction('like'); }}
 									sx={{ width: 30, height: 30, borderRadius: '8px',
-										color: liked ? '#FF385C' : textMuted,
-										background: liked ? 'rgba(255,56,92,0.10)' : 'transparent',
-										'&:hover': { background: 'rgba(255,56,92,0.10)' },
+										color: liked ? 'primary.main' : textMuted,
+										background: liked ? alpha(BRAND.coral, 0.10) : 'transparent',
+										'&:hover': { background: alpha(BRAND.coral, 0.10) },
 									}}>
 									{liked ? <FavoriteIcon sx={{ fontSize: 16 }} /> : <FavoriteBorderIcon sx={{ fontSize: 16 }} />}
 								</IconButton>
-								<Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: liked ? '#FF385C' : textMuted, minWidth: 14 }}>{likesCount}</Typography>
+								<Typography sx={{ fontSize: '0.72rem', fontWeight: 600, color: liked ? 'primary.main' : textMuted, minWidth: 14 }}>{likesCount}</Typography>
 							</Box>
 						</Tooltip>
 						<Box sx={{ width: 1, height: 20, background: border }} />
@@ -1008,10 +1010,10 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 												sx={{
 													width: 30, height: 30, fontSize: '0.62rem', fontWeight: 700, flexShrink: 0,
 													background: isOwnerMember
-														? '#FF385C'
+														? BRAND.coral
 														: (isLight ? '#e8e8e8' : 'rgba(255,255,255,0.10)'),
 													color: isOwnerMember ? '#fff' : textPrimary,
-													border: `2px solid ${isOwnerMember ? 'rgba(255,56,92,0.35)' : border}`,
+													border: `2px solid ${isOwnerMember ? alpha(BRAND.coral, 0.35) : border}`,
 												}}
 											>{initial}</Avatar>
 											<Typography sx={{
@@ -1022,11 +1024,11 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 											{isOwnerMember && (
 												<Box sx={{
 													px: 0.85, py: 0.28, borderRadius: '20px',
-													background: 'linear-gradient(135deg, rgba(255,56,92,0.12), rgba(255,56,92,0.06))',
-													border: '1px solid rgba(255,56,92,0.30)',
+													background: `linear-gradient(135deg, ${alpha(BRAND.coral, 0.12)}, ${alpha(BRAND.coral, 0.06)})`,
+													border: `1px solid ${alpha(BRAND.coral, 0.30)}`,
 													flexShrink: 0,
 												}}>
-													<Typography sx={{ fontSize: '0.51rem', fontWeight: 700, color: '#FF385C', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'inherit' }}>
+													<Typography sx={{ fontSize: '0.51rem', fontWeight: 700, color: 'primary.main', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: 'inherit' }}>
 														Host
 													</Typography>
 												</Box>
@@ -1083,9 +1085,9 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 					sx={{
 						textTransform: 'none', borderRadius: '12px', fontFamily: 'inherit',
 						fontWeight: 600, fontSize: '0.82rem',
-						borderColor: 'rgba(255,56,92,0.35)', color: '#FF385C',
+						borderColor: alpha(BRAND.coral, 0.35), color: 'primary.main',
 						py: 0.88,
-						'&:hover': { borderColor: '#FF385C', background: 'rgba(255,56,92,0.05)' },
+						'&:hover': { borderColor: 'primary.main', background: alpha(BRAND.coral, 0.05) },
 						transition: 'all .2s ease',
 					}}
 				>
@@ -1102,8 +1104,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	readOnly = false,
 	hideSections = [],
 	canAccessDocs = true,
-	effectiveCanEdit = true,
-	showPlannerActions = true,
+	effectiveCanEdit: effectiveCanEditProp = true,
 	showViewEditAction = false,
 	onRequestEdit,
 	isExternalNonOwner = false,
@@ -1131,6 +1132,20 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 
 	// Normalize initial trip (stable backend shape: { trip, itinerary })
 		const normalizedInitial = React.useMemo<NormalizedTrip | null>(() => initialTrip ? normalizeTrip(initialTrip) : null, [initialTrip]);
+
+	/**
+	 * Whether this person may change the plan.
+	 *
+	 * The server decides, and says so on the trip payload. Navigation state is
+	 * only a hint for the first paint. Once a trip has actually loaded, a missing
+	 * flag counts as no: unlocking the planner for somebody the API will refuse
+	 * anyway just produces edits that vanish on save.
+	 */
+	const effectiveCanEdit = React.useMemo(() => {
+		const loaded: any = (initialTrip as any)?.trip || initialTrip || null;
+		if (!loaded) return effectiveCanEditProp;
+		return (normalizedInitial?.meta.canEditPlan ?? loaded.canEditPlan) === true;
+	}, [initialTrip, normalizedInitial, effectiveCanEditProp]);
 		// Early raw meta extraction (before hydration) to prevent save race overwriting dates with 'today'
 		const earlyRawTrip = React.useMemo<any>(() => {
 			if(!initialTrip) return null;
@@ -1257,6 +1272,23 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	/** Below lg the side rail is gone and chat lives in the bottom sheet instead. */
 	const chatIsInDrawer = useMediaQuery(theme.breakpoints.down('lg'));
 
+	const [budgetVisibility, setBudgetVisibility] = React.useState<TripFeatureVisibility>(
+		normalizedInitial?.meta.budgetVisibility ?? parseFeatureVisibility(rawInitialTrip?.budgetVisibility)
+	);
+	const [checklistVisibility, setChecklistVisibility] = React.useState<TripFeatureVisibility>(
+		normalizedInitial?.meta.checklistVisibility ?? parseFeatureVisibility(rawInitialTrip?.checklistVisibility)
+	);
+
+	const changeVisibilitySetting = React.useCallback(async (key: 'budget' | 'checklist', value: TripFeatureVisibility) => {
+		if (key === 'budget') setBudgetVisibility(value); else setChecklistVisibility(value);
+		if (!authToken || !tripId) return;
+		try {
+			await apiServices.updateTripSettings(authToken, tripId, {
+				[key === 'budget' ? 'BudgetVisibility' : 'ChecklistVisibility']: value,
+			} as any);
+		} catch { /* the control reverts on the next hydrate */ }
+	}, [authToken, tripId]);
+
 	const [plannerMode, setPlannerMode] = React.useState<PlannerMode>(
 		normalizedInitial?.meta.plannerMode ?? parsePlannerMode(rawInitialTrip?.plannerMode) ?? 'advanced'
 	);
@@ -1328,7 +1360,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 
 
 	// Section + tab UI state  persisted in ?tab= query param so refresh keeps the same panel
-	const VALID_SECTIONS = ['plan', 'news', 'docs', 'packing'] as const;
+	const VALID_SECTIONS = ['plan', 'story', 'news', 'docs', 'packing'] as const;
 	const [searchParams, setSearchParams] = useSearchParams();
 	const rawTab = searchParams.get('tab') as typeof VALID_SECTIONS[number] | null;
 	const section: typeof VALID_SECTIONS[number] = rawTab && (VALID_SECTIONS as readonly string[]).includes(rawTab) ? rawTab : 'plan';
@@ -1628,11 +1660,17 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const ENABLE_DOC_UPLOAD = FEATURE_FLAGS.docsUpload;
 	// (moved earlier)
 	const [settingsOpen, setSettingsOpen] = React.useState(false);
+	// Which tab the settings dialog opens on. 'overview' unless something deep
+	// links into it, so the gear icon still behaves normally.
+	const [settingsTab, setSettingsTab] = React.useState<'overview' | 'crew'>('overview');
 	const [planReviewOpen, setPlanReviewOpen] = React.useState(false);
 	const [optimizingRoute, setOptimizingRoute] = React.useState(false);
 	const [saving, setSaving] = React.useState(false);
 	const [lastSaveTs, setLastSaveTs] = React.useState<number>(0);
-	const [lastSavedDisplay, setLastSavedDisplay] = React.useState<string>('Never');
+	// A Date, not a pre-formatted string. It used to render as the literal word
+	// "Never" until the first write, which reads as a warning about a trip that
+	// has in fact only just been opened.
+	const [lastSavedAt, setLastSavedAt] = React.useState<Date | null>(null);
 	const [toast, setToast] = React.useState<{ open:boolean; type:'success'|'error'|'info'; msg:string }>({ open:false, type:'success', msg:'' });
 	const openToast = (type:'success'|'error'|'info', msg:string)=> setToast({ open:true, type, msg });
 	const closeToast = ()=> setToast(t=> ({ ...t, open:false }));
@@ -2040,7 +2078,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const [sidePanelTab, setSidePanelTab] = React.useState<'chat' | 'comments' | 'map' | 'info'>(
 		readOnly ? 'info' : easy ? 'map' : 'chat'
 	);
-	const [sidePanelCollapsed, setSidePanelCollapsed] = React.useState(false);
+	// Collapsed until asked for. Expanded, the panel claimed ~30vw of the board
+	// before anyone had said they wanted to chat; the rail is always there and one
+	// click away.
+	const [sidePanelCollapsed, setSidePanelCollapsed] = React.useState(true);
 	const [chatUnread, setChatUnread] = React.useState(0);
 	// Map mounts on first visit, then stays mounted (hidden) so it doesn't re-initialise
 	// per switch. In Easy it is the default tab, so it has to be mounted from the start
@@ -2477,8 +2518,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			} else {
 				console.debug('[TripPersist] Skipping remoteTrip overwrite - server refresh happened during save (refreshKey changed).');
 			}
-			setLastSavedDisplay(new Date().toLocaleTimeString([], { hour:'2-digit', minute:'2-digit', second:'2-digit' }));
-			openToast('success', payload.trip.status==='DRAFT'? 'Saved':'Trip updated');
+			setLastSavedAt(new Date());
+			// No success toast. The header says "Saved HH:mm" continuously now, and a
+			// toast per autosave would fire every few seconds while you type.
 			// NOTE: no refreshTripFromServer() here. The server round-trips our external
 			// ids (TripDay Meta), so there is nothing to reconcile, and the refetch it
 			// used to do triggered a full Redux re-hydration that WIPED any edits made
@@ -2511,9 +2553,29 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	}, [authToken, saving, lastSaveTs, tripId, openToast]);
 
 	// ── Autosave ───────────────────────────────────────────────────────────────
-	// Debounce-persist 2.5s after the last change. Uses the same payload/commit
-	// path as the manual Save button, which remains as an explicit fallback.
+	// Debounce-persist 1.2s after the last change, matching the story editor's
+	// AUTOSAVE_DELAY_MS. There is no manual Save button any more, so this is the
+	// only writer: see the visibilitychange flush below for the tab-close case.
+	//
+	// This does NOT fight the 1200ms throttle inside persistToBackend. That
+	// throttle returns false, the caller skips commitSnapshot, the plan stays
+	// dirty, and the next render re-arms this timer.
+	const AUTOSAVE_DELAY_MS = 1200;
 	const autosaveTimerRef = React.useRef<number | null>(null);
+
+	/**
+	 * The four planner signals as the one state the indicator understands.
+	 *
+	 * 'conflict' is unreachable here: the plan payload carries no version, so the
+	 * server can never tell us our copy is stale. The story editor does have one,
+	 * which is why the shared component knows the state at all.
+	 */
+	const saveState: SaveState =
+		savePermissionDenied ? 'error'
+			: saving ? 'saving'
+				: isDirty ? 'dirty'
+					: lastSavedAt ? 'saved'
+						: 'idle';
 	React.useEffect(() => {
 		// aiAutoGenerating: saving mid-generation triggers a server refresh that
 		// re-hydrates Redux with server ids, orphaning the generator's queued spot
@@ -2529,9 +2591,53 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			const payload = buildPersistPayload(isDraft);
 			persistedPayloadRef.current = payload;
 			persistToBackend(payload).then((ok: boolean) => { if (ok) commitSnapshot(isDraft); });
-		}, 2500);
+		}, AUTOSAVE_DELAY_MS);
 		return () => { if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current); };
 	}, [readOnly, effectiveCanEdit, isHydrated, isDirty, saving, isDraft, aiAutoGenerating, buildPersistPayload, persistToBackend, commitSnapshot]);
+
+	/**
+	 * Flush on the way out.
+	 *
+	 * Removing the Save button removed the user's only manual way to force a
+	 * write, and there is no beforeunload or router blocker anywhere in this app,
+	 * so a tab hidden inside the debounce window would silently lose that edit.
+	 * Same best-effort approach the story editor uses: not a guarantee, but it
+	 * turns "up to 1.2s of typing" into "almost never".
+	 */
+	// Latest-value refs, so the listener below is registered once and still never
+	// reads a stale closure. Same reason computeSignatureRef exists above.
+	const savingRef = React.useRef(saving);
+	const isHydratedRef = React.useRef(isHydrated);
+	const isDraftRef = React.useRef(isDraft);
+	const aiAutoGeneratingRef = React.useRef(aiAutoGenerating);
+	const buildPersistPayloadRef = React.useRef(buildPersistPayload);
+	const persistToBackendRef = React.useRef(persistToBackend);
+	const commitSnapshotRef = React.useRef(commitSnapshot);
+	React.useEffect(() => {
+		savingRef.current = saving;
+		isHydratedRef.current = isHydrated;
+		isDraftRef.current = isDraft;
+		aiAutoGeneratingRef.current = aiAutoGenerating;
+		buildPersistPayloadRef.current = buildPersistPayload;
+		persistToBackendRef.current = persistToBackend;
+		commitSnapshotRef.current = commitSnapshot;
+	});
+
+	React.useEffect(() => {
+		if (readOnly || !effectiveCanEdit) return;
+		const onHide = () => {
+			if (document.visibilityState !== 'hidden') return;
+			if (!isHydratedRef.current || savingRef.current || aiAutoGeneratingRef.current) return;
+			if (computeSignatureRef.current() === lastCommittedRef.current) return;
+			const payload = buildPersistPayloadRef.current(isDraftRef.current);
+			persistedPayloadRef.current = payload;
+			void persistToBackendRef.current(payload).then((ok: boolean) => {
+				if (ok) commitSnapshotRef.current(isDraftRef.current);
+			});
+		};
+		document.addEventListener('visibilitychange', onHide);
+		return () => document.removeEventListener('visibilitychange', onHide);
+	}, [readOnly, effectiveCanEdit]);
 
 	// If notes were silently cleaned on hydration (category 'general' leaked into notes field),
 	// persist the corrected value automatically so the backend stays in sync.
@@ -2577,10 +2683,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const handlePublish = async () => {
 		if(!currentUserIsOwner || !authToken) return; // safety
 		if(!isDraft) return;
-		// "Simple plans can't be published" is a rule, not just a hidden button.
-		// Enforce it here too so no other path (keyboard, a future shortcut, a
-		// stale handler) can publish a trip the user is drafting in Easy mode.
-		if(easy) return;
 		setSaving(true);
 		try {
 			// Publishing should always make the trip publicly readable.
@@ -2711,7 +2813,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		if(readOnly){
 			// On the read-only TripView page, go back in history instead of
 			// re-navigating to the same /trip/:id URL (which is a no-op).
-			if(window.history.length > 1){ window.history.back(); } else { navigate('/dashboard'); }
+			if(window.history.length > 1){ window.history.back(); } else { navigate('/profile?tab=trips'); }
 			return;
 		}
 		if(!effectiveCanEdit || savePermissionDenied){
@@ -2727,31 +2829,33 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	 * TripPlannerNav already filters on this prop, so hiding a section is a matter
 	 * of naming it rather than editing the nav.
 	 */
-	const EASY_HIDDEN_SECTIONS = ['budget', 'news', 'packing', 'docs'];
-	const hideSectionsArr: string[] = [
-		...(Array.isArray(hideSections) ? hideSections : []),
-		...(easy ? EASY_HIDDEN_SECTIONS : []),
-	];
+	// Simple mode used to hide Budget/News/Packing/Docs. It no longer hides
+	// anything: the mode is about how much detail a STOP carries, not about which
+	// parts of the trip you are allowed to open. Hiding them also made the After
+	// Story rail item a dead click, because the guard below bounced every section
+	// that was not 'plan'.
+	const hideSectionsArr: string[] = Array.isArray(hideSections) ? hideSections : [];
 
-	// Each mode leads with a different side panel: Easy on the map, Advanced on the
+	// Each mode PRE-SELECTS a different side panel: Easy the map, Advanced the
 	// group chat. Applied whenever the mode changes - including when hydration
 	// corrects it after first paint - not just at mount.
+	//
+	// It does not open the panel. Which tab is selected and whether the panel is
+	// expanded are separate questions, and this used to answer both: it called
+	// setSidePanelCollapsed(false), so the collapsed default could never survive
+	// the hydration mode correction that lands just after first paint.
 	React.useEffect(() => {
 		if (readOnly) return;
 		if (easy) { setSideMapMounted(true); setSidePanelTab('map'); }
 		else { setSidePanelTab('chat'); }
-		setSidePanelCollapsed(false);
 	}, [easy, readOnly]);
 
-	// A hidden section must not stay selected: switching to Easy while sitting on
-	// Budget or Packing would otherwise leave the user on a panel with no way back
-	// to it in the rail.
-	React.useEffect(() => {
-		if (!easy) return;
-		if (section !== 'plan') setSectionDebug('plan');
-		if (tab !== 0) setTab(0);
-	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [easy, section, tab]);
+	// NOTE: there used to be an effect here that forced `section` back to 'plan'
+	// whenever Easy was on. It was written for sections Easy hid, but the test was
+	// `section !== 'plan'`, so it also caught 'story' - which Easy never hid. The
+	// After Story panel mounted and was torn down within a frame, and the
+	// `?tab=story` notification deep link bounced too. Nothing is hidden now, so
+	// there is nothing to bounce off.
 
 	// Build dynamic trip members list (owner + any backend-provided members if structure exists)
 	const userProfile = useSelector((s:RootState)=> s.user.profile);
@@ -2767,9 +2871,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		if(ownerInfo.id || ownerInfo.email) return false;
 		return Boolean(isOwnerExternal);
 	}, [userProfile, ownerInfo, isOwnerExternal]);
-	const currentUserRole: 'Owner'|'Editor'|'Viewer' = currentUserIsOwner ? 'Owner' : (effectiveCanEdit ? 'Editor' : 'Viewer');
+	const currentUserRole: 'Owner'|'Admin'|'Member' = currentUserIsOwner ? 'Owner' : (effectiveCanEdit ? 'Admin' : 'Member');
 	const tripMembers = React.useMemo(()=> {
-		const list: { id:string; name:string; handle:string; email?:string; avatar?:string; role:'Owner'|'Editor'|'Viewer' }[] = [];
+		const list: { id:string; name:string; handle:string; email?:string; avatar?:string; role:'Owner'|'Admin'|'Member' }[] = [];
 		// Prefer authoritative tripUsers from /trips/{id}/users; fallback to embedded members in initialTrip
 		const embeddedMembers: any[] = Array.isArray((initialTrip?.trip as any)?.members) ? (initialTrip!.trip as any).members
 			: Array.isArray((initialTrip as any)?.members) ? (initialTrip as any).members : [];
@@ -2796,11 +2900,13 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					(ownerIdNormalized && id === ownerIdNormalized) ||
 					(ownerEmailNormalized && emailLower && ownerEmailNormalized === emailLower)
 				);
-				let role: 'Owner'|'Editor'|'Viewer' = 'Viewer';
+				// Owner, admin or member. Legacy 'viewer'/'editor' rows are remapped
+				// server side by AddTripMemberRoles, so anything not 'admin' here is
+				// somebody who is along for the trip rather than running it.
+				let role: 'Owner'|'Admin'|'Member' = 'Member';
 				if(matchesOwner || normalizedRole === 'owner' || m.isOwner || m.IsOwner || m.isTripOwner || m.IsTripOwner) role='Owner';
-				else if(normalizedRole === 'editor' || m.canEdit || m.CanEdit) role='Editor';
-				// Normalize owner: if backend sends canEdit + matches current user id treat as Owner
-				if(userProfile && (id === String(userProfile.id)) && role==='Editor' && currentUserIsOwner) role='Owner';
+				else if(normalizedRole === 'admin') role='Admin';
+				if(userProfile && (id === String(userProfile.id)) && role==='Admin' && currentUserIsOwner) role='Owner';
 				if(matchesOwner){
 					if(ownerInfo.name && (!name || name.toLowerCase() === 'member')) name = ownerInfo.name;
 					if(ownerInfo.handle && (handle === '@member' || !handle)) handle = ownerInfo.handle;
@@ -2831,7 +2937,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				if(currentUserIsOwner){
 					for(const member of list){ if(member.id===currentId){ member.role='Owner'; break; } }
 				} else if(effectiveCanEdit){
-					for(const member of list){ if(member.id===currentId && member.role==='Viewer'){ member.role='Editor'; break; } }
+					for(const member of list){ if(member.id===currentId && member.role==='Member'){ member.role='Admin'; break; } }
 				}
 			}
 		}
@@ -3189,7 +3295,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				id: 'dates', label: 'Set travel dates', weight: 15, icon: PulseDatesIcon,
 				progress: tripStartDate && tripEndDate ? 1 : 0,
 				detail: tripStartDate && tripEndDate ? `${tripStartDate} → ${tripEndDate}` : 'No dates yet',
-				actionLabel: 'Set dates', onAction: () => setSettingsOpen(true),
+				actionLabel: 'Set dates', onAction: () => { setSettingsTab('overview'); setSettingsOpen(true); },
 			},
 			{
 				id: 'nights', label: 'Allocate every night', weight: 15, icon: PulseNightsIcon,
@@ -3227,7 +3333,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				id: 'story', label: 'Name & describe the trip', weight: 5, icon: PulseStoryIcon,
 				progress: (checks.hasTitle ? 0.5 : 0) + (checks.hasDescription ? 0.5 : 0),
 				detail: checks.hasTitle && checks.hasDescription ? 'Title & description set' : !checks.hasTitle ? 'Still untitled' : 'Description too short',
-				actionLabel: 'Edit', onAction: () => setSettingsOpen(true),
+				actionLabel: 'Edit', onAction: () => { setSettingsTab('overview'); setSettingsOpen(true); },
 			},
 		];
 	}, [planner.destinations, planner.tripBudget, planner.expenses, packingCategories, tripMembers.length, tripStartDate, tripEndDate, totalNights, targetNights, computePublishChecks]);
@@ -3247,10 +3353,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				background: theme.palette.background.default,
 			}}>
 				<Box sx={{ color: 'text.disabled' }}><IconDeviceMobile size={36} stroke={1.4} /></Box>
-				<Typography sx={{ fontFamily: (t) => t.custom.fontDisplay, fontWeight: 700, fontSize: '1.4rem', color: 'text.primary' }}>
+				<Typography sx={{ fontWeight: 700, fontSize: '1.4rem', color: 'text.primary' }}>
 					Planning is better on a bigger screen
 				</Typography>
-				<Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.9rem', color: 'text.secondary', maxWidth: 340, lineHeight: 1.7 }}>
+				<Typography sx={{ fontSize: '0.9rem', color: 'text.secondary', maxWidth: 340, lineHeight: 1.7 }}>
 					You can absolutely plan right here on your phone. For the full experience, where every one of Navia's magical features has room to breathe, open Tripician on a tablet or computer.
 				</Typography>
 				<Button
@@ -3259,20 +3365,155 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						try { localStorage.setItem('tripician:mobilePlannerNoticeAck', '1'); } catch { /* best-effort */ }
 						setMobilePlannerNoticeAck(true);
 					}}
-					sx={{ mt: 1, borderRadius: '50px', textTransform: 'none', fontFamily: "'Inter', sans-serif", background: '#FF385C', boxShadow: 'none', '&:hover': { background: '#E31C5F', boxShadow: 'none' } }}
+					sx={{ mt: 1, borderRadius: '50px', textTransform: 'none', background: BRAND.coral, boxShadow: 'none', '&:hover': { background: BRAND.coralDark, boxShadow: 'none' } }}
 				>
 					Continue on this device
 				</Button>
 				<Button
 					variant="text"
 					onClick={() => navigate('/home')}
-					sx={{ borderRadius: '50px', textTransform: 'none', fontFamily: "'Inter', sans-serif", color: 'text.secondary', '&:hover': { background: 'transparent', color: 'text.primary' } }}
+					sx={{ borderRadius: '50px', textTransform: 'none', color: 'text.secondary', '&:hover': { background: 'transparent', color: 'text.primary' } }}
 				>
 					Back to Home
 				</Button>
 			</Box>
 		);
 	}
+
+	/**
+	 * Publish / Published / Share, as one node.
+	 *
+	 * It used to live inline in the Advanced vitals bar, which is why Simple mode
+	 * had no publish affordance at all. Both headers render this same node now, so
+	 * the two modes cannot drift into offering different actions on the same trip.
+	 */
+	const publishCluster = (!readOnly && effectiveCanEdit) || !isDraft ? (
+		<>
+			{/*
+			  Recruitment, given a door.
+
+			  Opening a trip to join requests was reachable only by going planner ->
+			  Settings dialog -> a tab named "Crew" -> a field block, four levels down,
+			  on a tab that otherwise just lists members. The backend for it has been
+			  complete since 2026-08-17 and essentially nobody could have found it.
+
+			  It sits beside Publish because they are the same kind of decision - who
+			  gets to see this, and who gets to come - and this is where the eye
+			  already goes when a trip is ready to leave the drafting stage.
+			*/}
+			{!readOnly && effectiveCanEdit && currentUserIsOwner && (
+				<Tooltip arrow placement='bottom' title='Let travellers ask to join this trip. You approve everyone.'>
+					<Button
+						size='small'
+						variant='outlined'
+						startIcon={<PulseCrewIcon size={14} stroke={1.9} />}
+						onClick={() => { setSettingsTab('crew'); setSettingsOpen(true); }}
+						sx={{
+							height: 32, px: 1.4, borderRadius: '20px', textTransform: 'none',
+							fontSize: 12, fontWeight: 700, whiteSpace: 'nowrap', flexShrink: 0,
+							color: 'text.primary', borderColor: 'divider',
+							'& .MuiButton-startIcon': { mr: 0.5 },
+							'&:hover': { borderColor: 'primary.main', color: 'primary.main', bgcolor: 'transparent' },
+						}}
+					>
+						Find people
+					</Button>
+				</Tooltip>
+			)}
+
+			{!readOnly && effectiveCanEdit && (
+			<Box data-tour='publish' component='span' sx={{ display: 'inline-flex' }}>
+				{isDraft ? (
+					<Tooltip arrow placement='bottom' title={saving ? 'Publishing...' : 'Make your trip public'}>
+						{/* span, not the Button: a disabled button fires no pointer events, so
+						    the tooltip would go silent for the whole time it is saving. */}
+						<Box component='span' sx={{ display: 'inline-flex' }}>
+						<Button
+							size='small'
+							variant='contained'
+							disabled={saving}
+							onClick={() => {
+								// Always open the dialog. It reports what is missing when the checks
+								// fail and confirms when they pass; publishing used to happen straight
+								// off this click with nothing in between.
+								setPublishChecks(computePublishChecks());
+								setShowPublishCheck(true);
+							}}
+							sx={PUBLISH_BUTTON_SX.draft}
+						>
+							{saving ? (
+								<><CircularProgress size={12} thickness={5} sx={{ color: 'inherit', mr: .4 }} />Publishing...</>
+							) : (
+								<><PublishRoundedIcon sx={{ fontSize: 13 }} /> Publish</>
+							)}
+						</Button>
+						</Box>
+					</Tooltip>
+				) : (
+					/*
+					 * Published: a state, and now also a way back out.
+					 *
+					 * This was a disabled green button. `handlePublish` has always had an
+					 * unpublish branch and the API has always accepted `published: false`,
+					 * but nothing could reach either, so "Published" was a dead end that
+					 * people clicked at. It is now the affordance it looked like, without
+					 * putting an irreversible-feeling action one stray press from Save.
+					 */
+					<Tooltip arrow placement='bottom' title={saving ? 'Working...' : 'Your trip is live. Open the menu for options'}>
+						<Box component='span' sx={{ display: 'inline-flex' }}>
+						<Button
+							size='small'
+							variant='contained'
+							disabled={saving}
+							onClick={(e) => setPublishedMenuAnchor(e.currentTarget)}
+							aria-haspopup='menu'
+							aria-expanded={Boolean(publishedMenuAnchor)}
+							endIcon={<KeyboardArrowDownRoundedIcon sx={{ fontSize: 15 }} />}
+							sx={PUBLISH_BUTTON_SX.published}
+						>
+							{saving ? (
+								<><CircularProgress size={12} thickness={5} sx={{ color: 'inherit', mr: .4 }} />Working...</>
+							) : (
+								<><ShareRoundedIcon sx={{ fontSize: 13 }} /> Published</>
+							)}
+						</Button>
+						</Box>
+					</Tooltip>
+				)}
+			</Box>
+			)}
+			{!isDraft && (
+			<Tooltip arrow placement='bottom' title='Share this published trip'>
+				<Button
+					size='small'
+					variant='outlined'
+					onClick={() => setShareModalOpen(true)}
+					sx={{
+						ml: .5,
+						textTransform: 'none',
+						borderRadius: '20px',
+						px: 1.25,
+						height: 32,
+						fontSize: 12,
+						fontWeight: 700,
+						minWidth: 0,
+						letterSpacing: '-0.1px',
+						gap: .35,
+						flexShrink: 0,
+						borderColor: alpha(BRAND.coral, 0.45),
+						color: 'primary.main',
+						'&:hover': {
+							borderColor: 'primary.main',
+							background: alpha(BRAND.coral, 0.08),
+						},
+					}}
+				>
+					<ShareRoundedIcon sx={{ fontSize: 13 }} /> Share
+				</Button>
+			</Tooltip>
+			)}
+		</>
+	) : null;
 
 	return (
 		<React.Fragment>
@@ -3286,16 +3527,15 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				alignItems: 'center', justifyContent: 'center', gap: 2.5,
 			}}>
 				<Box sx={{ position: 'relative', width: 56, height: 56 }}>
-					<Box sx={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid rgba(255,56,92,0.12)' }} />
+					<Box sx={{ position: 'absolute', inset: 0, borderRadius: '50%', border: `3px solid ${alpha(BRAND.coral, 0.12)}` }} />
 					<Box sx={{
 						position: 'absolute', inset: 0, borderRadius: '50%',
-						border: '3px solid transparent', borderTopColor: '#FF385C',
+						border: '3px solid transparent', borderTopColor: 'primary.main',
 						animation: 'ai-spin 0.9s linear infinite',
 						'@keyframes ai-spin': { to: { transform: 'rotate(360deg)' } },
 					}} />
 				</Box>
-				<Typography key={aiAutoMessage} sx={{
-					fontFamily: "'Inter', sans-serif", fontWeight: 600,
+				<Typography key={aiAutoMessage} sx={{ fontWeight: 600,
 					fontSize: '1rem', color: 'text.secondary',
 					textAlign: 'center', maxWidth: 320,
 					animation: 'ai-fadein 0.45s ease',
@@ -3306,7 +3546,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				}}>{aiAutoMessage}</Typography>
 				{/* Disclosure at the point of generation - state that this is drafted, not
 				    researched, exactly where it matters. We disclose; we don't advertise. */}
-				<Typography sx={{ fontSize: '0.72rem', color: 'rgba(0,0,0,0.35)', fontFamily: "'Inter', sans-serif", textAlign: 'center', maxWidth: 320, lineHeight: 1.5 }}>
+				<Typography sx={{ fontSize: '0.72rem', color: 'rgba(0,0,0,0.35)', textAlign: 'center', maxWidth: 320, lineHeight: 1.5 }}>
 					Drafted automatically, then every place checked against a live listing.
 				</Typography>
 			</Box>
@@ -3319,7 +3559,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				if (id === 'plan') { setSectionDebug('plan'); setTab(0); return; }
 				setSectionDebug(id as any);
 			}}
-			onSettingsClick={()=> setSettingsOpen(true)}
+			onSettingsClick={()=> { setSettingsTab('overview'); setSettingsOpen(true); }}
 			hideSections={hideSectionsArr}
 			canAccessDocs={canAccessDocs}
 			docsEnabled={ENABLE_DOC_UPLOAD}
@@ -3367,14 +3607,46 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 								</IconButton>
 							</Tooltip>
 						)}
+						{/* Save state, the way the story editor shows it. This replaced the
+						    bottom Save bar: the button's real job was telling you whether
+						    your work was safe, so saying that continuously retires it. */}
+						{!readOnly && effectiveCanEdit && (
+							<Box data-tour='save' sx={{ ml: 0.4, display: { xs: 'none', sm: 'inline-flex' } }}>
+								<SaveIndicator
+									state={saveState}
+									lastSavedAt={lastSavedAt}
+									error={savePermissionDenied ? "You don't have permission to save" : null}
+									onRetry={() => {
+										const payload = buildPersistPayload(isDraft);
+										persistedPayloadRef.current = payload;
+										void persistToBackend(payload).then((ok: boolean) => { if (ok) commitSnapshot(isDraft); });
+									}}
+								/>
+							</Box>
+						)}
 					</Box>
 				} centerNode={
-					<Typography noWrap sx={{ fontFamily:"'Inter', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif", fontWeight: 700, fontSize:'1.2rem', letterSpacing:'-0.4px', lineHeight:1.15 }}>{title}</Typography>
+					<Typography noWrap sx={{ fontWeight: 700, fontSize:'1.2rem', letterSpacing:'-0.4px', lineHeight:1.15 }}>{title}</Typography>
 				} />
 				<Box ref={containerRef} sx={{ flex:1, display:'flex', position:'relative', minHeight:0 }}>
 					{/* Centre content column */}
 					<Box sx={{ flex:1, minWidth:0, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative' }}>
-					{section==='news' ? (
+					{section==='story' ? (
+							/* The whole After Story feature behind one component. This file
+							   knows the trip id and nothing else about it. */
+							<Box sx={{ flex:1, overflowY:'auto', overflowX:'hidden', display:'flex', flexDirection:'column' }}>
+								<React.Suspense fallback={null}>
+									<AfterStoryPanel
+										tripId={tripId}
+										tripName={title}
+										countries={countries}
+										startDate={tripStartDate}
+										endDate={tripEndDate}
+										vibe={vibe}
+									/>
+								</React.Suspense>
+							</Box>
+						) : section==='news' ? (
 						<Box sx={{ flex:1, overflowY:'auto', overflowX:'hidden', display:'flex', flexDirection:'column' }}>
 							<NewsPanel selectedCountries={countries} />
 						</Box>
@@ -3415,30 +3687,27 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 							// must show which one you are actually looking at.
 							mode={renderedMode}
 							onModeChange={handleModeChange}
-							onOpenSettings={() => setSettingsOpen(true)}
+							onOpenSettings={() => { setSettingsTab('overview'); setSettingsOpen(true); }}
 							onOpenShare={() => setShareModalOpen(true)}
+							actions={publishCluster}
 						/>
 						)}
 						{section==='plan' && !easy && (
-							<Box sx={(t)=>({ px:{ xs:2, sm:2.5 }, py:.75, borderBottom:`1px solid ${t.palette.divider}`, background: t.palette.mode==='light'? 'rgba(255,255,255,0.92)':'rgba(20,22,26,0.92)', backdropFilter:'blur(8px)', position:'sticky', top:0, zIndex:2 })}>
-								{/* Same 900px column as the Easy header and the stop cards, so the mode
-								    switch lands on the identical x in both modes and the bar's contents
-								    line up with the cards underneath it. */}
-								<Box sx={{ maxWidth:900, mx:'auto', width:'100%', display:'flex', alignItems:'center', flexWrap:{ xs:'wrap', md:'nowrap' }, rowGap:.75, gap:1 }}>
+							<PlannerHeaderShell dense>
 							{/* Vital trip info - dates · stops · travelers. On phones these wrap into tidy rows instead of scrolling off-screen. */}
 							<Box sx={{ flex:1, minWidth:0, display:'flex', alignItems:'center', flexWrap:{ xs:'wrap', md:'nowrap' }, rowGap:.75, gap:1, overflowX:{ xs:'visible', md:'auto' }, '::-webkit-scrollbar':{ display:'none' }, scrollbarWidth:'none' }}>
 								<Tooltip title={(!readOnly && effectiveCanEdit) ? 'Edit trip dates' : 'Trip dates'} arrow placement='bottom'>
 									<Box
 										component='button'
 										type='button'
-										onClick={() => { if (!readOnly && effectiveCanEdit) setSettingsOpen(true); }}
+										onClick={() => { if (!readOnly && effectiveCanEdit) { setSettingsTab('overview'); setSettingsOpen(true); } }}
 										sx={(t) => ({
 											display:'flex', alignItems:'center', gap:.6, height:32, px:1.2, borderRadius:'20px', flexShrink:0,
 											border:`1px solid ${t.palette.divider}`, bgcolor:'transparent',
 											color:'text.primary', fontFamily:'inherit', fontSize:12.5, fontWeight:600, lineHeight:1,
 											cursor:(!readOnly && effectiveCanEdit) ? 'pointer' : 'default',
 											transition:'all .15s',
-											'&:hover': (!readOnly && effectiveCanEdit) ? { borderColor:'rgba(255,56,92,0.4)', color:'#FF385C' } : {},
+											'&:hover': (!readOnly && effectiveCanEdit) ? { borderColor:alpha(BRAND.coral, 0.4), color:'primary.main' } : {},
 										})}
 									>
 										<PulseDatesIcon size={13} stroke={2} />
@@ -3461,13 +3730,13 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 											// The label was being clipped by the row's overflow when the bar was full.
 											whiteSpace:'nowrap',
 											cursor:'pointer', transition:'all .15s',
-											'&:hover': { borderColor:'rgba(255,56,92,0.4)', color:'#FF385C' },
+											'&:hover': { borderColor:alpha(BRAND.coral, 0.4), color:'primary.main' },
 										})}
 									>
 										{tripUsers.length > 0 && (
 											<AvatarGroup max={3} sx={{ '& .MuiAvatar-root': { width:20, height:20, fontSize:9, fontWeight:700, border:'1.5px solid', borderColor:'background.paper' } }}>
 												{tripUsers.map((u: any, i: number) => (
-													<Avatar key={u.id || i} src={u.avatar || u.profilePic || u.profilePicture || undefined} sx={{ bgcolor:'#FF385C' }}>
+													<Avatar key={u.id || i} src={u.avatar || u.profilePic || u.profilePicture || undefined} sx={{ bgcolor:'primary.main' }}>
 														{(u.name || u.displayName || 'T').charAt(0).toUpperCase()}
 													</Avatar>
 												))}
@@ -3487,7 +3756,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 												border:`1px solid ${t.palette.divider}`, bgcolor:'transparent',
 												color:'text.primary', fontFamily:'inherit', fontSize:12.5, fontWeight:600, lineHeight:1,
 												cursor:'pointer', transition:'all .15s',
-												'&:hover': { borderColor:'rgba(255,56,92,0.4)', color:'#FF385C' },
+												'&:hover': { borderColor:alpha(BRAND.coral, 0.4), color:'primary.main' },
 											})}
 										>
 											<PulseBudgetIcon size={13} stroke={2} />
@@ -3523,7 +3792,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 										color: realityCheck.color ?? 'text.primary',
 										fontFamily:'inherit', fontSize:12.5, fontWeight:600, lineHeight:1,
 										cursor:'pointer', transition:'all .15s',
-										'&:hover': { borderColor:'rgba(255,56,92,0.4)', color:'#FF385C' },
+										'&:hover': { borderColor:alpha(BRAND.coral, 0.4), color:'primary.main' },
 										'&:focus-visible': { outline:`2px solid ${t.custom.ring}`, outlineOffset:2 },
 									})}
 								>
@@ -3532,101 +3801,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 								</Box>
 							</Tooltip>
 							)}
-							{!readOnly && effectiveCanEdit && (
-							<Box data-tour='publish' component='span' sx={{ display: { xs: 'none', md: 'inline-flex' } }}>
-								{isDraft ? (
-									<Tooltip arrow placement='bottom' title={saving ? 'Publishing...' : 'Make your trip public'}>
-										{/* span, not the Button: a disabled button fires no pointer events, so
-										    the tooltip would go silent for the whole time it is saving. */}
-										<Box component='span' sx={{ display: 'inline-flex' }}>
-										<Button
-											size='small'
-											variant='contained'
-											disabled={saving}
-											onClick={() => {
-												const checks = computePublishChecks();
-												const allPassed = checks.hasTitle && checks.hasDescription && checks.allDatesCovered;
-												if (!allPassed) {
-													setPublishChecks(checks);
-													setShowPublishCheck(true);
-													return;
-												}
-												handlePublish();
-												requestAnimationFrame(() => { lastCommittedRef.current = computeSignature(); });
-											}}
-											sx={PUBLISH_BUTTON_SX.draft}
-										>
-											{saving ? (
-												<><CircularProgress size={12} thickness={5} sx={{ color: 'inherit', mr: .4 }} />Publishing...</>
-											) : (
-												<><PublishRoundedIcon sx={{ fontSize: 13 }} /> Publish</>
-											)}
-										</Button>
-										</Box>
-									</Tooltip>
-								) : (
-									/*
-									 * Published: a state, and now also a way back out.
-									 *
-									 * This was a disabled green button. `handlePublish` has always had an
-									 * unpublish branch and the API has always accepted `published: false`,
-									 * but nothing could reach either, so "Published" was a dead end that
-									 * people clicked at. It is now the affordance it looked like, without
-									 * putting an irreversible-feeling action one stray press from Save.
-									 */
-									<Tooltip arrow placement='bottom' title={saving ? 'Working...' : 'Your trip is live. Open the menu for options'}>
-										<Box component='span' sx={{ display: 'inline-flex' }}>
-										<Button
-											size='small'
-											variant='contained'
-											disabled={saving}
-											onClick={(e) => setPublishedMenuAnchor(e.currentTarget)}
-											aria-haspopup='menu'
-											aria-expanded={Boolean(publishedMenuAnchor)}
-											endIcon={<KeyboardArrowDownRoundedIcon sx={{ fontSize: 15 }} />}
-											sx={PUBLISH_BUTTON_SX.published}
-										>
-											{saving ? (
-												<><CircularProgress size={12} thickness={5} sx={{ color: 'inherit', mr: .4 }} />Working...</>
-											) : (
-												<><ShareRoundedIcon sx={{ fontSize: 13 }} /> Published</>
-											)}
-										</Button>
-										</Box>
-									</Tooltip>
-								)}
-							</Box>
-							)}
-							{!isDraft && (
-							<Tooltip arrow placement='bottom' title='Share this published trip'>
-								<Button
-									size='small'
-									variant='outlined'
-									onClick={() => setShareModalOpen(true)}
-									sx={{
-										ml: .5,
-										textTransform: 'none',
-										borderRadius: '20px',
-										px: 1.25,
-										height: 32,
-										fontSize: 12,
-										fontWeight: 700,
-										minWidth: 0,
-										letterSpacing: '-0.1px',
-										gap: .35,
-										flexShrink: 0,
-										borderColor: 'rgba(255,56,92,0.45)',
-										color: '#FF385C',
-										'&:hover': {
-											borderColor: '#FF385C',
-											background: 'rgba(255,56,92,0.08)',
-										},
-									}}
-								>
-									<ShareRoundedIcon sx={{ fontSize: 13 }} /> Share
-								</Button>
-							</Tooltip>
-							)}
+							{publishCluster}
 								{/* Mode switch: LAST item, pinned to the right edge of the same 900px
 								    content column the Easy header uses. It has to sit in the same place in
 								    both modes or switching moves the control out from under the cursor -
@@ -3643,21 +3818,17 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 												value: 'easy',
 												label: 'Simple',
 												Icon: IconSparkles,
-												// A published trip stays in the full planner: Simple can't publish,
-												// so allowing the switch would strand a live trip in a mode with no
-												// way to manage it.
-												tip: isDraft ? 'Just stops, nights and notes' : 'Published trips use the full planner',
-												// Not on a phone: Simple is the default render there and Publish is
-												// hidden anyway, so this would disable the active option.
-												disabled: !isDraft && !isMobile,
+												// No longer locked on a published trip. Simple can publish now, and every
+												// section is reachable from it, so switching can no longer strand a live
+												// trip in a mode with no way to manage it.
+												tip: 'Stops, nights and notes, without the stay and place detail',
 											},
-											{ value: 'advanced', label: 'Advanced', Icon: IconLayoutGrid, tip: 'Stays, places, budget, packing and publishing' },
+											{ value: 'advanced', label: 'Advanced', Icon: IconLayoutGrid, tip: 'Adds stays, places to visit and food to every stop' },
 										]}
 									/>
 								</Box>
 								)}
-						</Box>
-							</Box>
+							</PlannerHeaderShell>
 						)}
 						{/* The Easy header already draws its own bottom hairline. */}
 						{!easy && <Divider />}
@@ -3666,9 +3837,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 							<Box sx={{ position: 'absolute', bottom: 72, left: 16, zIndex: 10, display: { xs: 'flex', lg: 'none' }, flexDirection: 'column', gap: .85 }}>
 								{/* Sections, phone only. The nav rail is md+ and the burger is off in the
 								    planner, so without this Budget / News / Packing / Docs are unreachable
-								    on a phone. Only shown in Advanced: Simple hides those sections by
-								    design, so there would be nothing but "Plan" in the sheet. */}
-								{isMobile && !easy && (
+								    on a phone. Shown in both modes now that Simple hides nothing - it is
+								    the only route to those sections at this width. */}
+								{isMobile && (
 									<Tooltip title='Trip sections' placement='right' arrow>
 										<IconButton
 										onClick={() => setSectionSheetOpen(true)}
@@ -3680,7 +3851,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 											color: 'text.secondary', backdropFilter: 'blur(10px)',
 											boxShadow: '0 2px 12px rgba(0,0,0,0.13)',
 											transition: 'all .15s',
-											'&:hover': { bgcolor: 'rgba(255,56,92,0.08)', borderColor: 'rgba(255,56,92,0.38)', color: '#FF385C' },
+											'&:hover': { bgcolor: alpha(BRAND.coral, 0.08), borderColor: alpha(BRAND.coral, 0.38), color: 'primary.main' },
 										})}
 										>
 										<MenuRoundedIcon sx={{ fontSize: 18 }} />
@@ -3698,7 +3869,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 											color: 'text.secondary', backdropFilter: 'blur(10px)',
 											boxShadow: '0 2px 12px rgba(0,0,0,0.13)',
 											transition: 'all .15s',
-											'&:hover': { bgcolor: 'rgba(255,56,92,0.08)', borderColor: 'rgba(255,56,92,0.38)', color: '#FF385C' },
+											'&:hover': { bgcolor: alpha(BRAND.coral, 0.08), borderColor: alpha(BRAND.coral, 0.38), color: 'primary.main' },
 										})}
 									>
 										<MapOutlinedIcon sx={{ fontSize: 18 }} />
@@ -3747,7 +3918,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 											color: 'text.secondary', backdropFilter: 'blur(10px)',
 											boxShadow: '0 2px 12px rgba(0,0,0,0.13)',
 											transition: 'all .15s',
-											'&:hover': { bgcolor: 'rgba(255,56,92,0.08)', borderColor: 'rgba(255,56,92,0.38)', color: '#FF385C' },
+											'&:hover': { bgcolor: alpha(BRAND.coral, 0.08), borderColor: alpha(BRAND.coral, 0.38), color: 'primary.main' },
 										})}
 									>
 										<TuneRoundedIcon sx={{ fontSize: 18 }} />
@@ -3771,7 +3942,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 											color: 'text.secondary', backdropFilter: 'blur(10px)',
 											boxShadow: '0 2px 12px rgba(0,0,0,0.13)',
 											transition: 'all .15s',
-											'&:hover': { bgcolor: 'rgba(255,56,92,0.08)', borderColor: 'rgba(255,56,92,0.38)', color: '#FF385C' },
+											'&:hover': { bgcolor: alpha(BRAND.coral, 0.08), borderColor: alpha(BRAND.coral, 0.38), color: 'primary.main' },
 										})}
 									>
 										<HelpOutlineRoundedIcon sx={{ fontSize: 18 }} />
@@ -3826,35 +3997,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 								)}
 						</Box>
 					</Box>
-					)}
-					{/* Save/Update footer - always visible on all sections */}
-					{showPlannerActions && (
-						<Box sx={(t)=>({ borderTop:`1px solid ${t.palette.divider}`, px:2.5, py:1.5, background:t.palette.background.paper, display:'flex', alignItems:'center', justifyContent:'space-between', flexShrink:0 })}>
-							<Typography data-tour='save' variant='caption' color='text.secondary'>Last saved: {lastSavedDisplay}</Typography>
-							<Box sx={{ display:'flex', gap:1.2 }}>
-								<Button
-									size='small'
-									variant='outlined'
-									onClick={()=> {
-										if(!effectiveCanEdit){ openToast('error','Trip is read only'); return; }
-										if(!isHydrated){ openToast('error','Trip data still loading'); return; }
-										if(!isDraft){
-											const payload = buildPersistPayload(false);
-											persistedPayloadRef.current = payload;
-											persistToBackend(payload).then(ok => { if(ok) commitSnapshot(false); });
-										} else {
-											const payload = buildPersistPayload(true);
-											persistedPayloadRef.current = payload;
-											persistToBackend(payload).then(ok => { if(ok) commitSnapshot(true); });
-										}
-									}}
-									disabled={!effectiveCanEdit || !isDirty || saving || !isHydrated}
-									sx={{ textTransform:'none', borderRadius:2 }}
-								>
-									{isDraft ? 'Save' : 'Update'}{saving && <CircularProgress size={16} thickness={5} sx={{ ml:1 }} />}
-								</Button>
-							</Box>
-						</Box>
 					)}
                                     </Box>{/* end centre column */}
                                             {/* Right panel - Trip Chat for editors, Trip Info for viewers */}
@@ -3962,15 +4104,11 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
                                                                     </IconButton>
                                                             </Tooltip>
                                                             {(((!readOnly && effectiveCanEdit)
-                                                                    ? easy
+                                                                    // One list for both modes. Comments used to be omitted in Easy
+                                                                    // because Easy could not publish, so the tab could never unlock;
+                                                                    // now that it can, the tab is present and simply disabled until
+                                                                    // the trip goes public, exactly as in Advanced.
                                                                     ? [
-                                                                            // Easy leads with the map. Comments are omitted rather than
-                                                                            // disabled: Easy cannot publish, so that tab could never
-                                                                            // unlock and a permanently dead rail entry is just noise.
-                                                                            { id: 'map', label: 'Map', tip: 'Trip map - see your route at a glance', disabled: false },
-                                                                            { id: 'chat', label: 'Discussion', tip: 'Group chat - type @navia to bring in the co-planner', disabled: false },
-                                                                    ]
-                                                                    : [
                                                                             { id: 'chat', label: 'Discussion', tip: 'Group chat - type @navia to bring in the co-planner', disabled: false },
                                                                             ...(ENABLE_COMMENTS ? [{ id: 'comments', label: 'Comments', tip: isDraft ? 'Publish this trip to enable public comments' : 'Public comments on this trip', disabled: isDraft }] : []),
                                                                             { id: 'map', label: 'Map', tip: 'Trip map - see your route at a glance', disabled: false },
@@ -4051,10 +4189,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				sx={{
 					position: 'fixed', bottom: 86, right: 20,
 					display: { xs: 'flex', lg: 'none' },
-					bgcolor: '#FF385C',
+					bgcolor: 'primary.main',
 					color: '#fff', width: 56, height: 56,
 					zIndex: 1200,
-					'&:hover': { bgcolor: '#E31C5F' },
+					'&:hover': { bgcolor: BRAND.coralDark },
 				}}
 			>
 				<ChatRoundedIcon />
@@ -4200,7 +4338,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				fullWidth
 				slotProps={{ paper: { sx: { borderRadius: '16px' } } }}
 			>
-				<DialogTitle sx={(t) => ({ fontFamily: t.custom.fontDisplay, fontWeight: 700, fontSize: '1.15rem', pb: 1 })}>
+				<DialogTitle sx={{ fontWeight: 700, fontSize: '1.15rem', pb: 1 }}>
 					Unpublish this trip?
 				</DialogTitle>
 				<DialogContent sx={{ pb: 1.5 }}>
@@ -4388,6 +4526,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			</Box>
 			<TripSettingsDialog
 				open={settingsOpen}
+				initialTab={settingsTab}
 				onClose={()=> setSettingsOpen(false)}
 				title={title}
 				tripId={tripId}
@@ -4397,6 +4536,14 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				members={tripMembers}
 				bannerUrl={bannerUrl}
 				currentUserIsOwner={currentUserIsOwner}
+				budgetVisibility={budgetVisibility}
+				checklistVisibility={checklistVisibility}
+				canManageMembers={normalizedInitial?.meta.canManageMembers ?? rawInitialTrip?.canManageMembers ?? false}
+				canManageAdmins={normalizedInitial?.meta.canManageAdmins ?? rawInitialTrip?.canManageAdmins ?? false}
+				onCrewChanged={() => { try { window.location.reload(); } catch {} }}
+				crewLimit={normalizedInitial?.meta.crewLimit ?? rawInitialTrip?.crewLimit ?? null}
+				crewLimitEnforced={normalizedInitial?.meta.crewLimitEnforced ?? rawInitialTrip?.crewLimitEnforced ?? false}
+				onChangeVisibilitySetting={changeVisibilitySetting}
 				onChangeBanner={async ({ url, file }) => {
 					// If a local file was picked, upload directly to Cloudinary then persist
 					if (file && authToken && tripId) {
@@ -4549,9 +4696,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				component='div'
 				ref={(el: HTMLDivElement | null) => {
 					if (el) {
-						confetti({ particleCount: 180, spread: 90, origin: { y: 0.55 }, colors: ['#e8436a', '#FF385C', '#fff', '#fbbf24', '#f0abfc'] });
+						confetti({ particleCount: 180, spread: 90, origin: { y: 0.55 }, colors: ['#e8436a', BRAND.coral, '#fff', '#fbbf24', '#f0abfc'] });
 						setTimeout(() => confetti({ particleCount: 80, spread: 60, origin: { y: 0.5, x: 0.2 }, angle: 60, colors: ['#e8436a', '#fff'] }), 350);
-						setTimeout(() => confetti({ particleCount: 80, spread: 60, origin: { y: 0.5, x: 0.8 }, angle: 120, colors: ['#FF385C', '#fbbf24'] }), 500);
+						setTimeout(() => confetti({ particleCount: 80, spread: 60, origin: { y: 0.5, x: 0.8 }, angle: 120, colors: [BRAND.coral, '#fbbf24'] }), 500);
 						setTimeout(() => setShowCelebration(false), 4500);
 					}
 				}}
@@ -4559,24 +4706,24 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				sx={{
 					position: 'fixed', inset: 0, zIndex: 9999,
 					background: 'rgba(13,13,13,0.97)',
-					display: { xs: 'flex', lg: 'none' }, flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
+					display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: 2,
 					cursor: 'pointer',
 					'@keyframes celebFadeIn': { from: { opacity: 0, transform: 'scale(0.96)' }, to: { opacity: 1, transform: 'scale(1)' } },
 					animation: 'celebFadeIn 0.35s ease forwards',
 				}}
 			>
 				{/* Tripician logo mark */}
-				<Box sx={{ width: 56, height: 56, borderRadius: '16px', bgcolor: '#FF385C', display: { xs: 'flex', lg: 'none' }, alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
-					<Typography sx={{ fontSize: 26, color: '#fff', fontWeight: 700, fontFamily: (t) => t.custom.fontDisplay, fontStyle: 'italic', lineHeight: 1 }}>T</Typography>
+				<Box sx={{ width: 56, height: 56, borderRadius: '16px', bgcolor: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
+					<Typography sx={{ fontSize: 26, color: '#fff', fontWeight: 700, fontFamily: (t) => t.custom.fontBrand, fontStyle: 'italic', lineHeight: 1 }}>T</Typography>
 				</Box>
-				<Typography sx={{ fontSize: { xs: '1.6rem', sm: '2.2rem' }, fontWeight: 700, color: '#fff', textAlign: 'center', fontFamily: (t) => t.custom.fontDisplay, lineHeight: 1.15 }}>
+				<Typography sx={{ fontSize: { xs: '1.6rem', sm: '2.2rem' }, fontWeight: 700, color: '#fff', textAlign: 'center', fontFamily: (t) => t.custom.fontBrand, lineHeight: 1.15 }}>
 					Your adventure is ready.
 				</Typography>
-				<Typography sx={{ fontSize: { xs: '1.1rem', sm: '1.4rem' }, fontWeight: 600, color: '#e8436a', fontStyle: 'italic', textAlign: 'center', fontFamily: (t) => t.custom.fontDisplay, lineHeight: 1.2, maxWidth: 400, px: 2 }}>
+				<Typography sx={{ fontSize: { xs: '1.1rem', sm: '1.4rem' }, fontWeight: 600, color: '#e8436a', fontStyle: 'italic', textAlign: 'center', fontFamily: (t) => t.custom.fontBrand, lineHeight: 1.2, maxWidth: 400, px: 2 }}>
 					{title}
 				</Typography>
 				<Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', mt: 2 }}>Click anywhere to dismiss</Typography>
-				<Box sx={{ display: { xs: 'flex', lg: 'none' }, gap: 1.5, mt: 1 }} onClick={e => e.stopPropagation()}>
+				<Box sx={{ display: 'flex', gap: 1.5, mt: 1 }} onClick={e => e.stopPropagation()}>
 					<Button
 						variant='contained'
 						startIcon={<ShareRoundedIcon />}
@@ -4612,6 +4759,12 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				open={showPublishCheck}
 				onClose={() => setShowPublishCheck(false)}
 				checks={publishChecks}
+				publishing={saving}
+				onPublish={() => {
+					setShowPublishCheck(false);
+					handlePublish();
+					requestAnimationFrame(() => { lastCommittedRef.current = computeSignature(); });
+				}}
 			/>
 		)}
 		</React.Fragment>

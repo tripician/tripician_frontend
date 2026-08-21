@@ -8,6 +8,7 @@ import {
   IconBrandFacebook,
   IconBrandInstagram,
   IconBrandX,
+  IconCalendar,
   IconCheck,
   IconCompass,
   IconLink,
@@ -21,13 +22,21 @@ import { tripPath } from '../../utils/tripSlug';
 import { safeExternalUrl } from '../../utils/sanitizeHtml';
 import Seo from '../../components/Seo';
 import CommunityTripCard from '../CommunityPage/CommunityTripCard';
+import { ProfilePassport } from './ProfilePassport';
+import ProfileIntro from './ProfileIntro';
+import IdentityVerifiedMark from '../../components/ui/IdentityVerifiedMark';
 import SectionHeader from '../../components/ui/SectionHeader';
+import { FEATURE_FLAGS } from '../../config/featureFlags';
+import StoryDiary from '../../afterstory/cards/StoryDiary';
+import { afterStoryService } from '../../afterstory/afterStoryService';
+import type { AfterStorySummaryDto } from '../../afterstory/types';
 import EmptyState from '../../components/ui/EmptyState';
 import ErrorState from '../../components/ui/ErrorState';
 import { CardGridSkeleton } from '../../components/ui/Skeletons';
 import { fadeInUp } from '../../utils/animations';
 
-const CONTENT_MAX = 1140;
+/** Community's measure, shared with /profile so the three do not disagree. */
+const CONTENT_MAX = 1280;
 
 interface PublicUser {
   id: number;
@@ -40,6 +49,9 @@ interface PublicUser {
   instagram: string | null;
   twitter: string | null;
   facebook: string | null;
+  bio?: { highlights?: Array<{ key?: string; label?: string; value?: string; icon?: string }> } | null;
+  joinedAt?: string | null;
+  identityVerifiedAt?: string | null;
 }
 
 /**
@@ -62,6 +74,16 @@ const TravelerProfile: React.FC = () => {
   const [stats, setStats] = React.useState<{ followers: number; following: number }>({ followers: 0, following: 0 });
   const [trips, setTrips] = React.useState<any[]>([]);
   const [tripsLoading, setTripsLoading] = React.useState(true);
+  const [stories, setStories] = React.useState<AfterStorySummaryDto[]>([]);
+
+  // listByAuthor swallows its own failures and returns an empty array, so a
+  // stories outage cannot take the profile down with it.
+  React.useEffect(() => {
+    if (!FEATURE_FLAGS.afterStory || !Number.isFinite(userId)) return;
+    let active = true;
+    void afterStoryService.listByAuthor(userId, 12).then(items => { if (active) setStories(items); });
+    return () => { active = false; };
+  }, [userId]);
 
   const [isFollowing, setIsFollowing] = React.useState(false);
   const [followBusy, setFollowBusy] = React.useState(false);
@@ -154,6 +176,13 @@ const TravelerProfile: React.FC = () => {
     .filter((s): s is { url: string; Icon: typeof IconLink; label: string } => !!s.url) : [];
 
   const locationLine = user ? [user.location, user.country].filter(Boolean).join(', ') : '';
+
+  // How long someone has been here is part of deciding whether to travel with
+  // them, and it is the one fact on this page they cannot edit.
+  const joinedDate = user?.joinedAt ? new Date(user.joinedAt) : null;
+  const joinedLine = joinedDate && !Number.isNaN(joinedDate.getTime())
+    ? `Travelling with Tripician since ${joinedDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`
+    : '';
   const showCover = !!user?.cover && !coverFailed;
 
   const statItems = [
@@ -161,6 +190,28 @@ const TravelerProfile: React.FC = () => {
     { value: stats.followers, label: stats.followers === 1 ? 'follower' : 'followers' },
     { value: stats.following, label: 'following' },
   ];
+
+  /**
+   * The passport, derived from the published trips already on the page.
+   *
+   * /profile reads /api/trips/vibe-passport, which is authenticated-user only:
+   * there is no endpoint for someone else's passport, and adding one would mean
+   * deciding in public what a stranger's night count and vibe mix are. Published
+   * trips are already public, so their countries are the honest subset, and the
+   * band keeps the row that makes it recognisable across both pages.
+   */
+  // Not memoised: this sits below an early return, where a hook would change
+  // call order between renders. It is a single pass over an already-loaded page
+  // of trips, so there is nothing to save.
+  const publicCountries = (() => {
+    const seen = new Set<string>();
+    for (const t of trips) {
+      const list: unknown = (t as any)?.countries;
+      if (!Array.isArray(list)) continue;
+      for (const c of list) if (typeof c === 'string' && c.trim()) seen.add(c.trim());
+    }
+    return [...seen];
+  })();
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -194,31 +245,42 @@ const TravelerProfile: React.FC = () => {
               </Box>
             )}
 
-            {/* Identity row */}
-            <Box sx={{
-              display: 'flex', gap: { xs: 2, sm: 3 },
-              flexDirection: { xs: 'column', sm: 'row' },
-              alignItems: { xs: 'flex-start', sm: 'center' },
-              position: 'relative',
-              px: showCover ? { xs: 2, sm: 4 } : 0,
-            }}>
+            {/* Avatar. ONLY the avatar overlaps the cover, matching /profile:
+                once the name became a real h1 the taller text block landed
+                inside the photograph, where dark serif on an uncontrolled image
+                is close to unreadable. */}
+            <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', px: 0 }}>
               {userLoading ? (
                 <Skeleton variant="circular" width={104} height={104} />
               ) : (
-                <Avatar
-                  src={user?.avatar || undefined}
-                  sx={{
-                    width: { xs: 88, sm: 104 }, height: { xs: 88, sm: 104 },
-                    fontSize: '2.2rem', bgcolor: 'primary.main',
-                    border: `4px solid ${theme.palette.background.default}`,
-                    boxShadow: theme.custom.shadows.card,
-                  }}
-                >
-                  {(user?.name || 'T').charAt(0).toUpperCase()}
-                </Avatar>
+                <Box sx={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
+                  <Avatar
+                    src={user?.avatar || undefined}
+                    sx={{
+                      width: { xs: 88, sm: 104 }, height: { xs: 88, sm: 104 },
+                      fontSize: '2.2rem', bgcolor: 'primary.main',
+                      border: `4px solid ${theme.palette.background.default}`,
+                      boxShadow: theme.custom.shadows.card,
+                      flexShrink: 0,
+                    }}
+                  >
+                    {(user?.name || 'T').charAt(0).toUpperCase()}
+                  </Avatar>
+                  <IdentityVerifiedMark verified={!!user?.identityVerifiedAt} size={24} />
+                </Box>
               )}
+            </Box>
 
-              <Box sx={{ flex: 1, minWidth: 0, pt: showCover ? { sm: 5 } : 0 }}>
+            {/* Identity, entirely below the cover. */}
+            <Box sx={{
+              display: 'flex', gap: { xs: 2, sm: 3 },
+              flexDirection: { xs: 'column', sm: 'row' },
+              alignItems: { xs: 'flex-start', sm: 'flex-start' },
+              justifyContent: 'space-between',
+              px: 0,
+              mt: 1.5,
+            }}>
+              <Box sx={{ flex: 1, minWidth: 0 }}>
                 {userLoading ? (
                   <>
                     <Skeleton variant="text" width={220} height={38} />
@@ -226,23 +288,30 @@ const TravelerProfile: React.FC = () => {
                   </>
                 ) : (
                   <>
-                    <Typography component="h1" noWrap sx={{
-                      fontFamily: theme.custom.fontDisplay, fontWeight: 700,
-                      fontSize: { xs: '1.6rem', md: '1.9rem' },
-                      letterSpacing: '-0.02em', lineHeight: 1.15, color: 'text.primary',
+                    {/* Same masthead as /profile: variant h1, display face. This
+                        was a hand-tuned fontSize a step smaller, so the same
+                        person's name changed size depending on who was looking. */}
+                    <Typography component="h1" variant="h1" noWrap sx={{
+                      color: 'text.primary',
                     }}>
                       {user?.name || 'Explorer'}
                     </Typography>
                     {locationLine && (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, color: 'text.secondary' }}>
                         <IconMapPin size={14} stroke={1.9} />
-                        <Typography noWrap sx={{ fontSize: 13.5 }}>{locationLine}</Typography>
+                        <Typography variant="body2" noWrap>{locationLine}</Typography>
+                      </Box>
+                    )}
+                    {joinedLine && (
+                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, color: 'text.secondary' }}>
+                        <IconCalendar size={14} stroke={1.9} />
+                        <Typography variant="body2" noWrap>{joinedLine}</Typography>
                       </Box>
                     )}
                     {/* Stats - Instagram-style inline row */}
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, mt: 1.25 }}>
                       {statItems.map(s => (
-                        <Typography key={s.label} sx={{ fontSize: 14, color: 'text.secondary' }}>
+                        <Typography key={s.label} variant="body2" sx={{ color: 'text.secondary' }}>
                           <Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{s.value}</Box> {s.label}
                         </Typography>
                       ))}
@@ -253,7 +322,7 @@ const TravelerProfile: React.FC = () => {
 
               {/* Actions */}
               {!userLoading && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pt: showCover ? { sm: 5 } : 0 }}>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0, pt: { sm: 1 } }}>
                   {socials.map(({ url, Icon, label }) => (
                     <Tooltip key={label} title={label}>
                       <IconButton
@@ -278,6 +347,42 @@ const TravelerProfile: React.FC = () => {
                 </Box>
               )}
             </Box>
+
+            {!userLoading && user && <ProfileIntro profile={user} />}
+
+            {/* Travel passport, the same band /profile carries. Hidden outright
+                when there is nothing published: its empty state invites YOU to
+                plan a trip, which is the wrong thing to say on someone else's
+                profile. */}
+            {!tripsLoading && (trips.length > 0 || publicCountries.length > 0) && (
+              <Box sx={{ mt: { xs: 3, md: 4 } }}>
+                <ProfilePassport
+                  passport={{
+                    trips: trips.length,
+                    // Unknown, not zero: there is no public passport endpoint, so
+                    // the band drops the tile rather than claiming a night count.
+                    nights: 0,
+                    countries: publicCountries,
+                    vibes: [],
+                    favoriteVibe: null,
+                  }}
+                  hideWhenEmpty
+                />
+              </Box>
+            )}
+
+            {/* Their stories, above the trips.
+                They used to sit underneath, on the reasoning that a plan is what
+                this profile was about. That is no longer true: someone opening a
+                stranger's profile is deciding whether to travel with them, and a
+                grid of itineraries answers where they went, not who they are. */}
+            {FEATURE_FLAGS.afterStory && (
+              <StoryDiary
+                stories={stories}
+                title={user ? `${user.name.split(' ')[0]}'s diary` : 'Diary'}
+                subtitle="What the trips were actually like, in their words."
+              />
+            )}
 
             {/* Published trips */}
             <Box sx={{ mt: { xs: 5, md: 6 } }}>
@@ -307,6 +412,7 @@ const TravelerProfile: React.FC = () => {
                 </Box>
               )}
             </Box>
+
           </motion.div>
         )}
       </Box>

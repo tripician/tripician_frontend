@@ -129,8 +129,8 @@ const NotificationsSettings: React.FC = () => {
             onChange={() => onToggle(item.id)}
             disabled={updatingIds.has(item.id) || loading}
             sx={{
-              '& .MuiSwitch-switchBase.Mui-checked': { color: '#FF385C' },
-              '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: '#FF385C' },
+              '& .MuiSwitch-switchBase.Mui-checked': { color: 'primary.main' },
+              '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: 'primary.main' },
               '& .MuiSwitch-track': { backgroundColor: 'action.hover' },
             }}
           />
@@ -155,7 +155,7 @@ const NotificationsSettings: React.FC = () => {
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
             Email Notifications
           </Typography>
 
@@ -187,7 +187,7 @@ const NotificationsSettings: React.FC = () => {
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
             Push Notifications
           </Typography>
 

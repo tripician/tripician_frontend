@@ -3,19 +3,29 @@
 
 /* ── Global design tokens (non-MUI contexts: raw CSS, canvas, mapbox) ── */
 :root {
-  --color-brand: #ff385c;
-  --color-brand-hover: #e31c5f;
-  --color-brand-light: #fff0f3;
-  --color-surface-mid: #222235;
-  --radius-pill: 999px;
-  --radius-md: 12px;
+  /* Brand, as CHANNELS so alpha is composable: rgb(var(--brand-rgb) / 0.08).
+     The three ad-hoc --color-brand* vars this replaces had zero consumers in
+     the whole app - they were declared and never read. Kept in step with
+     theme.custom.brand.channels by colour-literal.guard.test.ts, not by
+     discipline. */
+  --brand-rgb: 255 56 92;
+  --brand: rgb(var(--brand-rgb));
+  --brand-strong: #E4244D;
+  --brand-light: #FF8A9F;
+  /* Coral at TEXT weight. The seed above is a FILL: it measures 3.52:1 on
+     white and fails AA for anything smaller than a display heading. This is
+     the solved tone at 4.52:1, and it is what raw-CSS surfaces must use for
+     coloured type. Mirrors BRAND_ON_LIGHT in theme/brand.generated.ts. */
+  --brand-on-light: #DE0F46;
+  /* The body face, for raw-CSS surfaces. The TSX equivalent is the theme's
+     FONT_BODY - keep the two in step. */
+  --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
   /* Display face for raw-CSS surfaces (landing, auth, risk monitor). The TSX
      equivalent is `theme.custom.fontDisplay` - keep the two in step. */
   --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
-  --shadow-hover: 0 6px 24px rgba(0, 0, 0, 0.14);
   --transition: all 0.2s ease;
 
-  font-family: 'Inter', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
   line-height: 1.5;
   font-weight: 400;
   font-synthesis: none;

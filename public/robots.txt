@@ -8,10 +8,15 @@ Allow: /community
 Disallow: /discover
 Allow: /trip/
 Allow: /about-us
+Allow: /for-operators
+Allow: /pricing
 Allow: /terms-and-conditions
 Allow: /privacy-policy
 Allow: /get-help
 Allow: /contact-us
+Allow: /o/
+Disallow: /organizations
+Disallow: /operator
 Disallow: /dashboard
 Disallow: /profile
 Disallow: /settings

@@ -1,5 +1,7 @@
 import React from 'react';
+import { BRAND } from '../../theme';
 import { Box, Typography, Container } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { Link } from 'react-router-dom';
 import InfoPageShell from './InfoPageShell';
 import GavelRoundedIcon from '@mui/icons-material/GavelRounded';
@@ -21,7 +23,7 @@ const Warn = ({ children }: { children: React.ReactNode }) => (
 );
 
 const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-  <Typography sx={{ fontWeight: 700, color: '#111', mb: 2, pb: 1.5, borderBottom: '1px solid rgba(0,0,0,0.07)', fontSize: '1.02rem' }}>
+  <Typography variant="h4" component="h2" sx={{ mb: 2, pb: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
     {children}
   </Typography>
 );
@@ -55,6 +57,8 @@ const TermsPage: React.FC = () => {
             'Guarantee the accuracy, current validity, or legality of any destination information displayed',
           ]} />
           <P>All actual travel arrangements - including but not limited to flights, accommodation, visas, travel insurance, and health requirements - are entirely your own responsibility. You must independently verify all travel information with official government sources, embassies, consulates, and relevant authorities before travelling.</P>
+          <P><strong>Independent travel operators.</strong> Some trips on Tripician are run by independent travel businesses, which we approve individually and which are identified by name on the trip. Where you enquire about one of those trips, and only after you have expressly agreed to it, we pass your name, email address and the details of your enquiry to that business so they can contact you.</P>
+          <P>Any booking, payment, contract or dispute that follows is entirely between you and that business. Tripician takes no payment for those trips, receives no commission on your booking, is not a party to your agreement, and does not vouch for the licensing, insurance or conduct of any operator. You should satisfy yourself of those things directly, exactly as you would with any travel business you found elsewhere.</P>
         </>
       ),
     },
@@ -80,7 +84,7 @@ const TermsPage: React.FC = () => {
       title: '4. Acceptable Use Policy',
       content: (
         <>
-          <P>You may use the Service only for lawful, personal, non-commercial trip planning purposes. You agree <strong>not</strong> to:</P>
+          <P>You may use the Service only for lawful, personal, non-commercial trip planning purposes, unless we have approved you as an independent travel operator, in which case you may use it commercially within the limits of that approval and of these Terms. You agree <strong>not</strong> to:</P>
           <Ul items={[
             'Upload, transmit, or share content that is unlawful, defamatory, obscene, fraudulent, threatening, or infringes any third-party rights',
             'Attempt to gain unauthorised access to the Service, its systems, or other users\' data',
@@ -197,8 +201,8 @@ const TermsPage: React.FC = () => {
       title: '13. Dispute Resolution',
       content: (
         <>
-          <P>Before initiating any formal legal proceeding, you agree to attempt to resolve any dispute informally by contacting us at <Box component="a" href="mailto:support@tripician.com" sx={{ color: '#FF385C', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box>. We will attempt to resolve disputes through good-faith negotiation within 30 days of receiving notice.</P>
-          <P>If you are located in the EU, you may also refer the dispute to the EU Online Dispute Resolution platform: <Box component="a" href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer" sx={{ color: '#FF385C', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>ec.europa.eu/consumers/odr</Box>.</P>
+          <P>Before initiating any formal legal proceeding, you agree to attempt to resolve any dispute informally by contacting us at <Box component="a" href="mailto:support@tripician.com" sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box>. We will attempt to resolve disputes through good-faith negotiation within 30 days of receiving notice.</P>
+          <P>If you are located in the EU, you may also refer the dispute to the EU Online Dispute Resolution platform: <Box component="a" href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer" sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>ec.europa.eu/consumers/odr</Box>.</P>
         </>
       ),
     },
@@ -212,7 +216,7 @@ const TermsPage: React.FC = () => {
           <P><strong>No Waiver:</strong> Our failure to enforce any right or provision of these Terms will not constitute a waiver of that right or provision.</P>
           <P><strong>Assignment:</strong> You may not assign or transfer your rights or obligations under these Terms without our prior written consent. We may assign our rights without restriction.</P>
           <P><strong>Changes to Terms:</strong> We may modify these Terms at any time. We will notify you of material changes via email or prominent in-Service notice. Your continued use of the Service after changes take effect constitutes acceptance of the revised Terms.</P>
-          <P><strong>Contact:</strong> For questions about these Terms, email <Box component="a" href="mailto:support@tripician.com" sx={{ color: '#FF385C', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box>.</P>
+          <P><strong>Contact:</strong> For questions about these Terms, email <Box component="a" href="mailto:support@tripician.com" sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box>.</P>
         </>
       ),
     },
@@ -224,21 +228,21 @@ const TermsPage: React.FC = () => {
       <Box sx={{ background: 'linear-gradient(135deg,#FFF5F6 0%,#FFFAFA 100%)', borderBottom: '1px solid rgba(0,0,0,0.06)', px: { xs: 3, md: 8 }, py: { xs: 6, md: 8 } }}>
         <Container maxWidth="lg">
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
-            <Box sx={{ width: 40, height: 40, borderRadius: '12px', background: 'linear-gradient(135deg,#FF385C,#D91A50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Box sx={{ width: 40, height: 40, borderRadius: '12px', background: `linear-gradient(135deg,${BRAND.coral},${BRAND.coralDeep})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <GavelRoundedIcon sx={{ color: '#fff', fontSize: 22 }} />
             </Box>
-            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#FF385C', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Terms & Conditions</Typography>
+            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'primary.main', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Terms & Conditions</Typography>
           </Box>
           <Typography variant="h2" sx={{ fontWeight: 700, fontSize: { xs: '2rem', md: '2.8rem' }, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.15, mb: 2 }}>
             Clear terms you can{' '}
-            <Box component="span" sx={{ color: '#FF385C' }}>actually understand.</Box>
+            <Box component="span" sx={{ color: 'primary.main' }}>actually understand.</Box>
           </Typography>
           <Typography sx={{ fontSize: '1.05rem', color: '#666', lineHeight: 1.75, maxWidth: 600 }}>
             Please read these terms carefully before using Tripician. Key points: we are a planning tool only, not a travel agency, and these terms form a legally binding agreement.
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, mt: 3, flexWrap: 'wrap' }}>
-            <Box sx={{ background: 'rgba(255,56,92,0.08)', borderRadius: '20px', px: 2, py: 0.75, border: '1px solid rgba(255,56,92,0.15)' }}>
-              <Typography sx={{ fontSize: '0.78rem', color: '#FF385C', fontWeight: 600 }}>Last updated: May 1, 2026</Typography>
+            <Box sx={{ background: alpha(BRAND.coral, 0.08), borderRadius: '20px', px: 2, py: 0.75, border: `1px solid ${alpha(BRAND.coral, 0.15)}` }}>
+              <Typography sx={{ fontSize: '0.78rem', color: 'primary.main', fontWeight: 600 }}>Last updated: May 1, 2026</Typography>
             </Box>
             <Box sx={{ background: 'rgba(0,0,0,0.04)', borderRadius: '20px', px: 2, py: 0.75, border: '1px solid rgba(0,0,0,0.08)' }}>
               <Typography sx={{ fontSize: '0.78rem', color: '#555', fontWeight: 500 }}>Version 1.0</Typography>
@@ -257,7 +261,7 @@ const TermsPage: React.FC = () => {
                 key={s.id}
                 component="a"
                 href={`#${s.id}`}
-                sx={{ display: 'block', py: 0.65, px: 1.5, borderLeft: '2px solid transparent', color: '#777', textDecoration: 'none', fontSize: '0.77rem', lineHeight: 1.5, mb: 0.5, borderRadius: '0 6px 6px 0', transition: 'all 0.2s', '&:hover': { color: '#FF385C', borderLeftColor: '#FF385C', background: 'rgba(255,56,92,0.04)' } }}
+                sx={{ display: 'block', py: 0.65, px: 1.5, borderLeft: '2px solid transparent', color: '#777', textDecoration: 'none', fontSize: '0.77rem', lineHeight: 1.5, mb: 0.5, borderRadius: '0 6px 6px 0', transition: 'all 0.2s', '&:hover': { color: 'primary.main', borderLeftColor: 'primary.main', background: alpha(BRAND.coral, 0.04) } }}
               >
                 {s.title}
               </Box>
@@ -276,9 +280,9 @@ const TermsPage: React.FC = () => {
             </Box>
             <Typography sx={{ textAlign: 'center', color: '#bbb', fontSize: '0.77rem', mt: 2 }}>
               Questions?{' '}
-              <Box component="a" href="mailto:support@tripician.com" sx={{ color: '#FF385C', textDecoration: 'none', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}>support@tripician.com</Box>
+              <Box component="a" href="mailto:support@tripician.com" sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}>support@tripician.com</Box>
               {' '}·{' '}
-              <Box component={Link} to="/privacy-policy" sx={{ color: '#bbb', textDecoration: 'none', '&:hover': { color: '#FF385C' } }}>Privacy Policy</Box>
+              <Box component={Link} to="/privacy-policy" sx={{ color: '#bbb', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}>Privacy Policy</Box>
             </Typography>
           </Box>
         </Box>

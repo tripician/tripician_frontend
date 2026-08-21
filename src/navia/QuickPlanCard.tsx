@@ -188,16 +188,13 @@ export const QuickPlanCard: React.FC<QuickPlanCardProps> = ({ token }) => {
             Quick start
           </Typography>
         </Box>
+        {/* Was a hand-sized serif at 1.3125rem, which existed because a display
+            serif below that size stops reading as display type. On the UI face
+            that floor does not apply, so this returns to the scale. */}
         <Typography
+          variant="h4"
           component="h2"
-          sx={(t) => ({
-            fontFamily: t.custom.fontDisplay,
-            fontSize: '1.3125rem',
-            fontWeight: 600,
-            lineHeight: 1.2,
-            letterSpacing: '-0.01em',
-            color: 'text.primary',
-          })}
+          sx={{ lineHeight: 1.2, color: 'text.primary' }}
         >
           One sentence, a whole trip
         </Typography>

@@ -12,7 +12,7 @@ const InfoPageShell: React.FC<Props> = ({ children }) => {
   const logoFullBlackUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_BLACK_2_URL as string | undefined;
 
   const pageContent = (
-    <Box sx={{ minHeight: '100vh', background: '#FAFAFA', fontFamily: "'Inter', sans-serif" }}>
+    <Box sx={{ minHeight: '100vh', background: '#FAFAFA',}}>
       {isAuthenticated ? (
         null
       ) : (
@@ -27,12 +27,12 @@ const InfoPageShell: React.FC<Props> = ({ children }) => {
           <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 1, textDecoration: 'none' }}>
             {logoFullBlackUrl
               ? <Box component="img" src={logoFullBlackUrl} alt="Tripician" sx={{ height: 28, width: 'auto', display: 'block' }} />
-              : <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#111', fontFamily: "'Inter',sans-serif", letterSpacing: '-0.02em' }}>Tripician</Typography>
+              : <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#111', letterSpacing: '-0.02em' }}>Tripician</Typography>
             }
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button size="small" component={Link} to="/signin" variant="outlined"
-              sx={{ fontSize: '0.78rem', fontWeight: 600, borderRadius: '50px', textTransform: 'none', borderColor: 'rgba(0,0,0,0.2)', color: '#333', '&:hover': { borderColor: '#FF385C', color: '#FF385C' } }}>
+              sx={{ fontSize: '0.78rem', fontWeight: 600, borderRadius: '50px', textTransform: 'none', borderColor: 'rgba(0,0,0,0.2)', color: '#333', '&:hover': { borderColor: 'primary.main', color: 'primary.main' } }}>
               Sign in
             </Button>
             <Button size="small" component={Link} to="/signup" variant="contained" className="t-invert"

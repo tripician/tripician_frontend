@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BRAND } from '../../theme';
 import { motion } from 'framer-motion';
 import '../../assets/css/Signin.css';
 import { KalaLotus } from '../../components/DecorativeComponents/KalaDecor';
@@ -95,7 +96,7 @@ const ForgotPassword = () => {
           Back to sign in
         </button>
 
-        <KalaLotus size={380} color="#FF385C" opacity={0.07} style={{ position: 'absolute', top: -90, right: -90, zIndex: 0 }} />
+        <KalaLotus size={380} color={BRAND.coral} opacity={0.07} style={{ position: 'absolute', top: -90, right: -90, zIndex: 0 }} />
         <KalaLotus size={260} color="#FF6B8A" opacity={0.055} style={{ position: 'absolute', bottom: -65, left: -65, zIndex: 0 }} />
 
         <motion.div

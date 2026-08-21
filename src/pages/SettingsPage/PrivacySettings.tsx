@@ -277,7 +277,7 @@ const PrivacySettings: React.FC = () => {
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', mb: 4, color: 'text.primary', letterSpacing: '-0.01em' }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', mb: 4, color: 'text.primary', letterSpacing: '-0.01em' }}>
             Profile Privacy
           </Typography>
 
@@ -382,7 +382,7 @@ const PrivacySettings: React.FC = () => {
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
             <WarningAmberRounded sx={{ color: 'error.main', fontSize: '1.1rem' }} />
-            <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', color: 'error.main', letterSpacing: '-0.01em' }}>
+            <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: 'error.main', letterSpacing: '-0.01em' }}>
               Danger Zone
             </Typography>
           </Box>
@@ -393,7 +393,7 @@ const PrivacySettings: React.FC = () => {
             variant="outlined"
             color="error"
             onClick={() => { setDeleteError(null); setDeleteDialogOpen(true); }}
-            sx={{ borderRadius: '8px', fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: '0.875rem', textTransform: 'none' }}
+            sx={{ borderRadius: '8px', fontWeight: 600, fontSize: '0.875rem', textTransform: 'none' }}
           >
             Delete Account
           </Button>
@@ -406,7 +406,7 @@ const PrivacySettings: React.FC = () => {
         onClose={() => !deleting && setDeleteDialogOpen(false)}
         PaperProps={{ sx: { borderRadius: '16px', p: 1 } }}
       >
-        <DialogTitle sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 1 }}>
+        <DialogTitle sx={{ fontWeight: 700, fontSize: '1.05rem', display: 'flex', alignItems: 'center', gap: 1 }}>
           <WarningAmberRounded sx={{ color: 'error.main' }} />
           Delete Account
         </DialogTitle>
@@ -424,7 +424,7 @@ const PrivacySettings: React.FC = () => {
           <Button
             onClick={() => setDeleteDialogOpen(false)}
             disabled={deleting}
-            sx={{ borderRadius: '8px', fontFamily: "'Inter',sans-serif", fontWeight: 600, textTransform: 'none' }}
+            sx={{ borderRadius: '8px', fontWeight: 600, textTransform: 'none' }}
           >
             Cancel
           </Button>
@@ -434,7 +434,7 @@ const PrivacySettings: React.FC = () => {
             onClick={handleDeleteAccount}
             disabled={deleting}
             startIcon={deleting ? <CircularProgress size={16} color="inherit" /> : undefined}
-            sx={{ borderRadius: '8px', fontFamily: "'Inter',sans-serif", fontWeight: 600, textTransform: 'none' }}
+            sx={{ borderRadius: '8px', fontWeight: 600, textTransform: 'none' }}
           >
             {deleting ? 'Deleting…' : 'Yes, Delete My Account'}
           </Button>

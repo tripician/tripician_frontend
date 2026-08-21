@@ -1,4 +1,5 @@
 import React, { useState } from 'react';
+import { BRAND } from '../../theme';
 import {
   Box,
   TextField,
@@ -12,6 +13,7 @@ import {
   Fade,
   Typography,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import {
   Search as SearchIcon,
   Clear as ClearIcon,
@@ -172,7 +174,6 @@ const SearchBar: React.FC<SearchBarProps> = ({
               ? 'rgba(0,0,0,0.04)'
               : 'rgba(255,255,255,0.06)',
             fontSize: '0.82rem',
-            fontFamily: "'Inter', sans-serif",
             letterSpacing: '0.01em',
             transition: 'background 0.2s ease, box-shadow 0.2s ease',
             '& input': { padding: '0 4px', color: 'text.primary' },
@@ -180,16 +181,16 @@ const SearchBar: React.FC<SearchBarProps> = ({
               borderColor: 'transparent',
             },
             '&:hover .MuiOutlinedInput-notchedOutline': {
-              borderColor: 'rgba(255,56,92,0.22)',
+              borderColor: alpha(BRAND.coral, 0.22),
             },
             '&.Mui-focused': {
               backgroundColor: (theme) => theme.palette.mode === 'light'
                 ? 'rgba(255,255,255,1)'
                 : 'rgba(255,255,255,0.09)',
-              boxShadow: '0 0 0 3px rgba(255,56,92,0.12)',
+              boxShadow: `0 0 0 3px ${alpha(BRAND.coral, 0.12)}`,
             },
             '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-              borderColor: '#FF385C',
+              borderColor: 'primary.main',
               borderWidth: '1px',
             },
           },

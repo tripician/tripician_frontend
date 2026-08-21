@@ -5,10 +5,21 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import MoreHorizRoundedIcon from '@mui/icons-material/MoreHorizRounded';
 import { APP_NAV_ITEMS } from '../navConfig';
 
-/** Items shown LEFT of the plan-a-trip FAB */
-const MOBILE_NAV_LEFT = ['explore', 'trips'] as const;
-/** Items shown RIGHT of the plan-a-trip FAB */
-const MOBILE_NAV_RIGHT = ['navia'] as const;
+/**
+ * Items shown LEFT of the plan-a-trip FAB.
+ *
+ * Community then Stories: the two reading surfaces sit together, which is what
+ * someone opening the app without a trip to plan is actually here for.
+ */
+const MOBILE_NAV_LEFT = ['explore', 'stories'] as const;
+/**
+ * Items shown RIGHT of the plan-a-trip FAB.
+ *
+ * Profile is here rather than in the More drawer because it now holds every one
+ * of your trips. Leaving it behind a drawer would put your own trips two taps
+ * deep on the surface where most planning actually happens.
+ */
+const MOBILE_NAV_RIGHT = ['navia', 'profile'] as const;
 
 interface AppBottomNavProps {
   onCreateTrip: () => void;
@@ -22,7 +33,9 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip, onMoreMenu })
   const rightItems = APP_NAV_ITEMS.filter((i) => (MOBILE_NAV_RIGHT as readonly string[]).includes(i.id));
 
   const isActive = (path: string) => location.pathname === path;
-  const moreActive = location.pathname === '/risk-monitor';
+  // Whatever the More drawer currently holds. Hardcoded to the risk page until
+  // Risk left the nav, at which point the drawer highlighted nothing.
+  const moreActive = location.pathname === '/crew';
 
   return (
     <Box
@@ -72,7 +85,7 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip, onMoreMenu })
             }}
           >
             <item.Icon size={22} stroke={1.75} color="currentColor" />
-            <Typography sx={{ fontSize: '0.62rem', fontWeight: active ? 700 : 600, fontFamily: "'Inter',sans-serif" }}>
+            <Typography sx={{ fontSize: '0.62rem', fontWeight: active ? 700 : 600,}}>
               {item.shortLabel}
             </Typography>
           </Box>
@@ -116,7 +129,7 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip, onMoreMenu })
         </Box>
         {/* 11 characters at 0.62rem is about 34px, inside a flex:1 slot that is
             ~72px on a 360px phone, so it fits without wrapping. */}
-        <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: 'primary.main', mt: 0.25, fontFamily: "'Inter',sans-serif", whiteSpace: 'nowrap' }}>
+        <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: 'primary.main', mt: 0.25, whiteSpace: 'nowrap' }}>
           Plan a trip
         </Typography>
       </Box>
@@ -143,7 +156,7 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip, onMoreMenu })
             }}
           >
             <item.Icon size={22} stroke={1.75} color="currentColor" />
-            <Typography sx={{ fontSize: '0.62rem', fontWeight: active ? 700 : 600, fontFamily: "'Inter',sans-serif" }}>
+            <Typography sx={{ fontSize: '0.62rem', fontWeight: active ? 700 : 600,}}>
               {item.shortLabel}
             </Typography>
           </Box>
@@ -168,7 +181,7 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip, onMoreMenu })
         }}
       >
         <MoreHorizRoundedIcon sx={{ fontSize: 22 }} />
-        <Typography sx={{ fontSize: '0.62rem', fontWeight: moreActive ? 700 : 600, fontFamily: "'Inter',sans-serif" }}>
+        <Typography sx={{ fontSize: '0.62rem', fontWeight: moreActive ? 700 : 600,}}>
           More
         </Typography>
       </Box>

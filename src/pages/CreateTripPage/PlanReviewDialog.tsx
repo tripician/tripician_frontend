@@ -1,4 +1,5 @@
 import React from 'react';
+import { BRAND } from '../../theme';
 import {
   Box, Dialog, DialogContent, Typography, Button, IconButton, Chip, LinearProgress, useTheme,
 } from '@mui/material';
@@ -71,15 +72,15 @@ const PlanReviewDialog: React.FC<PlanReviewDialogProps> = ({
     >
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 3, pt: 2.5, pb: 1.5 }}>
-        <IconRulerMeasure size={24} color='#FF385C' />
+        <IconRulerMeasure size={24} color={BRAND.coral} />
         <Box sx={{ flex: 1, minWidth: 0 }}>
-          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '1.02rem', lineHeight: 1.2 }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '1.02rem', lineHeight: 1.2 }}>
             Reality check
           </Typography>
           {/* The trust argument IS the subtitle: this is arithmetic, not a model
               guessing. The old line listed the inputs but never made the claim,
               which is the one thing that separates this from an AI suggestion. */}
-          <Typography noWrap sx={{ fontSize: '0.74rem', color: 'text.secondary', fontFamily: "'Inter',sans-serif" }}>
+          <Typography noWrap sx={{ fontSize: '0.74rem', color: 'text.secondary',}}>
             Real distances, opening hours and day budgets. Measured, not guessed.
           </Typography>
         </Box>
@@ -90,7 +91,7 @@ const PlanReviewDialog: React.FC<PlanReviewDialogProps> = ({
 
       <DialogContent sx={{ px: 3, pb: 3, pt: 0 }}>
         {!hasStops && (
-          <Typography sx={{ fontSize: '0.86rem', color: 'text.secondary', fontFamily: "'Inter',sans-serif", py: 3, textAlign: 'center' }}>
+          <Typography sx={{ fontSize: '0.86rem', color: 'text.secondary', py: 3, textAlign: 'center' }}>
             Add a stop or two first, then we can check the plan against real places and travel times.
           </Typography>
         )}
@@ -100,10 +101,10 @@ const PlanReviewDialog: React.FC<PlanReviewDialogProps> = ({
             {/* Score + verdict */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 2, mb: 2 }}>
               <Box sx={{ textAlign: 'center', minWidth: 72 }}>
-                <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '2.1rem', lineHeight: 1, color: scoreColor(report.score) }}>
+                <Typography sx={{ fontWeight: 700, fontSize: '2.1rem', lineHeight: 1, color: scoreColor(report.score) }}>
                   {report.score}
                 </Typography>
-                <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled', fontFamily: "'Inter',sans-serif" }}>
+                <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled',}}>
                   / 100
                 </Typography>
               </Box>
@@ -116,7 +117,7 @@ const PlanReviewDialog: React.FC<PlanReviewDialogProps> = ({
                     '& .MuiLinearProgress-bar': { borderRadius: 4, bgcolor: scoreColor(report.score) },
                   }}
                 />
-                <Typography sx={{ fontSize: '0.85rem', color: 'text.primary', fontFamily: "'Inter',sans-serif", lineHeight: 1.5 }}>
+                <Typography sx={{ fontSize: '0.85rem', color: 'text.primary', lineHeight: 1.5 }}>
                   {report.verdict}
                 </Typography>
               </Box>
@@ -126,7 +127,7 @@ const PlanReviewDialog: React.FC<PlanReviewDialogProps> = ({
             {report.transitHours > 0 && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2.25, p: 1.25, borderRadius: '12px', bgcolor: 'action.hover' }}>
                 <IconRoute size={16} style={{ flexShrink: 0 }} />
-                <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary', fontFamily: "'Inter',sans-serif", lineHeight: 1.5 }}>
+                <Typography sx={{ fontSize: '0.82rem', color: 'text.secondary', lineHeight: 1.5 }}>
                   About <strong>{formatHours(report.transitHours)}</strong> of this trip is spent getting between stops
                   {report.transitHours >= 8 ? `, which is roughly ${Math.round(report.transitHours / 8)} full day${report.transitHours >= 16 ? 's' : ''} of travel.` : '.'}
                 </Typography>
@@ -136,13 +137,13 @@ const PlanReviewDialog: React.FC<PlanReviewDialogProps> = ({
             {/* Strengths */}
             {report.strengths.length > 0 && (
               <Box sx={{ mb: 2.25 }}>
-                <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled', fontFamily: "'Inter',sans-serif", mb: 0.75 }}>
+                <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled', mb: 0.75 }}>
                   What's working
                 </Typography>
                 {report.strengths.map((s, i) => (
                   <Box key={i} sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', mb: 0.6 }}>
                     <IconCheck size={14} color='#16a34a' style={{ flexShrink: 0, marginTop: 3 }} />
-                    <Typography sx={{ fontSize: '0.83rem', color: 'text.secondary', fontFamily: "'Inter',sans-serif", lineHeight: 1.5 }}>
+                    <Typography sx={{ fontSize: '0.83rem', color: 'text.secondary', lineHeight: 1.5 }}>
                       {s}
                     </Typography>
                   </Box>
@@ -153,7 +154,7 @@ const PlanReviewDialog: React.FC<PlanReviewDialogProps> = ({
             {/* Issues */}
             {report.findings.length > 0 && (
               <Box sx={{ mb: 2.25 }}>
-                <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled', fontFamily: "'Inter',sans-serif", mb: 0.75 }}>
+                <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled', mb: 0.75 }}>
                   Worth fixing
                 </Typography>
                 <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
@@ -163,19 +164,19 @@ const PlanReviewDialog: React.FC<PlanReviewDialogProps> = ({
                       <Box key={issue.id} sx={{ border: '1px solid', borderColor: 'divider', borderRadius: '12px', p: 1.5 }}>
                         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 0.5, flexWrap: 'wrap' }}>
                           <Chip label={sev.label} size='small' sx={{ height: 18, fontSize: '0.62rem', fontWeight: 700, borderRadius: '6px', color: sev.color, bgcolor: sev.bg }} />
-                          <Typography sx={{ fontSize: '0.66rem', fontWeight: 600, color: 'text.disabled', fontFamily: "'Inter',sans-serif", textTransform: 'uppercase', letterSpacing: '0.06em' }}>
+                          <Typography sx={{ fontSize: '0.66rem', fontWeight: 600, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.06em' }}>
                             {CATEGORY_LABELS[issue.category] ?? issue.category}
                           </Typography>
-                          <Typography sx={{ fontSize: '0.84rem', fontWeight: 700, fontFamily: "'Inter',sans-serif", width: '100%' }}>
+                          <Typography sx={{ fontSize: '0.84rem', fontWeight: 700, width: '100%' }}>
                             {issue.title}
                           </Typography>
                         </Box>
-                        <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', fontFamily: "'Inter',sans-serif", lineHeight: 1.5, mb: 0.5 }}>
+                        <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', lineHeight: 1.5, mb: 0.5 }}>
                           {issue.detail}
                         </Typography>
                         {/* "Try:" read like a debug prefix. The suggestion is the most
                             useful line in the card, so it gets a real label. */}
-                        <Typography sx={{ fontSize: '0.8rem', color: theme.palette.mode === 'light' ? '#B45309' : '#fbbf24', fontFamily: "'Inter',sans-serif", lineHeight: 1.5 }}>
+                        <Typography sx={{ fontSize: '0.8rem', color: theme.palette.mode === 'light' ? '#B45309' : '#fbbf24', lineHeight: 1.5 }}>
                           <Box component='span' sx={{ fontWeight: 700 }}>What to do: </Box>{issue.suggestion}
                         </Typography>
                         {/* stopName was populated by four of the six checks and never
@@ -201,7 +202,7 @@ const PlanReviewDialog: React.FC<PlanReviewDialogProps> = ({
                           </Box>
                         )}
                         {issue.stopName && !onGoToStop && (
-                          <Typography sx={{ mt: 0.75, fontSize: '0.76rem', fontWeight: 600, color: 'text.disabled', fontFamily: "'Inter',sans-serif" }}>
+                          <Typography sx={{ mt: 0.75, fontSize: '0.76rem', fontWeight: 600, color: 'text.disabled',}}>
                             {issue.stopName}
                           </Typography>
                         )}
@@ -215,7 +216,7 @@ const PlanReviewDialog: React.FC<PlanReviewDialogProps> = ({
             {report.findings.length === 0 && (
               <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-start', mb: 2, p: 1.5, borderRadius: '12px', border: '1px solid', borderColor: 'divider' }}>
                 <IconCheck size={16} color='#16a34a' style={{ flexShrink: 0, marginTop: 2 }} />
-                <Typography sx={{ fontSize: '0.83rem', color: 'text.secondary', fontFamily: "'Inter',sans-serif", lineHeight: 1.5 }}>
+                <Typography sx={{ fontSize: '0.83rem', color: 'text.secondary', lineHeight: 1.5 }}>
                   Nothing to flag. Every check passed against the places and dates in this plan.
                 </Typography>
               </Box>
@@ -225,7 +226,7 @@ const PlanReviewDialog: React.FC<PlanReviewDialogProps> = ({
                 already re-run by the time you could press it. Closing to go fix
                 something is the only action left worth offering. */}
             <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 2, pt: 0.5 }}>
-              <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', fontFamily: "'Inter',sans-serif", lineHeight: 1.45 }}>
+              <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', lineHeight: 1.45 }}>
                 Re-checks itself as you edit, so there is no need to run it again.
               </Typography>
               <Button

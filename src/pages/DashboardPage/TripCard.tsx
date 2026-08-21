@@ -1,28 +1,28 @@
 import React from 'react';
-import { Avatar, AvatarGroup, Box, IconButton, LinearProgress, Tooltip, Typography, useTheme } from '@mui/material';
-import { motion } from 'framer-motion';
-import { IconBroadcast, IconMapPin, IconMessageCircle2, IconShare2, IconTrash } from '@tabler/icons-react';
+import { Box, IconButton, LinearProgress, Tooltip, Typography } from '@mui/material';
+import { IconBroadcast, IconMessageCircle2, IconShare2, IconTrash } from '@tabler/icons-react';
 import ImageBadge from '../../components/ui/ImageBadge';
-import VerifiedTripBadge from '../../components/CommonComponents/VerifiedTripBadge';
-
-// Deterministic avatar colour from name/id - cycles through a warm palette
-const AVATAR_COLORS = ['#FF385C', '#0EA5E9', '#0FA968', '#F59E0B', '#8B5CF6', '#EC4899', '#14B8A6', '#F97316'];
-const avatarColor = (seed: string) => {
-  let h = 0;
-  for (let i = 0; i < seed.length; i++) h = (h * 31 + seed.charCodeAt(i)) >>> 0;
-  return AVATAR_COLORS[h % AVATAR_COLORS.length];
-};
+import { VIBES } from '../CommunityPage/vibes';
+import TripListingCard from '../../components/ui/TripListingCard';
+import type { TripListingHost, TripListingPerson } from '../../components/ui/TripListingCard';
+import { useTripCover } from '../../utils/tripCover';
 
 interface TripCardProps {
   title: string;
   image?: string;
   description?: string;
   progress?: number;
-  edited?: string;
+  /** ISO. Drives "updated 3mo ago". */
+  createdAt?: string | null;
+  updatedAt?: string | null;
+  /** Length of the plan. Derived by the view model, not here, so it matches Community. */
+  nights?: number | null;
   members?: { name: string; profilePic: string; id?: string }[];
+  owner?: { id?: string; name: string; profilePic?: string; identityVerified?: boolean } | null;
   countries?: string[];
+  /** Travel personality key. Same cover pill Community shows on the same trip. */
+  vibe?: string;
   likes?: number;
-  owner?: string;
   onClick?: () => void;
   onShare?: (e: React.MouseEvent) => void;
   onDelete?: (e: React.MouseEvent) => void;
@@ -36,38 +36,44 @@ interface TripCardProps {
   commentsCount?: number;
 }
 
-/** Personal trip card for the dashboard: cover, plan progress, members, actions. */
+/**
+ * Your own trip, on your profile.
+ *
+ * Every row is the shared one: same cover, same crew over its top-right corner,
+ * same title, description, age and dates as the identical trip seen from
+ * Community. Only the `footer` differs, and only because this is the one place a
+ * trip is a thing you EDIT rather than a thing you read - go live, share, delete.
+ *
+ * Price and seats stay unset: your own planning grid is not a shop window.
+ */
 const TripCard: React.FC<TripCardProps> = ({
-  title, image, description, progress, edited, members, countries, onClick, onShare, onDelete, tripStatus, isOwner, onGoLive, commentsCount, verified, verifiedAt,
+  title, image, description, progress, createdAt, updatedAt, nights,
+  members, owner, countries, vibe, onClick, onShare, onDelete, tripStatus, isOwner, onGoLive,
+  commentsCount, verified, verifiedAt,
 }) => {
-  const theme = useTheme();
+  // `image` is already the banner or the curated country cover; the hook adds the
+  // async fallback for the countries that have neither, which Community already
+  // had and this card did not.
+  const photo = useTripCover({ bannerPhotoUrl: image || null, countries, name: title });
 
-  /*
-   * A cover URL can be dead - the previous curated set 404ed in its entirety, and
-   * a banner saved on a trip can rot the same way. Without this the card rendered
-   * the browser's broken-image glyph with the trip title as alt text; now a failed
-   * load falls through to the same placeholder an image-less trip gets. Keyed by
-   * URL so a later, working cover is given its own chance to load.
-   */
-  const [failedImage, setFailedImage] = React.useState<string | null>(null);
-  const showImage = !!image && image !== failedImage;
+  const crew = React.useMemo<TripListingPerson[]>(
+    () => (members ?? []).map((m) => ({ id: m.id, name: m.name, avatar: m.profilePic })),
+    [members],
+  );
 
-  const countryDisplay = React.useMemo(() => {
-    if (!countries || countries.length === 0) return null;
-    const normalize = (c: string) => c ? c.charAt(0).toUpperCase() + c.slice(1).toLowerCase() : c;
-    const isReal = (c: string) => {
-      if (!c || c.length > 30) return false;
-      if (/[0-9]/.test(c)) return false;
-      if (c.length > 15 && !/\s/.test(c)) return false;
-      return true;
-    };
-    const unique = countries.filter((c, i, arr) => c && arr.indexOf(c) === i && isReal(c)).map(normalize);
-    if (unique.length === 0) return null;
-    return `${unique.slice(0, 2).join(' · ')}${unique.length > 2 ? ` · +${unique.length - 2}` : ''}`;
-  }, [countries]);
+  const host = React.useMemo<TripListingHost | null>(
+    () => (owner ? {
+      id: owner.id,
+      name: owner.name,
+      avatar: owner.profilePic ?? null,
+      verified: owner.identityVerified === true,
+    } : null),
+    [owner],
+  );
 
   const pct = typeof progress === 'number' ? Math.min(100, Math.max(0, progress)) : 0;
   const inProgress = pct > 0 && pct < 100;
+  const vibeMeta = vibe ? VIBES[vibe.toLowerCase()] ?? null : null;
 
   const actionSx = {
     color: 'text.secondary',
@@ -76,144 +82,85 @@ const TripCard: React.FC<TripCardProps> = ({
   } as const;
 
   return (
-    <motion.div whileHover={{ y: -4 }} style={{ height: '100%' }}>
-      <Box
-        role={onClick ? 'button' : undefined}
-        tabIndex={onClick ? 0 : undefined}
-        onClick={onClick}
-        onKeyDown={(e) => { if (onClick && (e.key === 'Enter' || e.key === ' ')) { e.preventDefault(); onClick(); } }}
-        sx={{
-          height: '100%', display: 'flex', flexDirection: 'column',
-          borderRadius: '16px', overflow: 'hidden',
-          border: `1px solid ${theme.custom.surface.border}`,
-          bgcolor: 'background.paper',
-          boxShadow: theme.custom.shadows.card,
-          cursor: onClick ? 'pointer' : 'default',
-          transition: `box-shadow ${theme.custom.motion.duration.base} ${theme.custom.motion.easing.standard}`,
-          '&:hover': { boxShadow: theme.custom.shadows.cardHover },
-          '&:hover .trip-cover img': { transform: 'scale(1.04)' },
-          '&:focus-visible': { outline: `2px solid ${theme.custom.ring}`, outlineOffset: 2 },
-        }}
-      >
-        {/* Cover */}
-        <Box className="trip-cover" sx={{ position: 'relative', aspectRatio: '16 / 10', overflow: 'hidden', bgcolor: theme.custom.surface.active }}>
-          {showImage ? (
-            <Box component="img" src={image} alt={title} onError={() => setFailedImage(image!)} sx={{
-              width: '100%', height: '100%', objectFit: 'cover', display: 'block',
-              transition: `transform ${theme.custom.motion.duration.slow} ${theme.custom.motion.easing.standard}`,
-            }} />
-          ) : (
-            <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <IconMapPin size={28} stroke={1.5} color={theme.palette.text.disabled} />
-            </Box>
-          )}
-          {tripStatus === 1 && (
-            <ImageBadge sx={{ position: 'absolute', top: 12, left: 12 }}>
-              <Box sx={{
-                width: 6, height: 6, borderRadius: '50%', bgcolor: 'error.main',
-                animation: 'livePulse 1.6s ease-in-out infinite',
-                '@keyframes livePulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.35 } },
-              }} />
-              Live
+    <TripListingCard
+      images={[photo]}
+      title={title}
+      onClick={onClick ?? (() => {})}
+      countries={countries}
+      host={host}
+      members={crew}
+      description={description || null}
+      createdAt={createdAt}
+      updatedAt={updatedAt}
+      verified={verified}
+      verifiedAt={verifiedAt}
+      nights={nights}
+      coverBadges={
+        /* Vibe first, so it sits where Community puts it; plan progress under it,
+           which is the one pill only an owner has any use for. */
+        <>
+          {vibeMeta && (
+            <ImageBadge>
+              <vibeMeta.Icon size={12} stroke={2} />
+              {vibeMeta.label}
             </ImageBadge>
           )}
-          {inProgress && (
-            <ImageBadge sx={{ position: 'absolute', top: 12, right: 12 }}>{pct}% planned</ImageBadge>
-          )}
-        </Box>
-        {inProgress && <LinearProgress variant="determinate" value={pct} sx={{ height: 3, borderRadius: 0 }} />}
+          {inProgress && <ImageBadge>{pct}% planned</ImageBadge>}
+        </>
+      }
+      coverStatus={
+        tripStatus === 1 ? (
+          <ImageBadge>
+            <Box sx={{
+              width: 6, height: 6, borderRadius: '50%', bgcolor: 'error.main',
+              animation: 'livePulse 1.6s ease-in-out infinite',
+              '@keyframes livePulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.35 } },
+            }} />
+            Live
+          </ImageBadge>
+        ) : null
+      }
+      underCover={
+        inProgress ? <LinearProgress variant="determinate" value={pct} sx={{ height: 3, borderRadius: 0 }} /> : null
+      }
+      footer={
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+          {/* Replies on your own published trip - the nudge to go read them. */}
+          {typeof commentsCount === 'number' && commentsCount > 0 ? (
+            <Tooltip title={`${commentsCount} ${commentsCount === 1 ? 'comment' : 'comments'} on this trip`} arrow placement="top">
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, flexShrink: 0, color: 'text.secondary' }}>
+                <IconMessageCircle2 size={14} stroke={1.9} />
+                <Typography variant="caption" sx={{ fontWeight: 600 }}>{commentsCount}</Typography>
+              </Box>
+            </Tooltip>
+          ) : <Box />}
 
-        {/* Body */}
-        <Box sx={{ px: 1.75, pt: 1.5, pb: 1.25, display: 'flex', flexDirection: 'column', gap: 0.5, flex: 1 }}>
-          {/* Badge as a sibling of the noWrap title, same reasoning as the community
-              card: inside it, a long trip name pushes the mark out of view. */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
-            <Typography noWrap sx={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: 'text.primary', minWidth: 0 }}>
-              {title}
-            </Typography>
-            <VerifiedTripBadge verified={verified} verifiedAt={verifiedAt} />
-          </Box>
-          {/* Bold and held back - same subhead treatment as CommunityTripCard. */}
-          {countryDisplay && (
-            <Typography noWrap sx={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.005em', color: 'text.secondary', opacity: 0.72 }}>
-              {countryDisplay}
-            </Typography>
-          )}
-          {description && (
-            <Typography sx={{
-              fontSize: 12.5, lineHeight: 1.5, color: 'text.secondary',
-              display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-            }}>
-              {description}
-            </Typography>
-          )}
-
-          {/* Footer */}
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1, mt: 'auto', pt: 1.25 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-              {members && members.length > 0 && (
-                <AvatarGroup
-                  max={4}
-                  sx={{
-                    '& .MuiAvatar-root': {
-                      width: 24, height: 24, fontSize: 11, fontWeight: 700,
-                      border: `1.5px solid ${theme.palette.background.paper}`,
-                    },
-                  }}
-                >
-                  {members.map((m, i) => (
-                    <Avatar
-                      key={m.id ?? i}
-                      src={m.profilePic || undefined}
-                      alt={m.name}
-                      sx={{ bgcolor: avatarColor(m.id || m.name || String(i)) }}
-                    >
-                      {m.name?.charAt(0).toUpperCase() || '?'}
-                    </Avatar>
-                  ))}
-                </AvatarGroup>
-              )}
-              {edited && (
-                <Typography noWrap sx={{ fontSize: 12, color: 'text.disabled' }}>{edited}</Typography>
-              )}
-              {/* Replies on your own published trip - the nudge to go read them. */}
-              {typeof commentsCount === 'number' && commentsCount > 0 && (
-                <Tooltip title={`${commentsCount} ${commentsCount === 1 ? 'comment' : 'comments'} on this trip`} arrow placement="top">
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.4, flexShrink: 0, color: 'text.secondary' }}>
-                    <IconMessageCircle2 size={14} stroke={1.9} />
-                    <Typography sx={{ fontSize: 12, fontWeight: 600 }}>{commentsCount}</Typography>
-                  </Box>
-                </Tooltip>
-              )}
-            </Box>
-
-            <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
-              {isOwner && tripStatus === 0 && onGoLive && (
-                <Tooltip title="Go live & share your trip in real time" arrow placement="top">
-                  <IconButton size="small" onClick={() => onGoLive()} sx={{ ...actionSx, '&:hover': { color: 'error.main' } }} aria-label="Go live">
-                    <IconBroadcast size={16} stroke={1.9} />
-                  </IconButton>
-                </Tooltip>
-              )}
-              {onShare && (
-                <Tooltip title="Share" arrow placement="top">
-                  <IconButton size="small" onClick={(e) => onShare(e)} sx={actionSx} aria-label="Share trip">
-                    <IconShare2 size={16} stroke={1.9} />
-                  </IconButton>
-                </Tooltip>
-              )}
-              {onDelete && (
-                <Tooltip title="Delete" arrow placement="top">
-                  <IconButton size="small" onClick={(e) => onDelete(e)} sx={{ ...actionSx, '&:hover': { color: 'error.main' } }} aria-label="Delete trip">
-                    <IconTrash size={16} stroke={1.9} />
-                  </IconButton>
-                </Tooltip>
-              )}
-            </Box>
+          <Box sx={{ display: 'flex', alignItems: 'center', flexShrink: 0 }} onClick={e => e.stopPropagation()}>
+            {isOwner && tripStatus === 0 && onGoLive && (
+              <Tooltip title="Go live & share your trip in real time" arrow placement="top">
+                <IconButton size="small" onClick={() => onGoLive()} sx={{ ...actionSx, '&:hover': { color: 'error.main' } }} aria-label="Go live">
+                  <IconBroadcast size={16} stroke={1.9} />
+                </IconButton>
+              </Tooltip>
+            )}
+            {onShare && (
+              <Tooltip title="Share" arrow placement="top">
+                <IconButton size="small" onClick={(e) => onShare(e)} sx={actionSx} aria-label="Share trip">
+                  <IconShare2 size={16} stroke={1.9} />
+                </IconButton>
+              </Tooltip>
+            )}
+            {onDelete && (
+              <Tooltip title="Delete" arrow placement="top">
+                <IconButton size="small" onClick={(e) => onDelete(e)} sx={{ ...actionSx, '&:hover': { color: 'error.main' } }} aria-label="Delete trip">
+                  <IconTrash size={16} stroke={1.9} />
+                </IconButton>
+              </Tooltip>
+            )}
           </Box>
         </Box>
-      </Box>
-    </motion.div>
+      }
+    />
   );
 };
 

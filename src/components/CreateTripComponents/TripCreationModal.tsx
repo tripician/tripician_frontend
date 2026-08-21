@@ -25,6 +25,7 @@ import { COUNTRIES } from '../../utils/countries';
 import NaviaOrb from '../../navia/NaviaOrb';
 import { scheduleFeedbackPrompt } from '../../utils/feedbackPrompt';
 import FilterChip from '../ui/FilterChip';
+import type { Organization } from '../../organization/types';
 import SegmentedControl from '../ui/SegmentedControl';
 import {
   DEFAULT_TRIP_PREFERENCES,
@@ -134,6 +135,10 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose, in
   const [aiMessage, setAiMessage] = useState('');
   const [errorMsg, setErrorMsg] = useState<string | null>(null);
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; countries?: string; dates?: string }>({});
+  // Only organisations this person can actually run trips for. Empty for almost
+  // everybody, and the control stays hidden in that case.
+  const [organizations, setOrganizations] = useState<Organization[]>([]);
+  const [organizationId, setOrganizationId] = useState<string>('');
   const { token } = useAuthToken();
   const navigate = useNavigate();
 
@@ -182,6 +187,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose, in
     // server-side by every generative call, so the first draft is already informed
     // rather than being corrected afterwards.
     preferences: { pace, company, interests, dietary },
+    ...(organizationId ? { organizationId } : {}),
     ...(generateWithAI ? { generateWithAI: true } : {}),
   });
 
@@ -255,6 +261,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose, in
     setCompany(DEFAULT_TRIP_PREFERENCES.company);
     setInterests(DEFAULT_TRIP_PREFERENCES.interests);
     setDietary(DEFAULT_TRIP_PREFERENCES.dietary);
+    setOrganizationId('');
     setFieldErrors({});
     setErrorMsg(null);
   };
@@ -273,6 +280,19 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose, in
     if (initial.name) { setTripName(initial.name); setNameEdited(true); }
     if (initial.vibe) setVibe(initial.vibe);
   }, [open, initial]);
+
+  useEffect(() => {
+    if (!open || !token) return;
+    let cancelled = false;
+    apiServices.getMyOrganizations(token)
+      .then((resp) => {
+        if (cancelled) return;
+        setOrganizations((Array.isArray(resp.data) ? resp.data : [])
+          .filter((o) => o.myRole === 'admin' && o.status === 'approved'));
+      })
+      .catch(() => { if (!cancelled) setOrganizations([]); });
+    return () => { cancelled = true; };
+  }, [open, token]);
 
   // GSAP: modal entrance. The context is scoped to the panel so `.gs-modal-field`
   // matches only this instance's fields - the selector is global otherwise, and
@@ -305,8 +325,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose, in
 
   const labelSx = {
     fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.12em',
-    textTransform: 'uppercase' as const, color: 'text.disabled',
-    fontFamily: "'Inter', sans-serif", mb: 1,
+    textTransform: 'uppercase' as const, color: 'text.disabled', mb: 1,
   };
 
   return (
@@ -340,7 +359,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose, in
                 <Box sx={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid', borderColor: 'divider' }} />
                 <Box sx={{ position: 'absolute', inset: 0, borderRadius: '50%', border: '3px solid transparent', borderTopColor: 'primary.main', animation: 'spin 0.85s linear infinite', '@keyframes spin': { to: { transform: 'rotate(360deg)' } } }} />
               </Box>
-              <Typography sx={{ fontFamily: "'Inter', sans-serif", fontWeight: 600, color: 'text.secondary', fontSize: '0.88rem', textAlign: 'center', maxWidth: 280 }}>
+              <Typography sx={{ fontWeight: 600, color: 'text.secondary', fontSize: '0.88rem', textAlign: 'center', maxWidth: 280 }}>
                 {aiGenerating ? aiMessage : 'Opening your planner…'}
               </Typography>
             </Box>
@@ -369,7 +388,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose, in
             {/* Header */}
             <Box className="gs-modal-field" sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 1.5, mb: 3 }}>
               <Box>
-                <Typography sx={{ fontFamily: theme.custom.fontDisplay, fontWeight: 700, fontSize: { xs: '1.55rem', md: '1.85rem' }, color: 'text.primary', lineHeight: 1.1, letterSpacing: '-0.03em' }}>
+                <Typography sx={{ fontWeight: 700, fontSize: { xs: '1.55rem', md: '1.85rem' }, color: 'text.primary', lineHeight: 1.1, letterSpacing: '-0.03em' }}>
                   Where to next?
                 </Typography>
                 {/*
@@ -378,7 +397,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose, in
                   people skipped the fields that most improve their first draft. The
                   line now states the trade instead: answer more, get a closer plan.
                 */}
-                <Typography sx={{ fontSize: '0.8rem', lineHeight: 1.5, color: 'text.secondary', fontFamily: "'Inter', sans-serif", mt: 0.75 }}>
+                <Typography sx={{ fontSize: '0.8rem', lineHeight: 1.5, color: 'text.secondary', mt: 0.75 }}>
                   Your answers decide which places Navia picks, what it suggests you eat,
                   and how much it fits into a day.
                 </Typography>
@@ -479,7 +498,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose, in
 
             {/* ── Zone 2: the mood ──────────────────────────────────────────── */}
             <ZoneHeading label="How you travel" sx={{ mb: 1.25 }} />
-            <Typography className="gs-modal-field" sx={{ fontSize: '0.8rem', lineHeight: 1.5, color: 'text.secondary', fontFamily: "'Inter', sans-serif", mb: 2.5 }}>
+            <Typography className="gs-modal-field" sx={{ fontSize: '0.8rem', lineHeight: 1.5, color: 'text.secondary', mb: 2.5 }}>
               Four quick answers, already filled in with the usual case. Change the ones
               that are wrong for this trip.
             </Typography>
@@ -556,6 +575,27 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose, in
                   );
                 })}
               </Question>
+
+              {organizations.length > 0 && (
+                <Question
+                  question="Who is running this trip?"
+                  hint="Trips run by an organization carry its name and can be managed by all of its admins."
+                >
+                  <FilterChip
+                    label="Just me"
+                    active={organizationId === ''}
+                    onClick={() => setOrganizationId('')}
+                  />
+                  {organizations.map((organization) => (
+                    <FilterChip
+                      key={organization.id}
+                      label={organization.name}
+                      active={organizationId === organization.id}
+                      onClick={() => setOrganizationId(organization.id)}
+                    />
+                  ))}
+                </Question>
+              )}
             </Box>
           </Box>
 
@@ -576,7 +616,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose, in
               gap: 1.25,
             })}
           >
-            <Typography sx={{ display: { xs: 'none', sm: 'block' }, fontSize: '0.7rem', lineHeight: 1.45, color: 'text.disabled', fontFamily: "'Inter', sans-serif", maxWidth: 180 }}>
+            <Typography sx={{ display: { xs: 'none', sm: 'block' }, fontSize: '0.7rem', lineHeight: 1.45, color: 'text.disabled', maxWidth: 180 }}>
               Invite your crew and shape the details inside the planner.
             </Typography>
             {/* Stacked on a phone. Side by side, the two labels plus their icons come
@@ -595,8 +635,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose, in
                 onClick={() => createAndOpen(true)}
                 disabled={!canFinish || busy}
                 startIcon={<NaviaOrb size={16} processing={aiGenerating} />}
-                sx={{
-                  fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '0.82rem',
+                sx={{ fontWeight: 700, fontSize: '0.82rem',
                   px: { xs: 1.5, sm: 2.25 }, py: 1.1, borderRadius: '50px', textTransform: 'none',
                   flex: { xs: 1, sm: 'none' }, whiteSpace: 'nowrap',
                 }}
@@ -608,8 +647,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose, in
                 onClick={() => createAndOpen(false)}
                 disabled={!canFinish || busy}
                 endIcon={<IconArrowRight size={16} />}
-                sx={{
-                  fontFamily: "'Inter', sans-serif", fontWeight: 700, fontSize: '0.86rem',
+                sx={{ fontWeight: 700, fontSize: '0.86rem',
                   px: { xs: 1.75, sm: 2.75 }, py: 1.1, borderRadius: '50px', textTransform: 'none',
                   flex: { xs: 1, sm: 'none' }, whiteSpace: 'nowrap',
                 }}

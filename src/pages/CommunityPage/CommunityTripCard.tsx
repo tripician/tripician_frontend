@@ -1,54 +1,63 @@
 import React from 'react';
-import { Avatar, Box, Tooltip, Typography, useTheme } from '@mui/material';
-import { motion } from 'framer-motion';
+import { Box, Tooltip, Typography, useTheme } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   IconCopy,
   IconHeart,
   IconHeartFilled,
-  IconMapPin,
   IconMessageCircle2,
 } from '@tabler/icons-react';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { apiServices } from '../../services/APIs/apiServices';
-import { tripCoverPhoto, savedBanner, resolveTripCover } from '../../utils/tripCover';
+import { useTripCover } from '../../utils/tripCover';
+import { tripNights } from '../../utils/tripMeta';
+import TripListingCard from '../../components/ui/TripListingCard';
+import type { TripListingPerson } from '../../components/ui/TripListingCard';
 import ImageBadge from '../../components/ui/ImageBadge';
-import VerifiedTripBadge from '../../components/CommonComponents/VerifiedTripBadge';
 import { VIBES } from './vibes';
 
 interface TripCardProps { trip: any; onClick: () => void; }
 
-/** Published-trip card used on the Community explore grid and traveler profiles. */
+/**
+ * A published trip on Community, Templates and public profiles.
+ *
+ * The shell, the cover treatment and every listing row live in
+ * `components/ui/TripListingCard`. What remains here is the part that is
+ * genuinely this surface's own: resolving a cover through the shared helper,
+ * reading the DTO's two casings, and the community actions (comment count,
+ * clone, like).
+ *
+ * Price and spots are deliberately not passed. A published itinerary is
+ * something to read and copy, not something to join - those rows arrive with
+ * recruitment, on the same component.
+ */
 const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
   const theme = useTheme();
-  // Resolved through the shared helper so this card, the dashboard card and the
+  // Resolved through the shared hook so this card, the profile card and the
   // trip's own hero all land on the same photo. See utils/tripCover.ts.
-  const cover = savedBanner(trip);
-  const [photo, setPhoto] = React.useState<string | null>(() => tripCoverPhoto(trip));
-  const [imgFailed, setImgFailed] = React.useState(false);
-
-  React.useEffect(() => {
-    if (cover && !imgFailed) { setPhoto(cover); return; }
-    let cancelled = false;
-    resolveTripCover(imgFailed ? { ...trip, bannerPhotoUrl: null, BannerPhotoUrl: null, photoUrl: null, PhotoUrl: null } : trip)
-      .then(url => { if (!cancelled && url) setPhoto(url); });
-    return () => { cancelled = true; };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cover, trip.countries, trip.name, imgFailed]);
+  const photo = useTripCover(trip);
 
   const vibe = VIBES[trip.vibe?.toLowerCase?.()] || null;
-  const nights = typeof trip.totalNights === 'number' ? trip.totalNights
-    : typeof trip.targetNights === 'number' ? trip.targetNights : null;
   // Backend returns owner as { id, name, profilePicture } (TripUserDto)
+  const ownerId = trip.owner?.id ?? trip.ownerUserId ?? trip.OwnerUserId ?? null;
   const ownerName = trip.owner?.name?.trim() || trip.ownerName || trip.OwnerName || 'Explorer';
   const ownerAvatar = trip.owner?.profilePicture || trip.ownerAvatar || trip.OwnerAvatar || null;
   const countries: string[] = Array.isArray(trip.countries) ? trip.countries : [];
+  const isOpen = trip.joinPolicy === 'OpenToRequests';
 
-  const metaLine = [
-    ...countries.slice(0, 2),
-    countries.length > 2 ? `+${countries.length - 2}` : null,
-    nights !== null ? `${nights} ${nights === 1 ? 'night' : 'nights'}` : null,
-  ].filter(Boolean).join(' · ');
+  /** Shared with Profile, so one trip cannot be two lengths on two pages. */
+  const nights = React.useMemo(() => tripNights(trip), [trip]);
+
+  /** Everyone going besides the owner. The shell drops the owner if one slips in. */
+  const members = React.useMemo<TripListingPerson[]>(() => {
+    const raw = Array.isArray(trip.members) ? trip.members
+      : Array.isArray(trip.Members) ? trip.Members : [];
+    return raw.map((m: any) => ({
+      id: m.id ?? m.Id ?? null,
+      name: (m.name || m.Name || '').trim() || 'Traveller',
+      avatar: m.profilePicture || m.ProfilePicture || m.profilePic || null,
+    }));
+  }, [trip.members, trip.Members]);
 
   const [liked, setLiked] = React.useState(false);
   const [likeCount, setLikeCount] = React.useState(
@@ -108,6 +117,10 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
     }
   }, [trip.id, token, navigate, applySummary]);
 
+  // KNOWN COST: one request per card, so a 30-trip grid is 30 requests. The only
+  // thing it adds over the payload is whether YOU liked this trip, which the list
+  // endpoint does not return. Fixing it properly means adding `userLiked` to the
+  // list DTO rather than papering over it here.
   React.useEffect(() => {
     if (!trip.id) return;
     let cancelled = false;
@@ -117,142 +130,95 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
     return () => { cancelled = true; };
   }, [trip.id, token, applySummary]);
 
-  const footerActionSx = {
+  const actionSx = {
     display: 'inline-flex', alignItems: 'center', gap: 0.5,
     border: 'none', bgcolor: 'transparent', p: 0.5, borderRadius: 999,
-    fontFamily: 'inherit', fontSize: 12.5, fontWeight: 600, lineHeight: 1,
+    fontFamily: 'inherit', fontWeight: 600, lineHeight: 1,
+    typography: 'caption',
     color: 'text.secondary', cursor: 'pointer',
     transition: `color ${theme.custom.motion.duration.fast} ${theme.custom.motion.easing.standard}`,
     '&:hover': { color: 'primary.main' },
   } as const;
 
   return (
-    <motion.div
-      whileHover={{ y: -4 }}
+    <TripListingCard
+      images={[photo]}
+      title={trip.name || 'Untitled Trip'}
       onClick={onClick}
-      style={{ cursor: 'pointer', height: '100%', minWidth: 0 }}
-    >
-      <Box sx={{
-        height: '100%', minWidth: 0, display: 'flex', flexDirection: 'column',
-        borderRadius: '16px', overflow: 'hidden',
-        border: `1px solid ${theme.custom.surface.border}`,
-        bgcolor: 'background.paper',
-        boxShadow: theme.custom.shadows.card,
-        transition: `box-shadow ${theme.custom.motion.duration.base} ${theme.custom.motion.easing.standard}`,
-        '&:hover': { boxShadow: theme.custom.shadows.cardHover },
-        '&:hover .trip-cover img': { transform: 'scale(1.04)' },
-      }}>
-        {/* Cover image */}
-        <Box className="trip-cover" sx={{ position: 'relative', aspectRatio: '4 / 3', overflow: 'hidden', bgcolor: theme.custom.surface.active }}>
-          {photo ? (
-            <Box
-              component="img" src={photo} alt={trip.name || 'Trip photo'}
-              onError={() => setImgFailed(true)}
-              sx={{
-                width: '100%', height: '100%', objectFit: 'cover', display: 'block',
-                transition: `transform ${theme.custom.motion.duration.slow} ${theme.custom.motion.easing.standard}`,
-              }}
-            />
-          ) : (
-            <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <IconMapPin size={30} stroke={1.5} color={theme.palette.text.disabled} />
+      countries={countries}
+      host={{ id: ownerId, name: ownerName, avatar: ownerAvatar, verified: trip.owner?.identityVerified === true }}
+      members={members}
+      rating={typeof trip.rating === 'number' ? trip.rating : null}
+      description={typeof trip.description === 'string' ? trip.description.trim() : null}
+      createdAt={trip.createdDate ?? trip.CreatedDate ?? null}
+      updatedAt={trip.updatedDate ?? trip.UpdatedDate ?? null}
+      verified={trip.verified ?? trip.Verified}
+      verifiedAt={trip.verifiedAt ?? trip.VerifiedAt}
+      nights={nights}
+      confirmed={trip.confirmed === true}
+      price={
+        isOpen && typeof trip.pricePerPerson === 'number'
+          ? { amount: trip.pricePerPerson, currency: trip.priceCurrency }
+          : null
+      }
+      spotsLeft={isOpen && typeof trip.spotsLeft === 'number' ? trip.spotsLeft : null}
+      coverBadges={
+        vibe ? (
+          <ImageBadge>
+            <vibe.Icon size={12} stroke={2} />
+            {vibe.label}
+          </ImageBadge>
+        ) : null
+      }
+      coverStatus={
+        trip.tripStatus === 1 ? (
+          <ImageBadge>
+            <Box sx={{
+              width: 6, height: 6, borderRadius: '50%', bgcolor: 'error.main',
+              animation: 'livePulse 1.6s ease-in-out infinite',
+              '@keyframes livePulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.35 } },
+            }} />
+            Live
+          </ImageBadge>
+        ) : null
+      }
+      footer={
+        /* Actions only. Tripician Verified used to sit on this row and now rides
+           beside the title, where an endorsement is read rather than counted. */
+        <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'flex-end', gap: 1 }}>
+          {/* Comments sit first: the conversation on a trip is the point of a
+              community, and it's the signal that invites someone to open it. */}
+          <Tooltip
+            title={commentCount > 0
+              ? `${commentCount} ${commentCount === 1 ? 'comment' : 'comments'}`
+              : 'Be the first to comment'}
+            arrow
+            placement="top"
+          >
+            <Box sx={{ ...actionSx, cursor: 'inherit' }}>
+              <IconMessageCircle2 size={15} stroke={1.9} />
+              {commentCount > 0 && commentCount}
             </Box>
-          )}
-          {vibe && (
-            <ImageBadge sx={{ position: 'absolute', top: 12, left: 12 }}>
-              <vibe.Icon size={12} stroke={2} />
-              {vibe.label}
-            </ImageBadge>
-          )}
-          {trip.tripStatus === 1 && (
-            <ImageBadge sx={{ position: 'absolute', top: 12, right: 12 }}>
-              <Box sx={{
-                width: 6, height: 6, borderRadius: '50%', bgcolor: 'error.main',
-                animation: 'livePulse 1.6s ease-in-out infinite',
-                '@keyframes livePulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.35 } },
-              }} />
-              Live
-            </ImageBadge>
-          )}
-        </Box>
-
-        {/* Card body */}
-        <Box sx={{ px: 1.75, pt: 1.5, pb: 1.5, display: 'flex', flexDirection: 'column', gap: 0.5, flex: 1 }}>
-          {/* The badge is a SIBLING of the title, not a child of it. Inside the noWrap
-              Typography a long trip name would push it straight out of view, which is
-              the one placement that must never happen to an endorsement mark. minWidth:0
-              is what lets the title still truncate inside the flex row. */}
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, minWidth: 0 }}>
-            <Typography noWrap sx={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: 'text.primary', minWidth: 0 }}>
-              {trip.name || 'Untitled Trip'}
-            </Typography>
-            <VerifiedTripBadge verified={trip.verified ?? trip.Verified} verifiedAt={trip.verifiedAt ?? trip.VerifiedAt} />
-          </Box>
-          {/* Weight carries the structure, opacity keeps it in its place. At 400
-              this line sat at the same visual level as the description below it
-              and stopped reading as the title's subhead; at full-strength 600 it
-              competed with the title itself. Bold and held back is the pairing
-              that makes the hierarchy legible at a glance. */}
-          {metaLine && (
-            <Typography noWrap sx={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.005em', color: 'text.secondary', opacity: 0.72 }}>
-              {metaLine}
-            </Typography>
-          )}
-          {(trip.description || trip.Description) && (
-            <Typography sx={{
-              fontSize: 12.5, lineHeight: 1.55, color: 'text.secondary',
-              display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-            }}>
-              {trip.description || trip.Description}
-            </Typography>
-          )}
-
-          {/* Footer row */}
-          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', mt: 'auto', pt: 1.25 }}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
-              <Avatar src={ownerAvatar || undefined} sx={{ width: 22, height: 22, fontSize: 10.5, bgcolor: 'primary.main' }}>
-                {ownerName?.charAt(0).toUpperCase()}
-              </Avatar>
-              <Typography noWrap sx={{ fontSize: 12.5, fontWeight: 600, color: 'text.secondary', maxWidth: 130 }}>
-                {ownerName}
-              </Typography>
+          </Tooltip>
+          <Tooltip title={cloneLoading ? 'Cloning…' : 'Use as template'} arrow placement="top">
+            <Box component="button" type="button" onClick={handleClone} sx={actionSx}>
+              <IconCopy size={15} stroke={1.9} />
+              {cloneCount > 0 && cloneCount}
             </Box>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexShrink: 0 }}>
-              {/* Comments sit first: the conversation on a trip is the point of a
-                  community, and it's the signal that invites someone to open it. */}
-              <Tooltip
-                title={commentCount > 0
-                  ? `${commentCount} ${commentCount === 1 ? 'comment' : 'comments'}`
-                  : 'Be the first to comment'}
-                arrow
-                placement="top"
-              >
-                <Box sx={{ ...footerActionSx, cursor: 'inherit' }}>
-                  <IconMessageCircle2 size={15} stroke={1.9} />
-                  {commentCount > 0 && commentCount}
-                </Box>
-              </Tooltip>
-              <Tooltip title={cloneLoading ? 'Cloning…' : 'Use as template'} arrow placement="top">
-                <Box component="button" type="button" onClick={handleClone} sx={footerActionSx}>
-                  <IconCopy size={15} stroke={1.9} />
-                  {cloneCount > 0 && cloneCount}
-                </Box>
-              </Tooltip>
-              <Box
-                component="button" type="button" onClick={toggleLike}
-                aria-label={liked ? 'Unlike trip' : 'Like trip'}
-                sx={{ ...footerActionSx, color: liked ? 'primary.main' : 'text.secondary' }}
-              >
-                {liked
-                  ? <IconHeartFilled size={15} color={theme.palette.primary.main} />
-                  : <IconHeart size={15} stroke={1.9} />}
-                {likeCount}
-              </Box>
-            </Box>
+          </Tooltip>
+          <Box
+            component="button" type="button" onClick={toggleLike}
+            aria-label={liked ? 'Unlike trip' : 'Like trip'}
+            sx={{ ...actionSx, color: liked ? 'primary.main' : 'text.secondary' }}
+          >
+            {liked
+              ? <IconHeartFilled size={15} color={theme.palette.primary.main} />
+              : <IconHeart size={15} stroke={1.9} />}
+            <Typography component="span" variant="caption" sx={{ fontWeight: 600 }}>{likeCount}</Typography>
           </Box>
         </Box>
-      </Box>
-    </motion.div>
+      }
+    />
   );
 };
 

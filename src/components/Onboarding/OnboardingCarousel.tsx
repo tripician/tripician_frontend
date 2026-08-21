@@ -168,7 +168,6 @@ const OnboardingCarousel: React.FC = () => {
                 {slide.eyebrow}
               </Typography>
               <Typography sx={{
-                fontFamily: theme.custom.fontDisplay,
                 fontWeight: 700, fontSize: '1.28rem', lineHeight: 1.22, letterSpacing: '-0.01em',
                 color: 'text.primary', mb: 1,
               }}>

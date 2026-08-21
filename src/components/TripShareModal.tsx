@@ -301,7 +301,6 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
   if (!open) return null;
 
   const border = theme.custom.surface.border;
-  const inter = "'Inter', system-ui, sans-serif";
 
   /** Quiet text action - Download / Copy image live here rather than as buttons. */
   const textAction = (
@@ -320,7 +319,7 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
         border: 'none',
         p: 0,
         font: 'inherit',
-        fontFamily: inter,
+        
         fontSize: 13,
         fontWeight: 500,
         color: active ? 'success.main' : 'text.secondary',
@@ -365,7 +364,7 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
     >
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography sx={{ fontSize: 16, fontWeight: 600, fontFamily: inter, color: 'text.primary' }}>
+        <Typography sx={{ fontSize: 16, fontWeight: 600, color: 'text.primary' }}>
           Share your trip
         </Typography>
         <IconButton size="small" onClick={onClose} sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary', bgcolor: 'action.hover' } }}>
@@ -386,7 +385,7 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
               border: '1px dashed', borderColor: 'divider',
               display: 'flex', alignItems: 'center', justifyContent: 'center', px: 2,
             }}>
-              <Typography sx={{ fontSize: 13, color: 'text.disabled', fontFamily: inter, textAlign: 'center' }}>
+              <Typography sx={{ fontSize: 13, color: 'text.disabled', textAlign: 'center' }}>
                 Could not load the card. Your link still works.
               </Typography>
             </Box>
@@ -406,7 +405,7 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
       </Box>
 
       {isLoading && (
-        <Typography sx={{ fontSize: 12, color: 'text.secondary', textAlign: 'center', fontFamily: inter, mt: -1 }}>
+        <Typography sx={{ fontSize: 12, color: 'text.secondary', textAlign: 'center', mt: -1 }}>
           {error === 'generating' ? 'Generating your card…' : 'Loading your card…'}
         </Typography>
       )}
@@ -422,7 +421,7 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
           padding: '13px',
           fontSize: 14.5,
           fontWeight: 600,
-          fontFamily: inter,
+          
           backgroundColor: 'primary.main',
           color: 'primary.contrastText',
           border: 'none',
@@ -521,10 +520,10 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, minWidth: 0 }}>
             <LinkRoundedIcon sx={{ fontSize: 20, color: linkShareEnabled ? 'primary.main' : 'text.disabled', flexShrink: 0 }} />
             <Box sx={{ minWidth: 0 }}>
-              <Typography sx={{ fontSize: 13, fontWeight: 600, fontFamily: inter, color: 'text.primary', lineHeight: 1.4 }}>
+              <Typography sx={{ fontSize: 13, fontWeight: 600, color: 'text.primary', lineHeight: 1.4 }}>
                 Anyone with the link can view
               </Typography>
-              <Typography sx={{ fontSize: 11, color: 'text.secondary', fontFamily: inter, lineHeight: 1.4 }}>
+              <Typography sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.4 }}>
                 {linkShareEnabled ? 'Link sharing is on - anyone can see this trip' : 'Only trip members can access this link'}
               </Typography>
             </Box>

@@ -1,5 +1,7 @@
 import React, { useEffect, useState } from 'react';
+import { BRAND } from '../../theme';
 import { Box, CircularProgress, Typography } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 
 const DEFAULT_MESSAGES = [
   'Getting things ready…',
@@ -59,7 +61,7 @@ const PageLoader: React.FC<PageLoaderProps> = ({
             position: 'absolute',
             inset: 0,
             borderRadius: '50%',
-            border: '3px solid rgba(255,56,92,0.12)',
+            border: `3px solid ${alpha(BRAND.coral, 0.12)}`,
           }}
         />
         <Box
@@ -68,7 +70,7 @@ const PageLoader: React.FC<PageLoaderProps> = ({
             inset: 0,
             borderRadius: '50%',
             border: '3px solid transparent',
-            borderTopColor: '#FF385C',
+            borderTopColor: 'primary.main',
             animation: 'pageloader-spin 0.9s linear infinite',
             '@keyframes pageloader-spin': { to: { transform: 'rotate(360deg)' } },
           }}
@@ -89,7 +91,6 @@ const PageLoader: React.FC<PageLoaderProps> = ({
       <Typography
         key={msgIndex}
         sx={{
-          fontFamily: "'Inter', sans-serif",
           fontWeight: 500,
           fontSize: '0.92rem',
           color: 'text.secondary',

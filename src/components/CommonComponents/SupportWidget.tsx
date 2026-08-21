@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { BRAND } from '../../theme';
 import {
   Box,
   Button,
@@ -24,6 +25,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import HeadsetMicRoundedIcon from '@mui/icons-material/HeadsetMicRounded';
@@ -38,6 +40,9 @@ import SecurityRoundedIcon from '@mui/icons-material/SecurityRounded';
 import SyncRoundedIcon from '@mui/icons-material/SyncRounded';
 import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
 import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
+import AutoStoriesRoundedIcon from '@mui/icons-material/AutoStoriesRounded';
+import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
+import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { apiServices } from '../../services/APIs/apiServices';
 import { onFeedbackPromptRequested, markFeedbackPromptShown } from '../../utils/feedbackPrompt';
@@ -105,14 +110,21 @@ const SupportWidget: React.FC = () => {
   const appVersion = import.meta.env.VITE_APP_VERSION || '2.1.0';
   const naviaVersion = '1.0.0';
 
+  /*
+   * Newest first, and every line has to name something that actually shipped.
+   * The list had not been touched since 2.0 and described a planner with a trip
+   * directory, which is no longer what the product is: the three entries at the
+   * top are the reason someone opens the app when they are not planning.
+   */
   const updateItems = [
-    { icon: RocketLaunchRoundedIcon, text: 'Tripician 2.0 - new trip view & community feed.' },
-    { icon: SecurityRoundedIcon,     text: 'Publish validation - title, description & all days planned before going live.' },
-    { icon: SyncRoundedIcon,         text: 'Community Adventures - browse real trips with day plans, nights & live reactions.' },
-    { icon: SecurityRoundedIcon,     text: 'Verified places - every suggested spot checked against a live listing, closed ones dropped.' },
+    { icon: AutoStoriesRoundedIcon,  text: 'After stories - write up a trip you took, with your own photographs, and publish it to your profile.' },
+    { icon: MenuBookRoundedIcon,     text: 'The book - any story lays out as an A5 hardcover. Look through every page, then download the print-ready PDF.' },
+    { icon: GroupsRoundedIcon,       text: 'Trip recruitment - open a trip so travellers can ask to join. You approve everyone, and money never routes through Tripician.' },
+    { icon: VerifiedRoundedIcon,     text: 'Identity verification - a verified traveller carries a mark on their profile and on every trip they host.' },
+    { icon: SyncRoundedIcon,         text: 'Profiles read as a diary - an intro in your own words, and your stories above your itineraries.' },
     { icon: RocketLaunchRoundedIcon, text: 'Reality check - travel time between stops, overloaded days & closures, measured not guessed.' },
-    { icon: SecurityRoundedIcon,     text: 'Premium trip view sidebar - date range, traveller profiles & live reactions.' },
-    { icon: SyncRoundedIcon,         text: 'Profile picture upload, preferences & dark / light theme toggle.' },
+    { icon: SecurityRoundedIcon,     text: 'Verified places - every suggested spot checked against a live listing, closed ones dropped.' },
+    { icon: SecurityRoundedIcon,     text: 'Publish validation - title, description & all days planned before going live.' },
   ];
 
   const closeMenu = () => setAnchorEl(null);
@@ -161,7 +173,7 @@ const SupportWidget: React.FC = () => {
               width: 48,
               height: 48,
               background: isLight ? '#fff' : '#1a2230',
-              color: menuOpen ? '#FF385C' : (isLight ? '#555' : 'rgba(255,255,255,0.7)'),
+              color: menuOpen ? 'primary.main' : (isLight ? '#555' : 'rgba(255,255,255,0.7)'),
               border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)'}`,
               boxShadow: isLight
                 ? '0 6px 24px rgba(0,0,0,0.12)'
@@ -169,7 +181,7 @@ const SupportWidget: React.FC = () => {
               transition: 'color .2s, transform .2s',
               '&:hover': {
                 background: isLight ? '#fff' : '#22304a',
-                color: '#FF385C',
+                color: 'primary.main',
               },
             }}
           >
@@ -235,7 +247,7 @@ const SupportWidget: React.FC = () => {
                 Got a second?
               </Typography>
               <Typography sx={{ fontSize: '0.76rem', lineHeight: 1.45, color: 'text.secondary' }}>
-                Tell us what's working (or not). Your first note earns <Box component="span" sx={{ fontWeight: 700, color: '#FF385C' }}>5 bonus AI credits</Box>.
+                Tell us what's working (or not). Your first note earns <Box component="span" sx={{ fontWeight: 700, color: 'primary.main' }}>5 bonus AI credits</Box>.
               </Typography>
             </Box>
           </motion.div>
@@ -280,7 +292,7 @@ const SupportWidget: React.FC = () => {
                 borderRadius: '10px',
                 px: 1.25,
                 py: 0.9,
-                '&:hover': { bgcolor: isLight ? 'rgba(255,56,92,0.05)' : 'rgba(255,56,92,0.10)' },
+                '&:hover': { bgcolor: isLight ? alpha(BRAND.coral, 0.05) : alpha(BRAND.coral, 0.10) },
               }}
             >
               <ListItemIcon sx={{ minWidth: 34 }}>{item.icon}</ListItemIcon>

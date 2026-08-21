@@ -11,7 +11,7 @@ class ErrorBoundary extends React.Component<React.PropsWithChildren, ErrorBounda
   }
 
   componentDidCatch(error: any, info: any) {
-    // eslint-disable-next-line no-console
+     
     console.error('[ErrorBoundary] Caught runtime error', error, info);
     this.setState({ info });
   }

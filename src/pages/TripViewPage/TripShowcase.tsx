@@ -10,6 +10,7 @@ import React from 'react';
 import {
   Box, Typography, Button, Avatar, Chip, Collapse, Divider, Snackbar, LinearProgress, Tooltip, useTheme,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import {
   IconArrowLeft, IconHeart, IconHeartFilled, IconBookmark, IconBookmarkFilled,
@@ -29,12 +30,15 @@ import { resolveTripCover } from '../../utils/tripCover';
 import { VIBES } from '../CommunityPage/vibes';
 import { safeExternalUrl } from '../../utils/sanitizeHtml';
 import TripShareModal from '../../components/TripShareModal';
+import TripSeatsBand from '../../seats/TripSeatsBand';
+import TripAnnouncements from '../../components/trip/TripAnnouncements';
 import ProvenanceChip from '../../components/CommonComponents/ProvenanceChip';
 import VerifiedTripBadge from '../../components/CommonComponents/VerifiedTripBadge';
 import ExpandableText from '../../components/ui/ExpandableText';
 import type { SpotProvenance } from '../../store/plannerSlice';
 import TripComments from '../CreateTripPage/TripComments';
 import ShowcaseMap from './ShowcaseMap';
+import { BRAND } from '../../theme';
 
 // ─── Data normalisation ───────────────────────────────────────────────────────
 
@@ -106,7 +110,7 @@ const stopMapsHref = (stop: { name: string; lat?: number; lng?: number }): strin
 const MembersOnlyTag: React.FC = () => (
   <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: 'text.disabled' }}>
     <IconLock size={12} />
-    <Typography component="span" sx={{ fontSize: 11, fontWeight: 600, fontFamily: "'Inter',sans-serif" }}>
+    <Typography component="span" sx={{ fontSize: 11, fontWeight: 600,}}>
       Visible to trip members only
     </Typography>
   </Box>
@@ -302,6 +306,10 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
   const owner = root.owner || root.Owner || {};
   const ownerName: string = owner.name || owner.Name || 'A Tripician traveler';
   const ownerAvatar: string | undefined = owner.profilePictureUrl || owner.ProfilePictureUrl || undefined;
+  const organizationName: string | null = root.organizationName || root.OrganizationName || null;
+  const organizationSlug: string | null = root.organizationSlug || root.OrganizationSlug || null;
+  const organizationLogoUrl: string | undefined = root.organizationLogoUrl || root.OrganizationLogoUrl || undefined;
+  const organizationVerified: boolean = root.organizationVerified === true || root.OrganizationVerified === true;
   const memberCount = 1 + (Array.isArray(root.members || root.Members) ? (root.members || root.Members).length : 0);
   const heroPhotoFromTrip: string | undefined =
     root.bannerPhotoUrl || root.BannerPhotoUrl || root.photoUrl || root.PhotoUrl || undefined;
@@ -419,7 +427,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
       if (newId) {
         navigate(`/tripplanner/${newId}`, { state: { tripId: newId, __ts: Date.now() } });
       } else {
-        setToast('Trip copied, find it on your dashboard.');
+        setToast('Trip copied, find it in your profile.');
       }
     } catch {
       setToast("Couldn't copy this trip right now. Please try again.");
@@ -465,7 +473,6 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
     : startDate ? `From ${fmtFull(startDate)}` : null;
 
   const border = theme.custom.surface.border;
-  const serif = theme.custom.fontDisplay;
   const canEdit = isOwner || isMember;
   // Budget, packing, and booking references are the crew's business, not the public's.
   const memberView = isOwner || isMember;
@@ -572,7 +579,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
         {/* Title block */}
         <Box sx={{ position: 'absolute', left: 0, right: 0, bottom: 0, px: { xs: 2.5, md: 6 }, pb: { xs: 3.5, md: 5 }, maxWidth: 1280, mx: 'auto' }}>
           {countries.length > 0 && (
-            <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', fontFamily: "'Inter',sans-serif", mb: 1 }}>
+            <Typography sx={{ color: 'rgba(255,255,255,0.85)', fontSize: 12, fontWeight: 700, letterSpacing: '0.16em', textTransform: 'uppercase', mb: 1 }}>
               {countries.join('  ·  ')}
             </Typography>
           )}
@@ -580,15 +587,40 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
               title that can wrap to three lines at this size. `alignSelf: flex-end` on
               the wrapper would drop it to the last line's baseline; centre is steadier. */}
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, maxWidth: 900 }}>
-            <Typography component="h1" sx={{ color: '#fff', fontFamily: serif, fontWeight: 700, fontSize: { xs: '2.1rem', sm: '2.8rem', md: '3.4rem' }, lineHeight: 1.08, letterSpacing: '-0.02em', textShadow: '0 2px 24px rgba(0,0,0,0.35)' }}>
+            <Typography component="h1" sx={{ color: '#fff', fontWeight: 700, fontSize: { xs: '2.1rem', sm: '2.8rem', md: '3.4rem' }, lineHeight: 1.08, letterSpacing: '-0.02em', textShadow: '0 2px 24px rgba(0,0,0,0.35)' }}>
               {name}
             </Typography>
             <VerifiedTripBadge verified={isVerified} verifiedAt={verifiedAt} variant="hero" />
           </Box>
-          <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', mt: 2, color: 'rgba(255,255,255,0.92)', fontFamily: "'Inter',sans-serif", fontSize: 14 }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', mt: 2, color: 'rgba(255,255,255,0.92)', fontSize: 14 }}>
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-              <Avatar src={ownerAvatar} sx={{ width: 26, height: 26, fontSize: 12, bgcolor: '#FF385C' }}>{ownerName[0]}</Avatar>
-              <Typography sx={{ fontWeight: 600, fontSize: 14 }}>by {ownerName}</Typography>
+              <Avatar
+                src={organizationName ? organizationLogoUrl : ownerAvatar}
+                variant={organizationName ? 'rounded' : 'circular'}
+                sx={{ width: 26, height: 26, fontSize: 12, bgcolor: 'primary.main' }}
+              >
+                {(organizationName || ownerName)[0]}
+              </Avatar>
+              {organizationName ? (
+                <>
+                  <Typography
+                    component={organizationSlug ? 'a' : 'span'}
+                    href={organizationSlug ? `/o/${organizationSlug}` : undefined}
+                    sx={{ fontWeight: 600, fontSize: 14, color: 'inherit', textDecoration: 'none' }}
+                  >
+                    by {organizationName}
+                  </Typography>
+                  {organizationVerified && (
+                    <Chip
+                      size="small"
+                      label="Verified"
+                      sx={{ height: 20, fontSize: 11, bgcolor: 'rgba(255,255,255,0.22)', color: '#fff' }}
+                    />
+                  )}
+                </>
+              ) : (
+                <Typography sx={{ fontWeight: 600, fontSize: 14 }}>by {ownerName}</Typography>
+              )}
             </Box>
             {dateRange && (<><Dot />{dateRange}</>)}
             {totalNights > 0 && (<><Dot />{totalNights} night{totalNights === 1 ? '' : 's'}</>)}
@@ -600,23 +632,23 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
       {/* ═══ STICKY ACTION BAR ═══ */}
       <Box sx={{ position: 'sticky', top: 0, zIndex: 20, bgcolor: 'background.paper', borderBottom: `1px solid ${border}`, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
         <Box sx={{ maxWidth: 1280, mx: 'auto', px: { xs: 2, md: 4 }, py: 1.25, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography noWrap sx={{ fontFamily: serif, fontWeight: 700, fontSize: 17, color: 'text.primary', flex: 1, minWidth: 0, mr: 1 }}>
+          <Typography noWrap sx={{ fontWeight: 700, fontSize: 17, color: 'text.primary', flex: 1, minWidth: 0, mr: 1 }}>
             Every stop tells a story.
           </Typography>
 
           <Button
             size="small"
             onClick={() => toggleReaction('like')}
-            startIcon={liked ? <IconHeartFilled size={16} color="#FF385C" /> : <IconHeart size={16} />}
-            sx={{ textTransform: 'none', fontWeight: 600, color: liked ? '#FF385C' : 'text.secondary', minWidth: 0, px: 1.25, borderRadius: '50px' }}
+            startIcon={liked ? <IconHeartFilled size={16} color={BRAND.coral} /> : <IconHeart size={16} />}
+            sx={{ textTransform: 'none', fontWeight: 600, color: liked ? 'primary.main' : 'text.secondary', minWidth: 0, px: 1.25, borderRadius: '50px' }}
           >
             {likes > 0 ? likes : 'Like'}
           </Button>
           <Button
             size="small"
             onClick={() => toggleReaction('save')}
-            startIcon={saved ? <IconBookmarkFilled size={16} color="#FF385C" /> : <IconBookmark size={16} />}
-            sx={{ textTransform: 'none', fontWeight: 600, color: saved ? '#FF385C' : 'text.secondary', minWidth: 0, px: 1.25, borderRadius: '50px' }}
+            startIcon={saved ? <IconBookmarkFilled size={16} color={BRAND.coral} /> : <IconBookmark size={16} />}
+            sx={{ textTransform: 'none', fontWeight: 600, color: saved ? 'primary.main' : 'text.secondary', minWidth: 0, px: 1.25, borderRadius: '50px' }}
           >
             {saves > 0 ? saves : 'Save'}
           </Button>
@@ -675,6 +707,12 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
         </Box>
       </Box>
 
+      <Box sx={{ maxWidth: 1280, mx: 'auto', px: { xs: 2, md: 4 }, width: '100%' }}>
+        <TripAnnouncements tripId={tripId} canManage={isOwner} isMember={memberView} />
+      </Box>
+
+      <TripSeatsBand tripId={tripId} isOwner={isOwner} />
+
       {/* ═══ STICKY DAY NAV, jump to any leg with one tap ═══ */}
       {stops.length >= 2 && (
         <Box sx={{ position: 'sticky', top: 57, zIndex: 19, bgcolor: 'background.default', borderBottom: `1px solid ${border}` }}>
@@ -692,8 +730,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                     border: `1px solid ${active ? 'transparent' : border}`,
                     bgcolor: active ? 'text.primary' : 'transparent',
                     color: active ? 'background.paper' : 'text.secondary',
-                    borderRadius: '50px', px: 1.5, py: 0.55, cursor: 'pointer',
-                    fontFamily: "'Inter',sans-serif", fontSize: 12.5, fontWeight: 600,
+                    borderRadius: '50px', px: 1.5, py: 0.55, cursor: 'pointer', fontSize: 12.5, fontWeight: 600,
                     transition: 'all .15s',
                     '&:hover': active ? {} : { borderColor: 'text.primary', color: 'text.primary' },
                   }}
@@ -714,10 +751,10 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
         <Box sx={{ minWidth: 0 }}>
           {description && (
             <Box sx={{ mb: importantNotes ? 3.5 : 5 }}>
-              <Typography sx={{ fontFamily: serif, fontWeight: 700, fontSize: 22, color: 'text.primary', mb: 1.5 }}>
+              <Typography sx={{ fontWeight: 700, fontSize: 22, color: 'text.primary', mb: 1.5 }}>
                 Where & how?
               </Typography>
-              <Typography sx={{ fontFamily: "'Inter',sans-serif", fontSize: 16, lineHeight: 1.75, color: 'text.secondary', maxWidth: 680, whiteSpace: 'pre-line' }}>
+              <Typography sx={{ fontSize: 16, lineHeight: 1.75, color: 'text.secondary', maxWidth: 680, whiteSpace: 'pre-line' }}>
                 {description}
               </Typography>
             </Box>
@@ -726,14 +763,14 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
           {/* Trip-wide practical notes the planner wrote, visas, warnings, essentials */}
           {importantNotes && (
             <Box sx={{ mb: 5, borderRadius: '16px', border: `1px solid ${border}`, bgcolor: 'background.paper', p: 2.5, display: 'flex', gap: 1.5, alignItems: 'flex-start' }}>
-              <IconInfoCircle size={20} style={{ color: '#FF385C', flexShrink: 0, marginTop: 2 }} />
+              <IconInfoCircle size={20} style={{ color: 'primary.main', flexShrink: 0, marginTop: 2 }} />
               <Box sx={{ minWidth: 0 }}>
-                <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled', fontFamily: "'Inter',sans-serif", mb: 0.75 }}>
+                <Typography sx={{ fontSize: 12, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled', mb: 0.75 }}>
                   Good to know
                 </Typography>
                 <ExpandableText
                   lines={4}
-                  sx={{ fontSize: 14.5, color: 'text.secondary', fontFamily: "'Inter',sans-serif", lineHeight: 1.7, whiteSpace: 'pre-line' }}
+                  sx={{ fontSize: 14.5, color: 'text.secondary', lineHeight: 1.7, whiteSpace: 'pre-line' }}
                   moreLabel="Read all"
                   lessLabel="Show less"
                 >
@@ -744,11 +781,11 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
           )}
 
           <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, mb: 3 }}>
-            <Typography sx={{ fontFamily: serif, fontWeight: 700, fontSize: 22, color: 'text.primary' }}>
+            <Typography sx={{ fontWeight: 700, fontSize: 22, color: 'text.primary' }}>
               The route
             </Typography>
             {totalNights > 0 && (
-              <Typography sx={{ fontSize: 13.5, color: 'text.disabled', fontFamily: "'Inter',sans-serif" }}>
+              <Typography sx={{ fontSize: 13.5, color: 'text.disabled',}}>
                 {stops.length} stop{stops.length === 1 ? '' : 's'} · {totalNights} night{totalNights === 1 ? '' : 's'}
               </Typography>
             )}
@@ -761,8 +798,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                 onClick={toggleAll}
                 sx={(t) => ({
                   ml: 'auto', flexShrink: 0,
-                  border: 'none', background: 'none', p: 0.5, cursor: 'pointer',
-                  fontFamily: "'Inter',sans-serif", fontSize: 13, fontWeight: 600,
+                  border: 'none', background: 'none', p: 0.5, cursor: 'pointer', fontSize: 13, fontWeight: 600,
                   color: 'text.secondary',
                   borderRadius: '8px',
                   '&:hover': { color: 'text.primary' },
@@ -775,7 +811,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
           </Box>
 
           {stops.length === 0 && (
-            <Typography sx={{ fontSize: 14.5, color: 'text.disabled', fontFamily: "'Inter',sans-serif" }}>
+            <Typography sx={{ fontSize: 14.5, color: 'text.disabled',}}>
               The itinerary is still being written, check back soon.
             </Typography>
           )}
@@ -829,8 +865,8 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                       <Box sx={{ width: 2, height: 26, bgcolor: border, borderRadius: 1 }} />
                     </Box>
                     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, border: `1px solid ${border}`, borderRadius: '50px', px: 1.5, py: 0.5, bgcolor: 'background.paper' }}>
-                      <TransportIcon size={14} style={{ color: '#FF385C' }} />
-                      <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'text.secondary', fontFamily: "'Inter',sans-serif", textTransform: 'capitalize' }}>
+                      <TransportIcon size={14} style={{ color: 'primary.main' }} />
+                      <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'text.secondary', textTransform: 'capitalize' }}>
                         By {stop.transport}
                       </Typography>
                     </Box>
@@ -864,7 +900,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                         top: `calc(50% + ${RAIL_NODE_PX / 2 + 4}px)`, bottom: `-${STOP_GAP_PX}px`,
                       }} />
                     )}
-                    <Box sx={{ position: 'relative', zIndex: 1, width: RAIL_NODE_PX, height: RAIL_NODE_PX, borderRadius: '50%', bgcolor: 'text.primary', color: 'background.paper', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, fontFamily: "'Inter',sans-serif", flexShrink: 0 }}>
+                    <Box sx={{ position: 'relative', zIndex: 1, width: RAIL_NODE_PX, height: RAIL_NODE_PX, borderRadius: '50%', bgcolor: 'text.primary', color: 'background.paper', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
                       {idx + 1}
                     </Box>
                   </Box>
@@ -927,10 +963,10 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                             />
                           )}
                           <Box sx={{ flex: 1, minWidth: 0 }}>
-                            <Typography sx={{ fontFamily: serif, fontWeight: 700, fontSize: 19, color: 'text.primary', lineHeight: 1.2 }}>
+                            <Typography sx={{ fontWeight: 700, fontSize: 19, color: 'text.primary', lineHeight: 1.2 }}>
                               {stop.name}
                             </Typography>
-                            <Typography sx={{ fontSize: 12.5, color: 'text.disabled', fontFamily: "'Inter',sans-serif", fontWeight: 600, mt: 0.4 }}>
+                            <Typography sx={{ fontSize: 12.5, color: 'text.disabled', fontWeight: 600, mt: 0.4 }}>
                               {dateLine}
                             </Typography>
                             {/* What is inside, named while it is closed. Without this a
@@ -939,7 +975,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                                 reading, which is worse than the long page it replaced.
                                 Left readable by assistive tech rather than aria-hidden. */}
                             {contentSummary && (
-                              <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: 'text.secondary', fontFamily: "'Inter',sans-serif", mt: 0.4 }}>
+                              <Typography sx={{ fontSize: 12.5, fontWeight: 600, color: 'text.secondary', mt: 0.4 }}>
                                 {contentSummary}
                               </Typography>
                             )}
@@ -995,7 +1031,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                             sx={{ position: 'relative', cursor: 'pointer' }}
                           >
                             <Box component="img" src={photo} alt={stop.name} sx={{ width: '100%', height: { xs: 180, sm: 220 }, objectFit: 'cover', display: 'block' }} />
-                            <Box sx={{ position: 'absolute', top: 12, left: 12, bgcolor: 'rgba(12,14,18,0.66)', color: '#fff', borderRadius: '50px', px: 1.5, py: 0.4, fontSize: 12, fontWeight: 700, fontFamily: "'Inter',sans-serif" }}>
+                            <Box sx={{ position: 'absolute', top: 12, left: 12, bgcolor: 'rgba(12,14,18,0.66)', color: '#fff', borderRadius: '50px', px: 1.5, py: 0.4, fontSize: 12, fontWeight: 700,}}>
                               {dayLabel}
                             </Box>
                           </Box>
@@ -1005,7 +1041,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
                             <Typography
                               onClick={() => toggleStop(stop.id)}
-                              sx={{ fontFamily: serif, fontWeight: 700, fontSize: 24, color: 'text.primary', lineHeight: 1.2, mr: 'auto', cursor: 'pointer' }}
+                              sx={{ fontWeight: 700, fontSize: 24, color: 'text.primary', lineHeight: 1.2, mr: 'auto', cursor: 'pointer' }}
                             >
                               {stop.name}
                             </Typography>
@@ -1023,17 +1059,17 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                             </Button>
                             <StopToggle stop={stop} expanded={expanded} onToggle={toggleStop} />
                           </Box>
-                          <Typography sx={{ fontSize: 13, color: 'text.disabled', fontFamily: "'Inter',sans-serif", fontWeight: 600, mt: 0.5 }}>
+                          <Typography sx={{ fontSize: 13, color: 'text.disabled', fontWeight: 600, mt: 0.5 }}>
                             {dateLine}
                           </Typography>
                           {stop.title && (
-                            <Typography sx={{ fontSize: 14.5, color: 'text.secondary', fontFamily: "'Inter',sans-serif", mt: 0.5 }}>
+                            <Typography sx={{ fontSize: 14.5, color: 'text.secondary', mt: 0.5 }}>
                               {stop.title}
                             </Typography>
                           )}
                     {stop.spots.length > 0 && (
                       <Box sx={{ mt: 2.25 }}>
-                        <Typography sx={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled', fontFamily: "'Inter',sans-serif", mb: 1.25 }}>
+                        <Typography sx={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled', mb: 1.25 }}>
                           Places to experience
                         </Typography>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
@@ -1054,16 +1090,16 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                                 <Box component="img" src={spot.photoUrl} alt={spot.name} sx={{ width: 52, height: 52, borderRadius: '10px', objectFit: 'cover', flexShrink: 0, border: `1px solid ${border}` }} />
                               ) : (
                                 <Box sx={{ width: 30, height: 30, borderRadius: '8px', bgcolor: 'action.hover', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0, mt: 0.25 }}>
-                                  <IconMapPin size={15} style={{ color: '#FF385C' }} />
+                                  <IconMapPin size={15} style={{ color: 'primary.main' }} />
                                 </Box>
                               )}
                               <Box sx={{ minWidth: 0, flex: 1 }}>
                                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-                                  <Typography sx={{ fontSize: 14.5, fontWeight: 600, color: 'text.primary', fontFamily: "'Inter',sans-serif" }}>
+                                  <Typography sx={{ fontSize: 14.5, fontWeight: 600, color: 'text.primary',}}>
                                     {spot.name}
                                   </Typography>
                                   {spot.mustVisit && (
-                                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.4, color: '#FF385C', fontSize: 11, fontWeight: 700, fontFamily: "'Inter',sans-serif" }}>
+                                    <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.4, color: 'primary.main', fontSize: 11, fontWeight: 700,}}>
                                       <IconStar size={12} /> Must-see
                                     </Box>
                                   )}
@@ -1078,7 +1114,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                                 {spot.description && (
                                   <ExpandableText
                                     lines={1}
-                                    sx={{ fontSize: 13.5, color: 'text.secondary', fontFamily: "'Inter',sans-serif", lineHeight: 1.55 }}
+                                    sx={{ fontSize: 13.5, color: 'text.secondary', lineHeight: 1.55 }}
                                   >
                                     {spot.description}
                                   </ExpandableText>
@@ -1092,23 +1128,23 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
 
                     {(stop.stays.length > 0 || stop.stayNotes) && (
                       <Box sx={{ mt: 2.25 }}>
-                        <Typography sx={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled', fontFamily: "'Inter',sans-serif", mb: 1, display: 'flex', alignItems: 'center', gap: 0.6 }}>
+                        <Typography sx={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled', mb: 1, display: 'flex', alignItems: 'center', gap: 0.6 }}>
                           <IconBed size={13} /> Where they stayed
                         </Typography>
                         <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.5 }}>
                           {stop.stays.map((stay, sti) => (
                             <Box key={sti} sx={{ display: 'flex', alignItems: 'center', gap: 0.75, flexWrap: 'wrap' }}>
-                              <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary', fontFamily: "'Inter',sans-serif" }}>
+                              <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary',}}>
                                 {stay.name}
                               </Typography>
                               {/* Booking links & confirmation refs are crew business */}
                               {memberView && stay.referenceHref && (
-                                <Box component="a" href={stay.referenceHref} target="_blank" rel="noopener noreferrer" sx={{ display: 'inline-flex', alignItems: 'center', color: 'text.disabled', '&:hover': { color: '#FF385C' } }}>
+                                <Box component="a" href={stay.referenceHref} target="_blank" rel="noopener noreferrer" sx={{ display: 'inline-flex', alignItems: 'center', color: 'text.disabled', '&:hover': { color: 'primary.main' } }}>
                                   <IconExternalLink size={14} />
                                 </Box>
                               )}
                               {memberView && stay.referenceText && (
-                                <Typography sx={{ fontSize: 13, color: 'text.disabled', fontFamily: "'Inter',sans-serif" }}>
+                                <Typography sx={{ fontSize: 13, color: 'text.disabled',}}>
                                   · {stay.referenceText}
                                 </Typography>
                               )}
@@ -1117,7 +1153,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                           {stop.stayNotes && (
                             <ExpandableText
                               lines={2}
-                              sx={{ fontSize: 13.5, color: 'text.secondary', fontFamily: "'Inter',sans-serif", lineHeight: 1.55, whiteSpace: 'pre-line' }}
+                              sx={{ fontSize: 13.5, color: 'text.secondary', lineHeight: 1.55, whiteSpace: 'pre-line' }}
                             >
                               {stop.stayNotes}
                             </ExpandableText>
@@ -1128,25 +1164,25 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
 
                     {stop.foods.length > 0 && (
                       <Box sx={{ mt: 2 }}>
-                        <Typography sx={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled', fontFamily: "'Inter',sans-serif", mb: 1, display: 'flex', alignItems: 'center', gap: 0.6 }}>
+                        <Typography sx={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled', mb: 1, display: 'flex', alignItems: 'center', gap: 0.6 }}>
                           <IconToolsKitchen2 size={13} /> Worth tasting
                         </Typography>
                         <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
                           {stop.foods.map((food, fi) => (
-                            <Chip key={fi} label={food} size="small" variant="outlined" sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 500, fontSize: 12.5, borderColor: border, color: 'text.secondary' }} />
+                            <Chip key={fi} label={food} size="small" variant="outlined" sx={{ fontWeight: 500, fontSize: 12.5, borderColor: border, color: 'text.secondary' }} />
                           ))}
                         </Box>
                       </Box>
                     )}
 
                     {stop.notes && (
-                      <Box sx={{ mt: 2, pl: 1.75, borderLeft: `3px solid ${theme.palette.mode === 'light' ? 'rgba(255,56,92,0.35)' : 'rgba(255,56,92,0.5)'}` }}>
-                        <Typography sx={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled', fontFamily: "'Inter',sans-serif", mb: 0.5, display: 'flex', alignItems: 'center', gap: 0.6 }}>
+                      <Box sx={{ mt: 2, pl: 1.75, borderLeft: `3px solid ${theme.palette.mode === 'light' ? alpha(BRAND.coral, 0.35) : alpha(BRAND.coral, 0.5)}` }}>
+                        <Typography sx={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled', mb: 0.5, display: 'flex', alignItems: 'center', gap: 0.6 }}>
                           <IconNotes size={13} /> Notes from the planner
                         </Typography>
                         <ExpandableText
                           lines={3}
-                          sx={{ fontSize: 14, color: 'text.secondary', fontFamily: "'Inter',sans-serif", lineHeight: 1.65, whiteSpace: 'pre-line' }}
+                          sx={{ fontSize: 14, color: 'text.secondary', lineHeight: 1.65, whiteSpace: 'pre-line' }}
                           moreLabel="Read the full note"
                           lessLabel="Show less"
                         >
@@ -1171,8 +1207,8 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
             <Box sx={{ mt: 6 }}>
               <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, mb: 1, flexWrap: 'wrap' }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <IconLuggage size={20} style={{ color: '#FF385C' }} />
-                  <Typography sx={{ fontFamily: serif, fontWeight: 700, fontSize: 22, color: 'text.primary' }}>
+                  <IconLuggage size={20} style={{ color: 'primary.main' }} />
+                  <Typography sx={{ fontWeight: 700, fontSize: 22, color: 'text.primary' }}>
                     The packing list
                   </Typography>
                 </Box>
@@ -1184,7 +1220,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                 {allPacked ? (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: '#16a34a' }}>
                     <IconConfetti size={17} />
-                    <Typography sx={{ fontSize: 13.5, fontWeight: 700, fontFamily: "'Inter',sans-serif" }}>
+                    <Typography sx={{ fontSize: 13.5, fontWeight: 700,}}>
                       All packed, go catch that flight.
                     </Typography>
                   </Box>
@@ -1193,9 +1229,9 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                     <LinearProgress
                       variant="determinate"
                       value={packTotal ? (packDone / packTotal) * 100 : 0}
-                      sx={{ flex: 1, height: 7, borderRadius: 4, bgcolor: 'action.hover', '& .MuiLinearProgress-bar': { borderRadius: 4, bgcolor: '#FF385C' } }}
+                      sx={{ flex: 1, height: 7, borderRadius: 4, bgcolor: 'action.hover', '& .MuiLinearProgress-bar': { borderRadius: 4, bgcolor: 'primary.main' } }}
                     />
-                    <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: 'text.secondary', fontFamily: "'Inter',sans-serif", whiteSpace: 'nowrap' }}>
+                    <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap' }}>
                       {packDone} of {packTotal} packed
                     </Typography>
                   </>
@@ -1219,22 +1255,22 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                         <Box sx={{
                           width: 30, height: 30, borderRadius: '9px', flexShrink: 0,
                           display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          bgcolor: catComplete ? 'rgba(22,163,74,0.10)' : 'rgba(255,56,92,0.08)',
-                          color: catComplete ? '#16a34a' : '#FF385C',
+                          bgcolor: catComplete ? 'rgba(22,163,74,0.10)' : alpha(BRAND.coral, 0.08),
+                          color: catComplete ? '#16a34a' : BRAND.coral,
                         }}>
                           <CatIcon size={16} />
                         </Box>
-                        <Typography sx={{ fontSize: 14.5, fontWeight: 700, color: 'text.primary', fontFamily: "'Inter',sans-serif", flex: 1, minWidth: 0 }}>
+                        <Typography sx={{ fontSize: 14.5, fontWeight: 700, color: 'text.primary', flex: 1, minWidth: 0 }}>
                           {cat.name}
                         </Typography>
-                        <Typography sx={{ fontSize: 11.5, fontWeight: 700, color: catComplete ? '#16a34a' : 'text.disabled', fontFamily: "'Inter',sans-serif" }}>
+                        <Typography sx={{ fontSize: 11.5, fontWeight: 700, color: catComplete ? '#16a34a' : 'text.disabled',}}>
                           {done}/{cat.items.length}
                         </Typography>
                       </Box>
                       <LinearProgress
                         variant="determinate"
                         value={cat.items.length ? (done / cat.items.length) * 100 : 0}
-                        sx={{ height: 3, borderRadius: 2, mb: 1.5, bgcolor: 'action.hover', '& .MuiLinearProgress-bar': { borderRadius: 2, bgcolor: catComplete ? '#16a34a' : '#FF385C' } }}
+                        sx={{ height: 3, borderRadius: 2, mb: 1.5, bgcolor: 'action.hover', '& .MuiLinearProgress-bar': { borderRadius: 2, bgcolor: catComplete ? '#16a34a' : BRAND.coral } }}
                       />
                       <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
                         {cat.items.map((item) => {
@@ -1248,18 +1284,17 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                               aria-pressed={packed}
                               sx={{
                                 display: 'inline-flex', alignItems: 'center', gap: 0.6,
-                                border: `1px solid ${packed ? 'rgba(255,56,92,0.35)' : border}`,
-                                bgcolor: packed ? 'rgba(255,56,92,0.06)' : 'transparent',
+                                border: `1px solid ${packed ? alpha(BRAND.coral, 0.35) : border}`,
+                                bgcolor: packed ? alpha(BRAND.coral, 0.06) : 'transparent',
                                 color: packed ? 'text.disabled' : 'text.secondary',
-                                borderRadius: '50px', px: 1.1, py: 0.5, cursor: 'pointer',
-                                fontFamily: "'Inter',sans-serif", fontSize: 12.5, fontWeight: 600,
+                                borderRadius: '50px', px: 1.1, py: 0.5, cursor: 'pointer', fontSize: 12.5, fontWeight: 600,
                                 textDecoration: packed ? 'line-through' : 'none',
                                 transition: 'all .15s',
-                                '&:hover': { borderColor: 'rgba(255,56,92,0.5)' },
+                                '&:hover': { borderColor: alpha(BRAND.coral, 0.5) },
                               }}
                             >
                               {packed
-                                ? <IconCircleCheckFilled size={15} style={{ color: '#FF385C', flexShrink: 0 }} />
+                                ? <IconCircleCheckFilled size={15} style={{ color: 'primary.main', flexShrink: 0 }} />
                                 : <IconCircle size={15} style={{ opacity: 0.45, flexShrink: 0 }} />}
                               {item.qty > 1 ? `${item.name} × ${item.qty}` : item.name}
                             </Box>
@@ -1270,7 +1305,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                   );
                 })}
               </Box>
-              <Typography sx={{ fontSize: 11.5, color: 'text.disabled', fontFamily: "'Inter',sans-serif", mt: 1.5 }}>
+              <Typography sx={{ fontSize: 11.5, color: 'text.disabled', mt: 1.5 }}>
                 Ticks here stay on this device, perfect for packing day. The planner keeps the master list.
               </Typography>
             </Box>
@@ -1289,26 +1324,26 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
               {dateRange && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-                  <IconCalendar size={17} style={{ color: '#FF385C', flexShrink: 0 }} />
-                  <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary', fontFamily: "'Inter',sans-serif" }}>{dateRange}</Typography>
+                  <IconCalendar size={17} style={{ color: 'primary.main', flexShrink: 0 }} />
+                  <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary',}}>{dateRange}</Typography>
                 </Box>
               )}
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-                <IconMoonStars size={17} style={{ color: '#FF385C', flexShrink: 0 }} />
-                <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary', fontFamily: "'Inter',sans-serif" }}>
+                <IconMoonStars size={17} style={{ color: 'primary.main', flexShrink: 0 }} />
+                <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary',}}>
                   {totalNights} night{totalNights === 1 ? '' : 's'} · {stops.length} stop{stops.length === 1 ? '' : 's'}
                 </Typography>
               </Box>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-                <IconUsers size={17} style={{ color: '#FF385C', flexShrink: 0 }} />
-                <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary', fontFamily: "'Inter',sans-serif" }}>
+                <IconUsers size={17} style={{ color: 'primary.main', flexShrink: 0 }} />
+                <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary',}}>
                   {memberCount} traveler{memberCount === 1 ? '' : 's'}
                 </Typography>
               </Box>
               {vibe && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-                  <vibe.Icon size={17} style={{ color: '#FF385C', flexShrink: 0 }} />
-                  <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary', fontFamily: "'Inter',sans-serif" }}>
+                  <vibe.Icon size={17} style={{ color: 'primary.main', flexShrink: 0 }} />
+                  <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary',}}>
                     {vibe.label} trip
                   </Typography>
                 </Box>
@@ -1320,16 +1355,16 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
               {isVerified && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
                   <IconRosetteDiscountCheckFilled size={17} style={{ color: '#0EA5E9', flexShrink: 0 }} />
-                  <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary', fontFamily: "'Inter',sans-serif" }}>
+                  <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary',}}>
                     Tripician Verified{verifiedAt ? ` · ${fmtVerifiedMonth(verifiedAt)}` : ''}
                   </Typography>
                 </Box>
               )}
               {memberView && budgetLabel && (
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-                  <IconWallet size={17} style={{ color: '#FF385C', flexShrink: 0 }} />
+                  <IconWallet size={17} style={{ color: 'primary.main', flexShrink: 0 }} />
                   <Box sx={{ minWidth: 0 }}>
-                    <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary', fontFamily: "'Inter',sans-serif" }}>
+                    <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary',}}>
                       {budgetLabel}
                     </Typography>
                     <MembersOnlyTag />
@@ -1342,10 +1377,10 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
 
             {/* Owner */}
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-              <Avatar src={ownerAvatar} sx={{ width: 38, height: 38, bgcolor: '#FF385C', fontWeight: 700 }}>{ownerName[0]}</Avatar>
+              <Avatar src={ownerAvatar} sx={{ width: 38, height: 38, bgcolor: 'primary.main', fontWeight: 700 }}>{ownerName[0]}</Avatar>
               <Box sx={{ minWidth: 0 }}>
-                <Typography noWrap sx={{ fontSize: 14.5, fontWeight: 700, color: 'text.primary', fontFamily: "'Inter',sans-serif" }}>{ownerName}</Typography>
-                <Typography sx={{ fontSize: 12, color: 'text.disabled', fontFamily: "'Inter',sans-serif" }}>Trip creator</Typography>
+                <Typography noWrap sx={{ fontSize: 14.5, fontWeight: 700, color: 'text.primary',}}>{ownerName}</Typography>
+                <Typography sx={{ fontSize: 12, color: 'text.disabled',}}>Trip creator</Typography>
               </Box>
             </Box>
           </Box>
@@ -1357,7 +1392,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                 <Button fullWidth variant="contained" onClick={onEdit} startIcon={<IconPencil size={16} />} sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '50px', py: 1.1 }}>
                   Edit this trip
                 </Button>
-                <Typography sx={{ fontSize: 12, color: 'text.disabled', fontFamily: "'Inter',sans-serif", textAlign: 'center', mt: 1.25 }}>
+                <Typography sx={{ fontSize: 12, color: 'text.disabled', textAlign: 'center', mt: 1.25 }}>
                   Public visitors see this page without the members-only sections.
                 </Typography>
               </>
@@ -1366,7 +1401,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                 <Button fullWidth variant="contained" onClick={handleClone} disabled={cloning} startIcon={<IconRoute size={16} />} sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '50px', py: 1.1 }}>
                   {cloning ? 'Copying…' : 'Make this trip yours'}
                 </Button>
-                <Typography sx={{ fontSize: 12, color: 'text.disabled', fontFamily: "'Inter',sans-serif", textAlign: 'center', mt: 1.25 }}>
+                <Typography sx={{ fontSize: 12, color: 'text.disabled', textAlign: 'center', mt: 1.25 }}>
                   Copies the full route into your own planner, free, and yours to reshape.
                 </Typography>
               </>
@@ -1382,10 +1417,10 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
       {isPublished ? (
         <Box sx={{ borderTop: `1px solid ${border}`, bgcolor: 'background.paper' }}>
           <Box sx={{ maxWidth: 760, mx: 'auto', px: { xs: 2, md: 4 }, py: { xs: 4, md: 6 } }}>
-            <Typography sx={{ fontFamily: serif, fontWeight: 700, fontSize: 22, color: 'text.primary', mb: 0.75 }}>
+            <Typography sx={{ fontWeight: 700, fontSize: 22, color: 'text.primary', mb: 0.75 }}>
               {canEdit ? 'What travellers are saying' : `Been to ${countries[0] || 'these places'}?`}
             </Typography>
-            <Typography sx={{ fontSize: 14.5, color: 'text.secondary', fontFamily: "'Inter',sans-serif", lineHeight: 1.6, mb: 2.5 }}>
+            <Typography sx={{ fontSize: 14.5, color: 'text.secondary', lineHeight: 1.6, mb: 2.5 }}>
               {canEdit
                 ? 'Ask the community to look over your plan before you book - people who have been will tell you what you have missed.'
                 : `Tell ${ownerName.split(' ')[0]} what you would change, what they have missed, or what is worth skipping. That advice is the most useful thing on this page.`}
@@ -1398,7 +1433,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
           <Box sx={{ maxWidth: 760, mx: 'auto', px: { xs: 2, md: 4 }, py: { xs: 4, md: 6 }, textAlign: 'center' }}>
             <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: 'text.disabled' }}>
               <IconLock size={12} />
-              <Typography component="span" sx={{ fontSize: 11, fontWeight: 600, fontFamily: "'Inter',sans-serif" }}>
+              <Typography component="span" sx={{ fontSize: 11, fontWeight: 600,}}>
                 Comments open once you publish this trip
               </Typography>
             </Box>

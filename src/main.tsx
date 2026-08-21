@@ -9,6 +9,8 @@ import { store } from './store';
 import ThemeProvider from './components/ThemeProvider';
 import { Auth0Provider } from '@auth0/auth0-react';
 import { HelmetProvider } from 'react-helmet-async';
+import { LocalizationProvider } from '@mui/x-date-pickers/LocalizationProvider';
+import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import WireAuth0 from './services/auth/WireAuth0';
 
 const root = ReactDOM.createRoot(
@@ -19,11 +21,11 @@ const root = ReactDOM.createRoot(
 if (typeof window !== 'undefined') {
   window.addEventListener('error', (e) => {
     if (!(e instanceof ErrorEvent)) return;
-    // eslint-disable-next-line no-console
+     
     console.warn('[GlobalError]', e.message, e.filename, e.lineno+':'+e.colno);
   });
   window.addEventListener('unhandledrejection', (e) => {
-    // eslint-disable-next-line no-console
+     
     console.warn('[UnhandledRejection]', e.reason);
   });
 }
@@ -65,11 +67,26 @@ root.render(
         <WireAuth0 />
         <Provider store={store}>
           <ThemeProvider>
-            <BrowserRouter>
-              <ErrorBoundary>
-                <App />
-              </ErrorBoundary>
-            </BrowserRouter>
+            {/*
+              Every MUI DatePicker needs this above it or it throws on render,
+              and until now each consumer wrapped its own. That worked only for
+              as long as pickers lived inside a page: the moment a dialog was
+              mounted from the app shell instead, it rendered outside every one
+              of those local providers and took the whole screen down with an
+              error boundary.
+
+              One provider at the root is the documented arrangement and means a
+              picker works wherever it is mounted. The two local providers in
+              TripCreationModal and TripSettingsDialog are now redundant but
+              harmless: nesting is supported and the inner one wins.
+            */}
+            <LocalizationProvider dateAdapter={AdapterDayjs}>
+              <BrowserRouter>
+                <ErrorBoundary>
+                  <App />
+                </ErrorBoundary>
+              </BrowserRouter>
+            </LocalizationProvider>
           </ThemeProvider>
         </Provider>
       </Auth0Provider>

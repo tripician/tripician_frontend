@@ -25,6 +25,14 @@ export const parsePlannerMode = (value: unknown): PlannerMode | null => {
   return null;
 };
 
+/** Who inside a trip may see budget or checklist. Never public either way. */
+export type TripAccessLevel = 'viewer' | 'member' | 'admin' | 'owner';
+
+export type TripFeatureVisibility = 'admins' | 'members';
+
+export const parseFeatureVisibility = (v: unknown): TripFeatureVisibility =>
+  String(v ?? '').toLowerCase() === 'admins' ? 'admins' : 'members';
+
 /** Wire form the API expects (PascalCase, matching the C# enum member names). */
 export const plannerModeToWire = (mode: PlannerMode): 'Easy' | 'Advanced' =>
   mode === 'easy' ? 'Easy' : 'Advanced';
@@ -45,6 +53,28 @@ export interface NormalizedTripMeta {
   verified?: boolean; // Tripician Verified: an admin reviewed this itinerary
   verifiedAt?: string | null; // when the endorsement was granted; null when not verified
   plannerMode?: PlannerMode | null; // easy (minimal board) vs advanced (full planner)
+  /**
+   * What the caller may do here. Resolved server side; the browser renders
+   * from these and never decides them. Absent means no, so a payload from an
+   * older server leaves the surface read-only rather than wide open.
+   */
+  myAccessLevel?: TripAccessLevel;
+  canEditPlan?: boolean;
+  canManageMembers?: boolean;
+  canManageAdmins?: boolean;
+  canDelete?: boolean;
+  /** Crew size against the plan allowance. Only meaningful when crewLimitEnforced. */
+  crewCount?: number;
+  crewLimit?: number | null;
+  crewLimitEnforced?: boolean;
+  /** Set when an organisation runs this trip. Null for a personal one. */
+  organizationId?: string | null;
+  organizationName?: string | null;
+  organizationSlug?: string | null;
+  organizationLogoUrl?: string | null;
+  organizationVerified?: boolean;
+  budgetVisibility?: TripFeatureVisibility;
+  checklistVisibility?: TripFeatureVisibility;
 }
 
 export interface NormalizedTrip {
@@ -78,6 +108,26 @@ export function normalizeTrip(input: any): NormalizedTrip | null {
   const description = typeof tripRoot.description === 'string' ? tripRoot.description : null;
   const vibe = typeof tripRoot.vibe === 'string' ? tripRoot.vibe : null;
   const plannerMode = parsePlannerMode(tripRoot.plannerMode ?? tripRoot.PlannerMode);
+  const level = tripRoot.myAccessLevel ?? tripRoot.MyAccessLevel;
+  const myAccessLevel: TripAccessLevel | undefined =
+    level === 'owner' || level === 'admin' || level === 'member' || level === 'viewer' ? level : undefined;
+  // Strict true. Anything else, including a missing field, means no.
+  const canEditPlan = (tripRoot.canEditPlan ?? tripRoot.CanEditPlan) === true;
+  const canManageMembers = (tripRoot.canManageMembers ?? tripRoot.CanManageMembers) === true;
+  const canManageAdmins = (tripRoot.canManageAdmins ?? tripRoot.CanManageAdmins) === true;
+  const canDelete = (tripRoot.canDelete ?? tripRoot.CanDelete) === true;
+  const crewCount = typeof tripRoot.crewCount === 'number' ? tripRoot.crewCount : undefined;
+  const crewLimit = typeof tripRoot.crewLimit === 'number' ? tripRoot.crewLimit : null;
+  const crewLimitEnforced = tripRoot.crewLimitEnforced === true;
+  const asText = (value: unknown): string | null =>
+    typeof value === 'string' && value.trim().length ? value : null;
+  const organizationId = asText(tripRoot.organizationId ?? tripRoot.OrganizationId);
+  const organizationName = asText(tripRoot.organizationName ?? tripRoot.OrganizationName);
+  const organizationSlug = asText(tripRoot.organizationSlug ?? tripRoot.OrganizationSlug);
+  const organizationLogoUrl = asText(tripRoot.organizationLogoUrl ?? tripRoot.OrganizationLogoUrl);
+  const organizationVerified = (tripRoot.organizationVerified ?? tripRoot.OrganizationVerified) === true;
+  const budgetVisibility = parseFeatureVisibility(tripRoot.budgetVisibility ?? tripRoot.BudgetVisibility);
+  const checklistVisibility = parseFeatureVisibility(tripRoot.checklistVisibility ?? tripRoot.ChecklistVisibility);
   const photoUrl = typeof tripRoot.photoUrl === 'string' && tripRoot.photoUrl.trim().length ? tripRoot.photoUrl : null;
   // `undefined`, not `false`, when no shape carried the field. The planner adopts
   // this as the trip's published state, and defaulting to `false` would tell it an
@@ -117,7 +167,8 @@ export function normalizeTrip(input: any): NormalizedTrip | null {
     Array.isArray(tripRoot.destinations) ? tripRoot.destinations :
     Array.isArray(tripRoot.Destinations) ? tripRoot.Destinations :
     [];
-  return { meta: { id, name, visibility, startDate, endDate, currencyCode, targetNights, importantNotes, description, vibe, photoUrl, published, verified, verifiedAt, plannerMode }, itinerary, raw: input };
+  return { meta: { id, name, visibility, startDate, endDate, currencyCode, targetNights, importantNotes, description, vibe, photoUrl, published, verified, verifiedAt, plannerMode, myAccessLevel, canEditPlan, canManageMembers, canManageAdmins, canDelete,
+      crewCount, crewLimit, crewLimitEnforced, organizationId, organizationName, organizationSlug, organizationLogoUrl, organizationVerified, budgetVisibility, checklistVisibility }, itinerary, raw: input };
 }
 
 export default normalizeTrip;

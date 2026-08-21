@@ -28,6 +28,14 @@ interface Props {
   open: boolean;
   onClose: () => void;
   checks: PublishChecks;
+  /**
+   * Publish for real. When present the dialog stops being a report and becomes
+   * the confirmation step: it was previously reachable only when a check FAILED,
+   * so the one path that actually published a trip had no confirmation at all.
+   */
+  onPublish?: () => void;
+  /** Disables the action while the publish request is in flight. */
+  publishing?: boolean;
 }
 
 const CheckRow: React.FC<{ passed: boolean; label: string; helperText?: string }> = ({
@@ -64,8 +72,9 @@ const CheckRow: React.FC<{ passed: boolean; label: string; helperText?: string }
   </ListItem>
 );
 
-const PublishValidationModal: React.FC<Props> = ({ open, onClose, checks }) => {
+const PublishValidationModal: React.FC<Props> = ({ open, onClose, checks, onPublish, publishing = false }) => {
   const allPassed = checks.hasTitle && checks.hasDescription && checks.allDatesCovered;
+  const canPublish = allPassed && Boolean(onPublish);
 
   return (
     <Dialog
@@ -91,14 +100,19 @@ const PublishValidationModal: React.FC<Props> = ({ open, onClose, checks }) => {
           gap: 1,
         }}
       >
-        {allPassed ? 'Ready to Publish' : 'Almost there!'}
+        {canPublish ? 'Publish this trip?' : allPassed ? 'Ready to publish' : 'Almost there'}
       </DialogTitle>
 
       <DialogContent sx={{ pt: 0.5, pb: 0 }}>
+        {/* Say what publishing DOES before it happens. This is the whole reason
+            the dialog is now on the happy path too: the trip becomes a public
+            page with a permanent link, and that is not obvious from a button. */}
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
-          {allPassed
-            ? 'All checks passed. You can go ahead and publish your trip.'
-            : 'Complete the following before publishing your trip.'}
+          {canPublish
+            ? 'Your trip gets a public page anyone can open, and it appears in the community feed. Comments open too. You can unpublish it at any time.'
+            : allPassed
+              ? 'All checks passed. You can go ahead and publish your trip.'
+              : 'Complete the following before publishing your trip.'}
         </Typography>
 
         <Box
@@ -148,18 +162,28 @@ const PublishValidationModal: React.FC<Props> = ({ open, onClose, checks }) => {
       </DialogContent>
 
       <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
+        {canPublish && (
+          <Button
+            onClick={onClose}
+            disabled={publishing}
+            sx={{ borderRadius: '20px', textTransform: 'none', fontWeight: 600, px: 2 }}
+          >
+            Cancel
+          </Button>
+        )}
         <Button
-          onClick={onClose}
+          onClick={canPublish ? onPublish : onClose}
           variant="contained"
           disableElevation
+          disabled={publishing}
           sx={{
             borderRadius: '20px',
             textTransform: 'none',
             fontWeight: 700,
             px: 2.5,
-                      }}
+          }}
         >
-          Got it
+          {canPublish ? (publishing ? 'Publishing...' : 'Publish') : 'Got it'}
         </Button>
       </DialogActions>
     </Dialog>

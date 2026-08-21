@@ -20,11 +20,17 @@ interface Props {
 /*
  * Everything that is not in the bottom bar.
  *
- * `profile` was in neither: not the bottom nav, not this sheet, and not the
- * account popover - so below the lg breakpoint the profile page was reachable
- * only by typing the URL. A page you cannot navigate to is not a page.
+ * `profile` moved out of here and into the bar itself once it started holding
+ * every trip: a page you keep your own work on should not be two taps deep.
+ *
+ * Risk then took the drawer alone, and the note here said folding it into the
+ * account popover was the obvious next step. That happened: Risk is a tool you
+ * reach for about a destination rather than a place you go, so it now sits in
+ * the account menu and Crew takes the drawer. Crew is the better fit for a
+ * second-tap slot anyway - you go looking for people deliberately, where you
+ * browse Community and Stories idly, and those two earned the bar.
  */
-const MORE_NAV_IDS = ['risk', 'profile'];
+const MORE_NAV_IDS = ['crew'];
 
 const NavigationPannel: React.FC<Props> = ({ children }) => {
   const navigate = useNavigate();
@@ -121,7 +127,7 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
                   selected={location.pathname === item.path}
                   sx={{ borderRadius: '12px', mb: 0.5 }}
                 >
-                  <ListItemIcon sx={{ minWidth: 40, color: location.pathname === item.path ? '#FF385C' : 'inherit' }}>
+                  <ListItemIcon sx={{ minWidth: 40, color: location.pathname === item.path ? 'primary.main' : 'inherit' }}>
                     <item.Icon />
                   </ListItemIcon>
                   <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: 600 }} />

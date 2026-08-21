@@ -1,12 +1,10 @@
 import type React from 'react';
 import {
-  IconMap2,
   IconUsersGroup,
-  IconRadar,
   IconSparkles,
   IconRoute,
   IconCampfire,
-  IconShieldBolt,
+  IconBook,
   IconUserCircle,
 } from '@tabler/icons-react';
 import NaviaOrbIcon from '../../navia/NaviaOrbIcon';
@@ -24,23 +22,41 @@ export interface AppNavItem {
   disabled?: boolean;
 }
 
+/**
+ * The five destinations, in reading order, with Navia in the middle.
+ *
+ * The order is the product's own claim about itself: you find a trip
+ * (Community), you read what it was actually like (Stories), you get help
+ * planning yours (Navia), you find people to go with (Crew), and your own work
+ * lives on Profile. Anything that does not sit on that line is not top-level
+ * navigation, however useful it is.
+ *
+ * Risk Monitor was here and is not any more. It is a tool you reach for about a
+ * specific destination, not a place you go, and holding a fifth of the nav for
+ * it pushed Stories - which is now half the reason the product exists - out of
+ * sight entirely. It lives in the account popover.
+ */
 export const APP_NAV_ITEMS: AppNavItem[] = [
   {
     id: 'explore',
     label: 'Community',
     shortLabel: 'Community',
+    // Campfire rather than the group icon, which now belongs to Crew. Two
+    // identical glyphs sitting next to each other in the pill made the nav
+    // read as one destination split in half.
     path: '/community',
-    Icon: IconUsersGroup,
+    Icon: IconCampfire,
     PageHeaderIcon: IconCampfire,
     tooltip: 'Trips from travellers - read, comment, and ask the people who went',
   },
   {
-    id: 'trips',
-    label: 'My Trips',
-    shortLabel: 'Trips',
-    path: '/dashboard',
-    Icon: IconMap2,
-    PageHeaderIcon: IconRoute,
+    id: 'stories',
+    label: 'Stories',
+    shortLabel: 'Stories',
+    path: '/stories',
+    Icon: IconBook,
+    PageHeaderIcon: IconBook,
+    tooltip: 'What the trips were actually like, written by the people who took them',
   },
   {
     id: 'navia',
@@ -52,13 +68,16 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     tooltip: 'Navia - your travel companion',
   },
   {
-    id: 'risk',
-    label: 'Risk Monitor',
-    shortLabel: 'Risk',
-    path: '/risk-monitor',
-    Icon: IconRadar,
-    PageHeaderIcon: IconShieldBolt,
-    tooltip: 'Travel Risk Monitor - real-time safety intel for your destinations',
+    // Replaces "My Trips". Your own trips now live on Profile, which is the
+    // page that already carried your identity and your stats; keeping a second
+    // destination for the same data was the reason both pages fetched it.
+    id: 'crew',
+    label: 'Find crew',
+    shortLabel: 'Crew',
+    path: '/crew',
+    Icon: IconUsersGroup,
+    PageHeaderIcon: IconRoute,
+    tooltip: 'Travellers going where you are going',
   },
   {
     id: 'profile',
@@ -67,11 +86,10 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     path: '/profile',
     Icon: IconUserCircle,
     PageHeaderIcon: IconUserCircle,
-    tooltip: 'Your profile - trips, stats, and travel identity',
+    tooltip: 'Your trips, stories, saved and stats',
   },
 ];
 
 export function navItemFromPath(pathname: string): AppNavItem | undefined {
   return APP_NAV_ITEMS.find((item) => item.path === pathname);
 }
-

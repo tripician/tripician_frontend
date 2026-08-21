@@ -1,5 +1,7 @@
 import React from 'react';
+import { BRAND } from '../../theme';
 import { Box, Card, Typography, IconButton, Tooltip, TextField, InputBase, Popover } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { motion, AnimatePresence } from 'framer-motion';
 import { fetchUnsplashImage } from '../../services/unsplashService';
 import WarningAmberIcon from '@mui/icons-material/WarningAmber';
@@ -269,14 +271,14 @@ const JourneyPlanStrip: React.FC<{
                 px: 1, py: .85, cursor: 'pointer',
                 borderRight: idx < 2 ? `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}` : 'none',
                 transition: 'background .15s',
-                '&:active': { bgcolor: 'rgba(255,56,92,0.06)' },
+                '&:active': { bgcolor: alpha(BRAND.coral, 0.06) },
               })}
             >
-              <Box sx={{ color: isActive ? '#FF385C' : 'text.disabled', display: 'flex', flexShrink: 0 }}>
+              <Box sx={{ color: isActive ? 'primary.main' : 'text.disabled', display: 'flex', flexShrink: 0 }}>
                 {lane.icon}
               </Box>
               <Box sx={{ minWidth: 0 }}>
-                <Typography noWrap sx={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, letterSpacing: '-0.2px', color: isActive ? '#FF385C' : 'text.primary' }}>
+                <Typography noWrap sx={{ fontSize: 11, fontWeight: 700, lineHeight: 1.2, letterSpacing: '-0.2px', color: isActive ? 'primary.main' : 'text.primary' }}>
                   {lane.short}
                 </Typography>
                 <Typography noWrap sx={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.02em', lineHeight: 1.15, color: 'text.disabled' }}>
@@ -297,7 +299,7 @@ const JourneyPlanStrip: React.FC<{
         borderTop: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
         background: t.palette.mode === 'dark'
           ? 'linear-gradient(180deg, rgba(255,255,255,0.02) 0%, transparent 100%)'
-          : 'linear-gradient(180deg, rgba(255,56,92,0.025) 0%, transparent 55%)',
+          : `linear-gradient(180deg, ${alpha(BRAND.coral, 0.025)} 0%, transparent 55%)`,
       })}
     >
       {lanes.map((lane, idx) => {
@@ -316,16 +318,16 @@ const JourneyPlanStrip: React.FC<{
               transition: 'background .2s ease',
               '&::before': {
                 content: '""', position: 'absolute', left: 0, top: '18%', bottom: '18%', width: 2, borderRadius: 2,
-                bgcolor: isActive ? '#FF385C' : 'transparent',
+                bgcolor: isActive ? 'primary.main' : 'transparent',
                 transition: 'background .2s',
               },
               '&:hover': {
-                bgcolor: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : 'rgba(255,56,92,0.03)',
+                bgcolor: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.03)' : alpha(BRAND.coral, 0.03),
               },
             })}
           >
             <Box sx={{ display: 'flex', alignItems: 'center', gap: .5, mb: .35 }}>
-              <Box sx={{ color: isActive ? '#FF385C' : 'text.disabled', display: 'flex', opacity: isActive ? 1 : .75 }}>{lane.icon}</Box>
+              <Box sx={{ color: isActive ? 'primary.main' : 'text.disabled', display: 'flex', opacity: isActive ? 1 : .75 }}>{lane.icon}</Box>
               <Typography sx={{ fontSize: 9, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'text.disabled', lineHeight: 1 }}>
                 {lane.kicker}
               </Typography>
@@ -335,7 +337,7 @@ const JourneyPlanStrip: React.FC<{
                 </Typography>
               )}
             </Box>
-            <Typography sx={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '-0.2px', lineHeight: 1.2, color: isActive ? '#FF385C' : 'text.primary', mb: .25 }}>
+            <Typography sx={{ fontSize: 11.5, fontWeight: 700, letterSpacing: '-0.2px', lineHeight: 1.2, color: isActive ? 'primary.main' : 'text.primary', mb: .25 }}>
               {lane.title}
             </Typography>
             {lane.key === 'spots' && spots.length > 0 && (
@@ -360,8 +362,8 @@ const JourneyPlanStrip: React.FC<{
                       sx={{
                         width: 22, height: 22, borderRadius: '6px', flexShrink: 0,
                         display: 'flex', alignItems: 'center', justifyContent: 'center',
-                        fontSize: 9.5, fontWeight: 700, color: '#FF385C',
-                        bgcolor: 'rgba(255,56,92,0.10)', border: '1px solid', borderColor: 'divider',
+                        fontSize: 9.5, fontWeight: 700, color: 'primary.main',
+                        bgcolor: alpha(BRAND.coral, 0.10), border: '1px solid', borderColor: 'divider',
                       }}
                     >
                       {s.name.trim().charAt(0).toUpperCase() || '?'}
@@ -388,7 +390,7 @@ const JourneyPlanStrip: React.FC<{
             </Typography>
             {lane.progress !== undefined && spots.length > 0 && (
               <Box sx={{ mt: .65, height: 2, borderRadius: 1, bgcolor: 'rgba(0,0,0,0.06)', overflow: 'hidden' }}>
-                <Box sx={{ width: `${lane.progress * 100}%`, height: '100%', borderRadius: 1, bgcolor: '#FF385C', transition: 'width .35s ease' }} />
+                <Box sx={{ width: `${lane.progress * 100}%`, height: '100%', borderRadius: 1, bgcolor: 'primary.main', transition: 'width .35s ease' }} />
               </Box>
             )}
           </Box>
@@ -402,9 +404,9 @@ const JourneyPlanStrip: React.FC<{
             flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
             px: 1.25, cursor: naviaThinking ? 'default' : 'pointer',
             borderLeft: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
-            color: '#E31C5F', minWidth: 56,
+            color: BRAND.coralDark, minWidth: 56,
             transition: 'background .15s',
-            '&:hover': naviaThinking ? {} : { bgcolor: 'rgba(255,56,92,0.04)' },
+            '&:hover': naviaThinking ? {} : { bgcolor: alpha(BRAND.coral, 0.04) },
           })}
         >
           <NaviaOrb size={17} processing={naviaThinking} style={{ marginBottom: 2 }} />
@@ -528,10 +530,10 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
           : '0 1px 4px rgba(0,0,0,0.06), 0 4px 16px rgba(0,0,0,0.04)',
         transition: 'border-color 0.18s, box-shadow 0.18s, transform 0.18s',
         '&:hover': {
-          borderColor: 'rgba(255,56,92,0.3)',
+          borderColor: alpha(BRAND.coral, 0.3),
           boxShadow: t.palette.mode === 'dark'
-            ? '0 4px 20px rgba(0,0,0,0.55), 0 0 0 1px rgba(255,56,92,0.18)'
-            : '0 4px 24px rgba(0,0,0,0.09), 0 0 0 1px rgba(255,56,92,0.18)',
+            ? `0 4px 20px rgba(0,0,0,0.55), 0 0 0 1px ${alpha(BRAND.coral, 0.18)}`
+            : `0 4px 24px rgba(0,0,0,0.09), 0 0 0 1px ${alpha(BRAND.coral, 0.18)}`,
         },
       })}
     >
@@ -636,7 +638,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
             {!hasPlanTitle && !editingTitle && onChangeTitle && (
               <Typography
                 onClick={() => setEditingTitle(true)}
-                sx={{ display: { xs: 'none', md: 'block' }, fontSize: 9.5, color: 'text.disabled', mt: .35, cursor: 'pointer', lineHeight: 1.2, '&:hover': { color: '#FF385C' } }}
+                sx={{ display: { xs: 'none', md: 'block' }, fontSize: 9.5, color: 'text.disabled', mt: .35, cursor: 'pointer', lineHeight: 1.2, '&:hover': { color: 'primary.main' } }}
               >
                 + Add what you&apos;re doing this day
               </Typography>
@@ -652,7 +654,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
                       px: .9, py: .3, borderRadius: '20px',
                       bgcolor: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.04)' : 'rgba(0,0,0,0.03)',
                       border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'}`,
-                      '&:hover': { color: '#FF385C', borderColor: 'rgba(255,56,92,0.28)', bgcolor: 'rgba(255,56,92,0.05)' },
+                      '&:hover': { color: 'primary.main', borderColor: alpha(BRAND.coral, 0.28), bgcolor: alpha(BRAND.coral, 0.05) },
                       transition: 'all .14s',
                     })}
                   >
@@ -664,16 +666,16 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
           </Box>
 
           {/* Nights +/- */}
-          <Box onClick={e => e.stopPropagation()} sx={{ display: 'flex', alignItems: 'center', bgcolor: 'rgba(255,56,92,0.07)', border: '1px solid rgba(255,56,92,0.2)', borderRadius: '20px', px: .5, height: 24, gap: .1, flexShrink: 0, mt: { xs: .2, sm: 0 } }}>
+          <Box onClick={e => e.stopPropagation()} sx={{ display: 'flex', alignItems: 'center', bgcolor: alpha(BRAND.coral, 0.07), border: `1px solid ${alpha(BRAND.coral, 0.2)}`, borderRadius: '20px', px: .5, height: 24, gap: .1, flexShrink: 0, mt: { xs: .2, sm: 0 } }}>
             {!readonly ? (<Box component='button' type='button'
               onClick={(e: any) => { e.stopPropagation(); onChangeNights?.(id, -1); }} disabled={nights <= 1}
-              style={{ border: 'none', background: 'transparent', cursor: nights > 1 ? 'pointer' : 'default', padding: '0 5px', fontSize: 14, fontWeight: 700, color: '#FF385C', opacity: nights > 1 ? 1 : .3, lineHeight: 1 }}>
+              style={{ border: 'none', background: 'transparent', cursor: nights > 1 ? 'pointer' : 'default', padding: '0 5px', fontSize: 14, fontWeight: 700, color: 'primary.main', opacity: nights > 1 ? 1 : .3, lineHeight: 1 }}>
               -
             </Box>) : ""}
-            <Typography sx={{ fontSize: 11, fontWeight: 700, color: '#FF385C', lineHeight: 1, px: .15, letterSpacing: '-0.2px' }}>{nights} night{nights !== 1 ? 's' : ''}</Typography>
+            <Typography sx={{ fontSize: 11, fontWeight: 700, color: 'primary.main', lineHeight: 1, px: .15, letterSpacing: '-0.2px' }}>{nights} night{nights !== 1 ? 's' : ''}</Typography>
             {!readonly ? (<Box component='button' type='button'
               onClick={(e: any) => { e.stopPropagation(); onChangeNights?.(id, +1); }}
-              style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '0 5px', fontSize: 14, fontWeight: 700, color: '#FF385C', lineHeight: 1 }}>
+              style={{ border: 'none', background: 'transparent', cursor: 'pointer', padding: '0 5px', fontSize: 14, fontWeight: 700, color: 'primary.main', lineHeight: 1 }}>
               +
             </Box>) : ""}
           </Box>
@@ -762,7 +764,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
               onClick={(e) => { e.stopPropagation(); triggerNaviaPlan(); }}
               sx={{
                 display: { xs: 'flex', md: 'none' }, alignItems: 'center', justifyContent: 'center', gap: .5,
-                py: .65, cursor: 'pointer', color: '#E31C5F', borderTop: '1px solid', borderColor: 'divider',
+                py: .65, cursor: 'pointer', color: BRAND.coralDark, borderTop: '1px solid', borderColor: 'divider',
               }}
             >
               <NaviaOrb size={14} processing={naviaThinking} />
@@ -787,7 +789,7 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
                 sx={(t) => ({
                   px: 1.5, pb: 1.25, pt: .5,
                   borderTop: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.05)'}`,
-                  background: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : 'rgba(255,56,92,0.015)',
+                  background: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.02)' : alpha(BRAND.coral, 0.015),
                 })}
               >
                 {onChangeNotes ? (
@@ -802,8 +804,8 @@ const DestinationCard: React.FC<DestinationCardProps> = ({
                         fontSize: 12.5, lineHeight: 1.55, borderRadius: '12px',
                         bgcolor: (th) => th.palette.mode === 'dark' ? 'rgba(0,0,0,0.2)' : '#fff',
                         '& fieldset': { borderColor: (th) => th.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.08)' },
-                        '&:hover fieldset': { borderColor: 'rgba(255,56,92,0.25)' },
-                        '&.Mui-focused fieldset': { borderColor: '#FF385C', borderWidth: '1.5px' },
+                        '&:hover fieldset': { borderColor: alpha(BRAND.coral, 0.25) },
+                        '&.Mui-focused fieldset': { borderColor: 'primary.main', borderWidth: '1.5px' },
                       },
                     }}
                   />
