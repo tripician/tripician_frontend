@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { compareTripsForFeed, engagementScore, verifiedRank } from './tripRanking';
+import { compareTripsForFeed, engagementScore, verifiedRank, recruitingRank } from './tripRanking';
 
 /**
  * "Tripician Verified trips rank first" is a product promise the badge makes visible,
@@ -89,5 +89,48 @@ describe('compareTripsForFeed', () => {
     const b = trip({ verified: true, likesCount: 4 });
     expect(compareTripsForFeed(a, b)).toBe(0);
     expect(compareTripsForFeed(b, a)).toBe(0);
+  });
+
+  it('puts a recruiting trip above a more popular one that is not recruiting', () => {
+    const recruiting = trip({ name: 'Ladakh', joinPolicy: 'OpenToRequests', spotsLeft: 2 });
+    const popular = trip({ name: 'Bali', likesCount: 400 });
+    expect([popular, recruiting].sort(compareTripsForFeed).map(t => t.name))
+      .toEqual(['Ladakh', 'Bali']);
+  });
+
+  it('keeps Verified above recruiting', () => {
+    const recruiting = trip({ name: 'Ladakh', joinPolicy: 'OpenToRequests', spotsLeft: 2 });
+    const verified = trip({ name: 'Lisbon', verified: true });
+    expect([recruiting, verified].sort(compareTripsForFeed).map(t => t.name))
+      .toEqual(['Lisbon', 'Ladakh']);
+  });
+
+  it('ranks by engagement inside the recruiting tier', () => {
+    const a = trip({ name: 'A', joinPolicy: 'OpenToRequests', spotsLeft: 1, likesCount: 2 });
+    const b = trip({ name: 'B', joinPolicy: 'OpenToRequests', spotsLeft: 1, likesCount: 8 });
+    expect([a, b].sort(compareTripsForFeed).map(t => t.name)).toEqual(['B', 'A']);
+  });
+});
+
+describe('recruitingRank', () => {
+  it('counts an open trip with room', () => {
+    expect(recruitingRank({ joinPolicy: 'OpenToRequests', spotsLeft: 3 })).toBe(1);
+  });
+
+  // "The organiser did not say" is not "full", so it still counts.
+  it('counts an open trip with no stated capacity', () => {
+    expect(recruitingRank({ joinPolicy: 'OpenToRequests', spotsLeft: null })).toBe(1);
+    expect(recruitingRank({ joinPolicy: 'OpenToRequests' })).toBe(1);
+  });
+
+  it('does not count a full trip', () => {
+    expect(recruitingRank({ joinPolicy: 'OpenToRequests', spotsLeft: 0 })).toBe(0);
+  });
+
+  it('does not count closed or invite-only trips', () => {
+    expect(recruitingRank({ joinPolicy: 'Closed', spotsLeft: 5 })).toBe(0);
+    expect(recruitingRank({ joinPolicy: 'InviteOnly', spotsLeft: 5 })).toBe(0);
+    expect(recruitingRank({})).toBe(0);
+    expect(recruitingRank(undefined)).toBe(0);
   });
 });

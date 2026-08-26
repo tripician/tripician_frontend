@@ -37,8 +37,9 @@ import { parseVideoUrl, defaultThumbUrl } from '../videoEmbed';
 import { stripHtml, plainTextToHtml } from '../blockSchema';
 import { safeExternalUrl } from '../../utils/sanitizeHtml';
 import { STORY_LIMITS } from '../types';
+import { staticMapUrl } from '../../utils/staticMap';
 import { STORY_FIELD_SX } from '../storyFormat';
-import type { StoryBlock, PhotoWidth, GalleryLayout, ListStyle, PlaceVerdict } from '../types';
+import type { StoryBlock, PhotoWidth, GalleryLayout, ListStyle, PlaceVerdict, MapStop } from '../types';
 
 export interface BlockEditorProps<T extends StoryBlock = StoryBlock> {
   block: T;
@@ -661,27 +662,44 @@ export const MapBlockEditor: React.FC<BlockEditorProps<Extract<StoryBlock, { typ
   onChange,
 }) => {
   const theme = useTheme();
+  const preview = staticMapUrl(block.stops, { width: 640, height: 360, retina: false, dark: theme.palette.mode === 'dark' });
 
-  if (block.stops.length === 0) {
-    return (
-      <Box
-        sx={{
-          p: 2,
-          borderRadius: '12px',
-          border: `1px dashed ${theme.custom.surface.border}`,
-          color: 'text.secondary',
-        }}
-      >
-        <Typography variant="body2">
-          A route needs stops with coordinates. Use "Bring in from your plan" to pull them from the trip you
-          already mapped.
-        </Typography>
-      </Box>
-    );
-  }
+  const setStop = (index: number, patch: Partial<MapStop>) => {
+    const stops = [...block.stops];
+    stops[index] = { ...stops[index], ...patch };
+    onChange({ ...block, stops });
+  };
+
+  const addStop = () => onChange({ ...block, stops: [...block.stops, { name: '', lat: 0, lng: 0 }] });
 
   return (
-    <Box sx={{ display: 'grid', gap: 1 }}>
+    <Box sx={{ display: 'grid', gap: 1.25 }}>
+      {preview && (
+        <Box
+          component="img"
+          src={preview}
+          alt=""
+          aria-hidden
+          sx={{ width: '100%', borderRadius: '12px', display: 'block' }}
+        />
+      )}
+
+      {block.stops.length === 0 && (
+        <Box
+          sx={{
+            p: 2,
+            borderRadius: '12px',
+            border: `1px dashed ${theme.custom.surface.border}`,
+            color: 'text.secondary',
+          }}
+        >
+          <Typography variant="body2">
+            Pull the route straight out of the trip with "Bring in from your plan", or add the stops yourself below.
+            A stop needs coordinates to appear on the map.
+          </Typography>
+        </Box>
+      )}
+
       {block.stops.map((stop, index) => (
         <Box key={index} sx={{ display: 'flex', gap: 1, alignItems: 'center' }}>
           <Typography variant="caption" sx={{ color: 'text.secondary', width: 20 }}>
@@ -690,13 +708,26 @@ export const MapBlockEditor: React.FC<BlockEditorProps<Extract<StoryBlock, { typ
           <TextField
             fullWidth
             size="small"
+            placeholder="Stop name"
             value={stop.name}
-            onChange={(e) => {
-              const stops = [...block.stops];
-              stops[index] = { ...stop, name: e.target.value.slice(0, 160) };
-              onChange({ ...block, stops });
-            }}
+            onChange={(e) => setStop(index, { name: e.target.value.slice(0, 160) })}
             sx={STORY_FIELD_SX}
+          />
+          <TextField
+            size="small"
+            type="number"
+            label="Lat"
+            value={stop.lat}
+            onChange={(e) => setStop(index, { lat: Number(e.target.value) || 0 })}
+            sx={{ ...STORY_FIELD_SX, width: 108, flexShrink: 0 }}
+          />
+          <TextField
+            size="small"
+            type="number"
+            label="Lng"
+            value={stop.lng}
+            onChange={(e) => setStop(index, { lng: Number(e.target.value) || 0 })}
+            sx={{ ...STORY_FIELD_SX, width: 108, flexShrink: 0 }}
           />
           <IconButton
             size="small"
@@ -708,6 +739,10 @@ export const MapBlockEditor: React.FC<BlockEditorProps<Extract<StoryBlock, { typ
           </IconButton>
         </Box>
       ))}
+
+      <Button size="small" onClick={addStop} startIcon={<IconPlus size={15} />} sx={{ justifySelf: 'start' }}>
+        Add a stop
+      </Button>
     </Box>
   );
 };

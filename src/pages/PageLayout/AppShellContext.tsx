@@ -11,10 +11,18 @@ export interface CreateTripPrefill {
   name?: string;
   countries?: string[];
   vibe?: string | null;
+  /** Preselects the organisation running the trip. The server re-checks it. */
+  organizationId?: string;
 }
 
 export interface AppShellContextValue {
   openCreateTrip: (prefill?: CreateTripPrefill) => void;
+  /**
+   * Raises the plan popup from anywhere: the top bar, an organisation gate, or a
+   * Navia wallet that has just run out. Those are the moments upgrading is worth
+   * explaining, and routing away from them loses whatever the person was doing.
+   */
+  openProDialog: () => void;
 }
 
 const AppShellContext = createContext<AppShellContextValue | null>(null);
@@ -30,6 +38,7 @@ export function useAppShell(): AppShellContextValue {
     return {
       openCreateTrip: (prefill) =>
         window.dispatchEvent(new CustomEvent('trip:create', { detail: prefill })),
+      openProDialog: () => window.dispatchEvent(new CustomEvent('plan:open')),
     };
   }
   return ctx;

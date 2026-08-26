@@ -7,7 +7,7 @@ import type {
   OperatorProfile, OperatorApplication, OperatorLead, OperatorLeadResult,
 } from '../../operator/types';
 import type {
-  Organization, OrganizationMember, OrganizationPublic, OrganizationTrip, OrganizationWrite,
+  Organization, OrganizationMember, OrganizationPost, OrganizationPublic, OrganizationTrip, OrganizationWrite,
 } from '../../organization/types';
 import type {
   Plan, PlanList, StoryBookPriceList, StoryBookQuote, SubscriptionIntent, SubscriptionState,
@@ -739,6 +739,29 @@ export const apiServices = {
 
   getOrganizationTrips: (token: string, organizationId: string) =>
     apiClient.get<OrganizationTrip[]>(`/api/organizations/${organizationId}/trips`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  /** Puts an organisation member on one of its trips. Writes a real TripMembers row. */
+  staffOrganizationTrip: (token: string, organizationId: string, tripId: string, userId: number, role: string) =>
+    apiClient.post(`/api/organizations/${organizationId}/trips/${tripId}/members`, { userId, role }, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  getOrganizationPosts: (organizationId: string, take = 20) =>
+    apiClient.get<OrganizationPost[]>(`/api/organizations/${organizationId}/posts?take=${take}`),
+
+  createOrganizationPost: (
+    token: string,
+    organizationId: string,
+    body: { body: string; imageUrl?: string | null; tripId?: string | null },
+  ) =>
+    apiClient.post<OrganizationPost>(`/api/organizations/${organizationId}/posts`, body, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  removeOrganizationPost: (token: string, organizationId: string, postId: string) =>
+    apiClient.delete(`/api/organizations/${organizationId}/posts/${postId}`, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 

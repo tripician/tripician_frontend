@@ -28,10 +28,11 @@ import {
   IconMessageCircleQuestion,
 } from '@tabler/icons-react';
 import ImageBadge from '../../components/ui/ImageBadge';
+import CardTypeTag from '../../components/ui/CardTypeTag';
+import { STORY_TEMPLATES } from '../render/templates';
 import { VIBES } from '../../pages/CommunityPage/vibes';
 import { storyPath } from '../storySlug';
 import { resolveStoryCover, formatTravelWindow } from '../storyFormat';
-import { STORY_TEMPLATES } from '../render/templates';
 import type { AfterStorySummaryDto } from '../types';
 
 interface StoryCardProps {
@@ -110,8 +111,9 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, width, onBook }) => {
   const vibe = story.vibe ? VIBES[story.vibe] : null;
   const wash = (story.vibe && VIBE_WASH[story.vibe.toLowerCase()]) || DEFAULT_WASH;
 
-  // The kicker: what kind of story this is, which is a label a trip can never
-  // carry. `template` was already on the DTO and rendered nowhere.
+  // The SHAPE of the story: Journal, Guide, Photo essay, Postcard. What kind of
+  // thing this is now comes from the corner ribbon, so this went back to saying
+  // something the reader does not already know.
   const kicker = STORY_TEMPLATES[story.template]?.label ?? 'Story';
   const when = formatTravelWindow(story.travelStartDate);
 
@@ -185,11 +187,16 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, width, onBook }) => {
         </Box>
       )}
 
+      <CardTypeTag kind="story" />
+
       {/* Top right, because the bottom of the card is now type. A row rather
           than two absolutely positioned pucks, so the book action and the video
-          badge cannot land on top of each other on a video story. */}
+          badge cannot land on top of each other on a video story.
+
+          Below the type ribbon, which hangs from the top edge in the same
+          corner. */}
       {(story.coverKind === 'Video' || onBook) && (
-        <Box sx={{ position: 'absolute', top: 12, right: 12, display: 'flex', gap: 0.75 }}>
+        <Box sx={{ position: 'absolute', top: 42, right: 12, display: 'flex', gap: 0.75 }}>
           {onBook && (
             <Tooltip title="See it as a book" arrow>
               <Box

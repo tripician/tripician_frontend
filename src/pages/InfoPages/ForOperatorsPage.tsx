@@ -79,7 +79,7 @@ const ForOperatorsPage: React.FC = () => (
           from there, on your own terms and your own site.
         </Typography>
         <Box sx={{ display: 'flex', gap: 1.5, mt: 4, flexWrap: 'wrap' }}>
-          <Button component={Link} to="/operator" variant="contained" size="large" sx={{ fontWeight: 700 }}>
+          <Button component={Link} to="/organizations" variant="contained" size="large" sx={{ fontWeight: 700 }}>
             Apply to list your trips
           </Button>
           <Button component={Link} to="/contact-us" variant="outlined" size="large" sx={{ fontWeight: 600 }}>
@@ -154,7 +154,7 @@ const ForOperatorsPage: React.FC = () => (
         <Typography sx={{ fontSize: '0.98rem', color: '#666', lineHeight: 1.7, mb: 3.5 }}>
           Tell us what you run and where. We read every application.
         </Typography>
-        <Button component={Link} to="/operator" variant="contained" size="large" sx={{ fontWeight: 700 }}>
+        <Button component={Link} to="/organizations" variant="contained" size="large" sx={{ fontWeight: 700 }}>
           Apply to list your trips
         </Button>
       </Container>

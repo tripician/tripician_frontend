@@ -34,10 +34,29 @@ export function verifiedRank(t: any): number {
 }
 
 /**
- * The community ordering: verified first as a **hard tier**, engagement inside each
- * tier. A barely-engaged verified trip outranks a wildly popular unverified one, which
- * is the deliberate consequence of the tier being hard rather than a score boost.
+ * 1 for a trip open to join requests that still has room, 0 otherwise.
+ *
+ * `spotsLeft === null` means the organiser never named a capacity, which is not the
+ * same as full, so it still counts as recruiting. A trip at zero does not.
+ */
+export function recruitingRank(t: any): number {
+  const policy = t?.joinPolicy ?? t?.JoinPolicy;
+  if (policy !== 'OpenToRequests') return 0;
+  const spots = t?.spotsLeft ?? t?.SpotsLeft;
+  return spots === 0 ? 0 : 1;
+}
+
+/**
+ * The community ordering: verified first as a hard tier, then trips looking for
+ * people, then engagement.
+ *
+ * Recruiting sits below Verified because Verified is a product claim, and above
+ * engagement because a trip you can still join is the only thing in the feed you can
+ * act on rather than read. Verified keeps its own module above the feed, so this
+ * costs it nothing.
  */
 export function compareTripsForFeed(a: any, b: any): number {
-  return (verifiedRank(b) - verifiedRank(a)) || (engagementScore(b) - engagementScore(a));
+  return (verifiedRank(b) - verifiedRank(a))
+    || (recruitingRank(b) - recruitingRank(a))
+    || (engagementScore(b) - engagementScore(a));
 }

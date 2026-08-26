@@ -21,6 +21,7 @@ import {
   IconPoint,
 } from '@tabler/icons-react';
 import { safeExternalUrl } from '../../../utils/sanitizeHtml';
+import { staticMapUrl } from '../../../utils/staticMap';
 import type { StoryTemplateStyle } from '../templates';
 import type { StoryBlock } from '../../types';
 
@@ -201,15 +202,22 @@ export const StoryListBlock: React.FC<BlockProps<Extract<StoryBlock, { type: 'li
 };
 
 /**
- * A static route sketch, not an interactive map.
+ * The route as one flat image plus the stops in order.
  *
- * Mounting Mapbox here would put a GL context and a tile bill on every story
- * page, including the ones crawlers fetch, for something most readers scroll
- * past. The reader gets shape and order; the trip page is where the real map
- * lives.
+ * A static image rather than an interactive map: mounting Mapbox GL here would
+ * put a GL context and a tile bill on every story page, including the ones
+ * crawlers fetch, and the printed book cannot pan anyway. The picture and the
+ * page get identical pixels. The numbered list stays underneath, because it is
+ * the half that survives a failed image fetch.
  */
 export const StoryMapBlock: React.FC<BlockProps<Extract<StoryBlock, { type: 'map' }>>> = ({ block, style }) => {
   const theme = useTheme();
+  const [mapFailed, setMapFailed] = React.useState(false);
+  const mapSrc = React.useMemo(
+    () => staticMapUrl(block.stops, { dark: theme.palette.mode === 'dark' }),
+    [block.stops, theme.palette.mode],
+  );
+
   if (block.stops.length === 0) return null;
 
   const allHref = `https://www.google.com/maps/dir/${block.stops
@@ -220,12 +228,25 @@ export const StoryMapBlock: React.FC<BlockProps<Extract<StoryBlock, { type: 'map
     <Box
       sx={{
         maxWidth: `${style.measure + 8}ch`,
-        p: 2.25,
         borderRadius: '16px',
         border: `1px solid ${theme.custom.surface.border}`,
         bgcolor: 'background.paper',
+        overflow: 'hidden',
       }}
     >
+      {mapSrc && !mapFailed && (
+        <Box
+          component="img"
+          src={mapSrc}
+          alt={`Route through ${block.stops.map((s) => s.name).join(', ')}`}
+          loading="lazy"
+          decoding="async"
+          onError={() => setMapFailed(true)}
+          sx={{ display: 'block', width: '100%', aspectRatio: '25 / 14', objectFit: 'cover' }}
+        />
+      )}
+
+      <Box sx={{ p: 2.25 }}>
       <Typography variant="overline" sx={{ color: 'text.secondary', display: 'block', mb: 1.5 }}>
         The route
       </Typography>
@@ -279,6 +300,7 @@ export const StoryMapBlock: React.FC<BlockProps<Extract<StoryBlock, { type: 'map
       >
         See the whole route in Maps
         <IconExternalLink size={13} />
+      </Box>
       </Box>
     </Box>
   );

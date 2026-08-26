@@ -19,8 +19,9 @@ import FilterChip from '../../components/ui/FilterChip';
 import EmptyState from '../../components/ui/EmptyState';
 import ErrorState from '../../components/ui/ErrorState';
 import { CardGridSkeleton } from '../../components/ui/Skeletons';
+import ChipRail from '../../components/ui/ChipRail';
 import CommunityTripCard from '../CommunityPage/CommunityTripCard';
-import { CATEGORIES, CONTENT_MAX, gridSx, hiddenScrollbarSx } from '../CommunityPage/communityConstants';
+import { CATEGORIES, CONTENT_MAX, gridSx } from '../CommunityPage/communityConstants';
 import { apiServices } from '../../services/APIs/apiServices';
 import { tripPath } from '../../utils/tripSlug';
 import { staggerContainer, staggerItem } from '../../utils/animations';
@@ -99,7 +100,7 @@ const Templates: React.FC = () => {
           </motion.div>
 
           <motion.div variants={staggerItem}>
-            <Box sx={{ ...hiddenScrollbarSx, gap: 1, mt: { xs: 2.5, md: 3.5 } }}>
+            <ChipRail sx={{ mt: { xs: 2.5, md: 3.5 } }}>
               {CATEGORIES.map((c) => (
                 <FilterChip
                   key={c.id}
@@ -109,7 +110,7 @@ const Templates: React.FC = () => {
                   onClick={() => setCategory(c.id)}
                 />
               ))}
-            </Box>
+            </ChipRail>
           </motion.div>
 
           <Box sx={{ mt: 4 }}>
@@ -141,7 +142,7 @@ const Templates: React.FC = () => {
                 </Typography>
                 <Box sx={gridSx}>
                   {filtered.map((t: any) => (
-                    <CommunityTripCard key={t.id || t.Id} trip={t} onClick={() => handleClick(t)} />
+                    <CommunityTripCard key={t.id || t.Id} trip={t} typeTag="template" onClick={() => handleClick(t)} />
                   ))}
                 </Box>
               </>

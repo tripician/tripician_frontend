@@ -19,6 +19,11 @@ export interface Plan {
   maxRecruitedTravellers?: number | null;
   naviaMonthlyCredits: number;
   storyBookPriceTier: StoryBookPriceTier;
+  /**
+   * Named capabilities this plan unlocks, from appsettings. Absent on plans that
+   * unlock none, so read it through `planBenefits` rather than indexing it.
+   */
+  features?: string[];
 }
 
 export interface PlanList {

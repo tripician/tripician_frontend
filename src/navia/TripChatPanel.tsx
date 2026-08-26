@@ -1127,16 +1127,6 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
         }}>
           Navia can make mistakes. Always verify travel details before booking.
         </Typography>
-        <Typography sx={{
-          fontSize: 9,
-          fontWeight: 600,
-          letterSpacing: '0.4px',
-          color: isLight
-            ? 'rgba(0,0,0,0.28)'
-            : 'rgba(255,255,255,0.28)',
-        }}>
-          Navia drafts, you decide
-        </Typography>
       </Box>
     </Box>
   );

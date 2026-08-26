@@ -26,6 +26,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
+import { useRequireAuth } from '../auth/AuthGate';
 import {
   IconArrowLeft,
   IconBookmark,
@@ -64,6 +65,7 @@ const CONTENT_MAX = 1280;
 const StoryPage: React.FC = () => {
   const { slugOrId } = useParams<{ slugOrId: string }>();
   const navigate = useNavigate();
+  const requireAuth = useRequireAuth();
   const theme = useTheme();
 
   const [story, setStory] = React.useState<AfterStoryDto | null>(null);
@@ -143,10 +145,7 @@ const StoryPage: React.FC = () => {
 
   const react = async (type: 'like' | 'save') => {
     if (!story) return;
-    if (!token) {
-      navigate('/signin');
-      return;
-    }
+    if (!requireAuth({ reason: 'Saving a story keeps it on your profile to come back to.' }) || !token) return;
     if (reactionBusy) return;
 
     setReactionBusy(true);

@@ -1,6 +1,7 @@
 // TripPlanner main page component (formerly CreateTrip)
 import React from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
+import { useRequireAuth } from '../../auth/AuthGate';
 import { alpha } from '@mui/material/styles';
 import { Box, Typography, Divider, Button, Avatar, AvatarGroup, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Snackbar, Alert, Menu, MenuItem, ListItemIcon, useTheme, useMediaQuery, Drawer, Fab } from '@mui/material';
 // Props-based TripPlanner; tripId + optional initialTrip provided by route wrapper
@@ -10,9 +11,10 @@ import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
 import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import { useSelector, useDispatch, useStore } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
-import { updateDestinationNights, setTransport, addDestination, removeDestination, reorderChainExact, addVisaDoc, removeVisaDoc, removeGlobalDoc, pinDoc, unpinDoc, loadState, resetPlanner, setTripDates, setTargetNights, addSpot, addFoodItem, setDestinationNotes, clearDestinationDiscover, setDestinationCoords } from '../../store/plannerSlice';
+import { updateDestinationNights, setTransport, addDestination, removeDestination, reorderChainExact, addVisaDoc, removeVisaDoc, removeGlobalDoc, pinDoc, unpinDoc, loadState, resetPlanner, setTripDates, setTargetNights, addSpot, addFoodItem, setDestinationNotes, clearDestinationDiscover, setDestinationCoords, addStayEntry, setTripBudget, addExpense } from '../../store/plannerSlice';
 import { togglePin as togglePinDocSlice, removeDocument as removeDocsSliceDocument } from '../../store/docsSlice';
 import { loadPacking, resetPacking } from '../../store/packingSlice';
+import { checklistToPackingCategories, type PlanSeed, type PlanSeedStop } from './planSeed';
 import { DEFAULT_DOC_RULE } from '../../utils/fileValidation'; // legacy use (validateFiles removed after refactor)
 import ValidatedFileInput from '../../components/CommonComponents/ValidatedFileInput';
 import CreateTripNav from './TripPlannerNav';
@@ -282,16 +284,7 @@ interface TripPlannerProps {
 	isExternalNonOwner?: boolean; // viewing someone else's published trip
 	isOwnerExternal?: boolean; // current user owns trip (controls publish)
 	aiGenerated?: boolean; // when true, auto-generate destinations via Navia on mount
-	chatSeed?: { stops: ChatSeedStop[] }; // extracted plan from the Navia home chat (no AI calls needed)
-}
-
-/** One extracted stop from the Navia home chat, ready to seed the planner. */
-export interface ChatSeedStop {
-	name: string;
-	nights: number;
-	spots: { name: string; description: string }[];
-	foods: string[];
-	notes: string;
+	planSeed?: PlanSeed; // a plan that already exists, from the Navia chat or an import (no AI calls needed)
 }
 
 /**
@@ -658,7 +651,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 	// Premium action toggles - persisted server-side via the trip reactions API
 	const reactionAuth = useAuthToken();
 	const reactionToken = reactionAuth.token;
-	const reactionNavigate = useNavigate();
+	const requireAuth = useRequireAuth();
 	const [liked, setLiked] = React.useState(false);
 	const [saved, setSaved] = React.useState(false);
 	const [needsImprovement, setNeedsImprovement] = React.useState(false);
@@ -694,8 +687,8 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 
 	const toggleReaction = React.useCallback(async (type: 'like' | 'save' | 'needswork') => {
 		if (!tripId) return;
-		// Reacting requires an account - send guests to sign in first.
-		if (!reactionToken) { reactionNavigate('/signin'); return; }
+		// Reacting requires an account, so a guest is asked rather than bounced.
+		if (!requireAuth({ reason: 'Reacting to a plan needs an account.' }) || !reactionToken) return;
 		if (reactionBusyRef.current[type]) return;
 		reactionBusyRef.current[type] = true;
 		try {
@@ -706,7 +699,7 @@ const TripViewPanel: React.FC<TripViewPanelProps> = ({
 		} finally {
 			reactionBusyRef.current[type] = false;
 		}
-	}, [tripId, reactionToken, reactionNavigate, applySummary]);
+	}, [tripId, reactionToken, requireAuth, applySummary]);
 
 
 	// Debug: log render to help verify toolbar visibility in browser console
@@ -1110,7 +1103,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	isExternalNonOwner = false,
 	isOwnerExternal = true,
 	aiGenerated: aiGeneratedProp = false,
-	chatSeed,
+	planSeed,
 }) => {
 	// ---------------------------------------------------------------------------
 	// Selectors & dispatch
@@ -1790,27 +1783,68 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [aiGenerated, isHydrated, authToken, tripId]);
 
-	// Phase 1 (chat seed): the Navia home chat already produced the full plan.
-	// Seed destinations here; Phase 2 fills spots/foods/notes from the extracted
-	// content POSITIONALLY (no network calls, no credits). Same guards as the
-	// AI-generation flow so hydration and autosave can't wipe mid-seed.
-	const chatSeedContentRef = React.useRef<ChatSeedStop[] | null>(null);
+	// Phase 1 (plan seed): the plan already exists, from the Navia chat or from a
+	// screenshot the traveller imported. Seed destinations here; Phase 2 fills
+	// spots/foods/notes from the seeded content POSITIONALLY (no network calls, no
+	// credits). Same guards as the AI-generation flow so hydration and autosave
+	// can't wipe mid-seed.
+	const planSeedContentRef = React.useRef<PlanSeedStop[] | null>(null);
 	React.useEffect(() => {
-		if (!chatSeed || chatSeed.stops.length === 0) return;
+		if (!planSeed) return;
+		const hasStops = planSeed.stops.length > 0;
+		const hasExtras = Boolean(
+			planSeed.importantNotes?.trim()
+			|| planSeed.checklist?.length
+			|| planSeed.expenses?.length
+			|| planSeed.budget,
+		);
+		if (!hasStops && !hasExtras) return;
 		if (aiAutoTriggeredRef.current || !isHydrated || !tripId) return;
 		aiAutoTriggeredRef.current = true;
 
 		// Clear location state to prevent re-seed on reload
 		try { window.history.replaceState({}, '', window.location.pathname + window.location.search); } catch {}
 
-		setAiAutoMessage('Assembling your trip from the chat…');
+		// Applied before the stops so that a plan which turned out to be all notes
+		// and no itinerary - a group chat, typically - still lands with everything
+		// the traveller wrote, rather than nothing.
+		const seedNotes = planSeed.importantNotes?.trim();
+		if (seedNotes) setImportantNotes(seedNotes);
+
+		if (planSeed.checklist?.length) {
+			const categories = checklistToPackingCategories(planSeed.checklist);
+			if (categories.length > 0) dispatch(loadPacking({ categories }));
+		}
+
+		if (typeof planSeed.budget === 'number' && planSeed.budget > 0) {
+			dispatch(setTripBudget({ amount: planSeed.budget }));
+		}
+
+		// Dated today rather than guessed: the plan gave an amount, not a day, and
+		// inventing one would put a made-up date on the traveller's own figure.
+		const seedExpenseDate = new Date().toISOString().slice(0, 10);
+		for (const expense of planSeed.expenses ?? []) {
+			if (!expense.label?.trim() || !(expense.amount > 0)) continue;
+			dispatch(addExpense({
+				expense: {
+					label: expense.label.trim(),
+					amount: expense.amount,
+					category: expense.category?.trim() || undefined,
+					date: seedExpenseDate,
+				},
+			}));
+		}
+
+		if (!hasStops) return;
+
+		setAiAutoMessage('Assembling your trip…');
 		setAiAutoGenerating(true);
 		aiGenActiveRef.current = true;
 
-		chatSeedContentRef.current = chatSeed.stops;
+		planSeedContentRef.current = planSeed.stops;
 		// Positional: Phase 2 pairs its content to destinations by index, so the
 		// order here must survive the async geocode - locateStops preserves it.
-		const seeded: LocatableStop[] = chatSeed.stops.map(s => ({ name: s.name, nights: Math.max(1, s.nights) }));
+		const seeded: LocatableStop[] = planSeed.stops.map(s => ({ name: s.name, nights: Math.max(1, s.nights) }));
 		const grandTotal = seeded.reduce((a, s) => a + s.nights, 0);
 		dispatch(setTargetNights(grandTotal));
 		aiExpectedDestCountRef.current = seeded.length;
@@ -1822,7 +1856,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			})));
 		})();
 	// eslint-disable-next-line react-hooks/exhaustive-deps
-	}, [chatSeed, isHydrated, tripId]);
+	}, [planSeed, isHydrated, tripId]);
 
 	// Phase 2: Once destinations reach expected count, plan each one via Navia
 	const aiPlanningActiveRef = React.useRef(false);
@@ -1841,9 +1875,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			? [...planner.destinations]
 			: planner.destinations.slice(-expectedCount);
 
-		// Chat-seed path: content came from the conversation, keyed by position.
-		const seedStops = chatSeedContentRef.current;
-		chatSeedContentRef.current = null;
+		// Seeded path: content came from the chat or an import, keyed by position.
+		const seedStops = planSeedContentRef.current;
+		planSeedContentRef.current = null;
 
 		(async () => {
 			let planned = 0;
@@ -1861,11 +1895,16 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					const seed = seedStops?.[destIdx];
 					if (seed) {
 						setAiAutoMessage(`Placing ${dest.name}…`);
-						// Chat-extracted places are still model output - check them too.
+						// Seeded places are still model output - check them too.
 						const seedCandidates = (seed.spots ?? []).filter(s => s.name?.trim());
 						const seedResolved = await resolveSpots(seedCandidates, dest.name);
 						droppedTotal += seedCandidates.length - seedResolved.length;
 						uncheckedTotal += seedResolved.filter(s => s.provenance === 'unchecked').length;
+						// Verification renames a spot to the Places listing, so the
+						// must-visit flag is matched back by position, not by name.
+						const mustVisitNames = new Set(
+							seedCandidates.filter(s => s.mustVisit).map(s => s.name.trim().toLowerCase()),
+						);
 						dispatch(clearDestinationDiscover({ destinationId: dest.id }));
 						for (const spot of seedResolved) {
 							dispatch(addSpot({
@@ -1880,11 +1919,20 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 								lat: spot.lat,
 								lng: spot.lng,
 								known: Boolean(spot.mapUrl),
+								mustVisit: mustVisitNames.has((spot.query ?? spot.name).trim().toLowerCase()),
 							}));
 						}
 						for (const food of seed.foods ?? []) {
 							if (!food?.trim()) continue;
 							dispatch(addFoodItem({ destinationId: dest.id, name: food.trim() }));
+						}
+						for (const stay of seed.stays ?? []) {
+							if (!stay.name?.trim()) continue;
+							dispatch(addStayEntry({
+								destinationId: dest.id,
+								name: stay.name.trim(),
+								reference: stay.reference?.trim() || '',
+							}));
 						}
 						const seedNotes = (seed.notes ?? '').trim();
 						if (seedNotes) dispatch(setDestinationNotes({ id: dest.id, notes: seedNotes }));
@@ -2384,7 +2432,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				stay, // deprecated single stay (retained for backward compatibility)
 				stays: multiStays,
 				stayNotes: stayNotesUnified,
-				spots:(d.spots||[]).map(s=> ({ id:s.id, name:s.name, placeId:s.placeId ?? null, checked:!!s.checked, photoUrl:s.photoUrl ?? null, description:s.description ?? null, mapUrl:s.mapUrl ?? null, known: !!s.known, provenance:s.provenance ?? null, verifiedAt:s.verifiedAt ?? null, lat:s.lat ?? null, lng:s.lng ?? null })),
+				spots:(d.spots||[]).map(s=> ({ id:s.id, name:s.name, placeId:s.placeId ?? null, checked:!!s.checked, photoUrl:s.photoUrl ?? null, description:s.description ?? null, mapUrl:s.mapUrl ?? null, known: !!s.known, provenance:s.provenance ?? null, verifiedAt:s.verifiedAt ?? null, lat:s.lat ?? null, lng:s.lng ?? null, mustVisit: !!s.mustVisit })),
 				foods:(d.foods||[]).map(f=> ({ id:f.id, name:f.name, checked:!!f.checked, known: !!(f as any).known })),
 				docs:(d.docs||[]).map(doc=> ({ id:doc.id, originalName:doc.originalName, mimeType:doc.mimeType, url:doc.url }))
 			};

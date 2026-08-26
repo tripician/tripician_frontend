@@ -17,6 +17,7 @@ import {
 } from '@mui/material';
 import { IconCheck } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
+import { planBenefits } from './planBenefits';
 import { apiServices } from '../services/APIs/apiServices';
 import { useAuthToken } from '../hooks/useAuth0Token';
 import Seo from '../components/Seo';
@@ -24,7 +25,7 @@ import PageHeader from '../components/ui/PageHeader';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import { loadRazorpay, openRazorpaySubscription } from '../afterstory/book/razorpay';
 import {
-  formatMoney, isUnlimited,
+  formatMoney,
   type Plan, type PlanId, type PublicSale, type StoryBookProduct,
 } from './types';
 
@@ -293,16 +294,9 @@ const PlanCard: React.FC<{
   // rather than a rounded percentage.
   const annualSaving = plan.monthlyPrice * 12 - plan.annualPrice;
 
-  const limits: string[] = [];
-  limits.push(isUnlimited(plan.maxTripMembers)
-    ? 'Trip size to suit the organization'
-    : `Up to ${plan.maxTripMembers} people on a trip`);
-  limits.push(isUnlimited(plan.maxRecruitedTravellers)
-    ? 'Recruit travellers at organization scale'
-    : `${plan.maxRecruitedTravellers} ${plan.maxRecruitedTravellers === 1 ? 'traveller' : 'travellers'} can join from a public listing`);
-  limits.push(`${plan.naviaMonthlyCredits.toLocaleString('en-IN')} Navia credits a month`);
-  if (plan.storyBookPriceTier !== 'retail') limits.push('Member price on Story Books');
-  if (plan.planId === 'business') limits.push('Bulk Story Book ordering');
+  // Shared with the Pro popup and the landing comparison, so three surfaces
+  // cannot describe the same plan three different ways.
+  const limits = planBenefits(plan);
 
   return (
     <Box

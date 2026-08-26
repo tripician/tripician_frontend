@@ -4,6 +4,8 @@ import { IconArrowRight } from '@tabler/icons-react';
 import { useNavigate } from 'react-router-dom';
 import NaviaOrb from './NaviaOrb';
 import { draftTripFromPrompt, NaviaRequestError } from './naviaService';
+import { usePlanImport } from './usePlanImport';
+import { PlanImportAttachButton, PlanImportStrip } from './PlanImportControls';
 import { stashPendingPrompt } from '../utils/pendingNaviaPrompt';
 import { apiServices } from '../services/APIs/apiServices';
 import { scheduleFeedbackPrompt } from '../utils/feedbackPrompt';
@@ -65,14 +67,34 @@ export const QuickPlanCard: React.FC<QuickPlanCardProps> = ({ token }) => {
   const [busy, setBusy] = useState(false);
   const [busyMsg, setBusyMsg] = useState(BUSY_MESSAGES[0]);
   const [error, setError] = useState<string | null>(null);
+  const [dragging, setDragging] = useState(false);
   const navigate = useNavigate();
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const importer = usePlanImport(token);
 
   useEffect(() => () => { if (timerRef.current) clearInterval(timerRef.current); }, []);
 
+  // A screenshot cannot be parked in sessionStorage the way a sentence can, so
+  // signing in has to come first rather than after.
+  const takeFiles = useCallback((files: File[]) => {
+    if (!token) { navigate('/signin'); return; }
+    importer.addFiles(files);
+  }, [importer, navigate, token]);
+
   const submit = useCallback(async (raw: string) => {
     const prompt = raw.trim();
-    if (!prompt || busy) return;
+    if (busy || importer.busy) return;
+
+    // Screenshots attached: this is a plan the traveller already wrote, so it is
+    // read rather than drafted, and anything typed alongside is context for it.
+    if (importer.screenshots.length > 0) {
+      if (!token) { navigate('/signin'); return; }
+      const ok = await importer.run(prompt);
+      if (ok) setValue('');
+      return;
+    }
+
+    if (!prompt) return;
 
     // Signed out: park the sentence and let sign-in replay it. /community is
     // semi-public, so this is a real path, not an edge case.
@@ -137,14 +159,29 @@ export const QuickPlanCard: React.FC<QuickPlanCardProps> = ({ token }) => {
     } finally {
       if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
     }
-  }, [busy, navigate, token]);
+  }, [busy, importer, navigate, token]);
 
-  const canSubmit = Boolean(value.trim()) && !busy;
+  const hasShots = importer.screenshots.length > 0;
+  const working = busy || importer.busy;
+  const canSubmit = (Boolean(value.trim()) || hasShots) && !working && !importer.preparing;
+  const status = error ?? importer.error ?? (importer.busy ? importer.busyMessage : busyMsg);
 
   return (
     <Box
       component="form"
       onSubmit={(e: React.FormEvent) => { e.preventDefault(); submit(value); }}
+      onDragOver={(e: React.DragEvent) => {
+        if (!e.dataTransfer.types.includes('Files')) return;
+        e.preventDefault();
+        setDragging(true);
+      }}
+      onDragLeave={() => setDragging(false)}
+      onDrop={(e: React.DragEvent) => {
+        e.preventDefault();
+        setDragging(false);
+        const files = Array.from(e.dataTransfer.files ?? []);
+        if (files.length > 0) takeFiles(files);
+      }}
       sx={(t) => ({
         width: { xs: '100%', md: 380, lg: 420 },
         px: { xs: 2.25, sm: 2.5 },
@@ -152,7 +189,7 @@ export const QuickPlanCard: React.FC<QuickPlanCardProps> = ({ token }) => {
         // Same card language as the trip grid below it.
         borderRadius: '16px',
         bgcolor: 'background.paper',
-        border: `1px solid ${t.custom.surface.border}`,
+        border: dragging ? `1px dashed ${t.palette.primary.main}` : `1px solid ${t.custom.surface.border}`,
         boxShadow: t.custom.shadows.card,
         // One tonal step toward the brand, which is what marks this as the AI
         // surface without making it a different material.
@@ -180,12 +217,15 @@ export const QuickPlanCard: React.FC<QuickPlanCardProps> = ({ token }) => {
         the two suggestion chips are already paper-on-wash, and a fourth pill would
         both crowd the card and look tappable when it is only a label.
       */}
-      <Box>
+      {/* `mb: auto` here, not `mt: auto` on the pill. The slack in an equal-height
+          row has to land under the heading, so the screenshot strip stays with
+          the field it belongs to instead of being pushed away from it. */}
+      <Box sx={{ mb: 'auto' }}>
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8, mb: 0.85 }}>
-          <NaviaOrb size={14} processing={busy} />
+          <NaviaOrb size={14} processing={working} />
           {/* `overline` already uppercases and letter-spaces via the theme. */}
           <Typography variant="overline" sx={{ color: 'primary.main', lineHeight: 1 }}>
-            Quick start
+            Quick Plan
           </Typography>
         </Box>
         {/* Was a hand-sized serif at 1.3125rem, which existed because a display
@@ -199,9 +239,15 @@ export const QuickPlanCard: React.FC<QuickPlanCardProps> = ({ token }) => {
           One sentence, a whole trip
         </Typography>
         <Typography sx={{ mt: 0.5, fontSize: '0.8125rem', lineHeight: 1.45, color: 'text.secondary' }}>
-          Say where and how long. Navia drafts the skeleton: the route, the stops and the notes.
+          Say where and how long, or dump all your rough screenshots
         </Typography>
       </Box>
+
+      <PlanImportStrip
+        screenshots={importer.screenshots}
+        onRemove={importer.removeScreenshot}
+        disabled={working}
+      />
 
       <Box
         sx={(t) => ({
@@ -222,15 +268,29 @@ export const QuickPlanCard: React.FC<QuickPlanCardProps> = ({ token }) => {
         <InputBase
           value={value}
           onChange={(e) => { setValue(e.target.value); if (error) setError(null); }}
-          disabled={busy}
-          placeholder="Three days in Lisbon, food and jazz…"
+          onPaste={(e) => {
+            // Pasting a screenshot straight from the clipboard, which is how most
+            // people get one out of another app in the first place.
+            const files = Array.from(e.clipboardData?.files ?? []).filter((f) => f.type.startsWith('image/'));
+            if (files.length === 0) return;
+            e.preventDefault();
+            takeFiles(files);
+          }}
+          disabled={working}
+          placeholder={hasShots ? 'Anything to add? (optional)' : 'Three days in Lisbon, food and jazz…'}
           inputProps={{ 'aria-label': 'Describe the trip you want and Navia will plan it', maxLength: 280 }}
           sx={{ flex: 1, minWidth: 0, fontSize: '0.875rem', color: 'text.primary' }}
+        />
+        <PlanImportAttachButton
+          onFiles={takeFiles}
+          disabled={working || importer.atCapacity}
+          preparing={importer.preparing}
+          size={30}
         />
         <IconButton
           type="submit"
           disabled={!canSubmit}
-          aria-label="Build this trip with Navia"
+          aria-label={hasShots ? 'Read this plan and build the trip' : 'Build this trip with Navia'}
           sx={(t) => ({
             flexShrink: 0,
             width: 32,
@@ -243,7 +303,7 @@ export const QuickPlanCard: React.FC<QuickPlanCardProps> = ({ token }) => {
             '&.Mui-disabled': { bgcolor: t.custom.surface.active, color: 'text.disabled' },
           })}
         >
-          {busy
+          {working
             ? <CircularProgress size={14} thickness={5} sx={{ color: 'text.disabled' }} />
             : <IconArrowRight size={15} />}
         </IconButton>
@@ -257,10 +317,10 @@ export const QuickPlanCard: React.FC<QuickPlanCardProps> = ({ token }) => {
         empty space at the bottom of the card is worse than the small growth when you
         submit. The inner minHeight keeps busy and error from jostling each other.
       */}
-      {(busy || error) && (
+      {(working || error || importer.error) && (
         <Box sx={{ minHeight: 20, display: 'flex', alignItems: 'center' }}>
-          <Typography sx={{ fontSize: '0.75rem', color: error ? 'error.main' : 'text.secondary' }}>
-            {error ?? busyMsg}
+          <Typography sx={{ fontSize: '0.75rem', color: (error || importer.error) ? 'error.main' : 'text.secondary' }}>
+            {status}
           </Typography>
         </Box>
       )}

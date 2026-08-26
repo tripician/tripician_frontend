@@ -42,6 +42,13 @@ export interface PlaceDetails {
 
 export interface ResolvedSpot {
   name: string;
+  /**
+   * The candidate name this result came from. Verification renames a spot to its
+   * Places listing and drops the ones that have closed, so neither the name nor
+   * the position survives - this is how a caller matches a result back to what it
+   * asked for.
+   */
+  query: string;
   description?: string;
   placeId?: string;
   photoUrl?: string;
@@ -333,7 +340,7 @@ export async function resolveSpots(
   // No SDK (key missing, offline, blocked) - degrade honestly rather than
   // silently presenting unverified places as if they had been checked.
   if (!placesAvailable()) {
-    return cleaned.map(c => ({ ...c, provenance: 'unchecked' as const }));
+    return cleaned.map(c => ({ ...c, query: c.name, provenance: 'unchecked' as const }));
   }
 
   const verifiedAt = new Date().toISOString();
@@ -345,16 +352,17 @@ export async function resolveSpots(
     } catch {
       placeId = null;
     }
-    if (!placeId) return { ...candidate, provenance: 'unchecked' };
+    if (!placeId) return { ...candidate, query: candidate.name, provenance: 'unchecked' };
 
     const details = await getPlaceDetails(placeId).catch(() => null);
-    if (!details) return { ...candidate, provenance: 'unchecked' };
+    if (!details) return { ...candidate, query: candidate.name, provenance: 'unchecked' };
 
     // The whole point: a place that has shut down never reaches the plan.
     if (details.businessStatus === CLOSED_PERMANENTLY) return null;
 
     return {
       name: details.name || candidate.name,
+      query: candidate.name,
       description: details.description || candidate.description,
       placeId: details.placeId,
       photoUrl: details.photoUrl,

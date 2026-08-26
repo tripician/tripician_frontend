@@ -6,10 +6,10 @@ import { APP_NAV_ITEMS, navItemFromPath } from './navConfig';
 /**
  * These guard an information-architecture change, not a component.
  *
- * The bottom bar and the More drawer both pick items out of APP_NAV_ITEMS by
- * string id. Renaming or removing an entry there does not fail a build: it
- * silently ships a mobile nav with a missing tab, which is exactly what nearly
- * happened when "trips" became "crew".
+ * The bottom bar picks items out of APP_NAV_ITEMS by string id. Renaming or
+ * removing an entry there does not fail a build: it silently ships a mobile nav
+ * with a missing tab, which is exactly what nearly happened when "trips" became
+ * "crew", and again when "crew" became "road".
  */
 
 const here = path.dirname(new URL(import.meta.url).pathname.replace(/^\/([A-Za-z]:)/, '$1'));
@@ -24,7 +24,6 @@ function idsFrom(source: string, constName: string): string[] {
 
 const appSource = read('../../App.tsx');
 const bottomNavSource = read('./CommonLayouts/AppBottomNav.tsx');
-const panelSource = read('./CommonLayouts/NavigationPanel.tsx');
 
 describe('APP_NAV_ITEMS', () => {
   it('has unique ids and paths', () => {
@@ -80,27 +79,43 @@ describe('navItemFromPath', () => {
 describe('mobile nav wiring', () => {
   const left = idsFrom(bottomNavSource, 'MOBILE_NAV_LEFT');
   const right = idsFrom(bottomNavSource, 'MOBILE_NAV_RIGHT');
-  const more = idsFrom(panelSource, 'MORE_NAV_IDS');
 
-  it.each([...left, ...right, ...more])('references an id that exists: %s', (id) => {
+  it.each([...left, ...right])('references an id that exists: %s', (id) => {
     expect(APP_NAV_ITEMS.some((i) => i.id === id)).toBe(true);
   });
 
-  it('places every nav item somewhere reachable below the lg breakpoint', () => {
-    // The desktop pill renders all five, but below lg an item that is in
-    // neither the bar nor the drawer is reachable only by typing the URL.
-    const reachable = new Set([...left, ...right, ...more]);
+  it('puts every nav item in the bar itself, one tap on every breakpoint', () => {
+    // The More drawer is gone, so the bar is the whole mobile nav. An item that
+    // is in neither list is reachable only by typing the URL.
+    const reachable = new Set([...left, ...right]);
     for (const item of APP_NAV_ITEMS) {
       expect(reachable.has(item.id)).toBe(true);
     }
   });
 
   it('does not put the same item in two places', () => {
-    const all = [...left, ...right, ...more];
+    const all = [...left, ...right];
     expect(new Set(all).size).toBe(all.length);
   });
 
   it('keeps Profile in the bar itself, since it now holds every trip', () => {
     expect([...left, ...right]).toContain('profile');
+  });
+
+  it('keeps the bar to six slots, which is what fits at 360px', () => {
+    // Two sides plus the centre FAB. A seventh slot starts wrapping labels.
+    expect(left.length + right.length + 1).toBeLessThanOrEqual(6);
+  });
+
+  it('keeps short labels short enough not to wrap under an icon', () => {
+    // "Plan a trip" is the widest thing the bar already renders without
+    // wrapping, so it is the budget every tab label has to live inside.
+    for (const item of APP_NAV_ITEMS) {
+      expect(item.shortLabel.length).toBeLessThanOrEqual('Plan a trip'.length);
+    }
+  });
+
+  it('no longer routes the mobile nav through a More drawer', () => {
+    expect(bottomNavSource).not.toContain('onMoreMenu');
   });
 });

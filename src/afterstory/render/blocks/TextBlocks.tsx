@@ -89,32 +89,50 @@ export const StoryHeadingBlock: React.FC<BlockProps<Extract<StoryBlock, { type: 
 export const StoryQuoteBlock: React.FC<BlockProps<Extract<StoryBlock, { type: 'quote' }>>> = ({ block, style }) => {
   const theme = useTheme();
 
+  // Set between two oversized quotation marks. They are decoration, so they are
+  // aria-hidden and the blockquote still reads as one sentence to a screen reader.
+  const mark = {
+    fontFamily: theme.custom.fontDisplay,
+    fontSize: { xs: '3.5rem', md: '5rem' },
+    lineHeight: 0.7,
+    fontWeight: 700,
+    color: theme.palette.primary.main,
+    opacity: 0.35,
+    userSelect: 'none',
+    display: 'block',
+  } as const;
+
   return (
     <Box
       component="blockquote"
       sx={{
         margin: 0,
         maxWidth: `${style.measure}ch`,
-        // A rule rather than a tinted card: a quote is emphasis inside the
-        // reading column, not a separate object sitting on top of it.
-        borderLeft: `3px solid ${theme.palette.primary.main}`,
-        paddingLeft: { xs: 2, md: 3 },
+        mx: 'auto',
+        textAlign: 'center',
+        py: { xs: 1, md: 2 },
       }}
     >
+      <Box component="span" aria-hidden sx={mark}>&ldquo;</Box>
+
       <Typography
         sx={{
           fontFamily: theme.custom.fontDisplay,
-          fontSize: { xs: '1.25rem', md: '1.5rem' },
+          fontSize: { xs: '1.35rem', md: '1.75rem' },
           lineHeight: 1.45,
           fontWeight: 500,
           letterSpacing: '-0.01em',
           color: 'text.primary',
+          my: { xs: 0.5, md: 1 },
         }}
       >
         {block.text}
       </Typography>
+
+      <Box component="span" aria-hidden sx={{ ...mark, transform: 'translateY(0.35em)' }}>&rdquo;</Box>
+
       {block.attribution && (
-        <Typography variant="body2" sx={{ mt: 1.25, color: 'text.secondary' }}>
+        <Typography variant="body2" sx={{ mt: 1.5, color: 'text.secondary' }}>
           {block.attribution}
         </Typography>
       )}

@@ -1,45 +1,38 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useLocation, useMatch } from 'react-router-dom';
+import { useLocation, useMatch } from 'react-router-dom';
 import Footer from './Footer';
 import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../../store';
 import { fetchUserProfile } from '../../../store/userSlice';
-import { Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
+import { Box } from '@mui/material';
 import TripCreationModal from '../../../components/CreateTripComponents/TripCreationModal';
 import SupportWidget from '../../../components/CommonComponents/SupportWidget';
 import OnboardingCarousel from '../../../components/Onboarding/OnboardingCarousel';
 import AppShellHeader from './AppShellHeader';
 import AppBottomNav from './AppBottomNav';
 import { AppShellProvider, type CreateTripPrefill } from '../AppShellContext';
-import { APP_NAV_ITEMS } from '../navConfig';
+import ProDialog from '../../../pricing/ProDialog';
 
 interface Props {
   children: React.ReactNode;
 }
 
 /*
- * Everything that is not in the bottom bar.
+ * The More drawer is gone.
  *
- * `profile` moved out of here and into the bar itself once it started holding
- * every trip: a page you keep your own work on should not be two taps deep.
- *
- * Risk then took the drawer alone, and the note here said folding it into the
- * account popover was the obvious next step. That happened: Risk is a tool you
- * reach for about a destination rather than a place you go, so it now sits in
- * the account menu and Crew takes the drawer. Crew is the better fit for a
- * second-tap slot anyway - you go looking for people deliberately, where you
- * browse Community and Stories idly, and those two earned the bar.
+ * It only ever held one item at a time - Risk, then Crew - and each of those
+ * turned out to belong somewhere with more context: Risk in the account menu,
+ * Crew as the Travellers segment on Browse. With the drawer empty, "More" was a
+ * button that opened nothing, so the slot went to From the road instead. Every
+ * nav item is now one tap on every breakpoint.
  */
-const MORE_NAV_IDS = ['crew'];
 
 const NavigationPannel: React.FC<Props> = ({ children }) => {
-  const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
 
   const [createTripOpen, setCreateTripOpen] = useState(false);
   const [createTripPrefill, setCreateTripPrefill] = useState<CreateTripPrefill | undefined>(undefined);
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
   const plannerMatch = useMatch('/tripplanner/:tripId');
   const activeTripId = plannerMatch?.params.tripId;
@@ -77,8 +70,18 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
     return () => window.removeEventListener('trip:create', handler);
   }, []);
 
+  // The plan popup, raised from the top bar and from anywhere a limit is hit.
+  const [proOpen, setProOpen] = useState(false);
+  const openProDialog = () => setProOpen(true);
+
+  useEffect(() => {
+    const handler = () => setProOpen(true);
+    window.addEventListener('plan:open', handler);
+    return () => window.removeEventListener('plan:open', handler);
+  }, []);
+
   return (
-    <AppShellProvider value={{ openCreateTrip }}>
+    <AppShellProvider value={{ openCreateTrip, openProDialog }}>
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', maxWidth: '100vw', overflow: 'hidden' }}>
         <AppShellHeader onCreateTrip={openCreateTrip} />
 
@@ -99,47 +102,12 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
           </Box>
         </Box>
 
-        <AppBottomNav onCreateTrip={openCreateTrip} onMoreMenu={() => setMoreMenuOpen(true)} />
-
-        <Drawer
-          anchor="bottom"
-          open={moreMenuOpen}
-          onClose={() => setMoreMenuOpen(false)}
-          sx={{ display: { xs: 'block', lg: 'none' } }}
-          PaperProps={{
-            sx: {
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              pb: 'env(safe-area-inset-bottom, 8px)',
-            },
-          }}
-        >
-          <Box sx={{ px: 2, pt: 2, pb: 1 }}>
-            <Box sx={{ width: 40, height: 4, borderRadius: 2, bgcolor: 'divider', mx: 'auto', mb: 2 }} />
-            <List disablePadding>
-              {APP_NAV_ITEMS.filter((i) => MORE_NAV_IDS.includes(i.id)).map((item) => (
-                <ListItemButton
-                  key={item.id}
-                  onClick={() => {
-                    navigate(item.path);
-                    setMoreMenuOpen(false);
-                  }}
-                  selected={location.pathname === item.path}
-                  sx={{ borderRadius: '12px', mb: 0.5 }}
-                >
-                  <ListItemIcon sx={{ minWidth: 40, color: location.pathname === item.path ? 'primary.main' : 'inherit' }}>
-                    <item.Icon />
-                  </ListItemIcon>
-                  <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: 600 }} />
-                </ListItemButton>
-              ))}
-            </List>
-          </Box>
-        </Drawer>
+        <AppBottomNav onCreateTrip={openCreateTrip} />
 
         {/* The app's single create dialog. Pages call openCreateTrip rather than
             mounting their own copy. */}
         <TripCreationModal open={createTripOpen} onClose={closeCreateTrip} initial={createTripPrefill} />
+        <ProDialog open={proOpen} onClose={() => setProOpen(false)} />
         {!hideSupportWidget && <SupportWidget />}
         {!hideSupportWidget && <OnboardingCarousel />}
       </Box>

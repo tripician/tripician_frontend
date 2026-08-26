@@ -12,9 +12,11 @@ interface TripAnnouncementsProps {
   canManage: boolean;
   /** Non-members get nothing at all, so the panel does not mount for them. */
   isMember: boolean;
+  /** Render the empty state instead of collapsing away. Used when this owns a whole tab. */
+  showEmpty?: boolean;
 }
 
-const TripAnnouncements: React.FC<TripAnnouncementsProps> = ({ tripId, canManage, isMember }) => {
+const TripAnnouncements: React.FC<TripAnnouncementsProps> = ({ tripId, canManage, isMember, showEmpty = false }) => {
   const theme = useTheme();
   const { token } = useAuthToken();
   const [items, setItems] = React.useState<TripAnnouncement[]>([]);
@@ -35,7 +37,7 @@ const TripAnnouncements: React.FC<TripAnnouncementsProps> = ({ tripId, canManage
   }, [token, tripId, isMember]);
 
   if (!isMember || !loaded) return null;
-  if (items.length === 0 && !canManage) return null;
+  if (items.length === 0 && !canManage && !showEmpty) return null;
 
   const post = async () => {
     const body = draft.trim();

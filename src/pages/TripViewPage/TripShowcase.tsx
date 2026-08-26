@@ -8,18 +8,17 @@
  */
 import React from 'react';
 import {
-  Box, Typography, Button, Avatar, Chip, Collapse, Divider, Snackbar, LinearProgress, Tooltip, useTheme,
+  Box, Typography, Button, Avatar, Chip, Collapse, Divider, Snackbar, Tooltip, useTheme,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useRequireAuth } from '../../auth/AuthGate';
 import {
   IconArrowLeft, IconHeart, IconHeartFilled, IconBookmark, IconBookmarkFilled,
   IconShare2, IconPencil, IconCopy, IconMapPin, IconMoonStars, IconCalendar, IconFileDownload,
   IconUsers, IconToolsKitchen2, IconNotes, IconRoute, IconInfoCircle, IconBed,
   IconWallet, IconExternalLink, IconPlane, IconTrain, IconBus, IconCar,
-  IconSailboat, IconWalk, IconLuggage, IconStar, IconLock,
-  IconCircle, IconCircleCheckFilled, IconShirt, IconId, IconDroplet,
-  IconPlug, IconFirstAidKit, IconMountain, IconConfetti, IconChevronDown,
+  IconSailboat, IconWalk, IconStar, IconLock, IconChevronDown,
   IconRosetteDiscountCheckFilled,
 } from '@tabler/icons-react';
 import dayjs from 'dayjs';
@@ -39,6 +38,14 @@ import type { SpotProvenance } from '../../store/plannerSlice';
 import TripComments from '../CreateTripPage/TripComments';
 import ShowcaseMap from './ShowcaseMap';
 import { BRAND } from '../../theme';
+import { FEATURE_FLAGS } from '../../config/featureFlags';
+import PackingSection from './sections/PackingSection';
+import BudgetSection from './sections/BudgetSection';
+import StorySection from './sections/StorySection';
+import {
+  TRIP_SECTION_LABELS, isTripSectionId, visibleTripSections, accessRank,
+  type TripSectionId,
+} from './tripSections';
 
 // ─── Data normalisation ───────────────────────────────────────────────────────
 
@@ -69,21 +76,6 @@ interface ShowcaseStopFull {
   stays: ShowcaseStay[];
   stayNotes?: string;
 }
-interface ShowcasePackingItem { key: string; name: string; qty: number; checked: boolean }
-interface ShowcasePackingCategory { name: string; items: ShowcasePackingItem[] }
-
-/** Category name → icon, so each card reads at a glance. */
-function packingCategoryIcon(name: string) {
-  const n = name.toLowerCase();
-  if (/cloth|wear|outfit/.test(n)) return IconShirt;
-  if (/essential|document|paper|id\b/.test(n)) return IconId;
-  if (/toilet|hygiene|bath|cosmetic/.test(n)) return IconDroplet;
-  if (/electronic|tech|gadget|charger|device/.test(n)) return IconPlug;
-  if (/med|first aid|health/.test(n)) return IconFirstAidKit;
-  if (/trek|hike|outdoor|camp|gear|adventure/.test(n)) return IconMountain;
-  return IconLuggage;
-}
-
 interface TripShowcaseProps {
   tripId: string;
   rawTrip: any;
@@ -171,27 +163,6 @@ function normaliseStops(rawTrip: any): ShowcaseStopFull[] {
       stayNotes: typeof it.stayNotes === 'string' && it.stayNotes.trim() ? it.stayNotes.trim() : undefined,
     };
   });
-}
-
-function normalisePacking(rawTrip: any): ShowcasePackingCategory[] {
-  const packing = rawTrip?.packing ?? rawTrip?.Packing;
-  const categories: any[] = Array.isArray(packing?.categories) ? packing.categories : [];
-  return categories
-    .map((c: any) => {
-      const catName = typeof c?.name === 'string' ? c.name : 'Packing';
-      return {
-        name: catName,
-        items: (Array.isArray(c?.items) ? c.items : [])
-          .filter((i: any) => i?.name)
-          .map((i: any) => ({
-            key: String(i.id ?? `${catName}:${i.name}`),
-            name: String(i.name),
-            qty: Math.max(1, Number(i.qty) || 1),
-            checked: i.checked === true,
-          })),
-      };
-    })
-    .filter((c) => c.items.length > 0);
 }
 
 /** Transport label → Tabler icon. */
@@ -289,6 +260,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
 }) => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const requireAuth = useRequireAuth();
   const { token } = useAuthToken();
 
   const root: any = rawTrip?.trip ?? rawTrip?.Trip ?? rawTrip ?? {};
@@ -315,29 +287,6 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
     root.bannerPhotoUrl || root.BannerPhotoUrl || root.photoUrl || root.PhotoUrl || undefined;
 
   const stops = React.useMemo(() => normaliseStops(rawTrip), [rawTrip]);
-  const packing = React.useMemo(() => normalisePacking(rawTrip), [rawTrip]);
-
-  // ── Packing-day ticks: device-local, seeded from the planner's saved checks.
-  // The planner keeps the master list; this page is the suitcase-side companion.
-  const packStorageKey = `tripPackingView:${tripId}`;
-  const [packTicks, setPackTicks] = React.useState<Record<string, boolean>>(() => {
-    try { return JSON.parse(localStorage.getItem(`tripPackingView:${tripId}`) || '{}'); }
-    catch { return {}; }
-  });
-  const isPacked = React.useCallback(
-    (item: ShowcasePackingItem) => packTicks[item.key] ?? item.checked,
-    [packTicks],
-  );
-  const togglePacked = (item: ShowcasePackingItem) => {
-    setPackTicks(prev => {
-      const next = { ...prev, [item.key]: !(prev[item.key] ?? item.checked) };
-      try { localStorage.setItem(packStorageKey, JSON.stringify(next)); } catch { /* private mode */ }
-      return next;
-    });
-  };
-  const packTotal = packing.reduce((a, c) => a + c.items.length, 0);
-  const packDone = packing.reduce((a, c) => a + c.items.filter(isPacked).length, 0);
-  const allPacked = packTotal > 0 && packDone === packTotal;
   const totalNights = stops.reduce((a, s) => a + s.nights, 0) || Number(root.totalNights) || 0;
   const vibe = vibeId ? VIBES[vibeId] : undefined;
   const importantNotes: string | undefined =
@@ -403,7 +352,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
   }, [tripId, token, applySummary]);
 
   const toggleReaction = async (type: 'like' | 'save') => {
-    if (!token) { navigate('/signin'); return; }
+    if (!requireAuth({ reason: 'Save a trip to your own list, or tell the traveller it helped.' }) || !token) return;
     if (busyRef.current[type]) return;
     busyRef.current[type] = true;
     try {
@@ -476,6 +425,34 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
   const canEdit = isOwner || isMember;
   // Budget, packing, and booking references are the crew's business, not the public's.
   const memberView = isOwner || isMember;
+
+  // Access comes from the server; the client guess is only a fallback for older payloads.
+  const accessLevel: string = root.myAccessLevel || root.MyAccessLevel
+    || (isOwner ? 'owner' : isMember ? 'member' : 'viewer');
+  // The API allows announcement writes at Admin, so an org admin must see the composer too.
+  const canManageTrip = root.canEditPlan === true || root.CanEditPlan === true
+    || accessRank(accessLevel) >= accessRank('admin');
+
+  const budgetVisibility: string | undefined = root.budgetVisibility ?? root.BudgetVisibility;
+  const checklistVisibility: string | undefined = root.checklistVisibility ?? root.ChecklistVisibility;
+  const sections = React.useMemo(() => visibleTripSections({
+    level: accessLevel,
+    budgetVisibility,
+    checklistVisibility,
+    storyEnabled: FEATURE_FLAGS.afterStory,
+  }), [accessLevel, budgetVisibility, checklistVisibility]);
+
+  const [searchParams, setSearchParams] = useSearchParams();
+  const requestedTab = searchParams.get('tab');
+  const section: TripSectionId = isTripSectionId(requestedTab) && sections.includes(requestedTab)
+    ? requestedTab
+    : 'plan';
+  const setSection = (next: TripSectionId) => {
+    setSearchParams((prev) => {
+      if (next === 'plan') prev.delete('tab'); else prev.set('tab', next);
+      return prev;
+    }, { replace: true });
+  };
 
   // Meta separator dot
   const Dot = () => <Box component="span" sx={{ mx: 1, opacity: 0.55 }}>·</Box>;
@@ -632,9 +609,37 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
       {/* ═══ STICKY ACTION BAR ═══ */}
       <Box sx={{ position: 'sticky', top: 0, zIndex: 20, bgcolor: 'background.paper', borderBottom: `1px solid ${border}`, boxShadow: '0 1px 2px rgba(0,0,0,0.03)' }}>
         <Box sx={{ maxWidth: 1280, mx: 'auto', px: { xs: 2, md: 4 }, py: 1.25, display: 'flex', alignItems: 'center', gap: 1 }}>
-          <Typography noWrap sx={{ fontWeight: 700, fontSize: 17, color: 'text.primary', flex: 1, minWidth: 0, mr: 1 }}>
-            Every stop tells a story.
-          </Typography>
+          <Box
+            role="tablist"
+            aria-label="Trip sections"
+            sx={{ display: 'flex', gap: 0.5, flex: 1, minWidth: 0, mr: 1, overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}
+          >
+            {sections.map((id) => {
+              const active = section === id;
+              return (
+                <Box
+                  key={id}
+                  component="button"
+                  type="button"
+                  role="tab"
+                  aria-selected={active}
+                  onClick={() => setSection(id)}
+                  sx={{
+                    flexShrink: 0, border: 'none', cursor: 'pointer',
+                    bgcolor: active ? 'text.primary' : 'transparent',
+                    color: active ? 'background.paper' : 'text.secondary',
+                    borderRadius: '50px', px: 1.75, py: 0.7,
+                    fontSize: 13.5, fontWeight: 700, whiteSpace: 'nowrap',
+                    transition: 'background-color .15s, color .15s',
+                    '&:hover': active ? {} : { color: 'text.primary', bgcolor: 'action.hover' },
+                    '&:focus-visible': { outline: `2px solid ${theme.custom.ring}`, outlineOffset: 2 },
+                  }}
+                >
+                  {TRIP_SECTION_LABELS[id]}
+                </Box>
+              );
+            })}
+          </Box>
 
           <Button
             size="small"
@@ -707,13 +712,28 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
         </Box>
       </Box>
 
-      <Box sx={{ maxWidth: 1280, mx: 'auto', px: { xs: 2, md: 4 }, width: '100%' }}>
-        <TripAnnouncements tripId={tripId} canManage={isOwner} isMember={memberView} />
-      </Box>
-
       <TripSeatsBand tripId={tripId} isOwner={isOwner} />
 
-      {/* ═══ STICKY DAY NAV, jump to any leg with one tap ═══ */}
+      {section === 'news' && (
+        <Box sx={{ maxWidth: 1280, mx: 'auto', px: { xs: 2, md: 4 }, pb: { xs: 4, md: 6 }, width: '100%' }}>
+          <TripAnnouncements tripId={tripId} canManage={canManageTrip} isMember={memberView} showEmpty />
+        </Box>
+      )}
+
+      {section === 'story' && (
+        <StorySection tripId={tripId} tripName={name} canEdit={canManageTrip} isMember={memberView} />
+      )}
+
+      {section === 'packing' && <PackingSection tripId={tripId} rawTrip={rawTrip} />}
+
+      {section === 'budget' && (
+        <BudgetSection rawTrip={rawTrip} currencyCode={currencyCode} canEdit={canManageTrip} onEdit={onEdit} />
+      )}
+
+      {section === 'plan' && (
+        <>
+
+      {/* Sticky day nav, jump to any leg with one tap */}
       {stops.length >= 2 && (
         <Box sx={{ position: 'sticky', top: 57, zIndex: 19, bgcolor: 'background.default', borderBottom: `1px solid ${border}` }}>
           <Box sx={{ maxWidth: 1280, mx: 'auto', px: { xs: 2, md: 4 }, py: 1, display: 'flex', gap: 0.75, overflowX: 'auto', scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
@@ -1202,114 +1222,6 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
             })}
           </Box>
 
-          {/* ── Packing checklist (crew-only): the suitcase-side companion ── */}
-          {memberView && packing.length > 0 && (
-            <Box sx={{ mt: 6 }}>
-              <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1.5, mb: 1, flexWrap: 'wrap' }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-                  <IconLuggage size={20} style={{ color: 'primary.main' }} />
-                  <Typography sx={{ fontWeight: 700, fontSize: 22, color: 'text.primary' }}>
-                    The packing list
-                  </Typography>
-                </Box>
-                <MembersOnlyTag />
-              </Box>
-
-              {/* Overall progress */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 2.5, maxWidth: 460 }}>
-                {allPacked ? (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, color: '#16a34a' }}>
-                    <IconConfetti size={17} />
-                    <Typography sx={{ fontSize: 13.5, fontWeight: 700,}}>
-                      All packed, go catch that flight.
-                    </Typography>
-                  </Box>
-                ) : (
-                  <>
-                    <LinearProgress
-                      variant="determinate"
-                      value={packTotal ? (packDone / packTotal) * 100 : 0}
-                      sx={{ flex: 1, height: 7, borderRadius: 4, bgcolor: 'action.hover', '& .MuiLinearProgress-bar': { borderRadius: 4, bgcolor: 'primary.main' } }}
-                    />
-                    <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: 'text.secondary', whiteSpace: 'nowrap' }}>
-                      {packDone} of {packTotal} packed
-                    </Typography>
-                  </>
-                )}
-              </Box>
-
-              <Box sx={{ display: 'grid', gridTemplateColumns: { xs: 'minmax(0,1fr)', sm: 'repeat(2, minmax(0,1fr))' }, gap: 2 }}>
-                {packing.map((cat, ci) => {
-                  const CatIcon = packingCategoryIcon(cat.name);
-                  const done = cat.items.filter(isPacked).length;
-                  const catComplete = done === cat.items.length;
-                  return (
-                    <Box key={ci} sx={{
-                      borderRadius: '16px',
-                      border: `1px solid ${catComplete ? 'rgba(22,163,74,0.35)' : border}`,
-                      bgcolor: 'background.paper',
-                      p: 2,
-                      transition: 'border-color .2s',
-                    }}>
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.75 }}>
-                        <Box sx={{
-                          width: 30, height: 30, borderRadius: '9px', flexShrink: 0,
-                          display: 'flex', alignItems: 'center', justifyContent: 'center',
-                          bgcolor: catComplete ? 'rgba(22,163,74,0.10)' : alpha(BRAND.coral, 0.08),
-                          color: catComplete ? '#16a34a' : BRAND.coral,
-                        }}>
-                          <CatIcon size={16} />
-                        </Box>
-                        <Typography sx={{ fontSize: 14.5, fontWeight: 700, color: 'text.primary', flex: 1, minWidth: 0 }}>
-                          {cat.name}
-                        </Typography>
-                        <Typography sx={{ fontSize: 11.5, fontWeight: 700, color: catComplete ? '#16a34a' : 'text.disabled',}}>
-                          {done}/{cat.items.length}
-                        </Typography>
-                      </Box>
-                      <LinearProgress
-                        variant="determinate"
-                        value={cat.items.length ? (done / cat.items.length) * 100 : 0}
-                        sx={{ height: 3, borderRadius: 2, mb: 1.5, bgcolor: 'action.hover', '& .MuiLinearProgress-bar': { borderRadius: 2, bgcolor: catComplete ? '#16a34a' : BRAND.coral } }}
-                      />
-                      <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.75 }}>
-                        {cat.items.map((item) => {
-                          const packed = isPacked(item);
-                          return (
-                            <Box
-                              key={item.key}
-                              component="button"
-                              type="button"
-                              onClick={() => togglePacked(item)}
-                              aria-pressed={packed}
-                              sx={{
-                                display: 'inline-flex', alignItems: 'center', gap: 0.6,
-                                border: `1px solid ${packed ? alpha(BRAND.coral, 0.35) : border}`,
-                                bgcolor: packed ? alpha(BRAND.coral, 0.06) : 'transparent',
-                                color: packed ? 'text.disabled' : 'text.secondary',
-                                borderRadius: '50px', px: 1.1, py: 0.5, cursor: 'pointer', fontSize: 12.5, fontWeight: 600,
-                                textDecoration: packed ? 'line-through' : 'none',
-                                transition: 'all .15s',
-                                '&:hover': { borderColor: alpha(BRAND.coral, 0.5) },
-                              }}
-                            >
-                              {packed
-                                ? <IconCircleCheckFilled size={15} style={{ color: 'primary.main', flexShrink: 0 }} />
-                                : <IconCircle size={15} style={{ opacity: 0.45, flexShrink: 0 }} />}
-                              {item.qty > 1 ? `${item.name} × ${item.qty}` : item.name}
-                            </Box>
-                          );
-                        })}
-                      </Box>
-                    </Box>
-                  );
-                })}
-              </Box>
-              <Typography sx={{ fontSize: 11.5, color: 'text.disabled', mt: 1.5 }}>
-                Ticks here stay on this device, perfect for packing day. The planner keeps the master list.
-              </Typography>
-            </Box>
-          )}
         </Box>
 
         {/* ── Right: sticky sidebar ── */}
@@ -1440,6 +1352,9 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
           </Box>
         </Box>
       ) : null}
+
+        </>
+      )}
 
       <TripShareModal
         open={shareOpen}

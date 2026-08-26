@@ -94,7 +94,8 @@ export function isBlockEmpty(block: StoryBlock): boolean {
 /** Photos across the whole story, for the budget indicator and the limit check. */
 export function countPhotos(blocks: StoryBlock[]): number {
   return blocks.reduce((total, block) => {
-    if (block.type === 'photo') return total + 1;
+    // An empty template slot is not a photo yet, so it must not eat the budget.
+    if (block.type === 'photo') return total + (block.url.trim() ? 1 : 0);
     if (block.type === 'gallery') return total + block.items.length;
     if (block.type === 'place' && block.photoUrl) return total + 1;
     return total;

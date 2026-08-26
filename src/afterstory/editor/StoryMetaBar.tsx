@@ -21,25 +21,18 @@ import { DatePicker } from '@mui/x-date-pickers/DatePicker';
 import dayjs from 'dayjs';
 import { VIBES } from '../../pages/CommunityPage/vibes';
 import { COUNTRIES } from '../../utils/countries';
-import { STORY_TEMPLATES, TEMPLATE_ORDER, missingScaffold } from '../render/templates';
+import { templateStyle } from '../render/templates';
 import { STORY_LIMITS } from '../types';
 import { STORY_FIELD_SX } from '../storyFormat';
-import type { StoryDraft, StoryTemplate } from '../types';
+import type { StoryDraft } from '../types';
 
 interface StoryMetaBarProps {
   draft: StoryDraft;
   onChange: (patch: Partial<StoryDraft>) => void;
-  onApplyScaffold: (template: StoryTemplate) => void;
 }
 
-
-const StoryMetaBar: React.FC<StoryMetaBarProps> = ({ draft, onChange, onApplyScaffold }) => {
+const StoryMetaBar: React.FC<StoryMetaBarProps> = ({ draft, onChange }) => {
   const theme = useTheme();
-
-  const scaffoldOffer = React.useMemo(
-    () => missingScaffold(draft.template, draft.blocks),
-    [draft.template, draft.blocks],
-  );
 
   return (
     <Box sx={{ display: 'grid', gap: 2.5 }}>
@@ -127,79 +120,25 @@ const StoryMetaBar: React.FC<StoryMetaBarProps> = ({ draft, onChange, onApplySca
         </Box>
       </Section>
 
-      <Section title="Template">
-        <Box sx={{ display: 'grid', gap: 0.75 }}>
-          {TEMPLATE_ORDER.map((key) => {
-            const template = STORY_TEMPLATES[key];
-            const active = draft.template === key;
-            return (
-              <Box
-                key={key}
-                component="button"
-                type="button"
-                onClick={() => onChange({ template: key })}
-                aria-pressed={active}
-                sx={{
-                  textAlign: 'left',
-                  p: 1.25,
-                  borderRadius: '12px',
-                  cursor: 'pointer',
-                  font: 'inherit',
-                  border: `1px solid ${active ? theme.palette.primary.main : theme.custom.surface.border}`,
-                  bgcolor: active ? theme.custom.surface.brandTint : 'transparent',
-                  '&:hover': { bgcolor: active ? theme.custom.surface.brandTint : theme.custom.surface.hover },
-                  '&:focus-visible': { outline: `2px solid ${theme.custom.ring}`, outlineOffset: 2 },
-                }}
-              >
-                <Typography variant="subtitle2" sx={{ color: 'text.primary' }}>
-                  {template.label}
-                </Typography>
-                <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                  {template.description}
-                </Typography>
-              </Box>
-            );
-          })}
+      <Section title="Shape">
+        <Box
+          sx={{
+            p: 1.25,
+            borderRadius: '12px',
+            border: `1px solid ${theme.custom.surface.border}`,
+          }}
+        >
+          <Typography variant="subtitle2" sx={{ color: 'text.primary' }}>
+            {templateStyle(draft.template).label}
+          </Typography>
+          <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }}>
+            {templateStyle(draft.template).description}
+          </Typography>
+          {/* Locked after creation: restyling a finished story into another shape made a mess of it. */}
+          <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mt: 0.75 }}>
+            Chosen when you started this story and fixed from then on. To use a different shape, delete this story and write a new one.
+          </Typography>
         </Box>
-
-        {/*
-          Switching template never rewrites the body. If the new shape expects
-          headings the story does not have, they are offered, and only if the
-          author says yes.
-        */}
-        {scaffoldOffer.length > 0 && draft.blocks.length > 0 && (
-          <Box
-            sx={{
-              mt: 1.25,
-              p: 1.25,
-              borderRadius: '12px',
-              border: `1px solid ${theme.custom.surface.border}`,
-            }}
-          >
-            <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mb: 0.75 }}>
-              This template usually has {scaffoldOffer.length} more section
-              {scaffoldOffer.length === 1 ? '' : 's'}. Add them to the end?
-            </Typography>
-            <Box
-              component="button"
-              type="button"
-              onClick={() => onApplyScaffold(draft.template)}
-              sx={{
-                border: 0,
-                bgcolor: 'transparent',
-                p: 0,
-                font: 'inherit',
-                fontSize: 13,
-                fontWeight: 600,
-                color: 'primary.main',
-                cursor: 'pointer',
-                '&:hover': { textDecoration: 'underline' },
-              }}
-            >
-              Add the sections
-            </Box>
-          </Box>
-        )}
       </Section>
 
       <Section title="Summary">

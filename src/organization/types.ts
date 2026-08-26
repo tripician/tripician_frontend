@@ -1,12 +1,13 @@
 export type OrganizationStatus = 'pending' | 'approved' | 'rejected' | 'suspended';
 
-export type OrganizationRole = 'admin' | 'member';
+export type OrganizationRole = 'admin' | 'manager' | 'member';
 
 export interface Organization {
   id: string;
   name: string;
   slug: string | null;
   logoUrl: string | null;
+  coverUrl: string | null;
   description: string | null;
   website: string | null;
   contactEmail: string | null;
@@ -17,6 +18,9 @@ export interface Organization {
   appliedAt: string;
   /** The role the signed in person holds here. Never sent for a stranger. */
   myRole: OrganizationRole | null;
+  plan: string;
+  /** What this plan unlocks. Rendered from, never derived by comparing plan ids. */
+  features: string[];
 }
 
 export interface OrganizationMember {
@@ -36,6 +40,7 @@ export interface OrganizationPublic {
   name: string;
   slug: string | null;
   logoUrl: string | null;
+  coverUrl: string | null;
   description: string | null;
   website: string | null;
   verified: boolean;
@@ -47,6 +52,7 @@ export interface OrganizationWrite {
   name?: string;
   slug?: string;
   logoUrl?: string;
+  coverUrl?: string;
   description?: string;
   website?: string;
   contactEmail?: string;
@@ -56,6 +62,33 @@ export interface OrganizationWrite {
 
 export const isOrganizationAdmin = (organization: Organization | null | undefined): boolean =>
   organization?.myRole === 'admin';
+
+/** Admins and managers both run the organisation's trips. */
+export const runsOrganizationTrips = (organization: Organization | null | undefined): boolean =>
+  organization?.myRole === 'admin' || organization?.myRole === 'manager';
+
+export const PLAN_FEATURES = {
+  posts: 'organization_posts',
+  staffing: 'organization_staffing',
+  managerRole: 'organization_manager_role',
+  coverImage: 'organization_cover_image',
+} as const;
+
+export const hasFeature = (organization: Organization | null | undefined, feature: string): boolean =>
+  Array.isArray(organization?.features) && organization.features.includes(feature);
+
+export interface OrganizationPost {
+  id: string;
+  organizationId: string;
+  organizationName: string;
+  organizationSlug: string | null;
+  organizationLogoUrl: string | null;
+  organizationVerified: boolean;
+  body: string;
+  imageUrl: string | null;
+  tripId: string | null;
+  createdAt: string;
+}
 
 /** One row of the organisation control panel. */
 export interface OrganizationTrip {

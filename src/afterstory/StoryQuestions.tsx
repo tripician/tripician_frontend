@@ -26,11 +26,12 @@ import {
   useTheme,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { useRequireAuth } from '../auth/AuthGate';
+import { takeDraft } from '../utils/pendingDraft';
 import { IconTrash, IconMessageCircleQuestion } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import { afterStoryService } from './afterStoryService';
-import { useAuthToken } from '../hooks/useAuth0Token';
 import { STORY_FIELD_SX } from './storyFormat';
 import type { StoryQuestion } from './types';
 
@@ -48,11 +49,13 @@ const MAX = 1200;
 
 const StoryQuestions: React.FC<StoryQuestionsProps> = ({ storyId, authorName, isAuthor }) => {
   const theme = useTheme();
-  const navigate = useNavigate();
-  const { token } = useAuthToken();
+  const requireAuth = useRequireAuth();
+
+  // Scoped to the story, so a draft cannot reappear on a different one.
+  const draftKey = `story-question:${storyId}`;
 
   const [questions, setQuestions] = React.useState<StoryQuestion[]>([]);
-  const [draft, setDraft] = React.useState('');
+  const [draft, setDraft] = React.useState(() => takeDraft(draftKey) ?? '');
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [answering, setAnswering] = React.useState<string | null>(null);
@@ -69,12 +72,15 @@ const StoryQuestions: React.FC<StoryQuestionsProps> = ({ storyId, authorName, is
   }, [storyId]);
 
   const post = async (content: string, parentId?: string) => {
-    if (!token) {
-      navigate('/signin');
-      return;
-    }
     const trimmed = content.trim();
     if (!trimmed) return;
+
+    if (!requireAuth({
+      reason: parentId
+        ? 'Your answer is saved. Sign in and it posts where you left it.'
+        : 'Your question is saved. Sign in and it posts where you left it.',
+      draft: { key: draftKey, text: trimmed },
+    })) return;
 
     setBusy(true);
     setError(null);
@@ -133,16 +139,9 @@ const StoryQuestions: React.FC<StoryQuestionsProps> = ({ storyId, authorName, is
             fullWidth
             multiline
             minRows={2}
-            placeholder={
-              token
-                ? `Was it worth the early start? Would you stay there again?`
-                : 'Sign in to ask a question'
-            }
+            placeholder="Was it worth the early start? Would you stay there again?"
             value={draft}
             onChange={(e) => setDraft(e.target.value.slice(0, MAX))}
-            onFocus={() => {
-              if (!token) navigate('/signin');
-            }}
             sx={STORY_FIELD_SX}
           />
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

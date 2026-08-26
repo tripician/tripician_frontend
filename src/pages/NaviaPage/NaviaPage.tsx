@@ -24,6 +24,8 @@ import { useAppShell } from '../PageLayout/AppShellContext';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import { apiServices } from '../../services/APIs/apiServices';
+import { usePlanImport } from '../../navia/usePlanImport';
+import { PlanImportAttachButton, PlanImportStrip } from '../../navia/PlanImportControls';
 import { matchCountryName } from '../../utils/countries';
 import { scheduleFeedbackPrompt } from '../../utils/feedbackPrompt';
 import { takePendingPrompt } from '../../utils/pendingNaviaPrompt';
@@ -46,6 +48,7 @@ const NaviaPage: React.FC = () => {
   const { messages, isStreaming, sendMessage, clearMessages } = useNavia('', token);
 
   const [input, setInput] = useState('');
+  const importer = usePlanImport(token);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -96,11 +99,19 @@ const NaviaPage: React.FC = () => {
   }, [messages]);
 
   const handleSend = useCallback(() => {
+    // Screenshots attached: this is a plan to read, not a question to answer.
+    // Anything typed alongside it is context for the reading.
+    if (importer.screenshots.length > 0) {
+      if (importer.busy) return;
+      importer.run(input.trim()).then((ok) => { if (ok) setInput(''); });
+      return;
+    }
+
     const text = input.trim();
     if (!text || isStreaming) return;
     setInput('');
     sendMessage(text);
-  }, [input, isStreaming, sendMessage]);
+  }, [importer, input, isStreaming, sendMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -121,6 +132,12 @@ const NaviaPage: React.FC = () => {
     /day\s*\d|night|itinerary|destination|visit|explore|stay|flight|hotel/i.test(lastNaviaMsg.content);
 
   const isEmpty = messages.length === 0;
+
+  // Attached screenshots are enough on their own: the plan is in the picture, so
+  // there is nothing they have to type first.
+  const hasShots = importer.screenshots.length > 0;
+  const canSend = (hasShots || Boolean(input.trim()))
+    && !isStreaming && !importer.busy && !importer.preparing;
 
   // One of the two moments that can nudge a first-time user toward feedback -
   // ten seconds after they start actually chatting with Navia, not merely
@@ -187,7 +204,17 @@ const NaviaPage: React.FC = () => {
       const tripResp = await apiServices.getTripById(token, createdId);
       scheduleFeedbackPrompt('trip_created');
       navigate(`/tripplanner/${createdId}`, {
-        state: { tripId: createdId, trip: tripResp.data, chatSeed: { stops: extracted.stops } },
+        state: {
+          tripId: createdId,
+          trip: tripResp.data,
+          // The chat produces stops and nothing else; the wider seed fields are
+          // filled only when a plan is imported from a screenshot.
+          planSeed: {
+            stops: extracted.stops.map((s) => ({
+              name: s.name, nights: s.nights, notes: s.notes, spots: s.spots, foods: s.foods,
+            })),
+          },
+        },
       });
       // No state reset needed: navigation unmounts this page.
     } catch (err) {
@@ -424,6 +451,15 @@ const NaviaPage: React.FC = () => {
           pt: 1.5,
         }}
       >
+        {importer.screenshots.length > 0 && (
+          <Box sx={{ mb: 1 }}>
+            <PlanImportStrip
+              screenshots={importer.screenshots}
+              onRemove={importer.removeScreenshot}
+              disabled={importer.busy}
+            />
+          </Box>
+        )}
         <Box
           sx={{
             display: 'flex',
@@ -444,16 +480,30 @@ const NaviaPage: React.FC = () => {
             },
           }}
         >
+          <PlanImportAttachButton
+            onFiles={importer.addFiles}
+            disabled={isStreaming || importer.busy || importer.atCapacity}
+            preparing={importer.preparing}
+            size={34}
+          />
           <InputBase
             inputRef={inputRef}
             multiline
             maxRows={6}
             fullWidth
-            placeholder="Ask Navia anything about travel…"
+            placeholder={importer.screenshots.length > 0
+              ? 'Anything to add about this plan? (optional)'
+              : 'Ask Navia anything about travel…'}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            disabled={isStreaming}
+            onPaste={(e) => {
+              const files = Array.from(e.clipboardData?.files ?? []).filter((f) => f.type.startsWith('image/'));
+              if (files.length === 0) return;
+              e.preventDefault();
+              importer.addFiles(files);
+            }}
+            disabled={isStreaming || importer.busy}
             sx={{
               fontSize: '0.92rem',
               lineHeight: 1.55,
@@ -462,16 +512,17 @@ const NaviaPage: React.FC = () => {
           />
           <IconButton
             onClick={handleSend}
-            disabled={!input.trim() || isStreaming}
+            disabled={!canSend}
+            aria-label={hasShots ? 'Read this plan and build the trip' : 'Send'}
             sx={{
               flexShrink: 0,
               width: 36,
               height: 36,
               borderRadius: '10px',
-              bgcolor: input.trim() && !isStreaming ? 'primary.main' : undefined,
-              color: input.trim() && !isStreaming ? '#fff' : 'text.disabled',
+              bgcolor: canSend ? 'primary.main' : undefined,
+              color: canSend ? '#fff' : 'text.disabled',
               transition: 'all 0.15s ease',
-              '&:hover': { bgcolor: input.trim() && !isStreaming ? BRAND.coralDark : undefined },
+              '&:hover': { bgcolor: canSend ? BRAND.coralDark : undefined },
             }}
           >
             <IconSend size={18} />
@@ -481,11 +532,15 @@ const NaviaPage: React.FC = () => {
           sx={{
             mt: 0.75,
             fontSize: '0.7rem',
-            color: 'text.disabled',
+            color: importer.error ? 'error.main' : 'text.disabled',
             textAlign: 'center',
           }}
         >
-          Navia can make mistakes. Always verify travel details before booking.
+          {importer.busy
+            ? importer.busyMessage
+            : importer.error
+              ? importer.error
+              : 'Navia can make mistakes. Always verify travel details before booking.'}
         </Typography>
       </Box>
 

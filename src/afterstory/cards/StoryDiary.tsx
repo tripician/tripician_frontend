@@ -19,6 +19,7 @@ import { useNavigate } from 'react-router-dom';
 import { IconArrowRight } from '@tabler/icons-react';
 import { storyPath } from '../storySlug';
 import { templateStyle } from '../render/templates';
+import CardTypeTag from '../../components/ui/CardTypeTag';
 import type { AfterStorySummaryDto } from '../types';
 
 interface StoryDiaryProps {
@@ -121,12 +122,15 @@ const DiaryEntry: React.FC<{ story: AfterStorySummaryDto; first: boolean }> = ({
               // came out near 400px tall, so a single entry filled the viewport
               // and the diary stopped reading as a sequence.
               height: { xs: 190, sm: 240, md: 300 },
+              position: 'relative',
               borderRadius: '14px',
               overflow: 'hidden',
               cursor: 'pointer',
               bgcolor: theme.custom.surface.active,
             }}
           >
+            <CardTypeTag kind="story" right={16} />
+
             <Box
               component="img"
               src={cover}

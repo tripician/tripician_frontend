@@ -1,22 +1,31 @@
 import React from 'react';
 import { Box, Tooltip, Typography, useTheme } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { useRequireAuth } from '../../auth/AuthGate';
 import {
   IconCopy,
   IconHeart,
   IconHeartFilled,
   IconMessageCircle2,
+  IconUsersPlus,
 } from '@tabler/icons-react';
+import { describeSpots } from '../../seats/types';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useTripCover } from '../../utils/tripCover';
 import { tripNights } from '../../utils/tripMeta';
 import TripListingCard from '../../components/ui/TripListingCard';
 import type { TripListingPerson } from '../../components/ui/TripListingCard';
+import type { CardTypeKind } from '../../components/ui/cardTypes';
 import ImageBadge from '../../components/ui/ImageBadge';
 import { VIBES } from './vibes';
 
-interface TripCardProps { trip: any; onClick: () => void; }
+interface TripCardProps {
+  trip: any;
+  onClick: () => void;
+  /** Overrides the corner ribbon. Templates are plans, but read as their own kind. */
+  typeTag?: CardTypeKind | null;
+}
 
 /**
  * A published trip on Community, Templates and public profiles.
@@ -31,7 +40,7 @@ interface TripCardProps { trip: any; onClick: () => void; }
  * something to read and copy, not something to join - those rows arrive with
  * recruitment, on the same component.
  */
-const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
+const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick, typeTag = 'plan' }) => {
   const theme = useTheme();
   // Resolved through the shared hook so this card, the profile card and the
   // trip's own hero all land on the same photo. See utils/tripCover.ts.
@@ -66,6 +75,7 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
   );
   const reactionBusyRef = React.useRef<Record<string, boolean>>({});
   const navigate = useNavigate();
+  const requireAuth = useRequireAuth();
   const { token } = useAuthToken();
 
   const [cloneLoading, setCloneLoading] = React.useState(false);
@@ -78,7 +88,7 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
 
   const handleClone = React.useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
-    if (!token) { navigate('/signin'); return; }
+    if (!requireAuth({ reason: 'Copying a trip gives you your own editable version of it.' }) || !token) return;
     if (cloneLoading || !trip.id) return;
     setCloneLoading(true);
     try {
@@ -93,7 +103,7 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
     } finally {
       setCloneLoading(false);
     }
-  }, [trip.id, token, navigate, cloneLoading]);
+  }, [trip.id, token, navigate, cloneLoading, requireAuth]);
 
   const applySummary = React.useCallback((s: any) => {
     if (!s) return;
@@ -104,7 +114,7 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
   const toggleLike = React.useCallback(async (e: React.MouseEvent) => {
     e.stopPropagation();
     if (!trip.id) return;
-    if (!token) { navigate('/signin'); return; }
+    if (!requireAuth({ reason: 'Likes are how a good trip finds the next traveller.' }) || !token) return;
     if (reactionBusyRef.current.like) return;
     reactionBusyRef.current.like = true;
     try {
@@ -115,7 +125,7 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
     } finally {
       reactionBusyRef.current.like = false;
     }
-  }, [trip.id, token, navigate, applySummary]);
+  }, [trip.id, token, applySummary, requireAuth]);
 
   // KNOWN COST: one request per card, so a 30-trip grid is 30 requests. The only
   // thing it adds over the payload is whether YOU liked this trip, which the list
@@ -143,6 +153,7 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
   return (
     <TripListingCard
       images={[photo]}
+      typeTag={typeTag}
       title={trip.name || 'Untitled Trip'}
       onClick={onClick}
       countries={countries}
@@ -163,12 +174,22 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick }) => {
       }
       spotsLeft={isOpen && typeof trip.spotsLeft === 'number' ? trip.spotsLeft : null}
       coverBadges={
-        vibe ? (
-          <ImageBadge>
-            <vibe.Icon size={12} stroke={2} />
-            {vibe.label}
-          </ImageBadge>
-        ) : null
+        <>
+          {/* Vibe only. What KIND of card this is comes from the corner ribbon
+              now, and saying "Plan" in both places is one label too many. */}
+          {vibe && (
+            <ImageBadge>
+              <vibe.Icon size={12} stroke={2} />
+              {vibe.label}
+            </ImageBadge>
+          )}
+          {isOpen && trip.spotsLeft !== 0 && (
+            <ImageBadge sx={{ bgcolor: 'primary.main', color: 'primary.contrastText' }}>
+              <IconUsersPlus size={12} stroke={2} />
+              {describeSpots({ spotsLeft: trip.spotsLeft ?? null }) ?? 'Looking for people'}
+            </ImageBadge>
+          )}
+        </>
       }
       coverStatus={
         trip.tripStatus === 1 ? (

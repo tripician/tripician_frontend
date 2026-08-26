@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import Landingpage from './pages/LandingPage/LandingPage'
 import ProtectedRoute from './services/APIs/Auth/ProtectedRoute'
 import GuestRoute from './services/APIs/Auth/GuestRoute'
+import { AuthGateProvider } from './auth/AuthGate'
 import TermsPage from './pages/InfoPages/TermsPage';
 import PrivacyPage from './pages/InfoPages/PrivacyPage';
 import AboutPage from './pages/InfoPages/AboutPage';
@@ -24,8 +25,12 @@ const Crew = lazy(() => import('./pages/CrewPage/Crew'))
 const OperatorPage = lazy(() => import('./operator/OperatorPage'))
 const OrganizationsPage = lazy(() => import('./organization/OrganizationsPage'))
 const OrganizationProfilePage = lazy(() => import('./organization/OrganizationProfilePage'))
+const OrganizationWorkspace = lazy(() => import('./organization/OrganizationWorkspace'))
 const PricingPage = lazy(() => import('./pricing/PricingPage'))
 const Templates = lazy(() => import('./pages/TemplatesPage/Templates'))
+const TripsPage = lazy(() => import('./pages/TripsPage/TripsPage'))
+const PostsPage = lazy(() => import('./posts/PostsPage'))
+const PostPage = lazy(() => import('./posts/PostPage'))
 const TravelerProfile = lazy(() => import('./pages/ProfilePage/TravelerProfile'))
 const Settings = lazy(() => import('./pages/SettingsPage/Settings'))
 const RiskMonitor = lazy(() => import('./pages/RiskMonitorPage/RiskMonitor'))
@@ -35,7 +40,7 @@ const TripPlannerRoute = lazy(() => import('./pages/CreateTripPage/TripPlannerRo
 const TripView = lazy(() => import('./pages/TripViewPage/TripView'))
 const StoryEditPage = lazy(() => import('./afterstory/StoryEditPage'))
 const StoryPage = lazy(() => import('./afterstory/StoryPage'))
-const StoriesPage = lazy(() => import('./afterstory/StoriesPage'))
+const BrowsePage = lazy(() => import('./pages/BrowsePage/BrowsePage'))
 const HelpPage = lazy(() => import('./pages/InfoPages/HelpPage'))
 const ContactPage = lazy(() => import('./pages/InfoPages/ContactPage'))
 const NotFound404 = lazy(() => import('./pages/ErrorPages/ErrorPages').then((m) => ({ default: m.NotFound404 })))
@@ -72,6 +77,9 @@ function RootRedirect() {
 function App() {
   return (
     <div className="App">
+      {/* Above the routes on purpose: the sign-in prompt has to reach the public
+          pages that render outside AuthenticatedLayout, which is most of them. */}
+      <AuthGateProvider>
       <Suspense fallback={<div style={{ minHeight: '100vh' }} />}>
         <Routes>
           <Route path="/signup" element={<GuestRoute><Signup /></GuestRoute>} />
@@ -93,17 +101,25 @@ function App() {
             <Route path="/settings" element={<Settings />} />
             <Route path="/operator" element={<OperatorPage />} />
             <Route path="/organizations" element={<OrganizationsPage />} />
+            <Route path="/organizations/:orgId" element={<OrganizationWorkspace />} />
           </Route>
           {/* Semi-public routes: full app layout but no auth gate - guests can browse, login prompted on action */}
           <Route element={<AuthenticatedLayout />}>
             <Route path="/community" element={<Community />} />
             {/* Semi-public like /community: a guest can browse, and signing in is
                 prompted on the action rather than at the door. */}
-            <Route path="/stories" element={<StoriesPage />} />
+            <Route path="/stories" element={<BrowsePage />} />
             {/* Lifted out of the Community tabs: finding a person and copying a
                 starting point are lookups, not browsing, and both deserve a URL. */}
             <Route path="/crew" element={<Crew />} />
             <Route path="/templates" element={<Templates />} />
+            {/* Community is an editorial scroll, so browsing everything needs its own page. */}
+            {/* One library, filtered. /trips is in links and history, so it lands there. */}
+            <Route path="/trips" element={<Navigate to="/stories?kind=plans" replace />} />
+            {/* Short notes from travellers. Semi-public: browsing needs no account, posting does. */}
+            <Route path="/posts" element={<PostsPage />} />
+            <Route path="/post/:postId" element={<PostPage />} />
+            <Route path="/trips/looking-for-people" element={<TripsPage recruitingOnly />} />
             <Route path="/traveler/:userId" element={<TravelerProfile />} />
             <Route path="/risk-monitor" element={<RiskMonitor />} />
           </Route>
@@ -151,6 +167,7 @@ function App() {
           <Route path="*" element={<NotFound404 />} />
         </Routes>
       </Suspense>
+      </AuthGateProvider>
       <Suspense fallback={null}>
         <SuccessOverlay />
       </Suspense>

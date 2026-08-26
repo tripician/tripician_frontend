@@ -964,3 +964,170 @@
 @media (max-width: 760px) {
   .lp-footer__inner { grid-template-columns: minmax(0, 1fr); }
 }
+
+/* ============================== PLANS ================================= */
+/* Set as a table rather than three stacks of ticks, because the question a
+   pricing section answers is comparative. The cards carry the decision, the
+   table carries the detail, and neither repeats the other. */
+.lp-plans {
+  padding-block: var(--lp-gap);
+  background: var(--lp-paper-alt);
+  border-top: 1px solid var(--lp-rule);
+  border-bottom: 1px solid var(--lp-rule);
+}
+
+.lp-plans__billing {
+  display: inline-flex;
+  gap: 2px;
+  padding: 3px;
+  margin-bottom: 32px;
+  border: 1px solid var(--lp-rule);
+  border-radius: 999px;
+  background: var(--lp-paper);
+}
+.lp-plans__period {
+  border: none;
+  background: transparent;
+  border-radius: 999px;
+  padding: 8px 20px;
+  font-family: var(--font-body);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--lp-ink-mute);
+  cursor: pointer;
+  transition: background-color .2s ease, color .2s ease;
+}
+.lp-plans__period.is-on {
+  background: var(--lp-ink);
+  color: var(--lp-paper);
+}
+.lp-plans__period:focus-visible { outline: 2px solid var(--lp-primary); outline-offset: 2px; }
+
+.lp-plans__grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 20px;
+  align-items: stretch;
+}
+@media (max-width: 900px) {
+  .lp-plans__grid { grid-template-columns: 1fr; }
+}
+
+.lp-plan {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 28px 26px;
+  border: 1px solid var(--lp-rule);
+  border-radius: var(--lp-radius);
+  background: var(--lp-paper);
+  position: relative;
+}
+/* One tonal step and a heavier rule, not a shadow and not a lift. A glowing
+   card is the generated-UI tell the theme rules exist to prevent. */
+.lp-plan--featured {
+  border-color: var(--lp-rule-strong);
+  box-shadow: 0 1px 2px rgba(28, 28, 33, 0.04);
+}
+.lp-plan__tag {
+  position: absolute;
+  top: -11px;
+  left: 26px;
+  padding: 3px 12px;
+  border-radius: 999px;
+  background: var(--lp-ink);
+  color: var(--lp-paper);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+.lp-plan__pitch {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--lp-ink-mute);
+  min-height: 3em;
+}
+.lp-plan__price {
+  margin: 10px 0 0;
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: 2.25rem;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  color: var(--lp-ink);
+}
+.lp-plan__per {
+  font-family: var(--font-body);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--lp-ink-mute);
+}
+.lp-plan__saving {
+  margin: 0;
+  font-size: 0.8125rem;
+  font-weight: 600;
+  color: var(--lp-primary-type);
+}
+.lp-plan__scope {
+  margin: 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--lp-ink-mute);
+}
+.lp-plan__cta {
+  margin-top: auto;
+  width: 100%;
+}
+
+.lp-plans__table-wrap {
+  margin-top: 44px;
+  overflow-x: auto;
+}
+.lp-plans__table {
+  width: 100%;
+  min-width: 620px;
+  border-collapse: collapse;
+  font-size: 0.9375rem;
+}
+.lp-plans__caption {
+  text-align: left;
+  padding-bottom: 14px;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  color: var(--lp-ink-mute);
+}
+.lp-plans__table th,
+.lp-plans__table td {
+  padding: 14px 16px;
+  border-bottom: 1px solid var(--lp-rule);
+  text-align: left;
+  vertical-align: middle;
+}
+.lp-plans__table thead th {
+  font-weight: 700;
+  color: var(--lp-ink);
+  border-bottom-color: var(--lp-rule-strong);
+}
+.lp-plans__table tbody th {
+  font-weight: 500;
+  color: var(--lp-ink-soft);
+  width: 46%;
+}
+.lp-plans__table td { color: var(--lp-ink); }
+
+.lp-plans__yes { color: var(--lp-primary-type); display: inline-flex; }
+.lp-plans__no { color: var(--lp-rule-strong); display: inline-flex; }
+.lp-plans__val { font-weight: 600; }
+
+.lp-plans__note {
+  max-width: var(--lp-measure);
+  margin: 28px 0 0;
+  font-size: 0.875rem;
+  line-height: 1.65;
+  color: var(--lp-ink-mute);
+}

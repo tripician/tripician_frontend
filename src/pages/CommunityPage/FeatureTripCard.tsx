@@ -1,6 +1,7 @@
 import React from 'react';
 import { Box, Button, Typography, useTheme } from '@mui/material';
 import { IconArrowRight } from '@tabler/icons-react';
+import CardTypeTag from '../../components/ui/CardTypeTag';
 import VerifiedTripBadge from '../../components/CommonComponents/VerifiedTripBadge';
 import { useTripCover } from '../../utils/tripCover';
 
@@ -151,6 +152,8 @@ const FeatureTripCard: React.FC<FeatureTripCardProps> = ({ trip, onClick, eyebro
           bgcolor: theme.custom.surface.active,
         }}
       >
+        <CardTypeTag kind="plan" right={16} />
+
         {photo && (
           <Box
             component="img"

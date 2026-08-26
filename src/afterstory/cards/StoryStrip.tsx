@@ -11,6 +11,7 @@ import React from 'react';
 import { Box, Button, Typography, useTheme } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import StoryCard from './StoryCard';
+import ScrollRail from '../../components/ui/ScrollRail';
 import type { AfterStorySummaryDto } from '../types';
 
 interface StoryStripProps {
@@ -63,17 +64,7 @@ const StoryStrip: React.FC<StoryStripProps> = ({
         )}
       </Box>
 
-      <Box
-        sx={{
-          display: 'flex',
-          gap: 2.5,
-          overflowX: 'auto',
-          pb: 1,
-          scrollSnapType: 'x proximity',
-          '::-webkit-scrollbar': { display: 'none' },
-          scrollbarWidth: 'none',
-        }}
-      >
+      <ScrollRail gap={2.5} ariaLabel={title}>
         {loading
           ? Array.from({ length: 3 }).map((_, i) => (
               <Box
@@ -88,11 +79,11 @@ const StoryStrip: React.FC<StoryStripProps> = ({
               />
             ))
           : stories.map((story) => (
-              <Box key={story.id} sx={{ scrollSnapAlign: 'start' }}>
+              <Box key={story.id} sx={{ flex: '0 0 auto' }}>
                 <StoryCard story={story} width={CARD_WIDTH} />
               </Box>
             ))}
-      </Box>
+      </ScrollRail>
     </Box>
   );
 };

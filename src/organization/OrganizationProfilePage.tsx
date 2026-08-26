@@ -15,6 +15,7 @@ import { apiServices } from '../services/APIs/apiServices';
 import Seo from '../components/Seo';
 import EmptyState from '../components/ui/EmptyState';
 import { safeExternalUrl } from '../utils/sanitizeHtml';
+import PublicOrganizationPosts from './PublicOrganizationPosts';
 import type { OrganizationPublic } from './types';
 
 const CONTENT_MAX = 900;
@@ -69,12 +70,26 @@ const OrganizationProfilePage: React.FC = () => {
         path={`/o/${organization.slug ?? ''}`}
       />
 
-      <Box sx={{ maxWidth: CONTENT_MAX, mx: 'auto', px: { xs: 2, sm: 3 }, pt: { xs: 4, md: 6 }, pb: 10 }}>
-        <Box sx={{ display: 'flex', gap: 2.5, alignItems: 'flex-start', flexWrap: 'wrap' }}>
+      {organization.coverUrl && (
+        <Box sx={{ height: { xs: 160, md: 260 }, overflow: 'hidden', bgcolor: 'action.hover' }}>
+          <Box component="img" src={organization.coverUrl} alt="" sx={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+        </Box>
+      )}
+
+      <Box sx={{ maxWidth: CONTENT_MAX, mx: 'auto', px: { xs: 2, sm: 3 }, pt: organization.coverUrl ? 0 : { xs: 4, md: 6 }, pb: 10 }}>
+        <Box
+          sx={{
+            display: 'flex', gap: 2.5, alignItems: 'flex-start', flexWrap: 'wrap',
+            mt: organization.coverUrl ? -5 : 0,
+          }}
+        >
           <Avatar
             src={organization.logoUrl ?? undefined}
             variant="rounded"
-            sx={{ width: 76, height: 76, borderRadius: '18px', bgcolor: 'primary.main' }}
+            sx={{
+              width: 76, height: 76, borderRadius: '18px', bgcolor: 'primary.main',
+              ...(organization.coverUrl ? { border: `3px solid ${theme.palette.background.default}` } : {}),
+            }}
           >
             {organization.name.charAt(0).toUpperCase()}
           </Avatar>
@@ -118,6 +133,10 @@ const OrganizationProfilePage: React.FC = () => {
             Visit website
           </Button>
         )}
+
+        <Box sx={{ mt: 5 }}>
+          <PublicOrganizationPosts organizationId={organization.id} />
+        </Box>
 
         {organization.verified && (
           <Typography variant="caption" sx={{ display: 'block', color: 'text.disabled', mt: 4 }}>

@@ -58,6 +58,8 @@ import {
 } from '../../../store/notificationSlice';
 import { apiServices } from '../../../services/APIs/apiServices';
 import { useAuthToken } from '../../../hooks/useAuth0Token';
+import ProPill from '../../../pricing/ProPill';
+import { useAppShell } from '../AppShellContext';
 
 interface NotificationMeta {
   Icon: React.ElementType;
@@ -297,6 +299,7 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
   // Lives here rather than in the shell provider because, unlike the trip
   // dialog, nothing outside this header opens it.
   const [createStoryOpen, setCreateStoryOpen] = React.useState(false);
+  const { openProDialog } = useAppShell();
 
   /*
    * Anywhere in the app can ask for the story composer, the same way `trip:create`
@@ -626,6 +629,11 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
                 button stays nearest the bell and the avatar, where the eye
                 finishes.
               */}
+              {/* First in the cluster on purpose. It is brand-tinted rather than a
+                  second solid fill, so it does not compete with Plan a trip, and it
+                  leaves the documented story / trip / bell / avatar order intact. */}
+              <ProPill onClick={openProDialog} />
+
               {FEATURE_FLAGS.afterStory && (
                 <>
                   <Button
@@ -907,12 +915,15 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
             <ListItemIcon sx={{ minWidth: 32 }}><RadarRoundedIcon sx={{ fontSize: 17 }} /></ListItemIcon>
             <ListItemText primary="Risk Monitor" primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }} />
           </ListItemButton>
-          {hasOrganization && (
-            <ListItemButton onClick={() => { navigate('/organizations'); setAnchorEl(null); }} sx={{ py: 0.9 }}>
-              <ListItemIcon sx={{ minWidth: 32 }}><ApartmentRoundedIcon sx={{ fontSize: 17 }} /></ListItemIcon>
-              <ListItemText primary="Organizations" primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }} />
-            </ListItemButton>
-          )}
+          {/* Shown to everyone. Hiding it until you already had one was the reason a
+              business had no way in: the page it needed was the page it could not reach. */}
+          <ListItemButton onClick={() => { navigate('/organizations'); setAnchorEl(null); }} sx={{ py: 0.9 }}>
+            <ListItemIcon sx={{ minWidth: 32 }}><ApartmentRoundedIcon sx={{ fontSize: 17 }} /></ListItemIcon>
+            <ListItemText
+              primary={hasOrganization ? 'Your organization' : 'Create a business account'}
+              primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }}
+            />
+          </ListItemButton>
           <ListItemButton onClick={() => { navigate('/settings'); setAnchorEl(null); }} sx={{ py: 0.9 }}>
             <ListItemIcon sx={{ minWidth: 32 }}><SettingsRoundedIcon sx={{ fontSize: 17 }} /></ListItemIcon>
             <ListItemText primary="Settings" primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }} />

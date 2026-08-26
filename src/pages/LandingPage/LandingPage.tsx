@@ -16,6 +16,7 @@ import {
 import '../../assets/css/LandingPage.css';
 import Seo, { SITE_URL } from '../../components/Seo';
 import NaviaOrb from '../../navia/NaviaOrb';
+import LandingPricing from './LandingPricing';
 import { HERO_IMAGE, HERO_VIDEO, HERO_VIDEO_CREDIT, OG_IMAGE, TICKER, PHOTO_CREDITS } from './landingImages';
 import { apiServices } from '../../services/APIs/apiServices';
 import { afterStoryService } from '../../afterstory/afterStoryService';
@@ -676,6 +677,9 @@ export default function LandingPage() {
           <a href="/community">Community</a>
           <a href="/stories">Stories</a>
           <a href="#how-it-works">How it works</a>
+          <a href="#pricing">Pricing</a>
+          {/* The business front door. Nothing on this page mentioned organisations. */}
+          <a href="/for-operators">For businesses</a>
         </div>
         <div className="lp-nav__actions">
           <button className="lp-btn lp-btn--ghost" onClick={() => navigate('/signin')}>Sign in</button>
@@ -1010,6 +1014,9 @@ export default function LandingPage() {
         </div>
       </section>
 
+      {/*  PLANS  */}
+      <LandingPricing />
+
       {/*  FAQ  */}
       <LandingFAQ />
 
@@ -1024,6 +1031,14 @@ export default function LandingPage() {
           <div className="lp-cta__actions">
             <button className="lp-btn lp-btn--cta-primary" onClick={() => navigate('/signup')}>
               Create your account <IconArrowRight size={17} aria-hidden="true" />
+            </button>
+            {/* Signing up carries ?next=, so a business lands on the create-an-
+                organization page rather than the generic home. */}
+            <button
+              className="lp-btn lp-btn--outline"
+              onClick={() => navigate('/signup?next=%2Forganizations')}
+            >
+              Create a business account
             </button>
             <a className="lp-cta__alt" href="/community">or browse the community first</a>
           </div>

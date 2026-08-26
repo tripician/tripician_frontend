@@ -16,6 +16,11 @@ const staticRoutes = [
   { path: '/community',             priority: '0.9', changefreq: 'daily'   },
   // /discover was dropped: it redirects to /community, and listing a redirect
   // in the sitemap is a crawl-budget own goal.
+  { path: '/trips/looking-for-people', priority: '0.8', changefreq: 'daily' },
+  { path: '/stories',               priority: '0.9', changefreq: 'daily'   },
+  { path: '/posts',                 priority: '0.7', changefreq: 'hourly'  },
+  { path: '/pricing',               priority: '0.7', changefreq: 'monthly' },
+  { path: '/templates',             priority: '0.7', changefreq: 'weekly'  },
   { path: '/blog',                  priority: '0.9', changefreq: 'daily'   },
   { path: '/about-us',              priority: '0.6', changefreq: 'monthly' },
   // The business front door. Editing public/sitemap.xml by hand does nothing:
@@ -154,8 +159,51 @@ async function fetchPublishedStoryUrls() {
   }
 }
 
+/**
+ * Traveller questions.
+ *
+ * The most indexable thing on the site: somebody searching "vietjet delay" is
+ * asking exactly what a question here already answers. Each carries QAPage
+ * structured data on its own page.
+ */
+async function fetchQuestionUrls() {
+  const apiBase = readEnvApiBase();
+  if (!apiBase) return [];
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 15000);
+    const resp = await fetch(`${apiBase.replace(/\/$/, '')}/api/posts/questions?page=1&pageSize=48&sort=latest`, {
+      signal: controller.signal,
+      headers: { Accept: 'application/json' },
+    });
+    clearTimeout(timer);
+    if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+
+    const data = await resp.json();
+    const items = Array.isArray(data?.items) ? data.items : [];
+
+    return items
+      .map((q) => ({ id: q.id || q.Id, updated: q.lastActivityAt || q.createdAt }))
+      .filter((q) => Boolean(q.id))
+      .map(({ id, updated }) =>
+        urlEntry({
+          loc: `${base}/post/${id}`,
+          lastmod: (updated || today).slice(0, 10),
+          // A question changes when it is answered, which is often and unpredictable.
+          changefreq: 'daily',
+          priority: '0.6',
+        })
+      );
+  } catch (err) {
+    console.log(`ℹ sitemap: could not fetch questions (${err.message}) ,continuing without them`);
+    return [];
+  }
+}
+
 const tripUrls = await fetchPublishedTripUrls();
 const storyUrls = await fetchPublishedStoryUrls();
+const questionUrls = await fetchQuestionUrls();
 
 const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
 <urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
@@ -166,5 +214,5 @@ ${[...staticUrls, ...blogUrls, ...tripUrls, ...storyUrls].join('\n')}
 const outPath = path.join(__dirname, '../public/sitemap.xml');
 fs.writeFileSync(outPath, sitemap, 'utf-8');
 console.log(
-  `✅ sitemap.xml generated ,${staticRoutes.length} static + ${blogs.length} blog + ${tripUrls.length} trip + ${storyUrls.length} story URLs`
+  `✅ sitemap.xml generated ,${staticRoutes.length} static + ${blogs.length} blog + ${tripUrls.length} trip + ${storyUrls.length} story + ${questionUrls.length} question URLs`
 );

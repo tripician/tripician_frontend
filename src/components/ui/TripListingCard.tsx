@@ -43,6 +43,8 @@ import { normaliseCountries } from '../../utils/tripMeta';
 import VerifiedTripBadge from '../CommonComponents/VerifiedTripBadge';
 import CountryFlag from './CountryFlag';
 import IdentityVerifiedMark from './IdentityVerifiedMark';
+import CardTypeTag from './CardTypeTag';
+import type { CardTypeKind } from './cardTypes';
 
 /** Faces shown before the rest of the crew collapses into "+N". */
 const CREW_FACES = 3;
@@ -135,6 +137,12 @@ export interface TripListingCardProps {
   footer?: React.ReactNode;
   /** Fixed width turns the card into a rail item instead of a grid cell. */
   width?: number;
+  /**
+   * The bookmark saying what this card is. Defaults to a plan, because that is
+   * what this shell renders; pass null on a surface where every card is already
+   * unmistakably one thing.
+   */
+  typeTag?: CardTypeKind | null;
 }
 
 function formatPrice(price: TripListingPrice): string {
@@ -175,6 +183,7 @@ const TripListingCard: React.FC<TripListingCardProps> = ({
   underCover,
   footer,
   width,
+  typeTag = 'plan',
 }) => {
   const theme = useTheme();
 
@@ -307,6 +316,8 @@ const TripListingCard: React.FC<TripListingCardProps> = ({
           flexShrink: 0,
         }}
       >
+        {typeTag !== null && <CardTypeTag kind={typeTag} />}
+
         {current ? (
           <Box
             component="img"
@@ -380,12 +391,15 @@ const TripListingCard: React.FC<TripListingCardProps> = ({
         {coverStatus && <Box sx={{ position: 'absolute', bottom: 12, right: 12 }}>{coverStatus}</Box>}
 
         {/* Top-right stack: who is going, then saves. Both live in one column so
-            they cannot land on top of each other when a trip has both. */}
+            they cannot land on top of each other when a trip has both.
+
+            Pushed down when a type tag is showing: the tag hangs from the very
+            top edge, and at the old 12px the faces sat underneath it. */}
         {(crew.length > 0 || saves > 0) && (
           <Box
             sx={{
               position: 'absolute',
-              top: 12,
+              top: typeTag === null ? 12 : 42,
               right: 12,
               display: 'flex',
               flexDirection: 'column',

@@ -9,30 +9,44 @@
 
 import React from 'react';
 import {
-  Avatar, Box, Chip, CircularProgress, Typography, useTheme,
+  Avatar, Box, Button, Chip, CircularProgress, Typography, useTheme,
 } from '@mui/material';
 import dayjs from 'dayjs';
-import { IconMap2 } from '@tabler/icons-react';
+import { IconMap2, IconPlus, IconUserPlus } from '@tabler/icons-react';
 import { apiServices } from '../services/APIs/apiServices';
 import { useAuthToken } from '../hooks/useAuth0Token';
+import { useAppShell } from '../pages/PageLayout/AppShellContext';
 import EmptyState from '../components/ui/EmptyState';
 import SegmentedControl from '../components/ui/SegmentedControl';
+import StaffTripDialog from './StaffTripDialog';
+import { runsOrganizationTrips, hasFeature, PLAN_FEATURES } from './types';
 import type { TripFeatureVisibility } from '../utils/normalizeTrip';
-import type { OrganizationTrip } from './types';
+import type { Organization, OrganizationTrip } from './types';
 
 const VISIBILITY_OPTIONS: { value: TripFeatureVisibility; label: string }[] = [
   { value: 'admins', label: 'Admins only' },
   { value: 'members', label: 'Everyone on the trip' },
 ];
 
-const OrganizationTripsPanel: React.FC<{ organizationId: string }> = ({ organizationId }) => {
+interface OrganizationTripsPanelProps {
+  organizationId: string;
+  /** Passed on the workspace, where the panel also creates and staffs trips. */
+  organization?: Organization;
+}
+
+const OrganizationTripsPanel: React.FC<OrganizationTripsPanelProps> = ({ organizationId, organization }) => {
   const theme = useTheme();
   const { token } = useAuthToken();
+  const { openCreateTrip } = useAppShell();
 
   const [trips, setTrips] = React.useState<OrganizationTrip[]>([]);
   const [loading, setLoading] = React.useState(true);
   const [busyTripId, setBusyTripId] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [staffing, setStaffing] = React.useState<OrganizationTrip | null>(null);
+
+  const canRunTrips = runsOrganizationTrips(organization);
+  const canStaff = canRunTrips && hasFeature(organization, PLAN_FEATURES.staffing);
 
   const load = React.useCallback(async () => {
     if (!token) { setLoading(false); return; }
@@ -82,13 +96,28 @@ const OrganizationTripsPanel: React.FC<{ organizationId: string }> = ({ organiza
     );
   }
 
+  const newTripButton = canRunTrips ? (
+    <Button
+      variant="contained"
+      size="small"
+      startIcon={<IconPlus size={15} />}
+      onClick={() => openCreateTrip({ organizationId })}
+      sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '50px', justifySelf: 'start' }}
+    >
+      New trip for {organization?.name ?? 'this organization'}
+    </Button>
+  ) : null;
+
   if (trips.length === 0) {
     return (
-      <EmptyState
-        icon={IconMap2}
-        title="No trips yet"
-        description="Trips created under this organization appear here, with control over what their members can see."
-      />
+      <Box sx={{ display: 'grid', gap: 2, justifyItems: 'center' }}>
+        <EmptyState
+          icon={IconMap2}
+          title="No trips yet"
+          description="Trips created under this organization appear here, with control over what their members can see."
+        />
+        {newTripButton}
+      </Box>
     );
   }
 
@@ -98,6 +127,8 @@ const OrganizationTripsPanel: React.FC<{ organizationId: string }> = ({ organiza
         Announcements, the plan and the after story are always visible to everyone on a trip.
         Budget and checklist are yours to decide.
       </Typography>
+
+      {newTripButton}
 
       {trips.map((trip) => (
         <Box
@@ -162,11 +193,31 @@ const OrganizationTripsPanel: React.FC<{ organizationId: string }> = ({ organiza
                 onChange={(value) => void setVisibility(trip, 'checklistVisibility', value)}
               />
             </Box>
+
+            {canStaff && (
+              <Button
+                size="small"
+                startIcon={<IconUserPlus size={15} />}
+                onClick={() => setStaffing(trip)}
+                sx={{ textTransform: 'none', fontWeight: 700, justifySelf: 'start' }}
+              >
+                Put someone on this trip
+              </Button>
+            )}
           </Box>
         </Box>
       ))}
 
       {error && <Typography variant="body2" color="error">{error}</Typography>}
+
+      {organization && (
+        <StaffTripDialog
+          organization={organization}
+          trip={staffing}
+          onClose={() => setStaffing(null)}
+          onStaffed={() => { setStaffing(null); void load(); }}
+        />
+      )}
     </Box>
   );
 };

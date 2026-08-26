@@ -3,6 +3,7 @@ import { Avatar, Box, Button, IconButton, Skeleton, Tooltip, Typography, useThem
 import { alpha } from '@mui/material/styles';
 import { motion } from 'framer-motion';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
+import { useRequireAuth } from '../../auth/AuthGate';
 import { useSelector } from 'react-redux';
 import {
   IconBrandFacebook,
@@ -28,6 +29,7 @@ import IdentityVerifiedMark from '../../components/ui/IdentityVerifiedMark';
 import SectionHeader from '../../components/ui/SectionHeader';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
 import StoryDiary from '../../afterstory/cards/StoryDiary';
+import ProfilePosts from '../../posts/ProfilePosts';
 import { afterStoryService } from '../../afterstory/afterStoryService';
 import type { AfterStorySummaryDto } from '../../afterstory/types';
 import EmptyState from '../../components/ui/EmptyState';
@@ -61,6 +63,7 @@ interface PublicUser {
 const TravelerProfile: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const requireAuth = useRequireAuth();
   const { userId: userIdParam } = useParams<{ userId: string }>();
   const userId = Number(userIdParam);
   const { token } = useAuthToken();
@@ -141,7 +144,7 @@ const TravelerProfile: React.FC = () => {
   }
 
   const handleFollowToggle = async () => {
-    if (!token) { navigate('/signin'); return; }
+    if (!requireAuth({ reason: 'Follow a traveller to see their trips and stories as they publish.' }) || !token) return;
     if (followBusy) return;
     setFollowBusy(true);
     const next = !isFollowing;
@@ -381,6 +384,15 @@ const TravelerProfile: React.FC = () => {
                 stories={stories}
                 title={user ? `${user.name.split(' ')[0]}'s diary` : 'Diary'}
                 subtitle="What the trips were actually like, in their words."
+              />
+            )}
+
+            {/* What they have been saying. Renders nothing when they have not
+                posted, so a quiet profile does not carry an empty heading. */}
+            {userId && (
+              <ProfilePosts
+                authorUserId={Number(userId)}
+                title={user ? `${user.name.split(' ')[0]} lately` : 'Lately'}
               />
             )}
 

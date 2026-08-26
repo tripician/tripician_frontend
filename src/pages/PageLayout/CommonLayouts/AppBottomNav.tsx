@@ -2,7 +2,6 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import MoreHorizRoundedIcon from '@mui/icons-material/MoreHorizRounded';
 import { APP_NAV_ITEMS } from '../navConfig';
 
 /**
@@ -18,24 +17,25 @@ const MOBILE_NAV_LEFT = ['explore', 'stories'] as const;
  * Profile is here rather than in the More drawer because it now holds every one
  * of your trips. Leaving it behind a drawer would put your own trips two taps
  * deep on the surface where most planning actually happens.
+ *
+ * From the road sits between them, in the slot the More button used to take.
+ * More held exactly one item (Crew), and Crew is now a segment on Browse, so the
+ * button had nothing left to open. The order mirrors the desktop pill: the two
+ * reading surfaces, the orb, then the two you make things on.
  */
-const MOBILE_NAV_RIGHT = ['navia', 'profile'] as const;
+const MOBILE_NAV_RIGHT = ['navia', 'road', 'profile'] as const;
 
 interface AppBottomNavProps {
   onCreateTrip: () => void;
-  onMoreMenu: () => void;
 }
 
-const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip, onMoreMenu }) => {
+const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const leftItems  = APP_NAV_ITEMS.filter((i) => (MOBILE_NAV_LEFT  as readonly string[]).includes(i.id));
   const rightItems = APP_NAV_ITEMS.filter((i) => (MOBILE_NAV_RIGHT as readonly string[]).includes(i.id));
 
   const isActive = (path: string) => location.pathname === path;
-  // Whatever the More drawer currently holds. Hardcoded to the risk page until
-  // Risk left the nav, at which point the drawer highlighted nothing.
-  const moreActive = location.pathname === '/crew';
 
   return (
     <Box
@@ -163,28 +163,6 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip, onMoreMenu })
         );
       })}
 
-      <Box
-        component="button"
-        onClick={onMoreMenu}
-        sx={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 0.35,
-          border: 'none',
-          background: 'transparent',
-          cursor: 'pointer',
-          color: moreActive ? 'primary.main' : 'text.disabled',
-          py: 1,
-        }}
-      >
-        <MoreHorizRoundedIcon sx={{ fontSize: 22 }} />
-        <Typography sx={{ fontSize: '0.62rem', fontWeight: moreActive ? 700 : 600,}}>
-          More
-        </Typography>
-      </Box>
     </Box>
   );
 };

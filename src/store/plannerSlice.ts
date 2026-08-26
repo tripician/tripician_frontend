@@ -72,6 +72,14 @@ export interface PlannerSpot {
   /** Coordinates from Places - used by the feasibility checks for same-day clustering. */
   lat?: number;
   lng?: number;
+  /**
+   * The traveller said this one matters. Set when a plan is imported and its
+   * author had already starred the place; never inferred on their behalf.
+   *
+   * DaySpots.MustVisit has existed as a column all along and was read back on
+   * load, but nothing ever sent it, so the flag was zeroed by the first autosave.
+   */
+  mustVisit?: boolean;
 }
 
 export interface PlannerFood {
@@ -531,7 +539,7 @@ const plannerSlice = createSlice({
       const idx = c.upvoterIds.indexOf(action.payload.userId);
       if(idx>=0) c.upvoterIds.splice(idx,1); else c.upvoterIds.push(action.payload.userId);
     },
-  addSpot(state, action: PayloadAction<{ destinationId: string; name: string; mapUrl?: string; known: boolean; placeId?: string; photoUrl?: string; description?: string; provenance?: SpotProvenance; verifiedAt?: string; lat?: number; lng?: number }>) {
+  addSpot(state, action: PayloadAction<{ destinationId: string; name: string; mapUrl?: string; known: boolean; placeId?: string; photoUrl?: string; description?: string; provenance?: SpotProvenance; verifiedAt?: string; lat?: number; lng?: number; mustVisit?: boolean }>) {
       const d = state.destinations.find(x=> x.id === action.payload.destinationId);
       if (!d) return;
       if (!d.spots) d.spots = [];
@@ -548,6 +556,7 @@ const plannerSlice = createSlice({
         verifiedAt: action.payload.verifiedAt,
         lat: action.payload.lat,
         lng: action.payload.lng,
+        mustVisit: action.payload.mustVisit,
         checked:false
       });
     },

@@ -58,6 +58,11 @@ const DEVICE_PREFERENCE_PREFIXES: readonly string[] = [
  */
 const PRESERVED_SESSION_KEYS: readonly string[] = [
   'tripician:pendingNaviaPrompt',
+  // Same argument, generalised: an answer or a comment typed by a guest, held
+  // across the sign-in they are completing in order to post it.
+  'tripician:pendingDraft',
+  // A path, so the social round trip can put someone back where they were.
+  'tripician:pendingReturnTo',
 ];
 
 function isDevicePreference(key: string): boolean {

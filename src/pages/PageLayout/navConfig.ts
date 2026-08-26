@@ -1,8 +1,7 @@
 import type React from 'react';
 import {
-  IconUsersGroup,
   IconSparkles,
-  IconRoute,
+  IconMessages,
   IconCampfire,
   IconBook,
   IconUserCircle,
@@ -23,13 +22,20 @@ export interface AppNavItem {
 }
 
 /**
- * The five destinations, in reading order, with Navia in the middle.
+ * The five destinations, with Navia in the middle.
  *
- * The order is the product's own claim about itself: you find a trip
- * (Community), you read what it was actually like (Stories), you get help
- * planning yours (Navia), you find people to go with (Crew), and your own work
- * lives on Profile. Anything that does not sit on that line is not top-level
- * navigation, however useful it is.
+ * Navia is a hinge rather than just the third item. Everything to its left is
+ * material that already exists for you to read - Community's feed, Browse's
+ * library. Everything to its right is where you make something: Navia turns a
+ * thought into a trip, From the road turns a moment into a post, Profile holds
+ * what you have made. Read on one side, make on the other.
+ *
+ * From the road took the slot Crew used to hold. It is the only destination
+ * with a same-minute reason to open it - you are standing in the queue now -
+ * and on a phone the right of the bar is where a thumb already rests, so the
+ * item with the shortest fuse gets the easiest tap. Crew is the opposite: you
+ * go looking for people deliberately and rarely. It is now the Travellers
+ * segment on Browse, and /crew still resolves.
  *
  * Risk Monitor was here and is not any more. It is a tool you reach for about a
  * specific destination, not a place you go, and holding a fifth of the nav for
@@ -50,13 +56,16 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     tooltip: 'Trips from travellers - read, comment, and ask the people who went',
   },
   {
+    // The library. Community is the live feed; this is where you go to browse
+    // finished work, which is both the plans and the stories about them. The id
+    // stays `stories` because the mobile bars and navConfig.test pick items by it.
     id: 'stories',
-    label: 'Stories',
-    shortLabel: 'Stories',
+    label: 'Plans & stories',
+    shortLabel: 'Browse',
     path: '/stories',
     Icon: IconBook,
     PageHeaderIcon: IconBook,
-    tooltip: 'What the trips were actually like, written by the people who took them',
+    tooltip: 'Every published plan and the stories of how they went',
   },
   {
     id: 'navia',
@@ -68,16 +77,21 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     tooltip: 'Navia - your travel companion',
   },
   {
-    // Replaces "My Trips". Your own trips now live on Profile, which is the
-    // page that already carried your identity and your stats; keeping a second
-    // destination for the same data was the reason both pages fetched it.
-    id: 'crew',
-    label: 'Find crew',
-    shortLabel: 'Crew',
-    path: '/crew',
-    Icon: IconUsersGroup,
-    PageHeaderIcon: IconRoute,
-    tooltip: 'Travellers going where you are going',
+    // The one destination with a same-minute reason to open it, which is why it
+    // sits on the far side of the orb rather than beside the reading surfaces.
+    //
+    // Two speech bubbles, not the note glyph the card ribbon uses. That pairing
+    // was right when this section was only notes; it now holds questions and
+    // answers as well, so the ribbon labels one KIND of post while this labels
+    // the whole place. A folded rectangle also had no silhouette left at 20px,
+    // beside a campfire and a book.
+    id: 'road',
+    label: 'From the road',
+    shortLabel: 'The road',
+    path: '/posts',
+    Icon: IconMessages,
+    PageHeaderIcon: IconMessages,
+    tooltip: 'Ask travellers who are there right now',
   },
   {
     id: 'profile',

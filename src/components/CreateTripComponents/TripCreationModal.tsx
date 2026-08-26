@@ -17,7 +17,7 @@ import { Dayjs } from 'dayjs';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { useNavigate } from 'react-router-dom';
-import { IconX, IconArrowRight } from '@tabler/icons-react';
+import { IconX, IconArrowRight, IconUsersPlus } from '@tabler/icons-react';
 import Alert from '@mui/material/Alert';
 import gsap from 'gsap';
 import { VIBES } from '../../pages/CommunityPage/vibes';
@@ -50,6 +50,7 @@ interface TripCreationModalProps {
     vibe?: string | null;
     startDate?: string | null;
     endDate?: string | null;
+    organizationId?: string;
   };
 }
 
@@ -63,6 +64,9 @@ const suggestTripName = (countries: string[]): string => {
   if (countries.length === 2) return `${countries[0]} & ${countries[1]}`;
   return `${countries[0]}, ${countries[1]} & beyond`;
 };
+
+/** Total places including the organiser, matching how seats are counted everywhere. */
+const CAPACITY_CHOICES = [2, 4, 6, 8, 12];
 
 const AI_LOADING_MESSAGES = [
   'Sketching your route…',
@@ -139,6 +143,10 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose, in
   // everybody, and the control stays hidden in that case.
   const [organizations, setOrganizations] = useState<Organization[]>([]);
   const [organizationId, setOrganizationId] = useState<string>('');
+  // Null is "the organiser did not say", which the whole seats feature treats as
+  // distinct from a number. Never default it to one.
+  const [capacity, setCapacity] = useState<number | null>(null);
+  const [recruiting, setRecruiting] = useState(false);
   const { token } = useAuthToken();
   const navigate = useNavigate();
 
@@ -187,6 +195,8 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose, in
     // server-side by every generative call, so the first draft is already informed
     // rather than being corrected afterwards.
     preferences: { pace, company, interests, dietary },
+    ...(capacity !== null ? { capacity } : {}),
+    ...(recruiting && capacity !== null && capacity > 1 ? { joinPolicy: 'OpenToRequests' } : {}),
     ...(organizationId ? { organizationId } : {}),
     ...(generateWithAI ? { generateWithAI: true } : {}),
   });
@@ -279,6 +289,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose, in
     if (initial.countries?.length) setSelectedCountries(initial.countries);
     if (initial.name) { setTripName(initial.name); setNameEdited(true); }
     if (initial.vibe) setVibe(initial.vibe);
+    if (initial.organizationId) setOrganizationId(initial.organizationId);
   }, [open, initial]);
 
   useEffect(() => {
@@ -288,7 +299,7 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose, in
       .then((resp) => {
         if (cancelled) return;
         setOrganizations((Array.isArray(resp.data) ? resp.data : [])
-          .filter((o) => o.myRole === 'admin' && o.status === 'approved'));
+          .filter((o) => (o.myRole === 'admin' || o.myRole === 'manager') && o.status === 'approved'));
       })
       .catch(() => { if (!cancelled) setOrganizations([]); });
     return () => { cancelled = true; };
@@ -596,6 +607,37 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose, in
                   ))}
                 </Question>
               )}
+
+              <Question
+                question="How many travellers?"
+                hint={capacity === null
+                  ? 'Leave this off if you have not decided. You can open the trip to join requests later from the planner.'
+                  : recruiting
+                    ? 'Your trip will be listed under "Trips looking for people" once you publish it. You approve every person who asks.'
+                    : 'Counts you as well. Turn on recruiting to let travellers ask for a spare place.'}
+              >
+                <FilterChip
+                  label="Not sure yet"
+                  active={capacity === null}
+                  onClick={() => { setCapacity(null); setRecruiting(false); }}
+                />
+                {CAPACITY_CHOICES.map((n) => (
+                  <FilterChip
+                    key={n}
+                    label={`${n} people`}
+                    active={capacity === n}
+                    onClick={() => setCapacity(n)}
+                  />
+                ))}
+                {capacity !== null && capacity > 1 && (
+                  <FilterChip
+                    label="Looking for people"
+                    Icon={IconUsersPlus}
+                    active={recruiting}
+                    onClick={() => setRecruiting((r) => !r)}
+                  />
+                )}
+              </Question>
             </Box>
           </Box>
 

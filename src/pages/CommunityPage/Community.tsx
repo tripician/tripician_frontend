@@ -73,23 +73,31 @@ import { useNavigate } from 'react-router-dom';
 import { IconCompass, IconFeather } from '@tabler/icons-react';
 import CommunityTripCard from './CommunityTripCard';
 import FeatureTripCard from './FeatureTripCard';
-import { CATEGORIES, CONTENT_MAX, gridSx, hiddenScrollbarSx } from './communityConstants';
+import { CATEGORIES, CONTENT_MAX, gridSx } from './communityConstants';
 import FilterChip from '../../components/ui/FilterChip';
 import SearchField from '../../components/ui/SearchField';
 import SectionHeader from '../../components/ui/SectionHeader';
+import SeeAllLink from '../../components/ui/SeeAllLink';
+import ScrollRail from '../../components/ui/ScrollRail';
+import ActivityFeed from './ActivityFeed';
+import PostComposer from '../../posts/PostComposer';
+import PostCard from '../../posts/PostCard';
+import { postsService } from '../../posts/postsService';
+import type { TravelerPost } from '../../posts/types';
+import { usePublishedTrips } from './usePublishedTrips';
 import EmptyState from '../../components/ui/EmptyState';
 import ErrorState from '../../components/ui/ErrorState';
 import { CardGridSkeleton } from '../../components/ui/Skeletons';
 import PageHeader from '../../components/ui/PageHeader';
+import ChipRail from '../../components/ui/ChipRail';
 import Seo from '../../components/Seo';
 import QuickPlanCard from '../../navia/QuickPlanCard';
-import CommunityHero, { type HeroSlide } from './CommunityHero';
-import { HERO_PROMOS } from './heroSlides';
 import StoryCard from '../../afterstory/cards/StoryCard';
+import StoryStrip from '../../afterstory/cards/StoryStrip';
 import { afterStoryService } from '../../afterstory/afterStoryService';
 import type { AfterStorySummaryDto } from '../../afterstory/types';
 import { useAuthToken } from '../../hooks/useAuth0Token';
-import { apiServices } from '../../services/APIs/apiServices';
+
 import { compareTripsForFeed } from '../../utils/tripRanking';
 import { tripPath } from '../../utils/tripSlug';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
@@ -114,10 +122,7 @@ const Community: React.FC = () => {
   const { token } = useAuthToken();
   const navigate = useNavigate();
 
-  const [trips, setTrips] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-  const [reloadKey, setReloadKey] = React.useState(0);
+  const { trips, loading, error, reload } = usePublishedTrips();
   const [activeCategory, setActiveCategory] = React.useState('all');
   const [search, setSearch] = React.useState('');
 
@@ -147,38 +152,25 @@ const Community: React.FC = () => {
     return () => { active = false; };
   }, []);
 
-
-
+  /*
+   * Posts are fetched here rather than inside PostList, because two surfaces show
+   * them and neither may show the same one twice: the rail takes the newest few
+   * and the feed takes the rest. That is the same subtraction rule the stories
+   * follow, and for the same reason.
+   */
+  const [posts, setPosts] = React.useState<TravelerPost[]>([]);
   React.useEffect(() => {
     let active = true;
-    setLoading(true);
-    setError(null);
-    const fetchToken = token || localStorage.getItem('accessToken') || null;
-
-    void (async () => {
-      try {
-        const resp = await apiServices.getPublishedTrips(fetchToken ?? undefined);
-        if (!active) return;
-        const data = Array.isArray(resp?.data)
-          ? resp.data
-          : Array.isArray(resp?.data?.trips) ? resp.data.trips : [];
-        setTrips(data);
-      } catch {
-        if (!active) return;
-        try {
-          const resp2 = await apiServices.getPublicTrips(fetchToken ?? undefined);
-          if (!active) return;
-          setTrips(Array.isArray(resp2?.data) ? resp2.data : []);
-        } catch {
-          if (active) setError('Unable to load community trips. Please try again.');
-        }
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
-
+    postsService.feed(24)
+      .then((rows) => { if (active) setPosts(rows); })
+      .catch(() => { if (active) setPosts([]); });
     return () => { active = false; };
-  }, [token, reloadKey]);
+  }, []);
+
+  const dropPost = React.useCallback(
+    (id: string) => setPosts((prev) => prev.filter((x) => x.id !== id)),
+    [],
+  );
 
   // ── derived ──────────────────────────────────────────────────────────────
 
@@ -294,20 +286,31 @@ const Community: React.FC = () => {
     [stories, editorsChoiceIds],
   );
 
-  const heroStories = React.useMemo(() => unpickedStories.slice(0, 3), [unpickedStories]);
+  /*
+   * The story rail stands in for Editor's choice when nobody has picked anything.
+   *
+   * Without it, an install with writers but no picks has no story BLOCK at all -
+   * stories exist only scattered through the grid, which is what made the page
+   * read as trips-with-extras. It takes from the same queue as the feed, so no
+   * story is ever on the page twice.
+   */
+  const railStories = React.useMemo(
+    () => (editorsChoice.length > 0 ? [] : unpickedStories.slice(0, 8)),
+    [editorsChoice.length, unpickedStories],
+  );
 
   /*
-   * While filtering, the feed draws from ALL stories, not just the ones the hero
+   * While filtering, the feed draws from ALL stories, not just the ones the rail
    * did not take.
    *
-   * The hero is hidden as soon as a chip or a search is active, so with a plain
-   * slice its three stories became unreachable: searching "Oaxaca" returned
-   * nothing while an Oaxaca story sat on the page a moment earlier. Excluding
-   * them is only correct when the hero is actually showing them.
+   * The rail hides as soon as a chip or a search is active, so with a plain slice
+   * its stories became unreachable: searching "Oaxaca" returned nothing while an
+   * Oaxaca story sat on the page a moment earlier. Excluding them is only correct
+   * when the rail is actually showing them.
    */
   const feedStories = React.useMemo(
-    () => (isFiltering ? stories : unpickedStories.slice(3)),
-    [stories, isFiltering, unpickedStories],
+    () => (isFiltering ? stories : unpickedStories.slice(railStories.length)),
+    [stories, isFiltering, unpickedStories, railStories.length],
   );
 
   /*
@@ -355,8 +358,25 @@ const Community: React.FC = () => {
    * Any stories left over when the trips run out are appended, so a community
    * with more writers than planners still shows all of them.
    */
+  const railPosts = React.useMemo(() => posts.slice(0, 6), [posts]);
+
+  /*
+   * Posts the rail did not take. Under a filter the rail is hidden, so the feed
+   * would be showing nothing rather than everything: posts carry no vibe and no
+   * destination, so there is nothing for a chip or a search to match, and putting
+   * them in unfiltered results would be answering a question nobody asked.
+   */
+  const feedPosts = React.useMemo(
+    () => (isFiltering ? [] : posts.slice(6)),
+    [posts, isFiltering],
+  );
+
   const feed = React.useMemo(() => {
-    const out: Array<{ kind: 'trip'; key: string; data: any } | { kind: 'story'; key: string; data: AfterStorySummaryDto }> = [];
+    const out: Array<
+      | { kind: 'trip'; key: string; data: any }
+      | { kind: 'story'; key: string; data: AfterStorySummaryDto }
+      | { kind: 'post'; key: string; data: TravelerPost }
+    > = [];
     const trips = filteredTrips;
     const stories = filteredStories;
 
@@ -391,8 +411,18 @@ const Community: React.FC = () => {
       out.push({ kind: 'story', key: `story-${stories[s].id}`, data: stories[s] });
     }
 
+    // Posts are spread through what is already there rather than appended, or a
+    // quiet week would end the page with a block of one-line notes.
+    if (feedPosts.length > 0) {
+      const gap = Math.max(2, Math.floor(out.length / (feedPosts.length + 1)));
+      feedPosts.forEach((post, i) => {
+        const at = Math.min(out.length, (i + 1) * gap + i);
+        out.splice(at, 0, { kind: 'post', key: `post-${post.id}`, data: post });
+      });
+    }
+
     return out;
-  }, [filteredTrips, filteredStories]);
+  }, [filteredTrips, filteredStories, feedPosts]);
 
   const handleTripClick = (trip: any) => {
     const tripId = trip.id || trip.Id;
@@ -401,53 +431,26 @@ const Community: React.FC = () => {
 
   // Open trips are a subset of published, so no second fetch. Full ones stay
   // listed: "Full" is useful information, and the trip may free up.
-  const openTrips = React.useMemo(
-    () => trips.filter((t: any) => t.joinPolicy === 'OpenToRequests').slice(0, 12),
-    [trips],
-  );
-  /**
-   * The hero: real work, then a pitch, then real work again.
-   *
-   * Content leads so the first thing anybody sees is somebody's actual trip or
-   * story rather than an advertisement, and the promos sit between them. Each
-   * one is dropped when its action is not real - the crew pitch needs a trip
-   * that is genuinely looking for people, or it promises a row that will be
-   * empty when they get there.
-   */
-  const heroSlides = React.useMemo<HeroSlide[]>(() => {
-    const out: HeroSlide[] = [];
-    const push = (slide: HeroSlide) => out.push(slide);
-
-    if (heroStories[0]) push({ kind: 'story', id: `s-${heroStories[0].id}`, story: heroStories[0] });
-    push({ kind: 'promo', id: 'p-plan', promo: HERO_PROMOS.plan });
-
-    const heroTrip = leadVerified ?? trips[0];
-    if (heroTrip) push({ kind: 'trip', id: `t-${heroTrip.id || heroTrip.Id}`, trip: heroTrip });
-
-    if (FEATURE_FLAGS.afterStory) {
-      if (heroStories[1]) push({ kind: 'story', id: `s-${heroStories[1].id}`, story: heroStories[1] });
-      push({ kind: 'promo', id: 'p-story', promo: HERO_PROMOS.story });
-      push({ kind: 'promo', id: 'p-book', promo: HERO_PROMOS.book });
+  //
+  // Filtered by the same chips and search as everything else, and NOT hidden while
+  // filtering. It used to vanish the moment you touched a chip, which is what made
+  // recruitment unfindable: the one module you can act on disappeared on first use.
+  const openTrips = React.useMemo(() => {
+    let list = trips.filter((t: any) => t.joinPolicy === 'OpenToRequests');
+    if (activeCategory !== 'all') {
+      list = list.filter((t) => (t.vibe || '').toLowerCase() === activeCategory);
     }
-
-    if (openTrips.length > 0) push({ kind: 'promo', id: 'p-crew', promo: HERO_PROMOS.crew });
-
-    return out;
-  }, [heroStories, leadVerified, trips, openTrips.length]);
-
-  /*
-   * Where a pitch goes. Two of these are global events rather than routes,
-   * because the composer they open is a modal the app shell owns.
-   */
-  const handlePromo = React.useCallback((id: string) => {
-    if (id === 'plan') { window.dispatchEvent(new CustomEvent('trip:create')); return; }
-    if (id === 'story') { window.dispatchEvent(new CustomEvent('story:create')); return; }
-    if (id === 'book') { window.dispatchEvent(new CustomEvent('story:create')); return; }
-    if (id === 'crew') {
-      document.getElementById('looking-for-people')?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    const q = search.trim().toLowerCase();
+    if (q) {
+      list = list.filter(
+        (t) =>
+          (t.name || '').toLowerCase().includes(q) ||
+          (t.description || '').toLowerCase().includes(q) ||
+          (Array.isArray(t.countries) && t.countries.some((c: string) => c.toLowerCase().includes(q))),
+      );
     }
-  }, []);
-
+    return [...list].sort(compareTripsForFeed).slice(0, 12);
+  }, [trips, activeCategory, search]);
   const activeCategoryLabel = CATEGORIES.find((c) => c.id === activeCategory)?.label || 'All';
 
 
@@ -470,27 +473,39 @@ const Community: React.FC = () => {
       <Box sx={{ maxWidth: CONTENT_MAX, mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 3, md: 5 }, pb: 10 }}>
         <motion.div initial="hidden" animate="visible" variants={staggerContainer(0.08, 0.05)}>
 
-          {/* ── 1. Story hero ──
-              Stories lead the page. This is the whole point of the module: what
-              a trip was actually like, from the person who went, is the reason
-              to come back when you are not planning anything.
-
-              Gated on `isFiltering` - which is the bug it had the first time.
-              It ignored the filter, so a search for Kyoto still opened with an
-              unrelated story about Lisbon sitting above the results. */}
-          {!isFiltering && heroSlides.length > 0 && (
-            <motion.div variants={staggerItem}>
-              <CommunityHero slides={heroSlides} onPromo={handlePromo} />
-            </motion.div>
-          )}
-
-          {/* ── 2. Masthead ── */}
+          {/* ── 1. Masthead ── */}
           <motion.div variants={staggerItem}>
             <PageHeader
               title="Community"
-              subtitle="Real itineraries and the stories of how they actually went."
-              action={<QuickPlanCard token={token} />}
+              subtitle="What travellers are doing right now, the plans behind it, and how it actually went."
             />
+          </motion.div>
+
+          {/* ── 2. The two things people arrive wanting to do ──
+              Say something about the trip you are on, or start the one you are
+              not. QuickPlanCard is out of PageHeader's action slot so both get
+              real width instead of being squeezed into a third column. */}
+          <motion.div variants={staggerItem}>
+            <Box
+              sx={{
+                display: 'flex',
+                gap: 2,
+                mt: { xs: 2.5, md: 3 },
+                flexDirection: { xs: 'column', lg: 'row' },
+                // Stretch, because these two are a declared pair: same radius,
+                // same border, same shadow. A 20px difference between them read
+                // as a mistake rather than a hierarchy, and it left the gutter
+                // above the toolbar two different sizes across the page. Both
+                // cards pin their bottom block so the space lands between their
+                // blocks rather than as a hole under one of them.
+                alignItems: 'stretch',
+              }}
+            >
+              <Box sx={{ flex: 1, minWidth: 0, width: '100%' }}>
+                <PostComposer onPosted={(p) => setPosts((prev) => [p, ...prev])} />
+              </Box>
+              <QuickPlanCard token={token} />
+            </Box>
           </motion.div>
 
           {/* ── 3. Toolbar ── */}
@@ -505,7 +520,7 @@ const Community: React.FC = () => {
                 justifyContent: 'space-between',
               }}
             >
-              <Box sx={{ ...hiddenScrollbarSx, gap: 1 }}>
+              <ChipRail sx={{ flex: 1, minWidth: 0 }}>
                 {CATEGORIES.map((c) => (
                   <FilterChip
                     key={c.id}
@@ -515,7 +530,7 @@ const Community: React.FC = () => {
                     onClick={() => setActiveCategory(c.id)}
                   />
                 ))}
-              </Box>
+              </ChipRail>
               <SearchField
                 value={search}
                 onChange={setSearch}
@@ -536,7 +551,7 @@ const Community: React.FC = () => {
               <ErrorState
                 title="Couldn't load the community"
                 description={error}
-                onRetry={() => setReloadKey((k) => k + 1)}
+                onRetry={reload}
               />
             </Box>
           )}
@@ -564,34 +579,77 @@ const Community: React.FC = () => {
                   <SectionHeader
                     title="Editor's choice"
                     subtitle="Writing we think is worth your time, picked by hand"
+                    action={<SeeAllLink to="/stories" />}
                   />
-                  <Box sx={{ ...hiddenScrollbarSx, gap: 2.5, pb: 1 }}>
+                  <ScrollRail gap={2.5} ariaLabel="Editor's choice stories">
                     {editorsChoice.map((st) => (
                       <Box key={st.id} sx={{ flexShrink: 0, width: { xs: 220, sm: 252 } }}>
                         <StoryCard story={st} />
                       </Box>
                     ))}
-                  </Box>
+                  </ScrollRail>
                 </Box>
+              )}
+
+              {/* ── 5a. From the road ──
+                  The reason to reopen the page. Everything else here changes when
+                  somebody finishes a trip; this changes while they are on one. */}
+              {!isFiltering && (
+                <Box sx={{ mt: { xs: 4, md: 5 } }}>
+                  <SectionHeader
+                    title="From the road"
+                    subtitle="Travellers posting as it happens"
+                    action={<SeeAllLink to="/posts" />}
+                  />
+                  {railPosts.length > 0 ? (
+                    <Box sx={{ display: 'grid', gap: 1.5 }}>
+                      {railPosts.map((post) => (
+                        <PostCard key={post.id} post={post} onRemoved={dropPost} />
+                      ))}
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      Nobody has posted yet. Yours would be the first.
+                    </Typography>
+                  )}
+                </Box>
+              )}
+
+              {/* ── 5b. Happening now ──
+                  Real records only, so this has something to show on an install
+                  with almost no published trips. */}
+              {!isFiltering && <ActivityFeed />}
+
+              {/* ── 5b. After stories, only when nobody has picked one ──
+                  Editor's choice is the story rail when it has content. This
+                  stands in for it otherwise, so a community with writers but no
+                  picks still opens with a story block rather than trips alone. */}
+              {FEATURE_FLAGS.afterStory && !isFiltering && railStories.length > 0 && (
+                <StoryStrip
+                  stories={railStories}
+                  subtitle="What the trips were actually like, written by the people who went"
+                  seeAllHref="/stories"
+                />
               )}
 
               {/* ── 6. Trips looking for people ──
                   Above the grid, because it is the only module on this page you
                   can ACT on rather than read: these have a spare place and a
                   person waiting on an answer. */}
-              {!isFiltering && openTrips.length > 0 && (
+              {openTrips.length > 0 && (
                 <Box sx={{ mt: 4 }} id="looking-for-people">
                   <SectionHeader
                     title="Trips looking for people"
                     subtitle="Organisers with a spare place. The organiser approves everyone who joins."
+                    action={<SeeAllLink to="/trips/looking-for-people" />}
                   />
-                  <Box sx={{ ...hiddenScrollbarSx, gap: 2.5, pb: 1 }}>
+                  <ScrollRail gap={2.5} ariaLabel="Trips looking for people">
                     {openTrips.map((t: any) => (
                       <Box key={t.id || t.Id} sx={{ flexShrink: 0, width: { xs: 264, sm: 300 } }}>
                         <CommunityTripCard trip={t} onClick={() => handleTripClick(t)} />
                       </Box>
                     ))}
-                  </Box>
+                  </ScrollRail>
                 </Box>
               )}
 
@@ -619,6 +677,7 @@ const Community: React.FC = () => {
                       ? describeFeed(filteredTrips.length, filteredStories.length)
                       : 'Itineraries people published, and the stories of how they actually went'
                   }
+                  action={<SeeAllLink to="/trips" label="All trips" />}
                 />
 
                 {feed.length > 0 ? (
@@ -628,8 +687,10 @@ const Community: React.FC = () => {
                         <motion.div key={item.key} layout variants={staggerItem}>
                           {item.kind === 'trip' ? (
                             <CommunityTripCard trip={item.data} onClick={() => handleTripClick(item.data)} />
-                          ) : (
+                          ) : item.kind === 'story' ? (
                             <StoryCard story={item.data} />
+                          ) : (
+                            <PostCard post={item.data} onRemoved={dropPost} />
                           )}
                         </motion.div>
                       ))}

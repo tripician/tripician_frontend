@@ -16,7 +16,8 @@ import {
 import { IconCheck, IconClock, IconShieldCheck, IconUserPlus } from '@tabler/icons-react';
 import { apiServices } from '../services/APIs/apiServices';
 import { useAuthToken } from '../hooks/useAuth0Token';
-import { useNavigate } from 'react-router-dom';
+import { useRequireAuth } from '../auth/AuthGate';
+import { takeDraft } from '../utils/pendingDraft';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
 import { canRequestToJoin, type TripSeats } from './types';
@@ -34,13 +35,14 @@ interface JoinRequestButtonProps {
 const JoinRequestButton: React.FC<JoinRequestButtonProps> = ({
   tripId, seats, isOwner, onChanged, fullWidth,
 }) => {
-  const navigate = useNavigate();
+  const requireAuth = useRequireAuth();
   const { token } = useAuthToken();
   const verification = useVerification();
 
   const [open, setOpen] = React.useState(false);
   const [leaveOpen, setLeaveOpen] = React.useState(false);
-  const [message, setMessage] = React.useState('');
+  const draftKey = `join-request:${tripId}`;
+  const [message, setMessage] = React.useState(() => takeDraft(draftKey) ?? '');
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
 
@@ -186,7 +188,10 @@ const JoinRequestButton: React.FC<JoinRequestButtonProps> = ({
   }
 
   const send = async () => {
-    if (!token) { navigate('/signin'); return; }
+    if (!requireAuth({
+      reason: 'Your message is saved. Sign in and your request goes to the organiser.',
+      draft: { key: draftKey, text: message },
+    }) || !token) return;
     setBusy(true);
     setError(null);
     try {

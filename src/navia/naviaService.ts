@@ -304,6 +304,76 @@ export async function draftTripFromPrompt(
   return postNaviaJson<DraftTripFromPrompt>('/api/navia/draft-trip', { prompt }, token);
 }
 
+export interface ImportedSpot {
+  name: string;
+  description: string;
+  /** True only where the traveller's own plan marked it. Never our judgement. */
+  mustVisit: boolean;
+}
+
+export interface ImportedStay {
+  name: string;
+  reference: string;
+}
+
+export interface ImportedStop {
+  name: string;
+  nights: number;
+  notes: string;
+  spots: ImportedSpot[];
+  foods: string[];
+  stays: ImportedStay[];
+}
+
+export interface ImportedChecklistItem {
+  category: string;
+  name: string;
+  qty: number;
+}
+
+export interface ImportedExpense {
+  label: string;
+  amount: number;
+  category: string;
+}
+
+export interface ImportedPlan {
+  name: string;
+  countries: string[];
+  vibe: string | null;
+  /** yyyy-MM-dd only where the plan states one. Never guessed. */
+  startDate: string | null;
+  currency: string | null;
+  importantNotes: string;
+  stops: ImportedStop[];
+  checklist: ImportedChecklistItem[];
+  budget: number | null;
+  expenses: ImportedExpense[];
+  /** Lines that are not stops, places or costs: tasks, questions, debts, links. */
+  unplaced: string[];
+}
+
+/** At most five, and the server refuses a sixth. Groq's per-request ceiling. */
+export const IMPORT_MAX_IMAGES = 5;
+
+/**
+ * Reads a plan the traveller already wrote elsewhere.
+ *
+ * Images are base64 data URLs, sent inside this request and stored nowhere. A
+ * WhatsApp screenshot carries other people's messages and numbers, so the only
+ * honest way to handle one is not to keep it.
+ *
+ * Costs 3 personal credits. One call however many images, so a five-screenshot
+ * import is billed and rate-limited the same as a one-screenshot import.
+ */
+export async function importPlan(
+  images: string[],
+  text: string,
+  token?: string | null,
+): Promise<ImportedPlan> {
+  return postNaviaJson<ImportedPlan>('/api/navia/import-plan', { images, text }, token);
+}
+
 // Plan review used to be a model call that graded the model's own output. It is
 // now pages/CreateTripPage/feasibility.ts - deterministic checks over real
 // distances and opening hours, which cost nothing and cannot hallucinate.
@@ -371,6 +441,9 @@ export const CREDIT_ACTION_LABELS: Record<string, string> = {
   // Plan review no longer costs credits, but old ledger rows still reference it -
   // keep the label so past entries read as words rather than a raw action key.
   plan_review: 'Plan review',
+  draft_trip: 'Quick plan',
+  story_polish: 'Story proof-read',
+  import_plan: 'Imported plan',
   trial_grant: 'Welcome credits',
   refund_general_chat: 'Refund · Navia chat',
   refund_trip_chat: 'Refund · trip chat',
@@ -378,6 +451,9 @@ export const CREDIT_ACTION_LABELS: Record<string, string> = {
   refund_suggest_itinerary: 'Refund · route suggestion',
   refund_trip_brief: 'Refund · trip brief',
   refund_plan_review: 'Refund · plan review',
+  refund_draft_trip: 'Refund · quick plan',
+  refund_story_polish: 'Refund · story proof-read',
+  refund_import_plan: 'Refund · imported plan',
 };
 
 export function creditActionLabel(action: string): string {
@@ -393,4 +469,7 @@ export const CREDIT_PRICES: { label: string; cost: number; wallet: 'personal' | 
   { label: 'Drafting a stop', cost: 2, wallet: 'trip' },
   { label: 'Drafting a route', cost: 2, wallet: 'trip' },
   { label: 'Writing a trip description', cost: 1, wallet: 'trip' },
+  { label: 'A trip from one sentence', cost: 1, wallet: 'personal' },
+  { label: 'Proof-reading a story', cost: 1, wallet: 'personal' },
+  { label: 'Importing a plan you already wrote', cost: 3, wallet: 'personal' },
 ];

@@ -10,6 +10,7 @@
 import axios from 'axios';
 import { apiClient } from '../services/APIs/apiServices';
 import { serializeBlocks } from './blockSchema';
+import { templateScaffold } from './render/templates';
 import { toProviderWire } from './videoEmbed';
 import type {
   AfterStoryDto,
@@ -87,6 +88,9 @@ export const afterStoryService = {
         travelEndDate: input.travelEndDate ?? null,
         vibe: input.vibe ?? null,
         template: input.template ?? 'journal',
+        // The template's starting skeleton, posted once. The server runs it through
+        // the same validator as any other write, so nothing here bypasses it.
+        bodyJson: serializeBlocks(templateScaffold(input.template ?? 'journal')),
       });
       return data;
     } catch (err) {

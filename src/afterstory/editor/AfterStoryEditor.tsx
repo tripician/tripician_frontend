@@ -38,11 +38,11 @@ import ImportFromPlanDialog from './ImportFromPlanDialog';
 import AfterStoryReader from '../render/AfterStoryReader';
 import { useAfterStory } from '../useAfterStory';
 import { afterStoryService } from '../afterStoryService';
-import { missingScaffold, templateStyle } from '../render/templates';
+import { templateStyle } from '../render/templates';
 import { formatTravelWindow } from '../storyFormat';
 import { countPhotos, readingMinutes, isBlockEmpty, parseBlocks } from '../blockSchema';
 import { STORY_LIMITS } from '../types';
-import type { AfterStoryDto, StoryBlock, StoryTemplate } from '../types';
+import type { AfterStoryDto, StoryBlock } from '../types';
 
 interface AfterStoryEditorProps {
   storyId: string;
@@ -80,13 +80,6 @@ const AfterStoryEditor: React.FC<AfterStoryEditorProps> = ({ storyId, embedded, 
   const [toast, setToast] = React.useState<string | null>(null);
 
   const upload = React.useCallback((file: File) => afterStoryService.uploadPhoto(storyId, file), [storyId]);
-
-  const applyScaffold = React.useCallback(
-    (template: StoryTemplate) => {
-      setBlocks((prev) => [...prev, ...missingScaffold(template, prev)]);
-    },
-    [setBlocks],
-  );
 
   const handleImport = React.useCallback(
     (imported: StoryBlock[]) => {
@@ -162,7 +155,7 @@ const AfterStoryEditor: React.FC<AfterStoryEditorProps> = ({ storyId, embedded, 
       )}
       <ContributorsPanel story={story} onChanged={applyStory} />
       <CoverPicker draft={draft} onChange={update} onUpload={upload} />
-      <StoryMetaBar draft={draft} onChange={update} onApplyScaffold={applyScaffold} />
+      <StoryMetaBar draft={draft} onChange={update} />
     </Box>
   );
 
