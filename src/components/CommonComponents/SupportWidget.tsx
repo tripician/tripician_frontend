@@ -52,7 +52,14 @@ import { onFeedbackPromptRequested, markFeedbackPromptShown } from '../../utils/
  * Replaces the old floating Navia chatbot: Navia now lives on its own page
  * (and inside every trip), while this button handles feedback, updates and help.
  */
-const SupportWidget: React.FC = () => {
+import type { CommandBarState } from '../../navia/commandbar/commandModes';
+
+interface SupportWidgetProps {
+  /** The command bar shares this corner below lg. Step up, or stand down. */
+  commandBar?: CommandBarState;
+}
+
+const SupportWidget: React.FC<SupportWidgetProps> = ({ commandBar = 'none' }) => {
   const theme = useTheme();
   const isLight = theme.palette.mode === 'light';
   // Matches the FAB's own `bottom: { xs: 88, lg: 24 }` breakpoint so the balloon
@@ -168,7 +175,8 @@ const SupportWidget: React.FC = () => {
             sx={{
               position: 'fixed',
               right: 20,
-              bottom: { xs: 88, lg: 24 },
+              display: commandBar === 'expanded' ? { xs: 'none', lg: 'inline-flex' } : 'inline-flex',
+              bottom: { xs: commandBar === 'collapsed' ? 148 : 88, lg: 24 },
               zIndex: 1700,
               width: 48,
               height: 48,
@@ -201,7 +209,8 @@ const SupportWidget: React.FC = () => {
             style={{
               position: 'fixed',
               right: 76,
-              bottom: isLgUp ? 20 : 84,
+              bottom: isLgUp ? 20 : (commandBar === 'collapsed' ? 144 : 84),
+              display: !isLgUp && commandBar === 'expanded' ? 'none' : undefined,
               zIndex: 1699,
             }}
           >

@@ -167,7 +167,7 @@ const BrowsePage: React.FC = () => {
         }}
       />
 
-      <Box sx={{ maxWidth: CONTENT_MAX, mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 3, md: 5 }, pb: 10 }}>
+      <Box sx={{ maxWidth: CONTENT_MAX, mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 3, md: 5 }, pb: { xs: 16, lg: 14 } }}>
         <motion.div initial="hidden" animate="visible" variants={staggerContainer(0.08, 0.05)}>
           <motion.div variants={staggerItem}>
             <PageHeader

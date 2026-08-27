@@ -23,7 +23,7 @@ import gsap from 'gsap';
 import { VIBES } from '../../pages/CommunityPage/vibes';
 import { COUNTRIES } from '../../utils/countries';
 import NaviaOrb from '../../navia/NaviaOrb';
-import { scheduleFeedbackPrompt } from '../../utils/feedbackPrompt';
+import { createTripAndOpen } from '../../navia/createTripAndOpen';
 import FilterChip from '../ui/FilterChip';
 import type { Organization } from '../../organization/types';
 import SegmentedControl from '../ui/SegmentedControl';
@@ -233,21 +233,15 @@ const TripCreationModal: React.FC<TripCreationModalProps> = ({ open, onClose, in
     }
 
     try {
-      const createResp = await apiServices.createTrip(token, buildPayload(generateWithAI));
-      // Backend may return id as id, Id, or tripId depending on DTO serialization
-      const createdId: string | undefined = createResp?.data?.id || createResp?.data?.Id || createResp?.data?.tripId;
-      if (!createdId) throw new Error('Trip created but no id returned');
-
-      const tripResp = await apiServices.getTripById(token, createdId);
-      const tripData = tripResp.data;
-
-      if (messageInterval) clearInterval(messageInterval);
-      handleClose();
-      // One of the two moments that can nudge a first-time user toward feedback -
-      // see utils/feedbackPrompt.ts. A no-op after the first trip ever created.
-      scheduleFeedbackPrompt('trip_created');
-      navigate(`/tripplanner/${createdId}`, {
-        state: { tripId: createdId, trip: tripData, ...(generateWithAI ? { aiGenerated: true } : {}) },
+      await createTripAndOpen({
+        token,
+        navigate,
+        payload: buildPayload(generateWithAI),
+        state: generateWithAI ? { aiGenerated: true } : undefined,
+        beforeNavigate: () => {
+          if (messageInterval) clearInterval(messageInterval);
+          handleClose();
+        },
       });
     } catch (err: any) {
       if (messageInterval) clearInterval(messageInterval);

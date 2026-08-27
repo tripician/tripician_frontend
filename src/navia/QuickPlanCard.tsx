@@ -7,8 +7,7 @@ import { draftTripFromPrompt, NaviaRequestError } from './naviaService';
 import { usePlanImport } from './usePlanImport';
 import { PlanImportAttachButton, PlanImportStrip } from './PlanImportControls';
 import { stashPendingPrompt } from '../utils/pendingNaviaPrompt';
-import { apiServices } from '../services/APIs/apiServices';
-import { scheduleFeedbackPrompt } from '../utils/feedbackPrompt';
+import { createTripAndOpen } from './createTripAndOpen';
 
 /* Shown while the trip is being created. The heavy work (route, then places per
    stop) happens after navigation, under the planner's own overlay - these cover
@@ -125,29 +124,22 @@ export const QuickPlanCard: React.FC<QuickPlanCardProps> = ({ token }) => {
         : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
       const end = new Date(start.getTime() + Math.max(1, draft.nights) * 24 * 60 * 60 * 1000);
 
-      const createResp = await apiServices.createTrip(token, {
-        name: draft.name,
-        description: '',
-        countries: draft.countries,
-        startDate: toIsoDate(start),
-        endDate: toIsoDate(end),
-        visibility: 0, // trips start private; publishing is an explicit later step
-        currencyCode: 'USD',
-        vibe: draft.vibe ?? '',
-        invites: [] as string[],
-        plannerMode: 'Easy', // every new trip opens in the simple planner
-      });
-
-      // The backend has returned this as id / Id / tripId depending on the DTO.
-      const createdId: string | undefined =
-        createResp?.data?.id || createResp?.data?.Id || createResp?.data?.tripId;
-      if (!createdId) throw new Error('Trip created but no id returned');
-
-      const tripResp = await apiServices.getTripById(token, createdId);
-
-      scheduleFeedbackPrompt('trip_created');
-      navigate(`/tripplanner/${createdId}`, {
-        state: { tripId: createdId, trip: tripResp.data, aiGenerated: true },
+      await createTripAndOpen({
+        token,
+        navigate,
+        state: { aiGenerated: true },
+        payload: {
+          name: draft.name,
+          description: '',
+          countries: draft.countries,
+          startDate: toIsoDate(start),
+          endDate: toIsoDate(end),
+          visibility: 0, // trips start private; publishing is an explicit later step
+          currencyCode: 'USD',
+          vibe: draft.vibe ?? '',
+          invites: [] as string[],
+          plannerMode: 'Easy', // every new trip opens in the simple planner
+        },
       });
     } catch (err) {
       if (err instanceof NaviaRequestError) {

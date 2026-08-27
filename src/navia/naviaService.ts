@@ -461,15 +461,30 @@ export function creditActionLabel(action: string): string {
     ?? action.replace(/_/g, ' ').replace(/^\w/, (c) => c.toUpperCase());
 }
 
-/** What credits buy (mirrors backend NaviaCreditCosts). */
-export const CREDIT_PRICES: { label: string; cost: number; wallet: 'personal' | 'trip' }[] = [
-  { label: 'Navia chat message', cost: 1, wallet: 'personal' },
-  { label: 'Trip chat message', cost: 1, wallet: 'trip' },
-  { label: '@navia proposal in trip chat', cost: 2, wallet: 'trip' },
-  { label: 'Drafting a stop', cost: 2, wallet: 'trip' },
-  { label: 'Drafting a route', cost: 2, wallet: 'trip' },
-  { label: 'Writing a trip description', cost: 1, wallet: 'trip' },
-  { label: 'A trip from one sentence', cost: 1, wallet: 'personal' },
-  { label: 'Proof-reading a story', cost: 1, wallet: 'personal' },
-  { label: 'Importing a plan you already wrote', cost: 3, wallet: 'personal' },
+export interface CreditPrice { cost: number; wallet: 'personal' | 'trip' }
+
+/** Cost per action, keyed by the ledger action. Mirrors backend NaviaCreditCosts. */
+export const CREDIT_COSTS = {
+  general_chat: { cost: 1, wallet: 'personal' },
+  trip_chat: { cost: 1, wallet: 'trip' },
+  trip_agent_mention: { cost: 2, wallet: 'trip' },
+  plan_destination: { cost: 2, wallet: 'trip' },
+  suggest_itinerary: { cost: 2, wallet: 'trip' },
+  trip_brief: { cost: 1, wallet: 'trip' },
+  draft_trip: { cost: 1, wallet: 'personal' },
+  story_polish: { cost: 1, wallet: 'personal' },
+  import_plan: { cost: 3, wallet: 'personal' },
+} as const satisfies Record<string, CreditPrice>;
+
+/** What credits buy, in the order the settings page lists them. */
+export const CREDIT_PRICES: ({ label: string } & CreditPrice)[] = [
+  { label: 'Navia chat message', ...CREDIT_COSTS.general_chat },
+  { label: 'Trip chat message', ...CREDIT_COSTS.trip_chat },
+  { label: '@navia proposal in trip chat', ...CREDIT_COSTS.trip_agent_mention },
+  { label: 'Drafting a stop', ...CREDIT_COSTS.plan_destination },
+  { label: 'Drafting a route', ...CREDIT_COSTS.suggest_itinerary },
+  { label: 'Writing a trip description', ...CREDIT_COSTS.trip_brief },
+  { label: 'A trip from one sentence', ...CREDIT_COSTS.draft_trip },
+  { label: 'Proof-reading a story', ...CREDIT_COSTS.story_polish },
+  { label: 'Importing a plan you already wrote', ...CREDIT_COSTS.import_plan },
 ];

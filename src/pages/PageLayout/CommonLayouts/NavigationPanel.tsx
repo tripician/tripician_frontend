@@ -12,6 +12,12 @@ import AppShellHeader from './AppShellHeader';
 import AppBottomNav from './AppBottomNav';
 import { AppShellProvider, type CreateTripPrefill } from '../AppShellContext';
 import ProDialog from '../../../pricing/ProDialog';
+import NaviaCommandBar from '../../../navia/commandbar/NaviaCommandBar';
+import {
+  COMMAND_BAR_STATE_EVENT,
+  onCommandBarRoute,
+  type CommandBarState,
+} from '../../../navia/commandbar/commandModes';
 
 interface Props {
   children: React.ReactNode;
@@ -41,6 +47,25 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
     () => Boolean(activeTripId) || location.pathname.startsWith('/tripplanner/'),
     [activeTripId, location.pathname],
   );
+
+  // The command bar sits where the support FAB does below lg, so the FAB steps up
+  // while it is collapsed and gets out of the way entirely once it opens.
+  //
+  // Presence is derived from the route rather than taken from the event: a child's
+  // effects run before its parent's, so a mount-time dispatch lands before this
+  // listener exists. Only opening and closing, which are user actions, come over
+  // the wire.
+  const [commandBarOpen, setCommandBarOpen] = useState(false);
+  useEffect(() => {
+    const handler = (e: Event) => setCommandBarOpen((e as CustomEvent<boolean>).detail);
+    window.addEventListener(COMMAND_BAR_STATE_EVENT, handler);
+    return () => window.removeEventListener(COMMAND_BAR_STATE_EVENT, handler);
+  }, []);
+
+  const commandBarState: CommandBarState = useMemo(() => {
+    if (!onCommandBarRoute(location.pathname)) return 'none';
+    return commandBarOpen ? 'expanded' : 'collapsed';
+  }, [location.pathname, commandBarOpen]);
 
   const openCreateTrip = (prefill?: CreateTripPrefill) => {
     setCreateTripPrefill(prefill);
@@ -108,7 +133,8 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
             mounting their own copy. */}
         <TripCreationModal open={createTripOpen} onClose={closeCreateTrip} initial={createTripPrefill} />
         <ProDialog open={proOpen} onClose={() => setProOpen(false)} />
-        {!hideSupportWidget && <SupportWidget />}
+        {!hideSupportWidget && <NaviaCommandBar />}
+        {!hideSupportWidget && <SupportWidget commandBar={commandBarState} />}
         {!hideSupportWidget && <OnboardingCarousel />}
       </Box>
     </AppShellProvider>

@@ -29,6 +29,8 @@ interface StashedDraft {
   text: string;
   /** Where the person was, so sign-in can put them back. */
   returnTo: string;
+  /** Composer state the text alone cannot carry, such as a chosen mode. */
+  meta?: string;
   ts: number;
 }
 
@@ -54,13 +56,13 @@ function read(): StashedDraft | null {
 }
 
 /** One draft at a time. A person is doing one thing when they hit the wall. */
-export function stashDraft(key: string, text: string, returnTo: string): void {
+export function stashDraft(key: string, text: string, returnTo: string, meta?: string): void {
   const trimmed = text.trim();
   if (!key || !trimmed) return;
   try {
     sessionStorage.setItem(
       PENDING_DRAFT_KEY,
-      JSON.stringify({ key, text: trimmed, returnTo, ts: Date.now() } satisfies StashedDraft),
+      JSON.stringify({ key, text: trimmed, returnTo, meta, ts: Date.now() } satisfies StashedDraft),
     );
   } catch { /* see read() */ }
 }
@@ -78,13 +80,18 @@ export function peekDraftReturnTo(): string | null {
  * rather than merely unlikely.
  */
 export function takeDraft(key: string): string | null {
+  return takeDraftWithMeta(key)?.text ?? null;
+}
+
+/** Same contract as takeDraft, for a composer that stashed state beside the text. */
+export function takeDraftWithMeta(key: string): { text: string; meta?: string } | null {
   const found = read();
   if (!found) return null;
   // A draft belongs to one composer. Leave someone else's alone rather than
   // dropping it, or opening the wrong page would silently eat their writing.
   if (found.key !== key) return null;
   try { sessionStorage.removeItem(PENDING_DRAFT_KEY); } catch { /* see read() */ }
-  return found.text;
+  return { text: found.text, meta: found.meta };
 }
 
 export function clearDraft(): void {

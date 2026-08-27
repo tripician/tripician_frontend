@@ -30,9 +30,8 @@ interface PostComposerProps {
 /**
  * Say something now.
  *
- * The counterpart to QuickPlanCard, and deliberately its opposite: that one is
- * about a trip you have not taken, this is about the one you are on. They sit
- * side by side because those are the two things somebody arrives wanting to do.
+ * The counterpart to the Navia command bar, and deliberately its opposite: that
+ * one is about a trip you have not taken, this is about the one you are on.
  *
  * Every post is checked before it goes out. A refusal is shown plainly, and the
  * pictures are already gone by then, so the previews clear rather than offering

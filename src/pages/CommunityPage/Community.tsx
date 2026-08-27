@@ -91,12 +91,10 @@ import { CardGridSkeleton } from '../../components/ui/Skeletons';
 import PageHeader from '../../components/ui/PageHeader';
 import ChipRail from '../../components/ui/ChipRail';
 import Seo from '../../components/Seo';
-import QuickPlanCard from '../../navia/QuickPlanCard';
 import StoryCard from '../../afterstory/cards/StoryCard';
 import StoryStrip from '../../afterstory/cards/StoryStrip';
 import { afterStoryService } from '../../afterstory/afterStoryService';
 import type { AfterStorySummaryDto } from '../../afterstory/types';
-import { useAuthToken } from '../../hooks/useAuth0Token';
 
 import { compareTripsForFeed } from '../../utils/tripRanking';
 import { tripPath } from '../../utils/tripSlug';
@@ -119,7 +117,6 @@ function describeFeed(trips: number, stories: number): string {
 
 const Community: React.FC = () => {
   const theme = useTheme();
-  const { token } = useAuthToken();
   const navigate = useNavigate();
 
   const { trips, loading, error, reload } = usePublishedTrips();
@@ -470,7 +467,7 @@ const Community: React.FC = () => {
         }}
       />
 
-      <Box sx={{ maxWidth: CONTENT_MAX, mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 3, md: 5 }, pb: 10 }}>
+      <Box sx={{ maxWidth: CONTENT_MAX, mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 3, md: 5 }, pb: { xs: 16, lg: 14 } }}>
         <motion.div initial="hidden" animate="visible" variants={staggerContainer(0.08, 0.05)}>
 
           {/* ── 1. Masthead ── */}
@@ -481,30 +478,12 @@ const Community: React.FC = () => {
             />
           </motion.div>
 
-          {/* ── 2. The two things people arrive wanting to do ──
-              Say something about the trip you are on, or start the one you are
-              not. QuickPlanCard is out of PageHeader's action slot so both get
-              real width instead of being squeezed into a third column. */}
+          {/* ── 2. Say something about the trip you are on ──
+              Starting one you are not moved to the Navia command bar, which is
+              docked on every browse surface rather than only on this page. */}
           <motion.div variants={staggerItem}>
-            <Box
-              sx={{
-                display: 'flex',
-                gap: 2,
-                mt: { xs: 2.5, md: 3 },
-                flexDirection: { xs: 'column', lg: 'row' },
-                // Stretch, because these two are a declared pair: same radius,
-                // same border, same shadow. A 20px difference between them read
-                // as a mistake rather than a hierarchy, and it left the gutter
-                // above the toolbar two different sizes across the page. Both
-                // cards pin their bottom block so the space lands between their
-                // blocks rather than as a hole under one of them.
-                alignItems: 'stretch',
-              }}
-            >
-              <Box sx={{ flex: 1, minWidth: 0, width: '100%' }}>
-                <PostComposer onPosted={(p) => setPosts((prev) => [p, ...prev])} />
-              </Box>
-              <QuickPlanCard token={token} />
+            <Box sx={{ mt: { xs: 2.5, md: 3 } }}>
+              <PostComposer onPosted={(p) => setPosts((prev) => [p, ...prev])} />
             </Box>
           </motion.div>
 

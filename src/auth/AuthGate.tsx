@@ -13,7 +13,7 @@ export interface RequireAuthOptions {
    * on the way back. Omit for one-tap actions: restoring those would perform
    * something after a redirect that the person may no longer intend.
    */
-  draft?: { key: string; text: string };
+  draft?: { key: string; text: string; meta?: string };
 }
 
 interface AuthGateValue {
@@ -56,7 +56,7 @@ export const AuthGateProvider: React.FC<{ children: React.ReactNode }> = ({ chil
     if (tokenRef.current) return true;
 
     if (options?.draft?.text?.trim()) {
-      stashDraft(options.draft.key, options.draft.text, hereRef.current);
+      stashDraft(options.draft.key, options.draft.text, hereRef.current, options.draft.meta);
     }
     setReason(options?.reason ?? null);
     setOpen(true);

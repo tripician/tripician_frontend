@@ -2,8 +2,7 @@ import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { importPlan, IMPORT_MAX_IMAGES, NaviaRequestError } from './naviaService';
 import { downscaleImage, DownscaleError } from '../utils/downscaleImage';
-import { apiServices } from '../services/APIs/apiServices';
-import { scheduleFeedbackPrompt } from '../utils/feedbackPrompt';
+import { createTripAndOpen } from './createTripAndOpen';
 import { composeImportantNotes } from '../pages/CreateTripPage/planSeed';
 
 /* What the traveller sees while their plan is being read. Long enough to cover a
@@ -150,31 +149,11 @@ export function usePlanImport(token?: string | null) {
         : new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
       const end = new Date(start.getTime() + Math.max(1, nights) * 24 * 60 * 60 * 1000);
 
-      const createResp = await apiServices.createTrip(token, {
-        name: plan.name || 'My imported plan',
-        description: '',
-        countries: plan.countries,
-        startDate: toIsoDate(start),
-        endDate: toIsoDate(end),
-        visibility: 0, // trips start private; publishing is an explicit later step
-        currencyCode: plan.currency || 'USD',
-        vibe: plan.vibe ?? '',
-        invites: [] as string[],
-        plannerMode: 'Easy',
-      });
-
-      const createdId: string | undefined =
-        createResp?.data?.id || createResp?.data?.Id || createResp?.data?.tripId;
-      if (!createdId) throw new Error('Trip created but no id returned');
-
-      const tripResp = await apiServices.getTripById(token, createdId);
-
-      clearScreenshots();
-      scheduleFeedbackPrompt('trip_created');
-      navigate(`/tripplanner/${createdId}`, {
+      await createTripAndOpen({
+        token,
+        navigate,
+        beforeNavigate: clearScreenshots,
         state: {
-          tripId: createdId,
-          trip: tripResp.data,
           planSeed: {
             stops: plan.stops,
             importantNotes: composeImportantNotes(plan.importantNotes, plan.unplaced),
@@ -182,6 +161,18 @@ export function usePlanImport(token?: string | null) {
             budget: plan.budget,
             expenses: plan.expenses,
           },
+        },
+        payload: {
+          name: plan.name || 'My imported plan',
+          description: '',
+          countries: plan.countries,
+          startDate: toIsoDate(start),
+          endDate: toIsoDate(end),
+          visibility: 0, // trips start private; publishing is an explicit later step
+          currencyCode: plan.currency || 'USD',
+          vibe: plan.vibe ?? '',
+          invites: [] as string[],
+          plannerMode: 'Easy',
         },
       });
       return true;
