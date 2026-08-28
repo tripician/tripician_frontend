@@ -370,7 +370,7 @@
   color: rgba(255, 255, 255, 0.88);
   margin: 0 0 32px;
 }
-.lp-hero__cta-group { display: flex; flex-wrap: wrap; gap: 12px; }
+.lp-hero__cta-group { display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-start; }
 .lp-hero__cta-group > * { opacity: 0; }
 
 .lp-hero__scroll-indicator {
@@ -1130,4 +1130,148 @@
   font-size: 0.875rem;
   line-height: 1.65;
   color: var(--lp-ink-mute);
+}
+
+/* ========================= HERO CHAT =================================
+   Navia on the front door, for visitors with no account.
+
+   Takes the full width of .lp-hero__cta-group so the two links wrap beneath
+   it rather than sitting alongside. Its children inherit the group's
+   `opacity: 0`, which is what lets the existing GSAP intro stagger it in with
+   the rest of the hero instead of needing a timeline of its own.
+
+   Light on dark throughout: this sits over the hero video.
+   ===================================================================== */
+/* Full width as a FLEX ITEM so the two buttons wrap onto the line below; the
+   620px cap lives on the content instead. Capping the item itself left room on
+   the line, the buttons stayed on it, and the group's default align-items
+   stretched them into two enormous pills beside the transcript. */
+.lp-herochat { flex: 0 0 100%; }
+.lp-herochat > * { max-width: 620px; }
+
+.lp-herochat__bar {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 10px 10px 16px;
+  border-radius: 999px;
+  background: rgba(20, 20, 26, 0.55);
+  border: 1px solid rgba(243, 241, 236, 0.22);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+}
+.lp-herochat__bar:focus-within { border-color: rgba(243, 241, 236, 0.45); }
+
+.lp-herochat__input {
+  flex: 1;
+  min-width: 0;
+  border: 0;
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-size: 0.975rem;
+  outline: none;
+}
+.lp-herochat__input::placeholder { color: rgba(255, 255, 255, 0.6); }
+
+.lp-herochat__send {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  flex-shrink: 0;
+  border: 0;
+  border-radius: 50%;
+  background: var(--lp-primary);
+  color: #fff;
+  cursor: pointer;
+}
+.lp-herochat__send:hover:not(:disabled) { background: var(--lp-primary-dark); }
+.lp-herochat__send:disabled { background: rgba(243, 241, 236, 0.18); cursor: default; }
+
+/* Quieter than the placeholder above it and the openers below, because it is a
+   fact about the box rather than something to act on. */
+.lp-herochat__hint {
+  margin: 10px 0 0;
+  color: rgba(255, 255, 255, 0.66);
+  font-size: 0.8125rem;
+}
+
+.lp-herochat__openers { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+.lp-herochat__opener {
+  padding: 6px 12px;
+  border-radius: 999px;
+  border: 1px solid rgba(243, 241, 236, 0.22);
+  background: transparent;
+  color: rgba(255, 255, 255, 0.82);
+  font: inherit;
+  font-size: 0.8125rem;
+  cursor: pointer;
+}
+.lp-herochat__opener:hover { border-color: rgba(243, 241, 236, 0.5); color: #fff; }
+
+/* Capped and scrollable: the hero has a fixed height and a long answer must not
+   push the rest of it off screen. */
+.lp-herochat__thread {
+  margin-top: 14px;
+  max-height: 220px;
+  overflow-y: auto;
+  text-align: left;
+}
+.lp-herochat__msg {
+  margin: 0 0 10px;
+  font-size: 0.9rem;
+  line-height: 1.6;
+  white-space: pre-line;
+}
+.lp-herochat__msg--user { color: #fff; font-weight: 600; }
+.lp-herochat__msg--navia { color: rgba(255, 255, 255, 0.85); }
+
+.lp-herochat__build {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-top: 6px;
+  padding: 8px 14px;
+  border-radius: 999px;
+  border: 1px solid rgba(243, 241, 236, 0.28);
+  background: transparent;
+  color: #fff;
+  font: inherit;
+  font-size: 0.85rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+.lp-herochat__build:hover:not(:disabled) { border-color: rgba(243, 241, 236, 0.6); }
+.lp-herochat__build:disabled { opacity: 0.6; cursor: default; }
+
+.lp-herochat__draft {
+  margin-top: 14px;
+  padding: 16px;
+  border-radius: var(--lp-radius);
+  background: rgba(20, 20, 26, 0.6);
+  border: 1px solid rgba(243, 241, 236, 0.22);
+  text-align: left;
+}
+.lp-herochat__draft-title { color: #fff; font-weight: 700; font-size: 1.05rem; }
+.lp-herochat__draft-meta {
+  color: rgba(255, 255, 255, 0.7);
+  font-size: 0.85rem;
+  margin: 4px 0 14px;
+}
+
+.lp-herochat__spent {
+  margin-top: 12px;
+  color: rgba(255, 255, 255, 0.85);
+  font-size: 0.875rem;
+}
+.lp-herochat__signin {
+  border: 0;
+  background: transparent;
+  padding: 0;
+  color: #fff;
+  font: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
 }

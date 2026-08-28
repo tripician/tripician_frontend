@@ -99,3 +99,22 @@ export interface PendingRequestsGroup {
   spotsLeft: number | null;
   requests: TripJoinRequest[];
 }
+
+/**
+ * What an organiser has actually done, counted from their public records.
+ *
+ * Deliberately all numbers and dates. Identity verification says a person is
+ * real; it says nothing about whether the trip is real or whether they have ever
+ * taken anybody anywhere, which is the risk a traveller actually carries.
+ */
+export interface OrganiserRecord {
+  userId: number;
+  memberSince: string;
+  identityVerified: boolean;
+  /** Published trips of theirs that have already ended. Never planned ones. */
+  tripsRun: number;
+  /** Distinct people carried across those trips, organiser excluded. */
+  travellersTaken: number;
+  /** Published stories about those trips, by any author. */
+  storiesPublished: number;
+}

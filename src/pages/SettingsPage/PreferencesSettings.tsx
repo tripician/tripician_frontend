@@ -41,7 +41,7 @@ const PreferencesSettings: React.FC = () => {
         setCurrency(data.preferredCurrency || 'usd');
         setTravelStyle(data.travelStyle || 'backpacker');
         setBudgetRange(data.budgetRange || '30-50');
-      } catch(e:any){
+      } catch{
         setError('Failed to load preferences');
       } finally { setLoading(false); }
     })();
@@ -80,7 +80,7 @@ const PreferencesSettings: React.FC = () => {
         budgetRange,
       });
       window.dispatchEvent(new CustomEvent('app:success',{ detail:{ message:'Preferences updated' }}));
-    } catch(e:any){
+    } catch{
       setError('Failed to save preferences');
     } finally { setSaving(false); }
   };

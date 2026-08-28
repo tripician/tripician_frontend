@@ -102,6 +102,8 @@ import EasyPlanHeader from './EasyPlanHeader';
 import PlannerHeaderShell from './PlannerHeaderShell';
 import SegmentedControl from '../../components/ui/SegmentedControl';
 import SaveIndicator, { type SaveState } from '../../components/ui/SaveIndicator';
+import { usePlanPresence } from './usePlanPresence';
+import PlanPresence from './PlanPresence';
 import { countryNameFromCode } from '../../utils/countryFlags';
 import { differenceInDays } from 'date-fns';
 import { BRAND } from '../../theme';
@@ -1147,6 +1149,25 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		}, [initialTrip]);
 	// Support direct page reload without location.state by performing a fallback fetch.
 	const [remoteTrip, setRemoteTrip] = React.useState<any|null>(null);
+
+	/*
+	 * The plan's concurrency token.
+	 *
+	 * Undefined until the server tells us, and undefined is NOT zero: zero is the
+	 * documented opt-out that makes the server skip the check, so sending it while
+	 * we simply have not loaded yet would disable the very guard this is for.
+	 */
+	const [planVersion, setPlanVersion] = React.useState<number | undefined>(undefined);
+	const planVersionRef = React.useRef<number | undefined>(undefined);
+	React.useEffect(() => { planVersionRef.current = planVersion; }, [planVersion]);
+
+	// Someone else saved while we were editing. Autosave stops dead rather than
+	// retrying into a conflict every 1.2 seconds.
+	const [planConflict, setPlanConflict] = React.useState(false);
+
+	// Only for people who can actually change the plan. A reader on the page is
+	// not the thing anybody needs warning about.
+	const presentTravellers = usePlanPresence(tripId, !readOnly && effectiveCanEdit);
 	const [tripUsers, setTripUsers] = React.useState<any[]>([]); // authoritative members list from /trips/{id}/users
 	const remoteRefreshKeyRef = React.useRef(0);
 
@@ -1442,7 +1463,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				if(resp?.data){
 					setRemoteTrip(resp.data);
 				}
-			} catch(err) {
+			} catch {
 				// silent fail; user can retry later
 			}
 		})();
@@ -1498,6 +1519,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		//
 		// Only trust it when the payload actually carried the field. A response shape
 		// that omits it must not be read as "unpublished".
+		if (typeof meta.planVersion === 'number') setPlanVersion(meta.planVersion);
 		const serverDraft = typeof meta.published === 'boolean' ? !meta.published : isDraft;
 		if (serverDraft !== isDraft) setIsDraft(serverDraft);
 		setPrivacy(derivePrivacyFromDraft(serverDraft));
@@ -2522,7 +2544,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			globalDocs: (planner.globalDocs || []).map(doc => ({ id: doc.id, originalName: doc.originalName, mimeType: doc.mimeType })),
 			visaDocs: (planner.visaDocs || []).map(doc => ({ id: doc.id, originalName: doc.originalName, mimeType: doc.mimeType })),
 			destinationDocsCount: planner.destinations.reduce((sum, d) => sum + (d.docs?.length || 0), 0),
-			version: 1
+			// Zero is the server's opt-out, and it is what an unloaded planner sends.
+			// Better to save without the guard than to refuse to save at all.
+			version: planVersionRef.current ?? 0
 		};
 	}, [planner.destinations, planner.expenses, planner.tripBudget, planner.preferences, packingCategories, planner.pinnedDocIds, planner.globalDocs, planner.visaDocs, tripId, title, currency, tripStartDate, tripEndDate, targetNights, totalNights, geocodedCount, importantNotes, vibe, tripDescription, bannerUrl, derivePrivacyFromDraft, plannerMode]);
 
@@ -2553,7 +2577,11 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			} catch (logErr) {
 				console.warn('[TripPersist] Logging preparation failed', logErr);
 			}
-			await apiServices.updateTrip(authToken, tripId, payload);
+			const saveResp = await apiServices.updateTrip(authToken, tripId, payload);
+			// Only the version is taken from the response. Anything else would
+			// overwrite what was typed while the request was in flight.
+			const nextVersion = (saveResp as any)?.data?.planVersion;
+			if (typeof nextVersion === 'number') setPlanVersion(nextVersion);
 			// success log
 			console.info('[TripPersist] updateTrip succeeded for', tripId);
 			// Only update in-memory remoteTrip if no server-side Navia refresh ran while
@@ -2586,6 +2614,12 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				console.warn('[TripPersist] Failed to log error details', logErr);
 			}
 			const status = err?.response?.status;
+			if (status === 409) {
+				setPlanConflict(true);
+				const serverVersion = err?.response?.data?.planVersion;
+				if (typeof serverVersion === 'number') setPlanVersion(serverVersion);
+				return false;
+			}
 			if(status === 403 || status === 401 || status === 404) {
 				setSavePermissionDenied(true);
 				openToast('error', "You don't have permission to save");
@@ -2619,16 +2653,17 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	 * which is why the shared component knows the state at all.
 	 */
 	const saveState: SaveState =
-		savePermissionDenied ? 'error'
-			: saving ? 'saving'
-				: isDirty ? 'dirty'
-					: lastSavedAt ? 'saved'
-						: 'idle';
+		planConflict ? 'conflict'
+			: savePermissionDenied ? 'error'
+				: saving ? 'saving'
+					: isDirty ? 'dirty'
+						: lastSavedAt ? 'saved'
+							: 'idle';
 	React.useEffect(() => {
 		// aiAutoGenerating: saving mid-generation triggers a server refresh that
 		// re-hydrates Redux with server ids, orphaning the generator's queued spot
 		// dispatches. One clean save runs right after generation completes instead.
-		if (readOnly || !effectiveCanEdit || !isHydrated || !isDirty || saving || aiAutoGenerating) return;
+		if (readOnly || !effectiveCanEdit || !isHydrated || !isDirty || saving || aiAutoGenerating || planConflict) return;
 		if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current);
 		autosaveTimerRef.current = window.setTimeout(() => {
 			autosaveTimerRef.current = null;
@@ -2641,7 +2676,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			persistToBackend(payload).then((ok: boolean) => { if (ok) commitSnapshot(isDraft); });
 		}, AUTOSAVE_DELAY_MS);
 		return () => { if (autosaveTimerRef.current) window.clearTimeout(autosaveTimerRef.current); };
-	}, [readOnly, effectiveCanEdit, isHydrated, isDirty, saving, isDraft, aiAutoGenerating, buildPersistPayload, persistToBackend, commitSnapshot]);
+	}, [readOnly, effectiveCanEdit, isHydrated, isDirty, saving, isDraft, aiAutoGenerating, planConflict, buildPersistPayload, persistToBackend, commitSnapshot]);
 
 	/**
 	 * Flush on the way out.
@@ -3659,11 +3694,33 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						    bottom Save bar: the button's real job was telling you whether
 						    your work was safe, so saying that continuously retires it. */}
 						{!readOnly && effectiveCanEdit && (
+							<Box sx={{ ml: 0.4, display: { xs: 'none', sm: 'inline-flex' } }}>
+								<PlanPresence
+									travellers={presentTravellers}
+									myUserId={userProfile?.id ? Number(userProfile.id) : null}
+								/>
+							</Box>
+						)}
+
+						{!readOnly && effectiveCanEdit && (
 							<Box data-tour='save' sx={{ ml: 0.4, display: { xs: 'none', sm: 'inline-flex' } }}>
 								<SaveIndicator
 									state={saveState}
 									lastSavedAt={lastSavedAt}
-									error={savePermissionDenied ? "You don't have permission to save" : null}
+									error={
+										planConflict ? 'Somebody else changed this trip.'
+											: savePermissionDenied ? "You don't have permission to save"
+												: null
+									}
+									onReload={() => {
+										// Everything since the conflicting save is only in this tab.
+										// Reloading is how you recover, and it is also how you lose it,
+										// so it gets asked rather than assumed.
+										const lose = isDirty
+											? window.confirm('Reloading will discard the changes you have made since. Continue?')
+											: true;
+										if (lose) window.location.reload();
+									}}
 									onRetry={() => {
 										const payload = buildPersistPayload(isDraft);
 										persistedPayloadRef.current = payload;
@@ -4578,6 +4635,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				onClose={()=> setSettingsOpen(false)}
 				title={title}
 				tripId={tripId}
+				published={!isDraft}
 					startDate={tripStartDate || planner.destinations[0]?.startDate || new Date().toISOString().slice(0,10)}
 					endDate={tripEndDate || planner.destinations[planner.destinations.length-1]?.endDate || tripStartDate || new Date().toISOString().slice(0,10)}
 				privacy={privacy}
@@ -4721,7 +4779,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 								setConfirmDeleteOpen(false);
 								setSettingsOpen(false);
 								setTimeout(()=> { try { window.location.href = '/'; } catch {} }, 300);
-							} catch(err){
+							} catch{
 								openToast('error','Delete failed');
 							} finally { setDeletingTrip(false); }
 						}}

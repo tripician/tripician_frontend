@@ -712,7 +712,12 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
         </Box>
       </Box>
 
-      <TripSeatsBand tripId={tripId} isOwner={isOwner} />
+      <TripSeatsBand
+        tripId={tripId}
+        isOwner={isOwner}
+        verified={isVerified}
+        ownerUserId={Number(root.ownerUserId ?? root.OwnerUserId ?? 0)}
+      />
 
       {section === 'news' && (
         <Box sx={{ maxWidth: 1280, mx: 'auto', px: { xs: 2, md: 4 }, pb: { xs: 4, md: 6 }, width: '100%' }}>

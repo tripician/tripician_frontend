@@ -46,7 +46,7 @@ const NotificationsSettings: React.FC = () => {
           { id:'pushNotifications', title:'Push Notifications', description:'Receive push notifications on your device', enabled: !!data.pushNotifications },
           { id:'travelReminders', title:'Travel Reminders', description:'Reminders for upcoming trips and bookings', enabled: !!data.travelReminders },
         ]);
-      } catch(e:any){
+      } catch{
         setError('Failed to load notification settings');
       } finally { setLoading(false); }
     })();
@@ -58,7 +58,7 @@ const NotificationsSettings: React.FC = () => {
     setUpdatingIds(prev => new Set(prev).add(key));
     try {
       await apiServices.updateNotificationSettings(authToken, { [key]: value });
-    } catch(e:any){
+    } catch{
       rollback();
     } finally {
       setUpdatingIds(prev => { const next = new Set(prev); next.delete(key); return next; });

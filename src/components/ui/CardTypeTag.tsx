@@ -1,8 +1,7 @@
 import React from 'react';
 import { Box, Tooltip, useTheme } from '@mui/material';
-import { IconNote } from '@tabler/icons-react';
 import { CARD_TYPES } from './cardTypes';
-import type { CardTypeKind, CardTypeSpec, CardTypeTone } from './cardTypes';
+import type { CardTypeKind } from './cardTypes';
 
 /**
  * The bookmark that says what a card IS.
@@ -25,20 +24,14 @@ import type { CardTypeKind, CardTypeSpec, CardTypeTone } from './cardTypes';
  */
 
 interface CardTypeTagProps {
-  /** One of the standard kinds, or pass label/Icon/tone directly. */
-  kind?: CardTypeKind;
-  label?: string;
-  Icon?: React.ElementType;
-  tone?: CardTypeTone;
+  kind: CardTypeKind;
   /** Distance from the right edge. Nudged where something else sits in the corner. */
   right?: number;
 }
 
-const CardTypeTag: React.FC<CardTypeTagProps> = ({ kind, label, Icon, tone, right = 12 }) => {
+const CardTypeTag: React.FC<CardTypeTagProps> = ({ kind, right = 12 }) => {
   const theme = useTheme();
-  const spec: CardTypeSpec = kind
-    ? CARD_TYPES[kind]
-    : { label: label ?? '', Icon: Icon ?? IconNote, tone: tone ?? 'quiet' };
+  const spec = CARD_TYPES[kind];
 
   /*
    * All three tones are solid fills, and the hierarchy is carried by how dark

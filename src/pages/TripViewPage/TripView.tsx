@@ -78,7 +78,7 @@ const TripView: React.FC = () => {
         } else {
           setFetchError('Trip not found');
         }
-      } catch(err:any){ if(active){ setFetchError('Failed to load trip'); } }
+      } catch{ if(active){ setFetchError('Failed to load trip'); } }
       finally { if(active) setLoading(false); }
     })();
     return ()=> { active=false; };

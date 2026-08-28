@@ -35,7 +35,7 @@ export async function fetchCurrency(countryCode: string): Promise<CurrencyData> 
   const data: CurrencyData = { base, rates: json.rates || {}, fetched: new Date().toISOString() };
   CACHE[base] = { data, expires: now + TTL_MS };
   return data;
-  } catch(err){
+  } catch{
     return { base, rates:{}, fetched: new Date().toISOString() };
   }
 }

@@ -10,10 +10,12 @@
 
 import React from 'react';
 import {
-  Box, Button, Dialog, DialogActions, DialogContent, DialogTitle,
+  Alert, Box, Button, Dialog, DialogActions, DialogContent, DialogTitle,
   TextField, Typography,
 } from '@mui/material';
-import { IconCheck, IconClock, IconShieldCheck, IconUserPlus } from '@tabler/icons-react';
+import {
+  IconAlertTriangle, IconCheck, IconClock, IconShieldCheck, IconUserPlus,
+} from '@tabler/icons-react';
 import { apiServices } from '../services/APIs/apiServices';
 import { useAuthToken } from '../hooks/useAuth0Token';
 import { useRequireAuth } from '../auth/AuthGate';
@@ -22,18 +24,23 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
 import { canRequestToJoin, type TripSeats } from './types';
 import { useVerification } from './useVerification';
+import OrganiserRecord from './OrganiserRecord';
 
 interface JoinRequestButtonProps {
   tripId: string;
   seats: TripSeats;
   isOwner: boolean;
+  /** Tripician Verified. Anything else gets told what that means before it asks. */
+  verified: boolean;
+  /** The organiser whose track record answers what the badge cannot. */
+  ownerUserId: number;
   /** Called after any change, so the parent can refetch seat state. */
   onChanged?: () => void;
   fullWidth?: boolean;
 }
 
 const JoinRequestButton: React.FC<JoinRequestButtonProps> = ({
-  tripId, seats, isOwner, onChanged, fullWidth,
+  tripId, seats, isOwner, verified, ownerUserId, onChanged, fullWidth,
 }) => {
   const requireAuth = useRequireAuth();
   const { token } = useAuthToken();
@@ -226,6 +233,22 @@ const JoinRequestButton: React.FC<JoinRequestButtonProps> = ({
       >
         <DialogTitle>Ask to join this trip</DialogTitle>
         <DialogContent>
+          {!verified && (
+            <Alert
+              severity="warning"
+              icon={<IconAlertTriangle size={18} />}
+              sx={{ borderRadius: '12px', mb: 2, fontSize: 13 }}
+            >
+              Tripician has not reviewed this trip. You are arranging it directly with
+              the organiser, and anything you pay goes to them rather than through
+              Tripician, so we cannot check it or get it back for you.
+            </Alert>
+          )}
+
+          <Box sx={{ mb: 2 }}>
+            <OrganiserRecord userId={ownerUserId} />
+          </Box>
+
           <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
             The organiser decides who comes along. Tell them a little about
             yourself and why this trip.

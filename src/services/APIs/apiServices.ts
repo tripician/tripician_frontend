@@ -1,7 +1,7 @@
 // api/apiService.ts - This is the ONLY additional file you need
 import axios from 'axios';
 import type { TripPreferences } from '../../utils/tripPreferences';
-import type { TripSeats, TripJoinRequest, UpdateTripSeatsDto } from '../../seats/types';
+import type { TripSeats, TripJoinRequest, UpdateTripSeatsDto, OrganiserRecord } from '../../seats/types';
 import type { TripAnnouncement } from '../../types/announcements';
 import type {
   OperatorProfile, OperatorApplication, OperatorLead, OperatorLeadResult,
@@ -876,6 +876,10 @@ export const apiServices = {
   getUserById: (userId: number) =>
     apiClient.get<{ id: number; name: string; avatar: string | null; cover: string | null; country: string | null; location: string | null; website: string | null; instagram: string | null; twitter: string | null; facebook: string | null; bio?: { highlights?: Array<{ key?: string; label?: string; value?: string; icon?: string }> } | null; joinedAt?: string | null; identityVerifiedAt?: string | null }>
       (`/api/users/${userId}`),
+
+  // GET /api/users/{userId}/track-record - what this organiser has actually run
+  getOrganiserRecord: (userId: number) =>
+    apiClient.get<OrganiserRecord>(`/api/users/${userId}/track-record`),
 
   // POST /api/follow/{followeeId} - follow a user (JWT resolves follower)
   followUser: (token: string, followeeId: number) =>

@@ -72,7 +72,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import { IconCompass, IconFeather } from '@tabler/icons-react';
 import CommunityTripCard from './CommunityTripCard';
-import FeatureTripCard from './FeatureTripCard';
+import RecruitingRail from './RecruitingRail';
 import { CATEGORIES, CONTENT_MAX, gridSx } from './communityConstants';
 import FilterChip from '../../components/ui/FilterChip';
 import SearchField from '../../components/ui/SearchField';
@@ -114,6 +114,13 @@ function describeFeed(trips: number, stories: number): string {
   if (stories > 0) parts.push(`${stories} ${stories === 1 ? 'story' : 'stories'}`);
   return parts.length === 0 ? 'Nothing found' : parts.join(' and ');
 }
+
+/** A shortlist, not a listing. The rest are at /trips/looking-for-people. */
+const RECRUITING_SHOWN = 4;
+
+// The server sends either casing depending on the projection, which is why every
+// read of this flag on the page goes through one function.
+const isTripVerified = (trip: any): boolean => (trip?.verified ?? trip?.Verified) === true;
 
 const Community: React.FC = () => {
   const theme = useTheme();
@@ -175,24 +182,6 @@ const Community: React.FC = () => {
   const isFiltering = activeCategory !== 'all' || Boolean(search.trim());
 
   /*
-   * The lead trip is the newest Tripician Verified one.
-   *
-   * This slot used to hold "Trip of the day", which was `trips[today % length]` -
-   * a rotation, not a recommendation. Nobody chose it, so calling it out as the
-   * one to look at was a claim the page could not back. Verified is the opposite:
-   * a person on the team read the whole plan and put our name on it, and it is
-   * already a hard ranking tier everywhere else.
-   *
-   * Nothing renders when no trip is verified. A fallback to an arbitrary trip
-   * would put the badge's meaning back where it started.
-   */
-  const verifiedTrips = React.useMemo(
-    () => trips.filter((t: any) => (t.verified ?? t.Verified) === true),
-    [trips],
-  );
-  const leadVerified = verifiedTrips.length > 0 ? verifiedTrips[0] : null;
-
-  /*
    * Editor's choice: the story equivalent of Tripician Verified.
    *
    * Granted by hand from the admin desk and nowhere else. It is deliberately NOT
@@ -220,18 +209,7 @@ const Community: React.FC = () => {
   // Verified first as a hard tier, then community engagement, where comments
   // weigh heaviest because writing a reply costs far more than tapping a heart.
   const filteredTrips = React.useMemo(() => {
-    /*
-     * The lead verified trip is pulled out of the feed, because the Verified tier
-     * already ranks it first: leaving it in would show the same trip in the
-     * editorial split and again as the very next card.
-     *
-     * Only while the page is unfiltered, for the same reason the hero's stories
-     * rejoin the feed under a filter - the module is hidden then, and a trip that
-     * is invisible AND excluded is a trip a search cannot find.
-     */
-    let list = !isFiltering && leadVerified
-      ? trips.filter((t: any) => (t.id || t.Id) !== (leadVerified.id || leadVerified.Id))
-      : trips;
+    let list = trips;
 
     if (activeCategory !== 'all') {
       list = list.filter((t) => (t.vibe || '').toLowerCase() === activeCategory);
@@ -258,7 +236,7 @@ const Community: React.FC = () => {
      * or a client-side merge breaks it and nothing says so.
      */
     return [...list].sort(compareTripsForFeed);
-  }, [trips, activeCategory, search, isFiltering, leadVerified]);
+  }, [trips, activeCategory, search]);
 
   /*
    * The hero takes the first three; every other story goes into the feed.
@@ -297,17 +275,19 @@ const Community: React.FC = () => {
   );
 
   /*
-   * While filtering, the feed draws from ALL stories, not just the ones the rail
-   * did not take.
+   * While filtering, the feed draws from every UNPICKED story rather than only
+   * the ones the strip did not take.
    *
-   * The rail hides as soon as a chip or a search is active, so with a plain slice
-   * its stories became unreachable: searching "Oaxaca" returned nothing while an
-   * Oaxaca story sat on the page a moment earlier. Excluding them is only correct
-   * when the rail is actually showing them.
+   * The strip sits below the filter and hides as soon as a chip is active, so
+   * with a plain slice its stories became unreachable: searching "Oaxaca"
+   * returned nothing while an Oaxaca story sat on the page a moment earlier.
+   * Editor's choice is the opposite case. It sits ABOVE the filter and stays on
+   * screen, so its picks must stay out of the results or the same story shows
+   * twice, once in the rail and once in the grid under it.
    */
   const feedStories = React.useMemo(
-    () => (isFiltering ? stories : unpickedStories.slice(railStories.length)),
-    [stories, isFiltering, unpickedStories, railStories.length],
+    () => (isFiltering ? unpickedStories : unpickedStories.slice(railStories.length)),
+    [isFiltering, unpickedStories, railStories.length],
   );
 
   /*
@@ -355,17 +335,19 @@ const Community: React.FC = () => {
    * Any stories left over when the trips run out are appended, so a community
    * with more writers than planners still shows all of them.
    */
-  const railPosts = React.useMemo(() => posts.slice(0, 6), [posts]);
+  const railPosts = React.useMemo(() => posts.slice(0, 4), [posts]);
 
   /*
-   * Posts the rail did not take. Under a filter the rail is hidden, so the feed
-   * would be showing nothing rather than everything: posts carry no vibe and no
-   * destination, so there is nothing for a chip or a search to match, and putting
-   * them in unfiltered results would be answering a question nobody asked.
+   * Posts the rail did not take, and none at all under a filter.
+   *
+   * The rail itself stays on screen now, above the filter, because a post has no
+   * vibe for a chip to match. That is also why the overflow is held back here:
+   * dropping unfiltered notes into filtered results would be answering a question
+   * nobody asked.
    */
   const feedPosts = React.useMemo(
-    () => (isFiltering ? [] : posts.slice(6)),
-    [posts, isFiltering],
+    () => (isFiltering ? [] : posts.slice(railPosts.length)),
+    [posts, railPosts, isFiltering],
   );
 
   const feed = React.useMemo(() => {
@@ -426,28 +408,28 @@ const Community: React.FC = () => {
     if (tripId) navigate(tripPath({ id: tripId, name: trip.name }), { state: { trip } });
   };
 
-  // Open trips are a subset of published, so no second fetch. Full ones stay
-  // listed: "Full" is useful information, and the trip may free up.
-  //
-  // Filtered by the same chips and search as everything else, and NOT hidden while
-  // filtering. It used to vanish the moment you touched a chip, which is what made
-  // recruitment unfindable: the one module you can act on disappeared on first use.
+  /*
+   * Open trips are a subset of published, so no second fetch. Full ones stay
+   * listed: "Full" is useful information, and the trip may free up.
+   *
+   * Deliberately NOT filtered by the chips or the search. This block sits above
+   * the filter, where nothing responds to them, and there are rarely enough
+   * recruiting trips for a vibe to match one: almost any chip emptied the list,
+   * and the one module you can act on disappearing on first use is what made
+   * recruitment unfindable before. Narrowing these is what the See all page is
+   * for, and it carries its own chips and search.
+   *
+   * Verified first, so the badge means something at the top of the block. Sort is
+   * stable, so ranking order still decides within each group.
+   */
   const openTrips = React.useMemo(() => {
-    let list = trips.filter((t: any) => t.joinPolicy === 'OpenToRequests');
-    if (activeCategory !== 'all') {
-      list = list.filter((t) => (t.vibe || '').toLowerCase() === activeCategory);
-    }
-    const q = search.trim().toLowerCase();
-    if (q) {
-      list = list.filter(
-        (t) =>
-          (t.name || '').toLowerCase().includes(q) ||
-          (t.description || '').toLowerCase().includes(q) ||
-          (Array.isArray(t.countries) && t.countries.some((c: string) => c.toLowerCase().includes(q))),
-      );
-    }
-    return [...list].sort(compareTripsForFeed).slice(0, 12);
-  }, [trips, activeCategory, search]);
+    const list = trips
+      .filter((t: any) => t.joinPolicy === 'OpenToRequests')
+      .sort(compareTripsForFeed);
+    return [...list]
+      .sort((a: any, b: any) => Number(isTripVerified(b)) - Number(isTripVerified(a)))
+      .slice(0, RECRUITING_SHOWN);
+  }, [trips]);
   const activeCategoryLabel = CATEGORIES.find((c) => c.id === activeCategory)?.label || 'All';
 
 
@@ -478,46 +460,66 @@ const Community: React.FC = () => {
             />
           </motion.div>
 
-          {/* ── 2. Say something about the trip you are on ──
+          {/* ── 2. Say something, and read what everyone else said ──
               Starting one you are not moved to the Navia command bar, which is
               docked on every browse surface rather than only on this page. */}
           <motion.div variants={staggerItem}>
-            <Box sx={{ mt: { xs: 2.5, md: 3 } }}>
-              <PostComposer onPosted={(p) => setPosts((prev) => [p, ...prev])} />
+            <Box sx={{ display: 'flex', gap: { xs: 0, lg: 4 }, alignItems: 'flex-start', mt: { xs: 2.5, md: 3 } }}>
+              {/* Narrower than the grid, because a one line composer stretched to
+                  the full measure reads as a search bar rather than a place to write. */}
+              <Box sx={{ flex: 1, minWidth: 0, maxWidth: 720 }}>
+                <PostComposer onPosted={(p) => setPosts((prev) => [p, ...prev])} />
+
+                {/* ── 2a. From the road ──
+                    The reason to reopen the page. Everything else here changes
+                    when somebody finishes a trip; this changes while they are on
+                    one. Reads `posts`, which is its own fetch, so it does not
+                    wait on the trips the rest of the page is built from. */}
+                <Box sx={{ mt: { xs: 4, md: 5 } }}>
+                  <SectionHeader
+                    title="From the road"
+                    subtitle="Travellers posting as it happens"
+                    action={<SeeAllLink to="/posts" />}
+                  />
+                  {railPosts.length > 0 ? (
+                    <Box sx={{ display: 'grid', gap: 1 }}>
+                      {railPosts.map((post) => (
+                        <PostCard key={post.id} post={post} onRemoved={dropPost} />
+                      ))}
+                    </Box>
+                  ) : (
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      Nobody has posted yet. Yours would be the first.
+                    </Typography>
+                  )}
+                </Box>
+              </Box>
+
+              <Box
+                sx={{
+                  display: { xs: 'none', lg: 'block' },
+                  width: 300, flexShrink: 0, position: 'sticky', top: 72,
+                }}
+              >
+                <RecruitingRail trips={openTrips} onTripClick={handleTripClick} />
+              </Box>
             </Box>
           </motion.div>
 
-          {/* ── 3. Toolbar ── */}
-          <motion.div variants={staggerItem}>
-            <Box
-              sx={{
-                mt: { xs: 2.5, md: 3.5 },
-                display: 'flex',
-                gap: 1.5,
-                flexDirection: { xs: 'column-reverse', md: 'row' },
-                alignItems: { xs: 'stretch', md: 'center' },
-                justifyContent: 'space-between',
-              }}
-            >
-              <ChipRail sx={{ flex: 1, minWidth: 0 }}>
-                {CATEGORIES.map((c) => (
-                  <FilterChip
-                    key={c.id}
-                    label={c.label}
-                    Icon={c.Icon}
-                    active={activeCategory === c.id}
-                    onClick={() => setActiveCategory(c.id)}
-                  />
-                ))}
-              </ChipRail>
-              <SearchField
-                value={search}
-                onChange={setSearch}
-                placeholder="Search destinations, trips, vibes..."
-                sx={{ width: { xs: '100%', md: 320 }, flexShrink: 0 }}
-              />
-            </Box>
-          </motion.div>
+          {/* ── 2b. Trips looking for people, below lg ──
+              The rail beside the feed is desktop only. Here nothing is reserved,
+              so this appears only when there is something in it: an empty panel
+              holds a slot open, and below lg there is no slot to hold. */}
+          {openTrips.length > 0 && (
+            <motion.div variants={staggerItem}>
+              <Box
+                id="looking-for-people"
+                sx={{ display: { xs: 'block', lg: 'none' }, mt: { xs: 4, md: 5 } }}
+              >
+                <RecruitingRail trips={openTrips} onTripClick={handleTripClick} />
+              </Box>
+            </motion.div>
+          )}
 
           {loading && (
             <Box sx={{ mt: 4 }}>
@@ -537,23 +539,10 @@ const Community: React.FC = () => {
 
           {!loading && !error && (
             <>
-              {/* ── 4. Tripician Verified, editorial split ──
-                  Suppressed while filtering: a standing editorial pick is not an
-                  answer to a search, and the trip is still in the results below. */}
-              {!isFiltering && leadVerified && (
-                <Box sx={{ mt: 4 }}>
-                  <FeatureTripCard
-                    trip={leadVerified}
-                    eyebrow="Tripician Verified"
-                    onClick={() => handleTripClick(leadVerified)}
-                  />
-                </Box>
-              )}
-
-              {/* ── 5. Editor's choice ──
+              {/* ── 3. Editor's choice ──
                   Portrait story cards against the landscape trip rail below, so
                   two adjacent rails still read as two different things. */}
-              {FEATURE_FLAGS.afterStory && !isFiltering && editorsChoice.length > 0 && (
+              {FEATURE_FLAGS.afterStory && editorsChoice.length > 0 && (
                 <Box sx={{ mt: { xs: 5, md: 6 } }}>
                   <SectionHeader
                     title="Editor's choice"
@@ -570,36 +559,47 @@ const Community: React.FC = () => {
                 </Box>
               )}
 
-              {/* ── 5a. From the road ──
-                  The reason to reopen the page. Everything else here changes when
-                  somebody finishes a trip; this changes while they are on one. */}
-              {!isFiltering && (
-                <Box sx={{ mt: { xs: 4, md: 5 } }}>
-                  <SectionHeader
-                    title="From the road"
-                    subtitle="Travellers posting as it happens"
-                    action={<SeeAllLink to="/posts" />}
-                  />
-                  {railPosts.length > 0 ? (
-                    <Box sx={{ display: 'grid', gap: 1.5 }}>
-                      {railPosts.map((post) => (
-                        <PostCard key={post.id} post={post} onRemoved={dropPost} />
-                      ))}
-                    </Box>
-                  ) : (
-                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                      Nobody has posted yet. Yours would be the first.
-                    </Typography>
-                  )}
-                </Box>
-              )}
+              {/* ── 4. The filter ──
+                  Everything ABOVE this is the reader's own feed and is never
+                  filtered. Everything below it answers the chips and the search.
+                  A post carries no vibe - its tags are practical ones like visas
+                  and flights - so From the road sits above the line rather than
+                  emptying out under a chip that could never match it. */}
+              <Box
+                sx={{
+                  mt: { xs: 4, md: 5 },
+                  display: 'flex',
+                  gap: 1.5,
+                  flexDirection: { xs: 'column-reverse', md: 'row' },
+                  alignItems: { xs: 'stretch', md: 'center' },
+                  justifyContent: 'space-between',
+                }}
+              >
+                <ChipRail sx={{ flex: 1, minWidth: 0 }}>
+                  {CATEGORIES.map((c) => (
+                    <FilterChip
+                      key={c.id}
+                      label={c.label}
+                      Icon={c.Icon}
+                      active={activeCategory === c.id}
+                      onClick={() => setActiveCategory(c.id)}
+                    />
+                  ))}
+                </ChipRail>
+                <SearchField
+                  value={search}
+                  onChange={setSearch}
+                  placeholder="Search destinations, trips, vibes..."
+                  sx={{ width: { xs: '100%', md: 320 }, flexShrink: 0 }}
+                />
+              </Box>
 
-              {/* ── 5b. Happening now ──
+              {/* ── 5. Happening now ──
                   Real records only, so this has something to show on an install
                   with almost no published trips. */}
               {!isFiltering && <ActivityFeed />}
 
-              {/* ── 5b. After stories, only when nobody has picked one ──
+              {/* ── 6. After stories, only when nobody has picked one ──
                   Editor's choice is the story rail when it has content. This
                   stands in for it otherwise, so a community with writers but no
                   picks still opens with a story block rather than trips alone. */}
@@ -611,28 +611,7 @@ const Community: React.FC = () => {
                 />
               )}
 
-              {/* ── 6. Trips looking for people ──
-                  Above the grid, because it is the only module on this page you
-                  can ACT on rather than read: these have a spare place and a
-                  person waiting on an answer. */}
-              {openTrips.length > 0 && (
-                <Box sx={{ mt: 4 }} id="looking-for-people">
-                  <SectionHeader
-                    title="Trips looking for people"
-                    subtitle="Organisers with a spare place. The organiser approves everyone who joins."
-                    action={<SeeAllLink to="/trips/looking-for-people" />}
-                  />
-                  <ScrollRail gap={2.5} ariaLabel="Trips looking for people">
-                    {openTrips.map((t: any) => (
-                      <Box key={t.id || t.Id} sx={{ flexShrink: 0, width: { xs: 264, sm: 300 } }}>
-                        <CommunityTripCard trip={t} onClick={() => handleTripClick(t)} />
-                      </Box>
-                    ))}
-                  </ScrollRail>
-                </Box>
-              )}
-
-              {/* ── 5. The feed: itineraries and stories together ──
+              {/* ── 7. The feed: itineraries and stories together ──
                   One grid, both kinds, filtered by the same chips and the same
                   search box. The two cards are deliberately different shapes -
                   a trip is landscape and bordered, a story is 4:5 and borderless
@@ -669,7 +648,7 @@ const Community: React.FC = () => {
                           ) : item.kind === 'story' ? (
                             <StoryCard story={item.data} />
                           ) : (
-                            <PostCard post={item.data} onRemoved={dropPost} />
+                            <PostCard post={item.data} showTypeTag onRemoved={dropPost} />
                           )}
                         </motion.div>
                       ))}
@@ -697,7 +676,7 @@ const Community: React.FC = () => {
                 )}
               </Box>
 
-              {/* ── After stories, below the plans ──
+              {/* ── 9. After stories, below the plans ──
                   A pitch, not a second rail. The stories themselves are in the
                   feed above; repeating those cards here is the duplication the
                   hero was once wrongly cut for. What was missing is the ask -

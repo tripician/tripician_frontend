@@ -105,7 +105,7 @@ export async function fetchWeather(countryCode: string): Promise<WeatherData> {
   };
   CACHE[cc] = { data, expires: now + TTL_MS };
   return data;
-  } catch(err){
+  } catch{
     // graceful degraded object
     return { temperatureC:null, windKph:null, conditionCode:null, conditionText:null, updated:new Date().toISOString(), severity:'normal', icon:'unknown', forecast:[] };
   }

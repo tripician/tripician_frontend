@@ -50,6 +50,13 @@ export interface NormalizedTripMeta {
   vibe?: string | null; // optional trip vibe
   photoUrl?: string | null; // trip banner/cover photo URL
   published?: boolean; // whether the trip has been explicitly published (visible to global community)
+  /**
+   * The plan's concurrency token. Sent back on every autosave so a save built on
+   * a stale copy is refused rather than allowed to overwrite whoever moved first.
+   * Undefined from a server that does not send it yet, which the planner treats
+   * as "do not participate" rather than as version zero.
+   */
+  planVersion?: number;
   verified?: boolean; // Tripician Verified: an admin reviewed this itinerary
   verifiedAt?: string | null; // when the endorsement was granted; null when not verified
   plannerMode?: PlannerMode | null; // easy (minimal board) vs advanced (full planner)
@@ -129,6 +136,13 @@ export function normalizeTrip(input: any): NormalizedTrip | null {
   const budgetVisibility = parseFeatureVisibility(tripRoot.budgetVisibility ?? tripRoot.BudgetVisibility);
   const checklistVisibility = parseFeatureVisibility(tripRoot.checklistVisibility ?? tripRoot.ChecklistVisibility);
   const photoUrl = typeof tripRoot.photoUrl === 'string' && tripRoot.photoUrl.trim().length ? tripRoot.photoUrl : null;
+  // Not the legacy `version` beside it, which is the cosmetic "1.0.0" string.
+  const planVersion =
+    typeof tripRoot.planVersion === 'number'
+      ? tripRoot.planVersion
+      : typeof tripRoot.PlanVersion === 'number'
+        ? tripRoot.PlanVersion
+        : undefined;
   // `undefined`, not `false`, when no shape carried the field. The planner adopts
   // this as the trip's published state, and defaulting to `false` would tell it an
   // already-published trip is a draft whenever a payload simply omits the flag.
@@ -167,7 +181,7 @@ export function normalizeTrip(input: any): NormalizedTrip | null {
     Array.isArray(tripRoot.destinations) ? tripRoot.destinations :
     Array.isArray(tripRoot.Destinations) ? tripRoot.Destinations :
     [];
-  return { meta: { id, name, visibility, startDate, endDate, currencyCode, targetNights, importantNotes, description, vibe, photoUrl, published, verified, verifiedAt, plannerMode, myAccessLevel, canEditPlan, canManageMembers, canManageAdmins, canDelete,
+  return { meta: { id, name, visibility, startDate, endDate, currencyCode, targetNights, importantNotes, description, vibe, photoUrl, published, planVersion, verified, verifiedAt, plannerMode, myAccessLevel, canEditPlan, canManageMembers, canManageAdmins, canDelete,
       crewCount, crewLimit, crewLimitEnforced, organizationId, organizationName, organizationSlug, organizationLogoUrl, organizationVerified, budgetVisibility, checklistVisibility }, itinerary, raw: input };
 }
 

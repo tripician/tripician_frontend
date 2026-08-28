@@ -63,6 +63,8 @@ interface TripSettingsDialogProps {
   onClose: () => void;
   title: string;
   tripId?: string;
+  /** Recruiting only goes live on a published trip, so the Crew tab has to say so. */
+  published: boolean;
   startDate: string;
   endDate: string;
   privacy: string;
@@ -109,7 +111,7 @@ const TABS: { id: TabId; label: string }[] = [
 const primary = BRAND.coral;
 
 const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
-  open, onClose, title, tripId, startDate, endDate, initialTab,
+  open, onClose, title, tripId, published, startDate, endDate, initialTab,
   privacy: _privacy, members = [], bannerUrl, onChangeBanner,
   onChangeTitle, onChangeStartDate, onChangeEndDate,
   onChangePrivacy: _onChangePrivacy, onDeleteTrip, onInviteEmail,
@@ -248,7 +250,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
       if (!token) return;
       const resp = await apiServices.searchUsersByName(token, query);
       setUserSearchResults(Array.isArray(resp.data) ? resp.data : []);
-    } catch (err) {
+    } catch {
       setUserSearchResults([]);
     }
   };
@@ -915,7 +917,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
                 {tripId && currentUserIsOwner && (
                   <FieldBlock label="Looking for people">
-                    <SeatsSettings tripId={tripId} />
+                    <SeatsSettings tripId={tripId} published={published} />
                   </FieldBlock>
                 )}
                 <FieldBlock

@@ -85,7 +85,7 @@ const ProfileSettings: React.FC = () => {
         setEmail(data.Email || data.email || '');
         setPhone(data.Phone || data.phone || '');
         setProfilePicture(data.ProfilePicture || data.profilePicture || null);
-      } catch(err:any){
+      } catch{
         setError('Failed to load profile settings');
       } finally { setLoading(false); }
     })();
@@ -558,7 +558,7 @@ const ProfileSettings: React.FC = () => {
                   window.dispatchEvent(
                     new CustomEvent("app:success", { detail: { message: "Personal info updated" } })
                   );
-                } catch (e: any) {
+                } catch {
                   setError("Failed to save changes");
                 } finally {
                   setSaving(false);
@@ -632,7 +632,7 @@ const ProfileSettings: React.FC = () => {
                   await dispatch(fetchUserProfile({ force: true })).unwrap();
                 } catch {}
                 window.dispatchEvent(new CustomEvent('app:success',{ detail:{ message:'Contact info updated' }}));
-              } catch(e:any){
+              } catch{
                 setError('Failed to update contact info');
               } finally { setContactSaving(false); }
             }}

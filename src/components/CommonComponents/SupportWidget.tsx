@@ -35,14 +35,12 @@ import FeedbackOutlinedIcon from '@mui/icons-material/FeedbackOutlined';
 import NewReleasesOutlinedIcon from '@mui/icons-material/NewReleasesOutlined';
 import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
-import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
-import SecurityRoundedIcon from '@mui/icons-material/SecurityRounded';
-import SyncRoundedIcon from '@mui/icons-material/SyncRounded';
 import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
 import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
-import AutoStoriesRoundedIcon from '@mui/icons-material/AutoStoriesRounded';
-import MenuBookRoundedIcon from '@mui/icons-material/MenuBookRounded';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
+import TravelExploreRoundedIcon from '@mui/icons-material/TravelExploreRounded';
+import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
+import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { apiServices } from '../../services/APIs/apiServices';
 import { onFeedbackPromptRequested, markFeedbackPromptShown } from '../../utils/feedbackPrompt';
@@ -114,8 +112,11 @@ const SupportWidget: React.FC<SupportWidgetProps> = ({ commandBar = 'none' }) =>
     setFeedbackDialogOpen(true);
   };
 
-  const appVersion = import.meta.env.VITE_APP_VERSION || '2.1.0';
-  const naviaVersion = '1.0.0';
+  const appVersion = import.meta.env.VITE_APP_VERSION || '3.0.0';
+  // 2.0.0, not 1.1.0: Navia stopped being a signed-in feature this release. It
+  // answers people with no account on the landing page, from its own endpoint,
+  // its own prompt and its own allowance. That is a change in what it is.
+  const naviaVersion = '2.0.0';
 
   /*
    * Newest first, and every line has to name something that actually shipped.
@@ -123,15 +124,20 @@ const SupportWidget: React.FC<SupportWidgetProps> = ({ commandBar = 'none' }) =>
    * directory, which is no longer what the product is: the three entries at the
    * top are the reason someone opens the app when they are not planning.
    */
+  /*
+   * This release, not every release. The dialog is called "What's new" and it
+   * carries the version chips below it, so it describes the version it is
+   * stamped with; the 2.x list it replaced had stopped being news to anybody
+   * still using the app.
+   *
+   * Every line points at something that shipped. Nothing here is a plan.
+   */
   const updateItems = [
-    { icon: AutoStoriesRoundedIcon,  text: 'After stories - write up a trip you took, with your own photographs, and publish it to your profile.' },
-    { icon: MenuBookRoundedIcon,     text: 'The book - any story lays out as an A5 hardcover. Look through every page, then download the print-ready PDF.' },
-    { icon: GroupsRoundedIcon,       text: 'Trip recruitment - open a trip so travellers can ask to join. You approve everyone, and money never routes through Tripician.' },
-    { icon: VerifiedRoundedIcon,     text: 'Identity verification - a verified traveller carries a mark on their profile and on every trip they host.' },
-    { icon: SyncRoundedIcon,         text: 'Profiles read as a diary - an intro in your own words, and your stories above your itineraries.' },
-    { icon: RocketLaunchRoundedIcon, text: 'Reality check - travel time between stops, overloaded days & closures, measured not guessed.' },
-    { icon: SecurityRoundedIcon,     text: 'Verified places - every suggested spot checked against a live listing, closed ones dropped.' },
-    { icon: SecurityRoundedIcon,     text: 'Publish validation - title, description & all days planned before going live.' },
+    { icon: AutoAwesomeRoundedIcon,  text: 'Navia before you sign up - ask about a trip on the front page with no account. Sign in only to keep what it drafts.' },
+    { icon: TravelExploreRoundedIcon, text: 'Your stories turn up in search - a published story is now served to search engines as a real page, and every one is submitted in the sitemap.' },
+    { icon: ForumRoundedIcon,        text: 'Reply without leaving the feed - comments open in place on a post instead of taking you to another page.' },
+    { icon: GroupsRoundedIcon,       text: 'See who else is editing - other people on a plan appear beside the save state, and if two of you save at once the second is stopped rather than quietly overwriting the first.' },
+    { icon: VerifiedRoundedIcon,     text: 'Know who you are joining - a recruiting trip shows what the organiser has actually run, and says plainly when Tripician has not reviewed it.' },
   ];
 
   const closeMenu = () => setAnchorEl(null);

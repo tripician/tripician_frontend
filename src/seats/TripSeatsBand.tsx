@@ -1,9 +1,10 @@
 import React from 'react';
 import { Box, Button, Typography, useTheme } from '@mui/material';
-import { IconCheck, IconFlag, IconUsers } from '@tabler/icons-react';
+import { IconAlertTriangle, IconCheck, IconFlag, IconUsers } from '@tabler/icons-react';
 import { apiServices } from '../services/APIs/apiServices';
 import { useAuthToken } from '../hooks/useAuth0Token';
 import JoinRequestButton from './JoinRequestButton';
+import OrganiserRecord from './OrganiserRecord';
 import JoinRequestsPanel from './JoinRequestsPanel';
 import ReportTripDialog from './ReportTripDialog';
 import EnquireDialog from '../operator/EnquireDialog';
@@ -12,6 +13,13 @@ import { describeSpots, type TripSeats } from './types';
 interface TripSeatsBandProps {
   tripId: string;
   isOwner: boolean;
+  /**
+   * Tripician Verified. Not on TripSeatsDto, so it comes from the page that
+   * already loaded the trip rather than from a second read of the same row.
+   */
+  verified: boolean;
+  /** Whose record to show. Same reason as `verified`: not on the seats DTO. */
+  ownerUserId: number;
 }
 
 function formatPrice(amount: number, currency?: string | null): string {
@@ -25,7 +33,7 @@ function formatPrice(amount: number, currency?: string | null): string {
   }
 }
 
-const TripSeatsBand: React.FC<TripSeatsBandProps> = ({ tripId, isOwner }) => {
+const TripSeatsBand: React.FC<TripSeatsBandProps> = ({ tripId, isOwner, verified, ownerUserId }) => {
   const theme = useTheme();
   const { token } = useAuthToken();
   const [seats, setSeats] = React.useState<TripSeats | null>(null);
@@ -102,9 +110,31 @@ const TripSeatsBand: React.FC<TripSeatsBandProps> = ({ tripId, isOwner }) => {
           {!isOwner && (seats.operatorName ? (
             <Button variant="contained" onClick={() => setEnquireOpen(true)}>Enquire</Button>
           ) : (
-            <JoinRequestButton tripId={tripId} seats={seats} isOwner={isOwner} onChanged={() => void load()} />
+            <JoinRequestButton
+              tripId={tripId}
+              seats={seats}
+              isOwner={isOwner}
+              verified={verified}
+              ownerUserId={ownerUserId}
+              onChanged={() => void load()}
+            />
           ))}
         </Box>
+
+        {!isOwner && isOpen && (
+          <Box sx={{ mt: 1.25 }}>
+            <OrganiserRecord userId={ownerUserId} />
+          </Box>
+        )}
+
+        {!isOwner && isOpen && !verified && (
+          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 1.5, color: 'text.disabled' }}>
+            <IconAlertTriangle size={14} stroke={1.8} style={{ flexShrink: 0 }} />
+            <Typography variant="caption">
+              Tripician has not reviewed this trip.
+            </Typography>
+          </Box>
+        )}
 
         {!isOwner && isOpen && (
           <Box sx={{ mt: 1.5 }}>

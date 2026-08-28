@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Box, Button, FormControlLabel, MenuItem, Select, Switch, TextField, Typography,
+  Alert, Box, Button, FormControlLabel, MenuItem, Select, Switch, TextField, Typography,
 } from '@mui/material';
 import { apiServices } from '../services/APIs/apiServices';
 import { useAuthToken } from '../hooks/useAuth0Token';
@@ -9,6 +9,12 @@ import { useVerification } from './useVerification';
 
 interface SeatsSettingsProps {
   tripId: string;
+  /**
+   * A draft is excluded from every listing query, so recruiting on one saves the
+   * intent and shows nothing. Required rather than optional: a default would
+   * silently pick a side on the one thing this has to be right about.
+   */
+  published: boolean;
 }
 
 const POLICIES: { value: JoinPolicy; label: string; hint: string }[] = [
@@ -19,7 +25,7 @@ const POLICIES: { value: JoinPolicy; label: string; hint: string }[] = [
 
 const fieldSx = { '& .MuiOutlinedInput-root': { borderRadius: '12px' } } as const;
 
-const SeatsSettings: React.FC<SeatsSettingsProps> = ({ tripId }) => {
+const SeatsSettings: React.FC<SeatsSettingsProps> = ({ tripId, published }) => {
   const { token } = useAuthToken();
   const verification = useVerification();
 
@@ -78,6 +84,7 @@ const SeatsSettings: React.FC<SeatsSettingsProps> = ({ tripId }) => {
   };
 
   const active = POLICIES.find((p) => p.value === policy);
+  const listingPending = policy === 'OpenToRequests' && !published;
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
@@ -154,6 +161,13 @@ const SeatsSettings: React.FC<SeatsSettingsProps> = ({ tripId }) => {
             sx={{ alignItems: 'flex-start', ml: 0, mr: 0, mt: 0.5 }}
           />
 
+          {listingPending && (
+            <Alert severity="info" sx={{ borderRadius: '12px', fontSize: 12.5, py: 0.25 }}>
+              Saved now, listed when you publish. A draft does not appear under
+              "Trips looking for people", so nobody can ask to join it yet.
+            </Alert>
+          )}
+
           <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>
             Tripician does not take payment. You approve every person who asks.
           </Typography>
@@ -178,7 +192,9 @@ const SeatsSettings: React.FC<SeatsSettingsProps> = ({ tripId }) => {
 
       {error && <Typography sx={{ fontSize: 12.5, color: 'error.main' }}>{error}</Typography>}
       {saved && !error && (
-        <Typography sx={{ fontSize: 12.5, color: 'success.main' }}>Listing saved.</Typography>
+        <Typography sx={{ fontSize: 12.5, color: 'success.main' }}>
+          {listingPending ? 'Saved. It goes live when you publish this trip.' : 'Listing saved.'}
+        </Typography>
       )}
 
       <Box>

@@ -17,6 +17,7 @@ import '../../assets/css/LandingPage.css';
 import Seo, { SITE_URL } from '../../components/Seo';
 import NaviaOrb from '../../navia/NaviaOrb';
 import LandingPricing from './LandingPricing';
+import HeroChat from './HeroChat';
 import { HERO_IMAGE, HERO_VIDEO, HERO_VIDEO_CREDIT, OG_IMAGE, TICKER, PHOTO_CREDITS } from './landingImages';
 import { apiServices } from '../../services/APIs/apiServices';
 import { afterStoryService } from '../../afterstory/afterStoryService';
@@ -72,7 +73,7 @@ const STEPS = [
   {
     n: '02',
     title: 'Take your turn',
-    desc: 'Say where and how long, and Navia drafts it. Every plan is then checked against real distances and opening hours, so it holds up when you are standing there.',
+    desc: 'Say where and how long, and Navia drafts it. Try it at the top of this page, no account needed. Every plan is then checked against real distances and opening hours, so it holds up when you are standing there.',
     img: '/img/onboarding/reality-check.jpg',
     alt: 'A traveller checking a route against a printed map',
   },
@@ -759,6 +760,11 @@ export default function LandingPage() {
           </p>
 
           <div className="lp-hero__cta-group">
+            {/* The product demonstrating itself, ahead of the links that describe
+                it. Signed-in visitors never reach this: RootRedirect sends them to
+                /community before the landing page renders. */}
+            <HeroChat />
+
             {/* An anchor, not a button. This is the hero's route to /community -
                 the most important indexable page on the site - and a click handler
                 is not a link: crawlers do not run it, and neither does middle-click

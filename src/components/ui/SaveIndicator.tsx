@@ -28,6 +28,13 @@ export interface SaveIndicatorProps {
   error?: string | null;
   /** Retry the write. Only reachable from the `error` state. */
   onRetry?: () => void;
+  /**
+   * What Reload does in the `conflict` state. Defaults to reloading outright,
+   * which is correct where the local copy has already been written. A surface
+   * that still holds unsaved edits should pass one that confirms first, or the
+   * control offered to recover from lost work is the thing that loses it.
+   */
+  onReload?: () => void;
 }
 
 /** A text button that inherits the surrounding caption's type. */
@@ -42,12 +49,12 @@ const InlineAction: React.FC<{ onClick: () => void; children: React.ReactNode }>
   </Box>
 );
 
-const SaveIndicator: React.FC<SaveIndicatorProps> = ({ state, lastSavedAt, error, onRetry }) => {
+const SaveIndicator: React.FC<SaveIndicatorProps> = ({ state, lastSavedAt, error, onRetry, onReload }) => {
   if (state === 'conflict') {
     return (
       <Typography variant="caption" sx={{ color: 'warning.main' }}>
         {error ?? 'This changed somewhere else.'}{' '}
-        <InlineAction onClick={() => window.location.reload()}>Reload</InlineAction>
+        <InlineAction onClick={onReload ?? (() => window.location.reload())}>Reload</InlineAction>
       </Typography>
     );
   }

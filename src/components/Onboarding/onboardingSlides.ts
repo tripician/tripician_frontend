@@ -38,7 +38,7 @@ export const ONBOARDING_SLIDES: OnboardingSlide[] = [
     alt: 'A group of friends checking a map together on a city street',
     eyebrow: 'A travel community',
     title: 'Real trips, from travellers who have actually been there',
-    body: 'Browse itineraries people planned, took and published: the route, the stays, the places worth the detour. Copy one into your own plan and make it yours.',
+    body: 'Browse itineraries people planned, took and published: the route, the stays, the places worth the detour. Copy one into your own plan and make it yours, or ask the travellers who are out there right now and get an answer back.',
   },
   {
     slug: 'reality-check',
@@ -54,6 +54,6 @@ export const ONBOARDING_SLIDES: OnboardingSlide[] = [
     alt: 'A traveller sitting at a table, reading a book',
     eyebrow: 'After the trip',
     title: 'Write it down while you still remember the small things',
-    body: 'An after story is what the trip was actually like, in your words and your photographs. It becomes the thing people read before they decide to travel with you, and it lays out as a printed book you can hold.',
+    body: 'An after story is what the trip was actually like, in your words and your photographs. Publish it and it turns up in search for the next person looking, it becomes the thing people read before they travel with you, and it lays out as a printed book you can hold.',
   },
 ];

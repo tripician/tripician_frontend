@@ -69,19 +69,9 @@ const PostComposer: React.FC<PostComposerProps> = ({
     return () => { active = false; };
   }, [parentPostId]);
 
-  /*
-   * True once somebody is actually writing.
-   *
-   * The card keeps its switch, its icons and its button at rest, because those
-   * are what tell you what it can do. What it drops is the part that only
-   * matters mid-sentence: the second row of the field, and the rule about
-   * pictures, which at rest was small print on a card nobody had touched.
-   *
-   * The helper line beside the switch is gone outright. It read "Say what is
-   * happening where you are", forty pixels from a placeholder reading "What is
-   * happening where you are?".
-   */
-  const open = focused || body.length > 0 || title.length > 0 || media.length > 0 || Boolean(error);
+  // At rest this is one line: avatar, a pill to write in, and the two things it can attach.
+  const open = focused || placeOpen || body.length > 0 || title.length > 0
+    || media.length > 0 || Boolean(error);
 
   const isQuestion = kind === 'question' && !parentPostId;
   const bodyCap = isQuestion ? POST_LIMITS.maxQuestionBody : POST_LIMITS.maxBody;
@@ -90,6 +80,11 @@ const PostComposer: React.FC<PostComposerProps> = ({
     && (!isQuestion || title.trim().length > 0)
     && !busy && !uploading;
   const displayName = profile ? `${profile.fname ?? ''}`.trim() : '';
+
+  // A guest gets the neutral line, since there is no name to address.
+  const restingPlaceholder = displayName
+    ? (isQuestion ? `What do you need to know, ${displayName}?` : `What is happening, ${displayName}?`)
+    : 'Say something, or ask something';
 
   const pickPhotos = async (files: File[]) => {
     const room = POST_LIMITS.maxPhotos - media.length;
@@ -152,6 +147,42 @@ const PostComposer: React.FC<PostComposerProps> = ({
     }
   };
 
+  const kindSwitch = compact || parentPostId ? null : (
+    <SegmentedControl
+      value={kind}
+      options={[
+        { value: 'note' as PostKind, label: 'Note', tip: 'Something happening now' },
+        { value: 'question' as PostKind, label: 'Question', tip: 'Something you need answered' },
+      ]}
+      onChange={setKind}
+      size="small"
+      aria-label="What are you posting"
+    />
+  );
+
+  const photoButton = (
+    <IconButton
+      size="small"
+      aria-label="Add a picture"
+      disabled={uploading || media.length >= POST_LIMITS.maxPhotos}
+      onClick={() => fileRef.current?.click()}
+      sx={{ color: 'text.secondary' }}
+    >
+      {uploading && media.length === 0 ? <CircularProgress size={16} /> : <IconPhotoPlus size={18} />}
+    </IconButton>
+  );
+
+  const placeButton = parentPostId ? null : (
+    <IconButton
+      size="small"
+      aria-label="Add a place"
+      onClick={() => setPlaceOpen((v) => !v)}
+      sx={{ color: placeOpen || place ? 'primary.main' : 'text.secondary' }}
+    >
+      <IconMapPin size={18} />
+    </IconButton>
+  );
+
   return (
     <Box
       onClick={open ? undefined : () => bodyRef.current?.focus()}
@@ -160,7 +191,8 @@ const PostComposer: React.FC<PostComposerProps> = ({
         border: `1px solid ${theme.custom.surface.border}`,
         bgcolor: 'background.paper',
         boxShadow: compact ? 'none' : theme.custom.shadows.card,
-        p: compact ? 1.75 : 2.25,
+        px: compact ? 1.5 : 2,
+        py: open ? (compact ? 1.5 : 2) : 1.25,
         width: '100%',
         // Fills an equal-height row when it is in one; resolves to auto when it
         // is alone, which is how /posts and a reply still look unchanged.
@@ -168,33 +200,20 @@ const PostComposer: React.FC<PostComposerProps> = ({
         display: 'flex',
         flexDirection: 'column',
         cursor: open ? 'default' : 'text',
-        transition: `box-shadow ${theme.custom.motion.duration.base} ${theme.custom.motion.easing.standard}`,
+        transition: `box-shadow ${theme.custom.motion.duration.base} ${theme.custom.motion.easing.standard}, padding ${theme.custom.motion.duration.fast} ${theme.custom.motion.easing.standard}`,
       }}
     >
       {/* The helper sentence that used to sit beside this said the same words as
           the placeholder, forty pixels apart. The placeholder keeps them. */}
-      {!compact && !parentPostId && (
-        <Box sx={{ mb: 1.5 }}>
-          <SegmentedControl
-            value={kind}
-            options={[
-              { value: 'note' as PostKind, label: 'Note', tip: 'Something happening now' },
-              { value: 'question' as PostKind, label: 'Question', tip: 'Something you need answered' },
-            ]}
-            onChange={setKind}
-            size="small"
-            aria-label="What are you posting"
-          />
-        </Box>
-      )}
+      {kindSwitch && open && <Box sx={{ mb: 1.5 }}>{kindSwitch}</Box>}
 
-      <Box sx={{ display: 'flex', gap: 1.25, alignItems: 'stretch', flex: 1, minHeight: 0 }}>
+      <Box sx={{ display: 'flex', gap: 1.25, alignItems: open ? 'stretch' : 'center', flex: 1, minHeight: 0 }}>
         <Avatar
           src={profile?.profilepicture ?? undefined}
           sx={{
             width: 34, height: 34, fontSize: 14, bgcolor: 'primary.main',
             // The row stretches now, so this has to opt out of it.
-            flexShrink: 0, alignSelf: 'flex-start',
+            flexShrink: 0, alignSelf: open ? 'flex-start' : 'center',
           }}
         >
           {(displayName || 'T').charAt(0).toUpperCase()}
@@ -220,7 +239,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
             onFocus={() => setFocused(true)}
             onChange={(e) => setBody(e.target.value.slice(0, bodyCap))}
             placeholder={placeholder ?? (!open
-              ? 'Say something, or ask something'
+              ? restingPlaceholder
               : isQuestion
                 ? 'What do you need to know? Where are you going, and what have you already tried?'
                 : 'What is happening where you are? A queue worth skipping, a meal worth the detour.')}
@@ -257,50 +276,45 @@ const PostComposer: React.FC<PostComposerProps> = ({
             </Box>
           )}
 
-          <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 'auto', pt: 1.25 }}>
-            <IconButton
-              size="small"
-              aria-label="Add a picture"
-              disabled={uploading || media.length >= POST_LIMITS.maxPhotos}
-              onClick={() => fileRef.current?.click()}
-              sx={{ color: 'text.secondary' }}
-            >
-              {uploading && media.length === 0 ? <CircularProgress size={16} /> : <IconPhotoPlus size={18} />}
-            </IconButton>
+          {open && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 'auto', pt: 1.25 }}>
+              {photoButton}
+              {placeButton}
 
-            {!parentPostId && (
-              <IconButton
+              <Box sx={{ flex: 1 }} />
+
+              {body.length > POST_LIMITS.maxBody - 40 && (
+                <Typography
+                  variant="caption"
+                  sx={{ color: remaining <= 0 ? 'error.main' : 'text.disabled', fontWeight: 700 }}
+                >
+                  {remaining}
+                </Typography>
+              )}
+
+              <Button
+                variant="contained"
                 size="small"
-                aria-label="Add a place"
-                onClick={() => setPlaceOpen((v) => !v)}
-                sx={{ color: placeOpen || place ? 'primary.main' : 'text.secondary' }}
+                disabled={!canPost}
+                onClick={() => void submit()}
+                sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '50px', px: 2.25, ml: 0.5 }}
               >
-                <IconMapPin size={18} />
-              </IconButton>
-            )}
-
-            <Box sx={{ flex: 1 }} />
-
-            {body.length > POST_LIMITS.maxBody - 40 && (
-              <Typography
-                variant="caption"
-                sx={{ color: remaining <= 0 ? 'error.main' : 'text.disabled', fontWeight: 700 }}
-              >
-                {remaining}
-              </Typography>
-            )}
-
-            <Button
-              variant="contained"
-              size="small"
-              disabled={!canPost}
-              onClick={() => void submit()}
-              sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '50px', px: 2.25, ml: 0.5 }}
-            >
-              {busy ? 'Checking' : parentPostId ? (submitLabel ?? 'Reply') : isQuestion ? 'Ask' : 'Post'}
-            </Button>
-          </Box>
+                {busy ? 'Checking' : parentPostId ? (submitLabel ?? 'Reply') : isQuestion ? 'Ask' : 'Post'}
+              </Button>
+            </Box>
+          )}
         </Box>
+
+        {/* At rest the switch and the icons sit on the line itself, which is what keeps the card one row high. */}
+        {!open && (
+          <Box sx={{ display: { xs: 'none', sm: 'flex' }, alignItems: 'center', gap: 1, flexShrink: 0 }}>
+            {kindSwitch}
+            <Box sx={{ display: 'flex', alignItems: 'center' }}>
+              {photoButton}
+              {placeButton}
+            </Box>
+          </Box>
+        )}
       </Box>
 
       <input
