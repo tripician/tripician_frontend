@@ -42,6 +42,37 @@ export interface AppNavItem {
  * it pushed Stories - which is now half the reason the product exists - out of
  * sight entirely. It lives in the account popover.
  */
+/**
+ * Where the centred desktop nav starts, and the bottom bar stops.
+ *
+ * Measured, not chosen: the nav pill is absolutely centred on the viewport while
+ * the signed-in right cluster (Pro, Write a story, Plan a trip, bell, avatar) is
+ * in normal flow, so below this width the cluster grows underneath the pill.
+ * "Get Pro" overlapped "Profile" by 35px at 1440 and 115px at 1280, on every
+ * signed-in page. It was keyed to lg (1200), which was too early for a cluster
+ * carrying three labelled buttons.
+ *
+ * Set to 1280 rather than 1560 because the cluster now goes icon-only below
+ * HEADER_FULL_LABELS_MIN_WIDTH, which buys back the room. Below 1280 even the
+ * compact cluster does not fit beside a 524px pill, so the bottom bar takes over.
+ *
+ * Both navs read this one value so there can never be a width with neither.
+ */
+export const DESKTOP_NAV_MIN_WIDTH = 1280;
+
+/**
+ * Above this, the signed-in header shows its buttons with words on them.
+ * Below it, the same buttons render icon-only, which is a variant the header
+ * already had for phones.
+ *
+ * Measured: the pill is 524px, so at 1280 it leaves 378px to the right edge,
+ * and the labelled cluster needs about 492. Dropping the words from Get Pro
+ * (94px to 40) and Write a story (143px to 40) frees roughly 157px, which
+ * clears it. "Plan a trip" keeps its label at every width: it is the primary
+ * action and the one that has to stay obvious.
+ */
+export const HEADER_FULL_LABELS_MIN_WIDTH = 1560;
+
 export const APP_NAV_ITEMS: AppNavItem[] = [
   {
     id: 'explore',

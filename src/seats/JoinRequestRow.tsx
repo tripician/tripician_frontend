@@ -14,17 +14,24 @@
 
 import React from 'react';
 import { Avatar, Box, Button, Typography, useTheme } from '@mui/material';
+import MessageButton from '../messages/MessageButton';
 import type { TripJoinRequest } from './types';
 
 interface JoinRequestRowProps {
   request: TripJoinRequest;
   busy?: boolean;
   onDecide: (userId: number, approve: boolean) => void;
+  /**
+   * Enables the Message button. Optional because the row is also rendered where
+   * the trip is not to hand, and a button that cannot know its trip is worse
+   * than no button.
+   */
+  tripId?: string;
   /** Shown above the name when the row is out of its trip's context. */
   tripName?: string;
 }
 
-const JoinRequestRow: React.FC<JoinRequestRowProps> = ({ request: r, busy = false, onDecide, tripName }) => {
+const JoinRequestRow: React.FC<JoinRequestRowProps> = ({ request: r, busy = false, onDecide, tripName, tripId }) => {
   const theme = useTheme();
 
   return (
@@ -72,6 +79,10 @@ const JoinRequestRow: React.FC<JoinRequestRowProps> = ({ request: r, busy = fals
           <Button size="small" color="inherit" disabled={busy} onClick={() => onDecide(r.userId, false)}>
             Decline
           </Button>
+          {/* Approve or decline are irreversible for the applicant; asking a
+              question first is the option that was missing. It renders only if
+              the server agrees the pair may talk. */}
+          {tripId && <MessageButton tripId={tripId} userId={r.userId} />}
         </Box>
       </Box>
     </Box>

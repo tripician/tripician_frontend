@@ -32,13 +32,18 @@ import {
   IconSparkles,
   IconWorld,
 } from '@tabler/icons-react';
-import CountryFlag from '../../components/ui/CountryFlag';
 import { VIBES } from '../CommunityPage/vibes';
 
 /** The wire shape of /api/trips/vibe-passport. */
 export interface VibePassport {
   vibes: Array<{ name: string; count: number; percentage: number }>;
+  /** The flag row, capped at 8 by the server. NOT a count. */
   topCountries: string[];
+  /** Every distinct country on trips that have ended. Uncapped. */
+  countriesVisited: number;
+  tripsTravelled: number;
+  nightsTravelled: number;
+  tripsPlanned: number;
   totalNights: number;
   totalTrips: number;
   favoriteVibe: string | null;
@@ -50,9 +55,19 @@ export interface VibePassport {
  * the component must not assume where any field came from.
  */
 export interface PassportView {
+  /** Trips that have ENDED. Never plans. */
   trips: number;
   nights: number;
+  /**
+   * The real total. Kept separate from `countries` below because that one is a
+   * capped display list, and rendering its length as the count is the bug this
+   * field exists to end: every traveller past eight countries read "8".
+   */
+  countryCount: number;
+  /** Flags to show. At most eight; `countryCount` says how many there really are. */
   countries: string[];
+  /** Not yet taken. Shown apart from the figures above and never added to them. */
+  planned: number;
   vibes: Array<{ name: string; percentage: number }>;
   favoriteVibe: string | null;
 }
@@ -61,9 +76,11 @@ export interface PassportView {
 export function passportViewFromDto(dto: VibePassport | null): PassportView | null {
   if (!dto) return null;
   return {
-    trips: dto.totalTrips ?? 0,
-    nights: dto.totalNights ?? 0,
+    trips: dto.tripsTravelled ?? 0,
+    nights: dto.nightsTravelled ?? 0,
+    countryCount: dto.countriesVisited ?? 0,
     countries: dto.topCountries ?? [],
+    planned: dto.tripsPlanned ?? 0,
     vibes: (dto.vibes ?? []).map((v) => ({ name: v.name, percentage: v.percentage })),
     favoriteVibe: dto.favoriteVibe ?? null,
   };
@@ -82,6 +99,14 @@ interface ProfilePassportProps {
   onPlanTrip?: () => void;
   /** Public profiles hide the band entirely rather than address the viewer as its owner. */
   hideWhenEmpty?: boolean;
+  /**
+   * 'column' is the identity rail: figures stacked one per row.
+   *
+   * Three h3 numerals with dividers need about 380px side by side; the rail is
+   * 340. Shrinking the type instead would make the one thing the band exists to
+   * state the quietest thing on it.
+   */
+  orientation?: 'row' | 'column';
 }
 
 export const ProfilePassport: React.FC<ProfilePassportProps> = ({
@@ -89,8 +114,10 @@ export const ProfilePassport: React.FC<ProfilePassportProps> = ({
   loading = false,
   onPlanTrip,
   hideWhenEmpty = false,
+  orientation = 'row',
 }) => {
   const theme = useTheme();
+  const stacked = orientation === 'column';
 
   const shell = {
     borderRadius: '20px',
@@ -105,14 +132,21 @@ export const ProfilePassport: React.FC<ProfilePassportProps> = ({
   if (loading || !passport) {
     return (
       <Box sx={{ ...shell, p: { xs: 2.5, sm: 3 } }}>
-        <Box sx={{ display: 'flex', gap: { xs: 2.5, sm: 3.5 }, alignItems: 'flex-end' }}>
+        <Box
+          sx={{
+            display: 'flex',
+            flexDirection: stacked ? 'column' : 'row',
+            gap: { xs: 2.5, sm: stacked ? 1.5 : 3.5 },
+            alignItems: stacked ? 'stretch' : 'flex-end',
+          }}
+        >
           {[0, 1, 2].map((i) => (
             <Box key={i}>
               <Skeleton variant="text" width={56} height={40} />
               <Skeleton variant="text" width={64} height={14} />
             </Box>
           ))}
-          <Box sx={{ flex: 1, minWidth: 0, display: { xs: 'none', md: 'block' } }}>
+          <Box sx={{ flex: 1, minWidth: 0, display: stacked ? 'block' : { xs: 'none', md: 'block' } }}>
             <Skeleton variant="text" width={64} height={14} />
             <Skeleton variant="rectangular" height={16} sx={{ borderRadius: '2px', maxWidth: 220 }} />
           </Box>
@@ -121,8 +155,8 @@ export const ProfilePassport: React.FC<ProfilePassportProps> = ({
     );
   }
 
-  const { trips, nights, countries, vibes, favoriteVibe } = passport;
-  const hasAnything = trips > 0 || countries.length > 0 || nights > 0;
+  const { trips, nights, countryCount, planned, vibes, favoriteVibe } = passport;
+  const hasAnything = trips > 0 || countryCount > 0 || nights > 0 || planned > 0;
 
   if (!hasAnything) {
     if (hideWhenEmpty) return null;
@@ -145,7 +179,9 @@ export const ProfilePassport: React.FC<ProfilePassportProps> = ({
         >
           <IconWorld size={22} stroke={1.7} />
         </Box>
-        <Box sx={{ minWidth: 0, flex: 1 }}>
+        {/* minWidth 0 let the text shrink forever, so in the narrow identity rail
+            the button never wrapped and the copy was crushed to a column instead. */}
+        <Box sx={{ minWidth: 200, flex: 1 }}>
           <Typography variant="subtitle1" sx={{ color: 'text.primary' }}>
             Your travel passport starts empty
           </Typography>
@@ -183,7 +219,8 @@ export const ProfilePassport: React.FC<ProfilePassportProps> = ({
   // fact about the traveller, it is a gap in what we were told: the public
   // profile has no passport endpoint and never knows the night count.
   const stats = [
-    { value: countries.length, label: countries.length === 1 ? 'country' : 'countries' },
+    // countryCount, never countries.length: that list is capped at eight.
+    { value: countryCount, label: countryCount === 1 ? 'country' : 'countries' },
     { value: trips, label: trips === 1 ? 'trip' : 'trips' },
     { value: nights, label: nights === 1 ? 'night' : 'nights' },
   ].filter((s) => s.value > 0);
@@ -193,25 +230,37 @@ export const ProfilePassport: React.FC<ProfilePassportProps> = ({
       <Box
         sx={{
           display: 'flex',
-          flexDirection: { xs: 'column', md: 'row' },
-          alignItems: { xs: 'stretch', md: 'center' },
-          gap: { xs: 2.5, md: 4 },
+          flexDirection: stacked ? 'column' : { xs: 'column', md: 'row' },
+          alignItems: stacked ? 'stretch' : { xs: 'stretch', md: 'center' },
+          gap: { xs: 2.5, md: stacked ? 2.5 : 4 },
           p: { xs: 2.5, sm: 3 },
         }}
       >
         {/* The numbers lead, because they are what answers "who is this
             traveller" at a glance. Cells do not flex: one surviving tile should
             look like one tile, not a stretched band. */}
-        <Box sx={{ display: 'flex', flexShrink: 0 }}>
+        <Box
+          sx={stacked
+            ? { display: 'flex', flexDirection: 'column' }
+            : { display: 'flex', flexShrink: 0 }}
+        >
           {stats.map((s, i) => (
             <Box
               key={s.label}
-              sx={{
-                flex: '0 0 auto',
-                pr: { xs: 2.5, sm: 3.5 },
-                pl: i > 0 ? { xs: 2.5, sm: 3.5 } : 0,
-                borderLeft: i > 0 ? `1px solid ${theme.custom.surface.border}` : 'none',
-              }}
+              sx={stacked
+                ? {
+                    // Figure above its label, exactly as the full width band has
+                    // always set it. On one baseline the number stops leading and
+                    // competes with its own caption instead.
+                    py: 1.25,
+                    borderTop: i > 0 ? `1px solid ${theme.custom.surface.border}` : 'none',
+                  }
+                : {
+                    flex: '0 0 auto',
+                    pr: { xs: 2.5, sm: 3.5 },
+                    pl: i > 0 ? { xs: 2.5, sm: 3.5 } : 0,
+                    borderLeft: i > 0 ? `1px solid ${theme.custom.surface.border}` : 'none',
+                  }}
             >
               <Typography variant="h3" sx={{ color: 'text.primary', lineHeight: 1.05 }}>
                 {s.value}
@@ -223,28 +272,11 @@ export const ProfilePassport: React.FC<ProfilePassportProps> = ({
           ))}
         </Box>
 
-        {countries.length > 0 && (
-          <Box sx={{ minWidth: 0, flex: 1 }}>
-            <Typography variant="overline" sx={{ color: 'text.disabled', display: 'block', mb: 0.75 }}>
-              Been to
-            </Typography>
-            {/* Flags rather than the outlined name chips this replaced: eight
-                chips wrapped to three lines and read as a tag cloud, where eight
-                flags read as one row of places. CountryFlag is what makes that
-                safe cross-platform, and it falls back to a globe for the city
-                names and misspellings this free-text field collects. */}
-            <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 0.75 }}>
-              {countries.slice(0, 12).map((c, i) => (
-                <CountryFlag key={`${c}-${i}`} country={c} size={24} showTooltip />
-              ))}
-              {countries.length > 12 && (
-                <Typography variant="caption" sx={{ color: 'text.disabled', fontWeight: 600 }}>
-                  +{countries.length - 12}
-                </Typography>
-              )}
-            </Box>
-          </Box>
-        )}
+        {/* The flag row moved out to TravelConstellation, which shows every
+            country rather than the first eight and says which of them are
+            confirmed by somebody other than the traveller. Two renderings of
+            the same countries, one of them capped, is how this card came to
+            claim "8 countries" to people who had been to forty. */}
       </Box>
 
       {vibes.length > 0 && (
@@ -385,6 +417,8 @@ const presentable = (value?: string | null): string | undefined => {
 
 interface ProfileDetailsProps {
   profile: any;
+  /** 'stack' puts one detail per line, for the 340px identity rail. */
+  layout?: 'wrap' | 'stack';
 }
 
 /**
@@ -396,7 +430,7 @@ interface ProfileDetailsProps {
  * Returns null when there is nothing to show, which the old sidebar could not do
  * because its column was rendered unconditionally around it.
  */
-export const ProfileDetails: React.FC<ProfileDetailsProps> = ({ profile }) => {
+export const ProfileDetails: React.FC<ProfileDetailsProps> = ({ profile, layout = 'wrap' }) => {
   const theme = useTheme();
 
   const formatDate = (d?: string) =>
@@ -425,22 +459,40 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({ profile }) => {
 
   if (shownHighlights.length === 0 && details.length === 0) return null;
 
-  const pill = {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: 0.75,
-    borderRadius: 999,
-    border: `1px solid ${theme.custom.surface.border}`,
-    px: 1.5,
-    py: 0.75,
-    minWidth: 0,
-    maxWidth: '100%',
-  } as const;
+  const stacked = layout === 'stack';
+
+  // Stacked, the border and the radius are doing nothing: one item per line is
+  // already a list, and eight outlined lozenges in a narrow column read as a
+  // form. Rows keep the icon and drop the chrome.
+  const pill = stacked
+    ? {
+        display: 'flex',
+        alignItems: 'center',
+        gap: 1,
+        minWidth: 0,
+        maxWidth: '100%',
+        py: 0.35,
+      } as const
+    : {
+        display: 'inline-flex',
+        alignItems: 'center',
+        gap: 0.75,
+        borderRadius: 999,
+        border: `1px solid ${theme.custom.surface.border}`,
+        px: 1.5,
+        py: 0.75,
+        minWidth: 0,
+        maxWidth: '100%',
+      } as const;
 
   return (
-    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1 }}>
+    <Box
+      sx={stacked
+        ? { display: 'flex', flexDirection: 'column', gap: 0.25 }
+        : { display: 'flex', flexWrap: 'wrap', gap: 1 }}
+    >
       {shownHighlights.map((h, i) => (
-        <Box key={`h-${i}`} sx={{ ...pill, bgcolor: 'background.paper' }}>
+        <Box key={`h-${i}`} sx={{ ...pill, bgcolor: stacked ? 'transparent' : 'background.paper' }}>
           <Box sx={{ display: 'flex', flexShrink: 0, color: 'primary.main' }}>
             <HighlightIcon icon={h.icon} />
           </Box>

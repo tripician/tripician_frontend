@@ -77,6 +77,24 @@ export const PLAN_FEATURES = {
 export const hasFeature = (organization: Organization | null | undefined, feature: string): boolean =>
   Array.isArray(organization?.features) && organization.features.includes(feature);
 
+/**
+ * A notice on the organisation's internal staff board.
+ *
+ * Not an OrganizationPost: that one is public and goes to the community feed.
+ * This is read only by people in the organisation's member list.
+ */
+export interface OrganizationAnnouncement {
+  id: string;
+  organizationId: string;
+  body: string;
+  pinned: boolean;
+  createdAt: string;
+  updatedAt: string;
+  authorUserId: number;
+  authorName: string | null;
+  authorAvatarUrl: string | null;
+}
+
 export interface OrganizationPost {
   id: string;
   organizationId: string;

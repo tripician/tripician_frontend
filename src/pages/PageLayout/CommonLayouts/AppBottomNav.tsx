@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import { APP_NAV_ITEMS } from '../navConfig';
+import { APP_NAV_ITEMS, DESKTOP_NAV_MIN_WIDTH } from '../navConfig';
 
 /**
  * Items shown LEFT of the plan-a-trip FAB.
@@ -42,7 +42,10 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip }) => {
       component="nav"
       aria-label="Mobile navigation"
       sx={{
-        display: { xs: 'flex', lg: 'none' },
+        // Paired with the header's centred nav through one shared width, so
+        // there is never a viewport with both or with neither.
+        display: 'flex',
+        [`@media (min-width:${DESKTOP_NAV_MIN_WIDTH}px)`]: { display: 'none' },
         position: 'fixed',
         bottom: 0,
         left: 0,

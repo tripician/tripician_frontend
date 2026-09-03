@@ -32,9 +32,11 @@ interface ProfileIntroProps {
   /** Shows the write-one invitation when there is no intro yet. Own profile only. */
   editable?: boolean;
   onEdit?: () => void;
+  /** Rail variant: no top margin, smaller face, no reading measure to fight the column. */
+  compact?: boolean;
 }
 
-const ProfileIntro: React.FC<ProfileIntroProps> = ({ profile, editable, onEdit }) => {
+const ProfileIntro: React.FC<ProfileIntroProps> = ({ profile, editable, onEdit, compact }) => {
   const theme = useTheme();
   const intro = readIntro(profile);
 
@@ -46,8 +48,8 @@ const ProfileIntro: React.FC<ProfileIntroProps> = ({ profile, editable, onEdit }
     return (
       <Box
         sx={{
-          mt: { xs: 3, md: 4 },
-          p: { xs: 2.5, md: 3 },
+          mt: compact ? 0 : { xs: 3, md: 4 },
+          p: compact ? 2 : { xs: 2.5, md: 3 },
           borderRadius: '16px',
           border: `1px dashed ${theme.custom.surface.border}`,
         }}
@@ -55,20 +57,24 @@ const ProfileIntro: React.FC<ProfileIntroProps> = ({ profile, editable, onEdit }
         <Typography
           sx={{
             fontFamily: theme.custom.fontDisplay,
-            fontSize: { xs: '1.125rem', md: '1.25rem' },
+            fontSize: compact ? '1rem' : { xs: '1.125rem', md: '1.25rem' },
             fontWeight: 600,
             color: 'text.primary',
           }}
         >
           Say how you travel
         </Typography>
-        <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.75, maxWidth: `${MEASURE}ch` }}>
+        <Typography
+          variant="body2"
+          sx={{ color: 'text.secondary', mt: 0.75, maxWidth: compact ? '100%' : `${MEASURE}ch` }}
+        >
           A few lines is enough. People deciding whether to travel with you read this
           before they read your itineraries.
         </Typography>
         <Button
           onClick={onEdit}
           variant="outlined"
+          size={compact ? 'small' : 'medium'}
           startIcon={<IconPencil size={15} />}
           sx={{ mt: 2 }}
         >
@@ -81,13 +87,16 @@ const ProfileIntro: React.FC<ProfileIntroProps> = ({ profile, editable, onEdit }
   return (
     <Typography
       sx={{
-        mt: { xs: 3, md: 4 },
-        maxWidth: `${MEASURE}ch`,
+        mt: compact ? 0 : { xs: 3, md: 4 },
+        maxWidth: compact ? '100%' : `${MEASURE}ch`,
         fontFamily: theme.custom.fontDisplay,
-        fontSize: { xs: '1.1875rem', md: '1.375rem' },
+        fontSize: compact ? '1.0625rem' : { xs: '1.1875rem', md: '1.375rem' },
         lineHeight: 1.6,
         color: 'text.primary',
         whiteSpace: 'pre-line',
+        // An unbroken run of characters is not a word, and in a 340px rail it
+        // pushes the whole column wide rather than wrapping.
+        overflowWrap: 'anywhere',
       }}
     >
       {intro}

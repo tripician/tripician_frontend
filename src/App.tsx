@@ -33,6 +33,8 @@ const PostsPage = lazy(() => import('./posts/PostsPage'))
 const PostPage = lazy(() => import('./posts/PostPage'))
 const TravelerProfile = lazy(() => import('./pages/ProfilePage/TravelerProfile'))
 const Settings = lazy(() => import('./pages/SettingsPage/Settings'))
+const UnsubscribePage = lazy(() => import('./pages/SettingsPage/UnsubscribePage'))
+const MessagesPage = lazy(() => import('./messages/MessagesPage'))
 const RiskMonitor = lazy(() => import('./pages/RiskMonitorPage/RiskMonitor'))
 const NaviaPage = lazy(() => import('./pages/NaviaPage/NaviaPage'))
 const TripPlannerEntry = lazy(() => import('./pages/CreateTripPage/TripPlannerEntry.tsx'))
@@ -99,6 +101,7 @@ function App() {
             <Route path="/profile" element={<Profile />} />
             <Route path="/navia" element={<NaviaPage />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/messages" element={<MessagesPage />} />
             <Route path="/operator" element={<OperatorPage />} />
             <Route path="/organizations" element={<OrganizationsPage />} />
             <Route path="/organizations/:orgId" element={<OrganizationWorkspace />} />
@@ -137,6 +140,12 @@ function App() {
           <Route path="/story/:slugOrId" element={<StoryPage />} />
           {/* Legacy path redirect */}
           <Route path="/create-trip" element={<Navigate to="/error/404" replace />} />
+          {/* Where an email footer lands. Ungated on purpose: the reader is in a
+              mail client and may have no session, so the signed link is the only
+              authority. Behind the gate it would demand a login to stop emails,
+              which is the opposite of withdrawal being as easy as consent. */}
+          <Route path="/unsubscribe" element={<UnsubscribePage />} />
+
           {/* Error & status pages */}
           <Route path="/error/404" element={<NotFound404 />} />
           <Route path="/error/500" element={<InternalError500 />} />

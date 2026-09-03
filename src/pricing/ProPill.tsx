@@ -1,4 +1,5 @@
 import React from 'react';
+import { HEADER_FULL_LABELS_MIN_WIDTH } from '../pages/PageLayout/navConfig';
 import { Box, Tooltip, useTheme } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { IconSparkles } from '@tabler/icons-react';
@@ -70,7 +71,14 @@ const ProPill: React.FC<ProPillProps> = ({ onClick }) => {
         }}
       >
         <IconSparkles size={15} stroke={2} />
-        <Box component="span" sx={{ display: { xs: 'none', sm: 'inline' } }}>{label}</Box>
+        {/* Icon-only until the header has room for words. The tooltip carries
+            the meaning either way, so this stays findable rather than hidden. */}
+        <Box
+          component="span"
+          sx={{ display: 'none', [`@media (min-width:${HEADER_FULL_LABELS_MIN_WIDTH}px)`]: { display: 'inline' } }}
+        >
+          {label}
+        </Box>
       </Box>
     </Tooltip>
   );

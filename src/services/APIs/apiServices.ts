@@ -1,13 +1,17 @@
 // api/apiService.ts - This is the ONLY additional file you need
 import axios from 'axios';
 import type { TripPreferences } from '../../utils/tripPreferences';
-import type { TripSeats, TripJoinRequest, UpdateTripSeatsDto, OrganiserRecord } from '../../seats/types';
+import type {
+  TripSeats, TripJoinRequest, UpdateTripSeatsDto, OrganiserRecord, PendingRequestsGroup,
+} from '../../seats/types';
+import type { Conversation, ConversationMessage } from '../../messages/types';
 import type { TripAnnouncement } from '../../types/announcements';
 import type {
   OperatorProfile, OperatorApplication, OperatorLead, OperatorLeadResult,
 } from '../../operator/types';
 import type {
-  Organization, OrganizationMember, OrganizationPost, OrganizationPublic, OrganizationTrip, OrganizationWrite,
+  Organization, OrganizationAnnouncement, OrganizationMember, OrganizationPost, OrganizationPublic,
+  OrganizationTrip, OrganizationWrite,
 } from '../../organization/types';
 import type {
   Plan, PlanList, StoryBookPriceList, StoryBookQuote, SubscriptionIntent, SubscriptionState,
@@ -451,6 +455,10 @@ export const apiServices = {
     apiClient.get<{
       vibes: Array<{ name: string; count: number; percentage: number }>;
       topCountries: string[];
+      countriesVisited: number;
+      tripsTravelled: number;
+      nightsTravelled: number;
+      tripsPlanned: number;
       totalNights: number;
       totalTrips: number;
       favoriteVibe: string | null;
@@ -748,6 +756,27 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
+  /*
+   * The staff notice board. Internal, so unlike getOrganizationPosts below it
+   * is never anonymous: a signed-out reader gets an empty list, not a 404.
+   */
+  getOrganizationAnnouncements: (organizationId: string) =>
+    apiClient.get<OrganizationAnnouncement[]>(`/api/organizations/${organizationId}/announcements`),
+
+  createOrganizationAnnouncement: (organizationId: string, body: string, pinned: boolean) =>
+    apiClient.post<OrganizationAnnouncement>(
+      `/api/organizations/${organizationId}/announcements`, { Body: body, Pinned: pinned }),
+
+  updateOrganizationAnnouncement: (announcementId: string, patch: { Body?: string; Pinned?: boolean }) =>
+    apiClient.put(`/api/organizations/announcements/${announcementId}`, patch),
+
+  deleteOrganizationAnnouncement: (announcementId: string) =>
+    apiClient.delete(`/api/organizations/announcements/${announcementId}`),
+
+  /** Pending join requests across every trip the organisation runs, not just yours. */
+  getOrganizationJoinRequests: (organizationId: string) =>
+    apiClient.get<PendingRequestsGroup[]>(`/api/organizations/${organizationId}/join-requests`),
+
   getOrganizationPosts: (organizationId: string, take = 20) =>
     apiClient.get<OrganizationPost[]>(`/api/organizations/${organizationId}/posts?take=${take}`),
 
@@ -881,6 +910,13 @@ export const apiServices = {
   getOrganiserRecord: (userId: number) =>
     apiClient.get<OrganiserRecord>(`/api/users/${userId}/track-record`),
 
+  // GET /api/users/{userId}/travel-map - countries, tiered, in the order reached
+  getTravelMap: (userId: number) =>
+    apiClient.get<{
+      countries: Array<{ name: string; tier: 'locked' | 'unlocked' | 'gold'; firstAt: string | null; published?: boolean }>;
+      legs: string[][];
+    }>(`/api/users/${userId}/travel-map`),
+
   // POST /api/follow/{followeeId} - follow a user (JWT resolves follower)
   followUser: (token: string, followeeId: number) =>
     apiClient.post(`/api/follow/${followeeId}`, {}, { headers: { Authorization: `Bearer ${token}` } }),
@@ -993,6 +1029,49 @@ export const apiServices = {
   // ------------------------------------------------------------
   // Notification Settings
   // GET api/profile/settings/notification
+  /*
+   * Per-type email preferences. Distinct from getNotificationSettings below,
+   * which reads a table nothing in the product consumes.
+   *
+   * Only the types that actually send mail are listed, so a switch here always
+   * governs something. The token comes from the interceptor.
+   */
+  /*
+   * Private threads about one trip. The token comes from the interceptor.
+   *
+   * canMessage is separate from openConversation so the UI never renders a
+   * button that fails on click, and so hovering a name costs no writes.
+   */
+  canMessage: (tripId: string, userId: number) =>
+    apiClient.get<{ allowed: boolean; reason: string | null }>(
+      '/api/conversations/can-message', { params: { tripId, userId } }),
+
+  openConversation: (tripId: string, userId: number) =>
+    apiClient.post<Conversation>('/api/conversations/open', { TripId: tripId, UserId: userId }),
+
+  getConversations: () => apiClient.get<Conversation[]>('/api/conversations'),
+
+  getConversationMessages: (conversationId: string) =>
+    apiClient.get<ConversationMessage[]>(`/api/conversations/${conversationId}/messages`),
+
+  sendConversationMessage: (conversationId: string, body: string) =>
+    apiClient.post<ConversationMessage>(`/api/conversations/${conversationId}/messages`, { Body: body }),
+
+  getConversationUnreadCount: () =>
+    apiClient.get<{ count: number }>('/api/conversations/unread-count'),
+
+  getNotificationPreferences: () =>
+    apiClient.get<Array<{ type: number; name: string; email: boolean }>>(
+      '/api/notifications/preferences',
+    ),
+
+  setNotificationPreference: (type: number, email: boolean) =>
+    apiClient.put('/api/notifications/preferences', { Type: type, Email: email }),
+
+  /** One-click unsubscribe from an email footer. Signed, and needs no session. */
+  unsubscribeFromEmails: (u: number, t: number, k: string) =>
+    apiClient.get<{ message: string }>('/api/notifications/unsubscribe', { params: { u, t, k } }),
+
   getNotificationSettings: (token: string) =>
     apiClient.get('/api/profile/settings/notification', {
       headers: { Authorization: `Bearer ${token}` }

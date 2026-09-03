@@ -7,11 +7,13 @@
  * "JP IN US ES AE" where it should have shown flags. Emoji flags are therefore
  * the FALLBACK here, never the primary.
  *
- * Three tiers, in order:
- *   1. a raster image from flagcdn.com, identical everywhere;
- *   2. the emoji, for when the CDN is blocked or offline and the platform has
+ * Four tiers, in order:
+ *   1. for the circle variant, the vendored circular SVG, same origin and sharp
+ *      at any density;
+ *   2. a raster image from flagcdn.com, identical everywhere;
+ *   3. the emoji, for when both are blocked or offline and the platform has
  *      the font;
- *   3. `IconWorld`, when the name did not resolve to a code at all.
+ *   4. `IconWorld`, when the name did not resolve to a code at all.
  *
  * Tier 3 is a real case worth designing for rather than an edge: country data
  * on this site is free text and contains cities ("Abu Dhabi") and misspellings.
@@ -22,7 +24,7 @@
 import React from 'react';
 import { Box, Tooltip } from '@mui/material';
 import { IconWorld } from '@tabler/icons-react';
-import { countryCodeFromName, flagEmojiFromCode, flagPngUrl } from '../../utils/countryFlags';
+import { countryCodeFromName, flagEmojiFromCode, flagPngUrl, flagSvgUrl } from '../../utils/countryFlags';
 
 interface CountryFlagProps {
   /** Country name, alias, or an alpha-2/alpha-3 code. Resolution is shared. */
@@ -36,8 +38,9 @@ interface CountryFlagProps {
   showTooltip?: boolean;
   /**
    * 'rect' is the true 3:4 flag, for anywhere it sits in a line of text.
-   * 'circle' crops it square, for the token stacks on a trip card cover where it
-   * has to read as one of a row of round chips beside the crew's faces.
+   * 'circle' draws the vendored circular flag, for the token stacks on a trip
+   * card cover where it has to read as one of a row of round chips beside the
+   * crew's faces.
    */
   variant?: 'rect' | 'circle';
 }
@@ -48,35 +51,47 @@ const CountryFlag: React.FC<CountryFlagProps> = ({
   showTooltip = false,
   variant = 'rect',
 }) => {
-  const [imageFailed, setImageFailed] = React.useState(false);
+  const circle = variant === 'circle';
+
+  /*
+   * Which source is being tried, not merely whether one failed.
+   *
+   * A boolean could only say "fall all the way to emoji", so a missing circular
+   * SVG would have skipped the raster that has always worked. Each stage steps
+   * to the next on error instead.
+   */
+  const [stage, setStage] = React.useState<'svg' | 'png' | 'emoji'>(circle ? 'svg' : 'png');
 
   const code = countryCodeFromName(country);
-  // A circular crop throws away the left and right thirds, so it needs a wider
-  // source than its rendered width or vertically-striped flags turn to mush.
-  const png = imageFailed ? undefined : flagPngUrl(code, variant === 'circle' ? size * 2 : size);
+  const src = stage === 'svg'
+    ? flagSvgUrl(code)
+    : stage === 'png'
+      ? flagPngUrl(code, size)
+      : undefined;
   const emoji = code ? flagEmojiFromCode(code) : '';
-  const circle = variant === 'circle';
   const height = circle ? size : Math.round(size * 0.75);
 
   // Reset on a country change, or a card recycled in a list keeps the previous
   // country's failure and silently drops to the fallback forever.
-  React.useEffect(() => setImageFailed(false), [country]);
+  React.useEffect(() => setStage(circle ? 'svg' : 'png'), [country, circle]);
 
-  const flag = png ? (
+  const flag = src ? (
     <Box
       component="img"
-      src={png}
+      src={src}
       alt=""
       loading="lazy"
       decoding="async"
-      onError={() => setImageFailed(true)}
+      onError={() => setStage((s) => (s === 'svg' ? 'png' : 'emoji'))}
       // Explicit box so a slow or failed image cannot reflow the row around it.
       sx={{
         width: size,
         height,
         flexShrink: 0,
         borderRadius: circle ? '50%' : '2px',
-        objectFit: 'cover',
+        // The circular SVG is already a disc, so cropping it would only shave
+        // its edge. Only the raster fallback needs covering.
+        objectFit: stage === 'svg' ? 'contain' : 'cover',
         display: 'block',
       }}
     />

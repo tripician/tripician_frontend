@@ -23,8 +23,11 @@ import { tripPath } from '../../utils/tripSlug';
 import { safeExternalUrl } from '../../utils/sanitizeHtml';
 import Seo from '../../components/Seo';
 import CommunityTripCard from '../CommunityPage/CommunityTripCard';
-import { ProfilePassport } from './ProfilePassport';
-import ProfileIntro from './ProfileIntro';
+import type { PassportView } from './ProfilePassport';
+import TravelConstellation from './TravelConstellation';
+import ProfileIdentityRail, { railHasContent } from './ProfileIdentityRail';
+import { apiServices as api } from '../../services/APIs/apiServices';
+import type { OrganiserRecord } from '../../seats/types';
 import IdentityVerifiedMark from '../../components/ui/IdentityVerifiedMark';
 import SectionHeader from '../../components/ui/SectionHeader';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
@@ -89,6 +92,25 @@ const TravelerProfile: React.FC = () => {
   }, [userId]);
 
   const [isFollowing, setIsFollowing] = React.useState(false);
+
+  /*
+   * The public half of this person's travel record, from the same endpoint the
+   * credibility strip reads.
+   *
+   * This replaces a country list assembled here from the page's own trips. That
+   * gave a number derived differently from the one the owner sees on /profile,
+   * which is how the same person ended up with two different country counts
+   * depending on who was looking.
+   */
+  const [record, setRecord] = React.useState<OrganiserRecord | null>(null);
+  React.useEffect(() => {
+    if (!userId) return;
+    let active = true;
+    void api.getOrganiserRecord(Number(userId))
+      .then((r) => { if (active) setRecord(r.data); })
+      .catch(() => { if (active) setRecord(null); });
+    return () => { active = false; };
+  }, [userId]);
   const [followBusy, setFollowBusy] = React.useState(false);
   const [coverFailed, setCoverFailed] = React.useState(false);
 
@@ -142,6 +164,35 @@ const TravelerProfile: React.FC = () => {
   if (!Number.isFinite(userId)) {
     return <Navigate to="/error/404" replace />;
   }
+
+  /*
+   * Everything the rail states about this traveller, from the published-only
+   * track record rather than from the trips this page happens to have fetched.
+   * A stranger's figures must not depend on which grid finished loading first.
+   */
+  const railPassport: PassportView | null = record && record.countriesVisited > 0
+    ? {
+        trips: record.tripsRun,
+        nights: record.nightsTravelled,
+        countryCount: record.countriesVisited,
+        countries: record.topCountries,
+        // A stranger is not shown what somebody is planning. Their drafts are
+        // not public and their intentions are not a fact about them.
+        planned: 0,
+        vibes: [],
+        favoriteVibe: null,
+      }
+    : null;
+
+  const hasRail = !userLoading && !!user && railHasContent({ passport: railPassport, profile: user });
+
+  const railNode = (
+    <ProfileIdentityRail
+      userId={Number.isFinite(userId) ? userId : undefined}
+      passport={railPassport}
+      profile={user}
+    />
+  );
 
   const handleFollowToggle = async () => {
     if (!requireAuth({ reason: 'Follow a traveller to see their trips and stories as they publish.' }) || !token) return;
@@ -203,18 +254,6 @@ const TravelerProfile: React.FC = () => {
    * trips are already public, so their countries are the honest subset, and the
    * band keeps the row that makes it recognisable across both pages.
    */
-  // Not memoised: this sits below an early return, where a hook would change
-  // call order between renders. It is a single pass over an already-loaded page
-  // of trips, so there is nothing to save.
-  const publicCountries = (() => {
-    const seen = new Set<string>();
-    for (const t of trips) {
-      const list: unknown = (t as any)?.countries;
-      if (!Array.isArray(list)) continue;
-      for (const c of list) if (typeof c === 'string' && c.trim()) seen.add(c.trim());
-    }
-    return [...seen];
-  })();
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -351,76 +390,99 @@ const TravelerProfile: React.FC = () => {
               )}
             </Box>
 
-            {!userLoading && user && <ProfileIntro profile={user} />}
+            {/* ── Two columns from here down ──
+                Who they are on the right, what they have made on the left. The
+                same shape as /profile, and for the same reason: a reader is
+                deciding whether to travel with this person, so the evidence
+                should stay in view while they scroll the work.
 
-            {/* Travel passport, the same band /profile carries. Hidden outright
-                when there is nothing published: its empty state invites YOU to
-                plan a trip, which is the wrong thing to say on someone else's
-                profile. */}
-            {!tripsLoading && (trips.length > 0 || publicCountries.length > 0) && (
-              <Box sx={{ mt: { xs: 3, md: 4 } }}>
-                <ProfilePassport
-                  passport={{
-                    trips: trips.length,
-                    // Unknown, not zero: there is no public passport endpoint, so
-                    // the band drops the tile rather than claiming a night count.
-                    nights: 0,
-                    countries: publicCountries,
-                    vibes: [],
-                    favoriteVibe: null,
-                  }}
-                  hideWhenEmpty
+                Unlike /profile, the column is NOT unconditional. A stranger with
+                nothing on their profile would otherwise get a blank 340px
+                gutter, which is exactly why the previous sidebar was deleted. */}
+            <Box
+              sx={{
+                display: 'flex',
+                gap: { xs: 0, lg: 4 },
+                alignItems: 'flex-start',
+                mt: { xs: 2.5, md: 3 },
+              }}
+            >
+              <Box sx={{ flex: 1, minWidth: 0 }}>
+                {hasRail && (
+                  <Box sx={{ display: { xs: 'block', lg: 'none' }, mb: { xs: 3, md: 4 } }}>
+                    {railNode}
+                  </Box>
+                )}
+
+              {/* Their stories, above the trips.
+                  They used to sit underneath, on the reasoning that a plan is what
+                  this profile was about. That is no longer true: someone opening a
+                  stranger's profile is deciding whether to travel with them, and a
+                  grid of itineraries answers where they went, not who they are. */}
+              {FEATURE_FLAGS.afterStory && (
+                <StoryDiary
+                  stories={stories}
+                  title={user ? `${user.name.split(' ')[0]}'s diary` : 'Diary'}
+                  subtitle="What the trips were actually like, in their words."
                 />
+              )}
+
+              {/* What they have been saying. Renders nothing when they have not
+                  posted, so a quiet profile does not carry an empty heading. */}
+              {userId && (
+                <ProfilePosts
+                  authorUserId={Number(userId)}
+                  title={user ? `${user.name.split(' ')[0]} lately` : 'Lately'}
+                />
+              )}
+
+              {userId ? (
+                <Box sx={{ mt: { xs: 3, md: 4 } }}>
+                  <TravelConstellation userId={Number(userId)} />
+                </Box>
+              ) : null}
+
+              {/* Published trips */}
+              <Box sx={{ mt: { xs: 5, md: 6 } }}>
+                <SectionHeader
+                  title="Published trips"
+                  subtitle={user ? `Itineraries ${user.name} has shared with the community` : undefined}
+                />
+                {tripsLoading ? (
+                  <CardGridSkeleton count={6} minWidth={280} />
+                ) : trips.length === 0 ? (
+                  <EmptyState
+                    icon={IconCompass}
+                    title="No published trips yet"
+                    description="When this traveler publishes an itinerary, it will show up here."
+                    actionLabel="Explore the community"
+                    onAction={() => navigate('/community')}
+                  />
+                ) : (
+                  <Box sx={{
+                    display: 'grid',
+                    gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(3, minmax(0, 1fr))' },
+                    gap: 3,
+                  }}>
+                    {trips.map((trip, i) => (
+                      <CommunityTripCard key={trip.id || i} trip={trip} onClick={() => handleTripClick(trip)} />
+                    ))}
+                  </Box>
+                )}
               </Box>
-            )}
+              </Box>
 
-            {/* Their stories, above the trips.
-                They used to sit underneath, on the reasoning that a plan is what
-                this profile was about. That is no longer true: someone opening a
-                stranger's profile is deciding whether to travel with them, and a
-                grid of itineraries answers where they went, not who they are. */}
-            {FEATURE_FLAGS.afterStory && (
-              <StoryDiary
-                stories={stories}
-                title={user ? `${user.name.split(' ')[0]}'s diary` : 'Diary'}
-                subtitle="What the trips were actually like, in their words."
-              />
-            )}
-
-            {/* What they have been saying. Renders nothing when they have not
-                posted, so a quiet profile does not carry an empty heading. */}
-            {userId && (
-              <ProfilePosts
-                authorUserId={Number(userId)}
-                title={user ? `${user.name.split(' ')[0]} lately` : 'Lately'}
-              />
-            )}
-
-            {/* Published trips */}
-            <Box sx={{ mt: { xs: 5, md: 6 } }}>
-              <SectionHeader
-                title="Published trips"
-                subtitle={user ? `Itineraries ${user.name} has shared with the community` : undefined}
-              />
-              {tripsLoading ? (
-                <CardGridSkeleton count={6} minWidth={280} />
-              ) : trips.length === 0 ? (
-                <EmptyState
-                  icon={IconCompass}
-                  title="No published trips yet"
-                  description="When this traveler publishes an itinerary, it will show up here."
-                  actionLabel="Explore the community"
-                  onAction={() => navigate('/community')}
-                />
-              ) : (
-                <Box sx={{
-                  display: 'grid',
-                  gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(3, minmax(0, 1fr))' },
-                  gap: 3,
-                }}>
-                  {trips.map((trip, i) => (
-                    <CommunityTripCard key={trip.id || i} trip={trip} onClick={() => handleTripClick(trip)} />
-                  ))}
+              {hasRail && (
+                <Box
+                  sx={{
+                    display: { xs: 'none', lg: 'block' },
+                    width: 340,
+                    flexShrink: 0,
+                    position: 'sticky',
+                    top: 72,
+                  }}
+                >
+                  {railNode}
                 </Box>
               )}
             </Box>

@@ -126,8 +126,25 @@ export function flagEmojiFromName(name: string): string {
 }
 
 /**
- * A real flag image from flagcdn.com. The primary rendering path, because it
- * looks identical on every platform.
+ * A circular flag, vendored into `public/flags/circle` from circle-flags.
+ *
+ * The primary path anywhere a flag is drawn inside a circle. Those places used
+ * to crop a 4:3 raster into a disc, which threw away the left and right thirds
+ * of every flag and mangled anything not laid out in horizontal bands. These are
+ * authored as circles, so nothing is cropped, and being vector they stay sharp
+ * at any density instead of softening on a retina screen.
+ *
+ * Same origin on purpose. 249 requests to a third-party image host is a
+ * dependency this project has already been bitten by once.
+ */
+export function flagSvgUrl(code?: string): string | undefined {
+  if (!code) return undefined;
+  return `${import.meta.env.BASE_URL}flags/circle/${code.toLowerCase()}.svg`;
+}
+
+/**
+ * A real flag image from flagcdn.com. Still the path for rectangular flags in a
+ * line of text, and still the fallback when the vendored SVG cannot be read.
  */
 export function flagPngUrl(code?: string, size: number = 24): string | undefined {
   if (!code) return undefined;
@@ -138,6 +155,7 @@ export function flagPngUrl(code?: string, size: number = 24): string | undefined
 }
 
 export default {
+  flagSvgUrl,
   countryCodeFromName,
   countryAlpha3FromCode,
   countryAlpha3FromName,

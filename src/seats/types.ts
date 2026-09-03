@@ -117,4 +117,11 @@ export interface OrganiserRecord {
   travellersTaken: number;
   /** Published stories about those trips, by any author. */
   storiesPublished: number;
+  /** Trips of theirs Tripician reviewed. The only figure Tripician vouches for. */
+  verifiedTrips: number;
+  /** Distinct countries on those trips. Uncapped. Never use topCountries.length. */
+  countriesVisited: number;
+  nightsTravelled: number;
+  /** Flags to draw, at most eight. */
+  topCountries: string[];
 }

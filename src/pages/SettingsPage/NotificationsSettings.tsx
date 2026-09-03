@@ -1,183 +1,99 @@
-import React, { useState, useEffect } from "react";
+/**
+ * Which notifications reach you by email.
+ *
+ * ## What this replaced
+ *
+ * Six switches: Email Updates, Community Posts, Blog Comments, Newsletter, Push
+ * Notifications and Travel Reminders. Every one of them was dead. Their table is
+ * written and read by this screen and by nothing else in the product, so no send
+ * path ever consulted them, and one of them offered a weekly newsletter that has
+ * never existed. Turning them off protected nobody from anything.
+ *
+ * ## What is here instead
+ *
+ * Only the types that actually send mail, so every switch governs something. The
+ * server decides that list rather than this file, because a switch here and a
+ * send rule there would drift and the screen would start lying again.
+ *
+ * The old settings row is left in the database untouched. Nothing reads it, so
+ * removing it would be a migration that buys nothing.
+ */
+
+import React from 'react';
 import {
-  Box,
-  Card,
-  CardContent,
-  Typography,
-  Switch,
-  Divider,
-  CircularProgress,
-} from "@mui/material";
-import { useAuthToken } from '../../hooks/useAuth0Token';
+  Alert, Box, Card, CardContent, CircularProgress, Divider, Switch, Typography,
+} from '@mui/material';
 import { apiServices } from '../../services/APIs/apiServices';
 
-interface NotificationOption {
-  id: string;
-  title: string;
-  description: string;
-  enabled: boolean;
+interface Preference {
+  type: number;
+  name: string;
+  email: boolean;
 }
 
+/**
+ * Server-side enum names to something a person recognises.
+ *
+ * Keyed on the name rather than the number so a reordered enum cannot silently
+ * relabel somebody's settings. An unknown name falls back to the raw one, which
+ * is ugly on screen and therefore gets noticed and fixed.
+ */
+const COPY: Record<string, { title: string; description: string }> = {
+  JoinRequested: {
+    title: 'Someone asks to join your trip',
+    description: 'You are the only person who can approve it, and they may be waiting on an answer to book flights.',
+  },
+  JoinApproved: {
+    title: 'Your request to join was approved',
+    description: 'You are on the trip.',
+  },
+  JoinDeclined: {
+    title: 'Your request to join was declined',
+    description: 'Sent so you are not left checking.',
+  },
+  StoryInvite: {
+    title: 'Someone asks you to co-write a story',
+    description: 'You cannot edit it until you accept, so nothing else would tell you.',
+  },
+  Announcement: {
+    title: 'An announcement on a trip you are on',
+    description: 'Operational notices from the organiser. Members only.',
+  },
+};
+
 const NotificationsSettings: React.FC = () => {
-  const [emailNotifications, setEmailNotifications] = useState<NotificationOption[]>([]);
-  const [pushNotifications, setPushNotifications] = useState<NotificationOption[]>([]);
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const [updatingIds, setUpdatingIds] = useState<Set<string>>(new Set());
-  const { token: authToken } = useAuthToken();
+  const [prefs, setPrefs] = React.useState<Preference[]>([]);
+  const [loading, setLoading] = React.useState(true);
+  const [error, setError] = React.useState<string | null>(null);
+  const [saving, setSaving] = React.useState<Set<number>>(new Set());
 
-  // Initialize options after fetch
-  useEffect(()=> {
-    if(!authToken) return;
+  React.useEffect(() => {
     let active = true;
-    (async()=>{
-      setLoading(true); setError(null);
-      try {
-        const resp = await apiServices.getNotificationSettings(authToken);
-        const data = resp.data || {};
-        if(!active) return;
-        setEmailNotifications([
-          { id:'emailUpdates', title:'Email Updates', description:'Receive email updates about your account', enabled: !!data.emailUpdates },
-          { id:'communityPosts', title:'Community Posts', description:'Get notified about new community posts', enabled: !!data.communityPosts },
-          { id:'blogComments', title:'Blog Comments', description:'Notifications when someone comments on your blogs', enabled: !!data.blogComments },
-          { id:'newsletter', title:'Newsletter', description:'Weekly travel tips and community highlights', enabled: !!data.newsletter },
-        ]);
-        setPushNotifications([
-          { id:'pushNotifications', title:'Push Notifications', description:'Receive push notifications on your device', enabled: !!data.pushNotifications },
-          { id:'travelReminders', title:'Travel Reminders', description:'Reminders for upcoming trips and bookings', enabled: !!data.travelReminders },
-        ]);
-      } catch{
-        setError('Failed to load notification settings');
-      } finally { setLoading(false); }
-    })();
-    return ()=> { active=false; };
-  }, [authToken]);
+    void apiServices.getNotificationPreferences()
+      .then((resp) => { if (active) setPrefs(Array.isArray(resp.data) ? resp.data : []); })
+      .catch(() => { if (active) setError('Could not load your notification settings.'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, []);
 
-  const updateBackend = async (key: string, value: boolean, rollback: ()=>void) => {
-    if(!authToken) return;
-    setUpdatingIds(prev => new Set(prev).add(key));
+  const toggle = async (pref: Preference) => {
+    const next = !pref.email;
+    // Optimistic, then rolled back on failure. A switch that does not move until
+    // a round trip finishes feels broken on a slow connection.
+    setPrefs((prev) => prev.map((p) => (p.type === pref.type ? { ...p, email: next } : p)));
+    setSaving((prev) => new Set(prev).add(pref.type));
     try {
-      await apiServices.updateNotificationSettings(authToken, { [key]: value });
-    } catch{
-      rollback();
+      await apiServices.setNotificationPreference(pref.type, next);
+    } catch {
+      setPrefs((prev) => prev.map((p) => (p.type === pref.type ? { ...p, email: !next } : p)));
+      setError('That change did not save.');
     } finally {
-      setUpdatingIds(prev => { const next = new Set(prev); next.delete(key); return next; });
+      setSaving((prev) => { const s = new Set(prev); s.delete(pref.type); return s; });
     }
   };
 
-  const handleEmailToggle = (id: string) => {
-    setEmailNotifications(prev => prev.map(item => {
-      if(item.id !== id) return item;
-      const newEnabled = !item.enabled;
-      const original = item.enabled;
-      // optimistic update
-      setTimeout(()=> updateBackend(id, newEnabled, ()=> {
-        // rollback
-        setEmailNotifications(p2 => p2.map(i => i.id===id? { ...i, enabled: original }: i));
-      }), 0);
-      return { ...item, enabled: newEnabled };
-    }));
-  };
-
-  const handlePushToggle = (id: string) => {
-    setPushNotifications(prev => prev.map(item => {
-      if(item.id !== id) return item;
-      const newEnabled = !item.enabled;
-      const original = item.enabled;
-      setTimeout(()=> updateBackend(id, newEnabled, ()=> {
-        setPushNotifications(p2 => p2.map(i => i.id===id? { ...i, enabled: original }: i));
-      }), 0);
-      return { ...item, enabled: newEnabled };
-    }));
-  };
-
-  const NotificationItem = ({ 
-    item, 
-    onToggle 
-  }: { 
-    item: NotificationOption; 
-    onToggle: (id: string) => void;
-  }) => (
-    <Box sx={{ mb: 2.5, '&:last-child': { mb: 0 } }}>
-      <Box sx={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-        <Box sx={{ flex: 1, mr: 2 }}>
-          <Typography 
-            variant="body1" 
-            sx={{ 
-              fontWeight: 500, 
-              color: "text.primary",
-              mb: 0.5,
-              fontSize: "0.95rem"
-            }}
-          >
-            {item.title}
-          </Typography>
-          <Typography 
-            variant="body2" 
-            sx={{ 
-              color: "text.secondary",
-              fontSize: "0.875rem",
-              lineHeight: 1.4
-            }}
-          >
-            {item.description}
-          </Typography>
-        </Box>
-        <Box sx={{ position:'relative', display:'inline-flex' }}>
-          <Switch
-            checked={item.enabled}
-            onChange={() => onToggle(item.id)}
-            disabled={updatingIds.has(item.id) || loading}
-            sx={{
-              '& .MuiSwitch-switchBase.Mui-checked': { color: 'primary.main' },
-              '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: 'primary.main' },
-              '& .MuiSwitch-track': { backgroundColor: 'action.hover' },
-            }}
-          />
-          {updatingIds.has(item.id) && (
-            <CircularProgress size={22} sx={{ position:'absolute', top:'50%', left:'50%', mt:'-11px', ml:'-11px' }} />
-          )}
-        </Box>
-      </Box>
-    </Box>
-  );
-
   return (
-    <Box sx={{ maxWidth: "100%"}}>
-      {/* Email Notifications Section */}
-      <Card
-        sx={{
-          mb: 3,
-          borderRadius: '16px',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-          border: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <CardContent sx={{ p: 3 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
-            Email Notifications
-          </Typography>
-
-          {loading && emailNotifications.length===0 ? (
-            <Typography variant="body2" color="text.secondary">Loading...</Typography>
-          ) : error ? (
-            <Typography variant="body2" color="error">{error}</Typography>
-          ) : emailNotifications.map((item, index) => (
-            <React.Fragment key={item.id}>
-              <NotificationItem 
-                item={item} 
-                onToggle={handleEmailToggle}
-              />
-              {index < emailNotifications.length - 1 && (
-                <Divider sx={{ my: 2.5, borderColor: 'divider' }} />
-              )}
-            </React.Fragment>
-          ))}
-        </CardContent>
-      </Card>
-
-      {/* Push Notifications Section */}
+    <Box sx={{ maxWidth: '100%' }}>
       <Card
         sx={{
           borderRadius: '16px',
@@ -187,25 +103,69 @@ const NotificationsSettings: React.FC = () => {
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
-            Push Notifications
+          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: 'text.primary', letterSpacing: '-0.01em' }}>
+            Email
+          </Typography>
+          {/* Says what the list is FOR, so the absence of a switch for likes and
+              follows reads as a decision rather than an oversight. */}
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5, mb: 3 }}>
+            Tripician only emails you when somebody is waiting on you, or you are waiting on them.
+            Everything else stays in the app.
           </Typography>
 
-          {loading && pushNotifications.length===0 ? (
+          {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
+
+          {loading ? (
             <Typography variant="body2" color="text.secondary">Loading...</Typography>
-          ) : error ? (
-            <Typography variant="body2" color="error">{error}</Typography>
-          ) : pushNotifications.map((item, index) => (
-            <React.Fragment key={item.id}>
-              <NotificationItem 
-                item={item} 
-                onToggle={handlePushToggle}
-              />
-              {index < pushNotifications.length - 1 && (
-                <Divider sx={{ my: 2.5, borderColor: 'divider' }} />
-              )}
-            </React.Fragment>
-          ))}
+          ) : prefs.length === 0 ? (
+            <Typography variant="body2" color="text.secondary">
+              Nothing to set here yet.
+            </Typography>
+          ) : (
+            prefs.map((pref, i) => {
+              const copy = COPY[pref.name] ?? { title: pref.name, description: '' };
+              return (
+                <React.Fragment key={pref.type}>
+                  <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                    <Box sx={{ flex: 1, mr: 2, minWidth: 0 }}>
+                      <Typography
+                        variant="body1"
+                        sx={{ fontWeight: 500, color: 'text.primary', mb: 0.5, fontSize: '0.95rem' }}
+                      >
+                        {copy.title}
+                      </Typography>
+                      <Typography
+                        variant="body2"
+                        sx={{ color: 'text.secondary', fontSize: '0.875rem', lineHeight: 1.4 }}
+                      >
+                        {copy.description}
+                      </Typography>
+                    </Box>
+                    <Box sx={{ position: 'relative', display: 'inline-flex' }}>
+                      <Switch
+                        checked={pref.email}
+                        onChange={() => void toggle(pref)}
+                        disabled={saving.has(pref.type)}
+                        inputProps={{ 'aria-label': copy.title }}
+                        sx={{
+                          '& .MuiSwitch-switchBase.Mui-checked': { color: 'primary.main' },
+                          '& .MuiSwitch-switchBase.Mui-checked + .MuiSwitch-track': { backgroundColor: 'primary.main' },
+                          '& .MuiSwitch-track': { backgroundColor: 'action.hover' },
+                        }}
+                      />
+                      {saving.has(pref.type) && (
+                        <CircularProgress
+                          size={22}
+                          sx={{ position: 'absolute', top: '50%', left: '50%', mt: '-11px', ml: '-11px' }}
+                        />
+                      )}
+                    </Box>
+                  </Box>
+                  {i < prefs.length - 1 && <Divider sx={{ my: 2.5, borderColor: 'divider' }} />}
+                </React.Fragment>
+              );
+            })
+          )}
         </CardContent>
       </Card>
     </Box>

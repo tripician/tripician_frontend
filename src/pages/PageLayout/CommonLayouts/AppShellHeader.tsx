@@ -19,6 +19,7 @@ import {
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useLocation, useNavigate } from 'react-router-dom';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import NotificationsOffOutlinedIcon from '@mui/icons-material/NotificationsOffOutlined';
 import NotificationsActiveRoundedIcon from '@mui/icons-material/NotificationsActiveRounded';
@@ -48,7 +49,7 @@ import { clearUser } from '../../../store/userSlice';
 import { signOut } from '../../../services/auth/signOut';
 import { getFreshToken } from '../../../services/auth/tokenService';
 import { tokenSubject } from '../../../utils/authSession';
-import { APP_NAV_ITEMS, navItemFromPath } from '../navConfig';
+import { APP_NAV_ITEMS, navItemFromPath, DESKTOP_NAV_MIN_WIDTH, HEADER_FULL_LABELS_MIN_WIDTH } from '../navConfig';
 import Badge from '@mui/material/Badge';
 import {
   fetchUnreadCount,
@@ -268,8 +269,24 @@ interface AppShellHeaderProps {
 
 const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
   const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up('lg'));
+  const isDesktop = useMediaQuery(`(min-width:${DESKTOP_NAV_MIN_WIDTH}px)`);
   const navigate = useNavigate();
+
+  /*
+   * Unread messages, fetched once when the shell mounts.
+   *
+   * Not polled: the count is a nudge, not a live figure, and a request every
+   * few seconds for every signed-in tab costs more than the freshness is worth.
+   * Opening the page is what corrects it.
+   */
+  const [messageCount, setMessageCount] = React.useState(0);
+  React.useEffect(() => {
+    let active = true;
+    void apiServices.getConversationUnreadCount()
+      .then((resp) => { if (active) setMessageCount(Number(resp.data?.count) || 0); })
+      .catch(() => { /* a missing badge says less than a wrong one */ });
+    return () => { active = false; };
+  }, []);
   const location = useLocation();
   const { profile } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch<AppDispatch>();
@@ -641,7 +658,10 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
                     variant="outlined"
                     startIcon={<EditNoteRoundedIcon sx={{ fontSize: 20 }} />}
                     sx={{
-                      display: { xs: 'none', sm: 'inline-flex' },
+                      // Labelled only where the row has room; the icon button
+                      // below is the same action for every narrower width.
+                      display: 'none',
+                      [`@media (min-width:${HEADER_FULL_LABELS_MIN_WIDTH}px)`]: { display: 'inline-flex' },
                       flexShrink: 0,
                       fontSize: '0.84rem',
                       fontWeight: 600,
@@ -657,7 +677,8 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
                     onClick={() => setCreateStoryOpen(true)}
                     aria-label="Write an after story"
                     sx={{
-                      display: { xs: 'inline-flex', sm: 'none' },
+                      display: 'inline-flex',
+                      [`@media (min-width:${HEADER_FULL_LABELS_MIN_WIDTH}px)`]: { display: 'none' },
                       width: 40,
                       height: 40,
                       border: `1px solid ${theme.custom.surface.border}`,
@@ -923,6 +944,14 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
               primary={hasOrganization ? 'Your organization' : 'Create a business account'}
               primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }}
             />
+          </ListItemButton>
+          <ListItemButton onClick={() => { navigate('/messages'); setAnchorEl(null); }} sx={{ py: 0.9 }}>
+            <ListItemIcon sx={{ minWidth: 32 }}>
+              <Badge badgeContent={messageCount} color="error" max={99}>
+                <ChatBubbleOutlineIcon sx={{ fontSize: 17 }} />
+              </Badge>
+            </ListItemIcon>
+            <ListItemText primary="Messages" primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }} />
           </ListItemButton>
           <ListItemButton onClick={() => { navigate('/settings'); setAnchorEl(null); }} sx={{ py: 0.9 }}>
             <ListItemIcon sx={{ minWidth: 32 }}><SettingsRoundedIcon sx={{ fontSize: 17 }} /></ListItemIcon>

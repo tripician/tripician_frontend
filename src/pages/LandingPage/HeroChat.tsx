@@ -5,7 +5,7 @@ import { renderMarkdown } from '../../navia/markdown';
 import { useRequireAuth } from '../../auth/AuthGate';
 import { COMMAND_BAR_DRAFT_KEY } from '../../navia/commandbar/useCommandBar';
 import {
-  streamGuestChat, draftGuestTrip, GuestQuotaSpentError,
+  streamGuestChat, draftGuestTrip, GuestQuotaSpentError, GuestDraftDeclinedError,
   type GuestMessage, type GuestDraft,
 } from '../../navia/guestChat';
 
@@ -50,14 +50,20 @@ export default function HeroChat() {
 
     setInput('');
     setBusy(true);
+    // A new message is a new chance to build something, so the offer returns.
+    setDeclined(false);
+    setPlannable(false);
     setMessages((prev) => [...prev, { role: 'user', content: question }, { role: 'navia', content: '' }]);
 
     try {
-      for await (const token of streamGuestChat(question, messagesRef.current)) {
+      for await (const event of streamGuestChat(question, messagesRef.current)) {
+        // Navia's verdict on whether there is now a brief worth building from.
+        if ('plannable' in event) { setPlannable(event.plannable); continue; }
+
         setMessages((prev) => {
           const next = [...prev];
           const last = next[next.length - 1];
-          if (last?.role === 'navia') next[next.length - 1] = { ...last, content: last.content + token };
+          if (last?.role === 'navia') next[next.length - 1] = { ...last, content: last.content + event.token };
           return next;
         });
       }
@@ -73,14 +79,54 @@ export default function HeroChat() {
   }, [busy]);
 
   const buildTrip = useCallback(async () => {
-    const basis = messagesRef.current.find((m) => m.role === 'user')?.content;
+    /*
+     * Everything the traveller has said, not the first thing they said.
+     *
+     * This was .find(), so it took the opening message and kept taking it
+     * forever. Ask "where is warm in December?", get four suggestions, pick
+     * Bali, press the button, and it drafted from "where is warm in December?"
+     * with Bali nowhere in it. The tail is kept rather than the head because a
+     * later message is the more specific one.
+     */
+    const basis = messagesRef.current
+      .filter((m) => m.role === 'user')
+      .map((m) => m.content.trim())
+      .filter(Boolean)
+      .join(' / ')
+      .slice(-500);
+
     if (!basis || drafting) return;
 
     setDrafting(true);
     try {
       setDraft(await draftGuestTrip(basis));
     } catch (err) {
-      if (err instanceof GuestQuotaSpentError) setSpent(err.message);
+      if (err instanceof GuestQuotaSpentError) {
+        // Drafting and talking have separate budgets, and the server says so.
+        // Spending the draft used to disable the box with fifteen messages left.
+        if (err.messagesLeft > 0) setDraftSpent(err.message);
+        else setSpent(err.message);
+        return;
+      }
+
+      /*
+       * Answer in the thread, as Navia, and stand the offer down.
+       *
+       * The button reads "Turn this into a trip", and after a greeting there is
+       * no "this". Rather than guess client-side what counts as a brief, which
+       * would hide the button for a perfectly good one-word "Japan", the server
+       * decides and this reports what it said. The offer comes back the moment
+       * they type something else.
+       */
+      const message = err instanceof Error && err.message
+        ? err.message
+        : 'Tell Navia where you would like to go and it can build that.';
+      setMessages((prev) => [...prev, { role: 'navia', content: message }]);
+
+      // Only a refusal stands the offer down. A timeout is not a verdict on the
+      // trip, and withdrawing the button until they type again would punish
+      // them for a dropped connection.
+      if (err instanceof GuestDraftDeclinedError) setDeclined(true);
     } finally {
       setDrafting(false);
     }
@@ -112,8 +158,39 @@ export default function HeroChat() {
 
   const started = messages.length > 0;
 
+  /*
+   * Collapsed to just the pill until it has something to say.
+   *
+   * As a fixed dock this sits over the whole page, so the openers cannot be
+   * permanent furniture the way they were inside the hero. Same behaviour as the
+   * command bar on Community: a bar until you engage with it, then it opens.
+   */
+  const [focused, setFocused] = useState(false);
+  /** Set when the server says there is not enough here to build from. */
+  const [declined, setDeclined] = useState(false);
+  /*
+   * Navia's own read on whether the conversation holds a trip yet.
+   *
+   * Offering "Turn this into a trip" after "Hi" is offering something that
+   * cannot work. A guess made here would be worse than useless: the country
+   * table has no Bali, no Tuscany and no Santorini, so it would hide the button
+   * exactly when somebody had named where they want to go. The model is already
+   * reading the conversation, so it answers instead.
+   */
+  const [plannable, setPlannable] = useState(false);
+  /** The one free draft is gone, but the conversation is not. */
+  const [draftSpent, setDraftSpent] = useState<string | null>(null);
+  const showOpeners = focused && !started && !spent;
+  const panelOpen = showOpeners || started || Boolean(draft) || Boolean(spent);
+
   return (
-    <div className="lp-herochat">
+    <div
+      className={`lp-herochat${panelOpen ? ' lp-herochat--open' : ''}`}
+      onFocus={() => setFocused(true)}
+      // Containment check, or clicking an opener collapses the panel out from
+      // under the click before the handler runs.
+      onBlur={(e) => { if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setFocused(false); }}
+    >
       <form
         className="lp-herochat__bar"
         onSubmit={(e) => { e.preventDefault(); void send(input); }}
@@ -137,7 +214,12 @@ export default function HeroChat() {
         </button>
       </form>
 
-      {!started && !spent && (
+      {/* One surface for everything above the bar. Separate panels per block
+          would fragment into three floating cards, and the white text inside
+          them needs a ground of its own once this leaves the hero image. */}
+      {panelOpen && (
+      <div className="lp-herochat__panel">
+      {showOpeners && (
         /* Where the wall actually is, said before anybody meets it. The endpoint
            behind this needs no account and saveTrip is the only path that calls
            requireAuth, so this is a statement of what the code does rather than a
@@ -147,7 +229,7 @@ export default function HeroChat() {
         </p>
       )}
 
-      {!started && !spent && (
+      {showOpeners && (
         <div className="lp-herochat__openers">
           {OPENERS.map((o) => (
             <button key={o} type="button" className="lp-herochat__opener" onClick={() => void send(o)}>
@@ -188,7 +270,7 @@ export default function HeroChat() {
         </div>
       )}
 
-      {started && !draft && !spent && (
+      {started && !draft && !spent && !declined && !draftSpent && plannable && (
         <button
           type="button"
           className="lp-herochat__build"
@@ -210,6 +292,8 @@ export default function HeroChat() {
             Sign in
           </button>
         </p>
+      )}
+      </div>
       )}
     </div>
   );

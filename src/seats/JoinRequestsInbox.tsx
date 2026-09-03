@@ -20,7 +20,20 @@ import JoinRequestRow from './JoinRequestRow';
 import { describeSpots } from './types';
 import type { PendingRequestsGroup } from './types';
 
-const JoinRequestsInbox: React.FC = () => {
+interface JoinRequestsInboxProps {
+  /**
+   * Set to read one organisation's whole queue instead of your own trips.
+   *
+   * The deciding, the rows, the optimistic removal and the "trip may now be
+   * full" wording are identical either way, so only the source of the list
+   * changes. Two copies of this would drift on the first bug fix.
+   */
+  organizationId?: string;
+  /** An org tab that renders nothing looks broken, so it says so instead. */
+  showWhenEmpty?: boolean;
+}
+
+const JoinRequestsInbox: React.FC<JoinRequestsInboxProps> = ({ organizationId, showWhenEmpty }) => {
   const theme = useTheme();
   const { token } = useAuthToken();
 
@@ -31,13 +44,15 @@ const JoinRequestsInbox: React.FC = () => {
   const load = React.useCallback(async () => {
     if (!token) return;
     try {
-      const resp = await apiServices.getPendingJoinRequests(token);
+      const resp = organizationId
+        ? await apiServices.getOrganizationJoinRequests(organizationId)
+        : await apiServices.getPendingJoinRequests(token);
       setGroups(Array.isArray(resp.data) ? resp.data : []);
     } catch {
       // An inbox that cannot load must not take the profile down with it.
       setGroups([]);
     }
-  }, [token]);
+  }, [token, organizationId]);
 
   React.useEffect(() => { void load(); }, [load]);
 
@@ -68,7 +83,7 @@ const JoinRequestsInbox: React.FC = () => {
   };
 
   const total = groups.reduce((n, g) => n + g.requests.length, 0);
-  if (total === 0) return null;
+  if (total === 0 && !showWhenEmpty) return null;
 
   return (
     <Box
@@ -82,11 +97,17 @@ const JoinRequestsInbox: React.FC = () => {
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
         <IconInbox size={18} stroke={1.8} />
         <Typography variant="h4" component="h2">
-          {total === 1 ? '1 person is waiting on you' : `${total} people are waiting on you`}
+          {total === 0
+            ? 'Nobody is waiting'
+            : total === 1 ? '1 person is waiting on you' : `${total} people are waiting on you`}
         </Typography>
       </Box>
       <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-        You approve everyone who joins. Nothing happens until you decide.
+        {total === 0
+          ? 'Requests to join any of this organisation’s trips arrive here.'
+          : organizationId
+            ? 'Across every trip this organisation runs, not only the ones you own. Nothing happens until someone decides.'
+            : 'You approve everyone who joins. Nothing happens until you decide.'}
       </Typography>
 
       {error && (
@@ -104,6 +125,7 @@ const JoinRequestsInbox: React.FC = () => {
               tripName={i === 0
                 ? [g.tripName, describeSpots({ spotsLeft: g.spotsLeft })].filter(Boolean).join('  ·  ')
                 : undefined}
+              tripId={g.tripId}
               busy={busyKey === `${g.tripId}:${r.userId}`}
               onDecide={(userId, approve) => void decide(g.tripId, userId, approve)}
             />

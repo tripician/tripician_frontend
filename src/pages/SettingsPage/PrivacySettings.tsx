@@ -47,13 +47,19 @@ const PrivacySettings: React.FC = () => {
       description: "Allow others to see your contact details",
       enabled: false,
     },
-    {
-      id: "allow_direct_messages",
-      title: "Allow Direct Messages",
-      description: "Let other travelers send you messages",
-      enabled: true,
-    },
   ]);
+
+  /*
+   * Held, not shown. There are no direct messages in the product, so a switch
+   * for them promised a protection that could not apply to anything, which is
+   * worse than its absence: somebody turning it off believed something.
+   *
+   * The stored value is carried through every save untouched rather than
+   * dropped, because buildModel reads a missing setting as false and would have
+   * quietly written false onto every account that saved anything else. It goes
+   * back on screen when messaging is real.
+   */
+  const [allowDirectMessages, setAllowDirectMessages] = useState(true);
   const [loading, setLoading] = useState(false);
   const [saving, setSaving] = useState<string | null>(null); // key currently saving
   const [error, setError] = useState<string | null>(null);
@@ -106,13 +112,8 @@ const PrivacySettings: React.FC = () => {
           description: 'Allow others to see your contact details',
           enabled: !!pick(data, 'showContactInfo', 'ShowContactInfo'),
         },
-        {
-          id: 'allow_direct_messages',
-          title: 'Allow Direct Messages',
-          description: 'Let other travelers send you messages',
-          enabled: !!pick(data, 'allowDirectMessages', 'AllowDirectMessages'),
-        },
       ];
+      setAllowDirectMessages(!!pick(data, 'allowDirectMessages', 'AllowDirectMessages'));
       setProfileVisibility(pv);
       setPrivacySettings(mapped);
     } catch(err:any){
@@ -190,7 +191,8 @@ const PrivacySettings: React.FC = () => {
       Visibility: visibility,
       ShowTravelHistory: find('show_travel_history'),
       ShowContactInfo: find('show_contact_information'),
-      AllowDirectMessages: find('allow_direct_messages')
+      // Echoed back as loaded. Not a setting this screen offers any more.
+      AllowDirectMessages: allowDirectMessages
     };
   };
 

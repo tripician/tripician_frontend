@@ -41,6 +41,11 @@
   --lp-dark-mute: rgba(243, 241, 236, 0.62);
   --lp-dark-rule: rgba(243, 241, 236, 0.16);
 
+  /* What the fixed chat dock occupies at the foot of the screen: its own height,
+     the gap under it, and room to breathe above it. Anything that would otherwise
+     sit at the bottom of the viewport reserves this, so nothing has to guess. */
+  --lp-dock-space: calc(104px + env(safe-area-inset-bottom, 0px));
+
   --lp-shell: 1180px;
   --lp-measure: 62ch;
   --lp-radius: 14px;
@@ -285,7 +290,11 @@
   display: flex;
   flex-direction: column;
   justify-content: flex-end;
-  padding: 120px clamp(20px, 5vw, 48px) clamp(64px, 9vh, 104px);
+  /* The hero ends its content ABOVE the dock rather than under it. Measured
+     without this: the CTA row and the dock overlapped by 10px at 1280 and 5px at
+     1024, and touched at 390, because the hero fills a short viewport and the
+     dock is pinned to it. */
+  padding: 120px clamp(20px, 5vw, 48px) calc(clamp(64px, 9vh, 104px) + var(--lp-dock-space));
   overflow: hidden;
   isolation: isolate;
 }
@@ -1146,8 +1155,54 @@
    620px cap lives on the content instead. Capping the item itself left room on
    the line, the buttons stayed on it, and the group's default align-items
    stretched them into two enormous pills beside the transcript. */
-.lp-herochat { flex: 0 0 100%; }
-.lp-herochat > * { max-width: 620px; }
+/* The dock is fixed, so the end of the page has to be able to scroll clear of
+   it. Without this the last band of the footer sits under the bar permanently
+   and no amount of scrolling reveals it: measured at 82px of footer lost. */
+.lp-root { padding-bottom: var(--lp-dock-space); }
+
+/* A dock at the bottom of the screen, not a field inside the hero.
+   Same geometry as the Navia command bar on Community: full width with a 16px
+   inset on small screens, and a centred 720px column from lg.
+
+   column-reverse is what puts the panel ABOVE the bar while leaving the DOM in
+   reading order, so the input stays the first thing a keyboard or screen reader
+   reaches. */
+.lp-herochat {
+  position: fixed;
+  z-index: 1250;
+  left: 16px;
+  right: 16px;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  display: flex;
+  flex-direction: column-reverse;
+  align-items: stretch;
+}
+
+@media (min-width: 1200px) {
+  .lp-herochat {
+    left: 50%;
+    right: auto;
+    transform: translateX(-50%);
+    width: min(720px, calc(100vw - 48px));
+    bottom: 24px;
+  }
+}
+
+/* Its own ground. Floating over the page it passes over white sections as well
+   as the hero image, and every child in here is white text. */
+.lp-herochat__panel {
+  margin-bottom: 10px;
+  padding: 14px 16px;
+  border-radius: var(--lp-radius);
+  background: rgba(20, 20, 26, 0.72);
+  border: 1px solid rgba(243, 241, 236, 0.22);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  text-align: left;
+}
+
+/* The first child in the panel has the panel's own padding above it. */
+.lp-herochat__panel > *:first-child { margin-top: 0; }
 
 .lp-herochat__bar {
   display: flex;
@@ -1214,7 +1269,7 @@
    push the rest of it off screen. */
 .lp-herochat__thread {
   margin-top: 14px;
-  max-height: 220px;
+  max-height: min(46vh, 360px);
   overflow-y: auto;
   text-align: left;
 }

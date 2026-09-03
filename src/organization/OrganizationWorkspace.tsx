@@ -16,6 +16,7 @@ import { useAuthToken } from '../hooks/useAuth0Token';
 import Seo from '../components/Seo';
 import EmptyState from '../components/ui/EmptyState';
 import OrganizationTripsPanel from './OrganizationTripsPanel';
+import OrganizationNoticesPanel from './OrganizationNoticesPanel';
 import OrganizationPeoplePanel from './OrganizationPeoplePanel';
 import OrganizationPostsPanel from './OrganizationPostsPanel';
 import OrganizationSettingsPanel from './OrganizationSettingsPanel';
@@ -25,11 +26,14 @@ import type { Organization } from './types';
 
 const CONTENT_MAX = 1280;
 
-const TABS = ['trips', 'people', 'posts', 'settings'] as const;
+// Notices sits after Trips: it is the tab something is usually waiting in, and
+// the queue inside it is the thing nobody remembers to open when it is buried.
+const TABS = ['trips', 'notices', 'people', 'posts', 'settings'] as const;
 type TabId = typeof TABS[number];
 
 const TAB_LABELS: Record<TabId, string> = {
   trips: 'Trips',
+  notices: 'Notices',
   people: 'People',
   posts: 'Posts',
   settings: 'Settings',
@@ -194,6 +198,8 @@ const OrganizationWorkspace: React.FC = () => {
           {tab === 'trips' && (
             <OrganizationTripsPanel organizationId={organization.id} organization={organization} />
           )}
+
+          {tab === 'notices' && <OrganizationNoticesPanel organization={organization} />}
 
           {tab === 'people' && <OrganizationPeoplePanel organization={organization} />}
 

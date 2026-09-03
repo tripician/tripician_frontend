@@ -66,7 +66,7 @@ const STEPS = [
   {
     n: '01',
     title: 'Get inspired',
-    desc: 'Real itineraries, travelled and published by the people who went. The best of them carry a verified mark.',
+    desc: 'Real itineraries, travelled and published by the people who went. The best of them carry a verified mark, and some are still looking for people, so you can ask to join one instead of starting from nothing.',
     img: '/img/onboarding/community.jpg',
     alt: 'Travellers reading a map together on a city street',
   },
@@ -90,7 +90,7 @@ const STEPS = [
  * What earns trust, cut to what is checkable.
  *
  * Nothing here is aspirational and nothing ranks us against anyone. The Risk
- * Monitor is one card among five, which is its actual weight in the product: it
+ * Monitor is one card among six, which is its actual weight in the product: it
  * left the top-level navigation for the account menu, and it used to hold a
  * bento card plus an entire section of this page.
  */
@@ -112,8 +112,8 @@ const FEATURES = [
   },
   {
     icon: <IconUserCheck size={22} stroke={1.75} />,
-    title: 'Planned around how you travel',
-    desc: 'Your pace, who is coming, what pulls you in and what you do not eat. Those answers travel with every request, so what comes back is shaped by them.',
+    title: 'You choose who comes',
+    desc: 'Open a trip for join requests and each one arrives with a note you read before deciding. Nobody is added automatically, no money passes through us, and you can close it the moment the group is right.',
   },
   {
     icon: <IconWallet size={22} stroke={1.75} />,
@@ -763,8 +763,6 @@ export default function LandingPage() {
             {/* The product demonstrating itself, ahead of the links that describe
                 it. Signed-in visitors never reach this: RootRedirect sends them to
                 /community before the landing page renders. */}
-            <HeroChat />
-
             {/* An anchor, not a button. This is the hero's route to /community -
                 the most important indexable page on the site - and a click handler
                 is not a link: crawlers do not run it, and neither does middle-click
@@ -978,6 +976,12 @@ export default function LandingPage() {
               stops, the local food and the notes. Then every place is matched against a
               live listing before you see it.
             </p>
+            <p className="lp-lede">
+              Or start from the plan you already have. Hand it screenshots of the group chat,
+              your notes or a booking page and it reads them into a structured trip, several at
+              once. The screenshots are never stored: they carry other people's
+              messages, and not keeping them is the only way to be sure.
+            </p>
             <p className="lp-navia__caveat">
               Navia proof-reads an after story if you ask it to. It never writes one for
               you: the whole value of a story is that a person wrote it.
@@ -1126,6 +1130,19 @@ export default function LandingPage() {
           <span>Not a travel agency. We do not book flights or accommodation.</span>
         </div>
       </footer>
+
+      {/*
+        Outside the hero, and that is load-bearing rather than tidiness.
+
+        position: fixed resolves against the nearest ancestor carrying a
+        transform, and the hero container is parallaxed. Mounted inside it, this
+        docked itself to the hero and scrolled away with it; only out here does
+        it stay put against the viewport.
+
+        Signed-in visitors never see it: RootRedirect sends them to /community
+        before this page renders, where the real command bar takes over.
+      */}
+      <HeroChat />
     </div>
   );
 }
