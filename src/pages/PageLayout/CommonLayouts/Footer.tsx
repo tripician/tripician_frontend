@@ -77,6 +77,21 @@ const Footer: React.FC<FooterProps> = ({ fixed = false }) => {
               Privacy Policy
             </Link>
             <Link
+              href="/for-operators"
+              sx={{
+                color: 'text.primary',
+                textDecoration: 'none',
+                fontSize: '0.9rem',
+                '&:hover': {
+                  textDecoration: 'underline',
+                  color: 'primary.main',
+                },
+                transition: 'color 0.2s ease',
+              }}
+            >
+              For Operators
+            </Link>
+            <Link
               href="/get-help"
               sx={{
                 color: 'text.primary',
@@ -105,6 +120,21 @@ const Footer: React.FC<FooterProps> = ({ fixed = false }) => {
               }}
             >
               Contact Us
+            </Link>
+            <Link
+              href="/pricing"
+              sx={{
+                color: 'text.primary',
+                textDecoration: 'none',
+                fontSize: '0.9rem',
+                '&:hover': {
+                  textDecoration: 'underline',
+                  color: 'primary.main',
+                },
+                transition: 'color 0.2s ease',
+              }}
+            >
+              Pricing
             </Link>
             <Link
               href="/about-us"

@@ -1,5 +1,7 @@
 import React from 'react';
+import { BRAND } from '../../theme';
 import { Box, Button, Popover, Tooltip, Typography, useTheme, type Theme } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { IconCheck, IconSparkles } from '@tabler/icons-react';
 import confetti from 'canvas-confetti';
 
@@ -80,7 +82,7 @@ const TripPulse: React.FC<TripPulseProps> = ({ dimensions, daysToGo }) => {
             flexShrink: 0,
             transition: 'border-color .25s, background .2s',
             fontFamily: 'inherit',
-            '&:hover': { background: theme.custom.surface.brandTint, borderColor: 'rgba(255,56,92,0.4)' },
+            '&:hover': { background: theme.custom.surface.brandTint, borderColor: alpha(BRAND.coral, 0.4) },
             '&:focus-visible': { outline: `2px solid ${theme.custom.ring}`, outlineOffset: 2 },
           }}
         >

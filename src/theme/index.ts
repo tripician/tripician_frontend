@@ -26,8 +26,58 @@ declare module '@mui/material/styles' {
 }
 
 export interface CustomTokens {
-  /** Geometric display sans for headings (hero, page titles). Weights 600/700 only. */
+  /**
+   * The editorial serif.
+   *
+   * As of 2026-08-18 every h1-h6 is set in this face through the typography
+   * scale, by owner decision - so a heading does NOT need this token, and should
+   * not reach for it. What this token is still for is opting a NON-heading into
+   * the serif: story body copy, a pull quote, a blog byline.
+   *
+   * `story-serif.guard.test.ts` keeps that boundary: the token may only be named
+   * from stories and blogs, which is where non-heading editorial type lives.
+   * Weights 600/700, plus a real italic 600.
+   */
   fontDisplay: string;
+  /**
+   * The same serif, different job: the Tripician wordmark and the celebration
+   * moment that carries it. A logo is not typography and does not belong under
+   * the editorial rule, so it gets its own token rather than an exception in the
+   * guard. These two may point at the same stack today and diverge later.
+   */
+  fontBrand: string;
+  /**
+   * The brand colour, split by JOB rather than by shade.
+   *
+   * Coral is a FILL. Measured, it is 3.52:1 against white and 3.36:1 against
+   * the light canvas, so it fails AA at body size - and this codebase sets
+   * `color: BRAND.coral` on 10-12px text in dozens of places. `onLight` and
+   * `onDark` are the same hue moved just far enough to clear 4.5:1, so
+   * coloured type has somewhere correct to go.
+   *
+   * `tint` replaces 37 ad-hoc alpha values with six steps. Keep the existing
+   * alphas when migrating a call site; retuning to the ladder is a separate
+   * pass, or a migration bug hides behind "we adjusted the tints".
+   */
+  brand: {
+    /** The fill. Buttons, the active pill, the orb. Never body text. */
+    fill: string;
+    fillHover: string;
+    /** Brand-coloured TEXT on a light surface. Clears AA. */
+    onLight: string;
+    /** Brand-coloured TEXT on the dark canvas. Clears AA. */
+    onDark: string;
+    /** Raw "R G B" channels, for rgb(var(--brand-rgb) / a) in plain CSS. */
+    channels: string;
+    tint: {
+      subtle: string;
+      soft: string;
+      medium: string;
+      strong: string;
+      heavy: string;
+      solid: string;
+    };
+  };
   gradients: {
     /** Primary brand gradient - CTAs */
     brand: string;
@@ -78,57 +128,100 @@ export interface CustomTokens {
   };
 }
 
+import { BRAND_SEED, BRAND_ON_LIGHT, BRAND_ON_DARK, BRAND_CHANNELS, RAMPS } from './brand.generated';
+
 // ── Brand constants (importable for non-MUI contexts: mapbox, canvas, css) ─
 export const BRAND = {
   coral: '#FF385C',
   coralDark: '#E31C5F',
   coralDeep: '#D91A50',
+  /** = palette primary.light. Named here so call sites stop writing the hex. */
+  coralLight: '#FF8A9F',
   gradient: 'linear-gradient(135deg, #FF385C 0%, #D91A50 100%)',
   gradientHover: 'linear-gradient(135deg, #E31C5F 0%, #B01550 100%)',
 } as const;
 
-const FONT_BODY = "'Inter', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif";
 /*
- * The display face is a SERIF, and that is the point.
+ * The UI face. Geometric-humanist rather than the neutral grotesque this used to
+ * be (Inter): the product surfaces are listings - trips, seats, prices, hosts -
+ * and a warmer face reads as a place people go rather than as a dashboard.
+ *
+ * Requested as a variable axis in index.html. The weight ladder is 400/500/600/700
+ * and nothing above it; `font-synthesis: none` means an off-ladder weight rounds
+ * up silently rather than failing, which is how 550/650/750 once shipped heavier
+ * than written.
+ */
+const FONT_BODY = "'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif";
+/*
+ * The display face is a SERIF, and its scope is now deliberately NARROW.
  *
  * It was briefly swapped to Poppins to match a geometric-sans reference. At UI
  * sizes that was fine; at display sizes it was not - "Welcome back", "Community",
  * "Trips" all read as interface chrome rather than as a masthead, because a
  * geometric sans set large is just a bigger version of the same voice the body
- * text already speaks. The serif is the only thing on the page that is not the
- * UI, which is exactly what makes a heading feel authored.
+ * text already speaks.
  *
- * So: this face is for headings that carry voice - page mastheads, the auth
- * panel, the landing hero, card titles in editorial contexts. Buttons, labels,
- * inputs and body copy stay on FONT_BODY. The two are not interchangeable.
+ * That finding still holds, and it is why the serif did not disappear when the
+ * UI face became geometric. But it no longer belongs on every masthead: a trip
+ * listing IS product, and dressing it in editorial type made a commercial object
+ * pretend to be an essay. So the serif is now reserved for the one surface that
+ * has to read as authored - stories: their titles, and the story reading page.
+ *
+ * Everything else - page headers, cards, buttons, labels, inputs, body copy -
+ * stays on FONT_BODY. `story-serif.guard.test.ts` enforces the boundary, because
+ * this is exactly the kind of rule that erodes one component at a time.
  */
 const FONT_DISPLAY = "'Playfair Display', Georgia, 'Times New Roman', serif";
 
 // ── Palettes ──────────────────────────────────────────────────────────────
+/*
+ * Light palette, from the generated OKLCH ramps.
+ *
+ * Every `.main` below is the LIGHTEST stop on its ramp where white text still
+ * clears 4.5:1, so a filled button's label is legible by construction rather
+ * than by luck. Measured before: white on warning was 2.15:1, on info 2.77:1,
+ * on success 3.05:1.
+ *
+ * Warning is the exception and keeps a bright fill with DARK text. Amber dark
+ * enough for white text stops looking like a warning and starts looking like
+ * mud; dark mode already solved it this way and light mode never got the fix.
+ *
+ * `primary.main` is NOT from the ramp - it is the seed, because it has to stay
+ * the logo colour. It is the one pair still below the bar (3.52:1), which is
+ * why `custom.brand.onLight` exists for coloured type.
+ */
 const light = {
-  primary: { main: BRAND.coral, light: '#FF8A9F', dark: BRAND.coralDark, contrastText: '#ffffff' },
-  secondary: { main: '#1F2937', light: '#4B5563', dark: '#111827', contrastText: '#ffffff' },
-  success: { main: '#0FA968', light: '#34D399', dark: '#0B7A4B', contrastText: '#ffffff' },
-  warning: { main: '#F59E0B', light: '#FBBF24', dark: '#B45309', contrastText: '#ffffff' },
-  error: { main: '#E5484D', light: '#F87171', dark: '#B91C1C', contrastText: '#ffffff' },
-  info: { main: '#0EA5E9', light: '#38BDF8', dark: '#0369A1', contrastText: '#ffffff' },
+  primary: { main: BRAND.coral, light: RAMPS.brand[820], dark: RAMPS.brand[520], contrastText: '#ffffff' },
+  secondary: { main: RAMPS.neutral[220], light: RAMPS.neutral[420], dark: RAMPS.neutral[120], contrastText: '#ffffff' },
+  success: { main: RAMPS.success[520], light: RAMPS.success[720], dark: RAMPS.success[420], contrastText: '#ffffff' },
+  warning: { main: RAMPS.warning[720], light: RAMPS.warning[820], dark: RAMPS.warning[520], contrastText: RAMPS.warning[220] },
+  error: { main: RAMPS.error[520], light: RAMPS.error[720], dark: RAMPS.error[420], contrastText: '#ffffff' },
+  info: { main: RAMPS.info[520], light: RAMPS.info[720], dark: RAMPS.info[420], contrastText: '#ffffff' },
   background: {
-    default: '#FAFAF8',
+    default: RAMPS.neutral[980],
     paper: '#FFFFFF',
-    sidebar: '#F6F5F2',
+    sidebar: RAMPS.neutral[960],
     elevated: '#FFFFFF',
   },
-  text: { primary: '#1C1C21', secondary: '#6E6E78', disabled: '#A3A3AD' },
-  divider: 'rgba(28, 28, 33, 0.08)',
+  text: { primary: RAMPS.neutral[220], secondary: RAMPS.neutral[520], disabled: RAMPS.neutral[620] },
+  divider: 'rgba(28, 26, 24, 0.08)',
 } as const;
 
+/*
+ * Dark palette. Same ramps, read from the other end.
+ *
+ * Semantic `.main` values move UP the ramp so they sit against a dark canvas,
+ * and each takes a dark `contrastText` from the low end of its own ramp rather
+ * than a shared near-black, which keeps a filled chip legible without going to
+ * pure white on a mid tone.
+ */
 const dark = {
-  primary: { main: BRAND.coral, light: '#FF8A9F', dark: BRAND.coralDark, contrastText: '#ffffff' },
-  secondary: { main: '#E5E7EB', light: '#F3F4F6', dark: '#9CA3AF', contrastText: '#111827' },
-  success: { main: '#34D399', light: '#6EE7B7', dark: '#0FA968', contrastText: '#052E1E' },
-  warning: { main: '#FBBF24', light: '#FCD34D', dark: '#F59E0B', contrastText: '#3B2503' },
-  error: { main: '#F26669', light: '#FCA5A5', dark: '#E5484D', contrastText: '#3D0A0B' },
-  info: { main: '#38BDF8', light: '#7DD3FC', dark: '#0EA5E9', contrastText: '#062C3D' },
+  primary: { main: BRAND.coral, light: RAMPS.brand[820], dark: RAMPS.brand[520], contrastText: '#ffffff' },
+  secondary: { main: RAMPS.neutral[900], light: RAMPS.neutral[960], dark: RAMPS.neutral[620], contrastText: RAMPS.neutral[120] },
+  success: { main: RAMPS.success[720], light: RAMPS.success[820], dark: RAMPS.success[520], contrastText: RAMPS.success[120] },
+  warning: { main: RAMPS.warning[820], light: RAMPS.warning[900], dark: RAMPS.warning[620], contrastText: RAMPS.warning[220] },
+  error: { main: RAMPS.error[720], light: RAMPS.error[820], dark: RAMPS.error[520], contrastText: RAMPS.error[120] },
+  info: { main: RAMPS.info[720], light: RAMPS.info[820], dark: RAMPS.info[520], contrastText: RAMPS.info[120] },
   background: {
     default: '#0F0F13',
     paper: '#16161B',
@@ -168,6 +261,24 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
 
   const custom: CustomTokens = {
     fontDisplay: FONT_DISPLAY,
+    fontBrand: FONT_DISPLAY,
+    brand: {
+      fill: BRAND_SEED,
+      fillHover: BRAND.coralDark,
+      // Generated to be the tone NEAREST the brand that still clears 4.5:1,
+      // so coloured type stays recognisably coral instead of going near-black.
+      onLight: BRAND_ON_LIGHT,
+      onDark: BRAND_ON_DARK,
+      channels: BRAND_CHANNELS,
+      tint: {
+        subtle: alpha(BRAND_SEED, 0.04),
+        soft: alpha(BRAND_SEED, 0.08),
+        medium: alpha(BRAND_SEED, 0.12),
+        strong: alpha(BRAND_SEED, 0.2),
+        heavy: alpha(BRAND_SEED, 0.32),
+        solid: alpha(BRAND_SEED, 0.5),
+      },
+    },
     gradients: {
       brand: BRAND.gradient,
       brandHover: BRAND.gradientHover,
@@ -228,21 +339,27 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
     typography: {
       fontFamily: FONT_BODY,
       /*
-       * These deliberately do NOT set a fontFamily. `variant="h1"` is used for
-       * plenty of purely functional headings (dialog titles, section labels),
-       * and forcing the serif onto all of them turns structural markup into an
-       * aesthetic decision. The display face is opt-in via `custom.fontDisplay`
-       * at the places that actually want a masthead voice.
+       * Every heading is set in the display serif, by owner decision (2026-08-18),
+       * reversing the 2026-08-17 pass that had restricted it to stories and blogs.
+       * Setting it HERE rather than at call sites is what makes that one edit
+       * instead of nineteen, and it keeps `custom.fontDisplay` free to mean "I am
+       * opting a non-heading into the serif", which is what the guard polices.
        *
-       * Tracking is tuned for Inter: negative, because Inter's default fit is
-       * loose at display sizes.
+       * Tracking is near-zero on purpose. The old values were negative because a
+       * geometric sans fits loosely at display size; Playfair does not, and the
+       * same negative tracking on a high-contrast serif closes the counters and
+       * reads as cramped. Only h1 keeps a slight negative.
+       *
+       * Weights are pinned to what index.html actually fetches (600 and 700).
+       * `font-synthesis: none` is set globally, so a weight that is not loaded
+       * renders at the nearest one rather than being faked - silently wrong.
        */
-      h1: { fontWeight: 700, fontSize: 'clamp(2rem, 1.5rem + 1.6vw, 2.75rem)', letterSpacing: '-0.03em', lineHeight: 1.1 },
-      h2: { fontWeight: 700, fontSize: 'clamp(1.625rem, 1.3rem + 1vw, 2.125rem)', letterSpacing: '-0.025em', lineHeight: 1.16 },
-      h3: { fontWeight: 700, fontSize: 'clamp(1.375rem, 1.2rem + 0.6vw, 1.625rem)', letterSpacing: '-0.02em', lineHeight: 1.22 },
-      h4: { fontWeight: 600, fontSize: '1.25rem', letterSpacing: '-0.015em', lineHeight: 1.3 },
-      h5: { fontWeight: 600, fontSize: '1.0625rem', letterSpacing: '-0.01em', lineHeight: 1.35 },
-      h6: { fontWeight: 600, fontSize: '0.9375rem', letterSpacing: '-0.005em', lineHeight: 1.4 },
+      h1: { fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 'clamp(2rem, 1.5rem + 1.6vw, 2.75rem)', letterSpacing: '-0.01em', lineHeight: 1.1 },
+      h2: { fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 'clamp(1.625rem, 1.3rem + 1vw, 2.125rem)', letterSpacing: '-0.005em', lineHeight: 1.16 },
+      h3: { fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 'clamp(1.375rem, 1.2rem + 0.6vw, 1.625rem)', letterSpacing: '0', lineHeight: 1.22 },
+      h4: { fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: '1.25rem', letterSpacing: '0', lineHeight: 1.3 },
+      h5: { fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: '1.0625rem', letterSpacing: '0', lineHeight: 1.35 },
+      h6: { fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: '0.9375rem', letterSpacing: '0.005em', lineHeight: 1.4 },
       subtitle1: { fontWeight: 600, fontSize: '0.9375rem', lineHeight: 1.45 },
       subtitle2: { fontWeight: 600, fontSize: '0.8125rem', lineHeight: 1.4 },
       body1: { fontSize: '0.9375rem', lineHeight: 1.6 },

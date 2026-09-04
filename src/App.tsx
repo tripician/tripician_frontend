@@ -3,9 +3,11 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import Landingpage from './pages/LandingPage/LandingPage'
 import ProtectedRoute from './services/APIs/Auth/ProtectedRoute'
 import GuestRoute from './services/APIs/Auth/GuestRoute'
+import { AuthGateProvider } from './auth/AuthGate'
 import TermsPage from './pages/InfoPages/TermsPage';
 import PrivacyPage from './pages/InfoPages/PrivacyPage';
 import AboutPage from './pages/InfoPages/AboutPage';
+import ForOperatorsPage from './pages/InfoPages/ForOperatorsPage';
 import BlogsList from './pages/BlogsPage/BlogsList';
 import BlogPost from './pages/BlogsPage/BlogPost';
 import { useAuthToken } from './hooks/useAuth0Token';
@@ -17,16 +19,30 @@ const ForgotPassword = lazy(() => import('./pages/AuthPage/ForgotPassword'))
 const Callback = lazy(() => import('./pages/AuthPage/Callback'))
 const AuthenticatedLayout = lazy(() => import('./pages/PageLayout/AuthenticatedLayout'))
 const SuccessOverlay = lazy(() => import('./components/CommonComponents/SuccessOverlay'))
-const Dashboard = lazy(() => import('./pages/DashboardPage/Dashboard'))
 const Profile = lazy(() => import('./pages/ProfilePage/Profile'))
 const Community = lazy(() => import('./pages/CommunityPage/Community'))
+const Crew = lazy(() => import('./pages/CrewPage/Crew'))
+const OperatorPage = lazy(() => import('./operator/OperatorPage'))
+const OrganizationsPage = lazy(() => import('./organization/OrganizationsPage'))
+const OrganizationProfilePage = lazy(() => import('./organization/OrganizationProfilePage'))
+const OrganizationWorkspace = lazy(() => import('./organization/OrganizationWorkspace'))
+const PricingPage = lazy(() => import('./pricing/PricingPage'))
+const Templates = lazy(() => import('./pages/TemplatesPage/Templates'))
+const TripsPage = lazy(() => import('./pages/TripsPage/TripsPage'))
+const PostsPage = lazy(() => import('./posts/PostsPage'))
+const PostPage = lazy(() => import('./posts/PostPage'))
 const TravelerProfile = lazy(() => import('./pages/ProfilePage/TravelerProfile'))
 const Settings = lazy(() => import('./pages/SettingsPage/Settings'))
+const UnsubscribePage = lazy(() => import('./pages/SettingsPage/UnsubscribePage'))
+const MessagesPage = lazy(() => import('./messages/MessagesPage'))
 const RiskMonitor = lazy(() => import('./pages/RiskMonitorPage/RiskMonitor'))
 const NaviaPage = lazy(() => import('./pages/NaviaPage/NaviaPage'))
 const TripPlannerEntry = lazy(() => import('./pages/CreateTripPage/TripPlannerEntry.tsx'))
 const TripPlannerRoute = lazy(() => import('./pages/CreateTripPage/TripPlannerRoute.tsx'))
 const TripView = lazy(() => import('./pages/TripViewPage/TripView'))
+const StoryEditPage = lazy(() => import('./afterstory/StoryEditPage'))
+const StoryPage = lazy(() => import('./afterstory/StoryPage'))
+const BrowsePage = lazy(() => import('./pages/BrowsePage/BrowsePage'))
 const HelpPage = lazy(() => import('./pages/InfoPages/HelpPage'))
 const ContactPage = lazy(() => import('./pages/InfoPages/ContactPage'))
 const NotFound404 = lazy(() => import('./pages/ErrorPages/ErrorPages').then((m) => ({ default: m.NotFound404 })))
@@ -40,6 +56,8 @@ const DynamicErrorPage = lazy(() => import('./pages/ErrorPages/ErrorPages').then
 if (import.meta.env.DEV) {
   import('./utils/authDebug');
 }
+
+
 
 /**
  * Smart root: signed-in users skip the landing page and go straight to community.
@@ -61,6 +79,9 @@ function RootRedirect() {
 function App() {
   return (
     <div className="App">
+      {/* Above the routes on purpose: the sign-in prompt has to reach the public
+          pages that render outside AuthenticatedLayout, which is most of them. */}
+      <AuthGateProvider>
       <Suspense fallback={<div style={{ minHeight: '100vh' }} />}>
         <Routes>
           <Route path="/signup" element={<GuestRoute><Signup /></GuestRoute>} />
@@ -72,14 +93,36 @@ function App() {
           {/* Protected Routes grouped under persistent layout */}
           <Route element={<ProtectedRoute><AuthenticatedLayout /></ProtectedRoute>}>
             <Route path="/home" element={<Navigate to="/community" replace />} />
-            <Route path="/dashboard" element={<Dashboard />} />
+            {/* Trips merged into Profile, which already carried the same data
+                from the same endpoint. Redirected rather than removed: the path
+                is in people's history and muscle memory, and a 404 there would
+                read as lost work. */}
+            <Route path="/dashboard" element={<Navigate to="/profile?tab=trips" replace />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="/navia" element={<NaviaPage />} />
             <Route path="/settings" element={<Settings />} />
+            <Route path="/messages" element={<MessagesPage />} />
+            <Route path="/operator" element={<OperatorPage />} />
+            <Route path="/organizations" element={<OrganizationsPage />} />
+            <Route path="/organizations/:orgId" element={<OrganizationWorkspace />} />
           </Route>
           {/* Semi-public routes: full app layout but no auth gate - guests can browse, login prompted on action */}
           <Route element={<AuthenticatedLayout />}>
             <Route path="/community" element={<Community />} />
+            {/* Semi-public like /community: a guest can browse, and signing in is
+                prompted on the action rather than at the door. */}
+            <Route path="/stories" element={<BrowsePage />} />
+            {/* Lifted out of the Community tabs: finding a person and copying a
+                starting point are lookups, not browsing, and both deserve a URL. */}
+            <Route path="/crew" element={<Crew />} />
+            <Route path="/templates" element={<Templates />} />
+            {/* Community is an editorial scroll, so browsing everything needs its own page. */}
+            {/* One library, filtered. /trips is in links and history, so it lands there. */}
+            <Route path="/trips" element={<Navigate to="/stories?kind=plans" replace />} />
+            {/* Short notes from travellers. Semi-public: browsing needs no account, posting does. */}
+            <Route path="/posts" element={<PostsPage />} />
+            <Route path="/post/:postId" element={<PostPage />} />
+            <Route path="/trips/looking-for-people" element={<TripsPage recruitingOnly />} />
             <Route path="/traveler/:userId" element={<TravelerProfile />} />
             <Route path="/risk-monitor" element={<RiskMonitor />} />
           </Route>
@@ -87,9 +130,22 @@ function App() {
           <Route path="/tripplanner" element={<ProtectedRoute><TripPlannerEntry /></ProtectedRoute>} />
           <Route path="/tripplanner/:tripId" element={<ProtectedRoute><TripPlannerRoute /></ProtectedRoute>} />
           {/* Read-only trip view route (partially public: published/shared trips viewable without login) */}
+          <Route path="/o/:slug" element={<OrganizationProfilePage />} />
           <Route path="/trip/:tripId" element={<TripView />} />
+          {/* After Story editor. Protected and noindex: a draft is private by definition. */}
+          <Route path="/story/:storyId/edit" element={<ProtectedRoute><StoryEditPage /></ProtectedRoute>} />
+          {/* Public story. Registered AFTER /edit so the more specific pattern
+              wins, and left ungated so a shared link works for a signed-out
+              reader. The server decides what a draft looks like to a stranger. */}
+          <Route path="/story/:slugOrId" element={<StoryPage />} />
           {/* Legacy path redirect */}
           <Route path="/create-trip" element={<Navigate to="/error/404" replace />} />
+          {/* Where an email footer lands. Ungated on purpose: the reader is in a
+              mail client and may have no session, so the signed link is the only
+              authority. Behind the gate it would demand a login to stop emails,
+              which is the opposite of withdrawal being as easy as consent. */}
+          <Route path="/unsubscribe" element={<UnsubscribePage />} />
+
           {/* Error & status pages */}
           <Route path="/error/404" element={<NotFound404 />} />
           <Route path="/error/500" element={<InternalError500 />} />
@@ -104,6 +160,8 @@ function App() {
           <Route path="/get-help" element={<HelpPage />} />
           <Route path="/contact-us" element={<ContactPage />} />
           <Route path="/about-us" element={<AboutPage />} />
+          <Route path="/pricing" element={<PricingPage />} />
+          <Route path="/for-operators" element={<ForOperatorsPage />} />
         
           {/* Blog routes - public, no auth required (SEO) */}
           <Route path="/blog" element={<BlogsList />} />
@@ -118,6 +176,7 @@ function App() {
           <Route path="*" element={<NotFound404 />} />
         </Routes>
       </Suspense>
+      </AuthGateProvider>
       <Suspense fallback={null}>
         <SuccessOverlay />
       </Suspense>

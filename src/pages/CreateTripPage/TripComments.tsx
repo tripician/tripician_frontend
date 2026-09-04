@@ -1,7 +1,8 @@
 import React from 'react';
 import { Box, Typography, TextField, Button, IconButton, Avatar, CircularProgress, Fade, Divider, Chip, Collapse, Snackbar } from '@mui/material';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useRequireAuth } from '../../auth/AuthGate';
+import { takeDraft } from '../../utils/pendingDraft';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import EditIcon from '@mui/icons-material/Edit';
 import ThumbUpAltOutlinedIcon from '@mui/icons-material/ThumbUpAltOutlined';
@@ -41,7 +42,7 @@ function renderMarkdown(md: string): React.ReactNode {
 
 const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
   const userProfile = useSelector((s: RootState) => s.user.profile);
-  const navigate = useNavigate();
+  const requireAuth = useRequireAuth();
 
   // Derive current-user display values from Redux profile
   const myName = userProfile
@@ -51,7 +52,6 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
   const myAvatar: string | undefined = userProfile?.profilepicture || undefined;
   const myInitial = myName.charAt(0).toUpperCase() || 'Y';
   const myId = String(userProfile?.id || 'me');
-  const canPost = !!authToken;
 
   // Local comments state (source of truth from backend)
   const [comments, setComments] = React.useState<TripComment[]>([]);
@@ -117,7 +117,8 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
   const [showJumpLatest, setShowJumpLatest] = React.useState(false);
 
   // Draft & states
-  const [text, setText] = React.useState(''); // root draft
+  const draftKey = `trip-comment:${tripId}`;
+  const [text, setText] = React.useState(() => takeDraft(draftKey) ?? ''); // root draft
   const [editingId, setEditingId] = React.useState<string|null>(null);
   const [expandedThreads, setExpandedThreads] = React.useState<Record<string, boolean>>({});
   const [floodBlocked, setFloodBlocked] = React.useState(false);
@@ -147,7 +148,8 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
   };
 
   const send = async () => {
-    const body = text.trim(); if (!body || body.length > MAX_COMMENT_CHARS) return; if (!canPost || !authToken) return;
+    const body = text.trim(); if (!body || body.length > MAX_COMMENT_CHARS) return;
+    if (!requireAuth({ reason: 'Your comment is saved. Sign in and it posts where you left it.', draft: { key: draftKey, text: body } }) || !authToken) return;
     const now = Date.now(); recentRef.current = recentRef.current.filter(t => now - t < FLOOD_WINDOW_MS); if (recentRef.current.length >= MAX_IN_WINDOW) { setFloodBlocked(true); setTimeout(() => setFloodBlocked(false), 4000); return; }
     recentRef.current.push(now);
     if (editingId) {
@@ -197,7 +199,8 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
     }
   };
   const sendReply = async (parentId: string) => {
-    const body = replyDraft.trim(); if (!body || body.length > MAX_COMMENT_CHARS) return; if (!canPost || !authToken) return;
+    const body = replyDraft.trim(); if (!body || body.length > MAX_COMMENT_CHARS) return;
+    if (!requireAuth({ reason: 'Your reply is saved. Sign in and it posts where you left it.', draft: { key: draftKey, text: body } }) || !authToken) return;
     const now = Date.now(); recentRef.current = recentRef.current.filter(t => now - t < FLOOD_WINDOW_MS); if (recentRef.current.length >= MAX_IN_WINDOW) { setFloodBlocked(true); setTimeout(() => setFloodBlocked(false), 4000); return; }
     recentRef.current.push(now);
     const tempId = `tmp_${Date.now()}`;
@@ -272,8 +275,8 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
                     </Box>
                     <Typography variant='body2' sx={{ mt:.5, lineHeight:1.55, fontSize:14, '& a':{ color:'primary.main', textDecoration:'none', '&:hover':{ textDecoration:'underline' } }, '& code.tc-code':{ background:(t)=> t.palette.mode==='dark'? '#1e2932':'#eceff1', padding:'2px 4px', borderRadius:4 } }}>{renderMarkdown(c.text)}</Typography>
                     <Box className='comment-inline-actions' sx={{ display:'flex', alignItems:'center', gap:1.25, mt:.75, opacity:0, transition:'opacity .2s' }}>
-                      <Button size='small' disabled={!canPost} onClick={()=> toggleUpvoteLocal(c.id)} startIcon={<ThumbUpAltOutlinedIcon sx={{ fontSize:14, transform: c.upvoterIds?.includes(myId)?'scale(1.2)':'scale(1)', transition:'transform .15s' }} />} variant='text' sx={{ textTransform:'none', fontSize:12, px:0.5, minWidth:40, color: (c.upvoterIds?.includes(myId)? 'primary.main':'text.secondary'), '&:hover':{ color:'primary.main', background:'transparent' } }}>{upCount? upCount:'Upvote'}</Button>
-                      <Button size='small' disabled={!canPost} onClick={()=> openReply(c.id)} variant='text' sx={{ textTransform:'none', fontSize:12, px:0.5, minWidth:40, color:'text.secondary', '&:hover':{ color:'text.primary', background:'transparent' } }}>Reply</Button>
+                      <Button size='small' onClick={()=> toggleUpvoteLocal(c.id)} startIcon={<ThumbUpAltOutlinedIcon sx={{ fontSize:14, transform: c.upvoterIds?.includes(myId)?'scale(1.2)':'scale(1)', transition:'transform .15s' }} />} variant='text' sx={{ textTransform:'none', fontSize:12, px:0.5, minWidth:40, color: (c.upvoterIds?.includes(myId)? 'primary.main':'text.secondary'), '&:hover':{ color:'primary.main', background:'transparent' } }}>{upCount? upCount:'Upvote'}</Button>
+                      <Button size='small' onClick={()=> openReply(c.id)} variant='text' sx={{ textTransform:'none', fontSize:12, px:0.5, minWidth:40, color:'text.secondary', '&:hover':{ color:'text.primary', background:'transparent' } }}>Reply</Button>
                       {replies.length>0 && <Button size='small' onClick={()=> toggleThread(c.id)} variant='text' sx={{ textTransform:'none', fontSize:12, px:0.5, minWidth:54, color:'text.secondary', '&:hover':{ color:'text.primary', background:'transparent' } }}>{expanded? 'Hide replies': `Replies (${replies.length})`}</Button>}
                       {mine && <>
                         <Button size='small' variant='text' onClick={()=> startEdit(c.id, c.text)} sx={{ textTransform:'none', fontSize:12, px:0.5, minWidth:40, color:'text.secondary', '&:hover':{ color:'text.primary', background:'transparent' } }}>Edit</Button>
@@ -293,7 +296,7 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
                                 </Box>
                                 <Typography variant='body2' sx={{ mt:.15, fontSize:12.75, lineHeight:1.45, '& a':{ color:'primary.main', textDecoration:'none', '&:hover':{ textDecoration:'underline' } }, '& code.tc-code':{ background:(t)=> t.palette.mode==='dark'? '#1e2932':'#eceff1', padding:'1px 4px', borderRadius:4, fontSize:12 } }}>{renderMarkdown(r.text)}</Typography>
                                 <Box sx={{ display:'flex', gap:1, mt:.35 }}>
-                                  <Button size='small' disabled={!canPost} onClick={()=> toggleUpvoteLocal(r.id)} startIcon={<ThumbUpAltOutlinedIcon sx={{ fontSize:11, transform: r.upvoterIds?.includes(myId)?'scale(1.15)':'scale(1)', transition:'transform .15s' }} />} variant='text' sx={{ textTransform:'none', fontSize:10.5, px:0.4, minWidth:32, color: (r.upvoterIds?.includes(myId)? 'primary.main':'text.secondary'), '&:hover':{ color:'primary.main', background:'transparent' } }}>{upCountR? upCountR:'Upvote'}</Button>
+                                  <Button size='small' onClick={()=> toggleUpvoteLocal(r.id)} startIcon={<ThumbUpAltOutlinedIcon sx={{ fontSize:11, transform: r.upvoterIds?.includes(myId)?'scale(1.15)':'scale(1)', transition:'transform .15s' }} />} variant='text' sx={{ textTransform:'none', fontSize:10.5, px:0.4, minWidth:32, color: (r.upvoterIds?.includes(myId)? 'primary.main':'text.secondary'), '&:hover':{ color:'primary.main', background:'transparent' } }}>{upCountR? upCountR:'Upvote'}</Button>
                                   {mineR && <>
                                     <Button size='small' variant='text' onClick={()=> startEdit(r.id, r.text)} sx={{ textTransform:'none', fontSize:10.5, px:0.4, minWidth:30, color:'text.secondary', '&:hover':{ color:'text.primary', background:'transparent' } }}>Edit</Button>
                                     <Button size='small' variant='text' onClick={()=> deleteComment(r.id)} sx={{ textTransform:'none', fontSize:10.5, px:0.4, minWidth:38, color:'text.secondary', '&:hover':{ color:'error.main', background:'transparent' } }}>Delete</Button>
@@ -304,10 +307,10 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
                           ); })}
                           {activeReplyParentId === c.id && (
                             <Box sx={{ display:'flex', gap:1, px:1, py:0.6, pr:1.5, mt:0.5, borderRadius:1, background:(t)=> t.palette.mode==='dark'? 'rgba(255,255,255,0.02)':'#fafbfc' }}>
-                              <Avatar src={myAvatar} imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any} sx={{ width:28, height:28, fontSize:12, bgcolor:'#FF385C' }}>{myInitial}</Avatar>
+                              <Avatar src={myAvatar} imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any} sx={{ width:28, height:28, fontSize:12, bgcolor:'primary.main' }}>{myInitial}</Avatar>
                               <Box component='form' onSubmit={(e)=> { e.preventDefault(); sendReply(c.id); }} sx={{ flex:1, display:'flex', alignItems:'center', gap:1 }}>
                                 <TextField value={replyDraft} onChange={e=> setReplyDraft(e.target.value.slice(0, MAX_COMMENT_CHARS))} placeholder='Reply...' multiline minRows={1} maxRows={4} fullWidth variant='standard' InputProps={{ disableUnderline:true, sx:{ fontSize:13, lineHeight:1.4 } }} />
-                                <IconButton disabled={!replyDraft.trim() || floodBlocked || !canPost} type='submit' sx={{ bgcolor:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? 'action.disabledBackground': t.palette.primary.main, color:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? t.palette.text.disabled: t.palette.primary.contrastText, width:32, height:32, borderRadius:2, '&:hover':{ bgcolor:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? 'action.disabledBackground': t.palette.primary.dark } }}>
+                                <IconButton disabled={!replyDraft.trim() || floodBlocked } type='submit' sx={{ bgcolor:(t)=> (!replyDraft.trim()||floodBlocked)? 'action.disabledBackground': t.palette.primary.main, color:(t)=> (!replyDraft.trim()||floodBlocked)? t.palette.text.disabled: t.palette.primary.contrastText, width:32, height:32, borderRadius:2, '&:hover':{ bgcolor:(t)=> (!replyDraft.trim()||floodBlocked)? 'action.disabledBackground': t.palette.primary.dark } }}>
                                   <SendRoundedIcon sx={{ fontSize:18 }} />
                                 </IconButton>
                                 <Button onClick={cancelReply} size='small' variant='text' sx={{ textTransform:'none', fontSize:10.5, minWidth:38 }}>Cancel</Button>
@@ -320,10 +323,10 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
                     {replies.length===0 && activeReplyParentId === c.id && (
                       <Box sx={{ mt:1, borderLeft:'2px solid', borderColor:'divider', pl:2 }}>
                         <Box sx={{ display:'flex', gap:1, px:1, py:0.6, pr:1.5, borderRadius:1, background:(t)=> t.palette.mode==='dark'? 'rgba(255,255,255,0.02)':'#fafbfc' }}>
-                          <Avatar src={myAvatar} imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any} sx={{ width:28, height:28, fontSize:12, bgcolor:'#FF385C' }}>{myInitial}</Avatar>
+                          <Avatar src={myAvatar} imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any} sx={{ width:28, height:28, fontSize:12, bgcolor:'primary.main' }}>{myInitial}</Avatar>
                           <Box component='form' onSubmit={(e)=> { e.preventDefault(); sendReply(c.id); }} sx={{ flex:1, display:'flex', alignItems:'center', gap:1 }}>
                             <TextField value={replyDraft} onChange={e=> setReplyDraft(e.target.value.slice(0, MAX_COMMENT_CHARS))} placeholder='Reply...' multiline minRows={1} maxRows={4} fullWidth variant='standard' InputProps={{ disableUnderline:true, sx:{ fontSize:13, lineHeight:1.4 } }} />
-                            <IconButton disabled={!replyDraft.trim() || floodBlocked || !canPost} type='submit' sx={{ bgcolor:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? 'action.disabledBackground': t.palette.primary.main, color:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? t.palette.text.disabled: t.palette.primary.contrastText, width:32, height:32, borderRadius:2, '&:hover':{ bgcolor:(t)=> (!replyDraft.trim()||floodBlocked||!canPost)? 'action.disabledBackground': t.palette.primary.dark } }}>
+                            <IconButton disabled={!replyDraft.trim() || floodBlocked } type='submit' sx={{ bgcolor:(t)=> (!replyDraft.trim()||floodBlocked)? 'action.disabledBackground': t.palette.primary.main, color:(t)=> (!replyDraft.trim()||floodBlocked)? t.palette.text.disabled: t.palette.primary.contrastText, width:32, height:32, borderRadius:2, '&:hover':{ bgcolor:(t)=> (!replyDraft.trim()||floodBlocked)? 'action.disabledBackground': t.palette.primary.dark } }}>
                               <SendRoundedIcon sx={{ fontSize:18 }} />
                             </IconButton>
                             <Button onClick={cancelReply} size='small' variant='text' sx={{ textTransform:'none', fontSize:10.5, minWidth:38 }}>Cancel</Button>
@@ -340,23 +343,16 @@ const TripComments: React.FC<TripCommentsProps> = ({ tripId, authToken }) => {
         </Box>
       </Box>
       <Divider sx={{ my:2 }} />
-      {!authToken ? (
-        <Box sx={{ display:'flex', alignItems:'center', justifyContent:'center', gap:1.5, pb:2, pt:0.5 }}>
-          <Typography variant='body2' sx={{ color:'text.secondary' }}>Sign in to join the conversation.</Typography>
-          <Button variant='contained' size='small' onClick={()=> navigate('/signin')}>Sign in</Button>
-        </Box>
-      ) : (
       <Box component='form' onSubmit={(e)=> { e.preventDefault(); send(); }} sx={{ maxWidth:900, width:'100%', mx:'auto', display:'flex', alignItems:'flex-start', gap:1.25, pb:1, position:'relative' }}>
-        <Avatar src={myAvatar} imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any} sx={{ width:42, height:42, fontSize:16, bgcolor:'#FF385C' }}>{myInitial}</Avatar>
+        <Avatar src={myAvatar} imgProps={{ referrerPolicy: 'no-referrer', crossOrigin: 'anonymous' } as any} sx={{ width:42, height:42, fontSize:16, bgcolor:'primary.main' }}>{myInitial}</Avatar>
         <Box sx={{ flex:1, display:'flex', alignItems:'center', gap:1, background:(t)=> t.palette.mode==='dark'? '#111a23':'#fafafa', border:'1px solid', borderColor:(t)=> t.palette.divider, borderRadius:8, px:1.25, py:0.75 }}>
-          <TextField inputRef={textareaRef} value={text} onChange={e=> setText(e.target.value.slice(0, MAX_COMMENT_CHARS))} placeholder={editingId? 'Edit your comment...': canPost? 'Add a public comment…':'View only'} multiline minRows={1} maxRows={5} fullWidth variant='standard' InputProps={{ disableUnderline:true, sx:{ fontSize:14, lineHeight:1.5 } }} />
+          <TextField inputRef={textareaRef} value={text} onChange={e=> setText(e.target.value.slice(0, MAX_COMMENT_CHARS))} placeholder={editingId? 'Edit your comment...':'Add a public comment…'} multiline minRows={1} maxRows={5} fullWidth variant='standard' InputProps={{ disableUnderline:true, sx:{ fontSize:14, lineHeight:1.5 } }} />
           {editingId && <Button onClick={cancelEdit} size='small' variant='text' sx={{ textTransform:'none', mr:1 }}>Cancel</Button>}
-          <IconButton type='submit' disabled={!text.trim() || floodBlocked || !canPost} sx={{ bgcolor:(t)=> (!text.trim()||floodBlocked||!canPost)? 'action.disabledBackground': t.palette.primary.main, color:(t)=> (!text.trim()||floodBlocked||!canPost)? t.palette.text.disabled: t.palette.primary.contrastText, width:40, height:40, borderRadius:3, '&:hover':{ bgcolor:(t)=> (!text.trim()||floodBlocked||!canPost)? 'action.disabledBackground': t.palette.primary.dark } }}>
+          <IconButton type='submit' disabled={!text.trim() || floodBlocked } sx={{ bgcolor:(t)=> (!text.trim()||floodBlocked)? 'action.disabledBackground': t.palette.primary.main, color:(t)=> (!text.trim()||floodBlocked)? t.palette.text.disabled: t.palette.primary.contrastText, width:40, height:40, borderRadius:3, '&:hover':{ bgcolor:(t)=> (!text.trim()||floodBlocked)? 'action.disabledBackground': t.palette.primary.dark } }}>
             {editingId? <EditIcon sx={{ fontSize:20 }} /> : <SendRoundedIcon sx={{ fontSize:20 }} />}
           </IconButton>
         </Box>
       </Box>
-      )}
       <Fade in={showJumpLatest} unmountOnExit>
         <Button size='small' variant='contained' onClick={()=> { if(scrollRef.current){ scrollRef.current.scrollTop = scrollRef.current.scrollHeight; autoStickRef.current = true; setShowJumpLatest(false);} }} sx={{ position:'fixed', bottom:118, right:42, borderRadius:24, textTransform:'none', boxShadow:3, px:1.4, py:0.35, fontSize:12 }}>Newest</Button>
       </Fade>

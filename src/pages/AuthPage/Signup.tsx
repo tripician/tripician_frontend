@@ -5,7 +5,8 @@ import '../../assets/css/Signin.css';
 import '../../assets/css/Signup.css';
 import { Eye, EyeOff, Plane, MapPin, Globe, Brain, Check, ArrowLeft } from 'lucide-react';
 import { authAPI } from '../../services/APIs/Auth/auth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { withNext } from '../../services/APIs/Auth/nextDestination';
 import { fadeInLeft, fadeInRight, staggerContainer, staggerItem } from '../../utils/animations';
 import { validateSignupEmail } from '../../utils/emailValidation';
 import Seo from '../../components/Seo';
@@ -23,6 +24,7 @@ const GoogleSVG = () => (
 const Signup = () => {
     const [showPassword, setShowPassword] = useState(false);
     const navigate = useNavigate();
+    const location = useLocation();
     const { loginWithRedirect } = useAuth0();
     const signupBackground = import.meta.env.VITE_SIGNUPPAGE_IMAGE_URL as string | undefined;
     const logoUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_2_URL as string | undefined;
@@ -98,7 +100,9 @@ const Signup = () => {
         setSuccess(response.data.message || 'Signup successful! Please check your email for verification.');
 
         setTimeout(() => {
-          navigate('/signin');
+          // Carries ?next= across, so a visitor who came here to create an
+          // organisation lands on that page after signing in rather than on home.
+          navigate(withNext('/signin', new URLSearchParams(location.search).get('next')));
         }, 2000);
       } catch (err: any) {
         console.error('Signup error:', err);

@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { BRAND } from '../../theme';
 import {
   Box,
   Button,
@@ -24,6 +25,7 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import HeadsetMicRoundedIcon from '@mui/icons-material/HeadsetMicRounded';
@@ -33,11 +35,12 @@ import FeedbackOutlinedIcon from '@mui/icons-material/FeedbackOutlined';
 import NewReleasesOutlinedIcon from '@mui/icons-material/NewReleasesOutlined';
 import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
-import RocketLaunchRoundedIcon from '@mui/icons-material/RocketLaunchRounded';
-import SecurityRoundedIcon from '@mui/icons-material/SecurityRounded';
-import SyncRoundedIcon from '@mui/icons-material/SyncRounded';
 import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
 import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
+import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
+import TravelExploreRoundedIcon from '@mui/icons-material/TravelExploreRounded';
+import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
+import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { apiServices } from '../../services/APIs/apiServices';
 import { onFeedbackPromptRequested, markFeedbackPromptShown } from '../../utils/feedbackPrompt';
@@ -47,7 +50,14 @@ import { onFeedbackPromptRequested, markFeedbackPromptShown } from '../../utils/
  * Replaces the old floating Navia chatbot: Navia now lives on its own page
  * (and inside every trip), while this button handles feedback, updates and help.
  */
-const SupportWidget: React.FC = () => {
+import type { CommandBarState } from '../../navia/commandbar/commandModes';
+
+interface SupportWidgetProps {
+  /** The command bar shares this corner below lg. Step up, or stand down. */
+  commandBar?: CommandBarState;
+}
+
+const SupportWidget: React.FC<SupportWidgetProps> = ({ commandBar = 'none' }) => {
   const theme = useTheme();
   const isLight = theme.palette.mode === 'light';
   // Matches the FAB's own `bottom: { xs: 88, lg: 24 }` breakpoint so the balloon
@@ -102,17 +112,32 @@ const SupportWidget: React.FC = () => {
     setFeedbackDialogOpen(true);
   };
 
-  const appVersion = import.meta.env.VITE_APP_VERSION || '2.1.0';
-  const naviaVersion = '1.0.0';
+  const appVersion = import.meta.env.VITE_APP_VERSION || '3.0.0';
+  // 2.0.0, not 1.1.0: Navia stopped being a signed-in feature this release. It
+  // answers people with no account on the landing page, from its own endpoint,
+  // its own prompt and its own allowance. That is a change in what it is.
+  const naviaVersion = '2.0.0';
 
+  /*
+   * Newest first, and every line has to name something that actually shipped.
+   * The list had not been touched since 2.0 and described a planner with a trip
+   * directory, which is no longer what the product is: the three entries at the
+   * top are the reason someone opens the app when they are not planning.
+   */
+  /*
+   * This release, not every release. The dialog is called "What's new" and it
+   * carries the version chips below it, so it describes the version it is
+   * stamped with; the 2.x list it replaced had stopped being news to anybody
+   * still using the app.
+   *
+   * Every line points at something that shipped. Nothing here is a plan.
+   */
   const updateItems = [
-    { icon: RocketLaunchRoundedIcon, text: 'Tripician 2.0 - new trip view & community feed.' },
-    { icon: SecurityRoundedIcon,     text: 'Publish validation - title, description & all days planned before going live.' },
-    { icon: SyncRoundedIcon,         text: 'Community Adventures - browse real trips with day plans, nights & live reactions.' },
-    { icon: SecurityRoundedIcon,     text: 'Verified places - every suggested spot checked against a live listing, closed ones dropped.' },
-    { icon: RocketLaunchRoundedIcon, text: 'Reality check - travel time between stops, overloaded days & closures, measured not guessed.' },
-    { icon: SecurityRoundedIcon,     text: 'Premium trip view sidebar - date range, traveller profiles & live reactions.' },
-    { icon: SyncRoundedIcon,         text: 'Profile picture upload, preferences & dark / light theme toggle.' },
+    { icon: AutoAwesomeRoundedIcon,  text: 'Navia before you sign up - ask about a trip on the front page with no account. Sign in only to keep what it drafts.' },
+    { icon: TravelExploreRoundedIcon, text: 'Your stories turn up in search - a published story is now served to search engines as a real page, and every one is submitted in the sitemap.' },
+    { icon: ForumRoundedIcon,        text: 'Reply without leaving the feed - comments open in place on a post instead of taking you to another page.' },
+    { icon: GroupsRoundedIcon,       text: 'See who else is editing - other people on a plan appear beside the save state, and if two of you save at once the second is stopped rather than quietly overwriting the first.' },
+    { icon: VerifiedRoundedIcon,     text: 'Know who you are joining - a recruiting trip shows what the organiser has actually run, and says plainly when Tripician has not reviewed it.' },
   ];
 
   const closeMenu = () => setAnchorEl(null);
@@ -156,12 +181,13 @@ const SupportWidget: React.FC = () => {
             sx={{
               position: 'fixed',
               right: 20,
-              bottom: { xs: 88, lg: 24 },
+              display: commandBar === 'expanded' ? { xs: 'none', lg: 'inline-flex' } : 'inline-flex',
+              bottom: { xs: commandBar === 'collapsed' ? 148 : 88, lg: 24 },
               zIndex: 1700,
               width: 48,
               height: 48,
               background: isLight ? '#fff' : '#1a2230',
-              color: menuOpen ? '#FF385C' : (isLight ? '#555' : 'rgba(255,255,255,0.7)'),
+              color: menuOpen ? 'primary.main' : (isLight ? '#555' : 'rgba(255,255,255,0.7)'),
               border: `1px solid ${isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)'}`,
               boxShadow: isLight
                 ? '0 6px 24px rgba(0,0,0,0.12)'
@@ -169,7 +195,7 @@ const SupportWidget: React.FC = () => {
               transition: 'color .2s, transform .2s',
               '&:hover': {
                 background: isLight ? '#fff' : '#22304a',
-                color: '#FF385C',
+                color: 'primary.main',
               },
             }}
           >
@@ -189,7 +215,8 @@ const SupportWidget: React.FC = () => {
             style={{
               position: 'fixed',
               right: 76,
-              bottom: isLgUp ? 20 : 84,
+              bottom: isLgUp ? 20 : (commandBar === 'collapsed' ? 144 : 84),
+              display: !isLgUp && commandBar === 'expanded' ? 'none' : undefined,
               zIndex: 1699,
             }}
           >
@@ -235,7 +262,7 @@ const SupportWidget: React.FC = () => {
                 Got a second?
               </Typography>
               <Typography sx={{ fontSize: '0.76rem', lineHeight: 1.45, color: 'text.secondary' }}>
-                Tell us what's working (or not). Your first note earns <Box component="span" sx={{ fontWeight: 700, color: '#FF385C' }}>5 bonus AI credits</Box>.
+                Tell us what's working (or not). Your first note earns <Box component="span" sx={{ fontWeight: 700, color: 'primary.main' }}>5 bonus AI credits</Box>.
               </Typography>
             </Box>
           </motion.div>
@@ -280,7 +307,7 @@ const SupportWidget: React.FC = () => {
                 borderRadius: '10px',
                 px: 1.25,
                 py: 0.9,
-                '&:hover': { bgcolor: isLight ? 'rgba(255,56,92,0.05)' : 'rgba(255,56,92,0.10)' },
+                '&:hover': { bgcolor: isLight ? alpha(BRAND.coral, 0.05) : alpha(BRAND.coral, 0.10) },
               }}
             >
               <ListItemIcon sx={{ minWidth: 34 }}>{item.icon}</ListItemIcon>

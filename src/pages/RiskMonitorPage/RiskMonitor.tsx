@@ -226,10 +226,10 @@ export default function RiskMonitor() {
         minHeight: '100dvh', px: 3, textAlign: 'center', gap: 2.5,
       }}>
         <IconDeviceDesktop size={40} stroke={1.5} style={{ opacity: 0.5 }} />
-        <Typography sx={{ fontFamily: (t) => t.custom.fontDisplay, fontWeight: 700, fontSize: '1.4rem' }}>
+        <Typography sx={{ fontWeight: 700, fontSize: '1.4rem' }}>
           Best on Desktop
         </Typography>
-        <Typography sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.9rem', color: 'rgba(0,0,0,0.55)', maxWidth: 300, lineHeight: 1.7 }}>
+        <Typography sx={{ fontSize: '0.9rem', color: 'rgba(0,0,0,0.55)', maxWidth: 300, lineHeight: 1.7 }}>
           The Risk Monitor is designed for larger screens. Please open Tripician on your computer to access this feature.
         </Typography>
       </Box>
@@ -261,7 +261,7 @@ export default function RiskMonitor() {
           {/*  Research caution notice  */}
           <div className="rm-hero__caution">
             <span>
-              <strong>For reference only.</strong> Scores blend aggregated official government advisories with automated weather and news signals - they may be incomplete or lag real events. Always confirm with your government's own travel advisory before making decisions.
+              <strong>For reference only.</strong> The advisory score is the UK FCDO's current guidance, blended with automated weather and news signals - one government's view, and it may lag real events. Always confirm with your own government's travel advisory before making decisions.
             </span>
           </div>
 
@@ -364,7 +364,7 @@ export default function RiskMonitor() {
             </p>
           </div>
 
-          {/* Official advisory headline (aggregated government guidance) */}
+          {/* Official advisory headline (UK FCDO guidance) */}
           {!loading && advisory?.message && (
             <div style={{
               display: 'flex', alignItems: 'center', gap: 10,
@@ -421,9 +421,7 @@ export default function RiskMonitor() {
                       rel="noopener noreferrer"
                       style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.42)', textDecoration: 'none', marginTop: 4 }}
                     >
-                      {advisory.sourcesActive > 0
-                        ? `Aggregated from ${advisory.sourcesActive} official government source${advisory.sourcesActive === 1 ? '' : 's'} ↗`
-                        : 'View official advisory sources ↗'}
+                      UK Foreign Office travel advice ↗
                     </a>
                   ) : (
                     <span style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.35)', marginTop: 4 }}>

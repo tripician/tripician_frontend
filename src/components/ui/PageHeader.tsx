@@ -5,10 +5,7 @@ import type { SxProps, Theme } from '@mui/material/styles';
 interface PageHeaderProps {
   title: string;
   subtitle?: string;
-  /**
-   * Right-aligned slot. Holds a filter, a count, a button, or a whole card
-   * (QuickPlanCard on Community and Trips).
-   */
+  /** Right-aligned slot. Holds a filter, a count, a button, or a whole card. */
   action?: React.ReactNode;
   sx?: SxProps<Theme>;
 }
@@ -39,11 +36,9 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, action,
          * same card and rendered it differently, so the h1 sat at the top of one
          * page and the bottom of the other. The rule belongs here, once.
          *
-         * `md`, not `sm`: QuickPlanCard is `width: {xs:'100%', md:380}`, so
-         * between 600 and 899px it is still full width, and a `width: 100%` child
-         * with `flexShrink: 0` in a flex row simply overflows the viewport next to
-         * an h1. Anything wide enough to need this slot has the same problem, so
-         * the breakpoint tracks the card rather than the generic `sm`.
+         * `md`, not `sm`: a card-sized action is still full width between 600 and
+         * 899px, and a `width: 100%` child with `flexShrink: 0` in a flex row
+         * simply overflows the viewport next to an h1.
          *
          * `flex-start`, not `flex-end`: bottom-aligning was right when this slot
          * held a lone small button, but a tall action pushes the title down by the
@@ -65,7 +60,7 @@ export const PageHeader: React.FC<PageHeaderProps> = ({ title, subtitle, action,
       <Typography
         component="h1"
         variant="h1"
-        sx={(t) => ({ fontFamily: t.custom.fontDisplay, color: 'text.primary' })}
+        sx={{ color: 'text.primary' }}
       >
         {title}
       </Typography>

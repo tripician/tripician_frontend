@@ -59,7 +59,6 @@ const ProvenanceChip: React.FC<ProvenanceChipProps> = ({ provenance, verifiedAt,
           display: 'inline-flex', alignItems: 'center', gap: 0.4, flexShrink: 0,
           height: 18, px: 0.65, borderRadius: '6px',
           fontSize: 10, fontWeight: 700, letterSpacing: '0.02em',
-          fontFamily: "'Inter',sans-serif",
           color,
           bgcolor: verified ? 'rgba(22,163,74,0.10)' : 'rgba(148,163,184,0.14)',
         }}

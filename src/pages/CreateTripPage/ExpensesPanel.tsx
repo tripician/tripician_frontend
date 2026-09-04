@@ -1,8 +1,10 @@
 // ExpensesPanel - authoritative implementation. Feature visibility is gated at the parent tab.
 // To temporarily hide this feature, disable/hide its tab in the parent component - do NOT edit or strip this file.
 import React from 'react';
+import { BRAND } from '../../theme';
 import { useDispatch, useSelector } from 'react-redux';
 import { Box, Typography, Paper, Button, IconButton, Dialog, DialogTitle, DialogContent, DialogActions, TextField, MenuItem, Divider, Chip, Tooltip, InputAdornment, ToggleButtonGroup, ToggleButton, Collapse } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { motion, AnimatePresence } from 'framer-motion';
 import AddIcon from '@mui/icons-material/Add';
 import SettingsIcon from '@mui/icons-material/Settings';
@@ -173,7 +175,7 @@ const ExpensesPanel: React.FC<ExpensesPanelProps> = ({ readOnly=false, members=[
                     <Chip size='small' label={e.category || 'Misc'} color={catColor as any} variant='outlined' />
                     <Typography variant='caption' color='text.secondary'>{e.date}</Typography>
                     <Typography variant='caption' color='text.secondary'>· {payerName(e.paidByUserId)} paid</Typography>
-                    {e.splitStrategy==='equal' && <Chip size='small' label='split' sx={{ height:18, fontSize:10, fontWeight:700, bgcolor:'rgba(255,56,92,0.08)', color:'primary.main' }} />}
+                    {e.splitStrategy==='equal' && <Chip size='small' label='split' sx={{ height:18, fontSize:10, fontWeight:700, bgcolor:alpha(BRAND.coral, 0.08), color:'primary.main' }} />}
                     {e.note && <Typography variant='caption' color='text.secondary' noWrap sx={{ maxWidth:160 }}>• {e.note}</Typography>}
                   </Box>
                 </Box>

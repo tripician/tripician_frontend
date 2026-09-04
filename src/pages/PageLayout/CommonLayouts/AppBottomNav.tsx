@@ -2,34 +2,50 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import MoreHorizRoundedIcon from '@mui/icons-material/MoreHorizRounded';
-import { APP_NAV_ITEMS } from '../navConfig';
+import { APP_NAV_ITEMS, DESKTOP_NAV_MIN_WIDTH } from '../navConfig';
 
-/** Items shown LEFT of the plan-a-trip FAB */
-const MOBILE_NAV_LEFT = ['explore', 'trips'] as const;
-/** Items shown RIGHT of the plan-a-trip FAB */
-const MOBILE_NAV_RIGHT = ['navia'] as const;
+/**
+ * Items shown LEFT of the plan-a-trip FAB.
+ *
+ * Community then Stories: the two reading surfaces sit together, which is what
+ * someone opening the app without a trip to plan is actually here for.
+ */
+const MOBILE_NAV_LEFT = ['explore', 'stories'] as const;
+/**
+ * Items shown RIGHT of the plan-a-trip FAB.
+ *
+ * Profile is here rather than in the More drawer because it now holds every one
+ * of your trips. Leaving it behind a drawer would put your own trips two taps
+ * deep on the surface where most planning actually happens.
+ *
+ * From the road sits between them, in the slot the More button used to take.
+ * More held exactly one item (Crew), and Crew is now a segment on Browse, so the
+ * button had nothing left to open. The order mirrors the desktop pill: the two
+ * reading surfaces, the orb, then the two you make things on.
+ */
+const MOBILE_NAV_RIGHT = ['navia', 'road', 'profile'] as const;
 
 interface AppBottomNavProps {
   onCreateTrip: () => void;
-  onMoreMenu: () => void;
 }
 
-const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip, onMoreMenu }) => {
+const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const leftItems  = APP_NAV_ITEMS.filter((i) => (MOBILE_NAV_LEFT  as readonly string[]).includes(i.id));
   const rightItems = APP_NAV_ITEMS.filter((i) => (MOBILE_NAV_RIGHT as readonly string[]).includes(i.id));
 
   const isActive = (path: string) => location.pathname === path;
-  const moreActive = location.pathname === '/risk-monitor';
 
   return (
     <Box
       component="nav"
       aria-label="Mobile navigation"
       sx={{
-        display: { xs: 'flex', lg: 'none' },
+        // Paired with the header's centred nav through one shared width, so
+        // there is never a viewport with both or with neither.
+        display: 'flex',
+        [`@media (min-width:${DESKTOP_NAV_MIN_WIDTH}px)`]: { display: 'none' },
         position: 'fixed',
         bottom: 0,
         left: 0,
@@ -72,7 +88,7 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip, onMoreMenu })
             }}
           >
             <item.Icon size={22} stroke={1.75} color="currentColor" />
-            <Typography sx={{ fontSize: '0.62rem', fontWeight: active ? 700 : 600, fontFamily: "'Inter',sans-serif" }}>
+            <Typography sx={{ fontSize: '0.62rem', fontWeight: active ? 700 : 600,}}>
               {item.shortLabel}
             </Typography>
           </Box>
@@ -116,7 +132,7 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip, onMoreMenu })
         </Box>
         {/* 11 characters at 0.62rem is about 34px, inside a flex:1 slot that is
             ~72px on a 360px phone, so it fits without wrapping. */}
-        <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: 'primary.main', mt: 0.25, fontFamily: "'Inter',sans-serif", whiteSpace: 'nowrap' }}>
+        <Typography sx={{ fontSize: '0.62rem', fontWeight: 700, color: 'primary.main', mt: 0.25, whiteSpace: 'nowrap' }}>
           Plan a trip
         </Typography>
       </Box>
@@ -143,35 +159,13 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip, onMoreMenu })
             }}
           >
             <item.Icon size={22} stroke={1.75} color="currentColor" />
-            <Typography sx={{ fontSize: '0.62rem', fontWeight: active ? 700 : 600, fontFamily: "'Inter',sans-serif" }}>
+            <Typography sx={{ fontSize: '0.62rem', fontWeight: active ? 700 : 600,}}>
               {item.shortLabel}
             </Typography>
           </Box>
         );
       })}
 
-      <Box
-        component="button"
-        onClick={onMoreMenu}
-        sx={{
-          flex: 1,
-          display: 'flex',
-          flexDirection: 'column',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: 0.35,
-          border: 'none',
-          background: 'transparent',
-          cursor: 'pointer',
-          color: moreActive ? 'primary.main' : 'text.disabled',
-          py: 1,
-        }}
-      >
-        <MoreHorizRoundedIcon sx={{ fontSize: 22 }} />
-        <Typography sx={{ fontSize: '0.62rem', fontWeight: moreActive ? 700 : 600, fontFamily: "'Inter',sans-serif" }}>
-          More
-        </Typography>
-      </Box>
     </Box>
   );
 };

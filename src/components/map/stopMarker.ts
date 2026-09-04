@@ -51,7 +51,7 @@ export function makeStopMarker({ index, active = false }: StopMarkerOptions): HT
     borderRadius: '50%',
     background: BRAND.gradient,
     color: '#fff',
-    fontFamily: "'Inter', system-ui, sans-serif",
+    fontFamily: "'Plus Jakarta Sans, system-ui, sans-serif', system-ui, sans-serif",
     fontWeight: '700',
     lineHeight: '1',
     cursor: 'pointer',

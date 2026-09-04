@@ -27,6 +27,7 @@ const ProfileSettings: React.FC = () => {
   const [fname, setFname] = useState('');
   const [lname, setLname] = useState('');
   const [bioHighlights, setBioHighlights] = useState({
+    intro: '',
     about: '',
     dreamPlace: '',
     from: ''
@@ -70,12 +71,13 @@ const ProfileSettings: React.FC = () => {
         if (bioData && typeof bioData === 'object' && bioData.highlights) {
           const highlights = bioData.highlights;
           setBioHighlights({
+            intro: highlights.find((h: any) => h.key === 'intro')?.value || '',
             about: highlights.find((h: any) => h.key === 'about')?.value || '',
             dreamPlace: highlights.find((h: any) => h.key === 'dreamPlace')?.value || '',
             from: highlights.find((h: any) => h.key === 'from')?.value || ''
           });
         } else {
-          setBioHighlights({ about: '', dreamPlace: '', from: '' });
+          setBioHighlights({ intro: '', about: '', dreamPlace: '', from: '' });
         }
         
         setLocation(data.Location || data.location || '');
@@ -83,7 +85,7 @@ const ProfileSettings: React.FC = () => {
         setEmail(data.Email || data.email || '');
         setPhone(data.Phone || data.phone || '');
         setProfilePicture(data.ProfilePicture || data.profilePicture || null);
-      } catch(err:any){
+      } catch{
         setError('Failed to load profile settings');
       } finally { setLoading(false); }
     })();
@@ -103,7 +105,7 @@ const ProfileSettings: React.FC = () => {
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', mb: 2.5, color: 'text.primary', letterSpacing: '-0.01em' }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', mb: 2.5, color: 'text.primary', letterSpacing: '-0.01em' }}>
             Profile Photo
           </Typography>
           <Box sx={{ display: "flex", alignItems: "center", gap: 3 }}>
@@ -111,11 +113,10 @@ const ProfileSettings: React.FC = () => {
               src={profilePicture || undefined}
               sx={{
                 width: 80, height: 80,
-                bgcolor: '#FF385C',
+                bgcolor: 'primary.main',
                 color: '#fff',
                 fontSize: '1.7rem',
                 fontWeight: 700,
-                fontFamily: "'Inter',sans-serif",
               }}
             >
               {!profilePicture && (fname?.[0]?.toUpperCase() || 'U')}
@@ -271,7 +272,7 @@ const ProfileSettings: React.FC = () => {
       {/* Cover Photo Section */}
       <Card sx={{ mb: 3, borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid', borderColor: 'divider' }}>
         <CardContent sx={{ p: 3 }}>
-          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', mb: 2.5, color: 'text.primary', letterSpacing: '-0.01em' }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', mb: 2.5, color: 'text.primary', letterSpacing: '-0.01em' }}>
             Cover Photo
           </Typography>
           {/* Hidden file picker for cover */}
@@ -381,7 +382,7 @@ const ProfileSettings: React.FC = () => {
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
             Personal Information
           </Typography>
 
@@ -417,6 +418,21 @@ const ProfileSettings: React.FC = () => {
           >
             Bio Highlights
           </Typography>
+
+          {/* Prose, not a pill. Rendered as the epigraph at the top of the
+              profile, which is why it is first here too. */}
+          <TextField
+            fullWidth
+            multiline
+            minRows={3}
+            label="In your own words"
+            placeholder="What kind of travelling do you actually like? Who are you good to travel with?"
+            value={bioHighlights.intro}
+            onChange={e=> setBioHighlights(prev => ({ ...prev, intro: e.target.value.slice(0, 600) }))}
+            helperText={`${bioHighlights.intro.length}/600`}
+            disabled={loading}
+            sx={{ mb: 2, "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}
+          />
 
           <TextField
             fullWidth
@@ -486,6 +502,14 @@ const ProfileSettings: React.FC = () => {
                 try {
                   // Build bio highlights array
                   const highlights = [];
+                  if (bioHighlights.intro) {
+                    highlights.push({
+                      key: 'intro',
+                      label: '',
+                      value: bioHighlights.intro,
+                      icon: ''
+                    });
+                  }
                   if (bioHighlights.about) {
                     highlights.push({
                       key: 'about',
@@ -527,7 +551,6 @@ const ProfileSettings: React.FC = () => {
                       bio: { highlights },
                       location,
                       website,
-                      bannertint: currentProfile?.bannertint,
                     };
                     dispatch(setUserProfile(optimisticProfile));
                     await dispatch(fetchUserProfile({ force: true })).unwrap();
@@ -535,7 +558,7 @@ const ProfileSettings: React.FC = () => {
                   window.dispatchEvent(
                     new CustomEvent("app:success", { detail: { message: "Personal info updated" } })
                   );
-                } catch (e: any) {
+                } catch {
                   setError("Failed to save changes");
                 } finally {
                   setSaving(false);
@@ -565,7 +588,7 @@ const ProfileSettings: React.FC = () => {
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
             Contact Information
           </Typography>
 
@@ -604,13 +627,12 @@ const ProfileSettings: React.FC = () => {
                     ...(currentProfile ?? {}),
                     email,
                     phone,
-                    bannertint: currentProfile?.bannertint,
                   };
                   dispatch(setUserProfile(optimisticProfile));
                   await dispatch(fetchUserProfile({ force: true })).unwrap();
                 } catch {}
                 window.dispatchEvent(new CustomEvent('app:success',{ detail:{ message:'Contact info updated' }}));
-              } catch(e:any){
+              } catch{
                 setError('Failed to update contact info');
               } finally { setContactSaving(false); }
             }}
@@ -637,7 +659,7 @@ const ProfileSettings: React.FC = () => {
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
             Security
           </Typography>
 

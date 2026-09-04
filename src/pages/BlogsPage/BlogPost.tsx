@@ -1,7 +1,9 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { BRAND } from '../../theme';
 import { Helmet } from 'react-helmet-async';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { Box, Typography, Button, Chip } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { useSelector } from 'react-redux';
 import blogsData from '../../assets/blogs/blogs.json';
 import { fetchUnsplashImage } from '../../services/unsplashService';
@@ -90,13 +92,13 @@ const BlogPost: React.FC = () => {
   const tagStyle = TAG_COLORS[blog.tag] || { bg: '#F3F4F6', color: '#374151' };
 
   const pageContent = (
-    <Box sx={{ minHeight: '100vh', background: '#FAFAFA', fontFamily: "'Inter', sans-serif" }}>
+    <Box sx={{ minHeight: '100vh', background: '#FAFAFA',}}>
       {/* Reading progress bar */}
       <Box sx={{
         position: 'fixed', top: 0, left: 0, zIndex: 9999,
         height: 3,
         width: `${readProgress}%`,
-        background: 'linear-gradient(90deg, #FF385C, #D91A50)',
+        background: `linear-gradient(90deg, ${BRAND.coral}, ${BRAND.coralDeep})`,
         transition: 'width 0.1s linear',
       }} />
 
@@ -105,7 +107,7 @@ const BlogPost: React.FC = () => {
         <TopBar showSearch={false} logo={
           <Box
             component={Link} to="/blog"
-            sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#555', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 500, '&:hover': { color: '#FF385C' }, transition: 'color 0.2s' }}
+            sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#555', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 500, '&:hover': { color: 'primary.main' }, transition: 'color 0.2s' }}
           >
             <ArrowBackRoundedIcon sx={{ fontSize: 16 }} />
             Blog
@@ -122,7 +124,7 @@ const BlogPost: React.FC = () => {
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
             <Box component={Link} to="/blog"
-              sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#555', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 500, '&:hover': { color: '#FF385C' }, transition: 'color 0.2s' }}
+              sx={{ display: 'flex', alignItems: 'center', gap: 0.5, color: '#555', textDecoration: 'none', fontSize: '0.82rem', fontWeight: 500, '&:hover': { color: 'primary.main' }, transition: 'color 0.2s' }}
             >
               <ArrowBackRoundedIcon sx={{ fontSize: 16 }} />
               Blog
@@ -134,7 +136,7 @@ const BlogPost: React.FC = () => {
           </Box>
           <Box sx={{ display: 'flex', gap: 1 }}>
             <Button size="small" component={Link} to="/signin" variant="outlined"
-              sx={{ fontSize: '0.78rem', fontWeight: 600, borderRadius: '50px', textTransform: 'none', borderColor: 'rgba(0,0,0,0.2)', color: '#333', '&:hover': { borderColor: '#FF385C', color: '#FF385C' } }}>
+              sx={{ fontSize: '0.78rem', fontWeight: 600, borderRadius: '50px', textTransform: 'none', borderColor: 'rgba(0,0,0,0.2)', color: '#333', '&:hover': { borderColor: 'primary.main', color: 'primary.main' } }}>
               Sign in
             </Button>
             <Button size="small" component={Link} to="/signup" variant="contained"
@@ -269,7 +271,7 @@ const BlogPost: React.FC = () => {
                   mb: 4,
                   fontFamily: (t) => t.custom.fontDisplay,
                   fontStyle: 'italic',
-                  borderLeft: '3px solid #FF385C',
+                  borderLeft: `3px solid ${BRAND.coral}`,
                   pl: 3,
                 }}>
                   {block.text}
@@ -279,7 +281,6 @@ const BlogPost: React.FC = () => {
             if (block.type === 'heading') {
               return (
                 <Typography key={i} variant="h3" sx={{
-                  fontFamily: "'Inter', sans-serif",
                   fontWeight: 700,
                   fontSize: { xs: '1.25rem', md: '1.55rem' },
                   color: '#111',
@@ -299,7 +300,6 @@ const BlogPost: React.FC = () => {
                   color: '#333',
                   lineHeight: 1.85,
                   mb: 2.5,
-                  fontFamily: "'Inter', sans-serif",
                 }}>
                   {block.text}
                 </Typography>
@@ -311,18 +311,17 @@ const BlogPost: React.FC = () => {
                   my: 4,
                   p: '20px 24px',
                   borderRadius: '14px',
-                  background: 'linear-gradient(135deg, rgba(255,56,92,0.06) 0%, rgba(255,56,92,0.02) 100%)',
-                  border: '1px solid rgba(255,56,92,0.18)',
+                  background: `linear-gradient(135deg, ${alpha(BRAND.coral, 0.06)} 0%, ${alpha(BRAND.coral, 0.02)} 100%)`,
+                  border: `1px solid ${alpha(BRAND.coral, 0.18)}`,
                   display: 'flex', gap: 1.5, alignItems: 'flex-start',
                 }}>
                   {logoFullBlackUrl
                     ? <Box component="img" src={logoFullBlackUrl} alt="Tripician" sx={{ height: 20, width: 'auto', mt: 0.3, flexShrink: 0, display: 'block' }} />
-                    : <Box sx={{ width: 20, height: 20, borderRadius: '6px', background: 'linear-gradient(135deg,#FF385C,#D91A50)', flexShrink: 0, mt: 0.3 }} />}
+                    : <Box sx={{ width: 20, height: 20, borderRadius: '6px', background: `linear-gradient(135deg,${BRAND.coral},${BRAND.coralDeep})`, flexShrink: 0, mt: 0.3 }} />}
                   <Typography sx={{
                     fontSize: '0.95rem',
                     color: '#333',
                     lineHeight: 1.75,
-                    fontFamily: "'Inter', sans-serif",
                     fontWeight: 500,
                   }}>
                     {block.text}
@@ -347,11 +346,11 @@ const BlogPost: React.FC = () => {
             overflow: 'hidden',
           }}>
             {/* Glow */}
-            <Box sx={{ position: 'absolute', top: '-30%', left: '-10%', width: '60%', height: '200%', background: 'radial-gradient(ellipse, rgba(255,56,92,0.15) 0%, transparent 65%)', pointerEvents: 'none' }} />
+            <Box sx={{ position: 'absolute', top: '-30%', left: '-10%', width: '60%', height: '200%', background: `radial-gradient(ellipse, ${alpha(BRAND.coral, 0.15)} 0%, transparent 65%)`, pointerEvents: 'none' }} />
             <Box sx={{ position: 'relative', zIndex: 1 }}>
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 2 }}>
-                <PersonAddAltRoundedIcon sx={{ color: '#FF385C', fontSize: 22 }} />
-                <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'rgba(255,56,92,0.9)', letterSpacing: '0.1em', textTransform: 'uppercase', fontFamily: "'Inter',sans-serif" }}>
+                <PersonAddAltRoundedIcon sx={{ color: 'primary.main', fontSize: 22 }} />
+                <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: alpha(BRAND.coral, 0.9), letterSpacing: '0.1em', textTransform: 'uppercase',}}>
                   Travel with people like you
                 </Typography>
               </Box>
@@ -373,8 +372,7 @@ const BlogPost: React.FC = () => {
                     to="/signup"
                     variant="contained"
                     className="t-invert"
-                    sx={{
-                      fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.9rem',
+                    sx={{ fontWeight: 700, fontSize: '0.9rem',
                       px: 3.5, py: 1.3,
                     }}
                   >
@@ -384,8 +382,7 @@ const BlogPost: React.FC = () => {
                     component={Link}
                     to="/signin"
                     variant="outlined"
-                    sx={{
-                      fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: '0.9rem',
+                    sx={{ fontWeight: 600, fontSize: '0.9rem',
                       px: 3, py: 1.3, borderRadius: '50px', textTransform: 'none',
                       borderColor: 'rgba(255,255,255,0.2)', color: 'rgba(255,255,255,0.7)',
                       '&:hover': { borderColor: 'rgba(255,255,255,0.5)', color: '#fff', background: 'rgba(255,255,255,0.06)' },
@@ -397,11 +394,10 @@ const BlogPost: React.FC = () => {
               ) : (
                 <Button
                   component={Link}
-                  to="/dashboard"
+                  to="/tripplanner"
                   variant="contained"
                   className="t-invert"
-                  sx={{
-                    fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.9rem',
+                  sx={{ fontWeight: 700, fontSize: '0.9rem',
                     mt: 2.5, px: 3.5, py: 1.3,
                   }}
                 >
@@ -429,7 +425,7 @@ const BlogPost: React.FC = () => {
             boxShadow: '0 4px 24px rgba(0,0,0,0.06)',
             mb: 2.5,
           }}>
-            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#999', letterSpacing: '0.1em', textTransform: 'uppercase', mb: 1.5, fontFamily: "'Inter',sans-serif" }}>
+            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#999', letterSpacing: '0.1em', textTransform: 'uppercase', mb: 1.5,}}>
               Quick facts
             </Typography>
             <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.2 }}>
@@ -440,8 +436,8 @@ const BlogPost: React.FC = () => {
                 { label: 'Read time', value: blog.readTime },
               ].map(({ label, value }) => (
                 <Box key={label} sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <Typography sx={{ fontSize: '0.78rem', color: '#888', fontFamily: "'Inter',sans-serif" }}>{label}</Typography>
-                  <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: '#222', fontFamily: "'Inter',sans-serif" }}>{value}</Typography>
+                  <Typography sx={{ fontSize: '0.78rem', color: '#888',}}>{label}</Typography>
+                  <Typography sx={{ fontSize: '0.82rem', fontWeight: 600, color: '#222',}}>{value}</Typography>
                 </Box>
               ))}
             </Box>
@@ -455,11 +451,11 @@ const BlogPost: React.FC = () => {
               background: 'linear-gradient(145deg, #0D0D14, #1A0812)',
               overflow: 'hidden', position: 'relative',
             }}>
-              <Box sx={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: '50%', background: 'rgba(255,56,92,0.18)', filter: 'blur(20px)' }} />
-              <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#fff', fontFamily: "'Inter',sans-serif", mb: 0.8, position: 'relative', zIndex: 1, lineHeight: 1.3 }}>
+              <Box sx={{ position: 'absolute', top: -20, right: -20, width: 100, height: 100, borderRadius: '50%', background: alpha(BRAND.coral, 0.18), filter: 'blur(20px)' }} />
+              <Typography sx={{ fontSize: '1rem', fontWeight: 700, color: '#fff', mb: 0.8, position: 'relative', zIndex: 1, lineHeight: 1.3 }}>
                 Plan {blog.city} with your tribe
               </Typography>
-              <Typography sx={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.55)', fontFamily: "'Inter',sans-serif", mb: 2.5, position: 'relative', zIndex: 1, lineHeight: 1.6 }}>
+              <Typography sx={{ fontSize: '0.78rem', color: 'rgba(255,255,255,0.55)', mb: 2.5, position: 'relative', zIndex: 1, lineHeight: 1.6 }}>
                 Match your vibe. Build your itinerary. Travel better together.
               </Typography>
               <Button
@@ -469,8 +465,7 @@ const BlogPost: React.FC = () => {
                 variant="contained"
                 size="small"
                 className="t-invert"
-                sx={{
-                  fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.82rem',
+                sx={{ fontWeight: 700, fontSize: '0.82rem',
                   py: 1.1,
                   position: 'relative', zIndex: 1,
                 }}
@@ -491,8 +486,8 @@ const BlogPost: React.FC = () => {
           pb: 10,
         }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3.5 }}>
-            <Box sx={{ width: 4, height: 22, borderRadius: 2, background: 'linear-gradient(180deg, #FF385C, #D91A50)' }} />
-            <Typography fontWeight={800} sx={{ fontFamily: "'Inter',sans-serif", fontSize: '1.3rem', letterSpacing: '-0.03em' }}>
+            <Box sx={{ width: 4, height: 22, borderRadius: 2, background: `linear-gradient(180deg, ${BRAND.coral}, ${BRAND.coralDeep})` }} />
+            <Typography fontWeight={800} sx={{ fontSize: '1.3rem', letterSpacing: '-0.03em' }}>
               Continue Exploring
             </Typography>
           </Box>
@@ -532,7 +527,7 @@ const BlogPost: React.FC = () => {
                   <Box sx={{ position: 'absolute', inset: 0, background: 'linear-gradient(to top, rgba(0,0,0,0.75) 0%, transparent 55%)' }} />
                   <Box sx={{ position: 'absolute', bottom: 0, left: 0, right: 0, p: '16px 18px' }}>
                     <Chip label={r.tag} size="small" sx={{ background: tagS.bg, color: tagS.color, fontWeight: 700, fontSize: '0.65rem', mb: 0.8, height: 20 }} />
-                    <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: '#fff', lineHeight: 1.3, fontFamily: "'Inter',sans-serif", display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
+                    <Typography sx={{ fontSize: '0.9rem', fontWeight: 700, color: '#fff', lineHeight: 1.3, display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                       {r.title}
                     </Typography>
                   </Box>
@@ -546,7 +541,7 @@ const BlogPost: React.FC = () => {
       {/* BOTTOM CTA BANNER for unauthenticated */}
       {!isAuthenticated && (
         <Box sx={{
-          background: 'linear-gradient(135deg, #FF385C 0%, #D91A50 50%, #A8003A 100%)',
+          background: `linear-gradient(135deg, ${BRAND.coral} 0%, ${BRAND.coralDeep} 50%, #A8003A 100%)`,
           py: { xs: 6, md: 8 },
           px: { xs: 3, md: 6 },
           textAlign: 'center',
@@ -576,10 +571,9 @@ const BlogPost: React.FC = () => {
               to="/signup"
               variant="contained"
               size="large"
-              sx={{
-                fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '1rem',
+              sx={{ fontWeight: 700, fontSize: '1rem',
                 px: 4, py: 1.5, borderRadius: '50px', textTransform: 'none',
-                background: '#fff', color: '#D91A50',
+                background: '#fff', color: BRAND.coralDeep,
                 boxShadow: '0 8px 32px rgba(0,0,0,0.25)',
                 '&:hover': { background: 'rgba(255,255,255,0.93)', transform: 'translateY(-2px)', boxShadow: '0 14px 40px rgba(0,0,0,0.3)' },
                 transition: 'all 0.2s',
@@ -592,8 +586,7 @@ const BlogPost: React.FC = () => {
               to="/signin"
               variant="outlined"
               size="large"
-              sx={{
-                fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: '1rem',
+              sx={{ fontWeight: 600, fontSize: '1rem',
                 px: 4, py: 1.5, borderRadius: '50px', textTransform: 'none',
                 borderColor: 'rgba(255,255,255,0.45)', color: '#fff',
                 '&:hover': { borderColor: '#fff', background: 'rgba(255,255,255,0.1)' },

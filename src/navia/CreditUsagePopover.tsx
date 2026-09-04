@@ -53,19 +53,19 @@ const CreditUsagePopover: React.FC<CreditUsagePopoverProps> = ({
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.25 }}>
         <IconCoins size={15} />
-        <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.85rem' }}>
+        <Typography sx={{ fontWeight: 700, fontSize: '0.85rem' }}>
           {title}
         </Typography>
       </Box>
-      <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', fontFamily: "'Inter',sans-serif", mb: 1.5 }}>
+      <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', mb: 1.5 }}>
         {subtitle}
       </Typography>
 
       <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, mb: 0.75 }}>
-        <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '1.5rem', lineHeight: 1, color: low ? 'error.main' : 'text.primary' }}>
+        <Typography sx={{ fontWeight: 700, fontSize: '1.5rem', lineHeight: 1, color: low ? 'error.main' : 'text.primary' }}>
           {wallet.balance}
         </Typography>
-        <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', fontFamily: "'Inter',sans-serif" }}>
+        <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled',}}>
           of {wallet.totalGranted} remaining
         </Typography>
       </Box>
@@ -86,10 +86,10 @@ const CreditUsagePopover: React.FC<CreditUsagePopoverProps> = ({
       />
 
       <Box sx={{ display: 'flex', justifyContent: 'space-between', mb: 1.75 }}>
-        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary', fontFamily: "'Inter',sans-serif" }}>
+        <Typography sx={{ fontSize: '0.72rem', color: 'text.secondary',}}>
           Used so far
         </Typography>
-        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, fontFamily: "'Inter',sans-serif" }}>
+        <Typography sx={{ fontSize: '0.72rem', fontWeight: 700,}}>
           {wallet.totalSpent}
         </Typography>
       </Box>
@@ -102,7 +102,6 @@ const CreditUsagePopover: React.FC<CreditUsagePopoverProps> = ({
         onClick={() => { onClose(); navigate('/settings?tab=credits'); }}
         sx={{
           textTransform: 'none',
-          fontFamily: "'Inter',sans-serif",
           fontWeight: 700,
           fontSize: '0.78rem',
           borderRadius: '50px',

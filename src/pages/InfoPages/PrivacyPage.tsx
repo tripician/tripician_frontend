@@ -1,5 +1,7 @@
 import React from 'react';
+import { BRAND } from '../../theme';
 import { Box, Typography, Container } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { Link } from 'react-router-dom';
 import InfoPageShell from './InfoPageShell';
 import ShieldRoundedIcon from '@mui/icons-material/ShieldRounded';
@@ -15,7 +17,7 @@ const Ul = ({ items }: { items: React.ReactNode[] }) => (
 );
 
 const SectionTitle = ({ children }: { children: React.ReactNode }) => (
-  <Typography sx={{ fontWeight: 700, color: '#111', mb: 2, pb: 1.5, borderBottom: '1px solid rgba(0,0,0,0.07)', fontSize: '1.02rem' }}>
+  <Typography variant="h4" component="h2" sx={{ mb: 2, pb: 1.5, borderBottom: '1px solid', borderColor: 'divider' }}>
     {children}
   </Typography>
 );
@@ -30,7 +32,7 @@ const PrivacyPage: React.FC = () => {
           <P>Tripician ("we," "us," or "our") is committed to protecting your personal data. This Privacy Policy explains what information we collect, why we collect it, and how we use, share, and protect it when you access or use the Tripician platform ("the Service").</P>
           <P>By creating an account or using the Service, you acknowledge that you have read and understood this Privacy Policy. If you disagree with any part of this policy, please do not use the Service.</P>
           <P><strong>Data Controller:</strong> Tripician and its operators are the data controller responsible for personal data collected through the Service.</P>
-          <P><strong>Privacy enquiries:</strong> Email <Box component="a" href="mailto:support@tripician.com" sx={{ color: '#FF385C', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box> with the subject line "Privacy Request ,[Your Name]".</P>
+          <P><strong>Privacy enquiries:</strong> Email <Box component="a" href="mailto:support@tripician.com" sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box> with the subject line "Privacy Request ,[Your Name]".</P>
         </>
       ),
     },
@@ -138,7 +140,7 @@ const PrivacyPage: React.FC = () => {
             'Right to Limit Use of Sensitive Personal Information: We do not collect sensitive personal information as defined by CCPA/CPRA.',
             'Right to Non-Discrimination: We will not discriminate against you for exercising any CCPA rights.',
           ]} />
-          <P>To exercise any of these rights, email <Box component="a" href="mailto:support@tripician.com" sx={{ color: '#FF385C', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box> with the subject "Privacy Request ,[Your Name]". We will respond within 30 days (GDPR/UK GDPR) or 45 days (CCPA/CPRA).</P>
+          <P>To exercise any of these rights, email <Box component="a" href="mailto:support@tripician.com" sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box> with the subject "Privacy Request ,[Your Name]". We will respond within 30 days (GDPR/UK GDPR) or 45 days (CCPA/CPRA).</P>
         </>
       ),
     },
@@ -168,7 +170,7 @@ const PrivacyPage: React.FC = () => {
       content: (
         <>
           <P>The Service is not directed at children under 13 years of age (or under 16 years of age for users in the European Union and United Kingdom, per the GDPR minimum age for consent). We do not knowingly collect personal information from children.</P>
-          <P>If you believe a child under the applicable minimum age has provided us with personal data, please contact us immediately at <Box component="a" href="mailto:support@tripician.com" sx={{ color: '#FF385C', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box>. We will take prompt steps to delete such information.</P>
+          <P>If you believe a child under the applicable minimum age has provided us with personal data, please contact us immediately at <Box component="a" href="mailto:support@tripician.com" sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box>. We will take prompt steps to delete such information.</P>
         </>
       ),
     },
@@ -188,7 +190,7 @@ const PrivacyPage: React.FC = () => {
       content: (
         <>
           <P>For any privacy-related questions, data access or deletion requests, or complaints, please contact us:</P>
-          <P><strong>Email:</strong> <Box component="a" href="mailto:support@tripician.com" sx={{ color: '#FF385C', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box></P>
+          <P><strong>Email:</strong> <Box component="a" href="mailto:support@tripician.com" sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box></P>
           <P><strong>Subject line format:</strong> "Privacy Request ,[Your Name]"</P>
           <P>We are committed to resolving concerns promptly and transparently. If you are not satisfied with our response, you have the right to lodge a complaint with your applicable data protection authority.</P>
         </>
@@ -202,21 +204,21 @@ const PrivacyPage: React.FC = () => {
       <Box sx={{ background: 'linear-gradient(135deg,#FFF5F6 0%,#FFFAFA 100%)', borderBottom: '1px solid rgba(0,0,0,0.06)', px: { xs: 3, md: 8 }, py: { xs: 6, md: 8 } }}>
         <Container maxWidth="lg">
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
-            <Box sx={{ width: 40, height: 40, borderRadius: '12px', background: 'linear-gradient(135deg,#FF385C,#D91A50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+            <Box sx={{ width: 40, height: 40, borderRadius: '12px', background: `linear-gradient(135deg,${BRAND.coral},${BRAND.coralDeep})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
               <ShieldRoundedIcon sx={{ color: '#fff', fontSize: 22 }} />
             </Box>
-            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#FF385C', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Privacy Policy</Typography>
+            <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'primary.main', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Privacy Policy</Typography>
           </Box>
           <Typography variant="h2" sx={{ fontWeight: 700, fontSize: { xs: '2rem', md: '2.8rem' }, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.15, mb: 2 }}>
             Your privacy matters.{' '}
-            <Box component="span" sx={{ color: '#FF385C' }}>Always.</Box>
+            <Box component="span" sx={{ color: 'primary.main' }}>Always.</Box>
           </Typography>
           <Typography sx={{ fontSize: '1.05rem', color: '#666', lineHeight: 1.75, maxWidth: 600 }}>
             We are transparent about what data we collect and why. We never sell your personal information to anyone.
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, mt: 3, flexWrap: 'wrap' }}>
-            <Box sx={{ background: 'rgba(255,56,92,0.08)', borderRadius: '20px', px: 2, py: 0.75, border: '1px solid rgba(255,56,92,0.15)' }}>
-              <Typography sx={{ fontSize: '0.78rem', color: '#FF385C', fontWeight: 600 }}>Last updated: July 21, 2026</Typography>
+            <Box sx={{ background: alpha(BRAND.coral, 0.08), borderRadius: '20px', px: 2, py: 0.75, border: `1px solid ${alpha(BRAND.coral, 0.15)}` }}>
+              <Typography sx={{ fontSize: '0.78rem', color: 'primary.main', fontWeight: 600 }}>Last updated: July 21, 2026</Typography>
             </Box>
             <Box sx={{ background: 'rgba(0,0,0,0.04)', borderRadius: '20px', px: 2, py: 0.75, border: '1px solid rgba(0,0,0,0.08)' }}>
               <Typography sx={{ fontSize: '0.78rem', color: '#555', fontWeight: 500 }}>GDPR · UK GDPR · CCPA/CPRA</Typography>
@@ -235,7 +237,7 @@ const PrivacyPage: React.FC = () => {
                 key={s.id}
                 component="a"
                 href={`#${s.id}`}
-                sx={{ display: 'block', py: 0.65, px: 1.5, borderLeft: '2px solid transparent', color: '#777', textDecoration: 'none', fontSize: '0.77rem', lineHeight: 1.5, mb: 0.5, borderRadius: '0 6px 6px 0', transition: 'all 0.2s', '&:hover': { color: '#FF385C', borderLeftColor: '#FF385C', background: 'rgba(255,56,92,0.04)' } }}
+                sx={{ display: 'block', py: 0.65, px: 1.5, borderLeft: '2px solid transparent', color: '#777', textDecoration: 'none', fontSize: '0.77rem', lineHeight: 1.5, mb: 0.5, borderRadius: '0 6px 6px 0', transition: 'all 0.2s', '&:hover': { color: 'primary.main', borderLeftColor: 'primary.main', background: alpha(BRAND.coral, 0.04) } }}
               >
                 {s.title}
               </Box>
@@ -254,9 +256,9 @@ const PrivacyPage: React.FC = () => {
             </Box>
             <Typography sx={{ textAlign: 'center', color: '#bbb', fontSize: '0.77rem', mt: 2 }}>
               Questions?{' '}
-              <Box component="a" href="mailto:support@tripician.com" sx={{ color: '#FF385C', textDecoration: 'none', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}>support@tripician.com</Box>
+              <Box component="a" href="mailto:support@tripician.com" sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500, '&:hover': { textDecoration: 'underline' } }}>support@tripician.com</Box>
               {' '}·{' '}
-              <Box component={Link} to="/terms-and-conditions" sx={{ color: '#bbb', textDecoration: 'none', '&:hover': { color: '#FF385C' } }}>Terms & Conditions</Box>
+              <Box component={Link} to="/terms-and-conditions" sx={{ color: '#bbb', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}>Terms & Conditions</Box>
             </Typography>
           </Box>
         </Box>

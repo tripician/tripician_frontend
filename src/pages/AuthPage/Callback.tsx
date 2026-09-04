@@ -8,6 +8,7 @@ import { fetchUserProfile } from '../../store/userSlice';
 import { clearSessionData } from '../../utils/authSession';
 import { setAccessToken, setRefreshToken } from '../../services/auth/sessionStatus';
 import { peekPendingPrompt } from '../../utils/pendingNaviaPrompt';
+import { takeReturnTo } from '../../utils/pendingDraft';
 import { authAPI } from '../../services/APIs/Auth/auth';
 
 const Callback = () => {
@@ -61,7 +62,7 @@ const Callback = () => {
 
         // Mask and log token info for debugging
         try {
-          // eslint-disable-next-line no-console
+           
           console.debug('[Callback] Auth0 access token (masked):', `${accessToken.slice(0,8)}...`);
         } catch {}
 
@@ -69,7 +70,7 @@ const Callback = () => {
 
         // Log backend response (mask server token)
         try {
-          // eslint-disable-next-line no-console
+           
           console.debug('[Callback] socialCallback response:', {
             status: response.status,
             data: {
@@ -102,7 +103,7 @@ const Callback = () => {
           try {
             // Ensure profile is loaded using the exact token we just received to avoid races.
             // `force` skips the cache outright - belt and braces alongside clearSessionData().
-            // eslint-disable-next-line @typescript-eslint/no-floating-promises
+             
             await dispatch(fetchUserProfile({ token: response.data.accessToken, force: true })).unwrap();
           } catch (e) {
             // If profile fetch fails, still navigate to signin for now
@@ -112,8 +113,10 @@ const Callback = () => {
             return;
           }
           // See the note in Signin.tsx - same hand-off, but this is the path
-          // that survived a full page reload out to Auth0 and back.
-          navigate(peekPendingPrompt() ? '/navia' : '/home', { replace: true });
+          // that survived a full page reload out to Auth0 and back. That reload
+          // is also why the destination comes from storage: `?next=` was on the
+          // sign-in URL, which no longer exists.
+          navigate(peekPendingPrompt() ? '/navia' : (takeReturnTo() ?? '/home'), { replace: true });
         } else {
           console.error('[Callback] Unexpected response:', response.data);
           setCallbackError('Unexpected response from server.');
@@ -138,9 +141,9 @@ const Callback = () => {
       minHeight="100vh"
       gap={2}
     >
-      <CircularProgress sx={{ color: '#FF385C' }} />
+      <CircularProgress sx={{ color: 'primary.main' }} />
       <Typography
-        sx={{ fontFamily: "'Inter', sans-serif", fontSize: '0.875rem', color: 'text.secondary' }}
+        sx={{ fontSize: '0.875rem', color: 'text.secondary' }}
       >
         {callbackError ? callbackError : 'Signing you in…'}
       </Typography>

@@ -1,289 +1,106 @@
-import React, { useEffect, useState, useMemo } from 'react';
+/**
+ * /profile , the personal hub.
+ *
+ * This page and /dashboard were the same idea in two places: both read
+ * `getDashboardTrips`, both listed your trips, and Profile's only way to reach
+ * the rest of them was a button back to Dashboard. Dashboard's seven tabs and
+ * this page's published-only grid have merged into four tabs here, and "Trips"
+ * has left the main navigation.
+ *
+ * The old split was documented as protecting the *public* twin at
+ * /traveler/:userId from leaking saved and archived trips. That still holds and
+ * is why this page is auth-gated and TravelerProfile is a separate component:
+ * nothing private below is reachable from the public route.
+ */
+
+import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
 import {
-  Avatar, Box, Button, Chip, CircularProgress, IconButton,
-  Tooltip, Typography, useTheme,
+  Avatar, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent,
+  DialogContentText, DialogTitle, IconButton, Skeleton, Snackbar, Tab, Tabs, Tooltip, Typography, useTheme,
 } from '@mui/material';
 import { motion } from 'framer-motion';
 import { useSelector, useDispatch } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
+  IconArchive,
+  IconMessages,
+  IconBook,
+  IconBookmark,
   IconBrandFacebook,
   IconBrandInstagram,
   IconBrandX,
-  IconCake,
-  IconGenderBigender,
-  IconHeart,
   IconLink,
-  IconMail,
-  IconMap,
   IconMapPin,
-  IconSparkles,
-  IconPhone,
-  IconArrowRight,
-  IconRoute,
+  IconMapPlus,
   IconUsers,
-  IconWorld,
 } from '@tabler/icons-react';
 import type { RootState, AppDispatch } from '../../store';
 import { fetchUserProfile } from '../../store/userSlice';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
+import { useAppShell } from '../PageLayout/AppShellContext';
 import { fetchUnsplashImage } from '../../services/unsplashService';
-import ImageBadge from '../../components/ui/ImageBadge';
 import EmptyState from '../../components/ui/EmptyState';
 import ErrorState from '../../components/ui/ErrorState';
-import { CardGridSkeleton } from '../../components/ui/Skeletons';
+import FilterChip from '../../components/ui/FilterChip';
+import SectionHeader from '../../components/ui/SectionHeader';
+import { CardGridSkeleton, ListSkeleton } from '../../components/ui/Skeletons';
+import TripCard from '../DashboardPage/TripCard';
+import TripShareModal from '../../components/TripShareModal';
+import Seo from '../../components/Seo';
+import StoryCard from '../../afterstory/cards/StoryCard';
+import BookPreviewDialog from '../../afterstory/book/BookPreviewDialog';
+import { afterStoryService } from '../../afterstory/afterStoryService';
+import type { AfterStorySummaryDto } from '../../afterstory/types';
+import { FEATURE_FLAGS } from '../../config/featureFlags';
 import { staggerContainer, staggerItem } from '../../utils/animations';
 import { safeExternalUrl } from '../../utils/sanitizeHtml';
 import { tripPath } from '../../utils/tripSlug';
+import { mapTripVM, rowsFrom, type TripVM } from './tripViewModel';
+import { passportViewFromDto, type VibePassport } from './ProfilePassport';
+import TravelConstellation from './TravelConstellation';
+import ProfileIdentityRail from './ProfileIdentityRail';
+import { pickDefaultTab, type TabId } from './profileTabs';
+import PostComposer from '../../posts/PostComposer';
+import PostCard from '../../posts/PostCard';
+import { postsService } from '../../posts/postsService';
+import type { TravelerPost } from '../../posts/types';
+import IdentityVerifiedMark from '../../components/ui/IdentityVerifiedMark';
+import NextTripCard from './NextTripCard';
+import JoinRequestsInbox from '../../seats/JoinRequestsInbox';
 
-const CONTENT_MAX = 1200;
+/** Community's measure. This page sat at 1200 and TravelerProfile at 1140, so
+ *  three sibling pages disagreed on where the content edge was. */
+const CONTENT_MAX = 1280;
 
-// Default banner fetched once from Unsplash - personalized by the user's location
+/** How many posts the road tab asks for at a time. */
+const ROAD_PAGE = 50;
+
+type TripFilter = 'all' | 'mine' | 'shared' | 'published';
+
+const TRIP_FILTERS: { id: TripFilter; label: string }[] = [
+  { id: 'all', label: 'All' },
+  { id: 'mine', label: 'Mine' },
+  { id: 'shared', label: 'Shared with me' },
+  { id: 'published', label: 'Published' },
+];
+
+// Default banner fetched once from Unsplash, personalised by the user's location.
 const _defaultBannerCache: Record<string, string> = {};
 
 async function loadDefaultBanner(place: string): Promise<string | null> {
   const key = place.trim().toLowerCase();
   if (_defaultBannerCache[key]) return _defaultBannerCache[key];
 
-  const queries = [
-    `${place} landscape travel`,
-    `${place} aerial scenery`,
-    `${place} nature travel`,
-  ];
-
-  for (const q of queries) {
+  for (const q of [`${place} landscape travel`, `${place} aerial scenery`, `${place} nature travel`]) {
     const url = await fetchUnsplashImage(q);
-    if (url) { _defaultBannerCache[key] = url; return url; }
+    if (url) {
+      _defaultBannerCache[key] = url;
+      return url;
+    }
   }
   return null;
 }
-
-// ── trip card ──────────────────────────────────────────────────────────────
-
-/**
- * A trip in the profile grid.
- *
- * Borderless on purpose: the photograph is the card. Wrapping every image in a
- * bordered, shadowed box adds two competing rectangles around content that is
- * already rectangular, and at three-up it reads as a table of boxes rather than
- * a wall of places. The lift and the shadow arrive on hover, where they mean
- * something.
- *
- * `showOwner` is set for the Saved and Liked tabs, which list other people's
- * trips - without it those grids give no clue whose journey you are looking at.
- */
-const ProfileTripCard: React.FC<{ trip: any; onClick: () => void; showOwner?: boolean }> = ({ trip, onClick, showOwner }) => {
-  const theme = useTheme();
-  const cover = trip.bannerPhotoUrl || trip.BannerPhotoUrl || trip.photoUrl || trip.PhotoUrl || null;
-  const [photo, setPhoto] = useState<string | null>(cover);
-
-  useEffect(() => {
-    if (cover) { setPhoto(cover); return; }
-    const q = (Array.isArray(trip.countries) && trip.countries[0]
-      ? trip.countries[0] : trip.name || 'travel').split(',')[0];
-    let cancelled = false;
-    fetchUnsplashImage(q).then(url => { if (!cancelled && url) setPhoto(url); });
-    return () => { cancelled = true; };
-  }, [cover, trip.countries, trip.name]);
-
-  const nights = trip.totalNights ?? trip.targetNights ?? null;
-  const countries: string[] = Array.isArray(trip.countries) ? trip.countries : [];
-  const isPublished = trip.published === true || (trip.status || '').toUpperCase() === 'PUBLISHED';
-  const owner = trip.owner || trip.Owner || null;
-  const ownerName: string = owner?.name || owner?.Name || '';
-  // `TripUserDto.ProfilePictureUrl` carries [JsonPropertyName("profilePicture")],
-  // so the wire field is `profilePicture` - reading the C# property name gets you
-  // undefined and a silent fallback to initials. The other spellings cover the
-  // endpoints that shape the owner object by hand.
-  const ownerAvatar: string | undefined =
-    owner?.profilePicture || owner?.profilePictureUrl || owner?.ProfilePictureUrl
-    || owner?.avatar || owner?.profilePic || undefined;
-
-  const metaLine = [
-    ...countries.slice(0, 2),
-    countries.length > 2 ? `+${countries.length - 2}` : null,
-    nights !== null ? `${nights} ${nights === 1 ? 'night' : 'nights'}` : null,
-  ].filter(Boolean).join(' · ');
-
-  // Dates are what turn "a place" into "a trip", so they get their own line
-  // rather than being crammed into the meta run.
-  const start = trip.startDate || trip.StartDate;
-  const end = trip.endDate || trip.EndDate;
-  const dateLine = (() => {
-    if (!start) return null;
-    const s = new Date(start);
-    const e = end ? new Date(end) : null;
-    if (Number.isNaN(s.getTime())) return null;
-    const fmt = (d: Date, withYear: boolean) =>
-      d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', ...(withYear ? { year: 'numeric' } : {}) });
-    if (!e || Number.isNaN(e.getTime())) return fmt(s, true);
-    return `${fmt(s, s.getFullYear() !== e.getFullYear())} - ${fmt(e, true)}`;
-  })();
-
-  return (
-    <motion.div whileHover={{ y: -3 }} onClick={onClick} style={{ cursor: 'pointer', height: '100%' }}>
-      <Box sx={{ height: '100%', display: 'flex', flexDirection: 'column', gap: 1.25 }}>
-        <Box
-          className="trip-cover"
-          sx={{
-            position: 'relative',
-            // 3:2 rather than 4:3 - the photographic ratio, and it stops a row of
-            // cards from turning into a row of squares.
-            aspectRatio: '3 / 2',
-            overflow: 'hidden',
-            borderRadius: '14px',
-            bgcolor: theme.custom.surface.active,
-            transition: `box-shadow ${theme.custom.motion.duration.base} ${theme.custom.motion.easing.standard}`,
-            '.MuiBox-root:hover > &, &:hover': { boxShadow: theme.custom.shadows.cardHover },
-          }}
-        >
-          {photo ? (
-            <Box
-              component="img"
-              src={photo}
-              alt=""
-              loading="lazy"
-              // A stored banner URL can rot - an expired Unsplash link, a deleted
-              // upload. Without this the card shows the browser's broken-image
-              // glyph, which looks far worse than having no photo at all.
-              onError={() => setPhoto(null)}
-              sx={{
-                width: '100%', height: '100%', objectFit: 'cover', display: 'block',
-                transition: `transform ${theme.custom.motion.duration.slow} ${theme.custom.motion.easing.standard}`,
-              }}
-            />
-          ) : (
-            <Box sx={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              <IconMapPin size={26} stroke={1.5} color={theme.palette.text.disabled} />
-            </Box>
-          )}
-
-          {/* A soft floor under the badges so white pills stay legible on a pale
-              photo without tinting the whole image. */}
-          {(isPublished || trip.tripStatus === 1) && (
-            <Box sx={{
-              position: 'absolute', inset: 0, pointerEvents: 'none',
-              background: 'linear-gradient(180deg, rgba(10,10,14,0.28) 0%, rgba(10,10,14,0) 38%)',
-            }} />
-          )}
-          {isPublished && <ImageBadge sx={{ position: 'absolute', top: 10, left: 10 }}>Shared</ImageBadge>}
-          {trip.tripStatus === 1 && (
-            <ImageBadge sx={{ position: 'absolute', top: 10, right: 10 }}>
-              <Box sx={{
-                width: 6, height: 6, borderRadius: '50%', bgcolor: 'error.main',
-                animation: 'livePulse 1.6s ease-in-out infinite',
-                '@keyframes livePulse': { '0%,100%': { opacity: 1 }, '50%': { opacity: 0.35 } },
-              }} />
-              Live
-            </ImageBadge>
-          )}
-        </Box>
-
-        <Box sx={{ display: 'flex', flexDirection: 'column', gap: 0.35, flex: 1, minWidth: 0 }}>
-          <Typography noWrap sx={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: 'text.primary', lineHeight: 1.35 }}>
-            {trip.name || 'Untitled Journey'}
-          </Typography>
-
-          {/* Bold and held back - same subhead treatment as CommunityTripCard. */}
-          {metaLine && (
-            <Typography noWrap sx={{ fontSize: 13, fontWeight: 600, letterSpacing: '-0.005em', color: 'text.secondary', opacity: 0.72, lineHeight: 1.4 }}>
-              {metaLine}
-            </Typography>
-          )}
-
-          {dateLine && (
-            <Typography noWrap sx={{ fontSize: 12.5, color: 'text.disabled', lineHeight: 1.4 }}>
-              {dateLine}
-            </Typography>
-          )}
-
-          {showOwner && ownerName && (
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mt: 0.4, minWidth: 0 }}>
-              <Avatar
-                src={ownerAvatar}
-                sx={{ width: 20, height: 20, fontSize: 10 }}
-              >
-                {ownerName.charAt(0).toUpperCase()}
-              </Avatar>
-              <Typography noWrap sx={{ fontSize: 12.5, color: 'text.secondary' }}>
-                by {ownerName}
-              </Typography>
-            </Box>
-          )}
-        </Box>
-      </Box>
-    </motion.div>
-  );
-};
-
-// ── sidebar card ───────────────────────────────────────────────────────────
-
-const SideCard: React.FC<{ title: string; children: React.ReactNode }> = ({ title, children }) => {
-  const theme = useTheme();
-  return (
-    <Box sx={{
-      borderRadius: '16px', mb: 2.5,
-      border: `1px solid ${theme.custom.surface.border}`,
-      bgcolor: 'background.paper',
-      boxShadow: theme.custom.shadows.card,
-    }}>
-      <Typography variant="subtitle2" sx={{ px: 2.5, pt: 2, pb: 1.25, color: 'text.primary' }}>
-        {title}
-      </Typography>
-      <Box sx={{ px: 2.5, pb: 2.25 }}>{children}</Box>
-    </Box>
-  );
-};
-
-// Bio highlights store feather-style icon NAMES ("heart", "map-pin") - they must
-// be mapped to real icon components or the raw name renders as text.
-const HIGHLIGHT_ICONS: Record<string, React.ElementType> = {
-  heart: IconHeart,
-  map: IconMap,
-  'map-pin': IconMapPin,
-};
-
-const HighlightIcon: React.FC<{ icon?: string }> = ({ icon }) => {
-  const name = (icon || '').trim();
-  const Mapped = HIGHLIGHT_ICONS[name.toLowerCase()];
-  if (Mapped) return <Mapped size={17} stroke={1.8} />;
-  // Emoji (or any non-ASCII glyph) stored directly is fine to render as text.
-  if (name && /[^\x20-\x7E]/.test(name)) return <>{name}</>;
-  return <IconSparkles size={17} stroke={1.8} />;
-};
-
-/**
- * Placeholder strings the backend stores when a field was never filled in.
- * Rendering "Country: Not Available" is worse than rendering nothing - it draws
- * the eye to an absence and makes the profile look broken rather than sparse.
- */
-const PLACEHOLDERS = new Set(['not available', 'n/a', 'na', 'none', 'null', 'undefined', '-']);
-const presentable = (value?: string | null): string | undefined => {
-  const v = value?.trim();
-  if (!v || PLACEHOLDERS.has(v.toLowerCase())) return undefined;
-  return v;
-};
-
-const DetailRow: React.FC<{ Icon: React.ElementType; label: string; value?: string | null }> = ({ Icon, label, value }) => {
-  const theme = useTheme();
-  if (!presentable(value)) return null;
-  return (
-    <Box sx={{ display: 'flex', alignItems: 'flex-start', gap: 1.25, py: 0.9 }}>
-      <Box sx={{ pt: '2px', flexShrink: 0, color: theme.palette.text.disabled, display: 'flex' }}>
-        <Icon size={16} stroke={1.8} />
-      </Box>
-      <Box sx={{ minWidth: 0 }}>
-        <Typography sx={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'text.disabled', lineHeight: 1.3 }}>
-          {label}
-        </Typography>
-        <Typography sx={{ fontSize: 13.5, fontWeight: 500, color: 'text.primary', wordBreak: 'break-word', lineHeight: 1.4 }}>
-          {value}
-        </Typography>
-      </Box>
-    </Box>
-  );
-};
 
 // ── main ───────────────────────────────────────────────────────────────────
 
@@ -292,146 +109,294 @@ const Profile: React.FC = () => {
   const navigate = useNavigate();
   const theme = useTheme();
   const { token } = useAuthToken();
+  const { openCreateTrip } = useAppShell();
+  const [searchParams, setSearchParams] = useSearchParams();
+
   const { profile, loading, error } = useSelector((state: RootState) => state.user);
 
-  const [myTrips, setMyTrips] = useState<any[]>([]);
+  const rawTab = searchParams.get('tab');
+  const setActiveTab = (next: TabId) =>
+    setSearchParams(
+      (prev) => {
+        prev.set('tab', next);
+        return prev;
+      },
+      { replace: true },
+    );
+
+  const [allTrips, setAllTrips] = useState<TripVM[]>([]);
   const [tripsLoading, setTripsLoading] = useState(true);
-  const [followStats, setFollowStats] = useState<{ followers: number; following: number }>({ followers: 0, following: 0 });
-  const [vibePassport, setVibePassport] = useState<{
-    vibes: Array<{ name: string; count: number; percentage: number }>;
-    topCountries: string[];
-    totalNights: number;
-    totalTrips: number;
-    favoriteVibe: string | null;
-  } | null>(null);
+  const [tripFilter, setTripFilter] = useState<TripFilter>('all');
+
+  const [savedTrips, setSavedTrips] = useState<TripVM[]>([]);
+  const [likedTrips, setLikedTrips] = useState<TripVM[]>([]);
+  const [savedStories, setSavedStories] = useState<AfterStorySummaryDto[]>([]);
+  const [savedLoading, setSavedLoading] = useState(false);
+  const savedFetched = useRef(false);
+
+  /*
+   * Posts load eagerly, unlike stories and saved, which wait for their tab.
+   *
+   * They have to: which tab OPENS depends on whether there are any, so the
+   * answer is needed before the strip can settle on a selection.
+   */
+  const [posts, setPosts] = useState<TravelerPost[]>([]);
+  const [postsResolved, setPostsResolved] = useState(false);
+  const [postsMore, setPostsMore] = useState(false);
+  const [postsPaging, setPostsPaging] = useState(false);
+
+  /*
+   * Null means "not knowable yet", not "trips".
+   *
+   * Guessing while the posts request is in flight and correcting on arrival
+   * would flip the panel out from under whoever was already reading it. Only a
+   * cold landing ever sees this, because every tab change writes `?tab=`.
+   */
+  const activeTab = pickDefaultTab({ requested: rawTab, postsResolved, hasPosts: posts.length > 0 });
+
+
+  const [myStories, setMyStories] = useState<AfterStorySummaryDto[]>([]);
+  // Which story's book is open. Only ever set from the author's own tab: the
+  // preview endpoint is authorship-gated, so offering it on a saved story would
+  // be an action that always fails.
+  const [bookStory, setBookStory] = useState<AfterStorySummaryDto | null>(null);
+  const [storiesLoading, setStoriesLoading] = useState(false);
+  const storiesFetched = useRef(false);
+
+  const [followStats, setFollowStats] = useState({ followers: 0, following: 0 });
+  const [followLoading, setFollowLoading] = useState(true);
+  // Shape declared once, in the component that renders it. It used to be spelled
+  // out inline here AND in the sidebar, so the two could drift apart silently.
+  const [vibePassport, setVibePassport] = useState<VibePassport | null>(null);
+  const [passportLoading, setPassportLoading] = useState(true);
+
   const [defaultBanner, setDefaultBanner] = useState<string | null>(null);
   const [coverFailed, setCoverFailed] = useState(false);
 
-  useEffect(() => { dispatch(fetchUserProfile()); }, [dispatch]);
+  const [deleteTarget, setDeleteTarget] = useState<TripVM | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [snackbar, setSnackbar] = useState<string | null>(null);
+  const [shareTrip, setShareTrip] = useState<TripVM | null>(null);
 
-  // Cover fallback: Unsplash scenery for the user's location.
-  // No location or country on file → no fetch; the cover stays a clean blank band.
+  useEffect(() => {
+    dispatch(fetchUserProfile());
+  }, [dispatch]);
+
+  // Cover fallback: Unsplash scenery for the user's location. No location on
+  // file means no fetch, and the cover stays a clean blank band.
   useEffect(() => {
     let cancelled = false;
     const place = profile?.location?.trim() || profile?.country?.trim();
-    if (!place) { setDefaultBanner(null); return; }
-    loadDefaultBanner(place).then(url => { if (!cancelled) setDefaultBanner(url); });
-    return () => { cancelled = true; };
+    if (!place) {
+      setDefaultBanner(null);
+      return;
+    }
+    void loadDefaultBanner(place).then((url) => {
+      if (!cancelled) setDefaultBanner(url);
+    });
+    return () => {
+      cancelled = true;
+    };
   }, [profile?.location, profile?.country]);
 
-  // Fetch vibe passport
+  // Both of these fetches used to have no loading flag at all, so the page
+  // painted "0 trips - 0 countries - 0 followers" as though those were facts and
+  // then swapped them for real numbers. A zero is a claim; it must not paint
+  // before it is known.
   useEffect(() => {
     if (!token) return;
     let active = true;
-    (async () => {
-      try {
-        const resp = await apiServices.getVibePassport(token);
-        if (!active) return;
-        setVibePassport(resp.data);
-      } catch { /* silent - optional enrichment */ }
-    })();
-    return () => { active = false; };
+    setPassportLoading(true);
+    void apiServices
+      .getVibePassport(token)
+      .then((resp) => {
+        if (active) setVibePassport(resp.data);
+      })
+      .catch(() => {
+        /* optional enrichment */
+      })
+      .finally(() => {
+        if (active) setPassportLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [token]);
 
-  // Fetch follow stats
   useEffect(() => {
-    if (!profile?.id) return;
-    const profileId = Number(profile.id);
+    const profileId = Number(profile?.id);
     if (!Number.isFinite(profileId)) return;
     let active = true;
-    (async () => {
-      try {
-        const resp = await apiServices.getFollowStats(profileId);
-        if (!active) return;
-        setFollowStats(resp.data);
-      } catch { /* silent */ }
-    })();
-    return () => { active = false; };
+    setFollowLoading(true);
+    void apiServices
+      .getFollowStats(profileId)
+      .then((resp) => {
+        if (active) setFollowStats(resp.data);
+      })
+      .catch(() => {
+        /* silent */
+      })
+      .finally(() => {
+        if (active) setFollowLoading(false);
+      });
+    return () => {
+      active = false;
+    };
   }, [profile?.id]);
 
+  // The one trips fetch. This page and Dashboard each ran their own.
   useEffect(() => {
     if (!token) return;
     let active = true;
     setTripsLoading(true);
 
-    const rows = (resp: { data?: unknown }) => {
-      const d = resp?.data as { trips?: unknown } | unknown[] | undefined;
-      if (Array.isArray(d)) return d;
-      if (d && Array.isArray((d as { trips?: unknown[] }).trips)) return (d as { trips: unknown[] }).trips;
-      return [];
+    void apiServices
+      .getDashboardTrips(token)
+      .then((resp) => {
+        if (!active) return;
+        setAllTrips(rowsFrom(resp?.data).map((t) => mapTripVM(t, profile)));
+      })
+      .catch(() => {
+        if (active) setAllTrips([]);
+      })
+      .finally(() => {
+        if (active) setTripsLoading(false);
+      });
+
+    return () => {
+      active = false;
     };
+  }, [token, profile]);
 
-    (async () => {
-      const mine = await apiServices.getDashboardTrips(token).catch(() => null);
-      if (!active) return;
-      if (mine) setMyTrips(rows(mine) as any[]);
-      setTripsLoading(false);
-    })();
-    return () => { active = false; };
-  }, [token]);
+  // Matched on the id in the reply rather than a cleanup flag, the pattern the
+  // credibility strip and the constellation both settled on.
+  useEffect(() => {
+    const id = Number(profile?.id);
+    // Resolved, not abandoned. Bailing out silently would leave the tab strip
+    // with no selection and a skeleton forever, since nothing else ever sets it.
+    if (!Number.isFinite(id) || id <= 0) { setPostsResolved(true); return; }
+    let wanted = id;
+    void postsService.byAuthor(id, ROAD_PAGE)
+      .then((rows) => {
+        if (wanted !== id) return;
+        setPosts(rows);
+        setPostsMore(rows.length >= ROAD_PAGE);
+      })
+      .finally(() => { if (wanted === id) setPostsResolved(true); });
+    return () => { wanted = -1; };
+  }, [profile?.id]);
 
-  const handleTripClick = (trip: any) => {
-    const id = trip.id || trip.Id;
-    // tripPath, not `/trip/${id}` - this page was the only surface emitting a
-    // bare-GUID link instead of the canonical slug the rest of the app shares.
-    if (id) navigate(tripPath({ id, name: trip.name || trip.Name }), { state: { trip } });
+  // Saved and stories load on first visit to their tab. Fetching four more lists
+  // on mount would slow the tab everyone actually opens.
+  useEffect(() => {
+    if (activeTab !== 'saved' || savedFetched.current || !token) return;
+    savedFetched.current = true;
+    setSavedLoading(true);
+
+    void Promise.allSettled([
+      apiServices.getSavedTrips(token),
+      apiServices.getLikedTrips(token),
+      FEATURE_FLAGS.afterStory ? afterStoryService.listSaved() : Promise.resolve([]),
+    ]).then(([saved, liked, stories]) => {
+      if (saved.status === 'fulfilled') {
+        setSavedTrips(rowsFrom(saved.value?.data).map((t) => mapTripVM(t, profile)));
+      }
+      if (liked.status === 'fulfilled') {
+        setLikedTrips(rowsFrom(liked.value?.data).map((t) => mapTripVM(t, profile)));
+      }
+      if (stories.status === 'fulfilled') setSavedStories(stories.value as AfterStorySummaryDto[]);
+      setSavedLoading(false);
+    });
+  }, [activeTab, token, profile]);
+
+  useEffect(() => {
+    if (activeTab !== 'stories' || storiesFetched.current || !FEATURE_FLAGS.afterStory) return;
+    storiesFetched.current = true;
+    setStoriesLoading(true);
+
+    void afterStoryService
+      .listMine()
+      .then(setMyStories)
+      .catch(() => setMyStories([]))
+      .finally(() => setStoriesLoading(false));
+  }, [activeTab]);
+
+  // ── derived ──────────────────────────────────────────────────────────────
+
+  const loadMorePosts = async () => {
+    const oldest = posts[posts.length - 1];
+    if (!oldest || postsPaging) return;
+    setPostsPaging(true);
+    const id = Number(profile?.id);
+    const older = await postsService.byAuthor(id, ROAD_PAGE, oldest.createdAt);
+    setPosts((prev) => [...prev, ...older]);
+    setPostsMore(older.length >= ROAD_PAGE);
+    setPostsPaging(false);
   };
 
-  const formatDate = (d?: string) =>
-    d ? new Date(d).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' }) : undefined;
+  const activeTrips = useMemo(() => allTrips.filter((t) => !t.isArchived), [allTrips]);
+  const archivedTrips = useMemo(() => allTrips.filter((t) => t.isArchived), [allTrips]);
+  const ownedTrips = useMemo(() => activeTrips.filter((t) => t.isOwner), [activeTrips]);
 
-  /*
-   * The profile is a portfolio, not a workspace.
-   *
-   * It shows published trips only - the same thing a visitor sees at
-   * /traveler/:userId. Saved, Liked and Archived moved to the Trips page: they
-   * are private working state, and this page has a public twin, so keeping them
-   * here meant one careless change away from showing strangers what you had
-   * bookmarked. Every mutating action already lived on Trips - this page's own
-   * "Plan a trip" button is a redirect to it.
-   *
-   * `isOwned` also matters: /api/trips/dashboard returns owned UNION
-   * member-of, so the unfiltered list counted other people's trips as yours.
-   */
-  const myId = String(profile?.id ?? '');
-  const ownedTrips = useMemo(() => {
-    if (!myId) return [];
-    return myTrips.filter((t) => {
-      const ownerId = String(t.ownerUserId ?? t.OwnerUserId ?? t.owner?.id ?? t.Owner?.Id ?? '');
-      return ownerId === myId;
-    });
-  }, [myTrips, myId]);
+  const filteredTrips = useMemo(() => {
+    switch (tripFilter) {
+      case 'mine':
+        return ownedTrips;
+      case 'shared':
+        return activeTrips.filter((t) => !t.isOwner);
+      case 'published':
+        return activeTrips.filter((t) => t.isPublished);
+      default:
+        return activeTrips;
+    }
+  }, [tripFilter, activeTrips, ownedTrips]);
 
-  const publishedTrips = useMemo(
-    () => ownedTrips.filter((t) => {
-      const published = t.published === true || t.isPublished === true
-        || (t.status || '').toUpperCase() === 'PUBLISHED';
-      return published && t.isArchived !== true;
-    }),
-    [ownedTrips],
-  );
-
-  // Countries you have actually travelled, from your own trips - this counted
-  // across the shared-with-you trips too, inflating the passport.
-  const uniqueCountries = useMemo(() => {
-    const s = new Set<string>();
-    ownedTrips.forEach(t => (t.countries || []).forEach((c: string) => s.add(c)));
-    return s.size;
+  const nextUpcoming = useMemo(() => {
+    const today = new Date().setHours(0, 0, 0, 0);
+    return (
+      ownedTrips
+        .filter((t) => t.startDate && new Date(t.startDate).getTime() > today)
+        .sort((a, b) => new Date(a.startDate as string).getTime() - new Date(b.startDate as string).getTime())[0] ??
+      null
+    );
   }, [ownedTrips]);
 
-  const displayTrips = publishedTrips;
+  const openTrip = useCallback(
+    (t: TripVM) => {
+      if (t.id) navigate(tripPath({ id: t.id, name: t.title }), { state: { trip: t } });
+    },
+    [navigate],
+  );
 
-  const PUBLISHED_EMPTY = {
-    icon: IconRoute,
-    title: 'Nothing published yet',
-    description: ownedTrips.length > 0
-      ? 'You have trips in progress. Publish one and it will appear here, and on your profile for other travellers.'
-      : 'Plan a trip, publish it, and it becomes the first thing travellers see on your profile.',
-    actionLabel: ownedTrips.length > 0 ? 'Go to my trips' : 'Start planning',
-    onAction: () => navigate('/dashboard'),
+  const handleDelete = async () => {
+    if (!deleteTarget || !token) return;
+    setDeleting(true);
+    try {
+      await apiServices.deleteTrip(token, deleteTarget.id);
+      setAllTrips((prev) => prev.filter((t) => t.id !== deleteTarget.id));
+      setSnackbar('Trip deleted.');
+    } catch {
+      setSnackbar('Could not delete that trip.');
+    } finally {
+      setDeleting(false);
+      setDeleteTarget(null);
+    }
   };
 
-  // ── page states ──
+  const goLive = async (t: TripVM) => {
+    if (!token) return;
+    try {
+      await apiServices.setTripStatus(token, t.id, 1);
+      setAllTrips((prev) => prev.map((x) => (x.id === t.id ? { ...x, tripStatus: 1 } : x)));
+      setSnackbar('Trip is live.');
+    } catch {
+      setSnackbar('Could not start that trip.');
+    }
+  };
+
+
+  // ── page states ──────────────────────────────────────────────────────────
+
   if (loading) {
     return (
       <Box sx={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -458,7 +423,7 @@ const Profile: React.FC = () => {
         <EmptyState
           icon={IconUsers}
           title="Sign in to view your profile"
-          description="Your trips, stats, and travel identity live here once you're signed in."
+          description="Your trips, stories, stats and travel identity live here once you're signed in."
           actionLabel="Sign in"
           onAction={() => navigate('/signin')}
         />
@@ -467,16 +432,11 @@ const Profile: React.FC = () => {
   }
 
   const fullName = [profile.fname, profile.lname].filter(Boolean).join(' ') || 'Tripician Explorer';
-  const initials = [(profile.fname || '')[0], (profile.lname || '')[0]].filter(Boolean).join('').toUpperCase() || 'T';
-  // Gate on the same test the rows use, or a profile whose fields are all
-  // "Not Available" renders an About card with a heading and nothing under it.
-  const hasDetails = [
-    profile.email, profile.phone, profile.country,
-    profile.gender && profile.gender !== 'NA' ? profile.gender : undefined,
-    formatDate(profile.dateOfBirth),
-  ].some((v) => presentable(v as string | undefined));
+  const initials =
+    [(profile.fname || '')[0], (profile.lname || '')[0]].filter(Boolean).join('').toUpperCase() || 'T';
+
   const bannerSrc = (!coverFailed && profile.coverpicture) || defaultBanner;
-  const locationLine = profile.location;
+
 
   const socials = [
     { url: profile.instagram, Icon: IconBrandInstagram, label: 'Instagram' },
@@ -484,34 +444,135 @@ const Profile: React.FC = () => {
     { url: profile.facebook, Icon: IconBrandFacebook, label: 'Facebook' },
     { url: profile.website, Icon: IconLink, label: 'Website' },
   ]
-    .filter(s => s.url && !String(s.url).toUpperCase().includes('NULL'))
-    .map(s => ({ ...s, url: safeExternalUrl(s.url) }))
-    .filter((s): s is { url: string; Icon: typeof IconLink; label: string } => !!s.url);
+    .filter((s) => s.url && !String(s.url).toUpperCase().includes('NULL'))
+    .map((s) => ({ ...s, url: safeExternalUrl(s.url) }))
+    .filter((s): s is { url: string; Icon: typeof IconLink; label: string } => Boolean(s.url));
 
+  // Each figure carries the loading flag of the request that produces it, so a
+  // slow follow-stats call cannot make the page claim you have no followers
+  // while the trip counts are already correct beside it.
+  /*
+   * Followers and following only.
+   *
+   * Trips and countries used to sit here too, counted from owned trips in this
+   * component, directly above a passport band counting them differently on the
+   * server. The page showed "44 countries" and "8 COUNTRIES" at the same time.
+   * One question, one answer, and the passport owns this one.
+   */
   const statItems = [
-    { value: myTrips.length, label: myTrips.length === 1 ? 'trip' : 'trips' },
-    { value: uniqueCountries, label: uniqueCountries === 1 ? 'country' : 'countries' },
-    { value: followStats.followers, label: followStats.followers === 1 ? 'follower' : 'followers' },
-    { value: followStats.following, label: 'following' },
+    {
+      value: followStats.followers,
+      label: followStats.followers === 1 ? 'follower' : 'followers',
+      loading: followLoading,
+    },
+    { value: followStats.following, label: 'following', loading: followLoading },
   ];
+
+  // Three-up from md, matching Community and TravelerProfile. The identity rail
+  // only appears from lg, by which point the remaining lane is around 840px, so
+  // three cards still land near the 260px the rest of the site uses. It is the
+  // md range, where there is no rail at all, that gets the full width.
+  const tripGridSx = {
+    display: 'grid',
+    gridTemplateColumns: {
+      xs: '1fr',
+      sm: 'repeat(2, minmax(0, 1fr))',
+      md: 'repeat(3, minmax(0, 1fr))',
+    },
+    gap: 3,
+  } as const;
+
+  const savedCount = savedTrips.length + likedTrips.length + savedStories.length;
+
+  /*
+   * Built once and rendered twice: sticky beside the content from lg, inline
+   * above it below that. Two call sites would drift, and the rail is a summary
+   * of the same person either way.
+   */
+  const railNode = (
+    <ProfileIdentityRail
+      userId={Number.isFinite(Number(profile?.id)) ? Number(profile?.id) : undefined}
+      passport={passportViewFromDto(vibePassport)}
+      passportLoading={passportLoading}
+      profile={profile}
+      isOwner
+      onEdit={() => navigate('/settings')}
+      onPlanTrip={openCreateTrip}
+    />
+  );
+
+  const renderTripGrid = (list: TripVM[]) => (
+    <Box sx={tripGridSx}>
+      {list.map((t) => (
+        <TripCard
+          key={t.id}
+          title={t.title}
+          countries={t.countries}
+          vibe={t.vibe}
+          description={t.description}
+          image={t.image}
+          progress={t.progress}
+          createdAt={t.createdAt}
+          updatedAt={t.updatedAt}
+          nights={t.nights}
+          owner={t.owner}
+          members={t.members}
+          tripStatus={t.tripStatus}
+          verified={t.verified}
+          verifiedAt={t.verifiedAt}
+          isOwner={t.isOwner}
+          commentsCount={t.commentsCount}
+          onClick={() => openTrip(t)}
+          onShare={(e) => {
+            e.stopPropagation();
+            setShareTrip(t);
+          }}
+          {...(t.isOwner
+            ? {
+                onDelete: (e: React.MouseEvent) => {
+                  e.stopPropagation();
+                  setDeleteTarget(t);
+                },
+              }
+            : {})}
+          {...(t.isOwner && t.tripStatus === 0 ? { onGoLive: () => void goLive(t) } : {})}
+        />
+      ))}
+    </Box>
+  );
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+      {/* Private page: it must never be indexed, and it emitted no head tags at
+          all before this, so it inherited whatever the previous route set. */}
+      <Seo
+        title={`${fullName}`}
+        description="Your trips, stories, saved itineraries and travel passport."
+        path="/profile"
+        noindex
+      />
       <Box sx={{ maxWidth: CONTENT_MAX, mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 3, md: 4 }, pb: 10 }}>
         <motion.div initial="hidden" animate="visible" variants={staggerContainer(0.08, 0.05)}>
 
           {/* ── Cover ── */}
           <motion.div variants={staggerItem}>
-            <Box sx={{
-              height: { xs: 150, sm: 200, md: 240 }, borderRadius: '20px', overflow: 'hidden',
-              border: `1px solid ${theme.custom.surface.border}`,
-              background: theme.custom.gradients.brandSubtle,
-            }}>
+            <Box
+              sx={{
+                height: { xs: 150, sm: 200, md: 240 },
+                borderRadius: '20px',
+                overflow: 'hidden',
+                border: `1px solid ${theme.custom.surface.border}`,
+                background: theme.custom.gradients.brandSubtle,
+              }}
+            >
               {bannerSrc && (
                 <Box
-                  component="img" src={bannerSrc} alt=""
+                  component="img"
+                  src={bannerSrc}
+                  alt=""
                   onError={() => {
-                    // Broken cover URL → try the Unsplash fallback; if that fails too, stay blank
+                    // Broken cover URL, try the Unsplash fallback; if that fails
+                    // too, stay blank rather than showing a broken image icon.
                     if (!coverFailed && profile.coverpicture) setCoverFailed(true);
                     else setDefaultBanner(null);
                   }}
@@ -521,50 +582,104 @@ const Profile: React.FC = () => {
             </Box>
           </motion.div>
 
-          {/* ── Identity row ── */}
+          {/* ── Avatar ──
+              ONLY the avatar overlaps the cover. Everything else sits below it.
+              When the masthead moved from h2 to h1 the text block grew to ~70px
+              and, aligned to the bottom of a 112px avatar pulled 52px upward, its
+              first line landed inside the photograph: the name rendered in dark
+              serif across a dark image and was close to unreadable. A long name
+              wrapping to two lines climbed further still. Type belongs on the
+              page, never over an image nobody chose for legibility. */}
           <motion.div variants={staggerItem}>
-            <Box sx={{
-              display: 'flex', gap: { xs: 2, sm: 3 },
-              flexDirection: { xs: 'column', sm: 'row' },
-              alignItems: { xs: 'flex-start', sm: 'flex-end' },
-              px: { xs: 2, sm: 4 },
-              mt: { xs: -5.5, sm: -6.5 },
-              position: 'relative', zIndex: 1,
-            }}>
-              <Avatar
-                src={profile.profilepicture || undefined}
-                sx={{
-                  width: { xs: 96, sm: 112 }, height: { xs: 96, sm: 112 },
-                  fontSize: '2.4rem', bgcolor: 'primary.main', color: '#fff',
-                  border: `4px solid ${theme.palette.background.default}`,
-                  boxShadow: theme.custom.shadows.card,
-                  flexShrink: 0,
-                }}
-              >
-                {!profile.profilepicture && initials}
-              </Avatar>
+            <Box sx={{ mt: { xs: -5.5, sm: -6.5 }, position: 'relative', zIndex: 1, display: 'flex' }}>
+              {/* The mark anchors to the avatar, so the avatar needs its own
+                  positioning context. The row around it is full width. */}
+              <Box sx={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
+                <Avatar
+                  src={profile.profilepicture || undefined}
+                  sx={{
+                    width: { xs: 96, sm: 112 },
+                    height: { xs: 96, sm: 112 },
+                    fontSize: '2.4rem',
+                    bgcolor: 'primary.main',
+                    color: '#fff',
+                    border: `4px solid ${theme.palette.background.default}`,
+                    boxShadow: theme.custom.shadows.card,
+                    flexShrink: 0,
+                  }}
+                >
+                  {!profile.profilepicture && initials}
+                </Avatar>
+                <IdentityVerifiedMark verified={!!profile.identityVerifiedAt} size={26} />
+              </Box>
+            </Box>
+          </motion.div>
 
-              <Box sx={{ flex: 1, minWidth: 0, pb: 0.5}}>
-                <Typography component="h1" variant="h2" noWrap sx={{
-                  fontFamily: theme.custom.fontDisplay, color: 'text.primary',
-                }}>
+          {/* ── Identity ── */}
+          <motion.div variants={staggerItem}>
+            <Box
+              sx={{
+                display: 'flex',
+                gap: { xs: 2, sm: 3 },
+                flexDirection: { xs: 'column', sm: 'row' },
+                alignItems: { xs: 'flex-start', sm: 'flex-start' },
+                justifyContent: 'space-between',
+                // No horizontal inset. This used to carry px: {xs:2, sm:4} on top
+                // of the page's own padding, so the name started 32px right of
+                // the passport, the tabs and every card underneath it.
+                px: 0,
+                mt: 1.5,
+              }}
+            >
+              <Box sx={{ minWidth: 0, flex: 1 }}>
+                <Typography
+                  component="h1"
+                  variant="h1"
+                  sx={{ color: 'text.primary' }}
+                >
                   {fullName}
                 </Typography>
-                {locationLine && (
+                {profile.location && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, color: 'text.secondary' }}>
                     <IconMapPin size={14} stroke={1.9} />
-                    <Typography noWrap sx={{ fontSize: 13.5 }}>{locationLine}</Typography>
+                    <Typography variant="body2" noWrap>
+                      {profile.location}
+                    </Typography>
                   </Box>
                 )}
+
+                {/* Stats sit under the name, not in their own band, so the
+                    identity reads as one block. */}
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, flexWrap: 'wrap', mt: 1.5 }}>
+                  {statItems.map((s) =>
+                    s.loading ? (
+                      <Skeleton key={s.label} variant="text" width={78} height={20} />
+                    ) : (
+                      <Typography key={s.label} variant="body2" sx={{ color: 'text.secondary' }}>
+                        <Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>
+                          {s.value}
+                        </Box>{' '}
+                        {s.label}
+                      </Typography>
+                    ),
+                  )}
+                </Box>
               </Box>
 
-              {/* Actions */}
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, pb: 0.5 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0, pt: { sm: 1 } }}>
                 {socials.map(({ url, Icon, label }) => (
                   <Tooltip key={label} title={label}>
                     <IconButton
-                      component="a" href={url} target="_blank" rel="noopener noreferrer" size="small"
-                      sx={{ color: 'text.secondary', border: `1px solid ${theme.custom.surface.border}`, '&:hover': { color: 'text.primary' } }}
+                      component="a"
+                      href={url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      size="small"
+                      sx={{
+                        color: 'text.secondary',
+                        border: `1px solid ${theme.custom.surface.border}`,
+                        '&:hover': { color: 'text.primary' },
+                      }}
                     >
                       <Icon size={16} stroke={1.9} />
                     </IconButton>
@@ -577,182 +692,313 @@ const Profile: React.FC = () => {
             </Box>
           </motion.div>
 
-          {/* ── Stats row ── */}
-          <motion.div variants={staggerItem}>
-            <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, flexWrap: 'wrap', px: { xs: 2, sm: 4 }, mt: 2 }}>
-              {statItems.map(s => (
-                <Typography key={s.label} sx={{ fontSize: 14, color: 'text.secondary' }}>
-                  <Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{s.value}</Box> {s.label}
-                </Typography>
-              ))}
-            </Box>
-          </motion.div>
-
-          {/* ── Content: trips + sidebar ── */}
-          <Box sx={{
-            display: 'flex', gap: { xs: 0, lg: 4 },
-            flexDirection: { xs: 'column', lg: 'row' },
-            alignItems: 'flex-start',
-            mt: { xs: 3.5, md: 4.5 },
-          }}>
-            {/* Trips */}
-            <Box sx={{ flex: 1, minWidth: 0, width: '100%' }}>
-              <motion.div variants={staggerItem}>
-                {/* One section, no tabs: this page shows published trips and
-                    nothing else. The drafts, saved and liked lists live on Trips,
-                    where you can actually act on them. */}
-                <Box sx={{
-                  display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', gap: 1.5,
-                  pb: 1.5, borderBottom: `1px solid ${theme.custom.surface.border}`,
-                }}>
-                  <Box>
-                    <Typography variant="h5" sx={{ color: 'text.primary' }}>
-                      Published trips{publishedTrips.length ? ` · ${publishedTrips.length}` : ''}
-                    </Typography>
-                    <Typography sx={{ fontSize: 13, color: 'text.secondary', mt: 0.25 }}>
-                      What other travellers see when they visit your profile.
-                    </Typography>
-                  </Box>
-                  <Button
-                    variant="text" size="small"
-                    endIcon={<IconArrowRight size={15} />}
-                    onClick={() => navigate('/dashboard')}
-                    sx={{ flexShrink: 0, display: { xs: 'none', sm: 'inline-flex' } }}
-                  >
-                    All my trips
-                  </Button>
-                </Box>
-              </motion.div>
-
-              <Box sx={{ mt: 3 }}>
-                {tripsLoading ? (
-                  <CardGridSkeleton count={6} minWidth={260} />
-                ) : displayTrips.length === 0 ? (
-                  <EmptyState {...PUBLISHED_EMPTY} />
-                ) : (
-                  <Box sx={{
-                    display: 'grid',
-                    gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, 1fr)', md: 'repeat(3, 1fr)' },
-                    gap: 2.5, alignItems: 'stretch',
-                  }}>
-                    {displayTrips.map((trip, i) => (
-                      <ProfileTripCard
-                        key={trip.id || i}
-                        trip={trip}
-                        onClick={() => handleTripClick(trip)}
-                      />
-                    ))}
-                  </Box>
-                )}
+          {/* ── Two columns from here down ──
+              Who you are on the right, what you have done on the left. The rail
+              is a column of facts about the person: figures, corroboration, your
+              own words, how to reach you. The lane beside it is your work, which
+              is what needs the width. Below lg the rail rejoins the flow at the
+              top rather than being a desktop-only ornament. */}
+          <Box
+            sx={{
+              display: 'flex',
+              gap: { xs: 0, lg: 4 },
+              alignItems: 'flex-start',
+              mt: { xs: 2.5, md: 3 },
+            }}
+          >
+            <Box sx={{ flex: 1, minWidth: 0 }}>
+              {/* The rail, inline, below lg. */}
+              <Box sx={{ display: { xs: 'block', lg: 'none' }, mb: { xs: 3, md: 4 } }}>
+                {railNode}
               </Box>
-            </Box>
 
-            {/* Sidebar */}
-            <Box sx={{ width: { xs: '100%', lg: 300 }, flexShrink: 0, mt: { xs: 4, lg: 0 } }}>
+                {/* ── Where you have been, and how much of it anyone can confirm ──
+                    Replaces the eight-flag row the passport used to carry. On your
+                    own profile it also draws unpublished countries, as locked, so
+                    it cannot disagree with the figures in the rail. */}
+                {Number.isFinite(Number(profile?.id)) ? (
+                  <motion.div variants={staggerItem}>
+                    <TravelConstellation userId={Number(profile?.id)} isOwner />
+                  </motion.div>
+                ) : null}
+
+            {/* ── Next trip ── */}
+            {!tripsLoading && nextUpcoming && (
               <motion.div variants={staggerItem}>
+                <NextTripCard trip={nextUpcoming} onOpen={() => openTrip(nextUpcoming)} />
+              </motion.div>
+            )}
 
-                {/* Travel passport - the sidebar's anchor.
-                    The three numbers lead because they are the answer to "who is
-                    this traveller"; the vibe bars were carrying that job alone
-                    and two thin bars reading 22% and 11% say very little. */}
-                {vibePassport && (
-                  <SideCard title="Travel passport">
-                    <Box sx={{ display: 'flex', mb: vibePassport.vibes.length > 0 ? 2.25 : 0 }}>
-                      {[
-                        { value: myTrips.length, label: myTrips.length === 1 ? 'trip' : 'trips' },
-                        { value: uniqueCountries, label: uniqueCountries === 1 ? 'country' : 'countries' },
-                        { value: vibePassport.totalNights, label: 'nights' },
-                      ].map((stat, i) => (
-                        <Box
-                          key={stat.label}
-                          sx={{
-                            flex: 1, minWidth: 0, textAlign: 'center',
-                            borderLeft: i > 0 ? `1px solid ${theme.palette.divider}` : 'none',
-                          }}
-                        >
-                          <Typography sx={{ fontSize: 20, fontWeight: 700, lineHeight: 1.15, letterSpacing: '-0.02em', color: 'text.primary' }}>
-                            {stat.value}
-                          </Typography>
-                          <Typography sx={{ fontSize: 11, color: 'text.disabled', mt: 0.15 }}>
-                            {stat.label}
-                          </Typography>
-                        </Box>
+            {/* ── Requests waiting on you ──
+                Above the tabs, because somebody is waiting on an answer and that
+                outranks browsing your own trips. Renders nothing when the inbox is
+                empty, so it never becomes a standing reminder that nobody asked. */}
+            <motion.div variants={staggerItem}>
+              <JoinRequestsInbox />
+            </motion.div>
+
+            {/* ── Tabs ──
+                Single column since the sidebar went. That is what returns the
+                grids below to three-up, matching Community and TravelerProfile
+                instead of being the one page stuck at two. */}
+            <motion.div variants={staggerItem}>
+              <Box sx={{ mt: { xs: 5, md: 6 }, minWidth: 0 }}>
+                <Tabs
+                  // false, not a guess. While the posts request decides which
+                  // tab opens, no tab is underlined rather than the wrong one.
+                  value={activeTab ?? false}
+                  onChange={(_, v: TabId) => setActiveTab(v)}
+                  variant="scrollable"
+                  scrollButtons="auto"
+                  sx={{ borderBottom: `1px solid ${theme.custom.surface.border}`, minHeight: 44, mb: 3 }}
+                >
+                  {/* No count when the first page came back full: posts are
+                      paged and the endpoint returns no total, so a number there
+                      would be the page size wearing a count's clothes. */}
+                  <Tab
+                    value="road"
+                    label={`From the road${!postsMore && posts.length ? ` (${posts.length})` : ''}`}
+                    disableRipple
+                  />
+                  <Tab value="trips" label={`Trips${activeTrips.length ? ` (${activeTrips.length})` : ''}`} disableRipple />
+                  {FEATURE_FLAGS.afterStory && (
+                    <Tab
+                      value="stories"
+                      label={`Stories${myStories.length ? ` (${myStories.length})` : ''}`}
+                      disableRipple
+                    />
+                  )}
+                  <Tab value="saved" label={`Saved${savedCount ? ` (${savedCount})` : ''}`} disableRipple />
+                  <Tab
+                    value="archived"
+                    label={`Archived${archivedTrips.length ? ` (${archivedTrips.length})` : ''}`}
+                    disableRipple
+                  />
+                </Tabs>
+
+                {/* While the posts request decides which tab opens, neither
+                    panel paints. Showing trips and swapping to the road a moment
+                    later is the flip this whole arrangement exists to avoid. */}
+                {activeTab === null && <ListSkeleton rows={4} />}
+
+                {/* ══ From the road ══ */}
+                {activeTab === 'road' && (
+                  <>
+                    {/* The composer, not a button that sends you elsewhere to
+                        write. Same component Community and /posts mount, and
+                        onPosted prepends rather than refetching. */}
+                    <Box sx={{ mb: 3 }}>
+                      <PostComposer onPosted={(post) => setPosts((prev) => [post, ...prev])} />
+                    </Box>
+
+                    {posts.length === 0 ? (
+                      <EmptyState
+                        icon={IconMessages}
+                        title="Nothing from the road yet"
+                        description="A note, a photo, or a question for people who have been where you are going. Short is fine."
+                      />
+                    ) : (
+                      <Box sx={{ display: 'grid', gap: 1.5 }}>
+                        {posts.map((post) => (
+                          <PostCard
+                            key={post.id}
+                            post={post}
+                            onRemoved={(id) => setPosts((prev) => prev.filter((x) => x.id !== id))}
+                          />
+                        ))}
+                      </Box>
+                    )}
+
+                    {postsMore && (
+                      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
+                        <Button variant="outlined" onClick={() => void loadMorePosts()} disabled={postsPaging}>
+                          {postsPaging ? 'Loading...' : 'Show more'}
+                        </Button>
+                      </Box>
+                    )}
+                  </>
+                )}
+
+                {/* ══ Trips ══ */}
+                {activeTab === 'trips' && (
+                  <>
+                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
+                      {TRIP_FILTERS.map((f) => (
+                        <FilterChip
+                          key={f.id}
+                          label={f.label}
+                          active={tripFilter === f.id}
+                          onClick={() => setTripFilter(f.id)}
+                        />
                       ))}
                     </Box>
 
-                    {vibePassport.vibes.slice(0, 4).map((v) => (
-                      <Box key={v.name} sx={{ mb: 1.25 }}>
-                        <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline', mb: 0.5 }}>
-                          <Typography sx={{ fontSize: 12.5, fontWeight: 600, textTransform: 'capitalize', color: 'text.primary' }}>
-                            {v.name}
-                          </Typography>
-                          <Typography sx={{ fontSize: 11.5, fontWeight: 600, color: 'text.disabled' }}>
-                            {v.percentage}%
-                          </Typography>
-                        </Box>
-                        {/* Hand-rolled rather than LinearProgress: the track needs
-                            to stay visible at these small percentages, and the
-                            fill carries the brand gradient. */}
-                        <Box sx={{ height: 5, borderRadius: 99, bgcolor: theme.custom.surface.active, overflow: 'hidden' }}>
-                          <Box sx={{
-                            width: `${Math.max(2, Math.min(100, v.percentage))}%`,
-                            height: '100%', borderRadius: 99,
-                            background: theme.custom.gradients.brand,
-                            transition: `width ${theme.custom.motion.duration.slow} ${theme.custom.motion.easing.standard}`,
-                          }} />
-                        </Box>
-                      </Box>
-                    ))}
+                    {tripsLoading ? (
+                      <CardGridSkeleton count={4} minWidth={260} />
+                    ) : filteredTrips.length === 0 ? (
+                      <EmptyState
+                        icon={IconMapPlus}
+                        title={tripFilter === 'all' ? 'No trips yet' : 'Nothing here'}
+                        description={
+                          tripFilter === 'shared'
+                            ? 'When someone adds you to their trip, it will show up here.'
+                            : tripFilter === 'published'
+                              ? 'Publish a trip and it becomes the first thing travellers see on your profile.'
+                              : 'Plan your first trip and it will live here.'
+                        }
+                        {...(tripFilter === 'all' || tripFilter === 'mine'
+                          ? { actionLabel: 'Plan a trip', onAction: openCreateTrip }
+                          : { actionLabel: 'Browse the community', onAction: () => navigate('/community') })}
+                      />
+                    ) : (
+                      renderTripGrid(filteredTrips)
+                    )}
+                  </>
+                )}
 
-                    {vibePassport.topCountries.length > 0 && (
-                      <Box sx={{ mt: 1.75, pt: 1.5, borderTop: `1px solid ${theme.palette.divider}` }}>
-                        <Typography sx={{ fontSize: 10.5, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.08em', color: 'text.disabled', mb: 1 }}>
-                          Been to
-                        </Typography>
-                        <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 0.6 }}>
-                          {vibePassport.topCountries.slice(0, 8).map((c) => (
-                            <Chip key={c} label={c} size="small" variant="outlined" sx={{ fontSize: 11.5, height: 24 }} />
-                          ))}
-                        </Box>
+                {/* ══ Stories ══ */}
+                {activeTab === 'stories' && FEATURE_FLAGS.afterStory && (
+                  <>
+                    {storiesLoading ? (
+                      <CardGridSkeleton count={4} minWidth={260} />
+                    ) : myStories.length === 0 ? (
+                      <EmptyState
+                        icon={IconBook}
+                        title="No stories yet"
+                        description="Write up a trip you took. If you planned it here, the shape of it is already done for you."
+                        actionLabel="Browse stories"
+                        onAction={() => navigate('/stories')}
+                      />
+                    ) : (
+                      <Box sx={tripGridSx}>
+                        {myStories.map((s) => (
+                          <StoryCard key={s.id} story={s} onBook={setBookStory} />
+                        ))}
                       </Box>
                     )}
-                  </SideCard>
+                  </>
                 )}
 
-                {hasDetails && (
-                  <SideCard title="About">
-                    <DetailRow Icon={IconMail} label="Email" value={profile.email} />
-                    <DetailRow Icon={IconPhone} label="Phone" value={profile.phone} />
-                    <DetailRow Icon={IconWorld} label="Country" value={profile.country} />
-                    <DetailRow Icon={IconGenderBigender} label="Gender" value={profile.gender && profile.gender !== 'NA' ? profile.gender : undefined} />
-                    <DetailRow Icon={IconCake} label="Date of birth" value={formatDate(profile.dateOfBirth)} />
-                  </SideCard>
-                )}
-
-                {Array.isArray(profile.bio?.highlights) && profile.bio!.highlights.length > 0 && (
-                  <SideCard title="Highlights">
-                    {profile.bio!.highlights.map((h: any, i: number) => (
-                      <Box key={i} sx={{ display: 'flex', alignItems: 'center', gap: 1.25, py: 0.75 }}>
-                        <Box sx={{ fontSize: 17, lineHeight: 1, flexShrink: 0, display: 'flex', alignItems: 'center', color: 'primary.main' }}>
-                          <HighlightIcon icon={h.icon} />
-                        </Box>
-                        <Box sx={{ minWidth: 0 }}>
-                          <Typography sx={{ fontSize: 10.5, fontWeight: 700, color: 'text.disabled', textTransform: 'uppercase', letterSpacing: '0.08em', lineHeight: 1.3 }}>
-                            {h.label}
-                          </Typography>
-                          <Typography noWrap sx={{ fontSize: 13.5, fontWeight: 500, color: 'text.primary' }}>
-                            {h.value}
-                          </Typography>
-                        </Box>
+                {/* ══ Saved ══ */}
+                {activeTab === 'saved' && (
+                  <>
+                    {savedLoading ? (
+                      <CardGridSkeleton count={4} minWidth={260} />
+                    ) : savedTrips.length === 0 && likedTrips.length === 0 && savedStories.length === 0 ? (
+                      <EmptyState
+                        icon={IconBookmark}
+                        title="Nothing saved yet"
+                        description="Save a trip or a story from the community and it will wait for you here."
+                        actionLabel="Browse the community"
+                        onAction={() => navigate('/community')}
+                      />
+                    ) : (
+                      <Box sx={{ display: 'grid', gap: 5 }}>
+                        {savedTrips.length > 0 && (
+                          <Box>
+                            <SectionHeader title="Saved trips" subtitle="Itineraries you bookmarked" />
+                            {renderTripGrid(savedTrips)}
+                          </Box>
+                        )}
+                        {likedTrips.length > 0 && (
+                          <Box>
+                            <SectionHeader title="Liked trips" />
+                            {renderTripGrid(likedTrips)}
+                          </Box>
+                        )}
+                        {savedStories.length > 0 && (
+                          <Box>
+                            <SectionHeader title="Saved stories" subtitle="Your reading list" />
+                            <Box sx={tripGridSx}>
+                              {savedStories.map((s) => (
+                                <StoryCard key={s.id} story={s} />
+                              ))}
+                            </Box>
+                          </Box>
+                        )}
                       </Box>
-                    ))}
-                  </SideCard>
+                    )}
+                  </>
                 )}
-              </motion.div>
+
+                {/* ══ Archived ══ */}
+                {activeTab === 'archived' && (
+                  <>
+                    {tripsLoading ? (
+                      <CardGridSkeleton count={4} minWidth={260} />
+                    ) : archivedTrips.length === 0 ? (
+                      <EmptyState
+                        icon={IconArchive}
+                        title="Nothing archived"
+                        description="Trips you archive are kept here, out of the way but never deleted."
+                      />
+                    ) : (
+                      renderTripGrid(archivedTrips)
+                    )}
+                  </>
+                )}
+              </Box>
+            </motion.div>
+            </Box>
+
+            <Box
+              sx={{
+                display: { xs: 'none', lg: 'block' },
+                width: 340,
+                flexShrink: 0,
+                position: 'sticky',
+                top: 72,
+              }}
+            >
+              {railNode}
             </Box>
           </Box>
         </motion.div>
       </Box>
+
+      {/* ── Delete confirmation ── */}
+      <Dialog open={Boolean(deleteTarget)} onClose={() => !deleting && setDeleteTarget(null)}>
+        <DialogTitle>Delete this trip?</DialogTitle>
+        <DialogContent>
+          <DialogContentText>
+            "{deleteTarget?.title}" and everything planned in it will be removed. This cannot be undone.
+          </DialogContentText>
+        </DialogContent>
+        <DialogActions sx={{ px: 3, pb: 2.5 }}>
+          <Button color="inherit" onClick={() => setDeleteTarget(null)} disabled={deleting}>
+            Cancel
+          </Button>
+          <Button color="error" variant="contained" onClick={() => void handleDelete()} disabled={deleting}>
+            {deleting ? 'Deleting...' : 'Delete'}
+          </Button>
+        </DialogActions>
+      </Dialog>
+
+      <Snackbar
+        open={Boolean(snackbar)}
+        autoHideDuration={4000}
+        onClose={() => setSnackbar(null)}
+        message={snackbar}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      />
+
+      {shareTrip && (
+        <TripShareModal
+          open={Boolean(shareTrip)}
+          onClose={() => setShareTrip(null)}
+          tripId={shareTrip.id}
+          tripName={shareTrip.title}
+          destinationCount={shareTrip.countries.length}
+          totalNights={0}
+        />
+      )}
+
+      <BookPreviewDialog
+        open={Boolean(bookStory)}
+        onClose={() => setBookStory(null)}
+        story={bookStory}
+        token={token}
+      />
     </Box>
   );
 };

@@ -51,7 +51,6 @@ const SoonTag: React.FC<SoonTagProps> = ({ label='SOON', size='xs', /* variant u
         backdropFilter:'none',
         WebkitBackdropFilter:'none',
   lineHeight: 1,
-        fontFamily: 'Inter, system-ui, sans-serif',
     opacity: sz.opacity,
         ...sx
       };

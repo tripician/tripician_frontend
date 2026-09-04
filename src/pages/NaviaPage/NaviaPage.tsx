@@ -1,4 +1,5 @@
 import React, { useState, useRef, useEffect, useCallback } from 'react';
+import { BRAND } from '../../theme';
 import {
   Box,
   Typography,
@@ -10,6 +11,7 @@ import {
   Tooltip,
   Snackbar,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { useNavigate } from 'react-router-dom';
 import { IconSend, IconTrash, IconSparkles, IconPlus, IconCoins } from '@tabler/icons-react';
 import { useNavia } from '../../navia/useNavia';
@@ -22,6 +24,8 @@ import { useAppShell } from '../PageLayout/AppShellContext';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
 import { apiServices } from '../../services/APIs/apiServices';
+import { usePlanImport } from '../../navia/usePlanImport';
+import { PlanImportAttachButton, PlanImportStrip } from '../../navia/PlanImportControls';
 import { matchCountryName } from '../../utils/countries';
 import { scheduleFeedbackPrompt } from '../../utils/feedbackPrompt';
 import { takePendingPrompt } from '../../utils/pendingNaviaPrompt';
@@ -44,6 +48,7 @@ const NaviaPage: React.FC = () => {
   const { messages, isStreaming, sendMessage, clearMessages } = useNavia('', token);
 
   const [input, setInput] = useState('');
+  const importer = usePlanImport(token);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
@@ -94,11 +99,19 @@ const NaviaPage: React.FC = () => {
   }, [messages]);
 
   const handleSend = useCallback(() => {
+    // Screenshots attached: this is a plan to read, not a question to answer.
+    // Anything typed alongside it is context for the reading.
+    if (importer.screenshots.length > 0) {
+      if (importer.busy) return;
+      importer.run(input.trim()).then((ok) => { if (ok) setInput(''); });
+      return;
+    }
+
     const text = input.trim();
     if (!text || isStreaming) return;
     setInput('');
     sendMessage(text);
-  }, [input, isStreaming, sendMessage]);
+  }, [importer, input, isStreaming, sendMessage]);
 
   const handleKeyDown = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
@@ -119,6 +132,12 @@ const NaviaPage: React.FC = () => {
     /day\s*\d|night|itinerary|destination|visit|explore|stay|flight|hotel/i.test(lastNaviaMsg.content);
 
   const isEmpty = messages.length === 0;
+
+  // Attached screenshots are enough on their own: the plan is in the picture, so
+  // there is nothing they have to type first.
+  const hasShots = importer.screenshots.length > 0;
+  const canSend = (hasShots || Boolean(input.trim()))
+    && !isStreaming && !importer.busy && !importer.preparing;
 
   // One of the two moments that can nudge a first-time user toward feedback -
   // ten seconds after they start actually chatting with Navia, not merely
@@ -185,7 +204,17 @@ const NaviaPage: React.FC = () => {
       const tripResp = await apiServices.getTripById(token, createdId);
       scheduleFeedbackPrompt('trip_created');
       navigate(`/tripplanner/${createdId}`, {
-        state: { tripId: createdId, trip: tripResp.data, chatSeed: { stops: extracted.stops } },
+        state: {
+          tripId: createdId,
+          trip: tripResp.data,
+          // The chat produces stops and nothing else; the wider seed fields are
+          // filled only when a plan is imported from a screenshot.
+          planSeed: {
+            stops: extracted.stops.map((s) => ({
+              name: s.name, nights: s.nights, notes: s.notes, spots: s.spots, foods: s.foods,
+            })),
+          },
+        },
       });
       // No state reset needed: navigation unmounts this page.
     } catch (err) {
@@ -225,10 +254,10 @@ const NaviaPage: React.FC = () => {
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
           <NaviaOrb size={40} processing={isStreaming} />
           <Box>
-            <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.2 }}>
+            <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.2 }}>
               Navia
             </Typography>
-            <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled', fontFamily: "'Inter',sans-serif" }}>
+            <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled',}}>
               Your travel companion
             </Typography>
           </Box>
@@ -246,14 +275,13 @@ const NaviaPage: React.FC = () => {
                   height: 24,
                   fontSize: '0.72rem',
                   fontWeight: 700,
-                  fontFamily: "'Inter',sans-serif",
                   borderRadius: '8px',
                   cursor: 'pointer',
-                  bgcolor: credits <= 10 ? 'rgba(239,68,68,0.10)' : 'rgba(255,56,92,0.07)',
-                  color: credits <= 10 ? '#ef4444' : '#FF385C',
-                  border: `1px solid ${credits <= 10 ? 'rgba(239,68,68,0.25)' : 'rgba(255,56,92,0.18)'}`,
+                  bgcolor: credits <= 10 ? 'rgba(239,68,68,0.10)' : alpha(BRAND.coral, 0.07),
+                  color: credits <= 10 ? '#ef4444' : BRAND.coral,
+                  border: `1px solid ${credits <= 10 ? 'rgba(239,68,68,0.25)' : alpha(BRAND.coral, 0.18)}`,
                   '& .MuiChip-icon': { color: 'inherit' },
-                  '&:hover': { bgcolor: credits <= 10 ? 'rgba(239,68,68,0.16)' : 'rgba(255,56,92,0.12)' },
+                  '&:hover': { bgcolor: credits <= 10 ? 'rgba(239,68,68,0.16)' : alpha(BRAND.coral, 0.12) },
                 }}
               />
             </Tooltip>
@@ -276,7 +304,7 @@ const NaviaPage: React.FC = () => {
                 height: 34,
                 borderRadius: '10px',
                 color: 'text.disabled',
-                '&:hover': { color: '#FF385C', bgcolor: 'rgba(255,56,92,0.07)' },
+                '&:hover': { color: 'primary.main', bgcolor: alpha(BRAND.coral, 0.07) },
               }}
             >
               <IconTrash size={17} />
@@ -314,7 +342,6 @@ const NaviaPage: React.FC = () => {
           >
             <Typography
               sx={{
-                fontFamily: "'Inter',sans-serif",
                 fontWeight: 700,
                 fontSize: { xs: '1.3rem', md: '1.6rem' },
                 letterSpacing: '-0.3px',
@@ -325,7 +352,6 @@ const NaviaPage: React.FC = () => {
             <Typography
               sx={{
                 color: 'text.secondary',
-                fontFamily: "'Inter',sans-serif",
                 fontSize: '0.95rem',
                 maxWidth: 420,
               }}
@@ -341,7 +367,6 @@ const NaviaPage: React.FC = () => {
                   onClick={() => handleStarter(s)}
                   icon={<IconSparkles size={12} />}
                   sx={{
-                    fontFamily: "'Inter',sans-serif",
                     fontWeight: 500,
                     fontSize: '0.78rem',
                     borderRadius: '50px',
@@ -350,9 +375,9 @@ const NaviaPage: React.FC = () => {
                     cursor: 'pointer',
                     transition: 'all 0.15s ease',
                     '&:hover': {
-                      borderColor: '#FF385C',
-                      color: '#FF385C',
-                      bgcolor: 'rgba(255,56,92,0.06)',
+                      borderColor: 'primary.main',
+                      color: 'primary.main',
+                      bgcolor: alpha(BRAND.coral, 0.06),
                     },
                   }}
                   variant="outlined"
@@ -380,7 +405,6 @@ const NaviaPage: React.FC = () => {
                     ml: '52px',
                     borderRadius: '50px',
                     textTransform: 'none',
-                    fontFamily: "'Inter',sans-serif",
                     fontWeight: 700,
                     fontSize: '0.8rem',
                     px: 2,
@@ -401,7 +425,7 @@ const NaviaPage: React.FC = () => {
                       width: 7,
                       height: 7,
                       borderRadius: '50%',
-                      bgcolor: '#FF385C',
+                      bgcolor: 'primary.main',
                       opacity: 0.6,
                       animation: `naviaTypingDot 1.2s ${i * 0.2}s ease-in-out infinite`,
                       '@keyframes naviaTypingDot': {
@@ -427,6 +451,15 @@ const NaviaPage: React.FC = () => {
           pt: 1.5,
         }}
       >
+        {importer.screenshots.length > 0 && (
+          <Box sx={{ mb: 1 }}>
+            <PlanImportStrip
+              screenshots={importer.screenshots}
+              onRemove={importer.removeScreenshot}
+              disabled={importer.busy}
+            />
+          </Box>
+        )}
         <Box
           sx={{
             display: 'flex',
@@ -442,23 +475,36 @@ const NaviaPage: React.FC = () => {
             py: 1.25,
             transition: 'border-color 0.15s ease, box-shadow 0.15s ease',
             '&:focus-within': {
-              borderColor: '#FF385C',
-              boxShadow: '0 0 0 3px rgba(255,56,92,0.12)',
+              borderColor: 'primary.main',
+              boxShadow: `0 0 0 3px ${alpha(BRAND.coral, 0.12)}`,
             },
           }}
         >
+          <PlanImportAttachButton
+            onFiles={importer.addFiles}
+            disabled={isStreaming || importer.busy || importer.atCapacity}
+            preparing={importer.preparing}
+            size={34}
+          />
           <InputBase
             inputRef={inputRef}
             multiline
             maxRows={6}
             fullWidth
-            placeholder="Ask Navia anything about travel…"
+            placeholder={importer.screenshots.length > 0
+              ? 'Anything to add about this plan? (optional)'
+              : 'Ask Navia anything about travel…'}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
-            disabled={isStreaming}
+            onPaste={(e) => {
+              const files = Array.from(e.clipboardData?.files ?? []).filter((f) => f.type.startsWith('image/'));
+              if (files.length === 0) return;
+              e.preventDefault();
+              importer.addFiles(files);
+            }}
+            disabled={isStreaming || importer.busy}
             sx={{
-              fontFamily: "'Inter',sans-serif",
               fontSize: '0.92rem',
               lineHeight: 1.55,
               '& .MuiInputBase-input': { p: 0 },
@@ -466,16 +512,17 @@ const NaviaPage: React.FC = () => {
           />
           <IconButton
             onClick={handleSend}
-            disabled={!input.trim() || isStreaming}
+            disabled={!canSend}
+            aria-label={hasShots ? 'Read this plan and build the trip' : 'Send'}
             sx={{
               flexShrink: 0,
               width: 36,
               height: 36,
               borderRadius: '10px',
-              bgcolor: input.trim() && !isStreaming ? '#FF385C' : undefined,
-              color: input.trim() && !isStreaming ? '#fff' : 'text.disabled',
+              bgcolor: canSend ? 'primary.main' : undefined,
+              color: canSend ? '#fff' : 'text.disabled',
               transition: 'all 0.15s ease',
-              '&:hover': { bgcolor: input.trim() && !isStreaming ? '#E31C5F' : undefined },
+              '&:hover': { bgcolor: canSend ? BRAND.coralDark : undefined },
             }}
           >
             <IconSend size={18} />
@@ -485,12 +532,15 @@ const NaviaPage: React.FC = () => {
           sx={{
             mt: 0.75,
             fontSize: '0.7rem',
-            color: 'text.disabled',
+            color: importer.error ? 'error.main' : 'text.disabled',
             textAlign: 'center',
-            fontFamily: "'Inter',sans-serif",
           }}
         >
-          Navia can make mistakes. Always verify travel details before booking.
+          {importer.busy
+            ? importer.busyMessage
+            : importer.error
+              ? importer.error
+              : 'Navia can make mistakes. Always verify travel details before booking.'}
         </Typography>
       </Box>
 

@@ -7,11 +7,20 @@ Allow: /community
 # crawlable only invites duplicate-content indexing of a redirect.
 Disallow: /discover
 Allow: /trip/
+# Traveller questions and answers. Covered by Allow: / already, but every other
+# public surface is listed and the omission read as an oversight.
+Allow: /posts
+Allow: /post/
 Allow: /about-us
+Allow: /for-operators
+Allow: /pricing
 Allow: /terms-and-conditions
 Allow: /privacy-policy
 Allow: /get-help
 Allow: /contact-us
+Allow: /o/
+Disallow: /organizations
+Disallow: /operator
 Disallow: /dashboard
 Disallow: /profile
 Disallow: /settings

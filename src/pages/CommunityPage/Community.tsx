@@ -1,856 +1,740 @@
+/**
+ * /community - one editorial scroll, itineraries and stories together.
+ *
+ * ## What the page is for
+ *
+ * The product's answer to "why open this when I am not planning a trip" is what
+ * happened AFTER one. So a story leads the page, the trips still looking for
+ * someone sit above the catalogue, and the catalogue itself holds both kinds.
+ *
+ * ## The feed is mixed, and that is the point
+ *
+ * Stories used to live in a hero above the toolbar and a rail below the grid.
+ * They were on the page, but the page's MECHANICS were trips-only: filtering to
+ * Culture returned culture trips and never the culture story, and searching
+ * Kyoto could not find the Kyoto story sitting two screens down the same page.
+ *
+ * Now one grid holds both, filtered by the same chips and searched by the same
+ * box. The vibe ids are shared between `Trips.Vibe` and a story's `vibe`, so one
+ * chip legitimately filters both. Trips keep their ranked order exactly - the
+ * Verified tier is a product rule - and stories are spread through them at a
+ * derived interval, so one lands in the first row whatever the ratio.
+ *
+ * The two cards are deliberately different shapes: a trip is landscape, bordered
+ * and white-bodied, a story is 4:5, borderless, with its type on the photograph.
+ * That silhouette is what makes the mix legible without a badge explaining it,
+ * which is why the grid uses `alignItems: start` - stretching would pad the
+ * shorter card and throw the distinction away.
+ *
+ * ## Two curated tiers, both granted by hand
+ *
+ * Tripician Verified leads the trips, and Editor's choice leads the stories.
+ * Neither is computed. Verified says a PLAN is sound enough to copy; Editor's
+ * choice says a piece of WRITING is worth someone's time. Both are granted from
+ * the admin desk and audited, and both render nothing at all when nobody has
+ * granted them - a fallback to "most read" or a daily rotation would put the
+ * label's meaning straight back where it started.
+ *
+ * The Verified slot replaced "Trip of the day", which was `trips[today % length]`:
+ * a rotation, not a recommendation. Nobody chose it, so presenting it as the one
+ * to look at was a claim the page could not back.
+ *
+ * ## Nothing may appear twice
+ *
+ * There are three story surfaces (hero, Editor's choice, feed) and two trip
+ * surfaces (the Verified split, the feed), so every one of them subtracts from
+ * the next: Editor's choice takes its stories first, the hero fills from what is
+ * left, and the feed takes the remainder. The lead verified trip is likewise cut
+ * from the feed, where the Verified tier would otherwise rank it into the very
+ * next card.
+ *
+ * All of that unwinds under a filter, because the curated modules hide then, and
+ * a card that is invisible AND excluded is a card search cannot reach.
+ *
+ * ## Corrections worth keeping
+ *
+ * The story hero was once cut for duplicating the stories rail. The rail was the
+ * duplicate, not the hero; the rail is now gone and the hero stays.
+ *
+ * The hero is gated on `isFiltering`, or searching Kyoto leaves an unrelated
+ * Lisbon story above the results. Because it hides, `feedStories` stops
+ * excluding the hero's three while a filter is on - otherwise those three became
+ * unreachable, and searching for one of them found nothing.
+ *
+ * Four modules stay cut, on the test that this page should not be a directory of
+ * other pages: the travellers strip (Crew is a nav item), the travel-guides rail
+ * (static blog JSON), and the templates rail (/templates is its own route).
+ */
+
 import React from 'react';
-import {
-  Avatar, Box, Button, InputBase, Skeleton, Tab, Tabs, Typography, useTheme,
-} from '@mui/material';
-import { alpha } from '@mui/material/styles';
+import { Box, Button, Typography, useTheme } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
-import {
-  IconArrowRight,
-  IconBuildingSkyscraper,
-  IconCheck,
-  IconClock,
-  IconCompass,
-  IconFlame,
-  IconFlower,
-  IconLeaf,
-  IconMountain,
-  IconPalette,
-  IconSearch,
-  IconSparkles,
-  IconTrees,
-  IconUserPlus,
-  IconUsers,
-  IconWorld,
-} from '@tabler/icons-react';
+import { IconCompass, IconFeather } from '@tabler/icons-react';
 import CommunityTripCard from './CommunityTripCard';
-import { VIBES } from './vibes';
+import RecruitingRail from './RecruitingRail';
+import { CATEGORIES, CONTENT_MAX, gridSx } from './communityConstants';
 import FilterChip from '../../components/ui/FilterChip';
-import { compareTripsForFeed } from '../../utils/tripRanking';
-import VerifiedTripBadge from '../../components/CommonComponents/VerifiedTripBadge';
-import { useAuthToken } from '../../hooks/useAuth0Token';
-import { apiServices } from '../../services/APIs/apiServices';
-import { fetchUnsplashImage } from '../../services/unsplashService';
-import { tripCoverPhoto, savedBanner, resolveTripCover } from '../../utils/tripCover';
-import blogsData from '../../assets/blogs/blogs.json';
-import Seo from '../../components/Seo';
-import { tripPath } from '../../utils/tripSlug';
+import SearchField from '../../components/ui/SearchField';
 import SectionHeader from '../../components/ui/SectionHeader';
+import SeeAllLink from '../../components/ui/SeeAllLink';
+import ScrollRail from '../../components/ui/ScrollRail';
+import ActivityFeed from './ActivityFeed';
+import PostComposer from '../../posts/PostComposer';
+import PostCard from '../../posts/PostCard';
+import { postsService } from '../../posts/postsService';
+import type { TravelerPost } from '../../posts/types';
+import { usePublishedTrips } from './usePublishedTrips';
 import EmptyState from '../../components/ui/EmptyState';
 import ErrorState from '../../components/ui/ErrorState';
 import { CardGridSkeleton } from '../../components/ui/Skeletons';
 import PageHeader from '../../components/ui/PageHeader';
-import QuickPlanCard from '../../navia/QuickPlanCard';
-import { staggerContainer, staggerItem, tabContent } from '../../utils/animations';
+import ChipRail from '../../components/ui/ChipRail';
+import Seo from '../../components/Seo';
+import StoryCard from '../../afterstory/cards/StoryCard';
+import StoryStrip from '../../afterstory/cards/StoryStrip';
+import { afterStoryService } from '../../afterstory/afterStoryService';
+import type { AfterStorySummaryDto } from '../../afterstory/types';
 
-// ── constants ──────────────────────────────────────────────────────────────
-
-const CONTENT_MAX = 1280;
-
-type ViewId = 'trips' | 'crew' | 'templates';
-
-const CATEGORIES: { id: string; label: string; Icon: React.ElementType }[] = [
-  { id: 'all', label: 'All', Icon: IconWorld },
-  { id: 'adventure', label: 'Adventure', Icon: IconMountain },
-  { id: 'culture', label: 'Culture', Icon: IconPalette },
-  { id: 'urban', label: 'Urban', Icon: IconBuildingSkyscraper },
-  { id: 'scenic', label: 'Scenic', Icon: IconTrees },
-  { id: 'spiritual', label: 'Spiritual', Icon: IconFlower },
-  { id: 'luxury', label: 'Slow Travel', Icon: IconLeaf },
-  { id: 'romantic', label: 'Party', Icon: IconFlame },
-];
-
-// ── small shared pieces ────────────────────────────────────────────────────
+import { compareTripsForFeed } from '../../utils/tripRanking';
+import { tripPath } from '../../utils/tripSlug';
+import { FEATURE_FLAGS } from '../../config/featureFlags';
+import { staggerContainer, staggerItem } from '../../utils/animations';
 
 /**
- * Resolves a display photo for a trip. Delegates to utils/tripCover so this grid,
- * the dashboard and the trip's own hero cannot drift onto different photos.
+ * "3 trips and 2 stories", or just the half that exists.
+ *
+ * The old subtitle counted trips only. Now that both kinds share the grid, a
+ * search matching two stories and no trips would have read "0 trips" above a
+ * grid containing two cards.
  */
-const useTripPhoto = (trip: any) => {
-  const cover = savedBanner(trip);
-  const [photo, setPhoto] = React.useState<string | null>(() => tripCoverPhoto(trip));
-  React.useEffect(() => {
-    if (!trip) return;
-    if (cover) { setPhoto(cover); return; }
-    let cancelled = false;
-    resolveTripCover(trip).then(url => { if (!cancelled && url) setPhoto(url); });
-    return () => { cancelled = true; };
-  }, [trip, cover]);
-  return photo;
-};
+function describeFeed(trips: number, stories: number): string {
+  const parts: string[] = [];
+  if (trips > 0) parts.push(`${trips} ${trips === 1 ? 'trip' : 'trips'}`);
+  if (stories > 0) parts.push(`${stories} ${stories === 1 ? 'story' : 'stories'}`);
+  return parts.length === 0 ? 'Nothing found' : parts.join(' and ');
+}
 
-/* FilterChip moved to components/ui/FilterChip.tsx when the create dialog needed
-   the same chip. Imported above. */
+/** A shortlist, not a listing. The rest are at /trips/looking-for-people. */
+const RECRUITING_SHOWN = 4;
 
-/** Rounded search field matching the theme's focused-input treatment. */
-const SearchField: React.FC<{
-  value: string;
-  onChange: (v: string) => void;
-  placeholder: string;
-  sx?: object;
-}> = ({ value, onChange, placeholder, sx }) => {
-  const theme = useTheme();
-  return (
-    <Box sx={{
-      display: 'flex', alignItems: 'center', gap: 1.25,
-      height: 42, px: 2, borderRadius: 999,
-      border: `1px solid ${theme.custom.surface.border}`,
-      bgcolor: 'background.paper',
-      transition: `box-shadow ${theme.custom.motion.duration.fast} ${theme.custom.motion.easing.standard}, border-color ${theme.custom.motion.duration.fast} ${theme.custom.motion.easing.standard}`,
-      '&:focus-within': {
-        borderColor: 'primary.main',
-        boxShadow: `0 0 0 3px ${alpha(theme.palette.primary.main, 0.14)}`,
-      },
-      ...sx,
-    }}>
-      <IconSearch size={17} stroke={1.9} color={theme.palette.text.disabled} style={{ flexShrink: 0 }} />
-      <InputBase
-        fullWidth
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        placeholder={placeholder}
-        sx={{ fontSize: 14, fontWeight: 500 }}
-      />
-    </Box>
-  );
-};
-
-// ── trip of the day feature card ───────────────────────────────────────────
-
-const FeatureTripCard: React.FC<{ trip: any; onClick: () => void }> = ({ trip, onClick }) => {
-  const theme = useTheme();
-  const photo = useTripPhoto(trip);
-  const countries: string[] = Array.isArray(trip.countries) ? trip.countries : [];
-  const nights = typeof trip.totalNights === 'number' ? trip.totalNights
-    : typeof trip.targetNights === 'number' ? trip.targetNights : null;
-  const metaLine = [
-    countries.slice(0, 3).join(' · ') || null,
-    nights !== null ? `${nights} ${nights === 1 ? 'night' : 'nights'}` : null,
-    trip.owner?.name ? `by ${trip.owner.name}` : null,
-  ].filter(Boolean).join('  ·  ');
-
-  return (
-    <Box
-      onClick={onClick}
-      sx={{
-        display: 'grid',
-        gridTemplateColumns: { xs: '1fr', md: '5fr 6fr' },
-        borderRadius: '20px', overflow: 'hidden', cursor: 'pointer',
-        border: `1px solid ${theme.custom.surface.border}`,
-        bgcolor: 'background.paper',
-        boxShadow: theme.custom.shadows.card,
-        transition: `box-shadow ${theme.custom.motion.duration.base} ${theme.custom.motion.easing.standard}`,
-        '&:hover': { boxShadow: theme.custom.shadows.cardHover },
-        '&:hover .feature-cover img': { transform: 'scale(1.03)' },
-      }}
-    >
-      {/* Editorial copy */}
-      <Box sx={{
-        order: { xs: 2, md: 1 },
-        p: { xs: 3, md: 5 },
-        display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: 1.5,
-        minWidth: 0,
-      }}>
-        <Typography variant="overline" sx={{ color: 'primary.main' }}>
-          Trip of the day
-        </Typography>
-        {/* The badge needs its own flex row here rather than sitting inline: this title
-            is a clamped `-webkit-box`, so anything placed inside it becomes part of the
-            clamped text and can be truncated away. Centre-aligned, which reads right for
-            a one-line title and still looks deliberate when it wraps to two. */}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, minWidth: 0 }}>
-          <Typography sx={{
-            fontFamily: theme.custom.fontDisplay,
-            fontWeight: 700,
-            fontSize: { xs: '1.55rem', md: '2.1rem' },
-            letterSpacing: '-0.02em', lineHeight: 1.15, color: 'text.primary',
-            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-            minWidth: 0,
-          }}>
-            {trip.name || 'Untitled Trip'}
-          </Typography>
-          <VerifiedTripBadge
-            verified={trip.verified ?? trip.Verified}
-            verifiedAt={trip.verifiedAt ?? trip.VerifiedAt}
-            variant="hero"
-          />
-        </Box>
-        {trip.description && (
-          <Typography sx={{
-            fontSize: 14.5, lineHeight: 1.6, color: 'text.secondary',
-            display: '-webkit-box', WebkitLineClamp: 3, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-          }}>
-            {trip.description}
-          </Typography>
-        )}
-        {metaLine && (
-          <Typography noWrap sx={{ fontSize: 13, fontWeight: 500, color: 'text.secondary' }}>
-            {metaLine}
-          </Typography>
-        )}
-        <Box sx={{ mt: 1 }}>
-          <Button variant="contained" endIcon={<IconArrowRight size={16} />}>
-            View itinerary
-          </Button>
-        </Box>
-      </Box>
-
-      {/* Photo */}
-      <Box className="feature-cover" sx={{
-        order: { xs: 1, md: 2 },
-        position: 'relative', overflow: 'hidden',
-        minHeight: { xs: 210, sm: 260, md: 360 },
-        bgcolor: theme.custom.surface.active,
-      }}>
-        {photo && (
-          <Box
-            component="img" src={photo} alt={trip.name || 'Featured trip'}
-            sx={{
-              position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover',
-              transition: `transform ${theme.custom.motion.duration.slow} ${theme.custom.motion.easing.standard}`,
-            }}
-          />
-        )}
-      </Box>
-    </Box>
-  );
-};
-
-// ── travel guide card ──────────────────────────────────────────────────────
-
-const BlogCard: React.FC<{ blog: any; onNavigate: (path: string) => void }> = ({ blog, onNavigate }) => {
-  const theme = useTheme();
-  const [photo, setPhoto] = React.useState<string | null>(null);
-  React.useEffect(() => {
-    let cancelled = false;
-    fetchUnsplashImage(`${blog.city} ${blog.country} travel`).then(url => { if (!cancelled && url) setPhoto(url); });
-    return () => { cancelled = true; };
-  }, [blog.city, blog.country]);
-
-  return (
-    <Box
-      onClick={() => onNavigate(`/blog/${blog.slug}`)}
-      sx={{
-        flexShrink: 0, width: { xs: 264, sm: 300 },
-        display: 'flex', flexDirection: 'column',
-        borderRadius: '16px', overflow: 'hidden', cursor: 'pointer',
-        border: `1px solid ${theme.custom.surface.border}`,
-        bgcolor: 'background.paper',
-        boxShadow: theme.custom.shadows.card,
-        transition: `box-shadow ${theme.custom.motion.duration.base} ${theme.custom.motion.easing.standard}, transform ${theme.custom.motion.duration.base} ${theme.custom.motion.easing.standard}`,
-        '&:hover': { boxShadow: theme.custom.shadows.cardHover, transform: 'translateY(-3px)' },
-        '&:hover img': { transform: 'scale(1.04)' },
-      }}
-    >
-      <Box sx={{ position: 'relative', aspectRatio: '16 / 9', overflow: 'hidden', bgcolor: theme.custom.surface.active }}>
-        {photo && (
-          <Box
-            component="img" src={photo} alt={`${blog.city}, ${blog.country}`}
-            sx={{
-              width: '100%', height: '100%', objectFit: 'cover', display: 'block',
-              transition: `transform ${theme.custom.motion.duration.slow} ${theme.custom.motion.easing.standard}`,
-            }}
-          />
-        )}
-      </Box>
-      <Box sx={{ p: 2, pt: 1.75, display: 'flex', flexDirection: 'column', gap: 0.5, flex: 1 }}>
-        {blog.tag && (
-          <Typography variant="overline" sx={{ color: 'primary.main', lineHeight: 1.4 }}>
-            {blog.tag}
-          </Typography>
-        )}
-        <Typography noWrap sx={{ fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em', color: 'text.primary' }}>
-          {blog.city}, {blog.country}
-        </Typography>
-        {blog.description && (
-          <Typography sx={{
-            fontSize: 13, lineHeight: 1.55, color: 'text.secondary',
-            display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden',
-          }}>
-            {blog.description}
-          </Typography>
-        )}
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6, color: 'text.disabled', mt: 'auto', pt: 1 }}>
-          <IconClock size={13} stroke={1.9} />
-          <Typography sx={{ fontSize: 12, fontWeight: 500 }}>{blog.readTime}</Typography>
-        </Box>
-      </Box>
-    </Box>
-  );
-};
-
-// ── main component ─────────────────────────────────────────────────────────
+// The server sends either casing depending on the projection, which is why every
+// read of this flag on the page goes through one function.
+const isTripVerified = (trip: any): boolean => (trip?.verified ?? trip?.Verified) === true;
 
 const Community: React.FC = () => {
   const theme = useTheme();
-  const { token } = useAuthToken();
   const navigate = useNavigate();
 
-  const [trips, setTrips] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-  const [reloadKey, setReloadKey] = React.useState(0);
+  const { trips, loading, error, reload } = usePublishedTrips();
   const [activeCategory, setActiveCategory] = React.useState('all');
   const [search, setSearch] = React.useState('');
 
-  const [activeView, setActiveView] = React.useState<ViewId>('trips');
-  const [crewQuery, setCrewQuery] = React.useState('');
-  const [crewQueryApplied, setCrewQueryApplied] = React.useState('');
-  const [crewVibe, setCrewVibe] = React.useState('');
-  const [crewTravelers, setCrewTravelers] = React.useState<any[]>([]);
-  const [crewLoading, setCrewLoading] = React.useState(false);
-  const [templates, setTemplates] = React.useState<any[]>([]);
-  const [templatesLoading, setTemplatesLoading] = React.useState(false);
-  const [connectingId, setConnectingId] = React.useState<number | null>(null);
-  const [connectedIds, setConnectedIds] = React.useState<Set<number>>(new Set());
-  const [crewSuggestions, setCrewSuggestions] = React.useState<any[]>([]);
+  const [stories, setStories] = React.useState<AfterStorySummaryDto[]>([]);
 
-  // Typing fires a request per keystroke without this, and the crew query fans
-  // out across every public account server-side.
-  React.useEffect(() => {
-    const t = setTimeout(() => setCrewQueryApplied(crewQuery.trim()), 300);
-    return () => clearTimeout(t);
-  }, [crewQuery]);
-
-  const fetchCrew = React.useCallback(async () => {
-    setCrewLoading(true);
-    try {
-      /*
-       * The directory has two modes and one control.
-       *
-       * Idle, it shows people who have published something - a wall of members
-       * with nothing on their card is a worse answer than a short list of
-       * travellers you can actually learn something from. The moment someone
-       * types, `publishedOnly` drops and the search reaches every member, which
-       * is the only way "find Rahul" can work for someone who just signed up.
-       */
-      const q = crewQueryApplied;
-      const resp = await apiServices.getTravelersCrew(
-        undefined,
-        crewVibe || undefined,
-        undefined,
-        !q,
-        q || undefined,
-      );
-      setCrewTravelers(resp.data || []);
-    } catch {
-      setCrewTravelers([]);
-    } finally {
-      setCrewLoading(false);
-    }
-  }, [crewQueryApplied, crewVibe]);
-
-  React.useEffect(() => {
-    if (activeView === 'crew') { fetchCrew(); }
-    if (activeView === 'templates') {
-      setTemplatesLoading(true);
-      apiServices.getTemplates()
-        .then(r => setTemplates(r.data || []))
-        .catch(() => setTemplates([]))
-        .finally(() => setTemplatesLoading(false));
-    }
-  }, [activeView, fetchCrew]);
-
-  // Fetch published trips (public endpoint - no auth required; token used only for personalised reactions later)
-  React.useEffect(() => {
-    let active = true;
-    setLoading(true);
-    setError(null);
-    const fetchToken = token || localStorage.getItem('accessToken') || null;
-    (async () => {
-      try {
-        const resp = await apiServices.getPublishedTrips(fetchToken ?? undefined);
-        if (!active) return;
-        const data = Array.isArray(resp?.data) ? resp.data : (Array.isArray(resp?.data?.trips) ? resp.data.trips : []);
-        setTrips(data);
-      } catch {
-        if (!active) return;
-        // Fallback: try explicit public endpoint
-        try {
-          const resp2 = await apiServices.getPublicTrips(fetchToken ?? undefined);
-          if (!active) return;
-          const data2 = Array.isArray(resp2?.data) ? resp2.data : [];
-          setTrips(data2);
-        } catch {
-          if (!active) return;
-          setError('Unable to load community trips. Please try again.');
-        }
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
-    return () => { active = false; };
-  }, [token, reloadKey]);
-
-  // Auto-fetch crew suggestions for the "Travelers right now" strip.
+  // ── data ─────────────────────────────────────────────────────────────────
   //
-  // `publishedOnly` because this strip is subtitled "People who published trips"
-  // and has to keep that promise. The Find crew tab below deliberately lists
-  // every public account, including members with nothing published yet - this
-  // strip is the narrower question, so it asks for it rather than filtering the
-  // wider answer and depending on publishers happening to sort first.
+  // Everything the page shows is fetched on mount now. With tabs, three of these
+  // waited for a click that most people never made, so the sections they feed
+  // effectively did not exist.
+
   React.useEffect(() => {
+    if (!FEATURE_FLAGS.afterStory) return;
     let active = true;
-    apiServices.getTravelersCrew(undefined, undefined, undefined, true).then(r => {
-      if (!active) return;
-      setCrewSuggestions((r.data || []).slice(0, 10));
-    }).catch(() => {});
+
+    afterStoryService
+      .listPublished({ page: 1, pageSize: 24 })
+      // Guarded rather than trusted: a 200 whose body is not the paged shape
+      // used to set `stories` to undefined, and the two slices below then took
+      // the whole page down to the error boundary. The catch does not cover it,
+      // because a malformed body is a resolved promise.
+      .then((r) => { if (active) setStories(Array.isArray(r?.items) ? r.items : []); })
+      // Stories are an addition to this page, not its subject. A failure hides
+      // the section rather than breaking the trips people came for.
+      .catch(() => { if (active) setStories([]); });
+
     return () => { active = false; };
   }, []);
 
-  // Ordering lives in utils/tripRanking.ts so the rule is testable: Tripician Verified
-  // first as a hard tier, then community engagement, where comments weigh heaviest
-  // because writing a reply costs far more than tapping a heart.
-  const filtered = React.useMemo(() => {
+  /*
+   * Posts are fetched here rather than inside PostList, because two surfaces show
+   * them and neither may show the same one twice: the rail takes the newest few
+   * and the feed takes the rest. That is the same subtraction rule the stories
+   * follow, and for the same reason.
+   */
+  const [posts, setPosts] = React.useState<TravelerPost[]>([]);
+  React.useEffect(() => {
+    let active = true;
+    postsService.feed(24)
+      .then((rows) => { if (active) setPosts(rows); })
+      .catch(() => { if (active) setPosts([]); });
+    return () => { active = false; };
+  }, []);
+
+  const dropPost = React.useCallback(
+    (id: string) => setPosts((prev) => prev.filter((x) => x.id !== id)),
+    [],
+  );
+
+  // ── derived ──────────────────────────────────────────────────────────────
+
+  // Declared before the memos below because several of them read it.
+  const isFiltering = activeCategory !== 'all' || Boolean(search.trim());
+
+  /*
+   * Editor's choice: the story equivalent of Tripician Verified.
+   *
+   * Granted by hand from the admin desk and nowhere else. It is deliberately NOT
+   * derived from reads or likes - a label saying an editor chose this has to mean
+   * an editor chose this, and "most read" dressed up as a recommendation is the
+   * kind of claim this product has already decided not to make.
+   *
+   * Newest pick first, so refreshing the row is a matter of picking another
+   * rather than unpicking the old one.
+   */
+  const editorsChoice = React.useMemo(
+    () =>
+      stories
+        .filter((st) => Boolean(st.editorsPickAt))
+        .sort((a, b) => Date.parse(b.editorsPickAt!) - Date.parse(a.editorsPickAt!))
+        .slice(0, 6),
+    [stories],
+  );
+  const editorsChoiceIds = React.useMemo(
+    () => new Set(editorsChoice.map((st) => st.id)),
+    [editorsChoice],
+  );
+
+  // Ordering lives in utils/tripRanking.ts so the rule is testable: Tripician
+  // Verified first as a hard tier, then community engagement, where comments
+  // weigh heaviest because writing a reply costs far more than tapping a heart.
+  const filteredTrips = React.useMemo(() => {
     let list = trips;
+
     if (activeCategory !== 'all') {
-      list = list.filter(t => (t.vibe || '').toLowerCase() === activeCategory);
+      list = list.filter((t) => (t.vibe || '').toLowerCase() === activeCategory);
     }
+
     if (search.trim()) {
       const q = search.trim().toLowerCase();
-      list = list.filter(t =>
-        (t.name || '').toLowerCase().includes(q) ||
-        (t.description || '').toLowerCase().includes(q) ||
-        (Array.isArray(t.countries) && t.countries.some((c: string) => c.toLowerCase().includes(q)))
+      list = list.filter(
+        (t) =>
+          (t.name || '').toLowerCase().includes(q) ||
+          (t.description || '').toLowerCase().includes(q) ||
+          (Array.isArray(t.countries) && t.countries.some((c: string) => c.toLowerCase().includes(q))),
       );
     }
+
     /*
-     * Sorted in BOTH branches now. It used to live in an `else`, so searching returned
-     * raw server order.
+     * Sorted in BOTH branches. It used to live in an `else`, so searching
+     * returned raw server order.
      *
-     * The server already orders verified-first, so `filter` alone would technically
-     * satisfy the tier here and this sort would be redundant. That is exactly why it is
-     * written out: leaving a visible product rule to be enforced only by an `OrderBy`
-     * three layers away in another language means the next person to add a sort, a
-     * paginated endpoint or a client-side merge breaks it and nothing says so.
+     * The server already orders verified-first, so `filter` alone would satisfy
+     * the tier. That is exactly why this is written out: leaving a visible
+     * product rule to be enforced only by an `OrderBy` three layers away in
+     * another language means the next person to add a sort, a paginated endpoint
+     * or a client-side merge breaks it and nothing says so.
      */
     return [...list].sort(compareTripsForFeed);
   }, [trips, activeCategory, search]);
 
-  // Trip of the Day - deterministic daily rotation so every visit feels fresh
-  const tripOfTheDay = React.useMemo(() => {
-    if (trips.length === 0) return null;
-    const dayIndex = Math.floor(Date.now() / 86400000);
-    return trips[dayIndex % trips.length];
-  }, [trips]);
+  /*
+   * The hero takes the first three; every other story goes into the feed.
+   *
+   * Slicing rather than sharing is what stops the page repeating itself - the
+   * hero looked redundant the first time precisely because the rail underneath
+   * showed the same stories. The trailing "More after stories" rail is gone
+   * entirely: its contents are in the feed now, and a rail of the same cards
+   * directly under a grid containing them is the same duplication in a
+   * different shape.
+   */
+  /*
+   * Three story surfaces, and no story may appear on two of them.
+   *
+   * Editor's choice wins any tie: it is the stronger signal, so a picked story
+   * takes that row and the hero fills from what is left. Without this the first
+   * story was routinely both - it is `stories[0]` AND the most recent pick - and
+   * rendered twice within one screen.
+   */
+  const unpickedStories = React.useMemo(
+    () => stories.filter((st) => !editorsChoiceIds.has(st.id)),
+    [stories, editorsChoiceIds],
+  );
+
+  /*
+   * The story rail stands in for Editor's choice when nobody has picked anything.
+   *
+   * Without it, an install with writers but no picks has no story BLOCK at all -
+   * stories exist only scattered through the grid, which is what made the page
+   * read as trips-with-extras. It takes from the same queue as the feed, so no
+   * story is ever on the page twice.
+   */
+  const railStories = React.useMemo(
+    () => (editorsChoice.length > 0 ? [] : unpickedStories.slice(0, 8)),
+    [editorsChoice.length, unpickedStories],
+  );
+
+  /*
+   * While filtering, the feed draws from every UNPICKED story rather than only
+   * the ones the strip did not take.
+   *
+   * The strip sits below the filter and hides as soon as a chip is active, so
+   * with a plain slice its stories became unreachable: searching "Oaxaca"
+   * returned nothing while an Oaxaca story sat on the page a moment earlier.
+   * Editor's choice is the opposite case. It sits ABOVE the filter and stays on
+   * screen, so its picks must stay out of the results or the same story shows
+   * twice, once in the rail and once in the grid under it.
+   */
+  const feedStories = React.useMemo(
+    () => (isFiltering ? unpickedStories : unpickedStories.slice(railStories.length)),
+    [isFiltering, unpickedStories, railStories.length],
+  );
+
+  /*
+   * Stories go through the SAME chips and the SAME search box as trips.
+   *
+   * This is the whole point of the change. Stories used to sit in a hero above
+   * the toolbar and a rail below the grid, which meant the page's actual
+   * mechanics were trips-only: filtering to Culture returned culture trips and
+   * never the culture story, and searching Kyoto could not find the Kyoto story
+   * sitting two screens further down the same page.
+   *
+   * The vibe ids are shared - `Trips.Vibe` and a story's `vibe` both come from
+   * the VIBES map - so one chip legitimately filters both.
+   */
+  const filteredStories = React.useMemo(() => {
+    let list = feedStories;
+
+    if (activeCategory !== 'all') {
+      list = list.filter((st) => (st.vibe || '').toLowerCase() === activeCategory);
+    }
+
+    if (search.trim()) {
+      const q = search.trim().toLowerCase();
+      list = list.filter(
+        (st) =>
+          (st.title || '').toLowerCase().includes(q) ||
+          (st.summary || '').toLowerCase().includes(q) ||
+          (st.destination || '').toLowerCase().includes(q) ||
+          (Array.isArray(st.countries) && st.countries.some((c) => c.toLowerCase().includes(q))),
+      );
+    }
+
+    return list;
+  }, [feedStories, activeCategory, search]);
+
+  /**
+   * One feed, both kinds.
+   *
+   * Trips keep their ranked order exactly - the Verified tier is a product rule
+   * and interleaving must not disturb it - and a story is dropped in after every
+   * third trip. On the three-column grid that puts stories on a diagonal rather
+   * than in a stripe, so they read as part of the feed instead of a band bolted
+   * through it, and every screenful has one.
+   *
+   * Any stories left over when the trips run out are appended, so a community
+   * with more writers than planners still shows all of them.
+   */
+  const railPosts = React.useMemo(() => posts.slice(0, 4), [posts]);
+
+  /*
+   * Posts the rail did not take, and none at all under a filter.
+   *
+   * The rail itself stays on screen now, above the filter, because a post has no
+   * vibe for a chip to match. That is also why the overflow is held back here:
+   * dropping unfiltered notes into filtered results would be answering a question
+   * nobody asked.
+   */
+  const feedPosts = React.useMemo(
+    () => (isFiltering ? [] : posts.slice(railPosts.length)),
+    [posts, railPosts, isFiltering],
+  );
+
+  const feed = React.useMemo(() => {
+    const out: Array<
+      | { kind: 'trip'; key: string; data: any }
+      | { kind: 'story'; key: string; data: AfterStorySummaryDto }
+      | { kind: 'post'; key: string; data: TravelerPost }
+    > = [];
+    const trips = filteredTrips;
+    const stories = filteredStories;
+
+    /*
+     * The gap is derived, not fixed.
+     *
+     * A constant of three put the first story in slot four, which on a
+     * three-column grid means the entire first row is trips - the one row most
+     * people ever see. Spreading the stories we actually have across the trips we
+     * actually have puts one near the top whatever the ratio, and keeps them
+     * arriving all the way down instead of clumping at one end.
+     *
+     * Floor of two so two stories can never land side by side, which reads as a
+     * band through the feed rather than part of it.
+     */
+    const step = stories.length === 0
+      ? Number.POSITIVE_INFINITY
+      : Math.max(2, Math.floor(trips.length / (stories.length + 1)));
+
+    let s = 0;
+    trips.forEach((t, i) => {
+      out.push({ kind: 'trip', key: `trip-${t.id || t.Id || i}`, data: t });
+      if ((i + 1) % step === 0 && s < stories.length) {
+        const st = stories[s++];
+        out.push({ kind: 'story', key: `story-${st.id}`, data: st });
+      }
+    });
+
+    // Anything left over when the trips run out. A community with more writers
+    // than planners still shows every story.
+    for (; s < stories.length; s++) {
+      out.push({ kind: 'story', key: `story-${stories[s].id}`, data: stories[s] });
+    }
+
+    // Posts are spread through what is already there rather than appended, or a
+    // quiet week would end the page with a block of one-line notes.
+    if (feedPosts.length > 0) {
+      const gap = Math.max(2, Math.floor(out.length / (feedPosts.length + 1)));
+      feedPosts.forEach((post, i) => {
+        const at = Math.min(out.length, (i + 1) * gap + i);
+        out.splice(at, 0, { kind: 'post', key: `post-${post.id}`, data: post });
+      });
+    }
+
+    return out;
+  }, [filteredTrips, filteredStories, feedPosts]);
 
   const handleTripClick = (trip: any) => {
     const tripId = trip.id || trip.Id;
     if (tripId) navigate(tripPath({ id: tripId, name: trip.name }), { state: { trip } });
   };
 
-  const handleFollow = async (t: any) => {
-    if (!token) { navigate('/signin'); return; }
-    if (connectingId === t.userId || connectedIds.has(t.userId)) return;
-    setConnectingId(t.userId);
-    try {
-      await apiServices.followUser(token, t.userId);
-      setConnectedIds(prev => new Set([...prev, t.userId]));
-      window.dispatchEvent(new CustomEvent('app:success', { detail: { message: `Now following ${t.name || 'this traveler'}` } }));
-    } catch {
-      window.dispatchEvent(new CustomEvent('app:error', { detail: { message: 'Could not connect. Please try again.' } }));
-    } finally {
-      setConnectingId(null);
-    }
-  };
+  /*
+   * Open trips are a subset of published, so no second fetch. Full ones stay
+   * listed: "Full" is useful information, and the trip may free up.
+   *
+   * Deliberately NOT filtered by the chips or the search. This block sits above
+   * the filter, where nothing responds to them, and there are rarely enough
+   * recruiting trips for a vibe to match one: almost any chip emptied the list,
+   * and the one module you can act on disappearing on first use is what made
+   * recruitment unfindable before. Narrowing these is what the See all page is
+   * for, and it carries its own chips and search.
+   *
+   * Verified first, so the badge means something at the top of the block. Sort is
+   * stable, so ranking order still decides within each group.
+   */
+  const openTrips = React.useMemo(() => {
+    const list = trips
+      .filter((t: any) => t.joinPolicy === 'OpenToRequests')
+      .sort(compareTripsForFeed);
+    return [...list]
+      .sort((a: any, b: any) => Number(isTripVerified(b)) - Number(isTripVerified(a)))
+      .slice(0, RECRUITING_SHOWN);
+  }, [trips]);
+  const activeCategoryLabel = CATEGORIES.find((c) => c.id === activeCategory)?.label || 'All';
 
-  const isFiltering = activeCategory !== 'all' || !!search.trim();
-  const activeCategoryLabel = CATEGORIES.find(c => c.id === activeCategory)?.label || 'All';
-
-  const gridSx = {
-    display: 'grid',
-    gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(3, minmax(0, 1fr))' },
-    gap: 3,
-  } as const;
-
-  const hiddenScrollbarSx = {
-    display: 'flex', overflowX: 'auto', pb: 0.5,
-    '::-webkit-scrollbar': { display: 'none' }, scrollbarWidth: 'none',
-  } as const;
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      {/* Nav label, page H1 and this title used to be three different words -
-          "Community", "Explore" and "Discover" - for one destination, with a
-          fourth copy of the same feed living at /discover. All four now say
-          Community. */}
       <Seo
         title="Community - Real Trips from Travellers"
-        description="Real itineraries published by the travellers who took them. Browse the community's trips, find people who travel like you, and copy any plan into your own."
+        description="Real itineraries published by the travellers who took them. Browse the community's trips, read what the trips were actually like, and copy any plan into your own."
         path="/community"
         jsonLd={{
           '@context': 'https://schema.org',
           '@type': 'CollectionPage',
           name: 'Tripician Community',
           url: 'https://tripician.com/community',
-          description: 'Real travel itineraries, trending journeys, and travel companions from the Tripician community.',
+          description:
+            'Real travel itineraries, after stories, trending journeys and travel companions from the Tripician community.',
         }}
       />
 
-      <Box sx={{ maxWidth: CONTENT_MAX, mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 3, md: 5 }, pb: 10 }}>
+      <Box sx={{ maxWidth: CONTENT_MAX, mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 3, md: 5 }, pb: { xs: 16, lg: 14 } }}>
         <motion.div initial="hidden" animate="visible" variants={staggerContainer(0.08, 0.05)}>
 
-          {/* ── Page header ── */}
+          {/* ── 1. Masthead ── */}
           <motion.div variants={staggerItem}>
-            {/* Layout for a tall action slot now lives in PageHeader itself, so
-                this page and Trips cannot drift apart again. */}
             <PageHeader
               title="Community"
-              subtitle="Real itineraries, published by the travellers who took them."
-              action={<QuickPlanCard token={token} />}
+              subtitle="What travellers are doing right now, the plans behind it, and how it actually went."
             />
           </motion.div>
 
-          {/* ── View tabs ── */}
+          {/* ── 2. Say something, and read what everyone else said ──
+              Starting one you are not moved to the Navia command bar, which is
+              docked on every browse surface rather than only on this page. */}
           <motion.div variants={staggerItem}>
-            <Tabs
-              value={activeView}
-              onChange={(_, v: ViewId) => setActiveView(v)}
-              sx={{ mt: { xs: 2.5, md: 3.5 }, borderBottom: `1px solid ${theme.custom.surface.border}`, minHeight: 44 }}
-            >
-              <Tab value="trips" label="Trips" disableRipple />
-              <Tab value="crew" label="Find crew" disableRipple />
-              <Tab value="templates" label="Templates" disableRipple />
-            </Tabs>
-          </motion.div>
+            <Box sx={{ display: 'flex', gap: { xs: 0, lg: 4 }, alignItems: 'flex-start', mt: { xs: 2.5, md: 3 } }}>
+              {/* Narrower than the grid, because a one line composer stretched to
+                  the full measure reads as a search bar rather than a place to write. */}
+              <Box sx={{ flex: 1, minWidth: 0, maxWidth: 720 }}>
+                <PostComposer onPosted={(p) => setPosts((prev) => [p, ...prev])} />
 
-          <AnimatePresence mode="wait">
-            <motion.div key={activeView} variants={tabContent} initial="initial" animate="animate" exit="exit" inherit={false}>
-
-              {/* ══ Trips view ══ */}
-              {activeView === 'trips' && (
-                <>
-                  {/* Toolbar: category chips + search */}
-                  <Box sx={{
-                    mt: 3, display: 'flex', gap: 1.5,
-                    flexDirection: { xs: 'column-reverse', md: 'row' },
-                    alignItems: { xs: 'stretch', md: 'center' },
-                    justifyContent: 'space-between',
-                  }}>
-                    <Box sx={{ ...hiddenScrollbarSx, gap: 1, minWidth: 0 }}>
-                      {CATEGORIES.map(cat => (
-                        <FilterChip
-                          key={cat.id}
-                          label={cat.label}
-                          Icon={cat.Icon}
-                          active={activeCategory === cat.id}
-                          onClick={() => setActiveCategory(cat.id)}
-                        />
+                {/* ── 2a. From the road ──
+                    The reason to reopen the page. Everything else here changes
+                    when somebody finishes a trip; this changes while they are on
+                    one. Reads `posts`, which is its own fetch, so it does not
+                    wait on the trips the rest of the page is built from. */}
+                <Box sx={{ mt: { xs: 4, md: 5 } }}>
+                  <SectionHeader
+                    title="From the road"
+                    subtitle="Travellers posting as it happens"
+                    action={<SeeAllLink to="/posts" />}
+                  />
+                  {railPosts.length > 0 ? (
+                    <Box sx={{ display: 'grid', gap: 1 }}>
+                      {railPosts.map((post) => (
+                        <PostCard key={post.id} post={post} onRemoved={dropPost} />
                       ))}
                     </Box>
-                    <SearchField
-                      value={search}
-                      onChange={setSearch}
-                      placeholder="Search destinations, trips, vibes…"
-                      sx={{ width: { xs: '100%', md: 320 }, flexShrink: 0 }}
-                    />
-                  </Box>
-
-                  {/* Loading */}
-                  {loading && (
-                    <Box sx={{ mt: 4 }}>
-                      <CardGridSkeleton count={6} minWidth={300} />
-                    </Box>
-                  )}
-
-                  {/* Error */}
-                  {!loading && error && (
-                    <ErrorState
-                      title="Couldn't load the community"
-                      description={error}
-                      onRetry={() => setReloadKey(k => k + 1)}
-                    />
-                  )}
-
-                  {/* Trip of the day */}
-                  {!loading && !error && tripOfTheDay && !isFiltering && (
-                    <Box sx={{ mt: 4 }}>
-                      <FeatureTripCard trip={tripOfTheDay} onClick={() => handleTripClick(tripOfTheDay)} />
-                    </Box>
-                  )}
-
-                  {/* Trip grid */}
-                  {!loading && !error && filtered.length > 0 && (
-                    <Box sx={{ mt: { xs: 5, md: 6 } }}>
-                      <SectionHeader
-                        title={search.trim()
-                          ? 'Search results'
-                          : activeCategory === 'all' ? 'Trending journeys' : `${activeCategoryLabel} trips`}
-                        subtitle={search.trim()
-                          ? `${filtered.length} ${filtered.length === 1 ? 'trip matches' : 'trips match'} “${search.trim()}”`
-                          : `${filtered.length} ${filtered.length === 1 ? 'trip' : 'trips'} from travellers, ranked by what people are discussing`}
-                      />
-                      <Box sx={gridSx}>
-                        <AnimatePresence mode="popLayout">
-                          {filtered.map((trip, i) => (
-                            <motion.div
-                              key={trip.id || i}
-                              layout
-                              initial={{ opacity: 0, y: 12 }}
-                              animate={{ opacity: 1, y: 0 }}
-                              exit={{ opacity: 0, scale: 0.98 }}
-                              transition={{ duration: 0.25, ease: [0.25, 0.46, 0.45, 0.94] }}
-                              style={{ height: '100%' }}
-                            >
-                              <CommunityTripCard trip={trip} onClick={() => handleTripClick(trip)} />
-                            </motion.div>
-                          ))}
-                        </AnimatePresence>
-                      </Box>
-                    </Box>
-                  )}
-
-                  {/* Empty state */}
-                  {!loading && !error && filtered.length === 0 && (
-                    <EmptyState
-                      icon={IconCompass}
-                      title="No trips found"
-                      description={isFiltering
-                        ? 'Try different search terms or clear the filters to see every published journey.'
-                        : 'No published trips yet - be the first to share an itinerary with the community.'}
-                      actionLabel={isFiltering ? 'Clear filters' : 'Plan a trip'}
-                      onAction={isFiltering
-                        ? () => { setSearch(''); setActiveCategory('all'); }
-                        : () => navigate('/tripplanner')}
-                    />
-                  )}
-
-                  {/* Travelers right now */}
-                  {crewSuggestions.length > 0 && (
-                    <Box sx={{ mt: { xs: 5, md: 6 } }}>
-                      <SectionHeader
-                        title="Travelers right now"
-                        subtitle="People who published trips"
-                        action={
-                          <Button variant="text" size="small" endIcon={<IconArrowRight size={15} />} onClick={() => setActiveView('crew')}>
-                            See all
-                          </Button>
-                        }
-                      />
-                      <Box sx={{ ...hiddenScrollbarSx, gap: 1.5 }}>
-                        {crewSuggestions.map((t: any) => (
-                          <Box
-                            key={t.userId}
-                            onClick={() => navigate(`/traveler/${t.userId}`)}
-                            sx={{
-                              display: 'flex', alignItems: 'center', gap: 1.25, flexShrink: 0,
-                              pl: 1, pr: 2.25, py: 1, borderRadius: 999, cursor: 'pointer',
-                              border: `1px solid ${theme.custom.surface.border}`,
-                              bgcolor: 'background.paper',
-                              transition: `all ${theme.custom.motion.duration.fast} ${theme.custom.motion.easing.standard}`,
-                              '&:hover': { borderColor: 'text.disabled', boxShadow: theme.custom.shadows.card },
-                            }}
-                          >
-                            <Avatar src={t.avatar || undefined} sx={{ width: 38, height: 38, fontSize: 15, bgcolor: 'primary.main' }}>
-                              {!t.avatar && (t.name || 'E').charAt(0).toUpperCase()}
-                            </Avatar>
-                            <Box sx={{ minWidth: 0 }}>
-                              <Typography noWrap sx={{ fontSize: 13, fontWeight: 600, color: 'text.primary', maxWidth: 130 }}>
-                                {(t.name || 'Explorer').split(' ')[0]}
-                              </Typography>
-                              <Typography noWrap sx={{ fontSize: 11.5, color: 'text.secondary', maxWidth: 130 }}>
-                                {t.destinations?.[0] || `${t.tripCount} trip${t.tripCount !== 1 ? 's' : ''}`}
-                              </Typography>
-                            </Box>
-                          </Box>
-                        ))}
-                      </Box>
-                    </Box>
-                  )}
-
-                  {/* Travel guides */}
-                  <Box sx={{ mt: { xs: 5, md: 6 } }}>
-                    <SectionHeader
-                      title="Travel guides"
-                      subtitle="City-by-city reads to shape your next itinerary"
-                      action={
-                        <Button variant="text" size="small" endIcon={<IconArrowRight size={15} />} onClick={() => navigate('/blog')}>
-                          Browse all
-                        </Button>
-                      }
-                    />
-                    <Box sx={{ ...hiddenScrollbarSx, gap: 2, pb: 1 }}>
-                      {(blogsData as any[]).slice(0, 6).map((blog: any) => (
-                        <BlogCard key={blog.id} blog={blog} onNavigate={(path) => navigate(path)} />
-                      ))}
-                    </Box>
-                  </Box>
-                </>
-              )}
-
-              {/* ══ Find crew view ══ */}
-              {activeView === 'crew' && (
-                <>
-                  {/* Search leads, filters follow. The old layout put a narrow
-                      destination box beside the vibe chips, which read as one more
-                      filter among several - so nothing on the tab suggested you
-                      could look someone up. */}
-                  <Box sx={{ mt: 3.5, maxWidth: 620 }}>
-                    <SearchField
-                      value={crewQuery}
-                      onChange={setCrewQuery}
-                      placeholder="Search travellers by name or destination…"
-                      sx={{ width: '100%', height: 50 }}
-                    />
-                  </Box>
-
-                  <Box sx={{ ...hiddenScrollbarSx, gap: 1, mt: 2 }}>
-                    {['', 'adventure', 'culture', 'urban', 'scenic', 'spiritual'].map(v => (
-                      <FilterChip
-                        key={v || 'any'}
-                        label={v ? (VIBES[v]?.label || v) : 'Any vibe'}
-                        active={crewVibe === v}
-                        onClick={() => setCrewVibe(v)}
-                      />
-                    ))}
-                  </Box>
-
-                  {/* Says what you are looking at, so a short list reads as an
-                      answer rather than as something failing to load. */}
-                  {!crewLoading && crewTravelers.length > 0 && (
-                    <Typography sx={{ mt: 3, fontSize: 13, color: 'text.secondary' }}>
-                      {crewQueryApplied
-                        ? `${crewTravelers.length} ${crewTravelers.length === 1 ? 'traveller' : 'travellers'} matching “${crewQueryApplied}”`
-                        : `Travellers who have published trips · search to find anyone`}
+                  ) : (
+                    <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                      Nobody has posted yet. Yours would be the first.
                     </Typography>
                   )}
+                </Box>
+              </Box>
 
-                  {crewLoading ? (
-                    <Box sx={{ mt: 4, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,1fr)', md: 'repeat(3,1fr)', lg: 'repeat(4,1fr)' }, gap: 2.5 }}>
-                      {Array.from({ length: 8 }).map((_, i) => (
-                        <Box key={i} sx={{ borderRadius: '18px', p: 2.25, border: `1px solid ${theme.custom.surface.border}`, bgcolor: 'background.paper' }}>
-                          <Box sx={{ display: 'flex', gap: 1.5, mb: 2 }}>
-                            <Skeleton variant="circular" width={48} height={48} />
-                            <Box sx={{ flex: 1 }}>
-                              <Skeleton variant="text" width="60%" height={18} />
-                              <Skeleton variant="text" width="40%" height={14} />
-                            </Box>
-                          </Box>
-                          <Skeleton variant="rounded" width="100%" height={32} sx={{ borderRadius: 999 }} />
-                        </Box>
-                      ))}
-                    </Box>
-                  ) : crewTravelers.length === 0 ? (
-                    /* Two different dead ends, and telling them apart is the
-                       difference between "you typo'd" and "nobody is here yet". */
-                    crewQueryApplied ? (
-                      <EmptyState
-                        icon={IconUsers}
-                        title={`No traveller matches “${crewQueryApplied}”`}
-                        description="Try part of a name, or a country someone has published a trip to."
-                      />
-                    ) : (
-                      <EmptyState
-                        icon={IconUsers}
-                        title="No published travellers yet"
-                        description={crewVibe
-                          ? 'Nobody has published a trip with this vibe. Clear the filter, or search for someone by name.'
-                          : 'Once people publish their trips they will show up here. You can still search for any member by name.'}
-                      />
-                    )
-                  ) : (
-                    <Box sx={{ mt: 4, display: 'grid', gridTemplateColumns: { xs: '1fr', sm: 'repeat(2,1fr)', md: 'repeat(3,1fr)', lg: 'repeat(4,1fr)' }, gap: 2.5 }}>
-                      {crewTravelers.map((t: any) => {
-                        const isConnected = connectedIds.has(t.userId);
-                        return (
-                          <Box
-                            key={t.userId}
-                            sx={{
-                              borderRadius: '18px', p: 2.25,
-                              border: `1px solid ${theme.custom.surface.border}`,
-                              bgcolor: 'background.paper',
-                              boxShadow: theme.custom.shadows.card,
-                              /* Equal height, button pinned to the bottom. Search
-                                 results mix publishers (who have a destinations
-                                 line) with members who do not, and a grid of cards
-                                 whose buttons sit at different heights is the main
-                                 thing that reads as unfinished. */
-                              height: '100%',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              transition: `box-shadow ${theme.custom.motion.duration.base} ${theme.custom.motion.easing.standard}, transform ${theme.custom.motion.duration.base} ${theme.custom.motion.easing.standard}`,
-                              '&:hover': { boxShadow: theme.custom.shadows.cardHover, transform: 'translateY(-2px)' },
-                            }}
-                          >
-                            <Box
-                              onClick={() => navigate(`/traveler/${t.userId}`)}
-                              sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.25, cursor: 'pointer', '&:hover .crew-name': { color: 'primary.main' } }}
-                            >
-                              <Avatar src={t.avatar || undefined} sx={{ width: 48, height: 48, fontSize: 17, bgcolor: 'primary.main' }}>
-                                {!t.avatar && (t.name || 'E').charAt(0).toUpperCase()}
-                              </Avatar>
-                              <Box sx={{ flex: 1, minWidth: 0 }}>
-                                <Typography noWrap className="crew-name" sx={{ fontSize: 14.5, fontWeight: 600, color: 'text.primary', transition: 'color 120ms' }}>
-                                  {t.name || 'Explorer'}
-                                </Typography>
-                                {/* The roster now includes members who have not published
-                                    yet, so "0 trips" is a normal state rather than an
-                                    error - say something human instead of a zero. */}
-                                <Typography noWrap sx={{ fontSize: 12, color: 'text.secondary' }}>
-                                  {t.tripCount > 0
-                                    ? `${t.tripCount} trip${t.tripCount !== 1 ? 's' : ''}`
-                                    : 'New here'}
-                                  {t.vibe ? ` · ${VIBES[t.vibe?.toLowerCase?.()]?.label || t.vibe}` : ''}
-                                </Typography>
-                              </Box>
-                            </Box>
-                            {Array.isArray(t.destinations) && t.destinations.length > 0 && (
-                              /* Same subhead treatment as the trip cards: bold for
-                                 structure, held back so it does not fight the name. */
-                              <Typography noWrap sx={{ fontSize: 12.5, fontWeight: 600, letterSpacing: '-0.005em', color: 'text.secondary', opacity: 0.72, mb: 1.5 }}>
-                                {t.destinations.slice(0, 3).join(' · ')}
-                                {t.destinations.length > 3 ? ` · +${t.destinations.length - 3}` : ''}
-                              </Typography>
-                            )}
-                            <Button
-                              onClick={() => handleFollow(t)}
-                              size="small"
-                              fullWidth
-                              variant="outlined"
-                              disabled={connectingId === t.userId}
-                              startIcon={isConnected ? <IconCheck size={15} /> : <IconUserPlus size={15} />}
-                              sx={{
-                                mt: 'auto', // pins to the card's bottom edge
-                                ...(isConnected
-                                  ? { borderColor: 'success.main', color: 'success.main', '&:hover': { borderColor: 'success.main', color: 'success.main', bgcolor: alpha(theme.palette.success.main, 0.06) } }
-                                  : {}),
-                              }}
-                            >
-                              {connectingId === t.userId ? 'Connecting…' : isConnected ? 'Following' : 'Connect'}
-                            </Button>
-                          </Box>
-                        );
-                      })}
-                    </Box>
-                  )}
-                </>
-              )}
+              <Box
+                sx={{
+                  display: { xs: 'none', lg: 'block' },
+                  width: 300, flexShrink: 0, position: 'sticky', top: 72,
+                }}
+              >
+                <RecruitingRail trips={openTrips} onTripClick={handleTripClick} />
+              </Box>
+            </Box>
+          </motion.div>
 
-              {/* ══ Templates view ══ */}
-              {activeView === 'templates' && (
-                <Box sx={{ mt: 4 }}>
-                  {templatesLoading ? (
-                    <CardGridSkeleton count={6} minWidth={300} />
-                  ) : templates.length === 0 ? (
-                    <EmptyState
-                      icon={IconSparkles}
-                      title="No templates yet"
-                      description="Be the first to publish a community trip template."
-                      actionLabel="Plan a trip"
-                      onAction={() => navigate('/tripplanner')}
-                    />
-                  ) : (
-                    <Box sx={gridSx}>
-                      {templates.map((t: any, i: number) => (
-                        <CommunityTripCard key={t.id || i} trip={t} onClick={() => handleTripClick(t)} />
-                      ))}
-                    </Box>
-                  )}
+          {/* ── 2b. Trips looking for people, below lg ──
+              The rail beside the feed is desktop only. Here nothing is reserved,
+              so this appears only when there is something in it: an empty panel
+              holds a slot open, and below lg there is no slot to hold. */}
+          {openTrips.length > 0 && (
+            <motion.div variants={staggerItem}>
+              <Box
+                id="looking-for-people"
+                sx={{ display: { xs: 'block', lg: 'none' }, mt: { xs: 4, md: 5 } }}
+              >
+                <RecruitingRail trips={openTrips} onTripClick={handleTripClick} />
+              </Box>
+            </motion.div>
+          )}
+
+          {loading && (
+            <Box sx={{ mt: 4 }}>
+              <CardGridSkeleton count={6} minWidth={300} />
+            </Box>
+          )}
+
+          {!loading && error && (
+            <Box sx={{ mt: 4 }}>
+              <ErrorState
+                title="Couldn't load the community"
+                description={error}
+                onRetry={reload}
+              />
+            </Box>
+          )}
+
+          {!loading && !error && (
+            <>
+              {/* ── 3. Editor's choice ──
+                  Portrait story cards against the landscape trip rail below, so
+                  two adjacent rails still read as two different things. */}
+              {FEATURE_FLAGS.afterStory && editorsChoice.length > 0 && (
+                <Box sx={{ mt: { xs: 5, md: 6 } }}>
+                  <SectionHeader
+                    title="Editor's choice"
+                    subtitle="Writing we think is worth your time, picked by hand"
+                    action={<SeeAllLink to="/stories" />}
+                  />
+                  <ScrollRail gap={2.5} ariaLabel="Editor's choice stories">
+                    {editorsChoice.map((st) => (
+                      <Box key={st.id} sx={{ flexShrink: 0, width: { xs: 220, sm: 252 } }}>
+                        <StoryCard story={st} />
+                      </Box>
+                    ))}
+                  </ScrollRail>
                 </Box>
               )}
 
-            </motion.div>
-          </AnimatePresence>
+              {/* ── 4. The filter ──
+                  Everything ABOVE this is the reader's own feed and is never
+                  filtered. Everything below it answers the chips and the search.
+                  A post carries no vibe - its tags are practical ones like visas
+                  and flights - so From the road sits above the line rather than
+                  emptying out under a chip that could never match it. */}
+              <Box
+                sx={{
+                  mt: { xs: 4, md: 5 },
+                  display: 'flex',
+                  gap: 1.5,
+                  flexDirection: { xs: 'column-reverse', md: 'row' },
+                  alignItems: { xs: 'stretch', md: 'center' },
+                  justifyContent: 'space-between',
+                }}
+              >
+                <ChipRail sx={{ flex: 1, minWidth: 0 }}>
+                  {CATEGORIES.map((c) => (
+                    <FilterChip
+                      key={c.id}
+                      label={c.label}
+                      Icon={c.Icon}
+                      active={activeCategory === c.id}
+                      onClick={() => setActiveCategory(c.id)}
+                    />
+                  ))}
+                </ChipRail>
+                <SearchField
+                  value={search}
+                  onChange={setSearch}
+                  placeholder="Search destinations, trips, vibes..."
+                  sx={{ width: { xs: '100%', md: 320 }, flexShrink: 0 }}
+                />
+              </Box>
+
+              {/* ── 5. Happening now ──
+                  Real records only, so this has something to show on an install
+                  with almost no published trips. */}
+              {!isFiltering && <ActivityFeed />}
+
+              {/* ── 6. After stories, only when nobody has picked one ──
+                  Editor's choice is the story rail when it has content. This
+                  stands in for it otherwise, so a community with writers but no
+                  picks still opens with a story block rather than trips alone. */}
+              {FEATURE_FLAGS.afterStory && !isFiltering && railStories.length > 0 && (
+                <StoryStrip
+                  stories={railStories}
+                  subtitle="What the trips were actually like, written by the people who went"
+                  seeAllHref="/stories"
+                />
+              )}
+
+              {/* ── 7. The feed: itineraries and stories together ──
+                  One grid, both kinds, filtered by the same chips and the same
+                  search box. The two cards are deliberately different shapes -
+                  a trip is landscape and bordered, a story is 4:5 and borderless
+                  with its type on the photograph - so which is which is legible
+                  at thumbnail size without a badge explaining it.
+
+                  `alignItems: start` because those two shapes have different
+                  heights: stretching would pad the shorter card to match its
+                  neighbour and throw away the silhouette that does the work. */}
+              <Box sx={{ mt: { xs: 5, md: 6 } }}>
+                <SectionHeader
+                  title={
+                    search.trim()
+                      ? 'Search results'
+                      : activeCategory === 'all'
+                        ? 'From the community'
+                        : `${activeCategoryLabel}`
+                  }
+                  subtitle={
+                    isFiltering
+                      ? describeFeed(filteredTrips.length, filteredStories.length)
+                      : 'Itineraries people published, and the stories of how they actually went'
+                  }
+                  action={<SeeAllLink to="/trips" label="All trips" />}
+                />
+
+                {feed.length > 0 ? (
+                  <Box sx={{ ...gridSx, alignItems: 'start' }}>
+                    <AnimatePresence mode="popLayout">
+                      {feed.map((item) => (
+                        <motion.div key={item.key} layout variants={staggerItem}>
+                          {item.kind === 'trip' ? (
+                            <CommunityTripCard trip={item.data} onClick={() => handleTripClick(item.data)} />
+                          ) : item.kind === 'story' ? (
+                            <StoryCard story={item.data} />
+                          ) : (
+                            <PostCard post={item.data} showTypeTag onRemoved={dropPost} />
+                          )}
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </Box>
+                ) : (
+                  <EmptyState
+                    icon={IconCompass}
+                    title="Nothing here yet"
+                    description={
+                      isFiltering
+                        ? 'No trips or stories match that yet. Try another vibe, or clear the filters.'
+                        : 'Once travellers publish their itineraries and stories they will show up here.'
+                    }
+                    {...(isFiltering
+                      ? {
+                          actionLabel: 'Clear filters',
+                          onAction: () => {
+                            setActiveCategory('all');
+                            setSearch('');
+                          },
+                        }
+                      : { actionLabel: 'Plan a trip', onAction: () => navigate('/tripplanner') })}
+                  />
+                )}
+              </Box>
+
+              {/* ── 9. After stories, below the plans ──
+                  A pitch, not a second rail. The stories themselves are in the
+                  feed above; repeating those cards here is the duplication the
+                  hero was once wrongly cut for. What was missing is the ask -
+                  a page full of other people's trips never suggested you write
+                  one of your own.
+
+                  Hidden during a search, on the same rule as everything else
+                  below the results: a search should answer the search. */}
+              {FEATURE_FLAGS.afterStory && !isFiltering && (
+                <Box
+                  sx={{
+                    mt: { xs: 5, md: 7 },
+                    p: { xs: 3, md: 5 },
+                    borderRadius: '20px',
+                    border: `1px solid ${theme.custom.surface.border}`,
+                    bgcolor: theme.custom.surface.brandTint,
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: 3,
+                    flexWrap: 'wrap',
+                  }}
+                >
+                  <Box sx={{ flex: 1, minWidth: 260 }}>
+                    <Typography variant="overline" sx={{ color: 'primary.main' }}>
+                      After stories
+                    </Typography>
+                    <Typography
+                      variant="h4"
+                      component="h2"
+                      sx={{ color: 'text.primary', mt: 0.5 }}
+                    >
+                      You came back with more than photos
+                    </Typography>
+                    <Typography
+                      variant="body2"
+                      sx={{ color: 'text.secondary', mt: 1.25, maxWidth: '60ch', lineHeight: 1.7 }}
+                    >
+                      The part nobody writes down is the part everyone wants to read. Say how the
+                      trip actually went, keep it as a printed book, and send the next traveller
+                      somewhere worth going.
+                    </Typography>
+                  </Box>
+                  <Box sx={{ display: 'flex', gap: 1.5, flexWrap: 'wrap' }}>
+                    <Button
+                      variant="contained"
+                      startIcon={<IconFeather size={16} />}
+                      onClick={() => window.dispatchEvent(new CustomEvent('story:create'))}
+                    >
+                      Share your story
+                    </Button>
+                    <Button variant="outlined" onClick={() => navigate('/stories')}>
+                      Read others first
+                    </Button>
+                  </Box>
+                </Box>
+              )}
+            </>
+          )}
         </motion.div>
       </Box>
     </Box>

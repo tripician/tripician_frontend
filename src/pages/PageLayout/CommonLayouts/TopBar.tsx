@@ -1,4 +1,6 @@
 import React from "react";
+import { BRAND } from '../../../theme';
+import { alpha } from '@mui/material/styles';
 import { Box, Typography, IconButton, Avatar, Tooltip, Popover, Divider, List, ListItemButton, ListItemText, ListItemIcon, Button } from "@mui/material";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import NotificationsOffOutlinedIcon from "@mui/icons-material/NotificationsOffOutlined";
@@ -96,7 +98,7 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode, sh
             sx={{
               display: { xs: 'flex', md: 'none' },
               width: 34, height: 34, borderRadius: '10px', flexShrink: 0,
-              '&:hover': { backgroundColor: 'rgba(255,56,92,0.07)' },
+              '&:hover': { backgroundColor: alpha(BRAND.coral, 0.07) },
             }}
           >
             <MenuRoundedIcon sx={{ fontSize: 22, color: 'text.secondary' }} />
@@ -124,14 +126,13 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode, sh
                   display: { xs: 'none', sm: 'inline-flex' },
                   borderRadius: '50px',
                   textTransform: 'none',
-                  fontFamily: "'Inter',sans-serif",
                   fontWeight: 600,
                   fontSize: '0.82rem',
                   px: 1.75,
                   py: 0.6,
                   borderColor: 'divider',
                   color: 'text.primary',
-                  '&:hover': { borderColor: '#FF385C', color: '#FF385C', bgcolor: 'transparent' },
+                  '&:hover': { borderColor: 'primary.main', color: 'primary.main', bgcolor: 'transparent' },
                 }}
               >
                 Sign In
@@ -143,7 +144,6 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode, sh
                 sx={{
                   borderRadius: '50px',
                   textTransform: 'none',
-                  fontFamily: "'Inter',sans-serif",
                   fontWeight: 700,
                   fontSize: '0.82rem',
                   px: 1.75,
@@ -166,7 +166,7 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode, sh
                 borderRadius: '10px',
                 transition: 'background 0.18s ease, transform 0.18s ease',
                 '&:hover': {
-                  backgroundColor: 'rgba(255,56,92,0.07)',
+                  backgroundColor: alpha(BRAND.coral, 0.07),
                   transform: 'scale(1.06)',
                 },
               }}
@@ -199,8 +199,7 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode, sh
                 alt={displayName}
                 sx={{
                   width: 34, height: 34,
-                  bgcolor: '#FF385C',
-                  fontFamily: "'Inter', sans-serif",
+                  bgcolor: 'primary.main',
                   fontWeight: 700,
                   fontSize: '0.85rem',
                   letterSpacing: '-0.01em',
@@ -234,17 +233,17 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode, sh
         }}
       >
         <Box sx={{ px: 2.5, pt: 2, pb: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', color: 'text.primary' }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: 'text.primary' }}>
             Notifications
           </Typography>
         </Box>
         <Divider />
         <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 5, px: 3, gap: 1.5 }}>
           <NotificationsOffOutlinedIcon sx={{ fontSize: 38, color: 'text.disabled' }} />
-          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 600, fontSize: '0.875rem', color: 'text.secondary' }}>
+          <Typography sx={{ fontWeight: 600, fontSize: '0.875rem', color: 'text.secondary' }}>
             All quiet on the horizon
           </Typography>
-          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontSize: '0.78rem', color: 'text.disabled', textAlign: 'center' }}>
+          <Typography sx={{ fontSize: '0.78rem', color: 'text.disabled', textAlign: 'center' }}>
             Followers, invites & trip updates will land here.
           </Typography>
         </Box>
@@ -275,15 +274,14 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode, sh
             src={profile?.profilepicture || undefined}
             sx={{
               width: 60, height: 60,
-              bgcolor: '#FF385C',
-              fontFamily: "'Inter', sans-serif",
+              bgcolor: 'primary.main',
               fontWeight: 700,
               fontSize: '1.5rem',
               color: '#fff',
             }}
           >{!profile?.profilepicture && initials}</Avatar>
           <Box sx={{ textAlign: 'center', minWidth: 0, width: '100%' }}>
-            <Typography sx={{ fontFamily:"'Inter',sans-serif", fontWeight: 700, fontSize:'0.975rem', letterSpacing:'-0.01em', color:'text.primary' }} noWrap>
+            <Typography sx={{ fontWeight: 700, fontSize:'0.975rem', letterSpacing:'-0.01em', color:'text.primary' }} noWrap>
               {displayName === 'T' ? 'Traveler' : displayName}
             </Typography>
             <Typography sx={{ fontSize:'0.73rem', color:'text.disabled', mt: 0.2 }} noWrap>
@@ -315,7 +313,7 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode, sh
               }}
             >
               <ListItemIcon sx={{ minWidth: 32, color: 'inherit' }}>{icon}</ListItemIcon>
-              <ListItemText primary={label} primaryTypographyProps={{ fontSize: 13, fontWeight: 500, fontFamily: "'Inter',sans-serif" }} />
+              <ListItemText primary={label} primaryTypographyProps={{ fontSize: 13, fontWeight: 500,}} />
             </ListItemButton>
           ))}
         </List>
@@ -325,13 +323,13 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode, sh
             onClick={handleLogout}
             sx={{
               px: 1.5, py: 0.9, borderRadius: '10px',
-              color: '#FF385C',
-              '&:hover': { bgcolor: 'rgba(255,56,92,0.07)' },
+              color: 'primary.main',
+              '&:hover': { bgcolor: alpha(BRAND.coral, 0.07) },
               transition: 'all 0.15s',
             }}
           >
             <ListItemIcon sx={{ minWidth: 32, color: 'inherit' }}><LogoutIcon sx={{ fontSize: 17 }} /></ListItemIcon>
-            <ListItemText primary="Log out" primaryTypographyProps={{ fontSize: 13, fontWeight: 600, fontFamily:"'Inter',sans-serif" }} />
+            <ListItemText primary="Log out" primaryTypographyProps={{ fontSize: 13, fontWeight: 600,}} />
           </ListItemButton>
         </Box>
       </Popover>

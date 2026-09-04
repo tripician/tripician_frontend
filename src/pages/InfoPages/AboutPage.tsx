@@ -1,4 +1,5 @@
 import React from 'react';
+import { BRAND } from '../../theme';
 import { Box, Typography, Container, Button } from '@mui/material';
 import { Link } from 'react-router-dom';
 import InfoPageShell from './InfoPageShell';
@@ -43,14 +44,14 @@ const AboutPage: React.FC = () => (
     <Box sx={{ background: 'linear-gradient(135deg,#FFF5F6 0%,#FFFAFA 100%)', borderBottom: '1px solid rgba(0,0,0,0.06)', px: { xs: 3, md: 8 }, py: { xs: 6, md: 8 } }}>
       <Container maxWidth="md">
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 3 }}>
-          <Box sx={{ width: 40, height: 40, borderRadius: '12px', background: 'linear-gradient(135deg,#FF385C,#D91A50)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+          <Box sx={{ width: 40, height: 40, borderRadius: '12px', background: `linear-gradient(135deg,${BRAND.coral},${BRAND.coralDeep})`, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
             <ExploreRoundedIcon sx={{ color: '#fff', fontSize: 22 }} />
           </Box>
-          <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: '#FF385C', letterSpacing: '0.1em', textTransform: 'uppercase' }}>About Us</Typography>
+          <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'primary.main', letterSpacing: '0.1em', textTransform: 'uppercase' }}>About Us</Typography>
         </Box>
         <Typography variant="h2" sx={{ fontWeight: 700, fontSize: { xs: '2rem', md: '2.8rem' }, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.15, mb: 2 }}>
           We believe great trips are built{' '}
-          <Box component="span" sx={{ color: '#FF385C' }}>together</Box>.
+          <Box component="span" sx={{ color: 'primary.main' }}>together</Box>.
         </Typography>
         <Typography sx={{ fontSize: '1.05rem', color: '#666', lineHeight: 1.75, maxWidth: 600 }}>
           Tripician is a global community for travellers - the people who find their travel tribe here, plan as a crew, and let Navia handle the busywork in between.
@@ -61,7 +62,7 @@ const AboutPage: React.FC = () => (
     <Container maxWidth="md" sx={{ py: { xs: 5, md: 8 } }}>
       {/* Story */}
       <Box sx={{ background: '#fff', borderRadius: '16px', p: { xs: 3, md: 5 }, border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 2px 20px rgba(0,0,0,0.05)', mb: 3 }}>
-        <Typography sx={{ fontWeight: 700, color: '#111', mb: 2.5, fontSize: '1.1rem' }}>Our Story</Typography>
+        <Typography variant="h4" component="h2" sx={{ mb: 2.5 }}>Our Story</Typography>
         <Typography sx={{ color: '#444', lineHeight: 1.85, mb: 2, fontSize: '0.95rem' }}>
           Planning a group trip to Southeast Asia, our founders found themselves bouncing between spreadsheets, messaging threads, documents, and booking sites - losing context, losing time, and nearly losing their minds.
         </Typography>
@@ -77,7 +78,7 @@ const AboutPage: React.FC = () => (
       </Box>
 
       {/* Mission */}
-      <Box sx={{ background: 'linear-gradient(135deg,#FF385C,#D91A50)', borderRadius: '16px', p: { xs: 3, md: 5 }, mb: 3, color: '#fff' }}>
+      <Box sx={{ background: `linear-gradient(135deg,${BRAND.coral},${BRAND.coralDeep})`, borderRadius: '16px', p: { xs: 3, md: 5 }, mb: 3, color: '#fff' }}>
         <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.75, mb: 1.5 }}>Our Mission</Typography>
         <Typography sx={{ fontWeight: 700, fontSize: { xs: '1.1rem', md: '1.35rem' }, lineHeight: 1.5 }}>
           "To build the global community where every traveller finds their tribe - and a plan they can trust enough to book."
@@ -85,11 +86,11 @@ const AboutPage: React.FC = () => (
       </Box>
 
       {/* Values */}
-      <Typography sx={{ fontWeight: 700, color: '#111', mb: 2.5, fontSize: '1.1rem' }}>What We Stand For</Typography>
+      <Typography variant="h4" component="h2" sx={{ mb: 2.5 }}>What We Stand For</Typography>
       <Box sx={{ display: 'grid', gridTemplateColumns: { xs: '1fr', sm: '1fr 1fr' }, gap: 2.5, mb: 4 }}>
         {VALUES.map(({ Icon, title, desc }) => (
           <Box key={title} sx={{ background: '#fff', borderRadius: '14px', p: 3, border: '1px solid rgba(0,0,0,0.07)', boxShadow: '0 2px 12px rgba(0,0,0,0.04)' }}>
-            <Icon sx={{ color: '#FF385C', fontSize: 28, mb: 1.5 }} />
+            <Icon sx={{ color: 'primary.main', fontSize: 28, mb: 1.5 }} />
             <Typography sx={{ fontWeight: 700, color: '#111', mb: 0.75, fontSize: '0.95rem' }}>{title}</Typography>
             <Typography sx={{ color: '#555', fontSize: '0.87rem', lineHeight: 1.7 }}>{desc}</Typography>
           </Box>
@@ -99,7 +100,7 @@ const AboutPage: React.FC = () => (
       {/* Important disclaimer */}
       <Box sx={{ background: '#FFFBF0', borderRadius: '12px', p: 2.5, border: '1px solid rgba(202,138,4,0.2)', mb: 4 }}>
         <Typography sx={{ fontSize: '0.82rem', color: '#78350F', lineHeight: 1.7 }}>
-          <strong>Disclaimer:</strong> Tripician is a trip planning and organisation software platform. We are not a travel agency, tour operator, or travel service provider of any kind. We do not book travel or take responsibility for actual travel arrangements, visas, insurance, or safety at any destination.
+          <strong>Disclaimer:</strong> Tripician is a trip planning and organisation software platform. We are not a travel agency, tour operator, or travel service provider of any kind. We do not book travel or take responsibility for actual travel arrangements, visas, insurance, or safety at any destination. Some trips are run by independent travel businesses we approve individually and name on the trip; if you enquire about one, and only with your explicit agreement, we pass your enquiry to them. Any booking that follows is between you and that business, and we take no payment for it. <Box component={Link} to="/for-operators" sx={{ color: 'inherit', fontWeight: 700 }}>Run trips yourself?</Box>
         </Typography>
       </Box>
 
@@ -116,7 +117,7 @@ const AboutPage: React.FC = () => (
             Start for free
           </Button>
           <Button component={Link} to="/contact-us" variant="outlined"
-            sx={{ borderRadius: '50px', fontWeight: 600, textTransform: 'none', px: 3, borderColor: 'rgba(0,0,0,0.2)', color: '#444', '&:hover': { borderColor: '#FF385C', color: '#FF385C' } }}>
+            sx={{ borderRadius: '50px', fontWeight: 600, textTransform: 'none', px: 3, borderColor: 'rgba(0,0,0,0.2)', color: '#444', '&:hover': { borderColor: 'primary.main', color: 'primary.main' } }}>
             Get in touch
           </Button>
         </Box>
@@ -124,9 +125,9 @@ const AboutPage: React.FC = () => (
 
       <Typography sx={{ textAlign: 'center', color: '#bbb', fontSize: '0.77rem', mt: 5 }}>
         Tripician © {new Date().getFullYear()} ·{' '}
-        <Box component={Link} to="/privacy-policy" sx={{ color: '#bbb', textDecoration: 'none', '&:hover': { color: '#FF385C' } }}>Privacy</Box>{' '}·{' '}
-        <Box component={Link} to="/terms-and-conditions" sx={{ color: '#bbb', textDecoration: 'none', '&:hover': { color: '#FF385C' } }}>Terms</Box>{' '}·{' '}
-        <Box component={Link} to="/contact-us" sx={{ color: '#bbb', textDecoration: 'none', '&:hover': { color: '#FF385C' } }}>Contact</Box>
+        <Box component={Link} to="/privacy-policy" sx={{ color: '#bbb', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}>Privacy</Box>{' '}·{' '}
+        <Box component={Link} to="/terms-and-conditions" sx={{ color: '#bbb', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}>Terms</Box>{' '}·{' '}
+        <Box component={Link} to="/contact-us" sx={{ color: '#bbb', textDecoration: 'none', '&:hover': { color: 'primary.main' } }}>Contact</Box>
       </Typography>
     </Container>
   </InfoPageShell>

@@ -11,7 +11,6 @@ interface BioHighlight {
 }
 
 interface UserProfile {
-  bannertint: string | undefined;
   id?: string;
   email?: string;
   fname?: string;
@@ -28,7 +27,10 @@ interface UserProfile {
   twitter?: string;
   instagram?: string;
   website?: string;
-  // add more fields if backend returns them (dob, phone, etc.)
+  /** ISO date the account was created. Sent as CreatedAt. */
+  joinedAt?: string;
+  /** ISO date, or absent when the traveller has not verified. */
+  identityVerifiedAt?: string;
 }
 
 interface UserState {
@@ -68,7 +70,6 @@ const normalizeProfile = (raw: any, previous: UserProfile | null = null): UserPr
 
   const source = raw ?? {};
   const base: UserProfile = {
-    bannertint: previous?.bannertint,
     id: previous?.id,
     email: previous?.email,
     fname: previous?.fname,
@@ -85,6 +86,8 @@ const normalizeProfile = (raw: any, previous: UserProfile | null = null): UserPr
     twitter: previous?.twitter,
     instagram: previous?.instagram,
     website: previous?.website,
+    joinedAt: previous?.joinedAt,
+    identityVerifiedAt: previous?.identityVerifiedAt,
   };
 
   const assign = (field: keyof UserProfile, keys: string[]) => {
@@ -98,7 +101,6 @@ const normalizeProfile = (raw: any, previous: UserProfile | null = null): UserPr
     }
   };
 
-  assign('bannertint', ['bannertint', 'bannerTint', 'BannerTint']);
   assign('id', ['id', 'Id', 'userId', 'UserId', 'userID']);
   assign('email', ['email', 'Email', 'userEmail', 'UserEmail']);
   assign('fname', ['fname', 'Fname', 'firstName', 'FirstName']);
@@ -115,6 +117,8 @@ const normalizeProfile = (raw: any, previous: UserProfile | null = null): UserPr
   assign('twitter', ['twitter', 'Twitter', 'twitterUrl', 'TwitterUrl']);
   assign('instagram', ['instagram', 'Instagram', 'instagramUrl', 'InstagramUrl']);
   assign('website', ['website', 'Website', 'site', 'Site']);
+  assign('joinedAt', ['joinedAt', 'JoinedAt', 'createdAt', 'CreatedAt']);
+  assign('identityVerifiedAt', ['identityVerifiedAt', 'IdentityVerifiedAt']);
 
   return base;
 };

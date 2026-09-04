@@ -5,7 +5,7 @@
 .rm-page {
   min-height: 100vh;
   background: #f4f6fb;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
 }
 
 /*  HERO  */
@@ -95,10 +95,10 @@
   font-weight: 700;
   letter-spacing: 0.12em;
   text-transform: uppercase;
-  color: #FF385C;
-  background: rgba(255, 56, 92, 0.12);
-  border: 1px solid rgba(255, 56, 92, 0.35);
-  font-family: 'Inter', system-ui, sans-serif;
+  color: var(--brand);
+  background: rgb(var(--brand-rgb) / 0.12);
+  border: 1px solid rgb(var(--brand-rgb) / 0.35);
+  font-family: var(--font-body);
   font-style: normal;
   line-height: 1;
   position: relative;
@@ -108,7 +108,6 @@
 .rm-hero__title {
   font-size: 2.6rem;
   font-weight: 700;
-  font-family: var(--font-display);
   font-style: italic;
   color: #f1f5f9;
   margin: 0 0 14px;
@@ -118,7 +117,7 @@
 
 .rm-hero__sub {
   font-size: 0.97rem;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
   color: rgba(241,245,249,0.52);
   margin: 0 0 20px;
   line-height: 1.65;
@@ -135,7 +134,7 @@
   border-radius: 10px;
   background: rgba(251, 191, 36, 0.07);
   border: 1px solid rgba(251, 191, 36, 0.28);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
   font-size: 0.82rem;
   line-height: 1.6;
   color: rgba(241, 245, 249, 0.68);
@@ -179,7 +178,7 @@
   border-radius: 14px;
   color: #f1f5f9;
   font-size: 0.95rem;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
   outline: none;
   transition: border-color 0.2s, background 0.2s, box-shadow 0.2s;
   box-sizing: border-box;
@@ -272,7 +271,7 @@
   border-radius: 999px;
   color: rgba(241,245,249,0.75);
   font-size: 0.8rem;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
   padding: 5px 13px;
   cursor: pointer;
   transition: all 0.2s;
@@ -307,7 +306,7 @@
 
 .rm-dest-bar__left    { display: flex; align-items: center; gap: 14px; }
 .rm-dest-bar__flag    { font-size: 2.4rem; line-height: 1; }
-.rm-dest-bar__name    { font-size: 1.4rem; font-weight: 700; font-family: var(--font-display); color: #0f172a; margin: 0 0 2px; }
+.rm-dest-bar__name    { font-size: 1.4rem; font-weight: 700; color: #0f172a; margin: 0 0 2px; }
 .rm-dest-bar__region  { font-size: 0.82rem; color: #64748b; margin: 0; }
 .rm-dest-bar__updated { font-size: 0.75rem; color: #94a3b8; }
 .rm-dest-bar__live {
@@ -461,7 +460,7 @@
 .rm-tab-btn {
   font-size: 0.85rem;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
   color: #64748b;
   background: none;
   border: none;
@@ -673,7 +672,7 @@
 .rm-stats-strip__num {
   font-size: 1.3rem;
   font-weight: 700;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
   color: #f1f5f9;
   letter-spacing: -0.02em;
   line-height: 1;
@@ -723,7 +722,7 @@
   border-radius: 999px;
   padding: 7px 14px 7px 10px;
   cursor: pointer;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
   transition: all 0.2s;
   box-shadow: 0 2px 6px rgba(0,0,0,0.06);
 }
@@ -746,7 +745,6 @@
 .rm-welcome__heading {
   font-size: 1.05rem;
   font-weight: 700;
-  font-family: var(--font-display);
   color: #0f172a;
   margin: 0;
   letter-spacing: -0.01em;
@@ -794,7 +792,7 @@
 .rm-region-tab {
   font-size: 0.78rem;
   font-weight: 600;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
   color: #64748b;
   background: #fff;
   border: 1px solid rgba(0,0,0,0.1);
@@ -835,7 +833,7 @@
   text-align: left;
   transition: all 0.22s;
   box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
   width: 100%;
 }
 .rm-welcome-card:hover {
@@ -919,8 +917,8 @@
   width: 56px;
   height: 56px;
   border-radius: 14px;
-  background: rgba(255, 56, 92, 0.12);
-  border: 1px solid rgba(255, 56, 92, 0.28);
+  background: rgb(var(--brand-rgb) / 0.12);
+  border: 1px solid rgb(var(--brand-rgb) / 0.28);
   flex-shrink: 0;
 }
 
@@ -958,7 +956,7 @@
   letter-spacing: 0.14em;
   text-transform: uppercase;
   color: #22c55e;
-  font-family: 'Inter', sans-serif;
+  font-family: var(--font-body);
   flex-shrink: 0;
 }
 

@@ -30,6 +30,7 @@
  * through this module.
  */
 
+import React from 'react';
 import covers from '../assets/covers.json';
 import { fetchUnsplashImage } from '../services/unsplashService';
 
@@ -118,4 +119,43 @@ export async function resolveTripCover(trip: TripCoverSource | null | undefined)
   if (immediate) return immediate;
   const fromUnsplash = await fetchUnsplashImage(tripCoverQuery(trip), 'landscape');
   return fromUnsplash ?? defaultCover();
+}
+
+/**
+ * The synchronous photo now, upgraded to a resolved one if it has to be fetched.
+ *
+ * Every card surface needs exactly this, and three of them had grown their own
+ * copy of it: Community and Trip of the day ran the async fallback, Profile did
+ * not. A trip whose country is absent from `covers.json` - "Abu Dhabi" resolves
+ * to no curated cover - therefore had a real photograph on Community and a grey
+ * placeholder on Profile, which is the sort of drift the module above exists to
+ * prevent. The network call only happens when both the banner and the curated
+ * cover come up empty.
+ */
+export function useTripCover(trip: TripCoverSource | null | undefined): string | null {
+  const banner = savedBanner(trip);
+  const countryKey = primaryCountry(trip) ?? '';
+  const nameKey = trip?.name ?? trip?.title ?? '';
+
+  const [photo, setPhoto] = React.useState<string | null>(() => tripCoverPhoto(trip));
+
+  React.useEffect(() => {
+    const immediate = tripCoverPhoto(trip);
+    if (immediate) {
+      setPhoto(immediate);
+      return;
+    }
+    let cancelled = false;
+    void resolveTripCover(trip).then((url) => {
+      if (!cancelled && url) setPhoto(url);
+    });
+    return () => {
+      cancelled = true;
+    };
+    // Keyed on what actually decides the photo, not on the trip object, which is
+    // a fresh reference on every render of a list.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [banner, countryKey, nameKey]);
+
+  return photo;
 }

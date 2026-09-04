@@ -1,4 +1,6 @@
 import React from "react";
+import { BRAND } from '../../theme';
+import { alpha } from '@mui/material/styles';
 import { Box } from "@mui/material";
 import { User, Bell, Shield, Globe, Coins } from "lucide-react";
 import { motion } from 'framer-motion';
@@ -32,15 +34,14 @@ const SettingsTopNav: React.FC<SettingsTopNavProps> = ({ selectedSettingsMenuIte
             display: 'flex', alignItems: 'center', gap: 1.5,
             px: 1.5, py: 1.1, borderRadius: '10px',
             cursor: 'pointer',
-            fontFamily: "'Inter', sans-serif",
             fontWeight: active ? 600 : 500,
             fontSize: '0.875rem',
-            color: active ? '#FF385C' : 'text.secondary',
-            bgcolor: active ? 'rgba(255,56,92,0.08)' : 'transparent',
+            color: active ? 'primary.main' : 'text.secondary',
+            bgcolor: active ? alpha(BRAND.coral, 0.08) : 'transparent',
             userSelect: 'none',
             '&:hover': {
-              bgcolor: active ? 'rgba(255,56,92,0.1)' : 'action.hover',
-              color: active ? '#FF385C' : 'text.primary',
+              bgcolor: active ? alpha(BRAND.coral, 0.1) : 'action.hover',
+              color: active ? 'primary.main' : 'text.primary',
             },
             transition: 'all 0.15s ease',
           }}
