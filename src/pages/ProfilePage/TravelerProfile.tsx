@@ -15,11 +15,13 @@ import {
   IconLink,
   IconMapPin,
   IconUserPlus,
+  IconArrowRight,
 } from '@tabler/icons-react';
 import type { RootState } from '../../store';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { tripPath } from '../../utils/tripSlug';
+import { describeSpots } from '../../seats/types';
 import { safeExternalUrl } from '../../utils/sanitizeHtml';
 import Seo from '../../components/Seo';
 import CommunityTripCard from '../CommunityPage/CommunityTripCard';
@@ -155,6 +157,23 @@ const TravelerProfile: React.FC = () => {
       .catch(() => { /* default to not following */ });
     return () => { active = false; };
   }, [token, userId]);
+
+  /**
+   * The trips this traveller is open to being joined on.
+   *
+   * Read off the trips already fetched for the grid below, so this costs no
+   * request. Both casings, because the serializer is not consistent across
+   * endpoints and the landing page normalises the same two fields.
+   *
+   * A full trip is not "looking for people", so zero spots is excluded. A null
+   * is not zero: it means the organiser set no capacity, which the seats model
+   * is explicit is "they did not say" rather than "no room".
+   */
+  const recruiting = React.useMemo(() => trips.filter((t: any) => {
+    const policy = t?.joinPolicy ?? t?.JoinPolicy;
+    const spots = t?.spotsLeft ?? t?.SpotsLeft;
+    return policy === 'OpenToRequests' && spots !== 0;
+  }).slice(0, 3), [trips]);
 
   // Viewing yourself → your own profile page has the full experience
   if (myProfile?.id && String(myProfile.id) === String(userId)) {
@@ -441,6 +460,59 @@ const TravelerProfile: React.FC = () => {
                   <TravelConstellation userId={Number(userId)} />
                 </Box>
               ) : null}
+
+              {/* Where they are going, and whether there is room.
+                  Sits after the travel history on purpose: the reader has just
+                  seen where this person has been, and this is the one thing on
+                  the page they can act on. */}
+              {recruiting.length > 0 && (
+                <Box sx={{ mt: { xs: 5, md: 6 } }}>
+                  <SectionHeader
+                    title="Looking for people"
+                    subtitle={user
+                      ? `${user.name.split(' ')[0]} is taking join requests on these. The organiser reads your note before deciding.`
+                      : undefined}
+                  />
+                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
+                    {recruiting.map((trip: any, i: number) => {
+                      const countries = Array.isArray(trip?.countries)
+                        ? trip.countries.filter(Boolean).join(', ')
+                        : (trip?.countries || trip?.Countries || '');
+                      const spots = describeSpots({
+                        spotsLeft: (trip?.spotsLeft ?? trip?.SpotsLeft ?? null) as number | null,
+                      });
+                      return (
+                        <Box
+                          key={trip.id || i}
+                          onClick={() => handleTripClick(trip)}
+                          role="button"
+                          tabIndex={0}
+                          onKeyDown={(e: React.KeyboardEvent) => {
+                            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleTripClick(trip); }
+                          }}
+                          sx={{
+                            display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer',
+                            p: 2, borderRadius: 2,
+                            border: `1px solid ${theme.custom.surface.border}`,
+                            transition: 'border-color 120ms ease',
+                            '&:hover': { borderColor: 'primary.main' },
+                          }}
+                        >
+                          <Box sx={{ minWidth: 0, flex: 1 }}>
+                            <Typography variant="subtitle2" noWrap sx={{ color: 'text.primary' }}>
+                              {trip?.name || trip?.Name || 'Untitled trip'}
+                            </Typography>
+                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                              {[countries, spots].filter(Boolean).join(' \u00b7 ')}
+                            </Typography>
+                          </Box>
+                          <IconArrowRight size={16} stroke={1.8} aria-hidden="true" />
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                </Box>
+              )}
 
               {/* Published trips */}
               <Box sx={{ mt: { xs: 5, md: 6 } }}>

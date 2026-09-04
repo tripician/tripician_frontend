@@ -498,6 +498,11 @@ const Profile: React.FC = () => {
       isOwner
       onEdit={() => navigate('/settings')}
       onPlanTrip={openCreateTrip}
+      onFindCrew={(q) => navigate(q ? `/crew?q=${encodeURIComponent(q)}` : '/crew')}
+      onOpenTraveller={(id) => navigate(`/traveler/${id}`)}
+      onOpenTrip={openTrip}
+      viewerId={Number.isFinite(Number(profile?.id)) ? Number(profile?.id) : undefined}
+      token={token}
     />
   );
 
