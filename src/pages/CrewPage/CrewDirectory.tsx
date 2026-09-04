@@ -2,7 +2,7 @@ import React from 'react';
 import { Avatar, Box, Button, Skeleton, Typography, useTheme } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { motion } from 'framer-motion';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { useRequireAuth } from '../../auth/AuthGate';
 import { IconCheck, IconUserPlus, IconUsers } from '@tabler/icons-react';
 import SearchField from '../../components/ui/SearchField';
@@ -43,8 +43,16 @@ const CrewDirectory: React.FC = () => {
   const requireAuth = useRequireAuth();
   const { token } = useAuthToken();
 
-  const [query, setQuery] = React.useState('');
-  const [queryApplied, setQueryApplied] = React.useState('');
+  /*
+   * The query lives in the URL, so a search can be linked to and returned to,
+   * which is the reason this became a route in the first place. Seeded once from
+   * ?q= rather than read every render: the box is the owner of what is typed and
+   * a controlled loop through the URL would fight the debounce below.
+   */
+  const [searchParams, setSearchParams] = useSearchParams();
+  const initialQuery = React.useRef(searchParams.get('q') ?? '').current;
+  const [query, setQuery] = React.useState(initialQuery);
+  const [queryApplied, setQueryApplied] = React.useState(initialQuery);
   const [vibe, setVibe] = React.useState('');
   const [travelers, setTravelers] = React.useState<any[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -57,6 +65,17 @@ const CrewDirectory: React.FC = () => {
     const t = setTimeout(() => setQueryApplied(query.trim()), 300);
     return () => clearTimeout(t);
   }, [query]);
+
+  // Mirror the applied query back into the URL, replacing rather than pushing so
+  // typing does not fill the back button with one entry per keystroke.
+  React.useEffect(() => {
+    setSearchParams(prev => {
+      const next = new URLSearchParams(prev);
+      if (queryApplied) next.set('q', queryApplied);
+      else next.delete('q');
+      return next;
+    }, { replace: true });
+  }, [queryApplied, setSearchParams]);
 
   React.useEffect(() => {
     let active = true;
