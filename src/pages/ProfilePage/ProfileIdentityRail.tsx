@@ -23,9 +23,11 @@
 
 import React from 'react';
 import { Box, Typography, useTheme } from '@mui/material';
+import ProfileSearch from './ProfileSearch';
 import CredibilityStrip from './CredibilityStrip';
 import ProfileIntro, { readIntro } from './ProfileIntro';
 import { ProfilePassport, ProfileDetails, type PassportView } from './ProfilePassport';
+
 
 interface ProfileIdentityRailProps {
   /** Drives the credibility facts. Omitted while the profile is still loading. */
@@ -38,6 +40,15 @@ interface ProfileIdentityRailProps {
   isOwner?: boolean;
   onEdit?: () => void;
   onPlanTrip?: () => void;
+  /** Own profile only: runs a traveller search over on /crew. */
+  onFindCrew?: (query: string) => void;
+  /** Opens one traveller from the inline results. */
+  onOpenTraveller?: (userId: number) => void;
+  /** Opens one trip from the inline results. */
+  onOpenTrip?: (trip: any) => void;
+  /** Lets a search result be followed, and keeps the reader off their own row. */
+  viewerId?: number;
+  token?: string | null;
 }
 
 /**
@@ -68,6 +79,11 @@ const ProfileIdentityRail: React.FC<ProfileIdentityRailProps> = ({
   isOwner,
   onEdit,
   onPlanTrip,
+  onFindCrew,
+  onOpenTraveller,
+  onOpenTrip,
+  viewerId,
+  token,
 }) => {
   const theme = useTheme();
   const intro = readIntro(profile);
@@ -81,6 +97,16 @@ const ProfileIdentityRail: React.FC<ProfileIdentityRailProps> = ({
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
+      {onFindCrew && onOpenTraveller && onOpenTrip
+        ? <ProfileSearch
+            onSearch={onFindCrew}
+            onOpenTraveller={onOpenTraveller}
+            onOpenTrip={onOpenTrip}
+            viewerId={viewerId}
+            token={token}
+          />
+        : null}
+
       {/* The figures, then the evidence for them. That order on purpose: the
           numbers are the claim and the strip below is what backs it, so a
           reader meets the assertion and its support together. */}
