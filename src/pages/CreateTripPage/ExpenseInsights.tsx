@@ -1,4 +1,5 @@
 import React from 'react';
+import { BRAND } from '../../theme';
 import {
   Avatar, Box, Button, Chip, Dialog, DialogActions, DialogContent, DialogTitle,
   Divider, LinearProgress, Typography, useTheme,
@@ -239,7 +240,7 @@ const CATEGORY_COLORS: Record<string, string> = {
   Stay: '#8B5CF6',
   Food: '#F59E0B',
   Transport: '#10B981',
-  Activity: '#FF385C',
+  Activity: BRAND.coral,
   Misc: '#6B7280',
 };
 

@@ -11,6 +11,7 @@ import {
   Box, Stack, Typography, Fade, Paper, InputBase, Dialog, DialogTitle, DialogContent, DialogActions,
   Button, IconButton
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { AnimatePresence } from 'framer-motion';
 import {
   DndContext, DragOverlay, closestCenter, PointerSensor, useSensor, useSensors,
@@ -48,6 +49,7 @@ import { fetchDestinationAlerts, type DestinationAlerts } from '../../services/A
 // mapbox-gl chunk out of this component's import graph.
 import { emitStopHover } from '../../utils/stopHoverBus';
 import NaviaOrb from '../../navia/NaviaOrb';
+import { BRAND } from '../../theme';
 
 interface DestinationCardsPanelProps {
   maxed: boolean;
@@ -633,8 +635,8 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
             readOnly ? (
               <Box sx={(t) => ({
                 mt: 3, p: 5, borderRadius: 3, textAlign: 'center',
-                background: t.palette.mode === 'light' ? 'rgba(255,56,92,0.03)' : 'rgba(255,56,92,0.06)',
-                border: '1.5px dashed rgba(255,56,92,0.18)',
+                background: t.palette.mode === 'light' ? alpha(BRAND.coral, 0.03) : alpha(BRAND.coral, 0.06),
+                border: `1.5px dashed ${alpha(BRAND.coral, 0.18)}`,
               })}>
                 <Box sx={{ mb: 1, color: 'text.disabled', display: 'flex', justifyContent: 'center' }}><IconPlane size={22} stroke={1.6} /></Box>
                 <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary', mb: 0.5 }}>
@@ -651,7 +653,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                  mode exists for. */
               null
             ) : (
-              <Box sx={(t) => ({ mt: 3, p: 5, border: '2px dashed rgba(255,56,92,0.2)', borderRadius: 3, textAlign: 'center', fontSize: 14, color: t.palette.text.secondary })}>Click "+ Add your next stop" below to add your first destination.</Box>
+              <Box sx={(t) => ({ mt: 3, p: 5, border: `2px dashed ${alpha(BRAND.coral, 0.2)}`, borderRadius: 3, textAlign: 'center', fontSize: 14, color: t.palette.text.secondary })}>Click "+ Add your next stop" below to add your first destination.</Box>
             )
           )}
           <DndContext
@@ -684,7 +686,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                               position: 'absolute', top: '50%', transform: 'translateY(-50%)', zIndex: 1,
                               width: 22, height: 22, borderRadius: '50%',
                               bgcolor: (checklists[d.id]?.accommodation && checklists[d.id]?.transport && checklists[d.id]?.activities)
-                                ? '#16a34a' : '#FF385C',
+                                ? '#16a34a' : BRAND.coral,
                               color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center',
                               fontSize: 11, fontWeight: 700,
                               transition: 'background 0.3s, box-shadow 0.3s',
@@ -784,11 +786,11 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                   <Paper elevation={0} sx={(t) => ({
                     display: 'flex', alignItems: 'center', gap: 1, pl: 1.5, pr: 0.75, py: 0.65,
                     borderRadius: '12px',
-                    border: `1.5px solid rgba(255,56,92,0.45)`,
-                    boxShadow: '0 0 0 3px rgba(255,56,92,0.10)',
+                    border: `1.5px solid ${alpha(BRAND.coral, 0.45)}`,
+                    boxShadow: `0 0 0 3px ${alpha(BRAND.coral, 0.10)}`,
                     background: t.palette.mode === 'dark' ? t.palette.background.paper : '#fff',
                   })}>
-                    <SearchIcon fontSize='small' sx={{ opacity: 0.45, flexShrink: 0, color: '#FF385C' }} />
+                    <SearchIcon fontSize='small' sx={{ opacity: 0.45, flexShrink: 0, color: 'primary.main' }} />
                     <InputBase
                       value={searchValue}
                       onChange={e => setSearchValue(e.target.value)}
@@ -814,7 +816,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                       {loadingPred && <Box sx={{ px: 2, py: 1, fontSize: 12, opacity: 0.7 }}>Searching…</Box>}
                       {predictions.map(p => (
                         <Box key={p.place_id} onClick={() => { selectPrediction(p); setGhostSearchOpen(false); }}
-                          sx={{ px: 2, py: 0.9, cursor: 'pointer', borderBottom: '1px solid', borderColor: 'divider', '&:hover': { background: 'rgba(255,56,92,0.05)' }, fontSize: 13, transition: 'background .12s' }}>
+                          sx={{ px: 2, py: 0.9, cursor: 'pointer', borderBottom: '1px solid', borderColor: 'divider', '&:hover': { background: alpha(BRAND.coral, 0.05) }, fontSize: 13, transition: 'background .12s' }}>
                           <strong>{p.structured_formatting?.main_text || p.description}</strong>
                           {p.structured_formatting?.secondary_text && <Box sx={{ fontSize: 11, opacity: 0.55, mt: 0.15 }}>{p.structured_formatting.secondary_text}</Box>}
                         </Box>
@@ -845,7 +847,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                               sx={{
                                 textTransform: 'none', borderRadius: '999px', fontSize: 12,
                                 border: '1px solid', borderColor: 'divider', color: 'text.secondary',
-                                '&:hover': { borderColor: 'rgba(255,56,92,0.4)', color: '#FF385C', bgcolor: 'rgba(255,56,92,0.05)' },
+                                '&:hover': { borderColor: alpha(BRAND.coral, 0.4), color: 'primary.main', bgcolor: alpha(BRAND.coral, 0.05) },
                               }}
                             >
                               {item.name}
@@ -881,7 +883,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                     display: 'flex', alignItems: 'center', justifyContent: 'center',
                     gap: 1, cursor: maxed ? 'default' : 'pointer',
                     bgcolor: 'transparent',
-                    '&:hover': maxed ? {} : { borderColor: 'rgba(255,56,92,0.40)', background: t.custom.surface.brandTint },
+                    '&:hover': maxed ? {} : { borderColor: alpha(BRAND.coral, 0.40), background: t.custom.surface.brandTint },
                     transition: `border-color ${t.custom.motion.duration.fast} ${t.custom.motion.easing.standard}, background ${t.custom.motion.duration.fast} ${t.custom.motion.easing.standard}`,
                     opacity: maxed ? 0.5 : 1,
                   })}
@@ -953,7 +955,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                   <Typography
                     data-tour='navia'
                     onClick={() => askNavia('Can you suggest more destinations to complete my route?')}
-                    sx={{ mt: 2, textAlign: 'center', fontSize: 12, color: 'text.secondary', cursor: 'pointer', '&:hover': { color: '#FF385C' }, transition: 'color .15s' }}
+                    sx={{ mt: 2, textAlign: 'center', fontSize: 12, color: 'text.secondary', cursor: 'pointer', '&:hover': { color: 'primary.main' }, transition: 'color .15s' }}
                   >
                     Not sure what to add? Ask Navia to complete your route →
                   </Typography>
@@ -1013,7 +1015,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
         >
           {/* Header */}
           <Box sx={(t)=>({ display:'flex', alignItems:'center', gap:1.5, px:3, pt:2.5, pb:2, borderBottom:`1px solid ${t.palette.divider}` })}>
-            <Box sx={{ width:32, height:32, borderRadius:'10px', background:'linear-gradient(135deg,#FF385C,#E31C5F)', display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
+            <Box sx={{ width:32, height:32, borderRadius:'10px', background:`linear-gradient(135deg,${BRAND.coral},${BRAND.coralDark})`, display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0 }}>
               <NotesIcon sx={{ fontSize:16, color:'#fff' }} />
             </Box>
             <Box sx={{ flex:1 }}>

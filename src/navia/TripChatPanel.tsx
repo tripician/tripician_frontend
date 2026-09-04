@@ -26,6 +26,7 @@ import {
   Tooltip,
   Fade,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { useTheme } from '@mui/material/styles';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
@@ -49,6 +50,7 @@ import {
   IconMapPin, IconInfoCircle, IconTrash, IconHelpCircle, IconCalendar,
   IconAlertTriangle, IconTag, IconMail, IconUser, IconCoin,
 } from '@tabler/icons-react';
+import { BRAND } from '../theme';
 
 // ??? Constants ????????????????????????????????????????????????????????????????
 
@@ -131,9 +133,9 @@ const ProposalBubble: React.FC<ProposalBubbleProps> = ({ msg, actionState, onAcc
     <Box
       sx={{
         background: isLight
-          ? 'linear-gradient(135deg, rgba(255,56,92,0.05) 0%, rgba(255,56,92,0.09) 100%)'
-          : 'linear-gradient(135deg, rgba(255,56,92,0.10) 0%, rgba(255,56,92,0.17) 100%)',
-        border: `1px solid ${isLight ? 'rgba(255,56,92,0.22)' : 'rgba(255,56,92,0.30)'}`,
+          ? `linear-gradient(135deg, ${alpha(BRAND.coral, 0.05)} 0%, ${alpha(BRAND.coral, 0.09)} 100%)`
+          : `linear-gradient(135deg, ${alpha(BRAND.coral, 0.10)} 0%, ${alpha(BRAND.coral, 0.17)} 100%)`,
+        border: `1px solid ${isLight ? alpha(BRAND.coral, 0.22) : alpha(BRAND.coral, 0.30)}`,
         borderRadius: '14px 14px 14px 3px',
         px: 1.75, py: 1.5,
         maxWidth: 460,
@@ -142,7 +144,7 @@ const ProposalBubble: React.FC<ProposalBubbleProps> = ({ msg, actionState, onAcc
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
         <NaviaLogo size={16} />
-        <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase', color: '#FF385C' }}>
+        <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'primary.main' }}>
           Navia Suggestion
         </Typography>
       </Box>
@@ -174,9 +176,9 @@ const ProposalBubble: React.FC<ProposalBubbleProps> = ({ msg, actionState, onAcc
                 size='small'
                 sx={{
                   fontSize: 11, height: 22, borderRadius: '6px',
-                  bgcolor: isLight ? 'rgba(255,56,92,0.09)' : 'rgba(255,56,92,0.18)',
-                  color: '#FF385C', fontWeight: 600,
-                  border: '1px solid rgba(255,56,92,0.22)',
+                  bgcolor: isLight ? alpha(BRAND.coral, 0.09) : alpha(BRAND.coral, 0.18),
+                  color: 'primary.main', fontWeight: 600,
+                  border: `1px solid ${alpha(BRAND.coral, 0.22)}`,
                 }}
               />
             );
@@ -194,11 +196,11 @@ const ProposalBubble: React.FC<ProposalBubbleProps> = ({ msg, actionState, onAcc
             sx={{
               display: 'flex', alignItems: 'center', gap: 0.5,
               px: 1.5, py: 0.6, borderRadius: '8px', border: 'none', cursor: 'pointer',
-              bgcolor: '#FF385C',
+              bgcolor: 'primary.main',
               color: '#fff', fontSize: 12.5, fontWeight: 700, fontFamily: 'inherit',
               transition: 'background-color .15s',
-              '&:hover': { bgcolor: '#E31C5F' },
-              '&:active': { bgcolor: '#D91A50' },
+              '&:hover': { bgcolor: BRAND.coralDark },
+              '&:active': { bgcolor: BRAND.coralDeep },
               '&:disabled': { opacity: 0.55, cursor: 'not-allowed' },
             }}
           >
@@ -299,7 +301,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ msg, isMine, isLight, sho
             src={isNavia ? undefined : msg.avatarUrl}
             sx={{
               width: 26, height: 26, fontSize: 10.5, flexShrink: 0, alignSelf: 'flex-end',
-              bgcolor: isNavia ? 'transparent' : '#FF385C',
+              bgcolor: isNavia ? 'transparent' : BRAND.coral,
               visibility: showAvatar ? 'visible' : 'hidden',
             }}
           >
@@ -313,13 +315,13 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ msg, isMine, isLight, sho
             borderRadius: isMine ? '16px 16px 4px 16px' : '16px 16px 16px 4px',
             fontSize: 13.5, lineHeight: 1.6, fontFamily: 'inherit', wordBreak: 'break-word',
             background: isMine
-              ? '#FF385C'
+              ? BRAND.coral
               : (isLight ? '#f3f4f6' : 'rgba(255,255,255,0.07)'),
             color: isMine ? '#fff' : (isLight ? '#1a1a1a' : 'rgba(255,255,255,0.88)'),
           }}
         >
           {!isMine && showAvatar && (
-            <Typography sx={{ fontSize: 11, fontWeight: 700, mb: 0.35, color: isNavia ? '#FF385C' : (isLight ? '#666' : 'rgba(255,255,255,0.55)') }}>
+            <Typography sx={{ fontSize: 11, fontWeight: 700, mb: 0.35, color: isNavia ? 'primary.main' : (isLight ? '#666' : 'rgba(255,255,255,0.55)') }}>
               {name}
             </Typography>
           )}
@@ -621,11 +623,11 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
         lastUserId = null;
         nodes.push(
           <Box key="unread-divider" sx={{ display: 'flex', alignItems: 'center', gap: 1, my: 1 }}>
-            <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,56,92,0.35)' }} />
-            <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: '#FF385C', flexShrink: 0 }}>
+            <Box sx={{ flex: 1, height: '1px', bgcolor: alpha(BRAND.coral, 0.35) }} />
+            <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.08em', textTransform: 'uppercase', color: 'primary.main', flexShrink: 0 }}>
               New
             </Typography>
-            <Box sx={{ flex: 1, height: '1px', bgcolor: 'rgba(255,56,92,0.35)' }} />
+            <Box sx={{ flex: 1, height: '1px', bgcolor: alpha(BRAND.coral, 0.35) }} />
           </Box>
         );
       }
@@ -750,10 +752,10 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
               sx={{
                 height: 22, fontSize: 11, fontWeight: 700, borderRadius: '7px', flexShrink: 0,
                 cursor: 'pointer',
-                bgcolor: tripCredits <= 10 ? 'rgba(239,68,68,0.10)' : 'rgba(255,56,92,0.08)',
-                color: tripCredits <= 10 ? '#ef4444' : '#FF385C',
-                border: `1px solid ${tripCredits <= 10 ? 'rgba(239,68,68,0.25)' : 'rgba(255,56,92,0.18)'}`,
-                '&:hover': { bgcolor: tripCredits <= 10 ? 'rgba(239,68,68,0.16)' : 'rgba(255,56,92,0.14)' },
+                bgcolor: tripCredits <= 10 ? 'rgba(239,68,68,0.10)' : alpha(BRAND.coral, 0.08),
+                color: tripCredits <= 10 ? '#ef4444' : BRAND.coral,
+                border: `1px solid ${tripCredits <= 10 ? 'rgba(239,68,68,0.25)' : alpha(BRAND.coral, 0.18)}`,
+                '&:hover': { bgcolor: tripCredits <= 10 ? 'rgba(239,68,68,0.16)' : alpha(BRAND.coral, 0.14) },
               }}
             />
           </Tooltip>
@@ -817,8 +819,8 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
             >
               <Box sx={{
                 display: 'flex', alignItems: 'center', gap: 0.75,
-                background: 'rgba(255,56,92,0.10)',
-                border: '1px solid rgba(255,56,92,0.18)',
+                background: alpha(BRAND.coral, 0.10),
+                border: `1px solid ${alpha(BRAND.coral, 0.18)}`,
                 borderRadius: '14px',
                 px: 1.5, py: 0.7,
               }}>
@@ -831,11 +833,11 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
                       component={motion.span as React.ElementType}
                       animate={{ y: [0, -4, 0] }}
                       transition={{ duration: 0.7, repeat: Infinity, delay: i * 0.15, ease: 'easeInOut' }}
-                      sx={{ width: 6, height: 6, borderRadius: '50%', background: '#FF385C', display: 'block' }}
+                      sx={{ width: 6, height: 6, borderRadius: '50%', background: BRAND.coral, display: 'block' }}
                     />
                   ))
                 )}
-                <Box component="span" sx={{ ml: 0.5, fontSize: '0.72rem', color: 'rgba(255,56,92,0.85)', fontWeight: 600, letterSpacing: 0.2 }}>
+                <Box component="span" sx={{ ml: 0.5, fontSize: '0.72rem', color: alpha(BRAND.coral, 0.85), fontWeight: 600, letterSpacing: 0.2 }}>
                   {naviaTyping
                     ? 'Navia is analysing...'
                     : typingUsers.length === 1
@@ -922,11 +924,11 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
                     display: 'flex', alignItems: 'center', gap: 1.25,
                     px: 1.5, py: 0.85, cursor: 'pointer',
                     background: i === mentionIndex
-                      ? (isLight ? 'rgba(255,56,92,0.07)' : 'rgba(255,56,92,0.13)')
+                      ? (isLight ? alpha(BRAND.coral, 0.07) : alpha(BRAND.coral, 0.13))
                       : 'transparent',
                     transition: 'background .1s',
                     '&:hover': {
-                      background: isLight ? 'rgba(255,56,92,0.07)' : 'rgba(255,56,92,0.13)',
+                      background: isLight ? alpha(BRAND.coral, 0.07) : alpha(BRAND.coral, 0.13),
                     },
                   }}
                 >
@@ -935,7 +937,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
                   ) : (
                     <Avatar
                       src={s.avatarUrl ?? undefined}
-                      sx={{ width: 28, height: 28, fontSize: 10, bgcolor: '#FF385C', flexShrink: 0 }}
+                      sx={{ width: 28, height: 28, fontSize: 10, bgcolor: 'primary.main', flexShrink: 0 }}
                     >
                       {getInitials(s.displayName)}
                     </Avatar>
@@ -950,7 +952,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
                         <Chip
                           label="AI"
                           size="small"
-                          sx={{ height: 16, fontSize: 9.5, fontWeight: 700, bgcolor: 'rgba(255,56,92,0.12)', color: '#FF385C', border: '1px solid rgba(255,56,92,0.22)', borderRadius: '4px', '& .MuiChip-label': { px: 0.75 } }}
+                          sx={{ height: 16, fontSize: 9.5, fontWeight: 700, bgcolor: alpha(BRAND.coral, 0.12), color: 'primary.main', border: `1px solid ${alpha(BRAND.coral, 0.22)}`, borderRadius: '4px', '& .MuiChip-label': { px: 0.75 } }}
                         />
                       )}
                     </Typography>
@@ -974,11 +976,11 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
             >
               <Box sx={{
                 display: 'flex', alignItems: 'center', gap: 0.75, px: 1, py: 0.7, mb: 0.75,
-                background: isLight ? 'rgba(255,56,92,0.06)' : 'rgba(255,56,92,0.12)',
-                borderRadius: '8px', border: '1px solid rgba(255,56,92,0.18)',
+                background: isLight ? alpha(BRAND.coral, 0.06) : alpha(BRAND.coral, 0.12),
+                borderRadius: '8px', border: `1px solid ${alpha(BRAND.coral, 0.18)}`,
               }}>
                 <NaviaLogo size={16} />
-                <Typography sx={{ flex: 1, fontSize: 11.5, color: '#FF385C', fontWeight: 600, lineHeight: 1.4 }}>
+                <Typography sx={{ flex: 1, fontSize: 11.5, color: 'primary.main', fontWeight: 600, lineHeight: 1.4 }}>
                   Others just joined. Now type <Box component='span' sx={{ fontWeight: 700 }}>@navia</Box> to bring Navia into the chat.
                 </Typography>
                 <Box
@@ -986,9 +988,9 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
                   onClick={dismissGroupHint}
                   sx={{
                     flexShrink: 0, border: 'none', background: 'transparent', cursor: 'pointer',
-                    color: '#FF385C', fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
+                    color: 'primary.main', fontSize: 11, fontWeight: 700, fontFamily: 'inherit',
                     px: 0.75, py: 0.25, borderRadius: '6px',
-                    '&:hover': { background: isLight ? 'rgba(255,56,92,0.10)' : 'rgba(255,56,92,0.18)' },
+                    '&:hover': { background: isLight ? alpha(BRAND.coral, 0.10) : alpha(BRAND.coral, 0.18) },
                   }}
                 >
                   Got it
@@ -1008,11 +1010,11 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
             >
               <Box sx={{
                 display: 'flex', alignItems: 'center', gap: 0.6, px: 1, py: 0.6, mb: 0.75,
-                background: isLight ? 'rgba(255,56,92,0.06)' : 'rgba(255,56,92,0.12)',
-                borderRadius: '8px', border: '1px solid rgba(255,56,92,0.18)',
+                background: isLight ? alpha(BRAND.coral, 0.06) : alpha(BRAND.coral, 0.12),
+                borderRadius: '8px', border: `1px solid ${alpha(BRAND.coral, 0.18)}`,
               }}>
                 <NaviaLogo size={14} />
-                <Typography sx={{ fontSize: 11.5, color: '#FF385C', fontWeight: 600 }}>
+                <Typography sx={{ fontSize: 11.5, color: 'primary.main', fontWeight: 600 }}>
                   Navia will be summoned... she'll analyse your trip and suggest changes
                 </Typography>
               </Box>
@@ -1022,14 +1024,14 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
 
         <Box sx={{
           display: 'flex', alignItems: 'flex-end', gap: 0.75,
-          border: `1.5px solid ${showMentionCue ? 'rgba(255,56,92,0.50)' : (isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)')}`,
+          border: `1.5px solid ${showMentionCue ? alpha(BRAND.coral, 0.50) : (isLight ? 'rgba(0,0,0,0.10)' : 'rgba(255,255,255,0.10)')}`,
           borderRadius: '12px', px: 1.5, py: 0.75,
           background: isLight ? '#fafafa' : 'rgba(255,255,255,0.03)',
-          boxShadow: showMentionCue ? '0 0 0 3px rgba(255,56,92,0.10)' : 'none',
+          boxShadow: showMentionCue ? `0 0 0 3px ${alpha(BRAND.coral, 0.10)}` : 'none',
           transition: 'border-color .2s, box-shadow .2s',
           '&:focus-within': {
-            borderColor: showMentionCue ? 'rgba(255,56,92,0.60)' : (isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.22)'),
-            boxShadow: showMentionCue ? '0 0 0 3px rgba(255,56,92,0.10)' : 'none',
+            borderColor: showMentionCue ? alpha(BRAND.coral, 0.60) : (isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.22)'),
+            boxShadow: showMentionCue ? `0 0 0 3px ${alpha(BRAND.coral, 0.10)}` : 'none',
           },
         }}>
           <TextField
@@ -1069,7 +1071,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
             InputProps={{
               disableUnderline: true,
               sx: {
-                fontSize: 13.5, lineHeight: 1.55, fontFamily: "'Inter', system-ui, sans-serif",
+                fontSize: 13.5, lineHeight: 1.55,
                 '& textarea': {
                   color: isLight ? '#1a1a1a' : 'rgba(255,255,255,0.88)',
                   resize: 'none', padding: 0,
@@ -1086,10 +1088,10 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
             disabled={!input.trim() || sending || !token}
             sx={{
               width: 34, height: 34, borderRadius: '9px', flexShrink: 0, mb: 0.1,
-              background: (input.trim() && !sending && token) ? '#FF385C' : 'transparent',
+              background: (input.trim() && !sending && token) ? BRAND.coral : 'transparent',
               color: (input.trim() && !sending && token) ? '#fff' : (isLight ? 'rgba(0,0,0,0.22)' : 'rgba(255,255,255,0.20)'),
               transition: 'background .18s, color .18s',
-              '&:hover': { background: (input.trim() && !sending && token) ? '#D91A50' : undefined },
+              '&:hover': { background: (input.trim() && !sending && token) ? BRAND.coralDeep : undefined },
               '&.Mui-disabled': { background: 'transparent' },
             }}
           >
@@ -1124,16 +1126,6 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
           color: isLight ? 'rgba(0,0,0,0.34)' : 'rgba(255,255,255,0.34)',
         }}>
           Navia can make mistakes. Always verify travel details before booking.
-        </Typography>
-        <Typography sx={{
-          fontSize: 9,
-          fontWeight: 600,
-          letterSpacing: '0.4px',
-          color: isLight
-            ? 'rgba(0,0,0,0.28)'
-            : 'rgba(255,255,255,0.28)',
-        }}>
-          Navia drafts, you decide
         </Typography>
       </Box>
     </Box>

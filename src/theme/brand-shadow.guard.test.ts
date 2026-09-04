@@ -111,24 +111,11 @@ describe('brand shadow guard', () => {
     ).toEqual([]);
   });
 
-  /**
-   * One source of truth per context for the display face, so changing it stays a
-   * one-line edit rather than a 29-site sweep like the Playfair -> Poppins move.
+  /*
+   * The hardcoded-typeface rule used to live here. It now sits in
+   * `story-serif.guard.test.ts` alongside the rule about WHICH files may use the
+   * editorial face, because the two are the same concern: one stops the token
+   * being bypassed, the other stops it being overused, and splitting them across
+   * two files meant each guard flagged the other's regex as an offence.
    */
-  it('has no hardcoded display-font literal', () => {
-    const offenders: string[] = [];
-
-    for (const file of walk(SRC)) {
-      const r = rel(file);
-      if (r === 'theme/index.ts' || r === 'index.css') continue;
-      readFileSync(file, 'utf8').split('\n').forEach((line, i) => {
-        if (/Playfair|['"]Poppins['"]/.test(line)) offenders.push(`${r}:${i + 1}`);
-      });
-    }
-
-    expect(
-      offenders,
-      `Use theme.custom.fontDisplay (TSX) or var(--font-display) (CSS):\n${offenders.join('\n')}`,
-    ).toEqual([]);
-  });
 });

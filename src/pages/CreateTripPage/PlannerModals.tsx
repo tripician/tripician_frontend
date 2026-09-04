@@ -5,6 +5,7 @@ import React from 'react';
 import {
   Box, Typography, Dialog, IconButton, InputBase, Button, LinearProgress,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
 import SearchIcon from '@mui/icons-material/Search';
 import LocationOnIcon from '@mui/icons-material/LocationOn';
@@ -16,6 +17,7 @@ import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import NightsStayRoundedIcon from '@mui/icons-material/NightsStayRounded';
 import type { PlannerDestination, PlannerSpot } from '../../store/plannerSlice';
 import ProvenanceChip from '../../components/CommonComponents/ProvenanceChip';
+import { BRAND } from '../../theme';
 
 const GOOGLE_LOGO = import.meta.env.VITE_GOOGLE_LOGO
   || 'https://developers.google.com/static/maps/documentation/images/google_on_white.png';
@@ -115,7 +117,7 @@ export const DiscoverSheet: React.FC<DiscoverSheetProps> = ({
               />
             )}
             <Box sx={{ flex: 1, minWidth: 0 }}>
-              <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: '#FF385C', mb: 0.4 }}>
+              <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'primary.main', mb: 0.4 }}>
                 Curate your day
               </Typography>
               <Typography sx={{ fontWeight: 700, fontSize: 18, lineHeight: 1.2, letterSpacing: '-0.35px' }}>
@@ -123,7 +125,7 @@ export const DiscoverSheet: React.FC<DiscoverSheetProps> = ({
               </Typography>
               {planTitle && pd?.name && (
                 <Typography sx={{ fontSize: 12, color: 'text.secondary', mt: 0.35, display: 'flex', alignItems: 'center', gap: 0.35 }}>
-                  <LocationOnIcon sx={{ fontSize: 13, color: '#FF385C' }} /> {pd.name}
+                  <LocationOnIcon sx={{ fontSize: 13, color: 'primary.main' }} /> {pd.name}
                 </Typography>
               )}
             </Box>
@@ -147,8 +149,8 @@ export const DiscoverSheet: React.FC<DiscoverSheetProps> = ({
                   transition: 'all .18s',
                 }}
               >
-                {tkey === 'spots' ? <ExploreIcon sx={{ fontSize: 15, color: tab === tkey ? '#FF385C' : 'text.disabled' }} />
-                  : <RestaurantRoundedIcon sx={{ fontSize: 15, color: tab === tkey ? '#FF385C' : 'text.disabled' }} />}
+                {tkey === 'spots' ? <ExploreIcon sx={{ fontSize: 15, color: tab === tkey ? 'primary.main' : 'text.disabled' }} />
+                  : <RestaurantRoundedIcon sx={{ fontSize: 15, color: tab === tkey ? 'primary.main' : 'text.disabled' }} />}
                 <Typography sx={{ fontSize: 12.5, fontWeight: 700, color: tab === tkey ? 'text.primary' : 'text.secondary' }}>
                   {tkey === 'spots' ? `Places (${spots.length})` : `Food (${foods.length})`}
                 </Typography>
@@ -171,7 +173,7 @@ export const DiscoverSheet: React.FC<DiscoverSheetProps> = ({
                 fontSize: 14, py: 1, px: 1.5, borderRadius: '14px',
                 bgcolor: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : '#f8fafc',
                 border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}`,
-                '&:focus-within': { borderColor: 'rgba(255,56,92,0.4)', boxShadow: '0 0 0 3px rgba(255,56,92,0.08)' },
+                '&:focus-within': { borderColor: alpha(BRAND.coral, 0.4), boxShadow: `0 0 0 3px ${alpha(BRAND.coral, 0.08)}` },
               })}
             />
             {spotSearchLoading && <LinearProgress sx={{ position: 'absolute', left: 8, right: 8, bottom: 0, height: 2, borderRadius: 1 }} />}
@@ -185,7 +187,7 @@ export const DiscoverSheet: React.FC<DiscoverSheetProps> = ({
                   sx={(t) => ({
                     px: 1.25, py: 0.85, borderRadius: '10px', cursor: 'pointer', fontSize: 13, fontWeight: 500,
                     border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)'}`,
-                    '&:hover': { bgcolor: 'rgba(255,56,92,0.06)', borderColor: 'rgba(255,56,92,0.25)' },
+                    '&:hover': { bgcolor: alpha(BRAND.coral, 0.06), borderColor: alpha(BRAND.coral, 0.25) },
                   })}
                 >
                   {p.description?.split(',')[0] || p.description}
@@ -215,7 +217,7 @@ export const DiscoverSheet: React.FC<DiscoverSheetProps> = ({
                   bgcolor: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.06)' : '#fff',
                   border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.08)'}`,
                   transition: 'all .14s',
-                  '&:hover': { borderColor: 'rgba(255,56,92,0.35)', color: '#FF385C' },
+                  '&:hover': { borderColor: alpha(BRAND.coral, 0.35), color: 'primary.main' },
                 })}
               >
                 <AddRoundedIcon sx={{ fontSize: 14, opacity: 0.7 }} />
@@ -267,8 +269,8 @@ export const DiscoverSheet: React.FC<DiscoverSheetProps> = ({
             {s.photoUrl ? (
               <Box component='img' src={s.photoUrl} alt='' sx={{ width: 44, height: 44, borderRadius: '10px', objectFit: 'cover', flexShrink: 0 }} />
             ) : (
-              <Box sx={{ width: 44, height: 44, borderRadius: '10px', flexShrink: 0, bgcolor: 'rgba(255,56,92,0.08)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                <ExploreIcon sx={{ fontSize: 20, color: '#FF385C', opacity: 0.5 }} />
+              <Box sx={{ width: 44, height: 44, borderRadius: '10px', flexShrink: 0, bgcolor: alpha(BRAND.coral, 0.08), display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <ExploreIcon sx={{ fontSize: 20, color: 'primary.main', opacity: 0.5 }} />
               </Box>
             )}
             <Box sx={{ flex: 1, minWidth: 0 }}>

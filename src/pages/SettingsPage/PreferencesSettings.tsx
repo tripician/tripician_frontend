@@ -41,7 +41,7 @@ const PreferencesSettings: React.FC = () => {
         setCurrency(data.preferredCurrency || 'usd');
         setTravelStyle(data.travelStyle || 'backpacker');
         setBudgetRange(data.budgetRange || '30-50');
-      } catch(e:any){
+      } catch{
         setError('Failed to load preferences');
       } finally { setLoading(false); }
     })();
@@ -80,7 +80,7 @@ const PreferencesSettings: React.FC = () => {
         budgetRange,
       });
       window.dispatchEvent(new CustomEvent('app:success',{ detail:{ message:'Preferences updated' }}));
-    } catch(e:any){
+    } catch{
       setError('Failed to save preferences');
     } finally { setSaving(false); }
   };
@@ -104,7 +104,7 @@ const PreferencesSettings: React.FC = () => {
       borderColor: '#9ca3af',
     },
     '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-      borderColor: '#FF385C',
+      borderColor: 'primary.main',
     },
   };
 
@@ -162,7 +162,7 @@ const PreferencesSettings: React.FC = () => {
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
             Language & Region
           </Typography>
 
@@ -222,7 +222,7 @@ const PreferencesSettings: React.FC = () => {
         }}
       >
         <CardContent sx={{ p: 3 }}>
-          <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
+          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
             Travel Preferences
           </Typography>
 

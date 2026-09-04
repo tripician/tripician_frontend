@@ -1,4 +1,5 @@
 import React from 'react';
+import { BRAND } from '../theme';
 import type { NaviaMessage as NaviaMessageType } from './useNavia';
 import NaviaOrb from './NaviaOrb';
 import { renderMarkdown } from './markdown';
@@ -41,7 +42,6 @@ const NaviaMessageComponent: React.FC<NaviaMessageProps> = ({
               color: isLight
                 ? '#4b5563'
                 : 'rgba(255,255,255,0.75)',
-              fontFamily: 'Inter, sans-serif',
             }}
           >
             Navia
@@ -58,10 +58,9 @@ const NaviaMessageComponent: React.FC<NaviaMessageProps> = ({
             : '16px 16px 16px 4px',
           fontSize: 13,
           lineHeight: 1.7,
-          fontFamily: 'Inter, sans-serif',
 
           background: isUser
-            ? '#FF385C'
+            ? BRAND.coral
             : isLight
             ? '#FFFFFF'
             : 'rgba(255,255,255,0.05)',

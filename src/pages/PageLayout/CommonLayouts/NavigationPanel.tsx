@@ -1,39 +1,44 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { useNavigate, useLocation, useMatch } from 'react-router-dom';
+import { useLocation, useMatch } from 'react-router-dom';
 import Footer from './Footer';
 import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../../store';
 import { fetchUserProfile } from '../../../store/userSlice';
-import { Box, Drawer, List, ListItemButton, ListItemIcon, ListItemText } from '@mui/material';
+import { Box } from '@mui/material';
 import TripCreationModal from '../../../components/CreateTripComponents/TripCreationModal';
 import SupportWidget from '../../../components/CommonComponents/SupportWidget';
 import OnboardingCarousel from '../../../components/Onboarding/OnboardingCarousel';
 import AppShellHeader from './AppShellHeader';
 import AppBottomNav from './AppBottomNav';
 import { AppShellProvider, type CreateTripPrefill } from '../AppShellContext';
-import { APP_NAV_ITEMS } from '../navConfig';
+import ProDialog from '../../../pricing/ProDialog';
+import NaviaCommandBar from '../../../navia/commandbar/NaviaCommandBar';
+import {
+  COMMAND_BAR_STATE_EVENT,
+  onCommandBarRoute,
+  type CommandBarState,
+} from '../../../navia/commandbar/commandModes';
 
 interface Props {
   children: React.ReactNode;
 }
 
 /*
- * Everything that is not in the bottom bar.
+ * The More drawer is gone.
  *
- * `profile` was in neither: not the bottom nav, not this sheet, and not the
- * account popover - so below the lg breakpoint the profile page was reachable
- * only by typing the URL. A page you cannot navigate to is not a page.
+ * It only ever held one item at a time - Risk, then Crew - and each of those
+ * turned out to belong somewhere with more context: Risk in the account menu,
+ * Crew as the Travellers segment on Browse. With the drawer empty, "More" was a
+ * button that opened nothing, so the slot went to From the road instead. Every
+ * nav item is now one tap on every breakpoint.
  */
-const MORE_NAV_IDS = ['risk', 'profile'];
 
 const NavigationPannel: React.FC<Props> = ({ children }) => {
-  const navigate = useNavigate();
   const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
 
   const [createTripOpen, setCreateTripOpen] = useState(false);
   const [createTripPrefill, setCreateTripPrefill] = useState<CreateTripPrefill | undefined>(undefined);
-  const [moreMenuOpen, setMoreMenuOpen] = useState(false);
 
   const plannerMatch = useMatch('/tripplanner/:tripId');
   const activeTripId = plannerMatch?.params.tripId;
@@ -42,6 +47,25 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
     () => Boolean(activeTripId) || location.pathname.startsWith('/tripplanner/'),
     [activeTripId, location.pathname],
   );
+
+  // The command bar sits where the support FAB does below lg, so the FAB steps up
+  // while it is collapsed and gets out of the way entirely once it opens.
+  //
+  // Presence is derived from the route rather than taken from the event: a child's
+  // effects run before its parent's, so a mount-time dispatch lands before this
+  // listener exists. Only opening and closing, which are user actions, come over
+  // the wire.
+  const [commandBarOpen, setCommandBarOpen] = useState(false);
+  useEffect(() => {
+    const handler = (e: Event) => setCommandBarOpen((e as CustomEvent<boolean>).detail);
+    window.addEventListener(COMMAND_BAR_STATE_EVENT, handler);
+    return () => window.removeEventListener(COMMAND_BAR_STATE_EVENT, handler);
+  }, []);
+
+  const commandBarState: CommandBarState = useMemo(() => {
+    if (!onCommandBarRoute(location.pathname)) return 'none';
+    return commandBarOpen ? 'expanded' : 'collapsed';
+  }, [location.pathname, commandBarOpen]);
 
   const openCreateTrip = (prefill?: CreateTripPrefill) => {
     setCreateTripPrefill(prefill);
@@ -71,8 +95,18 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
     return () => window.removeEventListener('trip:create', handler);
   }, []);
 
+  // The plan popup, raised from the top bar and from anywhere a limit is hit.
+  const [proOpen, setProOpen] = useState(false);
+  const openProDialog = () => setProOpen(true);
+
+  useEffect(() => {
+    const handler = () => setProOpen(true);
+    window.addEventListener('plan:open', handler);
+    return () => window.removeEventListener('plan:open', handler);
+  }, []);
+
   return (
-    <AppShellProvider value={{ openCreateTrip }}>
+    <AppShellProvider value={{ openCreateTrip, openProDialog }}>
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', maxWidth: '100vw', overflow: 'hidden' }}>
         <AppShellHeader onCreateTrip={openCreateTrip} />
 
@@ -93,48 +127,14 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
           </Box>
         </Box>
 
-        <AppBottomNav onCreateTrip={openCreateTrip} onMoreMenu={() => setMoreMenuOpen(true)} />
-
-        <Drawer
-          anchor="bottom"
-          open={moreMenuOpen}
-          onClose={() => setMoreMenuOpen(false)}
-          sx={{ display: { xs: 'block', lg: 'none' } }}
-          PaperProps={{
-            sx: {
-              borderTopLeftRadius: 20,
-              borderTopRightRadius: 20,
-              pb: 'env(safe-area-inset-bottom, 8px)',
-            },
-          }}
-        >
-          <Box sx={{ px: 2, pt: 2, pb: 1 }}>
-            <Box sx={{ width: 40, height: 4, borderRadius: 2, bgcolor: 'divider', mx: 'auto', mb: 2 }} />
-            <List disablePadding>
-              {APP_NAV_ITEMS.filter((i) => MORE_NAV_IDS.includes(i.id)).map((item) => (
-                <ListItemButton
-                  key={item.id}
-                  onClick={() => {
-                    navigate(item.path);
-                    setMoreMenuOpen(false);
-                  }}
-                  selected={location.pathname === item.path}
-                  sx={{ borderRadius: '12px', mb: 0.5 }}
-                >
-                  <ListItemIcon sx={{ minWidth: 40, color: location.pathname === item.path ? '#FF385C' : 'inherit' }}>
-                    <item.Icon />
-                  </ListItemIcon>
-                  <ListItemText primary={item.label} primaryTypographyProps={{ fontWeight: 600 }} />
-                </ListItemButton>
-              ))}
-            </List>
-          </Box>
-        </Drawer>
+        <AppBottomNav onCreateTrip={openCreateTrip} />
 
         {/* The app's single create dialog. Pages call openCreateTrip rather than
             mounting their own copy. */}
         <TripCreationModal open={createTripOpen} onClose={closeCreateTrip} initial={createTripPrefill} />
-        {!hideSupportWidget && <SupportWidget />}
+        <ProDialog open={proOpen} onClose={() => setProOpen(false)} />
+        {!hideSupportWidget && <NaviaCommandBar />}
+        {!hideSupportWidget && <SupportWidget commandBar={commandBarState} />}
         {!hideSupportWidget && <OnboardingCarousel />}
       </Box>
     </AppShellProvider>

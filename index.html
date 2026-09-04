@@ -34,18 +34,21 @@
 
     <!-- Fonts: preconnect + link beats CSS @import (no render-blocking CSS chain, earlier fetch)
 
-         Inter is requested as a variable axis (400..700) rather than a static
-         weight list. The old list stopped at the values it named, and combined
-         with `font-synthesis: none` in index.css any weight not on it rounded to
-         the nearest one that was - so the 550/650/750 the theme asked for all
-         rendered as 600/700/800, i.e. heavier than written. The axis is also one
-         file instead of six. 700 is the top of the ladder by design.
+         Plus Jakarta Sans is the UI face, requested as a variable axis (400..700)
+         rather than a static weight list. The old list stopped at the values it
+         named, and combined with `font-synthesis: none` in index.css any weight
+         not on it rounded to the nearest one that was - so the 550/650/750 the
+         theme asked for all rendered as 600/700/800, i.e. heavier than written.
+         The axis is also one file instead of six. 700 is the top of the ladder
+         by design. Keep the axis form if this face is ever swapped again.
 
-         Playfair Display is the display face - mastheads, the auth panel, the
-         landing hero. A geometric sans was tried here and pulled back out: it
-         was clean at UI sizes but at display sizes it read as interface chrome
-         rather than as a heading, because it spoke in the same voice as the body
-         text. The serif is the one thing on the page that is not the UI.
+         Playfair Display is the display face and its scope is now NARROW: story
+         titles and the story reading page, nothing else. A geometric sans was
+         once tried in that slot and pulled back out because at display sizes it
+         read as interface chrome rather than as a heading. That finding still
+         holds - which is why the serif survives on the one surface that has to
+         read as authored rather than as product. `story-serif.guard.test.ts`
+         enforces the boundary.
 
          The `1,600` axis is a real italic cut, not a synthesised oblique -
          `font-synthesis: none` in index.css means an unrequested italic would
@@ -54,7 +57,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Inter:wght@400..700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400..700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"
     />
   </head>
   <body>

@@ -2,6 +2,7 @@ import React from 'react';
 import { Box, Typography, Tooltip, AvatarGroup, Avatar, Button } from '@mui/material';
 import { IconUsers, IconLayoutGrid, IconSparkles } from '@tabler/icons-react';
 import SegmentedControl from '../../components/ui/SegmentedControl';
+import PlannerHeaderShell from './PlannerHeaderShell';
 import type { PlannerMode } from '../../utils/normalizeTrip';
 
 export interface EasyPlanHeaderProps {
@@ -15,6 +16,12 @@ export interface EasyPlanHeaderProps {
   onModeChange: (mode: PlannerMode) => void;
   onOpenSettings: () => void;
   onOpenShare: () => void;
+  /**
+   * Publish / Published / Share, built once by the planner and handed to both
+   * headers. Simple mode had no publish affordance at all while this lived
+   * inline in the advanced bar.
+   */
+  actions?: React.ReactNode;
 }
 
 const fmt = (iso?: string | null) => {
@@ -34,7 +41,7 @@ const fmt = (iso?: string | null) => {
  */
 const EasyPlanHeader: React.FC<EasyPlanHeaderProps> = ({
   stopCount, totalNights, startDate, endDate, travelers, canEdit,
-  mode, onModeChange, onOpenSettings, onOpenShare,
+  mode, onModeChange, onOpenSettings, onOpenShare, actions,
 }) => {
   const start = fmt(startDate);
   const end = fmt(endDate);
@@ -51,32 +58,7 @@ const EasyPlanHeader: React.FC<EasyPlanHeaderProps> = ({
         : 'Drag stops to reorder your route · tap the note icon on any stop.';
 
   return (
-    <Box
-      sx={(t) => ({
-        // px MUST stay identical to DestinationCardsPanel's root, at every
-        // breakpoint, or the header text and the stop cards sit on two different
-        // left edges. Change one, change the other.
-        px: { xs: 2, sm: 2.5 }, py: { xs: 1.75, sm: 2.25 },
-        borderBottom: `1px solid ${t.custom.surface.border}`,
-        bgcolor: 'background.default',
-        position: 'sticky', top: 0, zIndex: 2,
-      })}
-    >
-      {/*
-        Stacks into rows on a phone. Side by side, the controls cluster claims ~260px
-        of a 390px viewport, which squeezed the text column to ~115px: the facts
-        kicker broke onto THREE lines ("1 STOP ·" / "3 NIGHTS ·" / "30 AUG - 3 SEPT")
-        and the guidance sentence onto four. Full-width rows fix both.
-      */}
-      <Box
-        sx={{
-          maxWidth: 900, mx: 'auto', width: '100%',
-          display: 'flex',
-          flexDirection: { xs: 'column', sm: 'row' },
-          alignItems: { xs: 'stretch', sm: 'center' },
-          gap: { xs: 1.25, sm: 2 },
-        }}
-      >
+    <PlannerHeaderShell>
         <Box sx={{ flex: 1, minWidth: 0 }}>
 
           {/*
@@ -168,6 +150,8 @@ const EasyPlanHeader: React.FC<EasyPlanHeaderProps> = ({
             </Button>
           </Tooltip>
 
+          {actions}
+
           {canEdit && (
             <Box data-tour="planner-mode" sx={{ display: 'inline-flex' }}>
               <SegmentedControl<PlannerMode>
@@ -175,15 +159,14 @@ const EasyPlanHeader: React.FC<EasyPlanHeaderProps> = ({
                 value={mode}
                 onChange={onModeChange}
                 options={[
-                  { value: 'easy', label: 'Simple', Icon: IconSparkles, tip: 'Just stops, nights and notes' },
-                  { value: 'advanced', label: 'Advanced', Icon: IconLayoutGrid, tip: 'Stays, places, budget, packing and publishing' },
+                  { value: 'easy', label: 'Simple', Icon: IconSparkles, tip: 'Stops, nights and notes, without the stay and place detail' },
+                  { value: 'advanced', label: 'Advanced', Icon: IconLayoutGrid, tip: 'Adds stays, places to visit and food to every stop' },
                 ]}
               />
             </Box>
           )}
         </Box>
-      </Box>
-    </Box>
+    </PlannerHeaderShell>
   );
 };
 

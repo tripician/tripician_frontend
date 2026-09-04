@@ -1,5 +1,7 @@
 import React from 'react';
+import { BRAND } from '../../theme';
 import { Box, Tooltip } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import SettingsIcon from '@mui/icons-material/Settings';
 import ImportExportIcon from '@mui/icons-material/ImportExport';
 import SoonTag from '../../components/CommonComponents/SoonTag';
@@ -40,10 +42,9 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
           top: '12%',
           bottom: '12%',
           width: '1px',
-          background: 'linear-gradient(180deg, transparent 0%, rgba(255,56,92,0.45) 50%, transparent 100%)',
+          background: `linear-gradient(180deg, transparent 0%, ${alpha(BRAND.coral, 0.45)} 50%, transparent 100%)`,
           pointerEvents: 'none',
         },
-        fontFamily: "'Inter', system-ui, -apple-system, sans-serif",
       })}
     >
   {visiblePlannerNavItems({ hideSections, canAccessDocs, docsEnabled, budgetEnabled }).map(item => {
@@ -74,31 +75,30 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
                 height: 48,
                 borderRadius: 2,
                 background: selected
-                  ? (theme.palette.mode === 'light' ? 'rgba(255,56,92,0.09)' : 'rgba(255,56,92,0.18)')
+                  ? (theme.palette.mode === 'light' ? alpha(BRAND.coral, 0.09) : alpha(BRAND.coral, 0.18))
                   : (isDisabled
                       ? (theme.palette.mode === 'light' ? 'rgba(0,0,0,0.03)' : 'rgba(255,255,255,0.04)')
                       : 'transparent'),
                 border: selected
-                  ? (theme.palette.mode === 'light' ? '1px solid rgba(255,56,92,0.22)' : '1px solid rgba(255,56,92,0.35)')
+                  ? (theme.palette.mode === 'light' ? `1px solid ${alpha(BRAND.coral, 0.22)}` : `1px solid ${alpha(BRAND.coral, 0.35)}`)
                   : (isDisabled
                       ? (theme.palette.mode === 'light' ? '1px solid rgba(0,0,0,0.07)' : '1px solid rgba(255,255,255,0.07)')
                       : 'none'),
                 opacity: isDisabled ? 0.5 : 1,
                 color: selected
-                  ? '#FF385C'
+                  ? BRAND.coral
                   : (theme.palette.mode === 'light' ? '#717171' : 'rgba(255,255,255,0.5)'),
                                 transition: 'background .2s ease, color .2s ease, box-shadow .2s ease',
                 userSelect: 'none',
                 outline: 'none',
-                fontFamily: "'Inter', system-ui, sans-serif",
                 '&:focus-visible': {
-                  boxShadow: '0 0 0 2px rgba(255,56,92,0.55)'
+                  boxShadow: `0 0 0 2px ${alpha(BRAND.coral, 0.55)}`
                 },
                 '&:hover': isDisabled ? {} : {
                   background: theme.palette.mode === 'light'
-                    ? 'rgba(255,56,92,0.07)'
-                    : 'rgba(255,56,92,0.13)',
-                  color: '#FF385C',
+                    ? alpha(BRAND.coral, 0.07)
+                    : alpha(BRAND.coral, 0.13),
+                  color: 'primary.main',
                 },
                 position: 'relative'
               })}
@@ -135,8 +135,8 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
               userSelect: 'none',
               transition: 'background .2s ease, color .2s ease',
               '&:hover': {
-                background: theme.palette.mode === 'light' ? 'rgba(255,56,92,0.07)' : 'rgba(255,56,92,0.13)',
-                color: '#FF385C',
+                background: theme.palette.mode === 'light' ? alpha(BRAND.coral, 0.07) : alpha(BRAND.coral, 0.13),
+                color: 'primary.main',
               }
             })}
           >
@@ -163,8 +163,8 @@ const TripPlannerNav: React.FC<TripPlannerNavProps> = ({ active = 'plan', onChan
             opacity: settingsDisabled ? 0.45 : 1,
             transition: 'background .2s ease, color .2s ease',
             '&:hover': settingsDisabled ? {} : {
-              background: theme.palette.mode === 'light' ? 'rgba(255,56,92,0.07)' : 'rgba(255,56,92,0.13)',
-              color: '#FF385C',
+              background: theme.palette.mode === 'light' ? alpha(BRAND.coral, 0.07) : alpha(BRAND.coral, 0.13),
+              color: 'primary.main',
             }
           })}
         >

@@ -37,10 +37,10 @@ export const loadNews = createAsyncThunk<{ articles: NewsArticle[]; locations: s
       return { articles: [], locations: [] };
     }
     // Debug log start
-    // eslint-disable-next-line no-console
+     
     console.log('[newsSlice] Fetching news for', activeLocations.join(', '));
     const resp = await fetchNews({ locations: activeLocations, size: 40 });
-    // eslint-disable-next-line no-console
+     
     console.log('[newsSlice] Received documents:', resp.number_of_documents, 'displaying first titles:', resp.documents.slice(0,3).map(d=> d.title));
     return { articles: resp.documents as NewsArticle[], locations: activeLocations };
   }

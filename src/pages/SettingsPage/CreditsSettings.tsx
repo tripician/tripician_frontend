@@ -27,7 +27,6 @@ const cardSx = {
 } as const;
 
 const sectionTitleSx = {
-  fontFamily: "'Inter',sans-serif",
   fontWeight: 700,
   fontSize: '0.95rem',
   color: 'text.primary',
@@ -73,7 +72,7 @@ const CreditsSettings: React.FC = () => {
             <IconCoins size={17} />
             <Typography sx={sectionTitleSx}>Personal wallet</Typography>
           </Box>
-          <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', fontFamily: "'Inter',sans-serif", mb: 3, maxWidth: 520 }}>
+          <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', mb: 3, maxWidth: 520 }}>
             Credits power every conversation with Navia. This wallet covers your personal chat;
             each trip carries its own shared wallet that the whole group plans from.
           </Typography>
@@ -85,7 +84,7 @@ const CreditsSettings: React.FC = () => {
           )}
 
           {!loading && error && (
-            <Typography sx={{ fontSize: '0.82rem', color: 'error.main', fontFamily: "'Inter',sans-serif" }}>
+            <Typography sx={{ fontSize: '0.82rem', color: 'error.main',}}>
               {error}
             </Typography>
           )}
@@ -93,10 +92,10 @@ const CreditsSettings: React.FC = () => {
           {!loading && wallet && (
             <>
               <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1 }}>
-                <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '2.4rem', lineHeight: 1, color: low ? 'error.main' : 'text.primary' }}>
+                <Typography sx={{ fontWeight: 700, fontSize: '2.4rem', lineHeight: 1, color: low ? 'error.main' : 'text.primary' }}>
                   {wallet.balance}
                 </Typography>
-                <Typography sx={{ fontSize: '0.82rem', color: 'text.disabled', fontFamily: "'Inter',sans-serif" }}>
+                <Typography sx={{ fontSize: '0.82rem', color: 'text.disabled',}}>
                   credits remaining
                 </Typography>
               </Box>
@@ -119,24 +118,24 @@ const CreditsSettings: React.FC = () => {
 
               <Box sx={{ display: 'flex', gap: 4 }}>
                 <Box>
-                  <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled', fontFamily: "'Inter',sans-serif" }}>
+                  <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled',}}>
                     Granted
                   </Typography>
-                  <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '1.05rem' }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: '1.05rem' }}>
                     {wallet.totalGranted}
                   </Typography>
                 </Box>
                 <Box>
-                  <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled', fontFamily: "'Inter',sans-serif" }}>
+                  <Typography sx={{ fontSize: '0.68rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled',}}>
                     Used
                   </Typography>
-                  <Typography sx={{ fontFamily: "'Inter',sans-serif", fontWeight: 700, fontSize: '1.05rem' }}>
+                  <Typography sx={{ fontWeight: 700, fontSize: '1.05rem' }}>
                     {wallet.totalSpent}
                   </Typography>
                 </Box>
               </Box>
 
-              <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', fontFamily: "'Inter',sans-serif", mt: 2.5 }}>
+              <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', mt: 2.5 }}>
                 Top-ups are on the way. Until then, every traveler starts with {wallet.totalGranted || 300} credits on us.
               </Typography>
             </>
@@ -148,7 +147,7 @@ const CreditsSettings: React.FC = () => {
       <Card sx={cardSx}>
         <CardContent sx={{ p: 3 }}>
           <Typography sx={{ ...sectionTitleSx, mb: 0.5 }}>What a credit buys</Typography>
-          <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', fontFamily: "'Inter',sans-serif", mb: 2.5 }}>
+          <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', mb: 2.5 }}>
             Simple, fixed prices, you always know the cost before Navia gets to work.
           </Typography>
 
@@ -167,7 +166,7 @@ const CreditsSettings: React.FC = () => {
                   {price.wallet === 'personal'
                     ? <IconMessageCircle size={15} style={{ flexShrink: 0, opacity: 0.55 }} />
                     : <IconUsers size={15} style={{ flexShrink: 0, opacity: 0.55 }} />}
-                  <Typography sx={{ fontSize: '0.85rem', fontFamily: "'Inter',sans-serif", color: 'text.primary' }}>
+                  <Typography sx={{ fontSize: '0.85rem', color: 'text.primary' }}>
                     {price.label}
                   </Typography>
                   <Chip
@@ -179,14 +178,14 @@ const CreditsSettings: React.FC = () => {
                     }}
                   />
                 </Box>
-                <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, fontFamily: "'Inter',sans-serif", whiteSpace: 'nowrap' }}>
+                <Typography sx={{ fontSize: '0.85rem', fontWeight: 700, whiteSpace: 'nowrap' }}>
                   {price.cost} {price.cost === 1 ? 'credit' : 'credits'}
                 </Typography>
               </Box>
             ))}
           </Box>
 
-          <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', fontFamily: "'Inter',sans-serif", mt: 2 }}>
+          <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', mt: 2 }}>
             Trip-wallet actions spend from the trip's shared balance, check it any time from the coin
             chip in that trip's chat panel. If Navia ever fails to answer, the credits come straight back.
           </Typography>
@@ -197,7 +196,7 @@ const CreditsSettings: React.FC = () => {
       <Card sx={{ ...cardSx, mb: 0 }}>
         <CardContent sx={{ p: 3 }}>
           <Typography sx={{ ...sectionTitleSx, mb: 0.5 }}>Recent activity</Typography>
-          <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', fontFamily: "'Inter',sans-serif", mb: 2 }}>
+          <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', mb: 2 }}>
             Every grant, spend, and refund on your personal wallet.
           </Typography>
 
@@ -208,7 +207,7 @@ const CreditsSettings: React.FC = () => {
           )}
 
           {!loading && !error && (history?.entries?.length ?? 0) === 0 && (
-            <Typography sx={{ fontSize: '0.82rem', color: 'text.disabled', fontFamily: "'Inter',sans-serif", py: 1 }}>
+            <Typography sx={{ fontSize: '0.82rem', color: 'text.disabled', py: 1 }}>
               Nothing yet, say hello to Navia and your first entry will appear here.
             </Typography>
           )}
@@ -227,16 +226,16 @@ const CreditsSettings: React.FC = () => {
                   }}
                 >
                   <Box sx={{ minWidth: 0 }}>
-                    <Typography sx={{ fontSize: '0.85rem', fontFamily: "'Inter',sans-serif", color: 'text.primary', fontWeight: 500 }}>
+                    <Typography sx={{ fontSize: '0.85rem', color: 'text.primary', fontWeight: 500 }}>
                       {creditActionLabel(entry.action)}
                     </Typography>
-                    <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled', fontFamily: "'Inter',sans-serif" }}>
+                    <Typography sx={{ fontSize: '0.7rem', color: 'text.disabled',}}>
                       {dayjs(entry.createdAt).format('MMM D, YYYY · h:mm A')}
                     </Typography>
                   </Box>
                   <Typography
                     sx={{
-                      fontSize: '0.85rem', fontWeight: 700, fontFamily: "'Inter',sans-serif",
+                      fontSize: '0.85rem', fontWeight: 700,
                       color: entry.delta > 0 ? 'success.main' : 'text.primary',
                       whiteSpace: 'nowrap',
                     }}

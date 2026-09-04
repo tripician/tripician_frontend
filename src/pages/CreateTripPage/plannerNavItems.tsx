@@ -3,6 +3,7 @@ import InsertDriveFileIcon from '@mui/icons-material/InsertDriveFile';
 import CalendarMonthIcon from '@mui/icons-material/CalendarMonth';
 import NewspaperIcon from '@mui/icons-material/Newspaper';
 import AccountBalanceWalletOutlinedIcon from '@mui/icons-material/AccountBalanceWalletOutlined';
+import AutoStoriesOutlinedIcon from '@mui/icons-material/AutoStoriesOutlined';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
 import TshirtIcon from './TshirtIcon';
 
@@ -10,6 +11,9 @@ export interface PlannerNavItem { id: string; label: string; icon: React.ReactNo
 
 export const PLANNER_NAV_ITEMS: PlannerNavItem[] = [
   { id: 'plan', label: 'Plan', icon: <CalendarMonthIcon fontSize='small' /> },
+  // Sits directly under Plan because those are the two halves of a trip: what
+  // you intended, and what happened. The rest of the rail is support.
+  { id: 'story', label: 'After Story', icon: <AutoStoriesOutlinedIcon fontSize='small' /> },
   { id: 'budget', label: 'Budget', icon: <AccountBalanceWalletOutlinedIcon fontSize='small' /> },
   { id: 'news', label: 'News', icon: <NewspaperIcon fontSize='small' /> },
   { id: 'packing', label: 'Packing', icon: <TshirtIcon fontSize='small' /> },
@@ -37,13 +41,14 @@ export function visiblePlannerNavItems({
   docsEnabled = true,
   budgetEnabled = true,
 }: PlannerNavGating): PlannerNavItem[] {
-  const { docsSection } = FEATURE_FLAGS;
+  const { docsSection, afterStory } = FEATURE_FLAGS;
   return PLANNER_NAV_ITEMS.filter(i => {
     if (hideSections.includes(i.id)) return false;
     // Docs needs all three: permission, the section flag, and upload enabled. The
     // rail used to render it disabled-and-hidden, which amounts to the same thing.
     if (i.id === 'docs' && !(canAccessDocs && docsSection && docsEnabled)) return false;
     if (i.id === 'budget' && !budgetEnabled) return false;
+    if (i.id === 'story' && !afterStory) return false;
     return true;
   });
 }

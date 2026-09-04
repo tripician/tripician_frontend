@@ -1,6 +1,21 @@
 {
   "rewrites": [
     {
+      "source": "/sitemap.xml",
+      "destination": "https://api.tripician.com/sitemap.xml"
+    },
+    {
+      "source": "/story/:slug",
+      "has": [
+        {
+          "type": "header",
+          "key": "user-agent",
+          "value": ".*(googlebot|bingbot|yandex|duckduckbot|applebot|facebookexternalhit|facebookcatalog|meta-externalagent|whatsapp|twitterbot|linkedinbot|slackbot|slack-imgproxy|telegrambot|discordbot|pinterest|redditbot|skypeuripreview|embedly|quora link preview|vkshare|bitlybot|iframely|opengraph).*"
+        }
+      ],
+      "destination": "https://api.tripician.com/render/story/:slug"
+    },
+    {
       "source": "/(.*)",
       "destination": "/index.html"
     }

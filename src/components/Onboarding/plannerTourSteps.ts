@@ -67,9 +67,12 @@ export const PLANNER_TOUR_STEPS: PlannerTourStep[] = [
     placement: 'bottom',
   },
   {
+    // Rewritten rather than joined by a ninth step. It promised a Save button
+    // that no longer exists, and its anchor sits beside both the save state and
+    // the presence avatars, so one step covers what changed here.
     target: 'save',
-    title: 'Nothing to lose',
-    body: 'Your plan saves itself as you work. The Save button is only there for when you want to be certain.',
+    title: 'Nothing to lose, even together',
+    body: 'Your plan saves itself as you work. If somebody else has it open they show up here too, and when two of you save at once we stop the second one rather than quietly overwriting the first.',
     placement: 'top',
   },
 ];

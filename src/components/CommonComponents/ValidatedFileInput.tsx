@@ -41,14 +41,18 @@ export const ValidatedFileInput: React.FC<ValidatedFileInputProps> = ({
   const [errors, setErrors] = React.useState<string[]>([]);
   const open = () => inputRef.current?.click();
   const onChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const files = e.target.files;
+    // Copied, not referenced. This worked only because the reset below happened
+    // last; a live FileList is emptied by clearing value, so moving that line up
+    // or putting an await above it would have broken uploads silently.
+    const files = Array.from(e.target.files ?? []);
+    if(resetOnSelect && e.target) e.target.value='';
+
     setErrors([]);
-    if(files){
+    if(files.length){
       const { accepted, rejected } = validateFiles(files, rule);
       if(rejected.length) setErrors(rejected.flatMap(r=> r.errors));
       if(accepted.length) onAccept(accepted);
     }
-    if(resetOnSelect && e.target) e.target.value='';
   };
   return (
     <Box className={className} sx={{ display:'flex', flexDirection:'column', gap:1, ...sx }}>

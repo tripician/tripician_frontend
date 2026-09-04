@@ -145,7 +145,7 @@ const ShowcaseMap: React.FC<ShowcaseMapProps> = ({ stops }) => {
   if (withCoords.length === 0 || error) {
     return (
       <Box sx={{ height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', bgcolor: 'action.hover' }}>
-        <Typography sx={{ fontSize: 12.5, color: 'text.disabled', fontFamily: "'Inter',sans-serif" }}>
+        <Typography sx={{ fontSize: 12.5, color: 'text.disabled',}}>
           {error ?? 'Route map appears once stops are pinned'}
         </Typography>
       </Box>

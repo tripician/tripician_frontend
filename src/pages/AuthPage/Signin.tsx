@@ -4,7 +4,9 @@ import { useAuth0 } from '@auth0/auth0-react';
 import '../../assets/css/Signin.css';
 import { Eye, EyeOff, Plane, MapPin, Globe, Brain, ArrowLeft } from 'lucide-react';
 import { authAPI } from '../../services/APIs/Auth/auth';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { nextFrom, safeNext } from '../../services/APIs/Auth/nextDestination';
+import { stashReturnTo } from '../../utils/pendingDraft';
 import { fetchUserProfile } from '../../store/userSlice';
 import { clearSessionData } from '../../utils/authSession';
 import { setAccessToken, setRefreshToken } from '../../services/auth/sessionStatus';
@@ -28,6 +30,7 @@ const GoogleSVG = () => (
 const Signin = () => {
   const [showPassword, setShowPassword] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
   const { loginWithRedirect } = useAuth0();
   const dispatch = useDispatch<AppDispatch>();
   const loginBackground = import.meta.env.VITE_SIGNINPAGE_IMAGE_URL as string | undefined;
@@ -132,7 +135,9 @@ const Signin = () => {
           // happening. Take them to it rather than to the generic /home.
           // `peek`, not `take`: consuming it belongs to NaviaPage, so a failed
           // navigation cannot silently eat the prompt.
-          navigate(peekPendingPrompt() ? '/navia' : '/home');
+          // A ?next= wins over the generic home, but not over a Navia prompt the
+          // visitor typed: that prompt IS the reason they signed in.
+          navigate(peekPendingPrompt() ? '/navia' : nextFrom(location.search));
         }, 1500);
       } else {
         setError('Unexpected response from server. Please try again.');
@@ -158,6 +163,11 @@ const Signin = () => {
   };
 
   const handleGoogleSignIn = () => {
+    // The tab is about to leave the site, so `?next=` on this URL is gone by the
+    // time we come back to /callback. Storage is the only thing that survives.
+    const next = safeNext(new URLSearchParams(location.search).get('next'));
+    if (next) stashReturnTo(next);
+
     loginWithRedirect({
       authorizationParams: {
         connection: 'google-oauth2',

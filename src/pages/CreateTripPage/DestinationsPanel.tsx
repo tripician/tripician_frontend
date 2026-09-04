@@ -233,7 +233,7 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
         setSpotSearchLoading(false);
       });
     } catch(err){
-      // eslint-disable-next-line no-console
+       
       console.warn('[Places] triggerSpotSearch error', err);
       setSpotSearchLoading(false);
       setSpotPredictions([]);
@@ -308,7 +308,7 @@ const DestinationsPanel: React.FC<DestinationsPanelProps> = ({ destinations, onC
         setPredictions(res.slice(0,7));
       });
     } catch(err){
-      // eslint-disable-next-line no-console
+       
       console.warn('[Places] add destination predictions error', err);
       setLoadingPred(false);
       setPredictions([]);

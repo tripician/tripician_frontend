@@ -1,4 +1,5 @@
 import React, { useEffect } from 'react';
+import { BRAND } from '../../../theme';
 import * as signalR from '@microsoft/signalr';
 import {
   Box,
@@ -16,7 +17,9 @@ import {
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { useLocation, useNavigate } from 'react-router-dom';
+import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import NotificationsOffOutlinedIcon from '@mui/icons-material/NotificationsOffOutlined';
 import NotificationsActiveRoundedIcon from '@mui/icons-material/NotificationsActiveRounded';
@@ -25,6 +28,10 @@ import FavoriteRoundedIcon from '@mui/icons-material/FavoriteRounded';
 import ChatBubbleOutlineRoundedIcon from '@mui/icons-material/ChatBubbleOutlineRounded';
 import FlightTakeoffRoundedIcon from '@mui/icons-material/FlightTakeoffRounded';
 import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
+import AutoStoriesRoundedIcon from '@mui/icons-material/AutoStoriesRounded';
+import EditNoteRoundedIcon from '@mui/icons-material/EditNoteRounded';
+import { FEATURE_FLAGS } from '../../../config/featureFlags';
+import StoryCreationModal from '../../../afterstory/StoryCreationModal';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import LogoutIcon from '@mui/icons-material/Logout';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
@@ -33,13 +40,16 @@ import GavelIcon from '@mui/icons-material/Gavel';
 import ContactSupportIcon from '@mui/icons-material/ContactSupport';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
+import ApartmentRoundedIcon from '@mui/icons-material/ApartmentRounded';
+import RadarRoundedIcon from '@mui/icons-material/RadarRounded';
+import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../../store';
 import { clearUser } from '../../../store/userSlice';
 import { signOut } from '../../../services/auth/signOut';
 import { getFreshToken } from '../../../services/auth/tokenService';
 import { tokenSubject } from '../../../utils/authSession';
-import { APP_NAV_ITEMS, navItemFromPath } from '../navConfig';
+import { APP_NAV_ITEMS, navItemFromPath, DESKTOP_NAV_MIN_WIDTH, HEADER_FULL_LABELS_MIN_WIDTH } from '../navConfig';
 import Badge from '@mui/material/Badge';
 import {
   fetchUnreadCount,
@@ -49,11 +59,65 @@ import {
 } from '../../../store/notificationSlice';
 import { apiServices } from '../../../services/APIs/apiServices';
 import { useAuthToken } from '../../../hooks/useAuth0Token';
+import ProPill from '../../../pricing/ProPill';
+import { useAppShell } from '../AppShellContext';
 
 interface NotificationMeta {
   Icon: React.ElementType;
   color: string;
   bg: string;
+}
+
+/**
+ * Where a notification takes you, or null to only mark it read.
+ *
+ * The panel has always rendered rows with `cursor: pointer` that went nowhere.
+ * This is not an attempt to fix that everywhere: it routes the notifications
+ * that exist to prompt an action, because a nudge saying "write the after story"
+ * that does not open the story is worse than no nudge at all.
+ *
+ * Types with no obvious destination stay as they were.
+ */
+function notificationTarget(n: {
+  notificationType?: string;
+  referenceId?: string | null;
+  referenceType?: string | null;
+}): string | null {
+  const id = n.referenceId;
+  if (!id) return null;
+
+  switch (n.notificationType) {
+    // Straight into the tab being asked for, not the trip's front page.
+    case 'StoryReady':
+      return n.referenceType === 'Trip' ? `/tripplanner/${id}?tab=story` : null;
+    // The editor is where the accept-or-decline prompt lives.
+    case 'StoryInvite':
+      return n.referenceType === 'Story' ? `/story/${id}/edit` : null;
+    case 'TripPublished':
+    case 'TripUpdated':
+    case 'TripInvite':
+    case 'TripJoined':
+    case 'TripCreated':
+    case 'Announcement':
+      return n.referenceType === 'Trip' ? `/trip/${id}` : null;
+    /*
+     * Recruitment. These three had no case at all, so the row rendered with a
+     * pointer cursor and went nowhere.
+     *
+     * The organiser is sent to the trip's public page, because that is where
+     * TripSeatsBand renders the requests panel and the approve/decline buttons -
+     * the only place the request can actually be acted on.
+     */
+    case 'JoinRequested':
+      return n.referenceType === 'Trip' ? `/trip/${id}` : null;
+    // The applicant's answer is the seats band too: it shows "You are on this
+    // trip" or the decline line, keyed off their own membership.
+    case 'JoinApproved':
+    case 'JoinDeclined':
+      return n.referenceType === 'Trip' ? `/trip/${id}` : null;
+    default:
+      return null;
+  }
 }
 
 // The backend now sends notificationType - key icons on the type first and
@@ -62,9 +126,17 @@ function notifMeta(type: string | undefined, msg: string): NotificationMeta {
   switch (type) {
     case 'Follow':        return { Icon: PersonAddAltRoundedIcon, color: '#8B5CF6', bg: 'rgba(139,92,246,0.12)' };
     case 'TripInvite':    return { Icon: GroupsRoundedIcon, color: '#F59E0B', bg: 'rgba(245,158,11,0.10)' };
-    case 'TripCreated':   return { Icon: FlightTakeoffRoundedIcon, color: '#FF385C', bg: 'rgba(255,56,92,0.10)' };
+    case 'TripCreated':   return { Icon: FlightTakeoffRoundedIcon, color: 'primary.main', bg: alpha(BRAND.coral, 0.10) };
     case 'TripUpdated':   return { Icon: FlightTakeoffRoundedIcon, color: '#0EA5E9', bg: 'rgba(14,165,233,0.10)' };
     case 'TripPublished': return { Icon: PublicRoundedIcon, color: '#10B981', bg: 'rgba(16,185,129,0.10)' };
+    case 'StoryReady':    return { Icon: AutoStoriesRoundedIcon, color: 'primary.main', bg: alpha(BRAND.coral, 0.10) };
+    case 'StoryInvite':   return { Icon: AutoStoriesRoundedIcon, color: '#F59E0B', bg: 'rgba(245,158,11,0.10)' };
+    case 'Announcement':  return { Icon: CampaignRoundedIcon, color: '#F59E0B', bg: 'rgba(245,158,11,0.10)' };
+    // Recruitment. Without these the text sniffer below fell through on the
+    // literal string "New notification" and every one got the generic bell.
+    case 'JoinRequested': return { Icon: GroupsRoundedIcon, color: 'primary.main', bg: alpha(BRAND.coral, 0.10) };
+    case 'JoinApproved':  return { Icon: PublicRoundedIcon, color: '#10B981', bg: 'rgba(16,185,129,0.10)' };
+    case 'JoinDeclined':  return { Icon: GroupsRoundedIcon, color: '#6E6E78', bg: 'rgba(110,110,120,0.10)' };
     case 'Comment':
     case 'Reply':         return { Icon: ChatBubbleOutlineRoundedIcon, color: '#0EA5E9', bg: 'rgba(14,165,233,0.10)' };
   }
@@ -74,9 +146,103 @@ function notifMeta(type: string | undefined, msg: string): NotificationMeta {
   if (m.includes('comment') || m.includes('repl') || m.includes('chat')) return { Icon: ChatBubbleOutlineRoundedIcon, color: '#0EA5E9', bg: 'rgba(14,165,233,0.10)' };
   if (m.includes('publish') || m.includes('live')) return { Icon: PublicRoundedIcon, color: '#10B981', bg: 'rgba(16,185,129,0.10)' };
   if (m.includes('invit') || m.includes('join') || m.includes('member')) return { Icon: GroupsRoundedIcon, color: '#F59E0B', bg: 'rgba(245,158,11,0.10)' };
-  if (m.includes('trip') || m.includes('creat')) return { Icon: FlightTakeoffRoundedIcon, color: '#FF385C', bg: 'rgba(255,56,92,0.10)' };
+  if (m.includes('trip') || m.includes('creat')) return { Icon: FlightTakeoffRoundedIcon, color: 'primary.main', bg: alpha(BRAND.coral, 0.10) };
   return { Icon: NotificationsNoneIcon, color: '#6366F1', bg: 'rgba(99,102,241,0.10)' };
 }
+
+/**
+ * The picture on a notification row.
+ *
+ * A column of identical tinted glyphs tells you nothing about which trip or which
+ * person a row is about, and the panel is mostly repeat notifications from the
+ * same few trips. So: a trip cover when the row is about a trip, the actor's
+ * photograph when it is about a person, and the old icon only when we have
+ * neither.
+ *
+ * Where a row has both - somebody asking to join YOUR trip - the cover leads and
+ * the face rides the corner, because you need to recognise the trip first and
+ * then decide about the person.
+ *
+ * Both images fall back to the icon on error rather than leaving a hole: these
+ * are user uploads and a dead URL is a normal state, not an exception.
+ */
+const NotificationMedia: React.FC<{
+  tripCoverUrl?: string | null;
+  actorAvatarUrl?: string | null;
+  actorName?: string | null;
+  meta: NotificationMeta;
+}> = ({ tripCoverUrl, actorAvatarUrl, actorName, meta }) => {
+  const [coverFailed, setCoverFailed] = React.useState(false);
+  const [avatarFailed, setAvatarFailed] = React.useState(false);
+
+  const cover = coverFailed ? null : tripCoverUrl;
+  const avatar = avatarFailed ? null : actorAvatarUrl;
+  const Icon = meta.Icon;
+
+  const FRAME = { width: 38, height: 38, flexShrink: 0, mt: 0.1 } as const;
+
+  if (cover) {
+    return (
+      <Box sx={{ ...FRAME, position: 'relative' }}>
+        <Box
+          component="img"
+          src={cover}
+          alt=""
+          loading="lazy"
+          decoding="async"
+          onError={() => setCoverFailed(true)}
+          sx={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '12px', display: 'block' }}
+        />
+        {avatar && (
+          <Avatar
+            src={avatar}
+            alt=""
+            sx={{
+              position: 'absolute',
+              right: -4,
+              bottom: -4,
+              width: 19,
+              height: 19,
+              fontSize: 9,
+              border: '2px solid',
+              borderColor: 'background.paper',
+            }}
+          >
+            {actorName?.charAt(0)?.toUpperCase()}
+          </Avatar>
+        )}
+      </Box>
+    );
+  }
+
+  if (avatar) {
+    return (
+      <Avatar
+        src={avatar}
+        alt=""
+        imgProps={{ onError: () => setAvatarFailed(true) }}
+        sx={{ ...FRAME, fontSize: 15, fontWeight: 600 }}
+      >
+        {actorName?.charAt(0)?.toUpperCase()}
+      </Avatar>
+    );
+  }
+
+  return (
+    <Box
+      sx={{
+        ...FRAME,
+        borderRadius: '12px',
+        background: meta.bg,
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+      }}
+    >
+      <Icon sx={{ fontSize: 18, color: meta.color }} />
+    </Box>
+  );
+};
 
 function relTime(iso?: string): string {
   try {
@@ -103,8 +269,24 @@ interface AppShellHeaderProps {
 
 const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
   const theme = useTheme();
-  const isDesktop = useMediaQuery(theme.breakpoints.up('lg'));
+  const isDesktop = useMediaQuery(`(min-width:${DESKTOP_NAV_MIN_WIDTH}px)`);
   const navigate = useNavigate();
+
+  /*
+   * Unread messages, fetched once when the shell mounts.
+   *
+   * Not polled: the count is a nudge, not a live figure, and a request every
+   * few seconds for every signed-in tab costs more than the freshness is worth.
+   * Opening the page is what corrects it.
+   */
+  const [messageCount, setMessageCount] = React.useState(0);
+  React.useEffect(() => {
+    let active = true;
+    void apiServices.getConversationUnreadCount()
+      .then((resp) => { if (active) setMessageCount(Number(resp.data?.count) || 0); })
+      .catch(() => { /* a missing badge says less than a wrong one */ });
+    return () => { active = false; };
+  }, []);
   const location = useLocation();
   const { profile } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch<AppDispatch>();
@@ -116,7 +298,36 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
   const notificationHubRef = React.useRef<signalR.HubConnection | null>(null);
 
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
+  // Only people who actually belong to an organisation get the entry. Creating
+  // a first one stays on /for-operators, so this never advertises an empty page.
+  const [hasOrganization, setHasOrganization] = React.useState(false);
+
+  useEffect(() => {
+    if (!token) { setHasOrganization(false); return; }
+    let cancelled = false;
+    apiServices.getMyOrganizations(token)
+      .then((resp) => {
+        if (!cancelled) setHasOrganization(Array.isArray(resp.data) && resp.data.length > 0);
+      })
+      .catch(() => { if (!cancelled) setHasOrganization(false); });
+    return () => { cancelled = true; };
+  }, [token]);
   const [notifAnchorEl, setNotifAnchorEl] = React.useState<HTMLElement | null>(null);
+  // Lives here rather than in the shell provider because, unlike the trip
+  // dialog, nothing outside this header opens it.
+  const [createStoryOpen, setCreateStoryOpen] = React.useState(false);
+  const { openProDialog } = useAppShell();
+
+  /*
+   * Anywhere in the app can ask for the story composer, the same way `trip:create`
+   * opens the trip one. The header owns the modal because it owns the button, so
+   * without this a call to action on another page had nothing to call.
+   */
+  React.useEffect(() => {
+    const open = () => setCreateStoryOpen(true);
+    window.addEventListener('story:create', open);
+    return () => window.removeEventListener('story:create', open);
+  }, []);
 
   const activeNav = navItemFromPath(location.pathname);
   const displayName = profile ? `${profile.fname ?? ''} ${profile.lname ?? ''}`.trim() || 'Traveler' : 'Traveler';
@@ -423,6 +634,62 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
                 does not actually hold anyone up. The dialog's own subtitle sets
                 the expectation the moment it opens.
               */}
+              {/*
+                Two things can be created now, and they are not equals. Planning
+                is the reflex action and keeps the filled primary; writing up a
+                trip you already took is deliberate and gets the outlined
+                treatment beside it.
+
+                A dropdown would have been tidier, but After Story is new and
+                nobody is looking for it yet: a control hidden behind a caret is
+                a feature nobody finds. Story sits to the LEFT so the filled
+                button stays nearest the bell and the avatar, where the eye
+                finishes.
+              */}
+              {/* First in the cluster on purpose. It is brand-tinted rather than a
+                  second solid fill, so it does not compete with Plan a trip, and it
+                  leaves the documented story / trip / bell / avatar order intact. */}
+              <ProPill onClick={openProDialog} />
+
+              {FEATURE_FLAGS.afterStory && (
+                <>
+                  <Button
+                    onClick={() => setCreateStoryOpen(true)}
+                    variant="outlined"
+                    startIcon={<EditNoteRoundedIcon sx={{ fontSize: 20 }} />}
+                    sx={{
+                      // Labelled only where the row has room; the icon button
+                      // below is the same action for every narrower width.
+                      display: 'none',
+                      [`@media (min-width:${HEADER_FULL_LABELS_MIN_WIDTH}px)`]: { display: 'inline-flex' },
+                      flexShrink: 0,
+                      fontSize: '0.84rem',
+                      fontWeight: 600,
+                      borderColor: theme.custom.surface.border,
+                      color: 'text.secondary',
+                      '&:hover': { borderColor: 'text.disabled', color: 'text.primary' },
+                    }}
+                  >
+                    Write a story
+                  </Button>
+
+                  <IconButton
+                    onClick={() => setCreateStoryOpen(true)}
+                    aria-label="Write an after story"
+                    sx={{
+                      display: 'inline-flex',
+                      [`@media (min-width:${HEADER_FULL_LABELS_MIN_WIDTH}px)`]: { display: 'none' },
+                      width: 40,
+                      height: 40,
+                      border: `1px solid ${theme.custom.surface.border}`,
+                      color: 'text.secondary',
+                    }}
+                  >
+                    <EditNoteRoundedIcon fontSize="small" />
+                  </IconButton>
+                </>
+              )}
+
               <Button
                 onClick={onCreateTrip}
                 variant="contained"
@@ -574,11 +841,17 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
           <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
             {notifications.map((notification: any) => {
               const meta = notifMeta(notification.notificationType, notification.message || '');
-              const NotificationIcon = meta.Icon;
               return (
                 <Box
                   key={notification.id}
-                  onClick={() => markOneRead(String(notification.id))}
+                  onClick={() => {
+                    markOneRead(String(notification.id));
+                    const target = notificationTarget(notification);
+                    if (target) {
+                      setNotifAnchorEl(null);
+                      navigate(target);
+                    }
+                  }}
                   sx={{
                     display: 'flex',
                     alignItems: 'flex-start',
@@ -594,21 +867,12 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
                     '&:last-child': { borderBottom: 'none' },
                   }}
                 >
-                  <Box
-                    sx={{
-                      width: 38,
-                      height: 38,
-                      borderRadius: '12px',
-                      background: meta.bg,
-                      display: 'flex',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      flexShrink: 0,
-                      mt: 0.1,
-                    }}
-                  >
-                    <NotificationIcon sx={{ fontSize: 18, color: meta.color }} />
-                  </Box>
+                  <NotificationMedia
+                    tripCoverUrl={notification.tripCoverUrl}
+                    actorAvatarUrl={notification.actorAvatarUrl}
+                    actorName={notification.actorName}
+                    meta={meta}
+                  />
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography
                       sx={{
@@ -665,6 +929,30 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
         </Box>
         <Divider sx={{ mx: 2 }} />
         <List dense disablePadding sx={{ py: 1, px: 1 }}>
+          {/* Risk Monitor lives here rather than in the nav. It is a tool you
+              reach for about a specific destination, not a place you go, and it
+              was holding a fifth of the top-level nav that Stories needed. */}
+          <ListItemButton onClick={() => { navigate('/risk-monitor'); setAnchorEl(null); }} sx={{ py: 0.9 }}>
+            <ListItemIcon sx={{ minWidth: 32 }}><RadarRoundedIcon sx={{ fontSize: 17 }} /></ListItemIcon>
+            <ListItemText primary="Risk Monitor" primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }} />
+          </ListItemButton>
+          {/* Shown to everyone. Hiding it until you already had one was the reason a
+              business had no way in: the page it needed was the page it could not reach. */}
+          <ListItemButton onClick={() => { navigate('/organizations'); setAnchorEl(null); }} sx={{ py: 0.9 }}>
+            <ListItemIcon sx={{ minWidth: 32 }}><ApartmentRoundedIcon sx={{ fontSize: 17 }} /></ListItemIcon>
+            <ListItemText
+              primary={hasOrganization ? 'Your organization' : 'Create a business account'}
+              primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }}
+            />
+          </ListItemButton>
+          <ListItemButton onClick={() => { navigate('/messages'); setAnchorEl(null); }} sx={{ py: 0.9 }}>
+            <ListItemIcon sx={{ minWidth: 32 }}>
+              <Badge badgeContent={messageCount} color="error" max={99}>
+                <ChatBubbleOutlineIcon sx={{ fontSize: 17 }} />
+              </Badge>
+            </ListItemIcon>
+            <ListItemText primary="Messages" primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }} />
+          </ListItemButton>
           <ListItemButton onClick={() => { navigate('/settings'); setAnchorEl(null); }} sx={{ py: 0.9 }}>
             <ListItemIcon sx={{ minWidth: 32 }}><SettingsRoundedIcon sx={{ fontSize: 17 }} /></ListItemIcon>
             <ListItemText primary="Settings" primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }} />
@@ -691,6 +979,10 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
           </ListItemButton>
         </Box>
       </Popover>
+
+      {FEATURE_FLAGS.afterStory && (
+        <StoryCreationModal open={createStoryOpen} onClose={() => setCreateStoryOpen(false)} />
+      )}
     </>
   );
 };

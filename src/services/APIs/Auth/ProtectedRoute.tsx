@@ -1,7 +1,8 @@
 import React from 'react';
-import { Navigate } from 'react-router-dom';
+import { Navigate, useLocation } from 'react-router-dom';
 import { useAuthToken } from '../../../hooks/useAuth0Token';
 import PageLoader from '../../../components/CommonComponents/PageLoader';
+import { withNext } from './nextDestination';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;
@@ -22,6 +23,7 @@ interface ProtectedRouteProps {
  */
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const { status } = useAuthToken();
+  const location = useLocation();
 
   if (status === 'refreshing') {
     return <PageLoader messages={['Checking your session…', 'Verifying credentials…', 'Almost ready…']} />;
@@ -41,8 +43,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
    * first request 401s, and the interceptor either renews it or ends the session
    * properly. One authority, one exit.
    */
+  // Carry where they were trying to go, so signing in returns them there.
   if (status === 'anonymous') {
-    return <Navigate to="/signin" replace />;
+    return <Navigate to={withNext('/signin', `${location.pathname}${location.search}`)} replace />;
   }
 
   return <>{children}</>;

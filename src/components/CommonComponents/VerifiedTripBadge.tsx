@@ -29,13 +29,20 @@ import { IconRosetteDiscountCheckFilled } from '@tabler/icons-react';
 
 /** Tripician blue. Not the coral brand accent, and not provenance green, on purpose. */
 const VERIFIED_BLUE = '#0EA5E9';
+/** Same hue at card-chrome weight. Literal rgba so it needs no theme to resolve. */
+const VERIFIED_BLUE_TINT = 'rgba(14,165,233,0.12)';
 
 interface VerifiedTripBadgeProps {
   verified?: boolean;
   /** ISO timestamp. Adds "Verified {Month Year}" to the tooltip when present. */
   verifiedAt?: string | null;
-  /** 'inline' sits after a card title; 'hero' is the larger mark for a page heading. */
-  variant?: 'inline' | 'hero';
+  /**
+   * 'inline' is the wordless mark that sits after a heading; 'hero' is the same
+   * mark at page-title size; 'pill' spells the endorsement out beside a card
+   * title, where there is no surrounding context to infer it from and a reader
+   * scanning a grid will not stop to hover a bare glyph.
+   */
+  variant?: 'inline' | 'hero' | 'pill';
 }
 
 /**
@@ -55,6 +62,36 @@ const VerifiedTripBadge: React.FC<VerifiedTripBadgeProps> = ({ verified, verifie
 
   const on = formatVerifiedOn(verifiedAt);
   const tooltip = `Tripician Verified. Our team reviewed this itinerary${on ? `, ${on}` : ''}.`;
+
+  if (variant === 'pill') {
+    return (
+      <Tooltip title={tooltip} arrow placement="top">
+        <Box
+          component="span"
+          aria-label="Tripician Verified trip"
+          sx={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 0.4,
+            // Never let a long title squeeze the endorsement out of view.
+            flexShrink: 0,
+            whiteSpace: 'nowrap',
+            px: 0.75,
+            py: 0.25,
+            borderRadius: 999,
+            bgcolor: VERIFIED_BLUE_TINT,
+            color: VERIFIED_BLUE,
+            typography: 'caption',
+            fontWeight: 700,
+            lineHeight: 1.5,
+          }}
+        >
+          <IconRosetteDiscountCheckFilled size={13} />
+          Tripician Verified
+        </Box>
+      </Tooltip>
+    );
+  }
 
   return (
     <Tooltip title={tooltip} arrow placement="top">

@@ -1,8 +1,10 @@
 import React, { useEffect, useMemo } from 'react';
+import { BRAND } from '../../theme';
 import { useDispatch, useSelector } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
 import { loadNews, setLocations, type NewsArticle } from '../../store/newsSlice';
 import { Box, Typography, Card, CardActionArea, Skeleton, Chip, Divider, Button, Stack, Collapse } from '@mui/material';
+import { alpha } from '@mui/material/styles';
 import { motion } from 'framer-motion';
 import ExpandMoreIcon from '@mui/icons-material/ExpandMore';
 import ExpandLessIcon from '@mui/icons-material/ExpandLess';
@@ -504,7 +506,7 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
     const heroes = sorted.slice(0, MAX_HERO);
     const rest = sorted.slice(MAX_HERO);
     const trending = sorted.slice(0, TRENDING_COUNT);
-    // eslint-disable-next-line no-console
+     
     console.log('[NewsPanel] Filter diagnostics raw:', activeArticles.length, 'kept:', filtered.length, 'dropped:', dropped);
     return { heroes, latest: rest, trending, filteredCount: filtered.length, droppedCount: dropped, rawCount: activeArticles.length, locationStats, alertCount };
   }, [activeArticles, targetLocations]);
@@ -681,10 +683,9 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
                   ml: 1, px: 0.7, py: 0.25, borderRadius: '6px',
                   fontSize: '0.38em', fontWeight: 700, letterSpacing: '0.12em',
                   textTransform: 'uppercase', lineHeight: 1,
-                  color: '#FF385C',
-                  background: 'rgba(255,56,92,0.13)',
-                  border: '1px solid rgba(255,56,92,0.32)',
-                  fontFamily: "'Inter', system-ui, sans-serif",
+                  color: 'primary.main',
+                  background: alpha(BRAND.coral, 0.13),
+                  border: `1px solid ${alpha(BRAND.coral, 0.32)}`,
                   position: 'relative', top: '-0.1em',
                 }}>BETA</Box>
               </Typography>
@@ -704,7 +705,7 @@ export const NewsPanel: React.FC<NewsPanelProps> = ({ selectedCountries }) => {
               background: 'rgba(251,191,36,0.08)',
               border: '1px solid rgba(251,191,36,0.28)',
             }}>
-              <Typography sx={{ fontSize: '0.72rem', lineHeight: 1.55, color: 'rgba(255,255,255,0.72)', fontFamily: "'Inter', system-ui, sans-serif" }}>
+              <Typography sx={{ fontSize: '0.72rem', lineHeight: 1.55, color: 'rgba(255,255,255,0.72)',}}>
                 <Box component='span' sx={{ fontWeight: 700, color: '#fbbf24' }}>For reference only. </Box>
                 Risk data is sourced from automated feeds and ongoing research - it may be incomplete or inaccurate. Always check official government travel advisories before making travel decisions.
               </Typography>
