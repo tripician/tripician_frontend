@@ -1005,6 +1005,8 @@ export const apiServices = {
     Twitter?: string;
     Instagram?: string;
     Facebook?: string;
+    /** ISO 3166-1 alpha-2. The server drops anything that is not a real code. */
+    Country?: string | null;
   }) =>
     apiClient.patch('/api/profile/settings/Personal-Info', model, {
       headers: { Authorization: `Bearer ${token}` }

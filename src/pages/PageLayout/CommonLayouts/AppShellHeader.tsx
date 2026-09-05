@@ -14,6 +14,9 @@ import {
   ListItemText,
   ListItemIcon,
   Button,
+  ButtonBase,
+  Menu,
+  MenuItem,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
@@ -39,6 +42,7 @@ import ShieldIcon from '@mui/icons-material/PrivacyTip';
 import GavelIcon from '@mui/icons-material/Gavel';
 import ContactSupportIcon from '@mui/icons-material/ContactSupport';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
+import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import ApartmentRoundedIcon from '@mui/icons-material/ApartmentRounded';
 import RadarRoundedIcon from '@mui/icons-material/RadarRounded';
@@ -49,7 +53,7 @@ import { clearUser } from '../../../store/userSlice';
 import { signOut } from '../../../services/auth/signOut';
 import { getFreshToken } from '../../../services/auth/tokenService';
 import { tokenSubject } from '../../../utils/authSession';
-import { APP_NAV_ITEMS, navItemFromPath, DESKTOP_NAV_MIN_WIDTH, HEADER_FULL_LABELS_MIN_WIDTH } from '../navConfig';
+import { APP_NAV_ITEMS, navItemFromPath, DESKTOP_NAV_MIN_WIDTH } from '../navConfig';
 import Badge from '@mui/material/Badge';
 import {
   fetchUnreadCount,
@@ -272,21 +276,6 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
   const isDesktop = useMediaQuery(`(min-width:${DESKTOP_NAV_MIN_WIDTH}px)`);
   const navigate = useNavigate();
 
-  /*
-   * Unread messages, fetched once when the shell mounts.
-   *
-   * Not polled: the count is a nudge, not a live figure, and a request every
-   * few seconds for every signed-in tab costs more than the freshness is worth.
-   * Opening the page is what corrects it.
-   */
-  const [messageCount, setMessageCount] = React.useState(0);
-  React.useEffect(() => {
-    let active = true;
-    void apiServices.getConversationUnreadCount()
-      .then((resp) => { if (active) setMessageCount(Number(resp.data?.count) || 0); })
-      .catch(() => { /* a missing badge says less than a wrong one */ });
-    return () => { active = false; };
-  }, []);
   const location = useLocation();
   const { profile } = useSelector((state: RootState) => state.user);
   const dispatch = useDispatch<AppDispatch>();
@@ -295,9 +284,42 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
   const { token, isAuthenticated, loading: authLoading } = useAuthToken();
   // See the notification-hub effect below for why this exists.
   const sessionKey = tokenSubject(token) ?? (token ? 'unknown-subject' : null);
+
+  /*
+   * Unread messages.
+   *
+   * This was a lone fetch with an empty dependency array, which meant it usually
+   * ran before the token resolved, 401'd, was swallowed by the catch, and left
+   * the count at zero for the rest of the session. Tolerable while the number
+   * only lived inside a menu nobody had opened. Not tolerable now that it is a
+   * badge in the header: a badge that is wrong at zero says there is nothing to
+   * read when there is.
+   *
+   * Keyed on the session so it follows sign-in, sign-out and account switches,
+   * and refreshed alongside the bell. No SignalR hub: the bell's connection is
+   * earned by notification volume, and this is not that.
+   *
+   * The decrement is real rather than cosmetic. Opening a thread marks its
+   * messages read server-side (TripConversationService.MessagesAsync), so
+   * re-asking after the reader leaves /messages returns a genuinely lower
+   * number. That is why leaving is the trigger, and why the badge is never
+   * zeroed optimistically on arrival: opening the list and reading nothing must
+   * not clear it.
+   */
+  const [messageCount, setMessageCount] = React.useState(0);
+
+  const refreshMessageCount = React.useCallback(() => {
+    if (!sessionKey) { setMessageCount(0); return; }
+    void apiServices.getConversationUnreadCount()
+      .then((resp) => setMessageCount(Number(resp.data?.count) || 0))
+      .catch(() => { /* a missing badge says less than a wrong one */ });
+  }, [sessionKey]);
+
+
   const notificationHubRef = React.useRef<signalR.HubConnection | null>(null);
 
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
+  const [createAnchor, setCreateAnchor] = React.useState<HTMLElement | null>(null);
   // Only people who actually belong to an organisation get the entry. Creating
   // a first one stays on /for-operators, so this never advertises an empty page.
   const [hasOrganization, setHasOrganization] = React.useState(false);
@@ -336,14 +358,17 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
   useEffect(() => {
     dispatch(fetchUnreadCount());
     dispatch(fetchNotifications());
+    refreshMessageCount();
     const poll = setInterval(() => {
       dispatch(fetchUnreadCount());
       dispatch(fetchNotifications());
+      refreshMessageCount();
     }, 30000);
     const onVisible = () => {
       if (document.visibilityState === 'visible') {
         dispatch(fetchUnreadCount());
         dispatch(fetchNotifications());
+        refreshMessageCount();
       }
     };
     document.addEventListener('visibilitychange', onVisible);
@@ -351,7 +376,18 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
       clearInterval(poll);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [dispatch]);
+  }, [dispatch, refreshMessageCount]);
+
+  /*
+   * Re-ask on the way out of /messages, which is the one moment the number is
+   * reliably stale: threads opened in there were marked read server-side.
+   */
+  const onMessages = location.pathname.startsWith('/messages');
+  const wasOnMessages = React.useRef(onMessages);
+  React.useEffect(() => {
+    if (wasOnMessages.current && !onMessages) refreshMessageCount();
+    wasOnMessages.current = onMessages;
+  }, [onMessages, refreshMessageCount]);
 
   /*
    * Keyed on the SESSION, not the token string.
@@ -465,7 +501,29 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
       <Box
         component="header"
         sx={{
+          /*
+           * Three tracks: logo | nav | cluster.
+           *
+           * The pill used to be position:absolute at left:50%, which centres it
+           * on the viewport and lets the cluster grow underneath it. That is why
+           * DESKTOP_NAV_MIN_WIDTH had to be measured and re-measured every time a
+           * button changed: the overlap was held off by a number, not by the
+           * layout. With both side tracks at 1fr and an auto minimum, the pill is
+           * exactly centred whenever both sides fit and slides rather than
+           * collides when they do not. Overlap stops being possible.
+           *
+           * Only where the pill exists. Two 1fr tracks are forced EQUAL, so on a
+           * phone - where there is no pill and the two sides are nothing like the
+           * same size - the cluster overflowed its half and the avatar was cut in
+           * half by the 100vw clip. Below the desktop width this stays the flex
+           * row it always was.
+           */
           display: 'flex',
+          justifyContent: 'space-between',
+          [`@media (min-width:${DESKTOP_NAV_MIN_WIDTH}px)`]: {
+            display: 'grid',
+            gridTemplateColumns: 'minmax(0, 1fr) auto minmax(0, 1fr)',
+          },
           alignItems: 'center',
           width: '100%',
           minHeight: { xs: 56, md: 60 },
@@ -491,14 +549,37 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
             gap: 1,
             cursor: 'pointer',
             flexShrink: 0,
+            justifySelf: 'start',
+            gridColumn: 1,
+            minWidth: 0,
             mr: { lg: 1 },
           }}
         >
+          {/*
+            The mark on a phone, the lockup from sm.
+
+            The wordmark is 106px wide. Measured at 320px that left the cluster
+            13px past the right edge and overlapping the logo by 3px, and none of
+            it showed up as page overflow because an ancestor clips at 100vw - it
+            was simply cutting the avatar in half. Shrinking the lockup would have
+            made it 14px tall and apologetic; the mark is what this asset is for.
+          */}
+          <Box
+            component="img"
+            src={import.meta.env.VITE_TRIPICIAN_LOGO_ICON_URL}
+            alt="Tripician"
+            sx={{ height: 24, width: 'auto', display: { xs: 'block', sm: 'none' } }}
+          />
           <Box
             component="img"
             src={import.meta.env.VITE_TRIPICIAN_LOGO_FULL_BLACK_2_URL}
             alt="Tripician"
-            sx={{ height: { xs: 18, md: 22 }, width: 'auto', display: 'block' }}
+            sx={{
+              height: { xs: 18, md: 22 },
+              width: 'auto',
+              objectFit: 'contain',
+              display: { xs: 'none', sm: 'block' },
+            }}
           />
         </Box>
 
@@ -508,9 +589,8 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
             component="nav"
             aria-label="Main"
             sx={{
-              position: 'absolute',
-              left: '50%',
-              transform: 'translateX(-50%)',
+              gridColumn: 2,
+              justifySelf: 'center',
               display: 'flex',
               alignItems: 'center',
               gap: 0.5,
@@ -604,7 +684,9 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
           </Box>
         )}
 
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: 'auto' }}>
+        {/* Always the third track, so the cluster stays right-aligned whether or
+            not the nav pill renders in the second one. */}
+        <Box sx={{ gridColumn: 3, justifySelf: 'end', display: 'flex', alignItems: 'center', gap: 1 }}>
           {/* Guest: Sign In / Sign Up */}
           {!authLoading && !isAuthenticated ? (
             <>
@@ -651,68 +733,111 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
                   leaves the documented story / trip / bell / avatar order intact. */}
               <ProPill onClick={openProDialog} />
 
-              {FEATURE_FLAGS.afterStory && (
-                <>
-                  <Button
-                    onClick={() => setCreateStoryOpen(true)}
-                    variant="outlined"
-                    startIcon={<EditNoteRoundedIcon sx={{ fontSize: 20 }} />}
-                    sx={{
-                      // Labelled only where the row has room; the icon button
-                      // below is the same action for every narrower width.
-                      display: 'none',
-                      [`@media (min-width:${HEADER_FULL_LABELS_MIN_WIDTH}px)`]: { display: 'inline-flex' },
-                      flexShrink: 0,
-                      fontSize: '0.84rem',
-                      fontWeight: 600,
-                      borderColor: theme.custom.surface.border,
-                      color: 'text.secondary',
-                      '&:hover': { borderColor: 'text.disabled', color: 'text.primary' },
-                    }}
-                  >
-                    Write a story
-                  </Button>
-
-                  <IconButton
-                    onClick={() => setCreateStoryOpen(true)}
-                    aria-label="Write an after story"
-                    sx={{
-                      display: 'inline-flex',
-                      [`@media (min-width:${HEADER_FULL_LABELS_MIN_WIDTH}px)`]: { display: 'none' },
-                      width: 40,
-                      height: 40,
-                      border: `1px solid ${theme.custom.surface.border}`,
-                      color: 'text.secondary',
-                    }}
-                  >
-                    <EditNoteRoundedIcon fontSize="small" />
-                  </IconButton>
-                </>
-              )}
-
-              <Button
-                onClick={onCreateTrip}
-                variant="contained"
-                startIcon={<AddRoundedIcon sx={{ fontSize: 20 }} />}
-                sx={{ display: { xs: 'none', sm: 'inline-flex' }, flexShrink: 0, fontSize: '0.84rem', fontWeight: 700 }}
-              >
-                Plan a trip
-              </Button>
-
-              <IconButton
-                onClick={onCreateTrip}
-                aria-label="Plan a trip"
+              {/*
+                One create control, at every width.
+                
+                The header owned three of these: a labelled story button, an icon
+                story button, and Plan a trip in two variants, while the bottom bar
+                carried a fourth for the same trip dialog. Below 600px two coral
+                "+"s sat on screen together with the same aria-label.
+                
+                Now creation lives in exactly one place per width: this split
+                button where the desktop pill is showing, and the bottom bar's
+                centre button everywhere else. The left half still plans a trip in
+                one click, which navConfig protects as the primary action; the
+                chevron holds everything else you can start.
+              */}
+              <Box
                 sx={{
-                  display: { xs: 'inline-flex', sm: 'none' },
-                  width: 40,
-                  height: 40,
+                  display: 'none',
+                  [`@media (min-width:${DESKTOP_NAV_MIN_WIDTH}px)`]: { display: 'inline-flex' },
+                  alignItems: 'stretch',
+                  flexShrink: 0,
+                  height: 36,
+                  borderRadius: 999,
+                  overflow: 'hidden',
                   bgcolor: 'primary.main',
-                  color: '#fff',
-                  '&:hover': { bgcolor: 'primary.dark' },
+                  color: 'primary.contrastText',
                 }}
               >
-                <AddRoundedIcon fontSize="small" />
-              </IconButton>
+                <ButtonBase
+                  onClick={onCreateTrip}
+                  sx={{
+                    display: 'inline-flex',
+                    alignItems: 'center',
+                    gap: 0.75,
+                    px: 1.75,
+                    fontSize: '0.84rem',
+                    fontWeight: 700,
+                    fontFamily: 'inherit',
+                    '&:hover': { bgcolor: 'primary.dark' },
+                  }}
+                >
+                  <AddRoundedIcon sx={{ fontSize: 19 }} />
+                  Plan a trip
+                </ButtonBase>
+
+                <ButtonBase
+                  onClick={(e) => setCreateAnchor(e.currentTarget)}
+                  aria-label="More ways to create"
+                  aria-haspopup="menu"
+                  aria-expanded={Boolean(createAnchor)}
+                  sx={{
+                    px: 0.9,
+                    // A hairline in white, not a gap: the two halves have to read
+                    // as one control that has been divided, not two buttons that
+                    // happen to touch.
+                    borderLeft: `1px solid ${alpha('#fff', 0.28)}`,
+                    '&:hover': { bgcolor: 'primary.dark' },
+                  }}
+                >
+                  <KeyboardArrowDownRoundedIcon sx={{ fontSize: 18 }} />
+                </ButtonBase>
+              </Box>
+
+              <Menu
+                anchorEl={createAnchor}
+                open={Boolean(createAnchor)}
+                onClose={() => setCreateAnchor(null)}
+                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
+                slotProps={{ paper: { sx: { minWidth: 236, borderRadius: '14px', mt: 1 } } }}
+              >
+                {FEATURE_FLAGS.afterStory && (
+                  <MenuItem
+                    onClick={() => { setCreateAnchor(null); setCreateStoryOpen(true); }}
+                    sx={{ py: 1.1 }}
+                  >
+                    <ListItemIcon sx={{ minWidth: 32 }}>
+                      <EditNoteRoundedIcon sx={{ fontSize: 19 }} />
+                    </ListItemIcon>
+                    <ListItemText
+                      primaryTypographyProps={{ fontSize: 13, fontWeight: 600 }}
+                      secondaryTypographyProps={{ fontSize: 11.5 }}
+                      secondary="Write up a trip you already took"
+                    >
+                      Write a story
+                    </ListItemText>
+                  </MenuItem>
+                )}
+              </Menu>
+
+
+              {/* Beside the bell, not behind the avatar. Messaging went live and
+                  its only door was a row inside a menu: two taps, and no way to
+                  see you had been written to without opening it. */}
+              <Tooltip title="Messages" arrow>
+                <IconButton
+                  size="small"
+                  aria-label={messageCount > 0 ? `Messages, ${messageCount} unread` : 'Messages'}
+                  onClick={() => navigate('/messages')}
+                  sx={{ width: 36, height: 36 }}
+                >
+                  <Badge badgeContent={messageCount} color="error" max={99}>
+                    <ChatBubbleOutlineIcon sx={{ color: 'text.secondary', fontSize: 20 }} />
+                  </Badge>
+                </IconButton>
+              </Tooltip>
 
               <Tooltip title="Notifications" arrow>
                 <IconButton
@@ -735,9 +860,17 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
 
               <Tooltip title="Account" arrow>
                 <Box
-                  onClick={(e) => setAnchorEl(e.currentTarget)}
+                  component="button"
+                  type="button"
+                  onClick={(e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget)}
+                  aria-label="Account"
+                  aria-haspopup="menu"
+                  aria-expanded={Boolean(anchorEl)}
                   sx={{
                     display: 'inline-flex',
+                    p: 0,
+                    border: 'none',
+                    background: 'transparent',
                     cursor: 'pointer',
                     borderRadius: '50%',
                     '&:hover': { transform: 'scale(1.05)' },
@@ -946,10 +1079,12 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
             />
           </ListItemButton>
           <ListItemButton onClick={() => { navigate('/messages'); setAnchorEl(null); }} sx={{ py: 0.9 }}>
+            {/* The row stays, so the destination never disappears for anyone who
+                already knows where it lives. The badge does not: the header now
+                carries that signal, and the same number in two places in one
+                viewport reads as unconsidered. */}
             <ListItemIcon sx={{ minWidth: 32 }}>
-              <Badge badgeContent={messageCount} color="error" max={99}>
-                <ChatBubbleOutlineIcon sx={{ fontSize: 17 }} />
-              </Badge>
+              <ChatBubbleOutlineIcon sx={{ fontSize: 17 }} />
             </ListItemIcon>
             <ListItemText primary="Messages" primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }} />
           </ListItemButton>

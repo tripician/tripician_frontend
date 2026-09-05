@@ -19,6 +19,7 @@
  */
 
 import React from 'react';
+import { countryNameFromCode } from '../../utils/countryFlags';
 import { Box, Skeleton, Tooltip, Typography, useTheme } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import {
@@ -443,7 +444,16 @@ export const ProfileDetails: React.FC<ProfileDetailsProps> = ({ profile, layout 
   const details: Array<{ Icon: React.ElementType; value: string }> = [
     { Icon: IconMail, value: presentable(profile.email) },
     { Icon: IconPhone, value: presentable(profile.phone) },
-    { Icon: IconWorld, value: presentable(profile.country) },
+    {
+      Icon: IconWorld,
+      /*
+       * The column now holds an ISO code, so resolve it to a name. Older rows
+       * may still hold the name itself, and countryNameFromCode returns nothing
+       * for those, which is why the raw value is the fallback rather than the
+       * other way round.
+       */
+      value: presentable(countryNameFromCode(profile.country) ?? profile.country),
+    },
     {
       Icon: IconGenderBigender,
       value: presentable(profile.gender && profile.gender !== 'NA' ? profile.gender : undefined),

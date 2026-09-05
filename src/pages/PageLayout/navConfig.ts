@@ -43,35 +43,24 @@ export interface AppNavItem {
  * sight entirely. It lives in the account popover.
  */
 /**
- * Where the centred desktop nav starts, and the bottom bar stops.
+ * Where the centred desktop nav starts, and the bottom bar stops. It also
+ * decides which create control is in charge.
  *
- * Measured, not chosen: the nav pill is absolutely centred on the viewport while
- * the signed-in right cluster (Pro, Write a story, Plan a trip, bell, avatar) is
- * in normal flow, so below this width the cluster grows underneath the pill.
- * "Get Pro" overlapped "Profile" by 35px at 1440 and 115px at 1280, on every
- * signed-in page. It was keyed to lg (1200), which was too early for a cluster
- * carrying three labelled buttons.
+ * It no longer holds off an overlap. It used to: the pill was absolutely centred
+ * on the viewport while the right cluster sat in normal flow, so the cluster grew
+ * underneath it, and this number was measured and re-measured every time a button
+ * changed. "Get Pro" overlapped "Profile" by 35px at 1440 and 115px at 1280.
  *
- * Set to 1280 rather than 1560 because the cluster now goes icon-only below
- * HEADER_FULL_LABELS_MIN_WIDTH, which buys back the room. Below 1280 even the
- * compact cluster does not fit beside a 524px pill, so the bottom bar takes over.
+ * The header is now a three-track grid, so the pill slides rather than collides
+ * and overlap is structurally impossible at any width. What this value still
+ * decides is which of the two navigations is showing, and therefore where
+ * creation lives: the header's split button at or above it, the bottom bar's
+ * centre button below it. Exactly one of each, at every width.
  *
  * Both navs read this one value so there can never be a width with neither.
  */
 export const DESKTOP_NAV_MIN_WIDTH = 1280;
 
-/**
- * Above this, the signed-in header shows its buttons with words on them.
- * Below it, the same buttons render icon-only, which is a variant the header
- * already had for phones.
- *
- * Measured: the pill is 524px, so at 1280 it leaves 378px to the right edge,
- * and the labelled cluster needs about 492. Dropping the words from Get Pro
- * (94px to 40) and Write a story (143px to 40) frees roughly 157px, which
- * clears it. "Plan a trip" keeps its label at every width: it is the primary
- * action and the one that has to stay obvious.
- */
-export const HEADER_FULL_LABELS_MIN_WIDTH = 1560;
 
 export const APP_NAV_ITEMS: AppNavItem[] = [
   {
@@ -134,6 +123,21 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
     tooltip: 'Your trips, stories, saved and stats',
   },
 ];
+
+/**
+ * Ids deliberately absent from the bottom bar, and why.
+ *
+ * Navia stays in APP_NAV_ITEMS because the desktop pill keeps the orb, and the
+ * five-destination rationale above is built around Navia being the hinge. It
+ * leaves the phone because the floating command bar is a better Navia surface
+ * than a tab: it answers in place, and it now mounts on every destination the
+ * bar can reach. Two entries to the same assistant is what made the bar feel
+ * crowded.
+ *
+ * This list exists so the guard can tell a deliberate omission from an item
+ * somebody quietly dropped. Adding an id here is a decision with a name on it.
+ */
+export const MOBILE_NAV_EXCLUDED = ['navia'] as const;
 
 export function navItemFromPath(pathname: string): AppNavItem | undefined {
   return APP_NAV_ITEMS.find((item) => item.path === pathname);

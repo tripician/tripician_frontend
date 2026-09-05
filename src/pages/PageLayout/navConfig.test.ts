@@ -1,7 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { APP_NAV_ITEMS, navItemFromPath } from './navConfig';
+import { onCommandBarRoute } from '../../navia/commandbar/commandModes';
+import { APP_NAV_ITEMS, MOBILE_NAV_EXCLUDED, navItemFromPath } from './navConfig';
 
 /**
  * These guard an information-architecture change, not a component.
@@ -84,12 +85,57 @@ describe('mobile nav wiring', () => {
     expect(APP_NAV_ITEMS.some((i) => i.id === id)).toBe(true);
   });
 
-  it('puts every nav item in the bar itself, one tap on every breakpoint', () => {
-    // The More drawer is gone, so the bar is the whole mobile nav. An item that
-    // is in neither list is reachable only by typing the URL.
-    const reachable = new Set([...left, ...right]);
+  it('accounts for every nav item, in the bar or on the named exclusion list', () => {
+    /*
+     * The More drawer is gone, so the bar is the whole mobile nav and an item in
+     * neither list is reachable only by typing the URL.
+     *
+     * MOBILE_NAV_EXCLUDED is the one escape, and it is deliberately narrow: the
+     * point is to tell an omission somebody argued for from one somebody caused.
+     * This still fails if an id is quietly dropped, because dropping it without
+     * naming it leaves it in neither set.
+     */
+    const accounted = new Set([...left, ...right, ...MOBILE_NAV_EXCLUDED]);
     for (const item of APP_NAV_ITEMS) {
-      expect(reachable.has(item.id)).toBe(true);
+      expect(accounted.has(item.id)).toBe(true);
+    }
+  });
+
+  it('keeps the exclusion list honest: every id on it is a real nav item', () => {
+    // A stale id here would silently widen the escape above.
+    for (const id of MOBILE_NAV_EXCLUDED) {
+      expect(APP_NAV_ITEMS.some((i) => i.id === id)).toBe(true);
+    }
+  });
+
+  it('never excludes an id that is also in the bar', () => {
+    const inBar = new Set([...left, ...right]);
+    for (const id of MOBILE_NAV_EXCLUDED) {
+      expect(inBar.has(id)).toBe(false);
+    }
+  });
+
+  it('allows one documented exclusion, not a drawer under another name', () => {
+    // Two is a drawer. This is where the old "everything is in the bar" rule
+    // keeps its teeth now that there is a way out of it at all.
+    expect(MOBILE_NAV_EXCLUDED.length).toBeLessThanOrEqual(1);
+  });
+
+  it('reaches the excluded item from every destination that IS in the bar', () => {
+    /*
+     * The whole argument for taking Navia off the phone is that the floating
+     * command bar is a better Navia surface and covers everywhere the bar can
+     * take you. This asserts that argument instead of trusting it.
+     *
+     * Delete '/profile' from COMMAND_BAR_ROUTES and this fails, saying Navia
+     * just became unreachable from Profile. Nothing else in the suite could
+     * catch that, because it spans two files that had no test relationship.
+     */
+    const inBar = APP_NAV_ITEMS.filter(
+      (i) => !(MOBILE_NAV_EXCLUDED as readonly string[]).includes(i.id),
+    );
+    for (const item of inBar) {
+      expect(onCommandBarRoute(item.path)).toBe(true);
     }
   });
 
@@ -102,9 +148,15 @@ describe('mobile nav wiring', () => {
     expect([...left, ...right]).toContain('profile');
   });
 
-  it('keeps the bar to six slots, which is what fits at 360px', () => {
-    // Two sides plus the centre FAB. A seventh slot starts wrapping labels.
-    expect(left.length + right.length + 1).toBeLessThanOrEqual(6);
+  it('keeps the bar to five slots, which is what actually fits at 360px', () => {
+    /*
+     * Two sides plus the centre FAB.
+     *
+     * This used to allow six, and the bar was sitting on that ceiling: six
+     * flex:1 slots on a 360px screen is ~58.7px each, not the ~72px the code
+     * comment claimed. Five is the number the arithmetic was always written for.
+     */
+    expect(left.length + right.length + 1).toBeLessThanOrEqual(5);
   });
 
   it('keeps short labels short enough not to wrap under an icon', () => {
