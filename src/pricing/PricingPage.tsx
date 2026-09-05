@@ -48,6 +48,15 @@ const PITCH: Record<PlanId, string> = {
 /** Free on every plan, said out loud on every card. */
 const ALWAYS_FREE = ['Trip planning', 'Advanced planning', 'After Story'];
 
+/** The server's own words for why it said no. Refusals arrive as `message` or `error`, from a thrown axios error or a plain response. */
+function refusalMessage(source: unknown): string | undefined {
+  const body = (source as { response?: { data?: unknown }; data?: unknown })?.response?.data
+    ?? (source as { data?: unknown })?.data;
+  const text = (body as { message?: unknown; error?: unknown })?.message
+    ?? (body as { error?: unknown })?.error;
+  return typeof text === 'string' && text.trim() ? text.trim() : undefined;
+}
+
 const PricingPage: React.FC = () => {
   const theme = useTheme();
   const navigate = useNavigate();
@@ -113,8 +122,9 @@ const PricingPage: React.FC = () => {
         annual: billing === 'annual',
       });
 
+      // For a 2xx that still says no. The server refuses with a 400 today, but a refusal is a refusal whichever status carries it.
       if (!intent.data?.ok) {
-        setSubscribeError(intent.data?.error ?? 'That plan could not be opened for payment.');
+        setSubscribeError(refusalMessage(intent) ?? 'That plan could not be opened for payment.');
         return;
       }
 
@@ -128,8 +138,12 @@ const PricingPage: React.FC = () => {
         onDismissed: () => setSubscribeNotice('No payment was taken.'),
         onFailed: (message) => setSubscribeError(message),
       });
-    } catch {
-      setSubscribeError('We could not start that subscription. Please try again.');
+    } catch (err) {
+      // Refusals are 400s, so they land here. Saying "try again" threw away the reason the server wrote.
+      setSubscribeError(
+        refusalMessage(err)
+        ?? 'We could not start that subscription. Please try again.',
+      );
     } finally {
       setSubscribing(null);
     }
