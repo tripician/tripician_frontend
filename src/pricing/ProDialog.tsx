@@ -1,10 +1,10 @@
 import React from 'react';
 import {
   Box, Button, Chip, CircularProgress, Dialog, DialogActions, DialogContent,
-  DialogTitle, Divider, Typography, useTheme,
+  DialogTitle, Typography, useTheme,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { IconCheck, IconSparkles } from '@tabler/icons-react';
+import { IconCheck } from '@tabler/icons-react';
 import { apiServices } from '../services/APIs/apiServices';
 import { useAuthToken } from '../hooks/useAuth0Token';
 import { planBenefits, planUpgrade } from './planBenefits';
@@ -72,11 +72,11 @@ const ProDialog: React.FC<ProDialogProps> = ({ open, onClose }) => {
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs" PaperProps={{ sx: { borderRadius: '18px' } }}>
+      {/* No glyph. The sparkle that was here meant four different things across
+          this codebase, and neither the pricing page nor the landing plan table
+          marks a tier with one. The name is enough. */}
       <DialogTitle sx={{ pb: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <IconSparkles size={20} style={{ color: theme.palette.primary.main }} />
-          {onPro ? 'You are on Tripician Pro' : 'Tripician Pro'}
-        </Box>
+        {onPro ? 'You are on Tripician Pro' : 'Tripician Pro'}
       </DialogTitle>
 
       <DialogContent sx={{ pt: 0 }}>
@@ -92,7 +92,7 @@ const ProDialog: React.FC<ProDialogProps> = ({ open, onClose }) => {
           <>
             {current && (
               <Box sx={{ mb: 2 }}>
-                <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 0.5 }}>
+                <Typography variant="overline" sx={{ color: 'text.disabled', display: 'block' }}>
                   Your plan
                 </Typography>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
@@ -113,37 +113,61 @@ const ProDialog: React.FC<ProDialogProps> = ({ open, onClose }) => {
               </Box>
             )}
 
-            <Divider sx={{ my: 2 }} />
+            {/*
+              The offer sits in its own panel.
 
-            <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mb: 0.5 }}>
-              {onPro ? 'What Business adds' : 'What Pro adds'}
-            </Typography>
+              Before this it was plain text under a divider, weighted exactly the
+              same as the plan you already have, so the thing being sold had no
+              more presence than the thing you were leaving. One tonal step and a
+              hairline is how this product elevates a card - the landing page's
+              featured plan does the same and says so - and it is a wash rather
+              than a lift, which is what keeps it from looking generated.
+            */}
+            <Box
+              sx={{
+                mt: 2,
+                p: 2.25,
+                borderRadius: '14px',
+                bgcolor: 'background.default',
+                border: `1px solid ${theme.custom.surface.border}`,
+              }}
+            >
+              <Typography variant="overline" sx={{ color: 'text.secondary', display: 'block' }}>
+                {onPro ? 'What Business adds' : 'What Pro adds'}
+              </Typography>
 
-            <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 1, mb: 1.5 }}>
-              <Typography variant="h5" component="p" sx={{ color: 'text.primary' }}>
+              {/*
+                The price is the figure, not a clause in a sentence.
+
+                /pricing already sets it as a display heading and this dialog set
+                it inline at body size, so the surface doing the selling looked
+                cheaper than the page it links to. h3 carries the editorial face
+                from the type scale, so no font is named here.
+              */}
+              <Typography variant="h3" component="p" sx={{ color: 'text.primary', mt: 0.5, lineHeight: 1.1 }}>
                 {formatMoney(target.monthlyPrice, currency)}
               </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
                 a month, or {formatMoney(target.annualPrice, currency)} a year
               </Typography>
-            </Box>
 
-            {upgrade.length > 0 ? (
-              <Box sx={{ display: 'grid', gap: 1 }}>
-                {upgrade.map((line) => (
-                  <Box key={line} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
-                    <Box component="span" sx={{ color: 'primary.main', mt: '2px', display: 'inline-flex' }}>
-                      <IconCheck size={15} stroke={2.4} />
+              {upgrade.length > 0 ? (
+                <Box sx={{ display: 'grid', gap: 1.1 }}>
+                  {upgrade.map((line) => (
+                    <Box key={line} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
+                      <Box component="span" sx={{ color: 'primary.main', mt: '2px', display: 'inline-flex' }}>
+                        <IconCheck size={15} stroke={2.4} />
+                      </Box>
+                      <Typography variant="body2" sx={{ color: 'text.primary' }}>{line}</Typography>
                     </Box>
-                    <Typography variant="body2" sx={{ color: 'text.primary' }}>{line}</Typography>
-                  </Box>
-                ))}
-              </Box>
-            ) : (
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                Nothing you are missing. You already have everything this plan carries.
-              </Typography>
-            )}
+                  ))}
+                </Box>
+              ) : (
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  Nothing you are missing. You already have everything this plan carries.
+                </Typography>
+              )}
+            </Box>
 
             {onPro && (
               <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mt: 2 }}>

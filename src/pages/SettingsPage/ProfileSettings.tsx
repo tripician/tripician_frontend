@@ -12,8 +12,12 @@ import {
   IconButton,
   InputAdornment,
   CircularProgress,
+  Autocomplete,
 } from "@mui/material";
 import { LocationOn, Language, Email, Phone, Visibility, VisibilityOff, Save } from "@mui/icons-material";
+import { COUNTRIES } from '../../utils/countryData';
+import { countryNameFromCode } from '../../utils/countryFlags';
+import CountryFlag from '../../components/ui/CountryFlag';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '../../store';
 import { fetchUserProfile, setUserProfile, type UserProfile } from '../../store/userSlice';
@@ -33,6 +37,16 @@ const ProfileSettings: React.FC = () => {
     from: ''
   });
   const [location, setLocation] = useState('');
+  /*
+   * ISO alpha-2, not a name.
+   *
+   * Location above is prose people write "on the road" into. This is the
+   * country the account belongs to, kept as a code because it is about to
+   * decide which currency somebody is quoted, and a price cannot hang off free
+   * text. Empty string means never set, which is what every account holds
+   * today: no signup path has ever written this column.
+   */
+  const [country, setCountry] = useState('');
   const [website, setWebsite] = useState('');
   const [email, setEmail] = useState('');
   const [phone, setPhone] = useState('');
@@ -64,6 +78,7 @@ const ProfileSettings: React.FC = () => {
         const data = resp.data || {};
         if(!active) return;
         setFname(data.Fname || data.fname || '');
+        setCountry(data.Country || data.country || '');
         setLname(data.Lname || data.lname || '');
         
         // Parse bio highlights
@@ -478,6 +493,30 @@ const ProfileSettings: React.FC = () => {
               InputProps={{ startAdornment: (<InputAdornment position="start"><LocationOn sx={{ color: "text.secondary", fontSize: 20 }} /></InputAdornment>) }}
               sx={{"& .MuiOutlinedInput-root": { borderRadius: 1.5 }}}
             />
+            <Autocomplete
+              fullWidth
+              size="small"
+              disabled={loading}
+              options={COUNTRIES.map(([code]) => code)}
+              value={country || null}
+              onChange={(_, code) => setCountry(code ?? '')}
+              getOptionLabel={(code) => countryNameFromCode(code) ?? code}
+              isOptionEqualToValue={(a, b) => a === b}
+              renderOption={(props, code) => (
+                <Box component="li" {...props} sx={{ display: 'flex', gap: 1 }}>
+                  <CountryFlag country={code} size={18} />
+                  {countryNameFromCode(code) ?? code}
+                </Box>
+              )}
+              renderInput={(params) => (
+                <TextField
+                  {...params}
+                  label="Country"
+                  helperText="Used for billing. Nothing else changes."
+                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
+                />
+              )}
+            />
             <TextField 
               fullWidth 
               label="Website" 
@@ -540,6 +579,7 @@ const ProfileSettings: React.FC = () => {
                     Lname: lname,
                     Bio: { highlights },
                     Location: location,
+                    Country: country || null,
                     Website: website,
                   };
                   await apiServices.updatePersonalInfoSettings(authToken, payload);

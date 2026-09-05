@@ -23,6 +23,18 @@ declare module '@mui/material/styles' {
   interface ThemeOptions {
     custom?: CustomTokens;
   }
+  interface TypographyVariants {
+    navLabel: React.CSSProperties;
+  }
+  interface TypographyVariantsOptions {
+    navLabel?: React.CSSProperties;
+  }
+}
+
+declare module '@mui/material/Typography' {
+  interface TypographyPropsVariantOverrides {
+    navLabel: true;
+  }
 }
 
 export interface CustomTokens {
@@ -366,6 +378,16 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
       body2: { fontSize: '0.875rem', lineHeight: 1.55 },
       caption: { fontSize: '0.75rem', lineHeight: 1.45 },
       overline: { fontSize: '0.6875rem', fontWeight: 600, letterSpacing: '0.08em', textTransform: 'uppercase' },
+      /**
+       * The label under a bottom-bar icon.
+       *
+       * A tenth step, added because the bar was setting its own 0.62rem off the
+       * scale entirely. 11px is not a new size: it is what overline already
+       * uses, without the uppercasing and letter-spacing that would be wrong
+       * under an icon. caption at 12px puts "Community" at roughly 60px inside
+       * a 62px slot on a 320px screen, which is not a margin.
+       */
+      navLabel: { fontSize: '0.6875rem', fontWeight: 600, lineHeight: 1.2, letterSpacing: '0.005em' },
       button: { fontWeight: 600, letterSpacing: '0', textTransform: 'none' },
     },
     components: {

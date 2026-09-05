@@ -9,6 +9,7 @@ import TripCreationModal from '../../../components/CreateTripComponents/TripCrea
 import SupportWidget from '../../../components/CommonComponents/SupportWidget';
 import OnboardingCarousel from '../../../components/Onboarding/OnboardingCarousel';
 import AppShellHeader from './AppShellHeader';
+import { DESKTOP_NAV_MIN_WIDTH } from '../navConfig';
 import AppBottomNav from './AppBottomNav';
 import { AppShellProvider, type CreateTripPrefill } from '../AppShellContext';
 import ProDialog from '../../../pricing/ProDialog';
@@ -118,7 +119,21 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
             backgroundColor: 'background.default',
             display: 'flex',
             flexDirection: 'column',
-            pb: { xs: 10, lg: 0 },
+            /*
+             * Clearance for whatever is fixed at the foot of the screen.
+             *
+             * Keyed to the width the bottom bar actually hides at, not to lg:
+             * those disagreed by 80px, so between 1200 and 1279 the bar was on
+             * screen with nothing reserved for it and the last card sat under it.
+             *
+             * Command-bar routes reserve more, because the dock floats above the
+             * bar. That set just grew to include Profile and From the road, so
+             * the shortfall would have shown up on two more pages.
+             */
+            pb: commandBarState === 'none' ? 10 : 17,
+            [`@media (min-width:${DESKTOP_NAV_MIN_WIDTH}px)`]: {
+              pb: commandBarState === 'none' ? 0 : 12,
+            },
           }}
         >
           <Box sx={{ flexGrow: 1 }}>{children}</Box>
