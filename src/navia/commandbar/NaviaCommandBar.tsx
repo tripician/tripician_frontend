@@ -6,6 +6,7 @@ import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
 import NaviaOrb from '../NaviaOrb';
 import { PlanImportAttachButton, PlanImportStrip } from '../PlanImportControls';
 import SegmentedControl, { type SegmentedOption } from '../../components/ui/SegmentedControl';
+import { DESKTOP_NAV_MIN_WIDTH } from '../../pages/PageLayout/navConfig';
 import StoryCreationModal from '../../afterstory/StoryCreationModal';
 import { springs, chipReveal } from '../../utils/animations';
 import {
@@ -154,16 +155,28 @@ const NaviaCommandBar: React.FC = () => {
       <Box
         ref={rootRef}
         sx={{
+          /*
+           * Keyed to the same width the bottom bar is, not to lg.
+           *
+           * These two disagreed: the bar hides at DESKTOP_NAV_MIN_WIDTH (1280)
+           * while this switched to its desktop position at lg (1200), so between
+           * 1200 and 1279 the dock dropped to bottom:24 and sat on top of a bar
+           * that was still there. Reading the one shared constant is what that
+           * constant is for, and it matters more now that the dock is the route
+           * to Navia on every destination the bar can reach.
+           */
           position: 'fixed',
           zIndex: 1250,
-          left: { xs: 16, lg: '50%' },
-          right: { xs: 16, lg: 'auto' },
-          transform: { lg: 'translateX(-50%)' },
-          width: { lg: 'min(720px, calc(100vw - 48px))' },
-          // Clears AppBottomNav (72px plus safe area) below lg, where it is fixed.
-          bottom: {
-            xs: 'calc(72px + env(safe-area-inset-bottom, 0px) + 12px)',
-            lg: 24,
+          left: 16,
+          right: 16,
+          // Clears AppBottomNav (72px plus safe area) wherever the bar is showing.
+          bottom: 'calc(72px + env(safe-area-inset-bottom, 0px) + 12px)',
+          [`@media (min-width:${DESKTOP_NAV_MIN_WIDTH}px)`]: {
+            left: '50%',
+            right: 'auto',
+            transform: 'translateX(-50%)',
+            width: 'min(720px, calc(100vw - 48px))',
+            bottom: 24,
           },
         }}
       >

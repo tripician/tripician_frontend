@@ -71,8 +71,16 @@ export function costFor(mode: Exclude<CommandMode, 'auto'>, hasImages: boolean):
   return COMMAND_MODES[mode].cost ?? 0;
 }
 
-/** Where the dock appears. An allowlist, so a new route never inherits it. */
-export const COMMAND_BAR_ROUTES = ['/community', '/stories', '/trips', '/templates', '/crew'];
+/**
+ * Where the dock appears. An allowlist, so a new route never inherits it.
+ *
+ * /posts and /profile were added when the Navia tab left the bottom bar. They
+ * are bottom-bar destinations, and without them the only way to Navia there was
+ * the support headset menu, which is not where anyone looks for an assistant.
+ * NavigationPanel derives the SupportWidget's offset from this same predicate,
+ * so that button moves up on the new routes without a second change.
+ */
+export const COMMAND_BAR_ROUTES = ['/community', '/stories', '/trips', '/templates', '/crew', '/posts', '/profile'];
 
 export function onCommandBarRoute(pathname: string): boolean {
   return COMMAND_BAR_ROUTES.some((r) => pathname === r || pathname.startsWith(r + '/'));
