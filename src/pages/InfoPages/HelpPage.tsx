@@ -3,6 +3,7 @@ import { BRAND } from '../../theme';
 import { Box, Typography, Container, Button, Accordion, AccordionSummary, AccordionDetails } from '@mui/material';
 import { Link } from 'react-router-dom';
 import InfoPageShell from './InfoPageShell';
+import Seo from '../../components/Seo';
 import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded';
 import ExpandMoreRoundedIcon from '@mui/icons-material/ExpandMoreRounded';
 import EmailRoundedIcon from '@mui/icons-material/EmailRounded';
@@ -10,31 +11,43 @@ import EmailRoundedIcon from '@mui/icons-material/EmailRounded';
 const FAQS = [
   {
     q: 'What is Tripician?',
-    a: 'Tripician is a travel community built around the whole arc of a trip: plan an itinerary, find people to go with, then write up what it was actually like afterwards and keep it as a printed book. It also tracks expenses, builds packing lists and monitors travel risk. Tripician is not a travel agency and does not book flights, hotels, or any travel services.',
+    a: 'Tripician is a social network for travellers, built around the whole arc of a trip: plan an itinerary, find people to go with, then write up what it was actually like afterwards and keep it as a printed book. TripicianAI can plan the days for you, and every plan is checked against real travel times and opening hours. Tripician is not a travel agency and does not book flights, hotels, or any travel services.',
   },
   {
     q: 'Is Tripician free to use?',
-    a: 'Tripician currently offers a free tier with core planning features. If we introduce premium tiers in the future, we will communicate any changes clearly in advance.',
+    a: 'Planning trips, inviting your crew, writing stories, starting a group and asking TripicianAI for help are all free, and a free account is given 300 TripicianAI credits every month. Tripician Pro raises that to 1,500 a month. Tripician Business is for travel businesses that run trips for other people: it adds a public page with posts, lets you put your own staff onto a trip, and is the only plan that can list a trip publicly and take join requests from travellers you have never met. Credits can also be bought on their own, without a subscription. Current prices are on the pricing page.',
   },
   {
     q: 'How do I create a trip?',
-    a: 'Once signed in, use the "Plan a trip" button in the top bar, or the "+" in the middle of the bottom bar on a phone. Enter your trip name, destination(s), and travel dates. You can add itinerary details, expenses, and packing lists at any time from within the Trip Planner.',
+    a: 'Once signed in, use "Create plan" at the top of your wall, or open Studio (top right, or the middle of the bottom bar on a phone) and choose "Plan a trip". It asks a few quick questions, one at a time: where you are starting from, where you want to go, and roughly when. Trip type and food needs are optional. Then choose "Plan it for me" and TripicianAI fills in each stop, or "I\'ll plan it myself". Want a blank trip? Pick "I\'ll plan everything myself" and give just the dates.',
   },
   {
-    q: 'How do I find people to come on my trip?',
-    a: 'Open the trip in the Trip Planner and use "Find people", next to Publish. That opens the trip to join requests: set how many seats there are, an indicative cost per person if you want one, and a short note about who you are looking for. Your trip then appears in "Trips looking for people" on Community. Nothing is automatic. Every request comes to you with a message from the traveller, and nobody joins until you approve them.',
+        q: 'How do I find people to come on my trip?',
+    a: 'Two ways. For friends, open the trip and share its invite link: anyone with the link joins straight away, on any trip. Taking requests from travellers you do not know is part of Tripician Business: a business group on the Business plan opens its trip in the planner with "Find people", next to Publish, and it then shows up in Groups & Stories under "Join a trip". Nothing is automatic there either. Every request arrives with a message, and nobody joins until the organiser approves them.',
   },
   {
     q: 'Where do the requests to join my trip appear?',
-    a: 'All of them, across every trip you are running, are listed at the top of your Profile page. You also get a notification for each one. Approving is a single tap, and the seat count updates for everyone straight away.',
+    a: 'Requests for trips you own are listed at the top of your Profile page. For a trip that belongs to a group, they are on the group\'s Trips tab, where every admin and manager can see them rather than only the person who happens to own the trip. You also get a notification for each one. Approving is a single tap, and the seat count updates for everyone straight away.',
   },
   {
     q: 'Does Tripician take the money for a shared trip?',
-    a: 'No. Any price on a trip listing is indicative only, so travellers know roughly what they are committing to. The group settles up directly between themselves, and no payment ever routes through Tripician. There is a group expense split inside the Trip Planner to help you work out who owes what.',
+    a: 'No. Any price on a trip listing is indicative only, so travellers know roughly what they are committing to. The group settles up directly between themselves, and no payment ever routes through Tripician.',
+  },
+  {
+    q: 'What is a group?',
+    a: "A group is a set of travellers who plan together: a few friends, a club, or a travel business. A public group can be found in Groups & Stories and anyone can ask to join, with an admin deciding. A private group is invite only. Inside, the group talks in Discussion, reads Announcements from its admins, follows the trips it is planning and keeps the stories of the ones it has taken. Belonging to a group does not put you on its trips. You say you are interested in the ones you want, and an organiser adds you.",
+  },
+  {
+    q: 'What is the wall for?',
+    a: 'The wall is what travellers are saying right now: short notes from the road, questions about places, and the plans and stories people have just published. Ask a question about somewhere you are going and anyone who has been there can answer it. You can switch the wall between everyone and only the people you follow.',
+  },
+  {
+    q: 'Can I message another traveller?',
+    a: 'Messages are tied to a trip, so you can write to somebody about a trip you are both on, or one you have asked to join. Keeping a conversation attached to the trip it is about is also what lets us act on it if it is ever reported. You can turn direct messages off completely in Settings.',
   },
   {
     q: 'What is an after story?',
-    a: 'An after story is what a trip was actually like, written afterwards in your own words with your own photographs. Publish one and it sits on your profile, where people deciding whether to travel with you will read it. Readers can ask the author questions underneath. Browse everyone else\'s under Stories in the top bar.',
+    a: 'An after story is what a trip was actually like, written afterwards in your own words with your own photographs. Publish one and it sits on your profile, where people deciding whether to travel with you will read it. Readers can ask the author questions underneath. Read everyone else\'s in Groups & Stories, under Stories.',
   },
   {
     q: 'Can I get a story printed as a book?',
@@ -42,11 +55,7 @@ const FAQS = [
   },
   {
     q: 'Can I collaborate with others on my trip?',
-    a: "Yes! You can invite friends or family to collaborate on a trip plan. They'll be able to view and contribute to the itinerary, notes, and travel details. Collaboration features are available within the Trip Planner.",
-  },
-  {
-    q: 'What is the Risk Monitor, and where do I find it?',
-    a: "Open the menu under your profile picture, top right, and choose Risk Monitor. It aggregates publicly available safety and travel advisories for destination countries. This information is for general awareness only and may not reflect current ground conditions. Always verify with your government's official travel advisory service (e.g., travel.gov, gov.uk/foreign-travel-advice, or your country's foreign affairs ministry) before travelling.",
+    a: "Yes, and on any plan. Share the trip's invite link and whoever opens it is on the trip straight away. Everyone on a trip can follow the plan as it takes shape, comment on it and help write the story afterwards. Trip admins change the plan itself, so you decide who runs it and who comes along.",
   },
   {
     q: 'How is my data stored and protected?',
@@ -71,6 +80,20 @@ const HelpPage: React.FC = () => {
 
   return (
     <InfoPageShell>
+      <Seo
+        title="Tripician Help Centre"
+        description="How Tripician works: planning a trip, inviting your crew, groups, stories, messages and your account. Answers to the questions travellers ask most."
+        path="/get-help"
+        jsonLd={{
+          '@context': 'https://schema.org',
+          '@type': 'FAQPage',
+          mainEntity: FAQS.map((f) => ({
+            '@type': 'Question',
+            name: f.q,
+            acceptedAnswer: { '@type': 'Answer', text: f.a },
+          })),
+        }}
+      />
       {/* Hero */}
       <Box sx={{ background: 'linear-gradient(135deg,#FFF5F6 0%,#FFFAFA 100%)', borderBottom: '1px solid rgba(0,0,0,0.06)', px: { xs: 3, md: 8 }, py: { xs: 6, md: 8 } }}>
         <Container maxWidth="md">
@@ -80,7 +103,7 @@ const HelpPage: React.FC = () => {
             </Box>
             <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'primary.main', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Help Centre</Typography>
           </Box>
-          <Typography variant="h2" sx={{ fontWeight: 700, fontSize: { xs: '2rem', md: '2.8rem' }, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.15, mb: 2 }}>
+          <Typography variant="h2" component="h1" sx={{ fontWeight: 700, fontSize: { xs: '2rem', md: '2.8rem' }, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.15, mb: 2 }}>
             How can we help you?
           </Typography>
           <Typography sx={{ fontSize: '1.05rem', color: '#666', lineHeight: 1.75 }}>

@@ -7,7 +7,7 @@ import { markWalkthroughShown, walkthroughShownThisSession } from '../../utils/w
 
 const SEEN_KEY = 'tripician:onboardingSeen';
 
-/** True once, ever, per browser - matches the naviaGroupHint one-time-hint pattern. */
+/** True once, ever, per browser - matches the tripicianAIGroupHint one-time-hint pattern. */
 function hasSeenOnboarding(): boolean {
   try { return localStorage.getItem(SEEN_KEY) === '1'; } catch { return true; }
 }

@@ -15,8 +15,9 @@ import {
   fetchMyCreditHistory,
   creditActionLabel,
   CREDIT_PRICES,
-  type NaviaCreditHistory,
-} from '../../navia/naviaService';
+  type TripicianAICreditHistory,
+} from '../../tripicianai/tripicianAIService';
+import BuyCreditsCard from './BuyCreditsCard';
 
 const cardSx = {
   mb: 3,
@@ -35,9 +36,11 @@ const sectionTitleSx = {
 
 const CreditsSettings: React.FC = () => {
   const { token } = useAuthToken();
-  const [history, setHistory] = useState<NaviaCreditHistory | null>(null);
+  const [history, setHistory] = useState<TripicianAICreditHistory | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  // Bumped after a purchase so the balance and history show the new credits.
+  const [reloadKey, setReloadKey] = useState(0);
 
   useEffect(() => {
     if (!token) return;
@@ -55,7 +58,7 @@ const CreditsSettings: React.FC = () => {
       }
     })();
     return () => { active = false; };
-  }, [token]);
+  }, [token, reloadKey]);
 
   const wallet = history?.wallet ?? null;
   const pctLeft = wallet && wallet.totalGranted > 0
@@ -73,8 +76,8 @@ const CreditsSettings: React.FC = () => {
             <Typography sx={sectionTitleSx}>Personal wallet</Typography>
           </Box>
           <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', mb: 3, maxWidth: 520 }}>
-            Credits power every conversation with Navia. This wallet covers your personal chat;
-            each trip carries its own shared wallet that the whole group plans from.
+            Credits power every conversation with TripicianAI. Each trip has its own shared credits the whole
+            group plans from; when those run out, yours cover what you ask for on that trip.
           </Typography>
 
           {loading && (
@@ -135,20 +138,20 @@ const CreditsSettings: React.FC = () => {
                 </Box>
               </Box>
 
-              <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', mt: 2.5 }}>
-                Top-ups are on the way. Until then, every traveler starts with {wallet.totalGranted || 300} credits on us.
-              </Typography>
+
             </>
           )}
         </CardContent>
       </Card>
+
+      <BuyCreditsCard sx={cardSx} onPurchased={() => setReloadKey((k) => k + 1)} />
 
       {/* ── What a credit buys ── */}
       <Card sx={cardSx}>
         <CardContent sx={{ p: 3 }}>
           <Typography sx={{ ...sectionTitleSx, mb: 0.5 }}>What a credit buys</Typography>
           <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', mb: 2.5 }}>
-            Simple, fixed prices, you always know the cost before Navia gets to work.
+            Simple, fixed prices, you always know the cost before TripicianAI gets to work.
           </Typography>
 
           <Box sx={{ display: 'flex', flexDirection: 'column' }}>
@@ -187,7 +190,7 @@ const CreditsSettings: React.FC = () => {
 
           <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', mt: 2 }}>
             Trip-wallet actions spend from the trip's shared balance, check it any time from the coin
-            chip in that trip's chat panel. If Navia ever fails to answer, the credits come straight back.
+            chip in that trip's chat panel. If TripicianAI ever fails to answer, the credits come straight back.
           </Typography>
         </CardContent>
       </Card>
@@ -208,7 +211,7 @@ const CreditsSettings: React.FC = () => {
 
           {!loading && !error && (history?.entries?.length ?? 0) === 0 && (
             <Typography sx={{ fontSize: '0.82rem', color: 'text.disabled', py: 1 }}>
-              Nothing yet, say hello to Navia and your first entry will appear here.
+              Nothing yet, say hello to TripicianAI and your first entry will appear here.
             </Typography>
           )}
 

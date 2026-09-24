@@ -10,7 +10,7 @@ import { stashReturnTo } from '../../utils/pendingDraft';
 import { fetchUserProfile } from '../../store/userSlice';
 import { clearSessionData } from '../../utils/authSession';
 import { setAccessToken, setRefreshToken } from '../../services/auth/sessionStatus';
-import { peekPendingPrompt } from '../../utils/pendingNaviaPrompt';
+import { peekPendingPrompt } from '../../utils/pendingTripicianAIPrompt';
 import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../store';
 import { fadeInLeft, fadeInRight, staggerContainer, staggerItem } from '../../utils/animations';
@@ -133,11 +133,11 @@ const Signin = () => {
         setTimeout(() => {
           // A prompt typed on the landing hero is the reason this sign-in is
           // happening. Take them to it rather than to the generic /home.
-          // `peek`, not `take`: consuming it belongs to NaviaPage, so a failed
+          // `peek`, not `take`: consuming it belongs to TripicianAIPage, so a failed
           // navigation cannot silently eat the prompt.
-          // A ?next= wins over the generic home, but not over a Navia prompt the
+          // A ?next= wins over the generic home, but not over a TripicianAI prompt the
           // visitor typed: that prompt IS the reason they signed in.
-          navigate(peekPendingPrompt() ? '/navia' : nextFrom(location.search));
+          navigate(peekPendingPrompt() ? '/tripicianai' : nextFrom(location.search));
         }, 1500);
       } else {
         setError('Unexpected response from server. Please try again.');
@@ -184,7 +184,7 @@ const Signin = () => {
           robots.txt already disallows it - the two should agree. */}
       <Seo
         title="Sign in"
-        description="Sign in to Tripician to reach your trips, your crew and the itineraries you saved from the community."
+        description="Sign in to Tripician to reach your wall, your trips, your crew and the itineraries you saved."
         path="/signin"
         noindex
       />
@@ -216,7 +216,7 @@ const Signin = () => {
               covered" was here and counted nothing - no such figure exists
               anywhere in the product. */}
           <motion.h2 className="auth-left__title" variants={staggerItem}>
-            Welcome back to<br /><em>the community.</em>
+            Welcome back,<br /><em>traveller.</em>
           </motion.h2>
           <motion.p className="auth-left__sub" variants={staggerItem}>
             Your trips, your crew, and every itinerary you saved.

@@ -97,7 +97,7 @@ const OrganizationPostsPanel: React.FC<OrganizationPostsPanelProps> = ({ organiz
               onClick={() => void post()}
               sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '50px' }}
             >
-              {busy ? 'Posting' : 'Post to the community'}
+              {busy ? 'Posting' : 'Post update'}
             </Button>
             {(draft || image) && (
               <Button
@@ -118,8 +118,8 @@ const OrganizationPostsPanel: React.FC<OrganizationPostsPanelProps> = ({ organiz
           <IconSpeakerphone size={20} style={{ color: theme.palette.text.disabled }} />
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
             {canPost
-              ? 'Nothing posted yet. What you write here shows up on your profile and in the community feed.'
-              : 'This organization has not posted anything yet.'}
+              ? 'Nothing posted yet. What you write here shows up on your public page.'
+              : 'Nothing posted yet.'}
           </Typography>
         </Box>
       )}

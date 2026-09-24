@@ -9,7 +9,6 @@ const makeLocalId = (prefix: string): string => {
   return `${prefix}_${Date.now()}_${Math.random().toString(36).slice(2, 10)}`;
 };
 
-
 export interface PlannerDestination {
   id: string;
   name: string;
@@ -19,7 +18,6 @@ export interface PlannerDestination {
   endDate: string;   // ISO date
   nights: number;
   transport?: string;
-  budget?: number; // per-destination budget amount in selected currency
   notes?: string;
   /** Google Places placeId when destination added via autocomplete */
   placeId?: string;
@@ -43,7 +41,6 @@ export interface PlannerDestination {
   lng?: number; // optional longitude for mapping
   spots?: PlannerSpot[]; // discover spots
   foods?: PlannerFood[]; // discover foods
-  docs?: PlannerDoc[]; // uploaded documents
   /** High-level semantic category used for color coding & filtering in card layout */
   category?: 'general' | 'must_visit' | 'skippable' | 'tentative' | 'decide_later';
   /** Marked when user considers planning for this destination complete */
@@ -88,32 +85,8 @@ export interface PlannerFood {
   checked: boolean;
 }
 
-export interface PlannerDoc {
-  id: string;
-  originalName: string;
-  mimeType: string;
-  url: string; // object URL (runtime) or persisted reference
-}
-
-export interface PlannerExpense {
-  id: string;
-  label: string;
-  category?: string; // e.g. Flights, Stay, Food, Transport, Activity, Misc
-  amount: number; // stored in trip currency
-  note?: string;
-  date: string; // ISO date of expense occurrence
-  createdAt: string; // ISO datetime when user added it
-  /** User id of who paid (for now can be placeholder like 'me') */
-  paidByUserId?: string;
-  /** How the expense is split among members */
-  splitStrategy?: 'none' | 'equal' | 'custom';
-  /** Custom share fractions or amounts when splitStrategy==='custom' */
-  shares?: { userId: string; amount: number }[];
-}
-
 export interface PlannerState {
   destinations: PlannerDestination[];
-  currency: 'EUR' | 'USD' | 'GBP';
   targetNights: number;
   /** When true, targetNights was explicitly provided (backend or user) and should not auto-resync to sum of destination nights */
   targetLocked?: boolean;
@@ -124,22 +97,6 @@ export interface PlannerState {
   tripStartDate?: string;
   /** Trip-level end date (chain terminus) */
   tripEndDate?: string;
-  /** Trip-level supporting documents (not tied to a destination) */
-  globalDocs?: PlannerDoc[];
-  /** Visa specific documents (scans, letters, confirmations) */
-  visaDocs?: PlannerDoc[];
-  /** Set of pinned doc ids (could refer to any of the above or destination docs). */
-  pinnedDocIds?: string[];
-  /** Optional overall trip budget in selected currency */
-  tripBudget?: number;
-  /** Flat list of expenses across the trip */
-  expenses?: PlannerExpense[];
-  /** When true we attempt to simplify (settle) group expenses at end of trip */
-  simplifyGroupExpenses?: boolean;
-  /** Additional email addresses allowed to view expenses (besides group members) */
-  expenseVisibilityEmails?: string[];
-  /** Chat-style comments associated with the trip */
-  comments?: TripComment[];
   /**
    * What the traveller answered when they created the trip: pace, who is going,
    * interests, dietary. Lives here rather than in TripPlanner local state because
@@ -165,34 +122,12 @@ export interface TripComment {
 
 const initialState: PlannerState = {
   destinations: [],
-  currency: 'EUR',
   targetNights: 8,
   targetLocked: false,
-  globalDocs: [],
-  visaDocs: [],
-  pinnedDocIds: [],
-  tripBudget: undefined,
-  expenses: [],
-  simplifyGroupExpenses: false,
-  expenseVisibilityEmails: [],
-  comments: [],
   tripId: undefined,
   tripStartDate: undefined,
   tripEndDate: undefined
 };
-
-// Utility to recompute nights based on start/end date (exclusive of end)
-function computeNights(startISO: string, endISO: string): number {
-  try {
-    const s = new Date(startISO);
-    const e = new Date(endISO);
-    const ms = e.getTime() - s.getTime();
-    if (ms <= 0) return 1;
-    return Math.max(1, Math.round(ms / (1000 * 60 * 60 * 24)));
-  } catch {
-    return 1;
-  }
-}
 
 const plannerSlice = createSlice({
   name: 'planner',
@@ -225,8 +160,10 @@ const plannerSlice = createSlice({
         state.targetNights = total || state.targetNights;
       }
     },
-    setCurrency(state, action: PayloadAction<'EUR' | 'USD' | 'GBP'>) {
-      state.currency = action.payload;
+    /** How you LEAVE this stop for the next one: the same meaning the map and the saved legs already use. */
+    setDestinationTransport(state, action: PayloadAction<{ id: string; transport: string }>) {
+      const stop = state.destinations.find((d) => d.id === action.payload.id);
+      if (stop) stop.transport = action.payload.transport;
     },
     setTargetNights(state, action: PayloadAction<number>) {
       state.targetNights = action.payload;
@@ -254,7 +191,6 @@ const plannerSlice = createSlice({
         endDate,
         nights: useNights,
         transport: '',
-        budget: 0,
         lat: action.payload.lat,
         lng: action.payload.lng,
         placeId: action.payload.placeId,
@@ -309,22 +245,6 @@ const plannerSlice = createSlice({
         plannerSlice.caseReducers._recalcChain(state);
       }
     },
-    setTransport(state, action: PayloadAction<{ id: string; transport: string }>) {
-      const d = state.destinations.find(x => x.id === action.payload.id);
-      if (d) d.transport = action.payload.transport;
-    },
-    setDates(state, action: PayloadAction<{ id: string; startDate: string; endDate: string }>) {
-      const d = state.destinations.find(x => x.id === action.payload.id);
-      if (d) {
-        d.startDate = action.payload.startDate;
-        d.endDate = action.payload.endDate;
-        d.nights = computeNights(d.startDate, d.endDate);
-      }
-    },
-    setDestinationBudget(state, action: PayloadAction<{ id: string; budget: number }>) {
-      const d = state.destinations.find(x => x.id === action.payload.id);
-      if (d) d.budget = action.payload.budget;
-    },
     setDestinationCoords(state, action: PayloadAction<{ id: string; lat: number; lng: number }>) {
       const d = state.destinations.find(x => x.id === action.payload.id);
       if (d) { d.lat = action.payload.lat; d.lng = action.payload.lng; }
@@ -332,10 +252,6 @@ const plannerSlice = createSlice({
     setDestinationNotes(state, action: PayloadAction<{ id: string; notes: string }>) {
       const d = state.destinations.find(x => x.id === action.payload.id);
       if (d) d.notes = action.payload.notes;
-    },
-    setDestinationStay(state, action: PayloadAction<{ id: string; stay: { name?: string; reference?: string; notes?: string } }>) {
-      const d = state.destinations.find(x => x.id === action.payload.id);
-      if (d) d.stay = { ...d.stay, ...action.payload.stay };
     },
     // --- Multi accommodation CRUD ---
     addStayEntry(state, action: PayloadAction<{ destinationId: string; name?: string; reference?: string }>) {
@@ -371,174 +287,6 @@ const plannerSlice = createSlice({
       d.lng = undefined;
       d.placeId = undefined;
     },
-    setDestinationTitle(state, action: PayloadAction<{ id: string; title: string }>) {
-      const d = state.destinations.find(x => x.id === action.payload.id);
-      if (!d) return;
-      const trimmed = action.payload.title.trim();
-      d.title = trimmed.length > 0 ? trimmed : undefined;
-    },
-    setDestinationCategory(state, action: PayloadAction<{ id: string; category: PlannerDestination['category'] }>) {
-      const d = state.destinations.find(x => x.id === action.payload.id);
-      if (d) d.category = action.payload.category || 'general';
-    },
-    toggleDestinationCompleted(state, action: PayloadAction<{ id: string }>) {
-      const d = state.destinations.find(x => x.id === action.payload.id);
-      if (d) d.completed = !d.completed;
-    },
-    duplicateDestination(state, action: PayloadAction<{ id: string }>) {
-      const idx = state.destinations.findIndex(d=> d.id===action.payload.id);
-      if (idx === -1) return;
-      const source = state.destinations[idx];
-      const totalNights = state.destinations.reduce((a,c)=> a + c.nights, 0);
-      if (totalNights + source.nights > state.targetNights) return; // avoid exceeding target
-      const clone: PlannerDestination = {
-        ...source,
-        id: makeLocalId('dest'),
-        name: source.name + ' Copy',
-        title: source.title ? source.title + ' (copy)' : undefined,
-        spots: source.spots ? source.spots.map(s=> ({ ...s, id: makeLocalId('spot'), checked:false })) : [],
-        foods: source.foods ? source.foods.map(f=> ({ ...f, id: makeLocalId('food'), checked:false })) : [],
-        docs: source.docs ? source.docs.map(doc => ({ ...doc, id: doc.id + '_copy_' + Math.random().toString(36).slice(2) })) : [],
-        completed: false
-      };
-      // Insert after original
-      state.destinations.splice(idx+1, 0, clone);
-    },
-    addDestinationDoc(state, action: PayloadAction<{ destinationId: string; doc: { id: string; originalName: string; mimeType: string; url: string } }>) {
-      const d = state.destinations.find(x=> x.id === action.payload.destinationId);
-      if(!d) return; if(!d.docs) d.docs = [];
-      d.docs.push(action.payload.doc);
-    },
-    removeDestinationDoc(state, action: PayloadAction<{ destinationId: string; docId: string }>) {
-      const d = state.destinations.find(x=> x.id === action.payload.destinationId);
-      if(!d?.docs) return;
-      d.docs = d.docs.filter(doc=> doc.id !== action.payload.docId);
-    },
-    addGlobalDoc(state, action: PayloadAction<{ doc: PlannerDoc }>) {
-      if(!state.globalDocs) state.globalDocs = [];
-      state.globalDocs.push(action.payload.doc);
-    },
-    removeGlobalDoc(state, action: PayloadAction<{ docId: string }>) {
-      if(!state.globalDocs) return; state.globalDocs = state.globalDocs.filter(d=> d.id !== action.payload.docId);
-      // also unpin if pinned
-      if(state.pinnedDocIds) state.pinnedDocIds = state.pinnedDocIds.filter(id=> id !== action.payload.docId);
-    },
-    addVisaDoc(state, action: PayloadAction<{ doc: PlannerDoc }>) {
-      if(!state.visaDocs) state.visaDocs = [];
-      state.visaDocs.push(action.payload.doc);
-    },
-    removeVisaDoc(state, action: PayloadAction<{ docId: string }>) {
-      if(!state.visaDocs) return; state.visaDocs = state.visaDocs.filter(d=> d.id !== action.payload.docId);
-      if(state.pinnedDocIds) state.pinnedDocIds = state.pinnedDocIds.filter(id=> id !== action.payload.docId);
-    },
-    pinDoc(state, action: PayloadAction<{ docId: string }>) {
-      if(!state.pinnedDocIds) state.pinnedDocIds = [];
-      if(!state.pinnedDocIds.includes(action.payload.docId)) state.pinnedDocIds.push(action.payload.docId);
-    },
-    unpinDoc(state, action: PayloadAction<{ docId: string }>) {
-      if(!state.pinnedDocIds) return;
-      state.pinnedDocIds = state.pinnedDocIds.filter(id=> id !== action.payload.docId);
-    },
-    setTripBudget(state, action: PayloadAction<{ amount: number }>) {
-      state.tripBudget = action.payload.amount >= 0 ? action.payload.amount : 0;
-    },
-    addExpense(state, action: PayloadAction<{ expense: Omit<PlannerExpense,'id'|'createdAt'> & { id?: string } }>) {
-      if(!state.expenses) state.expenses = [];
-      const id = action.payload.expense.id || 'exp_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-      state.expenses.push({
-        id,
-        label: action.payload.expense.label,
-        category: action.payload.expense.category,
-        amount: Math.max(0, action.payload.expense.amount),
-        note: action.payload.expense.note,
-        date: action.payload.expense.date,
-        createdAt: new Date().toISOString(),
-        paidByUserId: action.payload.expense.paidByUserId || 'me',
-        splitStrategy: action.payload.expense.splitStrategy || 'none',
-        shares: action.payload.expense.shares
-      });
-    },
-    updateExpense(state, action: PayloadAction<{ id: string; patch: Partial<Omit<PlannerExpense,'id'|'createdAt'>> }>) {
-      const e = state.expenses?.find(x=> x.id === action.payload.id);
-      if(e){
-        if(action.payload.patch.label!==undefined) e.label = action.payload.patch.label;
-        if(action.payload.patch.category!==undefined) e.category = action.payload.patch.category;
-        if(action.payload.patch.amount!==undefined) e.amount = Math.max(0, action.payload.patch.amount);
-        if(action.payload.patch.note!==undefined) e.note = action.payload.patch.note;
-        if(action.payload.patch.date!==undefined) e.date = action.payload.patch.date;
-        if(action.payload.patch.paidByUserId!==undefined) e.paidByUserId = action.payload.patch.paidByUserId;
-        if(action.payload.patch.splitStrategy!==undefined) e.splitStrategy = action.payload.patch.splitStrategy as any;
-        if(action.payload.patch.shares!==undefined) e.shares = action.payload.patch.shares as any;
-      }
-    },
-    removeExpense(state, action: PayloadAction<{ id: string }>) {
-      if(!state.expenses) return; state.expenses = state.expenses.filter(e=> e.id !== action.payload.id);
-    },
-    clearExpenses(state) {
-      state.expenses = [];
-    },
-    setSimplifyGroupExpenses(state, action: PayloadAction<{ value: boolean }>) {
-      state.simplifyGroupExpenses = action.payload.value;
-    },
-    addExpenseVisibilityEmail(state, action: PayloadAction<{ email: string }>) {
-      const email = action.payload.email.trim().toLowerCase();
-      if(!email) return;
-      if(!state.expenseVisibilityEmails) state.expenseVisibilityEmails = [];
-      if(!state.expenseVisibilityEmails.includes(email)) state.expenseVisibilityEmails.push(email);
-    },
-    removeExpenseVisibilityEmail(state, action: PayloadAction<{ email: string }>) {
-      const email = action.payload.email.trim().toLowerCase();
-      if(!state.expenseVisibilityEmails) return;
-      state.expenseVisibilityEmails = state.expenseVisibilityEmails.filter(e=> e !== email);
-    },
-    clearExpenseVisibilityEmails(state) {
-      state.expenseVisibilityEmails = [];
-    },
-    addComment(state, action: PayloadAction<{ userId: string; displayName: string; avatarUrl?: string; text: string; id?: string }>) {
-      if(!state.comments) state.comments = [];
-      const id = action.payload.id || 'c_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-      state.comments.push({
-        id,
-        userId: action.payload.userId,
-        displayName: action.payload.displayName,
-        avatarUrl: action.payload.avatarUrl,
-        text: action.payload.text,
-        createdAt: new Date().toISOString(),
-        upvoterIds: [],
-        replyCount: 0
-      });
-    },
-    addReply(state, action: PayloadAction<{ parentId: string; userId: string; displayName: string; text: string; avatarUrl?: string; id?: string }>) {
-      if(!state.comments) state.comments = [];
-      const parent = state.comments.find(c=> c.id === action.payload.parentId);
-      const id = action.payload.id || 'c_'+Date.now()+'_'+Math.random().toString(36).slice(2);
-      state.comments.push({
-        id,
-        userId: action.payload.userId,
-        displayName: action.payload.displayName,
-        avatarUrl: action.payload.avatarUrl,
-        text: action.payload.text,
-        createdAt: new Date().toISOString(),
-        parentId: action.payload.parentId,
-        upvoterIds: [],
-        replyCount: 0
-      });
-      if(parent){ parent.replyCount = (parent.replyCount || 0) + 1; }
-    },
-    updateComment(state, action: PayloadAction<{ id: string; text: string }>) {
-      const c = state.comments?.find(x=> x.id === action.payload.id);
-      if(c){ c.text = action.payload.text; c.editedAt = new Date().toISOString(); }
-    },
-    removeComment(state, action: PayloadAction<{ id: string }>) {
-      if(!state.comments) return; state.comments = state.comments.filter(c=> c.id !== action.payload.id);
-    },
-    toggleUpvote(state, action: PayloadAction<{ id: string; userId: string }>) {
-      const c = state.comments?.find(x=> x.id === action.payload.id);
-      if(!c) return;
-      if(!c.upvoterIds) c.upvoterIds = [];
-      const idx = c.upvoterIds.indexOf(action.payload.userId);
-      if(idx>=0) c.upvoterIds.splice(idx,1); else c.upvoterIds.push(action.payload.userId);
-    },
   addSpot(state, action: PayloadAction<{ destinationId: string; name: string; mapUrl?: string; known: boolean; placeId?: string; photoUrl?: string; description?: string; provenance?: SpotProvenance; verifiedAt?: string; lat?: number; lng?: number; mustVisit?: boolean }>) {
       const d = state.destinations.find(x=> x.id === action.payload.destinationId);
       if (!d) return;
@@ -566,19 +314,17 @@ const plannerSlice = createSlice({
       const s = d.spots.find(x=> x.id === action.payload.spotId);
       if (s) s.checked = !s.checked;
     },
+    /** The star on a place chip: a must see, which the public trip page and the prompts both read. */
+    toggleSpotMustVisit(state, action: PayloadAction<{ destinationId: string; spotId: string }>) {
+      const spot = state.destinations
+        .find((d) => d.id === action.payload.destinationId)?.spots
+        ?.find((s) => s.id === action.payload.spotId);
+      if (spot) spot.mustVisit = !spot.mustVisit;
+    },
     removeSpot(state, action: PayloadAction<{ destinationId: string; spotId: string }>) {
       const d = state.destinations.find(x=> x.id === action.payload.destinationId);
       if (!d?.spots) return;
       d.spots = d.spots.filter(s=> s.id !== action.payload.spotId);
-    },
-    reorderSpots(state, action: PayloadAction<{ destinationId: string; fromIndex: number; toIndex: number }>) {
-      const d = state.destinations.find(x=> x.id === action.payload.destinationId);
-      if (!d?.spots) return;
-      const { fromIndex, toIndex } = action.payload;
-      if (fromIndex===toIndex) return;
-      const arr = d.spots;
-      const item = arr.splice(fromIndex,1)[0];
-      arr.splice(toIndex,0,item);
     },
     addFoodItem(state, action: PayloadAction<{ destinationId: string; name: string }>) {
       const d = state.destinations.find(x=> x.id === action.payload.destinationId);
@@ -603,52 +349,6 @@ const plannerSlice = createSlice({
       d.spots = [];
       d.foods = [];
     },
-    reorderFoods(state, action: PayloadAction<{ destinationId: string; fromIndex: number; toIndex: number }>) {
-      const d = state.destinations.find(x=> x.id === action.payload.destinationId);
-      if (!d?.foods) return;
-      const { fromIndex, toIndex } = action.payload;
-      if (fromIndex===toIndex) return;
-      const arr = d.foods;
-      const item = arr.splice(fromIndex,1)[0];
-      arr.splice(toIndex,0,item);
-    },
-    reorderDestinations(state, action: PayloadAction<{ fromIndex: number; toIndex: number }>) {
-      const { fromIndex, toIndex } = action.payload;
-      if (fromIndex === toIndex) return;
-      const arr = state.destinations;
-      const item = arr.splice(fromIndex,1)[0];
-      arr.splice(toIndex,0,item);
-    },
-    reorderChain(state, action: PayloadAction<{ ids: string[] }>) {
-      const { ids } = action.payload;
-      if (!ids.length) return;
-      const map: Record<string, PlannerDestination> = {};
-      state.destinations.forEach(d=> { map[d.id]=d; });
-      const first = state.destinations[0];
-      const newOrder: PlannerDestination[] = [];
-      ids.forEach(id=> { if (map[id]) newOrder.push(map[id]); });
-      // Ensure first remains first
-      if (newOrder[0]?.id !== first.id) {
-        const idx = newOrder.findIndex(d=> d.id===first.id);
-        if (idx>=0) {
-          const [f] = newOrder.splice(idx,1);
-          newOrder.unshift(f);
-        } else {
-          newOrder.unshift(first);
-        }
-      }
-      // Recompute sequential dates chain after first using existing nights
-      for (let i=1;i<newOrder.length;i++) {
-        const prev = newOrder[i-1];
-        const cur = newOrder[i];
-        const start = prev.endDate;
-        cur.startDate = start;
-        const end = new Date(new Date(start).getTime() + cur.nights*24*60*60*1000).toISOString().slice(0,10);
-        cur.endDate = end;
-      }
-      state.destinations = newOrder;
-      plannerSlice.caseReducers._recalcChain(state);
-    },
     // Exact reorder (allow first to move). Dates recomputed starting from original first startDate.
     reorderChainExact(state, action: PayloadAction<{ ids: string[] }>) {
       const { ids } = action.payload; if(!ids.length) return;
@@ -671,92 +371,51 @@ const plannerSlice = createSlice({
     loadState(_state, action: PayloadAction<PlannerState>) {
       return { ...action.payload, targetLocked: action.payload.targetLocked };
     },
-    resetPlanner(state, action: PayloadAction<{ tripId?: string }>) {
-      // Preserve currency preference; reset rest.
-      const preservedCurrency = state.currency;
+    resetPlanner(_state, action: PayloadAction<{ tripId?: string }>) {
       return {
         ...initialState,
-        currency: preservedCurrency,
         tripId: action.payload.tripId
       };
     },
     /** Set once on hydration, from what the trip was created with. */
     setTripPreferences(state, action: PayloadAction<TripPreferences | undefined>) {
       state.preferences = action.payload;
-    },
-    markSaved(state) {
-      state.lastSaved = new Date().toISOString();
     }
   }
 });
 
 export const {
-  setCurrency,
-  setTargetNights,
+    setDestinationTransport,
+    setTargetNights,
   setTripDates,
   addDestination,
   removeDestination,
   updateDestinationNights,
-  setTransport,
-  setDates,
-  setDestinationBudget,
-  reorderDestinations,
-  reorderChain,
   reorderChainExact,
   loadState,
-  markSaved,
   setDestinationCoords,
   setDestinationNotes,
-  setDestinationStay,
   addStayEntry,
   updateStayEntry,
   removeStayEntry,
   setStayNotes,
-  renameDestination,
-  setDestinationTitle,
-  setDestinationCategory,
-  toggleDestinationCompleted,
-  duplicateDestination,
-  addDestinationDoc,
-  removeDestinationDoc
+  renameDestination
 } = plannerSlice.actions;
 
 export const {
   addSpot,
   toggleSpot,
-  removeSpot,
-  reorderSpots,
+    removeSpot,
+    toggleSpotMustVisit,
   addFoodItem,
   toggleFoodItem,
   removeFoodItem,
-  reorderFoods,
   clearDestinationDiscover
 } = plannerSlice.actions;
 
 export const {
-  addGlobalDoc,
-  removeGlobalDoc,
-  addVisaDoc,
-  removeVisaDoc,
-  pinDoc,
-  unpinDoc
+  resetPlanner,
+  setTripPreferences
 } = plannerSlice.actions;
-
-export const {
-  setTripBudget,
-  addExpense,
-  updateExpense,
-  removeExpense,
-  clearExpenses,
-  setSimplifyGroupExpenses,
-  addExpenseVisibilityEmail,
-  removeExpenseVisibilityEmail,
-  clearExpenseVisibilityEmails
-} = plannerSlice.actions;
-
-export const { addComment, addReply, updateComment, removeComment, toggleUpvote } = plannerSlice.actions;
-export const { resetPlanner, setTripPreferences } = plannerSlice.actions;
-
-// Doc actions already re-exported above
 
 export default plannerSlice.reducer;

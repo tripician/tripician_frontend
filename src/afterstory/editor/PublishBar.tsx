@@ -44,12 +44,13 @@ import { apiServices } from '../../services/APIs/apiServices';
 import { storyPath } from '../storySlug';
 import { SITE_URL } from '../../components/Seo';
 import { isBlockEmpty } from '../blockSchema';
+import { POST_LIMITS } from '../../posts/types';
 import type { AfterStoryDto, StoryBlock, StoryStatus } from '../types';
 
 interface PublishBarProps {
   story: AfterStoryDto;
   blocks: StoryBlock[];
-  onStatusChange: (status: StoryStatus) => Promise<void>;
+  onStatusChange: (status: StoryStatus, caption?: string) => Promise<void>;
   onAttachTrip: (tripId: string | null) => Promise<void>;
 }
 
@@ -66,6 +67,10 @@ const PublishBar: React.FC<PublishBarProps> = ({ story, blocks, onStatusChange, 
   const [busy, setBusy] = React.useState(false);
   const [toast, setToast] = React.useState<string | null>(null);
   const [error, setError] = React.useState<string | null>(null);
+  const [caption, setCaption] = React.useState('');
+
+  // Cleared whenever the confirm dialog opens, so an abandoned caption never goes out on a later publish.
+  React.useEffect(() => { if (confirming) setCaption(''); }, [confirming]);
 
   const written = blocks.filter((b) => !isBlockEmpty(b)).length;
   const readyToShare = written > 0;
@@ -75,10 +80,11 @@ const PublishBar: React.FC<PublishBarProps> = ({ story, blocks, onStatusChange, 
     setBusy(true);
     setError(null);
     try {
-      await onStatusChange(status);
+      // Only Published reaches the wall, so the caption is dropped for any other status.
+      await onStatusChange(status, status === 'Published' ? caption.trim() : undefined);
       setToast(
         status === 'Published'
-          ? 'Your story is live.'
+          ? 'Your story is live, and on your wall.'
           : status === 'Unlisted'
             ? 'Anyone with the link can read it now.'
             : 'Back to a private draft.',
@@ -248,13 +254,29 @@ const PublishBar: React.FC<PublishBarProps> = ({ story, blocks, onStatusChange, 
         <DialogContent>
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             {confirming === 'Published'
-              ? 'Anyone will be able to find and read it, including from a search engine, and your name will be on it. You can set it back to private at any time.'
-              : 'Anyone you send the link to can read it. It stays out of search and off the community pages.'}
+              ? 'Anyone will be able to find and read it, including from a search engine, and your name will be on it. It is posted to your wall too. You can set it back to private at any time.'
+              : 'Anyone you send the link to can read it. It stays out of search and off the wall.'}
           </Typography>
           {confirming === 'Published' && !story.slug && (
             <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 1.5 }}>
               Its web address is set now and will not change, even if you rename the story later.
             </Typography>
+          )}
+          {confirming === 'Published' && (
+            <TextField
+              value={caption}
+              onChange={(e) => setCaption(e.target.value.slice(0, POST_LIMITS.maxBody))}
+              placeholder="Say something about it (optional)"
+              fullWidth
+              multiline
+              minRows={2}
+              maxRows={5}
+              disabled={busy}
+              helperText={caption.length > 0
+                ? `${POST_LIMITS.maxBody - caption.length} left`
+                : 'Posted with the story on your wall.'}
+              sx={{ mt: 2 }}
+            />
           )}
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>

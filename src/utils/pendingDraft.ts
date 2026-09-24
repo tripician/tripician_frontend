@@ -1,7 +1,7 @@
 /**
  * Something a guest typed before they had an account.
  *
- * The generalisation of `pendingNaviaPrompt`, which does the same job for the
+ * The generalisation of `pendingTripicianAIPrompt`, which does the same job for the
  * one surface it was written for, and for the same reasons: sessionStorage
  * because the value has to survive a route change to /signup, an account
  * creation, a second route change to /signin, and on the social path a full

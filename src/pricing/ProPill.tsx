@@ -50,9 +50,9 @@ interface ProPillProps {
  * ## Why there is no glyph
  *
  * It carried a sparkle. In this codebase a sparkle means four unrelated things -
- * Navia actions, premium, the planner's "Simple" density toggle, and the
+ * TripicianAI actions, premium, the planner's "Simple" density toggle, and the
  * profile passport's fallback for a highlight with no icon mapped - so it
- * carries no meaning of its own here. It is not Navia's mark either; Navia is
+ * carries no meaning of its own here. It is not TripicianAI's mark either; TripicianAI is
  * the orb.
  *
  * More to the point, the two surfaces that actually take money carry no glyph:

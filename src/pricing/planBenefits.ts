@@ -12,11 +12,13 @@ import type { Plan } from './types';
 
 /** Names for the org capabilities the server ships in `features`. */
 const FEATURE_LABELS: Record<string, string> = {
-  organization_posts: 'Post to the community as your organization',
+  organization_posts: 'Post updates on your organization page',
   organization_staffing: 'Put your people onto your trips from one screen',
-  organization_manager_role: 'Managers who run trips without running the business',
-  organization_cover_image: 'A cover image on your public profile',
+  organization_manager_role: 'Managers who run trips without running the group',
 };
+
+/** Whether this plan may open a trip to join requests at all. */
+const recruits = (plan: Plan): boolean => (plan.features ?? []).includes('trip_recruiting');
 
 export function planBenefits(plan: Plan): string[] {
   const lines: string[] = [];
@@ -25,11 +27,27 @@ export function planBenefits(plan: Plan): string[] {
     ? 'Trip size to suit the organization'
     : `Up to ${plan.maxTripMembers} people on a trip`);
 
-  lines.push(isUnlimited(plan.maxRecruitedTravellers)
-    ? 'Recruit travellers at organization scale'
-    : `${plan.maxRecruitedTravellers} ${plan.maxRecruitedTravellers === 1 ? 'traveller' : 'travellers'} can join from a public listing`);
+  // Only named on a plan that may actually list a trip: recruiting is a Business capability.
+  if (recruits(plan)) {
+    lines.push(isUnlimited(plan.maxRecruitedTravellers)
+      ? 'Open your trips for travellers to ask to join'
+      : `${plan.maxRecruitedTravellers} ${plan.maxRecruitedTravellers === 1 ? 'traveller' : 'travellers'} can join from a public listing`);
+  }
 
-  lines.push(`${plan.naviaMonthlyCredits.toLocaleString('en-IN')} Navia credits a month`);
+  // Every group not on a paid group plan gets Basic's allowance, so a personal paid plan says nothing about groups.
+  if (plan.scope === 'organization') {
+    lines.push(isUnlimited(plan.maxGroupMembers)
+      ? 'No limit on group members'
+      : `Groups of up to ${plan.maxGroupMembers} members`);
+  } else if (plan.monthlyPrice === 0) {
+    lines.push(isUnlimited(plan.maxGroupMembers)
+      ? 'Groups with no member limit'
+      : `Groups of up to ${plan.maxGroupMembers} members`);
+  }
+
+  lines.push(plan.scope === 'organization'
+    ? `${plan.tripicianAIMonthlyCredits.toLocaleString('en-IN')} TripicianAI credits a month, shared by the group`
+    : `${plan.tripicianAIMonthlyCredits.toLocaleString('en-IN')} TripicianAI credits a month`);
 
   if (plan.storyBookPriceTier !== 'retail') lines.push('Member price on Story Books');
 
@@ -48,15 +66,28 @@ export function planBenefits(plan: Plan): string[] {
  * number in appsettings changes. Returns an empty list when the higher plan
  * genuinely adds nothing, which is a thing worth being able to see.
  */
+/**
+ * The member ceiling for a group run on this plan: a number, null for no limit, or undefined when unknown.
+ * A personal plan does not change a group, so it reads the free plan's allowance.
+ */
+export function groupMemberLimit(plan: Plan, plans: Plan[]): number | null | undefined {
+  const source = plan.scope === 'organization' ? plan : plans.find((p) => p.monthlyPrice === 0);
+  if (!source) return undefined;
+  return isUnlimited(source.maxGroupMembers) ? null : source.maxGroupMembers;
+}
+
 export function planUpgrade(from: Plan | null, to: Plan): string[] {
   if (!from) return planBenefits(to);
 
   const lines: string[] = [];
 
-  if (isUnlimited(to.maxRecruitedTravellers) && !isUnlimited(from.maxRecruitedTravellers)) {
+  if (recruits(to) && !recruits(from)) {
+    lines.push('Open your trips for travellers to ask to join');
+  } else if (recruits(to) && isUnlimited(to.maxRecruitedTravellers) && !isUnlimited(from.maxRecruitedTravellers)) {
     lines.push('Recruit as many travellers as a trip needs');
   } else if (
-    !isUnlimited(to.maxRecruitedTravellers)
+    recruits(to)
+    && !isUnlimited(to.maxRecruitedTravellers)
     && !isUnlimited(from.maxRecruitedTravellers)
     && (to.maxRecruitedTravellers ?? 0) > (from.maxRecruitedTravellers ?? 0)
   ) {
@@ -73,9 +104,13 @@ export function planUpgrade(from: Plan | null, to: Plan): string[] {
     lines.push(`Up to ${to.maxTripMembers} people on a trip, from ${from.maxTripMembers}`);
   }
 
-  if (to.naviaMonthlyCredits > from.naviaMonthlyCredits) {
-    const extra = to.naviaMonthlyCredits - from.naviaMonthlyCredits;
-    lines.push(`${extra.toLocaleString('en-IN')} more Navia credits every month`);
+  if (to.scope === 'organization' && isUnlimited(to.maxGroupMembers) && !isUnlimited(from.maxGroupMembers)) {
+    lines.push('No limit on how many people join your group');
+  }
+
+  if (to.tripicianAIMonthlyCredits > from.tripicianAIMonthlyCredits) {
+    const extra = to.tripicianAIMonthlyCredits - from.tripicianAIMonthlyCredits;
+    lines.push(`${extra.toLocaleString('en-IN')} more TripicianAI credits every month`);
   }
 
   if (to.storyBookPriceTier !== 'retail' && from.storyBookPriceTier === 'retail') {

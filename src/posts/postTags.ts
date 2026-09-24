@@ -15,6 +15,11 @@ export function placeTag(countryName: string): string {
   return PLACE_PREFIX + countryName.trim().toLowerCase();
 }
 
+/** The questions page filtered to one country, where its questions are read and new ones asked. */
+export function placeQuestionsHref(countryName: string): string {
+  return `/posts?kind=questions&tags=${encodeURIComponent(placeTag(countryName))}`;
+}
+
 export function isPlaceTag(id: string): boolean {
   return id.startsWith(PLACE_PREFIX) && id.length > PLACE_PREFIX.length;
 }

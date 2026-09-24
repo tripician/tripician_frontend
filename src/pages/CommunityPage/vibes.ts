@@ -21,7 +21,7 @@ import {
  * Two of these used to disagree with their key: `romantic` was labelled "Party"
  * and `luxury` was labelled "Slow Travel". Since the modal shows the label but
  * stores the key, and the key is what lands in the prompt, picking "Party" told
- * Navia the trip was romantic. Both now say what they store, and "Party" and
+ * TripicianAI the trip was romantic. Both now say what they store, and "Party" and
  * "Slow Travel" exist as keys of their own so the two options that were only
  * ever labels are now real, transmittable choices.
  */

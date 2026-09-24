@@ -1,4 +1,16 @@
 {
+  "redirects": [
+    {
+      "source": "/community",
+      "destination": "/stories",
+      "statusCode": 301
+    },
+    {
+      "source": "/discover",
+      "destination": "/stories",
+      "statusCode": 301
+    }
+  ],
   "rewrites": [
     {
       "source": "/sitemap.xml",

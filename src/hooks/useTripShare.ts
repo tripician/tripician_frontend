@@ -1,18 +1,12 @@
-import { useState, useEffect, useRef } from 'react';
-import { useAuthToken } from './useAuth0Token';
 import { tripPath } from '../utils/tripSlug';
 
 export interface TripShareData {
-  isLoading: boolean;
-  cardImageUrl: string | null;
-  error: string | null;
+  /** The sentence that travels with the link into a chat or a post. */
   shareText: string;
   /** The link to hand out - server-rendered previews, redirects humans to the app. */
   tripUrl: string;
   /** The canonical in-app URL, for "open in Tripician" style affordances. */
   tripAppUrl: string;
-  /** Raw blob - use for downloading */
-  cardBlob: Blob | null;
 }
 
 interface UseTripShareOptions {
@@ -21,19 +15,17 @@ interface UseTripShareOptions {
   totalNights: number;
 }
 
+/**
+ * The links and the line of text a trip is shared with.
+ *
+ * It used to fetch a rendered share card as well, which cost a Playwright render
+ * on the server every time the dialog opened. The dialog no longer shows a
+ * picture, so nothing here touches the network.
+ */
 export function useTripShare(
   tripId: string,
   { tripName, destinationCount, totalNights }: UseTripShareOptions,
 ): TripShareData {
-  const { token } = useAuthToken();
-  const [isLoading, setIsLoading] = useState(true);
-  const [cardImageUrl, setCardImageUrl] = useState<string | null>(null);
-  const [cardBlob, setCardBlob] = useState<Blob | null>(null);
-  const [error, setError] = useState<string | null>(null);
-
-  // Track the current blob URL so we can revoke it on unmount / re-fetch
-  const blobUrlRef = useRef<string | null>(null);
-
   const WEB_BASE = import.meta.env.VITE_WEB_BASE_URL as string;
   const API_BASE = (import.meta.env.VITE_API_BASE_URL as string) || WEB_BASE;
 
@@ -55,73 +47,15 @@ export function useTripShare(
   /** The in-app URL, for "open" affordances and copy that should look canonical. */
   const tripAppUrl = `${WEB_BASE.replace(/\/$/, '')}${tripPath({ id: tripId, name: tripName })}`;
 
-  const shareText = `Discover this amazing ${tripName} itinerary, created with Tripician 🌍 ${destinationCount} destination${destinationCount !== 1 ? 's' : ''}, ${totalNights} night${totalNights !== 1 ? 's' : ''}.`
+  // Only the figures that exist: a profile card shares a trip with no night count.
+  const figures = [
+    destinationCount > 0 ? `${destinationCount} ${destinationCount === 1 ? 'stop' : 'stops'}` : null,
+    totalNights > 0 ? `${totalNights} ${totalNights === 1 ? 'night' : 'nights'}` : null,
+  ].filter(Boolean).join(', ');
 
-  useEffect(() => {
-    // Bail cleanly, never leave the caller stuck on a skeleton. `isLoading`
-    // starts true, so an early return without this left guests staring at a
-    // shimmer forever on public trips.
-    if (!tripId) { setIsLoading(false); return; }
+  const shareText = figures
+    ? `${tripName}: ${figures}, planned on Tripician.`
+    : `${tripName}, planned on Tripician.`;
 
-    let cancelled = false;
-
-    let slowTimer: ReturnType<typeof setTimeout> | null = null;
-
-    const fetchCard = async () => {
-      setIsLoading(true);
-      setError(null);
-
-      // Show "Generating your card..." message after 3 seconds
-      slowTimer = setTimeout(() => {
-        if (!cancelled) setError('generating');
-      }, 3000);
-
-      try {
-        // Anonymous is allowed for published trips - send the token only if we
-        // have one, so guests can share a public itinerary too.
-        const response = await fetch(
-          `${API_BASE.replace(/\/$/, '')}/api/trips/${tripId}/share-card`,
-          token ? { headers: { Authorization: `Bearer ${token}` } } : undefined,
-        );
-
-        if (!response.ok) {
-          throw new Error(`Server returned ${response.status}`);
-        }
-
-        const blob = await response.blob();
-
-        if (cancelled) return;
-
-        // Revoke any previous blob URL
-        if (blobUrlRef.current) {
-          URL.revokeObjectURL(blobUrlRef.current);
-        }
-        const url = URL.createObjectURL(blob);
-        blobUrlRef.current = url;
-        setCardBlob(blob);
-        setCardImageUrl(url);
-        setError(null);
-      } catch (err: any) {
-        if (!cancelled) {
-          setError(err?.message || 'Failed to load share card');
-        }
-      } finally {
-        if (slowTimer) clearTimeout(slowTimer);
-        if (!cancelled) setIsLoading(false);
-      }
-    };
-
-    fetchCard();
-
-    return () => {
-      cancelled = true;
-      if (slowTimer) clearTimeout(slowTimer);
-      if (blobUrlRef.current) {
-        URL.revokeObjectURL(blobUrlRef.current);
-        blobUrlRef.current = null;
-      }
-    };
-  }, [tripId, token, API_BASE]);
-
-  return { isLoading, cardImageUrl, cardBlob, error, shareText, tripUrl, tripAppUrl };
+  return { shareText, tripUrl, tripAppUrl };
 }

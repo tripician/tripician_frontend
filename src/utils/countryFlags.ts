@@ -52,6 +52,12 @@ for (const [alias, alpha2] of Object.entries(COUNTRY_ALIASES)) {
   if (!NAME_TO_CODE[key]) NAME_TO_CODE[key] = alpha2;
 }
 
+/** The same folding the index uses, for callers that compare country text themselves. */
+export const normaliseCountryText = normalise;
+
+/** Every searchable spelling (canonical names and aliases, already normalised) with its alpha-2 code. */
+export const COUNTRY_SEARCH_KEYS: ReadonlyArray<readonly [string, string]> = Object.entries(NAME_TO_CODE);
+
 /** Canonical names, for pickers and autocomplete. Alphabetical, no aliases. */
 export const COUNTRY_NAMES: string[] = COUNTRIES.map(([, , name]) => name).sort((a, b) =>
   a.localeCompare(b),

@@ -69,7 +69,7 @@ const ForOperatorsPage: React.FC = () => (
           </Box>
           <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'primary.main', letterSpacing: '0.1em', textTransform: 'uppercase' }}>For Operators</Typography>
         </Box>
-        <Typography variant="h2" sx={{ fontWeight: 700, fontSize: { xs: '2rem', md: '2.8rem' }, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.15, mb: 2 }}>
+        <Typography variant="h2" component="h1" sx={{ fontWeight: 700, fontSize: { xs: '2rem', md: '2.8rem' }, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.15, mb: 2 }}>
           Travellers who already know{' '}
           <Box component="span" sx={{ color: 'primary.main' }}>where they want to go</Box>.
         </Typography>
@@ -79,7 +79,7 @@ const ForOperatorsPage: React.FC = () => (
           from there, on your own terms and your own site.
         </Typography>
         <Box sx={{ display: 'flex', gap: 1.5, mt: 4, flexWrap: 'wrap' }}>
-          <Button component={Link} to="/organizations" variant="contained" size="large" sx={{ fontWeight: 700 }}>
+          <Button component={Link} to="/groups?new=business" variant="contained" size="large" sx={{ fontWeight: 700 }}>
             Apply to list your trips
           </Button>
           <Button component={Link} to="/contact-us" variant="outlined" size="large" sx={{ fontWeight: 600 }}>
@@ -154,7 +154,7 @@ const ForOperatorsPage: React.FC = () => (
         <Typography sx={{ fontSize: '0.98rem', color: '#666', lineHeight: 1.7, mb: 3.5 }}>
           Tell us what you run and where. We read every application.
         </Typography>
-        <Button component={Link} to="/organizations" variant="contained" size="large" sx={{ fontWeight: 700 }}>
+        <Button component={Link} to="/groups?new=business" variant="contained" size="large" sx={{ fontWeight: 700 }}>
           Apply to list your trips
         </Button>
       </Container>

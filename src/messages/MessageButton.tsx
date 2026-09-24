@@ -18,6 +18,7 @@ import { useSelector } from 'react-redux';
 import type { RootState } from '../store';
 import { apiServices } from '../services/APIs/apiServices';
 import ConversationThread from './ConversationThread';
+import { useChatDock } from './chatDockContext';
 import type { Conversation } from './types';
 
 interface Props {
@@ -36,6 +37,7 @@ const MessageButton: React.FC<Props> = ({ tripId, userId, size = 'small' }) => {
   const [conversation, setConversation] = React.useState<Conversation | null>(null);
   const [opening, setOpening] = React.useState(false);
   const [open, setOpen] = React.useState(false);
+  const dock = useChatDock();
 
   React.useEffect(() => {
     if (!tripId || !Number.isFinite(userId)) return;
@@ -55,7 +57,9 @@ const MessageButton: React.FC<Props> = ({ tripId, userId, size = 'small' }) => {
     setOpening(true);
     try {
       const resp = await apiServices.openConversation(tripId, userId);
-      if (resp.data) { setConversation(resp.data); setOpen(true); }
+      // Inside the app shell the thread docks as a quick-reply window; elsewhere it opens here in a dialog.
+      if (resp.data && dock) dock.openChat(resp.data);
+      else if (resp.data) { setConversation(resp.data); setOpen(true); }
     } catch {
       // The reason went away between rendering and clicking. Hiding the button
       // is more honest than an error nobody can act on.

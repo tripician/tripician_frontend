@@ -28,10 +28,10 @@ import {
   IconHeartFilled,
   IconThumbUp,
   IconArrowRampRight,
-  IconSparkles,
 } from '@tabler/icons-react';
 import RichTextField from './RichTextField';
 import PolishPopover from './PolishPopover';
+import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
 import { useUpload } from './useUpload';
 import { parseVideoUrl, defaultThumbUrl } from '../videoEmbed';
 import { stripHtml, plainTextToHtml } from '../blockSchema';
@@ -73,7 +73,7 @@ export const TextBlockEditor: React.FC<BlockEditorProps<Extract<StoryBlock, { ty
       {hasText && (
         <Button
           size="small"
-          startIcon={<IconSparkles size={14} />}
+          startIcon={<TripicianAIOrb size={16} />}
           onClick={(e) => setPolishAnchor(e.currentTarget)}
           sx={{ mt: 0.5, color: 'text.secondary' }}
         >
@@ -85,7 +85,7 @@ export const TextBlockEditor: React.FC<BlockEditorProps<Extract<StoryBlock, { ty
         anchorEl={polishAnchor}
         html={block.html}
         onClose={() => setPolishAnchor(null)}
-        // Accepting replaces the block with plain text. Navia is handed text and
+        // Accepting replaces the block with plain text. TripicianAI is handed text and
         // returns text, so re-applying old formatting to a rewritten sentence
         // would put emphasis on words that may no longer be there.
         onAccept={(text) => onChange({ ...block, html: plainTextToHtml(text) })}

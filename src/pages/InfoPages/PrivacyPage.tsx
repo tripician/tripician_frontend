@@ -4,6 +4,7 @@ import { Box, Typography, Container } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { Link } from 'react-router-dom';
 import InfoPageShell from './InfoPageShell';
+import Seo from '../../components/Seo';
 import ShieldRoundedIcon from '@mui/icons-material/ShieldRounded';
 
 const P = ({ children }: { children: React.ReactNode }) => (
@@ -42,7 +43,10 @@ const PrivacyPage: React.FC = () => {
       content: (
         <>
           <P><strong>Account Information:</strong> When you register, we collect your first name, last name, and email address. You may optionally provide a profile picture.</P>
-          <P><strong>Trip Data:</strong> All content you create within the Service - including trip names, destination details, travel dates, day-by-day itineraries, expense records, packing lists, notes, and any files you choose to upload.</P>
+          <P><strong>Trip Data:</strong> Trip names, destination details, travel dates, day-by-day itineraries, notes, and any files you choose to upload.</P>
+          <P><strong>Content You Publish:</strong> Posts and questions you write, after stories and the photographs in them, comments and answers, group discussion posts and announcements, and the countries recorded in your travel history. Anything you publish is visible to other people according to the setting you chose for it.</P>
+          <P><strong>Messages:</strong> Direct messages you send to other travellers about a trip, kept so the conversation is there when you return to it and so we can act on a report about it. They are not used for advertising and are not read except where a report or a legal obligation requires it.</P>
+          <P><strong>Group Membership:</strong> The groups you belong to, your role in each, and any request you have made to join one.</P>
           <P><strong>Usage Data:</strong> Information about how you interact with the Service, such as features used, pages visited, session timestamps, and error events.</P>
           <P><strong>Technical Data:</strong> Your IP address, browser type and version, operating system, device type, and referring URL, collected automatically when you access the Service.</P>
           <P><strong>Authentication Data:</strong> Login sessions and authentication tokens managed by Auth0, Inc. We do not store your raw password at any point.</P>
@@ -94,7 +98,11 @@ const PrivacyPage: React.FC = () => {
           <P>We share data with trusted third-party processors solely to operate the Service:</P>
           <Ul items={[
             <><strong>Auth0, Inc.</strong> - manages user authentication. Your email and authentication credentials are processed under Auth0's Privacy Policy and a Data Processing Agreement.</>,
-            <><strong>Unsplash Inc.</strong> - provides destination photographs via its API. No personal data is shared with Unsplash. Image URLs are cached in your browser's local storage for performance only.</>,
+            <><strong>Groq, Inc.</strong> - runs the AI model behind TripicianAI. When you ask TripicianAI to plan, suggest or proof-read something, the text of your request and the parts of the trip it needs are sent to Groq so it can generate a reply.</>,
+            <><strong>Cloudinary Ltd.</strong> - stores and serves the images you upload: profile and cover pictures, photographs on posts and after stories, and group logos.</>,
+            <><strong>Razorpay Software Private Limited</strong> - processes payments for subscriptions and credit purchases. Card details are entered on Razorpay's own checkout and are never seen or stored by Tripician.</>,
+            <><strong>Google LLC</strong> - provides place search and map data. When you search for a place while planning, the text of that search is sent to Google Places.</>,
+            <><strong>Unsplash Inc.</strong> and <strong>Pexels</strong> - provide destination photographs via their APIs. No personal data is shared with either. Image URLs are cached in your browser's local storage for performance only.</>,
             <><strong>Infrastructure & Hosting Providers</strong> - our servers are hosted on third-party cloud infrastructure. Providers process data on our behalf under Data Processing Agreements and are contractually required to protect your data.</>,
           ]} />
           <P><strong>Legal Disclosure:</strong> We may disclose your information if required by law, court order, or government authority. Where legally permitted, we will notify you before doing so.</P>
@@ -200,6 +208,11 @@ const PrivacyPage: React.FC = () => {
 
   return (
     <InfoPageShell>
+      <Seo
+        title="Privacy Policy"
+        description="What Tripician collects, why, who processes it on our behalf, how long we keep it, and the rights you have over it under GDPR, UK GDPR and CCPA."
+        path="/privacy-policy"
+      />
       {/* Hero */}
       <Box sx={{ background: 'linear-gradient(135deg,#FFF5F6 0%,#FFFAFA 100%)', borderBottom: '1px solid rgba(0,0,0,0.06)', px: { xs: 3, md: 8 }, py: { xs: 6, md: 8 } }}>
         <Container maxWidth="lg">
@@ -209,7 +222,7 @@ const PrivacyPage: React.FC = () => {
             </Box>
             <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'primary.main', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Privacy Policy</Typography>
           </Box>
-          <Typography variant="h2" sx={{ fontWeight: 700, fontSize: { xs: '2rem', md: '2.8rem' }, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.15, mb: 2 }}>
+          <Typography variant="h2" component="h1" sx={{ fontWeight: 700, fontSize: { xs: '2rem', md: '2.8rem' }, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.15, mb: 2 }}>
             Your privacy matters.{' '}
             <Box component="span" sx={{ color: 'primary.main' }}>Always.</Box>
           </Typography>
@@ -218,7 +231,7 @@ const PrivacyPage: React.FC = () => {
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, mt: 3, flexWrap: 'wrap' }}>
             <Box sx={{ background: alpha(BRAND.coral, 0.08), borderRadius: '20px', px: 2, py: 0.75, border: `1px solid ${alpha(BRAND.coral, 0.15)}` }}>
-              <Typography sx={{ fontSize: '0.78rem', color: 'primary.main', fontWeight: 600 }}>Last updated: July 21, 2026</Typography>
+              <Typography sx={{ fontSize: '0.78rem', color: 'primary.main', fontWeight: 600 }}>Last updated: September 24, 2026</Typography>
             </Box>
             <Box sx={{ background: 'rgba(0,0,0,0.04)', borderRadius: '20px', px: 2, py: 0.75, border: '1px solid rgba(0,0,0,0.08)' }}>
               <Typography sx={{ fontSize: '0.78rem', color: '#555', fontWeight: 500 }}>GDPR · UK GDPR · CCPA/CPRA</Typography>

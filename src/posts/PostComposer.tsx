@@ -6,7 +6,7 @@ import { alpha } from '@mui/material/styles';
 import { useRequireAuth } from '../auth/AuthGate';
 import { takeDraft } from '../utils/pendingDraft';
 import { useSelector } from 'react-redux';
-import { IconPhotoPlus, IconMapPin } from '@tabler/icons-react';
+import { IconPhotoPlus, IconMapPin, IconRoute } from '@tabler/icons-react';
 import type { RootState } from '../store';
 import { BRAND } from '../theme';
 import { postsService, UploadError } from './postsService';
@@ -14,6 +14,8 @@ import { POST_LIMITS, PostRejectedError } from './types';
 import type { PostKind, PostTagCount } from './types';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import TagPicker from './TagPicker';
+import PostAttachmentStrip from './PostAttachment';
+import SharePicker, { type ShareChoice } from './SharePicker';
 import PhotoMosaic from '../components/ui/PhotoMosaic';
 import type { PostMediaInput, TravelerPost } from './types';
 
@@ -30,7 +32,7 @@ interface PostComposerProps {
 /**
  * Say something now.
  *
- * The counterpart to the Navia command bar, and deliberately its opposite: that
+ * The counterpart to the TripicianAI command bar, and deliberately its opposite: that
  * one is about a trip you have not taken, this is about the one you are on.
  *
  * Every post is checked before it goes out. A refusal is shown plainly, and the
@@ -56,6 +58,8 @@ const PostComposer: React.FC<PostComposerProps> = ({
   const [place, setPlace] = React.useState('');
   const [placeOpen, setPlaceOpen] = React.useState(false);
   const [media, setMedia] = React.useState<PostMediaInput[]>([]);
+  const [share, setShare] = React.useState<ShareChoice | null>(null);
+  const [shareOpen, setShareOpen] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
@@ -69,14 +73,16 @@ const PostComposer: React.FC<PostComposerProps> = ({
     return () => { active = false; };
   }, [parentPostId]);
 
-  // At rest this is one line: avatar, a pill to write in, and the two things it can attach.
-  const open = focused || placeOpen || body.length > 0 || title.length > 0
-    || media.length > 0 || Boolean(error);
+  // At rest this is one line: avatar, a pill to write in, and the things it can attach.
+  const open = focused || placeOpen || shareOpen || body.length > 0 || title.length > 0
+    || media.length > 0 || share !== null || Boolean(error);
 
   const isQuestion = kind === 'question' && !parentPostId;
   const bodyCap = isQuestion ? POST_LIMITS.maxQuestionBody : POST_LIMITS.maxBody;
   const remaining = bodyCap - body.length;
-  const canPost = (body.trim().length > 0 || media.length > 0)
+  // A shared plan or story is a complete post on its own: the caption is the
+  // optional part, which is the same rule the server applies.
+  const canPost = (body.trim().length > 0 || media.length > 0 || share !== null)
     && (!isQuestion || title.trim().length > 0)
     && !busy && !uploading;
   const displayName = profile ? `${profile.fname ?? ''}`.trim() : '';
@@ -128,11 +134,15 @@ const PostComposer: React.FC<PostComposerProps> = ({
         kind: parentPostId ? undefined : kind,
         title: isQuestion ? title.trim() : null,
         tags: parentPostId ? undefined : tags,
+        tripId: share?.kind === 'plan' ? share.id : null,
+        storyId: share?.kind === 'story' ? share.id : null,
       });
       setBody('');
       setPlace('');
       setPlaceOpen(false);
       setMedia([]);
+      setShare(null);
+      setShareOpen(false);
       setTitle('');
       setTags([]);
       setFocused(false);
@@ -180,6 +190,19 @@ const PostComposer: React.FC<PostComposerProps> = ({
       sx={{ color: placeOpen || place ? 'primary.main' : 'text.secondary' }}
     >
       <IconMapPin size={18} />
+    </IconButton>
+  );
+
+  // A reply is about its parent, so it carries no attachment, on the same rule
+  // that drops a reply's tags. The server enforces this too.
+  const shareButton = parentPostId ? null : (
+    <IconButton
+      size="small"
+      aria-label="Share a plan or story"
+      onClick={() => setShareOpen((v) => !v)}
+      sx={{ color: shareOpen || share ? 'primary.main' : 'text.secondary' }}
+    >
+      <IconRoute size={18} />
     </IconButton>
   );
 
@@ -270,6 +293,31 @@ const PostComposer: React.FC<PostComposerProps> = ({
             </Box>
           )}
 
+          {/* The chosen plan or story renders as the strip the post will wear, for
+              the same reason the photos render as a mosaic: what you see here is
+              the layout it goes out with. */}
+          {share && (
+            <Box sx={{ mt: 1.25 }}>
+              <PostAttachmentStrip
+                attachment={{
+                  kind: share.kind,
+                  id: share.id,
+                  title: share.title,
+                  coverUrl: share.coverUrl,
+                  meta: share.meta,
+                  href: share.kind === 'plan' ? `/trip/${share.id}` : `/story/${share.id}`,
+                }}
+                onRemove={() => setShare(null)}
+              />
+            </Box>
+          )}
+
+          {shareOpen && !parentPostId && (
+            <Box sx={{ mt: 1.25 }}>
+              <SharePicker value={share} onChange={(c) => { setShare(c); if (c) setShareOpen(false); }} />
+            </Box>
+          )}
+
           {isQuestion && topics.length > 0 && (
             <Box sx={{ mt: 1.75 }}>
               <TagPicker topics={topics} value={tags} onChange={setTags} />
@@ -280,6 +328,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
             <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 'auto', pt: 1.25 }}>
               {photoButton}
               {placeButton}
+              {shareButton}
 
               <Box sx={{ flex: 1 }} />
 
@@ -312,6 +361,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
             <Box sx={{ display: 'flex', alignItems: 'center' }}>
               {photoButton}
               {placeButton}
+              {shareButton}
             </Box>
           </Box>
         )}

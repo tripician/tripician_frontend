@@ -273,7 +273,7 @@ export const ProfilePassport: React.FC<ProfilePassportProps> = ({
           ))}
         </Box>
 
-        {/* The flag row moved out to TravelConstellation, which shows every
+        {/* The flag row moved out to TravelHistoryPanel, which shows every
             country rather than the first eight and says which of them are
             confirmed by somebody other than the traveller. Two renderings of
             the same countries, one of them capped, is how this card came to

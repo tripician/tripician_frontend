@@ -18,7 +18,7 @@ const VALUES = [
   },
   {
     Icon: GroupsRoundedIcon,
-    title: 'Built for Community',
+    title: 'Built to Be Shared',
     desc: 'Travel is better together. Collaborate on trips, share itineraries, and inspire each other.',
   },
   {
@@ -36,8 +36,8 @@ const VALUES = [
 const AboutPage: React.FC = () => (
   <InfoPageShell>
     <Seo
-      title="About Tripician - A Global Travel Community"
-      description="Tripician is a global community for travellers and a planner your whole group can edit, where every place is checked against a live listing. Meet our story, mission, and what we stand for."
+      title="About Tripician - A Social Network For Travellers"
+      description="Tripician is a social network for travellers, with a planner your whole group can edit and every place checked against a live listing. Meet our story, mission, and what we stand for."
       path="/about-us"
     />
     {/* Hero */}
@@ -49,12 +49,12 @@ const AboutPage: React.FC = () => (
           </Box>
           <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'primary.main', letterSpacing: '0.1em', textTransform: 'uppercase' }}>About Us</Typography>
         </Box>
-        <Typography variant="h2" sx={{ fontWeight: 700, fontSize: { xs: '2rem', md: '2.8rem' }, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.15, mb: 2 }}>
+        <Typography variant="h2" component="h1" sx={{ fontWeight: 700, fontSize: { xs: '2rem', md: '2.8rem' }, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.15, mb: 2 }}>
           We believe great trips are built{' '}
           <Box component="span" sx={{ color: 'primary.main' }}>together</Box>.
         </Typography>
         <Typography sx={{ fontSize: '1.05rem', color: '#666', lineHeight: 1.75, maxWidth: 600 }}>
-          Tripician is a global community for travellers - the people who find their travel tribe here, plan as a crew, and let Navia handle the busywork in between.
+          Tripician is a social network for travellers - the people who find their travel tribe here, plan as a crew, and let TripicianAI handle the busywork in between.
         </Typography>
       </Container>
     </Box>
@@ -67,13 +67,13 @@ const AboutPage: React.FC = () => (
           Planning a group trip to Southeast Asia, our founders found themselves bouncing between spreadsheets, messaging threads, documents, and booking sites - losing context, losing time, and nearly losing their minds.
         </Typography>
         <Typography sx={{ color: '#444', lineHeight: 1.85, mb: 2, fontSize: '0.95rem' }}>
-          They asked: why doesn't a single tool exist that handles everything - itineraries, day-by-day plans, expense tracking, packing lists, safety alerts, and real collaboration - without feeling like enterprise software?
+          They asked: why doesn't a single tool exist that handles everything - the route, what to see, where to stay, what to eat, and real collaboration - without feeling like enterprise software?
         </Typography>
         <Typography sx={{ color: '#444', lineHeight: 1.85, fontSize: '0.95rem' }}>
-          Tripician is that place: a global community built entirely around the traveller, with a co-planner that works alongside your crew instead of handing you a list and leaving.
+          Tripician is that place: a social network built entirely around the traveller, with a co-planner that works alongside your crew instead of handing you a list and leaving.
         </Typography>
         <Typography sx={{ color: '#444', lineHeight: 1.85, mt: 2, fontSize: '0.95rem' }}>
-          One thing we decided early: a plan is only worth having if the places in it are real. So every place Navia drafts is matched against a live listing before it reaches you. Anything permanently closed is dropped, and anything we cannot confirm is labelled as such rather than quietly presented as fact.
+          One thing we decided early: a plan is only worth having if the places in it are real. So every place TripicianAI drafts is matched against a live listing before it reaches you. Anything permanently closed is dropped, and anything we cannot confirm is labelled as such rather than quietly presented as fact.
         </Typography>
       </Box>
 
@@ -81,7 +81,7 @@ const AboutPage: React.FC = () => (
       <Box sx={{ background: `linear-gradient(135deg,${BRAND.coral},${BRAND.coralDeep})`, borderRadius: '16px', p: { xs: 3, md: 5 }, mb: 3, color: '#fff' }}>
         <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.75, mb: 1.5 }}>Our Mission</Typography>
         <Typography sx={{ fontWeight: 700, fontSize: { xs: '1.1rem', md: '1.35rem' }, lineHeight: 1.5 }}>
-          "To build the global community where every traveller finds their tribe - and a plan they can trust enough to book."
+          "To build the place where every traveller finds their tribe - and a plan they can trust enough to book."
         </Typography>
       </Box>
 

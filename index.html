@@ -5,16 +5,31 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <link rel="icon" type="image/png" href="%VITE_TRIPICIAN_LOGO_ICON_URL%" />
 
-    <!-- Primary SEO. These three descriptions must stay identical to each other
-         and to LandingPage's <Seo> props - they have drifted apart once before,
-         leaving the title saying "community" while the share cards said something
-         else entirely. -->
-    <title>Tripician, A Travel Community &amp; Group Trip Planner</title>
-    <meta name="description" content="Browse real itineraries published by travellers who took them - the route, the stays, the places worth the detour. Copy any trip into your own plan, and plan it with your crew. Free to join." />
-    <link rel="canonical" href="https://tripician.com/" />
+    <!-- What is here and what is NOT, and why the split matters.
+
+         react-helmet-async can only replace tags it rendered itself. A tag
+         hardcoded in this file survives on every route, so it does not act as a
+         fallback: it sits in the document ahead of the per-page tag and is the
+         one a reader takes first.
+
+         That made the canonical actively harmful. Every URL on the site declared
+         https://tripician.com/ as its canonical, which tells a search engine that
+         every page is a duplicate of the home page and only the home page should
+         be indexed. It is now rendered per page by <Seo>, which is the only place
+         that knows the path.
+
+         The description left for the same reason: <Seo> writes a real one per
+         page and it was being shadowed by the home page's.
+
+         The og: and twitter: tags below deliberately STAY. Social scrapers do not
+         run JavaScript, so Helmet never reaches them and these really are the only
+         thing WhatsApp, Facebook and LinkedIn ever see. Keep them identical to
+         LandingPage's <Seo> props: they have drifted apart once before, leaving
+         the title saying "community" while the share cards said something else. -->
+    <title>Tripician, Social Network And Trip Planner For Travellers</title>
 
     <!-- Open Graph (Facebook, LinkedIn, WhatsApp) -->
-    <meta property="og:title" content="Tripician, A Travel Community &amp; Group Trip Planner" />
+    <meta property="og:title" content="Tripician, Social Network And Trip Planner For Travellers" />
     <meta property="og:description" content="Browse real itineraries published by travellers who took them - the route, the stays, the places worth the detour. Copy any trip into your own plan, and plan it with your crew. Free to join." />
     <meta property="og:image" content="https://tripician.com/og-cover.jpg" />
     <meta property="og:url" content="https://tripician.com/" />
@@ -23,7 +38,7 @@
 
     <!-- Twitter Card -->
     <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Tripician, A Travel Community &amp; Group Trip Planner" />
+    <meta name="twitter:title" content="Tripician, Social Network And Trip Planner For Travellers" />
     <meta name="twitter:description" content="Browse real itineraries published by travellers who took them - the route, the stays, the places worth the detour. Copy any trip into your own plan, and plan it with your crew. Free to join." />
     <meta name="twitter:image" content="https://tripician.com/og-cover.jpg" />
 

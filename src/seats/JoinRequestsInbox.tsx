@@ -104,9 +104,9 @@ const JoinRequestsInbox: React.FC<JoinRequestsInboxProps> = ({ organizationId, s
       </Box>
       <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
         {total === 0
-          ? 'Requests to join any of this organisation’s trips arrive here.'
+          ? 'Requests to join any of this group’s trips arrive here.'
           : organizationId
-            ? 'Across every trip this organisation runs, not only the ones you own. Nothing happens until someone decides.'
+            ? 'Across every trip this group runs, not only the ones you own. Nothing happens until someone decides.'
             : 'You approve everyone who joins. Nothing happens until you decide.'}
       </Typography>
 

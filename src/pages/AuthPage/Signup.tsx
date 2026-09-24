@@ -130,7 +130,7 @@ const Signup = () => {
     <div className="auth-root">
       <Seo
         title="Create your account"
-        description="Join Tripician - a travel community whose members publish the trips they actually took. Free to join."
+        description="Join Tripician, the social network where travellers share the trips they actually took, plan new ones and find people to go with. Free to join."
         path="/signup"
         noindex
       />
@@ -162,7 +162,7 @@ const Signup = () => {
               of explorers" and "150+ destinations covered" were both invented and
               are gone. */}
           <motion.h2 className="auth-left__title" variants={staggerItem}>
-            Join a community<br /><em>of travellers.</em>
+            Your travels,<br /><em>shared.</em>
           </motion.h2>
           <motion.p className="auth-left__sub" variants={staggerItem}>
             Read the trips other people actually took, then plan your own from one.

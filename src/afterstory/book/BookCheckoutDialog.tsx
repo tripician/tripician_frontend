@@ -130,7 +130,7 @@ const BookCheckoutDialog: React.FC<Props> = ({ open, onClose, story, onPaid }) =
 
       openRazorpayCheckout({
         intent: intent.data,
-        storyTitle: story.title,
+        description: `Story Book: ${story.title}`,
         onPaid: async (result) => {
           try {
             await apiServices.verifyBookPayment(token, orderId, result);
