@@ -7,15 +7,15 @@ import {
   IconChevronDown,
   IconPlane,
   IconCheck,
-  IconShieldHalf,
+  IconMessageCircleQuestion,
   IconRosetteDiscountCheckFilled,
   IconUserCheck,
-  IconWallet,
+  IconMapPin,
   IconRoute,
 } from '@tabler/icons-react';
 import '../../assets/css/LandingPage.css';
 import Seo, { SITE_URL } from '../../components/Seo';
-import NaviaOrb from '../../navia/NaviaOrb';
+import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
 import LandingPricing from './LandingPricing';
 import HeroChat from './HeroChat';
 import { HERO_IMAGE, HERO_VIDEO, HERO_VIDEO_CREDIT, OG_IMAGE, TICKER, PHOTO_CREDITS } from './landingImages';
@@ -24,7 +24,6 @@ import { afterStoryService } from '../../afterstory/afterStoryService';
 import { storyPath } from '../../afterstory/storySlug';
 import { resolveStoryCover } from '../../afterstory/storyFormat';
 import type { AfterStorySummaryDto } from '../../afterstory/types';
-import { describeSpots } from '../../seats/types';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
 import { tripPath } from '../../utils/tripSlug';
 import { tripCoverPhoto, resolveTripCover, type TripCoverSource } from '../../utils/tripCover';
@@ -66,14 +65,14 @@ const STEPS = [
   {
     n: '01',
     title: 'Get inspired',
-    desc: 'Real itineraries, travelled and published by the people who went. The best of them carry a verified mark, and some are still looking for people, so you can ask to join one instead of starting from nothing.',
+        desc: 'Real itineraries, travelled and published by the people who went. The best of them carry a verified mark, and you can copy any of them into your own planner instead of starting from nothing.',
     img: '/img/onboarding/community.jpg',
     alt: 'Travellers reading a map together on a city street',
   },
   {
     n: '02',
     title: 'Take your turn',
-    desc: 'Say where and how long, and Navia drafts it. Try it at the top of this page, no account needed. Every plan is then checked against real distances and opening hours, so it holds up when you are standing there.',
+    desc: 'Say where and how long, and TripicianAI drafts it. Try it at the top of this page, no account needed. Every plan is then checked against real distances and opening hours, so it holds up when you are standing there.',
     img: '/img/onboarding/reality-check.jpg',
     alt: 'A traveller checking a route against a printed map',
   },
@@ -88,11 +87,8 @@ const STEPS = [
 
 /**
  * What earns trust, cut to what is checkable.
- *
- * Nothing here is aspirational and nothing ranks us against anyone. The Risk
- * Monitor is one card among six, which is its actual weight in the product: it
- * left the top-level navigation for the account menu, and it used to hold a
- * bento card plus an entire section of this page.
+  *
+  * Nothing here is aspirational and nothing ranks us against anyone. Six cards, because the grid runs 3, 2 and 1 across.
  */
 const FEATURES = [
   {
@@ -101,9 +97,9 @@ const FEATURES = [
     desc: 'Some itineraries carry a verified mark. It means a person on our team read the whole plan and put our name on it, not a score an algorithm handed out.',
   },
   {
-    icon: <NaviaOrb size={22} />,
+    icon: <TripicianAIOrb size={22} />,
     title: 'Every place checked before you see it',
-    desc: 'Navia drafts the route and the stops, then each place is matched against a live listing. Anything permanently closed is dropped, and anything unconfirmed says so.',
+    desc: 'TripicianAI drafts the route and the stops, then each place is matched against a live listing. Anything permanently closed is dropped, and anything unconfirmed says so.',
   },
   {
     icon: <IconRoute size={22} stroke={1.75} />,
@@ -113,17 +109,17 @@ const FEATURES = [
   {
     icon: <IconUserCheck size={22} stroke={1.75} />,
     title: 'You choose who comes',
-    desc: 'Open a trip for join requests and each one arrives with a note you read before deciding. Nobody is added automatically, no money passes through us, and you can close it the moment the group is right.',
+        desc: 'Share one link and your crew is on the trip, planning beside you. Travel businesses can also take join requests from travellers, with a note to read before deciding, and no money passes through us.',
   },
   {
-    icon: <IconWallet size={22} stroke={1.75} />,
-    title: 'Nobody chases anybody for money',
-    desc: 'Set a budget, log shared costs as they happen, and settle up in the fewest transfers possible. Packing lists live inside the trip too.',
+    icon: <IconMessageCircleQuestion size={22} stroke={1.75} />,
+    title: 'A few simple questions',
+    desc: 'Where you start, where you are going and roughly when. Trip type and food are up to you. Then TripicianAI plans it, or you do.',
   },
   {
-    icon: <IconShieldHalf size={22} stroke={1.75} />,
-    title: 'Know before you go',
-    desc: 'Government travel advisories, severe weather and disruption for every country in your plan. General awareness, not advice: always check your own government first.',
+    icon: <IconMapPin size={22} stroke={1.75} />,
+    title: 'Everything on the stop',
+    desc: 'Each stop keeps what to see, where you will sleep and what to eat in one place, with a note for the rest.',
   },
 ];
 
@@ -141,9 +137,6 @@ interface LandingTrip {
   photo?: string;
   countries?: string;
   owner?: string;
-  /** Recruitment state, so the "looking for people" rail needs no second request. */
-  joinPolicy?: string;
-  spotsLeft: number | null;
   /** Kept so the async cover pass can re-resolve without re-reading the raw row. */
   cover: TripCoverSource;
 }
@@ -173,7 +166,6 @@ const toLandingTrip = (raw: any): LandingTrip | null => {
     name,
   };
 
-  const spots = raw?.spotsLeft ?? raw?.SpotsLeft;
 
   return {
     id: String(id),
@@ -182,8 +174,6 @@ const toLandingTrip = (raw: any): LandingTrip | null => {
     photo: tripCoverPhoto(cover) ?? undefined,
     countries: countryList.slice(0, 2).join(' · ') || undefined,
     owner: typeof ownerName === 'string' && ownerName.trim() ? ownerName.trim() : undefined,
-    joinPolicy: raw?.joinPolicy || raw?.JoinPolicy || undefined,
-    spotsLeft: typeof spots === 'number' ? spots : null,
     cover,
   };
 };
@@ -192,7 +182,7 @@ const toLandingTrip = (raw: any): LandingTrip | null => {
 const LP_FAQS = [
   {
     q: 'What exactly is Tripician?',
-    a: "Tripician is a travel community built around the whole arc of a trip. Browse itineraries published by the people who travelled them, plan your own with your crew or with Navia, open it so other travellers can ask to join, and afterwards write up what it was actually like and keep it as a printed book. We are not a travel agency and we do not book flights or accommodation.",
+        a: "Tripician is a social network for travellers, built around the whole arc of a trip. Browse itineraries published by the people who travelled them, plan your own with your crew or with TripicianAI, and afterwards write up what it was actually like and keep it as a printed book. We are not a travel agency and we do not book flights or accommodation.",
   },
   {
     q: 'What is an after story?',
@@ -206,15 +196,15 @@ const LP_FAQS = [
   },
   {
     q: 'How do I find people to travel with?',
-    a: 'Open one of your trips to join requests and say how many seats there are. It then appears in the community for travellers to find, and each request arrives with a note about who they are. Nothing is automatic: you approve every person by hand, and no money routes through Tripician - the group settles up directly.',
+        a: 'Invite friends with the trip link, which works on any trip. Taking requests from travellers you have not met is part of Tripician Business: a business group on that plan lists its trip, it appears in Groups & Stories under Join a trip, and each request arrives with a note about who they are. Nothing is automatic: every person is approved by hand, and no money routes through Tripician.',
   },
   {
     q: 'Is Tripician free?',
-    a: 'Yes - planning, community, stories and collaboration are free. Drafting with Navia runs on included credits: every traveller starts with 300 personal credits and each trip gets its own shared 300-credit wallet, enough for roughly a month of regular use. The reality check costs nothing, because it is plain arithmetic rather than a model call.',
+    a: 'Yes - planning, posting, stories and collaboration are free. Drafting with TripicianAI runs on included credits: every traveller starts with 300 personal credits and each trip gets its own shared 300-credit wallet, enough for roughly a month of regular use. The reality check costs nothing, because it is plain arithmetic rather than a model call.',
   },
   {
     q: 'Does Tripician use AI, and can I trust what it suggests?',
-    a: "Yes, and here is exactly how. Navia drafts routes, stops, local food and notes using a language model - so on its own it would occasionally suggest somewhere that has closed or never existed. That is why nothing it produces reaches you unchecked: every place is matched against a live listing first. Anything permanently closed is dropped before you see it, and anything without a listing is labelled \"unchecked\" rather than presented as fact. Navia never writes your story for you; it will proof-read one if you ask.",
+    a: "Yes, and here is exactly how. TripicianAI drafts routes, stops, local food and notes using a language model - so on its own it would occasionally suggest somewhere that has closed or never existed. That is why nothing it produces reaches you unchecked: every place is matched against a live listing first. Anything permanently closed is dropped before you see it, and anything without a listing is labelled \"unchecked\" rather than presented as fact. TripicianAI never writes your story for you; it will proof-read one if you ask.",
   },
   {
     q: 'Is my data safe?',
@@ -378,7 +368,6 @@ export default function LandingPage() {
 
   const showcaseTrips = trips.slice(0, 4);
   // Full ones stay listed: "Full" is useful information, and a trip may free up.
-  const openTrips = trips.filter((t) => t.joinPolicy === 'OpenToRequests').slice(0, 3);
 
   /**
    * The hero loop. Deliberately *not* rendered on first paint.
@@ -557,8 +546,6 @@ export default function LandingPage() {
       revealTitle('.lp-trips__head > *', '.lp-trips');
       revealCards('.lp-tripcard', '.lp-trips__grid', 0.09);
 
-      revealTitle('.lp-open__head > *', '.lp-open');
-      revealCards('.lp-opencard', '.lp-open__grid', 0.09);
 
       revealTitle('.lp-stories__head > *', '.lp-stories');
       revealCards('.lp-storycard', '.lp-stories__grid', 0.09);
@@ -570,10 +557,10 @@ export default function LandingPage() {
         });
       }
 
-      if (has('.lp-navia__text')) {
-        gsap.from('.lp-navia__text > *', {
+      if (has('.lp-tripicianai__text')) {
+        gsap.from('.lp-tripicianai__text > *', {
           y: 26, opacity: 0, duration: 0.8, ease: 'power3.out', stagger: 0.1,
-          scrollTrigger: { trigger: '.lp-navia__text', start: 'top 80%', once: true },
+          scrollTrigger: { trigger: '.lp-tripicianai__text', start: 'top 80%', once: true },
         });
       }
 
@@ -591,7 +578,7 @@ export default function LandingPage() {
     return () => ctx.revert();
     // Re-runs when the data-driven sections appear, so their triggers bind to
     // elements that actually exist by then.
-  }, [showcaseTrips.length, openTrips.length, stories.length]);
+  }, [showcaseTrips.length, stories.length]);
 
   /*  JSX  */
   return (
@@ -614,7 +601,7 @@ export default function LandingPage() {
             url: SITE_URL,
             // Was ${SITE_URL}/og-cover.jpg, a file that does not exist in public/.
             logo: import.meta.env.VITE_TRIPICIAN_LOGO_ICON_URL || OG_IMAGE,
-            description: 'A travel community where people publish the trips they actually took, find others to travel with, and keep the story afterwards.',
+            description: 'A social network for travellers, where people publish the trips they actually took, find others to travel with, and keep the story afterwards.',
             // `sameAs: []` was emitted as an empty array, which asserts "this
             // organisation has no other web presence". Omitted until there are
             // real profile URLs to list.
@@ -626,7 +613,8 @@ export default function LandingPage() {
             url: SITE_URL,
             potentialAction: {
               '@type': 'SearchAction',
-              target: { '@type': 'EntryPoint', urlTemplate: `${SITE_URL}/community?q={search_term_string}` },
+              // Search reads ?q from the URL and searches people, places, plans, stories and groups.
+              target: { '@type': 'EntryPoint', urlTemplate: `${SITE_URL}/search?q={search_term_string}` },
               'query-input': 'required name=search_term_string',
             },
           },
@@ -672,11 +660,9 @@ export default function LandingPage() {
             <><IconPlane size={20} className="lp-nav__logo-icon" /><span>Tripician</span></>
           )}
         </div>
-        {/* Community leads the nav. Stories is the second destination in the app
-            itself now, so it is the second link here. */}
+        {/* /community no longer exists as a page; for a guest it lands back here. Groups & Stories is the public door. */}
         <div className="lp-nav__links">
-          <a href="/community">Community</a>
-          <a href="/stories">Stories</a>
+          <a href="/stories">Groups &amp; Stories</a>
           <a href="#how-it-works">How it works</a>
           <a href="#pricing">Pricing</a>
           {/* The business front door. Nothing on this page mentioned organisations. */}
@@ -733,7 +719,7 @@ export default function LandingPage() {
             subline is what changed in the rebuild: it now carries the whole arc
             rather than stopping at "copy one into your own plan". */}
         <div className="lp-hero__content">
-          <span className="lp-hero__eyebrow">A travel community</span>
+          <span className="lp-hero__eyebrow">A social network for travellers</span>
 
           {/* The words are separate spans so GSAP can stagger them, and each is
               followed by a REAL space rather than a CSS margin. With margins
@@ -768,15 +754,16 @@ export default function LandingPage() {
                 is not a link: crawlers do not run it, and neither does middle-click
                 or ctrl+click. The modifier check preserves open-in-new-tab; a plain
                 left click still navigates through the router without a reload. */}
+            {/* Was /community, which for a guest now redirects straight back to this page. */}
             <a
               className="lp-btn lp-btn--hero-primary"
-              href="/community"
+              href="/stories"
               onClick={(e) => {
                 if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
                 e.preventDefault();
-                navigate('/community');
+                navigate('/stories');
               }}
-              aria-label="Explore real trips from the community"
+              aria-label="Explore real trips published by travellers"
             >
               Explore trips <IconArrowRight size={17} aria-hidden="true" />
             </a>
@@ -850,7 +837,7 @@ export default function LandingPage() {
         <section className="lp-trips" id="trips">
           <div className="lp-shell">
             <div className="lp-sec-head lp-trips__head">
-              <span className="lp-kicker">From the community</span>
+              <span className="lp-kicker">Published by travellers</span>
               <h2 className="lp-h2">Trips people have already taken</h2>
               <p className="lp-lede">Published by the traveller who planned them, and yours to copy.</p>
             </div>
@@ -871,44 +858,7 @@ export default function LandingPage() {
               ))}
             </div>
             <div className="lp-trips__more">
-              <a href="/community">Browse every trip <IconArrowRight size={15} aria-hidden="true" /></a>
-            </div>
-          </div>
-        </section>
-      )}
-
-      {/*  LOOKING FOR PEOPLE - the same rows as above, filtered. No second
-           request, and no section at all when nobody is recruiting.  */}
-      {openTrips.length > 0 && (
-        <section className="lp-open">
-          <div className="lp-shell">
-            <div className="lp-sec-head lp-open__head">
-              <span className="lp-kicker">Going soon</span>
-              <h2 className="lp-h2">Trips looking for people</h2>
-              <p className="lp-lede">
-                Ask to join one of these and the organiser reads your note before deciding.
-                Nobody is added automatically, and no money passes through us.
-              </p>
-            </div>
-            <div className="lp-open__grid">
-              {openTrips.map((trip) => {
-                const spots = describeSpots({ spotsLeft: trip.spotsLeft });
-                return (
-                  <a className="lp-opencard" key={trip.id} href={trip.href}>
-                    <span className="lp-opencard__frame">
-                      {trip.photo
-                        ? <img src={trip.photo} alt="" loading="lazy" decoding="async" onError={() => retryCover(trip)} />
-                        : <span className="lp-tripcard__blank" aria-hidden="true" />}
-                    </span>
-                    <span className="lp-opencard__body">
-                      <strong>{trip.name}</strong>
-                      <span className="lp-opencard__line">
-                        {trip.countries}{trip.countries && spots ? ' · ' : ''}{spots}
-                      </span>
-                    </span>
-                  </a>
-                );
-              })}
+              <a href="/stories">Browse every trip <IconArrowRight size={15} aria-hidden="true" /></a>
             </div>
           </div>
         </section>
@@ -965,14 +915,14 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/*  NAVIA  */}
-      <section className="lp-navia" id="navia">
-        <div className="lp-shell lp-navia__inner">
-          <div className="lp-navia__text">
-            <span className="lp-kicker">Navia</span>
+      {/*  TRIPICIANAI  */}
+      <section className="lp-tripicianai" id="tripicianai">
+        <div className="lp-shell lp-tripicianai__inner">
+          <div className="lp-tripicianai__text">
+            <span className="lp-kicker">TripicianAI</span>
             <h2 className="lp-h2">Say it in a sentence</h2>
             <p className="lp-lede">
-              Tell Navia where you are going and how long for, and it drafts the route, the
+              Tell TripicianAI where you are going and how long for, and it drafts the route, the
               stops, the local food and the notes. Then every place is matched against a
               live listing before you see it.
             </p>
@@ -982,17 +932,17 @@ export default function LandingPage() {
               once. The screenshots are never stored: they carry other people's
               messages, and not keeping them is the only way to be sure.
             </p>
-            <p className="lp-navia__caveat">
-              Navia proof-reads an after story if you ask it to. It never writes one for
+            <p className="lp-tripicianai__caveat">
+              TripicianAI proof-reads an after story if you ask it to. It never writes one for
               you: the whole value of a story is that a person wrote it.
             </p>
             <button className="lp-btn lp-btn--outline" onClick={() => navigate('/signup')}>
-              Try Navia free <IconArrowRight size={16} aria-hidden="true" />
+              Try TripicianAI free <IconArrowRight size={16} aria-hidden="true" />
             </button>
           </div>
-          <div className="lp-navia__demo" aria-hidden="true">
-            <div className="lp-navia__prompt">
-              <NaviaOrb size={20} />
+          <div className="lp-tripicianai__demo" aria-hidden="true">
+            <div className="lp-tripicianai__prompt">
+              <TripicianAIOrb size={20} />
               <span>Nine days in Oaxaca, slow, lots of food</span>
             </div>
             <div className="lp-fig">
@@ -1050,7 +1000,7 @@ export default function LandingPage() {
             >
               Create a business account
             </button>
-            <a className="lp-cta__alt" href="/community">or browse the community first</a>
+            <a className="lp-cta__alt" href="/stories">or browse trips first</a>
           </div>
         </div>
       </section>
@@ -1064,13 +1014,13 @@ export default function LandingPage() {
                 ? <img src={logoFullBlackUrl} alt="Tripician" className="lp-logo-img lp-logo-img--footer" />
                 : (<><IconPlane size={18} /><span>Tripician</span></>)}
             </div>
-            <p>A travel community.<br />Real trips, published by the people who took them.</p>
+            <p>A social network for travellers.<br />Real trips, published by the people who took them.</p>
           </div>
           <div className="lp-footer__links">
             <div className="lp-footer__col">
               <h4>Product</h4>
-              <a href="/community">Community</a>
-              <a href="/stories">Stories</a>
+              <a href="/stories">Groups &amp; Stories</a>
+              <a href="/search">Search</a>
               <a href="#how-it-works">How it works</a>
               <a href="#features">Features</a>
               {/* `/docs` used to sit here. There is no /docs route in App.tsx, so

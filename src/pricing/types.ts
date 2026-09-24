@@ -1,4 +1,4 @@
-export type PlanId = 'basic' | 'pro' | 'business';
+export type PlanId = 'basic' | 'pro' | 'club' | 'business';
 
 export type StoryBookPriceTier = 'retail' | 'pro_member' | 'business_member';
 
@@ -17,7 +17,9 @@ export interface Plan {
    */
   maxTripMembers?: number | null;
   maxRecruitedTravellers?: number | null;
-  naviaMonthlyCredits: number;
+  /** How many people a group on this plan may hold. Only meaningful on Basic and on group plans. */
+  maxGroupMembers?: number | null;
+  tripicianAIMonthlyCredits: number;
   storyBookPriceTier: StoryBookPriceTier;
   /**
    * Named capabilities this plan unlocks, from appsettings. Absent on plans that

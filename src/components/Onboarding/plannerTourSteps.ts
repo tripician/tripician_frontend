@@ -3,9 +3,8 @@
  *
  * Every step names a `target` that must match a `data-tour="<target>"` attribute on
  * a real element in the planner. **Steps whose target is not in the DOM are skipped
- * at runtime**, which is what makes this deck mode-aware without any branching:
- * Simple mode renders no Publish button and no Reality-check pill, so those steps
- * simply do not occur that run.
+ * at runtime**, so a step for something a viewer cannot see (an empty trip has no
+ * stop lanes yet) simply does not occur that run.
  *
  * Keep the copy in the same register as the rest of the product: say what the thing
  * does, not how excited we are about it. No exclamation marks, no "Awesome!".
@@ -21,55 +20,49 @@ export interface PlannerTourStep {
 
 export const PLANNER_TOUR_STEPS: PlannerTourStep[] = [
   {
-    target: 'planner-mode',
-    title: 'Two ways to plan',
-    body: 'Simple keeps it to stops, nights and notes. Advanced adds stays, places, budget and publishing. Switch whenever you like. Nothing is lost either way.',
-    placement: 'bottom',
-  },
-  {
     target: 'add-stop',
     title: 'Start with places you know',
     body: 'Add the towns or cities you are sure about. Drag them to reorder, and set how many nights you want at each.',
     placement: 'top',
   },
   {
+    target: 'stop-lanes',
+    title: 'Everything for each stop',
+    body: 'Places to see, where you will stay and food to try, right on the stop. Tap Add to fill any of them.',
+    placement: 'bottom',
+  },
+  {
     target: 'stop-note',
     title: 'Keep your thinking on the stop',
     body: 'Train times, a booking code, a rainy-day backup: anything you write here stays with that stop.',
-    placement: 'left',
-  },
-  {
-    target: 'navia',
-    title: 'Let Navia draft it',
-    body: 'Navia can fill the nights you have not placed and write notes for each stop. Every place it suggests is checked against a real listing first.',
     placement: 'top',
   },
   {
-    // Anchored on the desktop MAP rail tab and the phone's floating map button;
-    // only one of the two is ever in the DOM, so the step resolves either way.
+    target: 'tripicianai',
+    title: 'Let TripicianAI plan it',
+    body: 'TripicianAI can add stops for the nights left open and ideas for empty stops. It never changes what you added, and every place is checked against a real listing first.',
+    placement: 'top',
+  },
+  {
+    // Anchored on the desktop MAP rail tab and the phone's floating map button; only one is ever in the DOM.
     target: 'map',
     title: 'See it on a map',
     body: 'Your route, in order, with the travel between stops. Hovering a stop lifts its pin.',
     placement: 'left',
   },
   {
-    // Advanced only - auto-skipped in Simple, which has no Reality check.
     target: 'reality-check',
     title: 'Check that it holds up',
     body: 'This measures your plan against real distances, opening hours and how much fits in a day. Plain arithmetic, not AI, so when it says a leg eats most of a day, it can show you why.',
     placement: 'bottom',
   },
   {
-    // Advanced only.
     target: 'publish',
     title: 'Share it when you are ready',
-    body: 'Publishing puts your trip in the community, where other travellers can read it or make it their own. Drafts stay private until you do.',
+    body: 'Publishing gives your trip a public page and posts it to your wall, where other travellers can read it or make it their own. Drafts stay private until you do.',
     placement: 'bottom',
   },
   {
-    // Rewritten rather than joined by a ninth step. It promised a Save button
-    // that no longer exists, and its anchor sits beside both the save state and
-    // the presence avatars, so one step covers what changed here.
     target: 'save',
     title: 'Nothing to lose, even together',
     body: 'Your plan saves itself as you work. If somebody else has it open they show up here too, and when two of you save at once we stop the second one rather than quietly overwriting the first.',

@@ -60,24 +60,25 @@ describe('clearSessionData - what a session leaves behind', () => {
     local.setItem('tripPacking:trip-1', '{"x":1}');
     local.setItem('tripPackingView:trip-1', '{"y":2}');
     local.setItem('tripician:lastDraftTripId', 'trip-1');
-    local.setItem('tripician:naviaGroupHint:trip-1', '1');
+    local.setItem('tripician:tripicianAIGroupHint:trip-1', '1');
     local.setItem('tripCommentsScrollV1', '120');
     local.setItem('tripician.activitySessionId', 'sess-1');
+    local.setItem('tripician:recentSearches', '[{"kind":"query","label":"Kyoto","href":"/search?q=Kyoto"}]');
 
     clearSessionData();
 
     for (const key of [
       'tripician_docs', 'rm_recent', 'tripPacking:trip-1', 'tripPackingView:trip-1',
-      'tripician:lastDraftTripId', 'tripician:naviaGroupHint:trip-1',
-      'tripCommentsScrollV1', 'tripician.activitySessionId',
+      'tripician:lastDraftTripId', 'tripician:tripicianAIGroupHint:trip-1',
+      'tripCommentsScrollV1', 'tripician.activitySessionId', 'tripician:recentSearches',
     ]) {
       expect(local.getItem(key), key).toBeNull();
     }
   });
 
-  it('clears Navia chat transcripts from sessionStorage', () => {
-    session.setItem('navia-chat-general', '[{"content":"my private plans"}]');
-    session.setItem('navia-chat-trip-1', '[]');
+  it('clears TripicianAI chat transcripts from sessionStorage', () => {
+    session.setItem('tripicianai-chat-general', '[{"content":"my private plans"}]');
+    session.setItem('tripicianai-chat-trip-1', '[]');
 
     clearSessionData();
 
@@ -93,13 +94,13 @@ describe('clearSessionData - what a session leaves behind', () => {
    * visitor's own unauthenticated intent.
    */
   it('keeps the pre-account landing prompt, which sign-in is about to consume', () => {
-    session.setItem('navia-chat-general', '[{"content":"my private plans"}]');
-    session.setItem('tripician:pendingNaviaPrompt', '{"prompt":"10 days in Japan","ts":1}');
+    session.setItem('tripicianai-chat-general', '[{"content":"my private plans"}]');
+    session.setItem('tripician:pendingTripicianAIPrompt', '{"prompt":"10 days in Japan","ts":1}');
 
     clearSessionData();
 
-    expect(session.getItem('navia-chat-general')).toBeNull();
-    expect(session.getItem('tripician:pendingNaviaPrompt')).toBe('{"prompt":"10 days in Japan","ts":1}');
+    expect(session.getItem('tripicianai-chat-general')).toBeNull();
+    expect(session.getItem('tripician:pendingTripicianAIPrompt')).toBe('{"prompt":"10 days in Japan","ts":1}');
   });
 
   /**

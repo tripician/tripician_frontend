@@ -3,7 +3,7 @@
  */
 import React from 'react';
 import {
-  Box, Typography, Dialog, IconButton, InputBase, Button, LinearProgress,
+  Box, Typography, Dialog, IconButton, InputBase, Button, LinearProgress, Skeleton,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import CloseIcon from '@mui/icons-material/Close';
@@ -67,7 +67,6 @@ export interface DiscoverSheetProps {
   spotPredictions: any[];
   nearbySpots: QuickSuggestion[];
   nearbyLoading: boolean;
-  recommendedFoods: string[];
   onAddSpotFromPrediction: (p: any) => void;
   onQuickAddSpot: (item: QuickSuggestion) => void;
   onQuickAddFood: (name: string) => void;
@@ -81,7 +80,7 @@ export interface DiscoverSheetProps {
 export const DiscoverSheet: React.FC<DiscoverSheetProps> = ({
   open, onClose, destination: pd, tab, onTabChange,
   spotSearch, onSpotSearchChange, spotSearchLoading, spotPredictions,
-  nearbySpots, nearbyLoading, recommendedFoods,
+  nearbySpots, nearbyLoading,
   onAddSpotFromPrediction, onQuickAddSpot, onQuickAddFood,
   onToggleSpot, onRemoveSpot, onToggleFood, onRemoveFood, readOnly,
 }) => {
@@ -89,9 +88,9 @@ export const DiscoverSheet: React.FC<DiscoverSheetProps> = ({
   const foods = pd?.foods || [];
   const planTitle = (pd as PlannerDestination & { title?: string })?.title?.trim();
   const displayTitle = planTitle || pd?.name || 'This stop';
-  const suggestions: QuickSuggestion[] = tab === 'spots'
-    ? (nearbySpots.length > 0 ? nearbySpots : [{ name: 'Old Town' }, { name: 'Viewpoint' }, { name: 'Local market' }])
-    : recommendedFoods.map(name => ({ name }));
+  const suggestions: QuickSuggestion[] = tab === 'spots' ? nearbySpots : [];
+  const [foodDraft, setFoodDraft] = React.useState('');
+  const addFood = () => { const name = foodDraft.trim(); if (!name) return; onQuickAddFood(name); setFoodDraft(''); };
 
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth='sm' PaperProps={{ sx: sheetPaper }}>
@@ -118,7 +117,7 @@ export const DiscoverSheet: React.FC<DiscoverSheetProps> = ({
             )}
             <Box sx={{ flex: 1, minWidth: 0 }}>
               <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.12em', textTransform: 'uppercase', color: 'primary.main', mb: 0.4 }}>
-                Curate your day
+                {tab === 'spots' ? 'What to see' : 'What to eat'}
               </Typography>
               <Typography sx={{ fontWeight: 700, fontSize: 18, lineHeight: 1.2, letterSpacing: '-0.35px' }}>
                 {displayTitle}
@@ -160,6 +159,26 @@ export const DiscoverSheet: React.FC<DiscoverSheetProps> = ({
         </Box>
       </Box>
 
+      {tab === 'foods' && !readOnly && (
+        <Box sx={{ px: 2.5, py: 1.5, flexShrink: 0, borderBottom: '1px solid', borderColor: 'divider' }}>
+          <InputBase
+            value={foodDraft}
+            onChange={e => setFoodDraft(e.target.value)}
+            onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); addFood(); } }}
+            placeholder='A dish, a street food, a place to eat'
+            fullWidth
+            inputProps={{ 'aria-label': 'Add food to try' }}
+            startAdornment={<RestaurantRoundedIcon sx={{ fontSize: 18, mr: 1, color: 'text.disabled' }} />}
+            endAdornment={foodDraft.trim() ? <Button size='small' onClick={addFood} sx={{ minWidth: 0, fontWeight: 700 }}>Add</Button> : undefined}
+            sx={(t) => ({
+              fontSize: 14, py: 1, px: 1.5, borderRadius: '14px',
+              bgcolor: t.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : '#f8fafc',
+              border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.07)'}`,
+              '&:focus-within': { borderColor: alpha(BRAND.coral, 0.4), boxShadow: `0 0 0 3px ${alpha(BRAND.coral, 0.08)}` },
+            })}
+          />
+        </Box>
+      )}
       {tab === 'spots' && !readOnly && (
         <Box sx={{ px: 2.5, py: 1.5, flexShrink: 0, borderBottom: '1px solid', borderColor: 'divider' }}>
           <Box sx={{ position: 'relative' }}>
@@ -198,15 +217,15 @@ export const DiscoverSheet: React.FC<DiscoverSheetProps> = ({
         </Box>
       )}
 
-      {!readOnly && (
+      {!readOnly && tab === 'spots' && (nearbyLoading || suggestions.length > 0) && (
         <Box sx={{ px: 2.5, py: 1.25, flexShrink: 0 }}>
           <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', color: 'text.disabled', mb: 0.75 }}>
             {tab === 'spots' ? `Suggested near ${pd?.name || 'you'}` : 'Local flavours'}
           </Typography>
-          {tab === 'spots' && nearbyLoading && (
-            <Typography sx={{ fontSize: 11, color: 'text.disabled', mb: 0.5 }}>Finding ideas…</Typography>
-          )}
           <Box sx={{ display: 'flex', gap: 0.6, overflowX: 'auto', pb: 0.5, '&::-webkit-scrollbar': { height: 0 } }}>
+            {tab === 'spots' && nearbyLoading && [92, 76, 108].map((w) => (
+              <Skeleton key={w} variant='rounded' width={w} height={27} sx={{ flexShrink: 0, borderRadius: '20px' }} />
+            ))}
             {suggestions.map(s => (
               <Box
                 key={s.name + (s.placeId || '')}
@@ -238,9 +257,9 @@ export const DiscoverSheet: React.FC<DiscoverSheetProps> = ({
         {tab === 'spots' && spots.length === 0 && (
           <Box sx={{ textAlign: 'center', py: 4, px: 2 }}>
             <ExploreIcon sx={{ fontSize: 36, color: 'text.disabled', opacity: 0.35, mb: 1 }} />
-            <Typography sx={{ fontSize: 14, fontWeight: 600, mb: 0.5 }}>Your list is empty</Typography>
+            <Typography sx={{ fontSize: 14, fontWeight: 600, mb: 0.5 }}>Nothing here yet</Typography>
             <Typography sx={{ fontSize: 12, color: 'text.secondary', lineHeight: 1.5 }}>
-              Search above or tap a suggestion to build your {pd?.name || 'day'} itinerary.
+              Search above, or tap one of the ideas, to build up {pd?.name || 'this stop'}.
             </Typography>
           </Box>
         )}
@@ -337,7 +356,11 @@ export const DiscoverSheet: React.FC<DiscoverSheetProps> = ({
             borderRadius: '12px', fontWeight: 700, fontSize: 13, px: 3,
           }}
         >
-          Done · {tab === 'spots' ? `${spots.length} places` : `${foods.length} items`}
+          {(tab === 'spots' ? spots.length : foods.length) === 0
+            ? 'Done'
+            : tab === 'spots'
+              ? `Done, ${spots.length} ${spots.length === 1 ? 'place' : 'places'}`
+              : `Done, ${foods.length} ${foods.length === 1 ? 'dish' : 'dishes'}`}
         </Button>
       </Box>
     </Dialog>

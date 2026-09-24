@@ -4,7 +4,7 @@ import React, { createContext, useContext } from 'react';
  * What a caller already knows about the trip when it opens the create dialog.
  *
  * Exists because the chat-to-trip fallback used to open the form completely blank
- * after Navia had already read a destination, a name and a style out of the
+ * after TripicianAI had already read a destination, a name and a style out of the
  * conversation, so the traveller had to type back what they had just said.
  */
 export interface CreateTripPrefill {
@@ -19,7 +19,7 @@ export interface AppShellContextValue {
   openCreateTrip: (prefill?: CreateTripPrefill) => void;
   /**
    * Raises the plan popup from anywhere: the top bar, an organisation gate, or a
-   * Navia wallet that has just run out. Those are the moments upgrading is worth
+   * TripicianAI wallet that has just run out. Those are the moments upgrading is worth
    * explaining, and routing away from them loses whatever the person was doing.
    */
   openProDialog: () => void;

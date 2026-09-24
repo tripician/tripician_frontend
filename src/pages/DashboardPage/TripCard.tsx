@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, IconButton, LinearProgress, Tooltip, Typography } from '@mui/material';
-import { IconBroadcast, IconMessageCircle2, IconShare2, IconTrash } from '@tabler/icons-react';
+import { IconBroadcast, IconFlagCheck, IconMessageCircle2, IconShare2, IconTrash } from '@tabler/icons-react';
 import ImageBadge from '../../components/ui/ImageBadge';
 import { VIBES } from '../CommunityPage/vibes';
 import TripListingCard from '../../components/ui/TripListingCard';
@@ -32,6 +32,8 @@ interface TripCardProps {
   verifiedAt?: string | null;
   isOwner?: boolean;
   onGoLive?: () => void;
+  /** Ends a live trip, which asks everyone on it to write the story. */
+  onFinish?: () => void;
   /** Comments left by the community on this trip, replies included. */
   commentsCount?: number;
 }
@@ -48,7 +50,7 @@ interface TripCardProps {
  */
 const TripCard: React.FC<TripCardProps> = ({
   title, image, description, progress, createdAt, updatedAt, nights,
-  members, owner, countries, vibe, onClick, onShare, onDelete, tripStatus, isOwner, onGoLive,
+  members, owner, countries, vibe, onClick, onShare, onDelete, tripStatus, isOwner, onGoLive, onFinish,
   commentsCount, verified, verifiedAt,
 }) => {
   // `image` is already the banner or the curated country cover; the hook adds the
@@ -140,6 +142,13 @@ const TripCard: React.FC<TripCardProps> = ({
               <Tooltip title="Go live & share your trip in real time" arrow placement="top">
                 <IconButton size="small" onClick={() => onGoLive()} sx={{ ...actionSx, '&:hover': { color: 'error.main' } }} aria-label="Go live">
                   <IconBroadcast size={16} stroke={1.9} />
+                </IconButton>
+              </Tooltip>
+            )}
+            {isOwner && tripStatus === 1 && onFinish && (
+              <Tooltip title="Back home? Mark the trip as finished" arrow placement="top">
+                <IconButton size="small" onClick={() => onFinish()} sx={{ ...actionSx, '&:hover': { color: 'primary.main' } }} aria-label="Mark the trip as finished">
+                  <IconFlagCheck size={16} stroke={1.9} />
                 </IconButton>
               </Tooltip>
             )}

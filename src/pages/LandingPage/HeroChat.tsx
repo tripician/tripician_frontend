@@ -1,13 +1,13 @@
 import { useCallback, useRef, useState } from 'react';
-import { IconArrowRight, IconSparkles } from '@tabler/icons-react';
-import NaviaOrb from '../../navia/NaviaOrb';
-import { renderMarkdown } from '../../navia/markdown';
+import { IconArrowRight } from '@tabler/icons-react';
+import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
+import { renderMarkdown } from '../../tripicianai/markdown';
 import { useRequireAuth } from '../../auth/AuthGate';
-import { COMMAND_BAR_DRAFT_KEY } from '../../navia/commandbar/useCommandBar';
+import { COMMAND_BAR_DRAFT_KEY } from '../../tripicianai/commandbar/useCommandBar';
 import {
   streamGuestChat, draftGuestTrip, GuestQuotaSpentError, GuestDraftDeclinedError,
   type GuestMessage, type GuestDraft,
-} from '../../navia/guestChat';
+} from '../../tripicianai/guestChat';
 
 /** Shown once, before the first message, so the first thing to type is obvious. */
 const OPENERS = [
@@ -17,7 +17,7 @@ const OPENERS = [
 ];
 
 /**
- * Navia on the front door, for people who have not signed in.
+ * TripicianAI on the front door, for people who have not signed in.
  *
  * The landing page described the product; this shows it working. A visitor can
  * ask real questions and have one real itinerary drafted before anything is
@@ -53,17 +53,17 @@ export default function HeroChat() {
     // A new message is a new chance to build something, so the offer returns.
     setDeclined(false);
     setPlannable(false);
-    setMessages((prev) => [...prev, { role: 'user', content: question }, { role: 'navia', content: '' }]);
+    setMessages((prev) => [...prev, { role: 'user', content: question }, { role: 'tripicianai', content: '' }]);
 
     try {
       for await (const event of streamGuestChat(question, messagesRef.current)) {
-        // Navia's verdict on whether there is now a brief worth building from.
+        // TripicianAI's verdict on whether there is now a brief worth building from.
         if ('plannable' in event) { setPlannable(event.plannable); continue; }
 
         setMessages((prev) => {
           const next = [...prev];
           const last = next[next.length - 1];
-          if (last?.role === 'navia') next[next.length - 1] = { ...last, content: last.content + event.token };
+          if (last?.role === 'tripicianai') next[next.length - 1] = { ...last, content: last.content + event.token };
           return next;
         });
       }
@@ -110,7 +110,7 @@ export default function HeroChat() {
       }
 
       /*
-       * Answer in the thread, as Navia, and stand the offer down.
+       * Answer in the thread, as TripicianAI, and stand the offer down.
        *
        * The button reads "Turn this into a trip", and after a greeting there is
        * no "this". Rather than guess client-side what counts as a brief, which
@@ -120,8 +120,8 @@ export default function HeroChat() {
        */
       const message = err instanceof Error && err.message
         ? err.message
-        : 'Tell Navia where you would like to go and it can build that.';
-      setMessages((prev) => [...prev, { role: 'navia', content: message }]);
+        : 'Tell TripicianAI where you would like to go and it can build that.';
+      setMessages((prev) => [...prev, { role: 'tripicianai', content: message }]);
 
       // Only a refusal stands the offer down. A timeout is not a verdict on the
       // trip, and withdrawing the button until they type again would punish
@@ -135,11 +135,11 @@ export default function HeroChat() {
   /**
    * The only thing an account is required for.
    *
-   * Hands off to the Navia command bar rather than inventing a channel of its
+   * Hands off to the TripicianAI command bar rather than inventing a channel of its
    * own. Signing in sends you to /community, where that bar is docked, and it
    * already restores a sentence parked under this key and already knows how to
    * turn one into a real trip. So the prompt is waiting in Plan mode when they
-   * land, one press from the itinerary they just watched Navia draft.
+   * land, one press from the itinerary they just watched TripicianAI draft.
    *
    * It deliberately does NOT create the trip on arrival. AuthGate's own note
    * says restoring a draft must not perform an action after a redirect that the
@@ -147,7 +147,7 @@ export default function HeroChat() {
    */
   const saveTrip = useCallback(() => {
     requireAuth({
-      reason: 'Sign in and Navia will build this trip in your account.',
+      reason: 'Sign in and TripicianAI will build this trip in your account.',
       draft: {
         key: COMMAND_BAR_DRAFT_KEY,
         text: messagesRef.current.find((m) => m.role === 'user')?.content ?? '',
@@ -169,7 +169,7 @@ export default function HeroChat() {
   /** Set when the server says there is not enough here to build from. */
   const [declined, setDeclined] = useState(false);
   /*
-   * Navia's own read on whether the conversation holds a trip yet.
+   * TripicianAI's own read on whether the conversation holds a trip yet.
    *
    * Offering "Turn this into a trip" after "Hi" is offering something that
    * cannot work. A guess made here would be worse than useless: the country
@@ -195,20 +195,20 @@ export default function HeroChat() {
         className="lp-herochat__bar"
         onSubmit={(e) => { e.preventDefault(); void send(input); }}
       >
-        <NaviaOrb size={22} />
+        <TripicianAIOrb size={22} />
         <input
           className="lp-herochat__input"
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Where do you want to go?"
-          aria-label="Ask Navia about a trip"
+          aria-label="Ask TripicianAI about a trip"
           disabled={Boolean(spent)}
         />
         <button
           type="submit"
           className="lp-herochat__send"
           disabled={busy || !input.trim() || Boolean(spent)}
-          aria-label="Ask Navia"
+          aria-label="Ask TripicianAI"
         >
           <IconArrowRight size={18} aria-hidden="true" />
         </button>
@@ -246,7 +246,7 @@ export default function HeroChat() {
               {/* Same renderer the signed-in chat uses. The prompt asks for bold
                   place names and day labels, so without this the reply arrives
                   wearing its asterisks. */}
-              {m.role === 'navia'
+              {m.role === 'tripicianai'
                 ? (m.content ? renderMarkdown(m.content) : (busy && i === messages.length - 1 ? 'Thinking...' : ''))
                 : m.content}
             </div>
@@ -277,7 +277,7 @@ export default function HeroChat() {
           onClick={() => void buildTrip()}
           disabled={drafting || busy}
         >
-          <IconSparkles size={15} aria-hidden="true" />
+          <TripicianAIOrb size={16} />
           {drafting ? 'Drafting your trip...' : 'Turn this into a trip'}
         </button>
       )}

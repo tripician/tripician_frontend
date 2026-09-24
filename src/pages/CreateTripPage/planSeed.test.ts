@@ -1,56 +1,16 @@
 import { describe, it, expect } from 'vitest';
-import { checklistToPackingCategories, composeImportantNotes } from './planSeed';
+import { composeImportantNotes, composeImportedExtras } from './planSeed';
 
-describe('checklistToPackingCategories', () => {
-  it('groups items under the heading they came from', () => {
-    const categories = checklistToPackingCategories([
-      { category: 'Documents', name: 'Passport', qty: 1 },
-      { category: 'Documents', name: 'Visa printout', qty: 2 },
-      { category: 'Clothes', name: 'Rain jacket', qty: 1 },
-    ]);
-
-    expect(categories).toHaveLength(2);
-    expect(categories[0].name).toBe('Documents');
-    expect(categories[0].items.map((i) => i.name)).toEqual(['Passport', 'Visa printout']);
-    expect(categories[1].items).toHaveLength(1);
+describe('composeImportedExtras', () => {
+  it('turns what the planner no longer keeps apart into note lines', () => {
+    expect(composeImportedExtras(
+      [{ category: 'Documents', name: 'Passport', qty: 1 }, { category: 'Bag', name: 'Socks', qty: 3 }, { category: 'Bag', name: '  ', qty: 1 }],
+    )).toEqual(['To bring: Passport, Socks x3']);
   });
 
-  it('starts everything unchecked', () => {
-    const [category] = checklistToPackingCategories([
-      { category: 'Bag', name: 'Charger', qty: 1 },
-    ]);
-    expect(category.items[0].checked).toBe(false);
-  });
-
-  it('keeps quantities but clamps nonsense', () => {
-    const [category] = checklistToPackingCategories([
-      { category: 'Bag', name: 'Socks', qty: 7 },
-      { category: 'Bag', name: 'Shirts', qty: 0 },
-      { category: 'Bag', name: 'Cables', qty: 5000 },
-    ]);
-    expect(category.items.map((i) => i.qty)).toEqual([7, 1, 99]);
-  });
-
-  it('drops duplicates within a category, case insensitively', () => {
-    const [category] = checklistToPackingCategories([
-      { category: 'Bag', name: 'Passport', qty: 1 },
-      { category: 'Bag', name: 'passport', qty: 1 },
-    ]);
-    expect(category.items).toHaveLength(1);
-  });
-
-  it('falls back to a plain heading when the plan had none', () => {
-    const [category] = checklistToPackingCategories([
-      { category: '   ', name: 'Sunscreen', qty: 1 },
-    ]);
-    expect(category.name).toBe('Packing');
-    expect(category.id).toBe('packing');
-  });
-
-  it('ignores nameless rows and empty categories', () => {
-    expect(checklistToPackingCategories([
-      { category: 'Bag', name: '  ', qty: 1 },
-    ])).toEqual([]);
+  it('says nothing when there is nothing to carry over', () => {
+    expect(composeImportedExtras([])).toEqual([]);
+    expect(composeImportedExtras(undefined)).toEqual([]);
   });
 });
 

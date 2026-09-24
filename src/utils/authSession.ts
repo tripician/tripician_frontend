@@ -54,10 +54,10 @@ const DEVICE_PREFERENCE_PREFIXES: readonly string[] = [
  *
  * Same bar as DEVICE_PREFERENCE_KEYS: add a key here only if it would be
  * harmless in a stranger's hands. A trip prompt is; a chat transcript is not,
- * which is why `navia-chat-*` is still wiped below.
+ * which is why `tripicianai-chat-*` is still wiped below.
  */
 const PRESERVED_SESSION_KEYS: readonly string[] = [
-  'tripician:pendingNaviaPrompt',
+  'tripician:pendingTripicianAIPrompt',
   // Same argument, generalised: an answer or a comment typed by a guest, held
   // across the sign-in they are completing in order to post it.
   'tripician:pendingDraft',
@@ -110,7 +110,7 @@ function safeSessionStorage(): Storage | null {
 /**
  * Wipes every trace of the signed-in account from this browser: tokens, the
  * cached profile, and all app data written under that account (documents,
- * packing lists, draft trip ids, risk-monitor history, Navia chat transcripts).
+ * draft trip ids, TripicianAI chat transcripts).
  *
  * Call this on sign-out, on account deletion, and on forced logout. It is
  * deliberately safe to call twice.
@@ -136,7 +136,7 @@ export function clearSessionData(options?: ClearSessionOptions): void {
     } catch { /* nothing more we can do; the session ends regardless */ }
   }
 
-  // Navia chat transcripts live here (`navia-chat-*`) and are per-account, so
+  // TripicianAI chat transcripts live here (`tripicianai-chat-*`) and are per-account, so
   // the default is still a full clear - the allowlist is lifted out and put back.
   const session = safeSessionStorage();
   if (session) {

@@ -11,7 +11,9 @@ import {
   ListItem,
   ListItemIcon,
   ListItemText,
+  TextField,
 } from '@mui/material';
+import { POST_LIMITS } from '../../posts/types';
 import CheckCircleRoundedIcon from '@mui/icons-material/CheckCircleRounded';
 import CancelRoundedIcon from '@mui/icons-material/CancelRounded';
 
@@ -33,7 +35,7 @@ interface Props {
    * the confirmation step: it was previously reachable only when a check FAILED,
    * so the one path that actually published a trip had no confirmation at all.
    */
-  onPublish?: () => void;
+  onPublish?: (caption: string) => void;
   /** Disables the action while the publish request is in flight. */
   publishing?: boolean;
 }
@@ -76,6 +78,10 @@ const PublishValidationModal: React.FC<Props> = ({ open, onClose, checks, onPubl
   const allPassed = checks.hasTitle && checks.hasDescription && checks.allDatesCovered;
   const canPublish = allPassed && Boolean(onPublish);
 
+  // Cleared each time the dialog opens, so a caption from an abandoned attempt never goes out later.
+  const [caption, setCaption] = React.useState('');
+  React.useEffect(() => { if (open) setCaption(''); }, [open]);
+
   return (
     <Dialog
       open={open}
@@ -109,7 +115,7 @@ const PublishValidationModal: React.FC<Props> = ({ open, onClose, checks, onPubl
             page with a permanent link, and that is not obvious from a button. */}
         <Typography variant="body2" color="text.secondary" sx={{ mb: 1.5 }}>
           {canPublish
-            ? 'Your trip gets a public page anyone can open, and it appears in the community feed. Comments open too. You can unpublish it at any time.'
+            ? 'Your trip gets a public page anyone can open, and it is posted to your wall. Comments open too. You can unpublish it at any time.'
             : allPassed
               ? 'All checks passed. You can go ahead and publish your trip.'
               : 'Complete the following before publishing your trip.'}
@@ -131,7 +137,7 @@ const PublishValidationModal: React.FC<Props> = ({ open, onClose, checks, onPubl
               label="Trip has a title"
               helperText={
                 !checks.hasTitle
-                  ? 'Add a meaningful title to your trip (not "Untitled Trip").'
+                  ? 'Give your trip a real name (not "Untitled trip").'
                   : undefined
               }
             />
@@ -159,6 +165,23 @@ const PublishValidationModal: React.FC<Props> = ({ open, onClose, checks, onPubl
             />
           </List>
         </Box>
+
+        {canPublish && (
+          <TextField
+            value={caption}
+            onChange={(e) => setCaption(e.target.value.slice(0, POST_LIMITS.maxBody))}
+            placeholder="Say something about it (optional)"
+            fullWidth
+            multiline
+            minRows={2}
+            maxRows={5}
+            disabled={publishing}
+            helperText={caption.length > 0
+              ? `${POST_LIMITS.maxBody - caption.length} left`
+              : 'Posted with the trip on your wall.'}
+            sx={{ mt: 2 }}
+          />
+        )}
       </DialogContent>
 
       <DialogActions sx={{ px: 2.5, pb: 2, pt: 1.5 }}>
@@ -172,7 +195,7 @@ const PublishValidationModal: React.FC<Props> = ({ open, onClose, checks, onPubl
           </Button>
         )}
         <Button
-          onClick={canPublish ? onPublish : onClose}
+          onClick={canPublish ? () => onPublish?.(caption.trim()) : onClose}
           variant="contained"
           disableElevation
           disabled={publishing}

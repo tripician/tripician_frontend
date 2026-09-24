@@ -52,6 +52,8 @@ const JoinRequestButton: React.FC<JoinRequestButtonProps> = ({
   const [message, setMessage] = React.useState(() => takeDraft(draftKey) ?? '');
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
+  // The group already decided this person is welcome, so neither the identity check nor the introduction applies.
+  const groupDoor = !!seats.viewerIsGroupMember;
 
   // The remove endpoint takes a target user, and leaving is removing yourself.
   const myUserId = useSelector((s: RootState) => Number(s.user.profile?.id));
@@ -176,7 +178,7 @@ const JoinRequestButton: React.FC<JoinRequestButtonProps> = ({
     return null;
   }
 
-  if (verification.blocked) {
+  if (verification.blocked && !groupDoor) {
     return (
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
         <Button
@@ -212,6 +214,23 @@ const JoinRequestButton: React.FC<JoinRequestButtonProps> = ({
       setBusy(false);
     }
   };
+
+  if (groupDoor) {
+    return (
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+        <Button
+          variant="contained"
+          fullWidth={fullWidth}
+          startIcon={<IconUserPlus size={16} />}
+          disabled={busy}
+          onClick={(e) => { e.stopPropagation(); void send(); }}
+        >
+          {busy ? 'Sending…' : 'Count me in'}
+        </Button>
+        {error && <Typography variant="caption" sx={{ color: 'error.main' }}>{error}</Typography>}
+      </Box>
+    );
+  }
 
   return (
     <>

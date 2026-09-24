@@ -121,7 +121,7 @@ const OrganizationImageField: React.FC<OrganizationImageFieldProps> = ({
 
       {!organizationId && (
         <Typography variant="caption" sx={{ color: 'text.disabled', display: 'block', mt: 0.5 }}>
-          Save the organization first, then add a picture.
+          Save the group first, then add a picture.
         </Typography>
       )}
       {hint && !error && (

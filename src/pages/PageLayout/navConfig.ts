@@ -1,12 +1,10 @@
 import type React from 'react';
 import {
-  IconSparkles,
-  IconMessages,
-  IconCampfire,
-  IconBook,
+  IconHome,
+  IconSearch,
+  IconUsersGroup,
   IconUserCircle,
 } from '@tabler/icons-react';
-import NaviaOrbIcon from '../../navia/NaviaOrbIcon';
 
 export interface AppNavItem {
   id: string;
@@ -19,29 +17,18 @@ export interface AppNavItem {
   /** Tooltip text shown on hover - shown in desktop nav */
   tooltip?: string;
   disabled?: boolean;
+  /** The desktop pill's wording when it has room for more than the phone bar's shortLabel. */
+  desktopLabel?: string;
+  /** Other paths (and everything under them) that belong to this destination. */
+  activeOn?: string[];
 }
 
-/**
- * The five destinations, with Navia in the middle.
- *
- * Navia is a hinge rather than just the third item. Everything to its left is
- * material that already exists for you to read - Community's feed, Browse's
- * library. Everything to its right is where you make something: Navia turns a
- * thought into a trip, From the road turns a moment into a post, Profile holds
- * what you have made. Read on one side, make on the other.
- *
- * From the road took the slot Crew used to hold. It is the only destination
- * with a same-minute reason to open it - you are standing in the queue now -
- * and on a phone the right of the bar is where a thumb already rests, so the
- * item with the shortest fuse gets the easiest tap. Crew is the opposite: you
- * go looking for people deliberately and rarely. It is now the Travellers
- * segment on Browse, and /crew still resolves.
- *
- * Risk Monitor was here and is not any more. It is a tool you reach for about a
- * specific destination, not a place you go, and holding a fifth of the nav for
- * it pushed Stories - which is now half the reason the product exists - out of
- * sight entirely. It lives in the account popover.
- */
+// Four destinations: the wall, Search, Groups & Stories (trips to join, the groups running them, stories), and you.
+//
+// The assistant is deliberately not one of them. A nav holds places you go; TripicianAI is a tool you use, and it
+// already has three doors: the floating command bar on every destination here, Studio on every page, and the planner.
+// The phone bar dropped it for exactly that reason, and a row that disagreed with itself between phone and desktop
+// was the thing making this bar look odd.
 /**
  * Where the centred desktop nav starts, and the bottom bar stops. It also
  * decides which create control is in charge.
@@ -64,56 +51,58 @@ export const DESKTOP_NAV_MIN_WIDTH = 1280;
 
 export const APP_NAV_ITEMS: AppNavItem[] = [
   {
-    id: 'explore',
-    label: 'Community',
-    shortLabel: 'Community',
-    // Campfire rather than the group icon, which now belongs to Crew. Two
-    // identical glyphs sitting next to each other in the pill made the nav
-    // read as one destination split in half.
-    path: '/community',
-    Icon: IconCampfire,
-    PageHeaderIcon: IconCampfire,
-    tooltip: 'Trips from travellers - read, comment, and ask the people who went',
+    /*
+     * The wall, wearing the mark.
+     *
+     * It was briefly left out on the argument that the logo already goes here,
+     * so a nav item would be a second door to the same page. On screen that was
+     * wrong twice over: the bar looked half empty, and on a phone the logo is a
+     * 24px mark in a corner rather than anything anyone reads as navigation.
+     *
+     * A house, not the brand mark: the logo already sits in the corner, and a
+     * second copy of it inside the row read as branding rather than as the way
+     * home. A glyph among glyphs is what a nav row is.
+     *
+     * It also fixes a standing bug for free: navItemFromPath is an exact match,
+     * so with nothing registered at "/" the root highlighted no tab at all.
+     */
+    id: 'wall',
+    label: 'Wall',
+    shortLabel: 'Wall',
+    path: '/',
+    Icon: IconHome,
+    PageHeaderIcon: IconHome,
+    tooltip: 'What travellers are doing right now',
   },
   {
-    // The library. Community is the live feed; this is where you go to browse
-    // finished work, which is both the plans and the stories about them. The id
-    // stays `stories` because the mobile bars and navConfig.test pick items by it.
+    // Instagram-style lookup: people, places, plans, stories, groups and tags. The traveller directory lives here too.
+    id: 'search',
+    label: 'Search',
+    shortLabel: 'Search',
+    path: '/search',
+    Icon: IconSearch,
+    PageHeaderIcon: IconSearch,
+    tooltip: 'Find people, places, trips and groups',
+    activeOn: ['/crew'],
+  },
+  {
+    // The id stays `stories` and the path stays /stories, which is indexed and linked from everywhere.
     id: 'stories',
-    label: 'Plans & stories',
-    shortLabel: 'Browse',
+    label: 'Groups & Stories',
+    desktopLabel: 'Groups & Stories',
+    shortLabel: 'G&S',
     path: '/stories',
-    Icon: IconBook,
-    PageHeaderIcon: IconBook,
-    tooltip: 'Every published plan and the stories of how they went',
+    Icon: IconUsersGroup,
+    PageHeaderIcon: IconUsersGroup,
+    tooltip: 'Trips you can join, the groups that run them, and the stories of how they went',
+    activeOn: ['/trips', '/o', '/groups', '/join'],
   },
   {
-    id: 'navia',
-    label: 'Navia',
-    shortLabel: 'Navia',
-    path: '/navia',
-    Icon: NaviaOrbIcon,
-    PageHeaderIcon: IconSparkles,
-    tooltip: 'Navia - your travel companion',
-  },
-  {
-    // The one destination with a same-minute reason to open it, which is why it
-    // sits on the far side of the orb rather than beside the reading surfaces.
-    //
-    // Two speech bubbles, not the note glyph the card ribbon uses. That pairing
-    // was right when this section was only notes; it now holds questions and
-    // answers as well, so the ribbon labels one KIND of post while this labels
-    // the whole place. A folded rectangle also had no silhouette left at 20px,
-    // beside a campfire and a book.
-    id: 'road',
-    label: 'From the road',
-    shortLabel: 'The road',
-    path: '/posts',
-    Icon: IconMessages,
-    PageHeaderIcon: IconMessages,
-    tooltip: 'Ask travellers who are there right now',
-  },
-  {
+    // From the road used to sit here, pointing at /posts. The board carries
+    // notes and questions now, so this was a nav item for a subset of the page
+    // the logo already reaches. /posts survives as the archive with the filters,
+    // sorts and search the board does not have, and as the parent of every post
+    // permalink; it is simply reached from a post rather than from the bar.
     id: 'profile',
     label: 'My Profile',
     shortLabel: 'Profile',
@@ -127,18 +116,25 @@ export const APP_NAV_ITEMS: AppNavItem[] = [
 /**
  * Ids deliberately absent from the bottom bar, and why.
  *
- * Navia stays in APP_NAV_ITEMS because the desktop pill keeps the orb, and the
- * five-destination rationale above is built around Navia being the hinge. It
- * leaves the phone because the floating command bar is a better Navia surface
- * than a tab: it answers in place, and it now mounts on every destination the
- * bar can reach. Two entries to the same assistant is what made the bar feel
- * crowded.
+ * Empty now: TripicianAI used to be the one entry here, and it has left the nav
+ * altogether rather than only the phone. Every destination is in both bars again.
  *
- * This list exists so the guard can tell a deliberate omission from an item
- * somebody quietly dropped. Adding an id here is a decision with a name on it.
+ * The list stays because the guard uses it to tell a deliberate omission from an
+ * item somebody quietly dropped. Adding an id here is a decision with a name on it.
  */
-export const MOBILE_NAV_EXCLUDED = ['navia'] as const;
+export const MOBILE_NAV_EXCLUDED: readonly string[] = [];
 
+const underPath = (pathname: string, base: string): boolean =>
+  pathname === base || pathname.startsWith(`${base}/`);
+
+/** The destination a path belongs to: its own path exactly, then an `activeOn` path, then anything under its own path. */
 export function navItemFromPath(pathname: string): AppNavItem | undefined {
-  return APP_NAV_ITEMS.find((item) => item.path === pathname);
+  return APP_NAV_ITEMS.find((item) => item.path === pathname)
+    ?? APP_NAV_ITEMS.find((item) => item.activeOn?.some((base) => underPath(pathname, base)))
+    ?? APP_NAV_ITEMS.find((item) => item.path !== '/' && underPath(pathname, item.path));
+}
+
+/** One rule for both navs, so the header and the bottom bar never light different tabs. */
+export function isNavItemActive(item: AppNavItem, pathname: string): boolean {
+  return navItemFromPath(pathname)?.id === item.id;
 }

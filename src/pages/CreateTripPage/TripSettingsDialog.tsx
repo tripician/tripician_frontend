@@ -1,5 +1,6 @@
 import React from 'react';
 import { BRAND } from '../../theme';
+import TripGroupField from '../../organization/TripGroupField';
 import { Dialog, DialogContent, Box, Typography, IconButton, TextField, Button, Chip, Avatar, Fade, InputBase, Tooltip } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import ImportantNotesEditor from './ImportantNotesEditor';
@@ -19,14 +20,14 @@ import { fetchUnsplashImage } from '../../services/unsplashService';
 import { COUNTRY_NAMES } from '../../utils/countryFlags';
 import CountryFlag from '../../components/ui/CountryFlag';
 import SeatsSettings from '../../seats/SeatsSettings';
-import SegmentedControl from '../../components/ui/SegmentedControl';
-import type { TripFeatureVisibility } from '../../utils/normalizeTrip';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
-import { generateTripBrief, NaviaRequestError } from '../../navia/naviaService';
-import NaviaOrb from '../../navia/NaviaOrb';
+import { generateTripBrief, TripicianAIRequestError } from '../../tripicianai/tripicianAIService';
+import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
 import { VIBES as SHARED_VIBES } from '../CommunityPage/vibes';
 import { IconArrowsExchange, IconCamera, IconCrown } from '@tabler/icons-react';
+import TripInviteCard from '../../seats/TripInviteCard';
+import { FoodField, OriginField, TripTypeField } from './TripAnswersFields';
 
 /*  Vibe cards
  *
@@ -92,11 +93,10 @@ interface TripSettingsDialogProps {
   /** Only rendered when the allowance actually refuses somebody. */
   crewLimit?: number | null;
   crewLimitEnforced?: boolean;
-  budgetVisibility?: TripFeatureVisibility;
-  checklistVisibility?: TripFeatureVisibility;
-  onChangeVisibilitySetting?: (key: 'budget' | 'checklist', value: TripFeatureVisibility) => void;
   importantNotes?: string;
   onChangeImportantNotes?: (notes: string) => void;
+  /** The group this plan belongs to, if any. */
+  organizationId?: string | null;
 }
 
 type TabId = 'overview' | 'details' | 'vibe' | 'crew';
@@ -118,9 +118,8 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
   countries = [], onRemoveCountry, onAddCountry, currentUserIsOwner,
   canManageMembers = false, canManageAdmins = false, onCrewChanged,
   crewLimit = null, crewLimitEnforced = false,
-  budgetVisibility = 'members', checklistVisibility = 'members', onChangeVisibilitySetting,
   description = '', onChangeDescription, vibe = '', onChangeVibe,
-  importantNotes = '', onChangeImportantNotes,
+  importantNotes = '', onChangeImportantNotes, organizationId = null,
 }) => {
   const [copyMain, setCopyMain] = React.useState(false);
   const baseDomain = import.meta.env.VITE_ENV === 'production' ? 'https://www.tripician.com' : 'http://localhost:5173';
@@ -157,10 +156,10 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
     return () => { cancelled = true; };
   }, [bannerUrl, countries?.[0]]);
 
-  // "Write with Navia" - AI-drafted trip description (costs 1 trip credit)
+  // "Write with TripicianAI" - AI-drafted trip description (costs 1 trip credit)
   const [briefLoading, setBriefLoading] = React.useState(false);
   const [briefError, setBriefError] = React.useState('');
-  const handleWriteWithNavia = React.useCallback(async () => {
+  const handleWriteWithTripicianAI = React.useCallback(async () => {
     if (!tripId || !authToken || briefLoading) return;
     setBriefLoading(true);
     setBriefError('');
@@ -168,10 +167,10 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
       const brief = await generateTripBrief(tripId, authToken);
       if (brief.description) onChangeDescription?.(brief.description.slice(0, 300));
     } catch (err) {
-      if (err instanceof NaviaRequestError && err.status === 402) {
-        setBriefError('This trip is out of Navia credits.');
+      if (err instanceof TripicianAIRequestError && err.status === 402) {
+        setBriefError('This trip is out of TripicianAI credits.');
       } else {
-        setBriefError('Navia could not write a description right now. Try again shortly.');
+        setBriefError('TripicianAI could not write a description right now. Try again shortly.');
       }
     } finally {
       setBriefLoading(false);
@@ -420,6 +419,9 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
           </Box>
 
           <DialogContent sx={{ p: 3, display: 'flex', flexDirection: 'column', gap: 2.5, overflowY: 'auto' }}>
+            {/* The link first: most of a crew is not on Tripician yet, and search only finds people who are. */}
+            {tripId && canManageMembers && <TripInviteCard tripId={tripId} />}
+
             {/* Search row */}
             <Box sx={{ position: 'relative' }}>
               <Box sx={(t: any) => ({
@@ -498,6 +500,11 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
             {searchError && (
               <Box sx={{ px: 1.5, py: 1, borderRadius: 2, background: 'rgba(220,38,38,0.07)', border: '1px solid rgba(220,38,38,0.15)' }}>
                 <Typography variant="caption" color="error" sx={{ fontWeight: 600 }}>{searchError}</Typography>
+                {/No users? found/.test(searchError) && tripId && canManageMembers && (
+                  <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mt: 0.25 }}>
+                    Not on Tripician yet? Send them the invite link above.
+                  </Typography>
+                )}
               </Box>
             )}
 
@@ -714,9 +721,9 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                   action={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
                       {tripId && (
-                        <Tooltip title="Let Navia draft a description from your route, dates and vibe (1 trip credit)" placement="top">
+                        <Tooltip title="Let TripicianAI draft a description from your route, dates and vibe (1 trip credit)" placement="top">
                           <Box
-                            onClick={handleWriteWithNavia}
+                            onClick={handleWriteWithTripicianAI}
                             sx={{
                               display: 'flex', alignItems: 'center', gap: 0.45,
                               fontSize: 11, fontWeight: 700,
@@ -726,8 +733,8 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                               '&:hover': { opacity: briefLoading ? 1 : 0.75 },
                             }}
                           >
-                            <NaviaOrb size={13} processing={briefLoading} />
-                            {briefLoading ? 'Writing…' : 'Write with Navia'}
+                            <TripicianAIOrb size={13} />
+                            {briefLoading ? 'Writing…' : 'Write with TripicianAI'}
                           </Box>
                         </Tooltip>
                       )}
@@ -753,31 +760,23 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
             {tab === 'details' && (
               <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2.5 }}>
 
-                {currentUserIsOwner && (
-                  <>
-                    <FieldBlock label="Who sees the budget">
-                      <SegmentedControl
-                        value={budgetVisibility}
-                        onChange={(v) => onChangeVisibilitySetting?.('budget', v)}
-                        options={[
-                          { value: 'members', label: 'Everyone on the trip' },
-                          { value: 'admins', label: 'Only me' },
-                        ]}
-                      />
-                    </FieldBlock>
-
-                    <FieldBlock label="Who sees the packing list">
-                      <SegmentedControl
-                        value={checklistVisibility}
-                        onChange={(v) => onChangeVisibilitySetting?.('checklist', v)}
-                        options={[
-                          { value: 'members', label: 'Everyone on the trip' },
-                          { value: 'admins', label: 'Only me' },
-                        ]}
-                      />
-                    </FieldBlock>
-                  </>
+                {currentUserIsOwner && tripId && (
+                  <FieldBlock label="Group">
+                    <TripGroupField tripId={tripId} organizationId={organizationId} />
+                  </FieldBlock>
                 )}
+
+                <FieldBlock label="Starting from">
+                  <OriginField />
+                </FieldBlock>
+
+                <FieldBlock label="Kind of trip">
+                  <TripTypeField />
+                </FieldBlock>
+
+                <FieldBlock label="Food needs">
+                  <FoodField />
+                </FieldBlock>
 
                 {/* Countries */}
                 <FieldBlock label="Countries">

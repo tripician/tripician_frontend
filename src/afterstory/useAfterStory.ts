@@ -38,7 +38,7 @@ export interface UseAfterStoryResult {
    */
   applyStory: (next: AfterStoryDto) => void;
   saveNow: () => Promise<void>;
-  setStatus: (status: StoryStatus) => Promise<void>;
+  setStatus: (status: StoryStatus, caption?: string) => Promise<void>;
   attachTrip: (tripId: string | null) => Promise<void>;
   reload: () => Promise<void>;
 }
@@ -157,7 +157,7 @@ export function useAfterStory(storyIdOrSlug: string | null | undefined): UseAfte
   }, [flush]);
 
   const setStatus = React.useCallback(
-    async (status: StoryStatus) => {
+    async (status: StoryStatus, caption?: string) => {
       const current = draftRef.current;
       if (!current) return;
 
@@ -166,7 +166,7 @@ export function useAfterStory(storyIdOrSlug: string | null | undefined): UseAfte
       await saveNow();
 
       try {
-        const dto = await afterStoryService.setStatus(current.id, status);
+        const dto = await afterStoryService.setStatus(current.id, status, caption);
         setStory(dto);
         setDraft((prev) => (prev ? { ...prev, version: dto.version } : prev));
       } catch (err) {

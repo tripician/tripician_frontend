@@ -23,6 +23,7 @@ import {
   type SelectChangeEvent,
 } from "@mui/material";
 import { KeyboardArrowDown, WarningAmberRounded } from "@mui/icons-material";
+import BlockedPeopleCard from './BlockedPeopleCard';
 
 interface PrivacySetting {
   id: string;
@@ -369,6 +370,9 @@ const PrivacySettings: React.FC = () => {
           )}
         </CardContent>
       </Card>
+
+      {/* Who you have shut out sits with the rest of privacy, above the one irreversible action. */}
+      <BlockedPeopleCard sx={{ mt: 3, borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid', borderColor: 'divider' }} />
 
       {/* Danger Zone */}
       <Card

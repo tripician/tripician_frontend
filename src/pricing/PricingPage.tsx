@@ -16,7 +16,7 @@ import {
   TableContainer, TableHead, TableRow, Typography, useTheme,
 } from '@mui/material';
 import { IconCheck } from '@tabler/icons-react';
-import { useNavigate } from 'react-router-dom';
+import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { planBenefits } from './planBenefits';
 import { apiServices } from '../services/APIs/apiServices';
 import { useAuthToken } from '../hooks/useAuth0Token';
@@ -42,6 +42,7 @@ const BILLING_OPTIONS: { value: Billing; label: string }[] = [
 const PITCH: Record<PlanId, string> = {
   basic: 'Everything you need to plan a trip and write it up afterwards.',
   pro: 'For people who travel often, plan bigger and bring more people along.',
+  club: 'For clubs and travel communities: no member cap, managers, and TripicianAI credits the group shares.',
   business: 'For agencies, trekking groups and travel communities running trips.',
 };
 
@@ -96,15 +97,11 @@ const PricingPage: React.FC = () => {
   const [subscribeError, setSubscribeError] = React.useState<string | null>(null);
   const [subscribeNotice, setSubscribeNotice] = React.useState<string | null>(null);
 
-  /**
-   * Business belongs to an organisation, so it is chosen from that
-   * organisation rather than from a price list: the page cannot know which one,
-   * and guessing would commit the wrong company to a bill.
-   */
+  // Club and Business belong to a group, so they are chosen from that group's settings: this page cannot know which group.
   const subscribe = async (plan: Plan) => {
     if (plan.monthlyPrice === 0) return;
     if (!token) { navigate('/signin'); return; }
-    if (plan.scope === 'organization') { navigate('/organizations'); return; }
+    if (plan.scope === 'organization') { navigate('/groups'); return; }
 
     setSubscribing(plan.planId);
     setSubscribeError(null);
@@ -161,7 +158,7 @@ const PricingPage: React.FC = () => {
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <Seo
         title="Pricing"
-        description="Tripician is free to plan with and free to write on. Pro and Business add more room, more Navia and better Story Book prices."
+        description="Tripician is free to plan with and free to write on. Pro and Business add more room, more TripicianAI and better Story Book prices."
         path="/pricing"
       />
 
@@ -183,7 +180,7 @@ const PricingPage: React.FC = () => {
             display: 'grid',
             gap: 2,
             mt: 4,
-            gridTemplateColumns: { xs: '1fr', md: 'repeat(3, 1fr)' },
+            gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', lg: `repeat(${Math.max(plans.length, 1)}, minmax(0, 1fr))` },
           }}
         >
           {plans.map((plan) => (
@@ -204,6 +201,19 @@ const PricingPage: React.FC = () => {
         {subscribeNotice && (
           <Typography variant="body2" sx={{ mt: 2, color: 'text.secondary' }}>{subscribeNotice}</Typography>
         )}
+
+        <Typography variant="body2" sx={{ mt: 3, color: 'text.secondary', maxWidth: 680 }}>
+          Subscriptions renew automatically until you cancel. Cancel within 7 days of a payment and
+          we refund it in full; after that, cancelling stops the next renewal rather than refunding
+          the period you are in.{' '}
+          <Box
+            component={RouterLink}
+            to="/terms-and-conditions#billing"
+            sx={{ color: 'primary.main', fontWeight: 600, textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}
+          >
+            Billing and refund terms
+          </Box>
+        </Typography>
 
         {books.length > 0 && (
           <Box sx={{ mt: 8 }}>
@@ -349,7 +359,7 @@ const PlanCard: React.FC<{
         {PITCH[plan.planId]}
       </Typography>
 
-      <Box sx={{ display: 'grid', gap: 0.75, mt: 2.5, flex: 1 }}>
+      <Box sx={{ display: 'grid', gap: 0.75, mt: 2.5, flex: 1, alignContent: 'start' }}>
         {[...ALWAYS_FREE, ...limits].map((line) => (
           <Box key={line} sx={{ display: 'flex', alignItems: 'flex-start', gap: 1 }}>
             <IconCheck size={16} style={{ marginTop: 2, flexShrink: 0 }} />

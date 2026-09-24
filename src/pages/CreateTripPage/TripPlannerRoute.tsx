@@ -14,7 +14,7 @@ interface TripPlannerRouteLocationState {
   isMember?: boolean;
   canEdit?: boolean;
   aiGenerated?: boolean; // flag: navigate from "Generate with AI" flow
-  planSeed?: PlanSeed; // a plan that already exists, from the Navia chat or an import
+  planSeed?: PlanSeed; // a plan that already exists, from the TripicianAI chat or an import
 }
 
 const TripPlannerRoute: React.FC = () => {
@@ -29,11 +29,9 @@ const TripPlannerRoute: React.FC = () => {
   const derivedIsOwner = stateMatches && typeof state.isOwner === 'boolean' ? state.isOwner : undefined;
   const derivedCanEdit = stateMatches && typeof state.canEdit === 'boolean' ? state.canEdit : undefined;
   const derivedAiGenerated = stateMatches ? !!state.aiGenerated : false;
-  // A seed with no stops is still a seed: an imported group chat can be all
-  // notes and checklist and nothing else, and dropping it would lose the lot.
+  // A seed with no stops is still a seed: an imported group chat can be all notes, and dropping it would lose the lot.
   const seed = stateMatches ? state.planSeed : undefined;
-  const derivedPlanSeed = seed && (seed.stops?.length || seed.importantNotes?.trim()
-    || seed.checklist?.length || seed.expenses?.length || seed.budget) ? seed : undefined;
+  const derivedPlanSeed = seed && (seed.stops?.length || seed.importantNotes?.trim()) ? seed : undefined;
 
   // Proactive planner reset when navigating to a new trip (route-level) before TripPlanner mounts.
   // This complements internal mismatch detection and ensures no stale itinerary flashes.

@@ -4,6 +4,7 @@ import { IconCheck, IconMinus } from '@tabler/icons-react';
 import { apiServices } from '../../services/APIs/apiServices';
 import { formatMoney, isUnlimited } from '../../pricing/types';
 import type { Plan, PlanId } from '../../pricing/types';
+import { groupMemberLimit } from '../../pricing/planBenefits';
 
 /**
  * The plans, side by side, built from the same configuration the product bills
@@ -22,6 +23,7 @@ import type { Plan, PlanId } from '../../pricing/types';
 const PITCH: Record<PlanId, string> = {
   basic: 'Everything you need to plan a real trip, write it up and keep it.',
   pro: 'For people who travel often, plan with others and print what they wrote.',
+  club: 'For clubs and travel communities that have outgrown a free group.',
   business: 'For agencies, trekking outfits and travel communities running trips for other people.',
 };
 
@@ -31,7 +33,7 @@ const PITCH: Record<PlanId, string> = {
  * Chosen so every cell is answerable from a plan field. A row nobody can fill
  * from the data is a row that will eventually be wrong.
  */
-const ROWS: Array<{ label: string; value: (p: Plan) => string | boolean }> = [
+const ROWS: Array<{ label: string; value: (p: Plan, all: Plan[]) => string | boolean }> = [
   {
     label: 'People on a trip',
     value: (p) => (isUnlimited(p.maxTripMembers) ? 'No limit' : `Up to ${p.maxTripMembers}`),
@@ -41,8 +43,16 @@ const ROWS: Array<{ label: string; value: (p: Plan) => string | boolean }> = [
     value: (p) => (isUnlimited(p.maxRecruitedTravellers) ? 'No limit' : String(p.maxRecruitedTravellers)),
   },
   {
-    label: 'Navia credits each month',
-    value: (p) => p.naviaMonthlyCredits.toLocaleString('en-IN'),
+    label: 'Members in a group you run',
+    value: (p, all) => {
+      const limit = groupMemberLimit(p, all);
+      if (limit === undefined) return false;
+      return limit === null ? 'No limit' : `Up to ${limit}`;
+    },
+  },
+  {
+    label: 'TripicianAI credits each month',
+    value: (p) => p.tripicianAIMonthlyCredits.toLocaleString('en-IN'),
   },
   {
     label: 'Member price on Story Books',
@@ -53,7 +63,7 @@ const ROWS: Array<{ label: string; value: (p: Plan) => string | boolean }> = [
     value: () => true,
   },
   {
-    label: 'Post to the community as an organization',
+    label: 'Post updates on your organization page',
     value: (p) => (p.features ?? []).includes('organization_posts'),
   },
   {
@@ -61,7 +71,7 @@ const ROWS: Array<{ label: string; value: (p: Plan) => string | boolean }> = [
     value: (p) => (p.features ?? []).includes('organization_staffing'),
   },
   {
-    label: 'Managers who run trips without running the business',
+    label: 'Managers who run trips without running the group',
     value: (p) => (p.features ?? []).includes('organization_manager_role'),
   },
 ];
@@ -107,7 +117,7 @@ const LandingPricing: React.FC = () => {
 
   if (!plans) return null;
 
-  const ordered = ['basic', 'pro', 'business']
+  const ordered = ['basic', 'pro', 'club', 'business']
     .map((id) => plans.find((p) => p.planId === id))
     .filter((p): p is Plan => Boolean(p));
 
@@ -175,7 +185,7 @@ const LandingPricing: React.FC = () => {
                 )}
 
                 {plan.scope === 'organization' && (
-                  <p className="lp-plan__scope">Applies to an organization, not a personal account</p>
+                  <p className="lp-plan__scope">Applies to a group, not a personal account</p>
                 )}
 
                 <button
@@ -206,7 +216,7 @@ const LandingPricing: React.FC = () => {
                 <tr key={row.label}>
                   <th scope="row">{row.label}</th>
                   {ordered.map((p) => (
-                    <td key={p.planId}><Cell value={row.value(p)} /></td>
+                    <td key={p.planId}><Cell value={row.value(p, ordered)} /></td>
                   ))}
                 </tr>
               ))}

@@ -1,6 +1,6 @@
 import React from 'react';
 import { apiServices } from '../../services/APIs/apiServices';
-import { useAuthToken } from '../../hooks/useAuth0Token';
+import { createSharedResource } from '../../utils/sharedResource';
 
 export interface PublishedTripsState {
   trips: any[];
@@ -9,6 +9,24 @@ export interface PublishedTripsState {
   reload: () => void;
 }
 
+// The list does not depend on who is asking, so one copy serves Search, Groups & Stories and every group page.
+const publishedTrips = createSharedResource<any[]>(
+  [],
+  async () => {
+    const token = localStorage.getItem('accessToken') ?? undefined;
+    try {
+      const resp = await apiServices.getPublishedTrips(token);
+      return Array.isArray(resp?.data)
+        ? resp.data
+        : Array.isArray(resp?.data?.trips) ? resp.data.trips : [];
+    } catch {
+      const resp2 = await apiServices.getPublicTrips(token);
+      return Array.isArray(resp2?.data) ? resp2.data : [];
+    }
+  },
+  { ttlMs: 60_000, errorMessage: 'Unable to load community trips. Please try again.' },
+);
+
 /**
  * Every published trip, with the /public fallback the community page has always had.
  *
@@ -16,46 +34,10 @@ export interface PublishedTripsState {
  * fields, which silently emptied the recruiting rail with nothing logged.
  */
 export function usePublishedTrips(): PublishedTripsState {
-  const { token } = useAuthToken();
-  const [trips, setTrips] = React.useState<any[]>([]);
-  const [loading, setLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-  const [reloadKey, setReloadKey] = React.useState(0);
+  const snap = React.useSyncExternalStore(publishedTrips.subscribe, publishedTrips.getSnapshot);
 
-  React.useEffect(() => {
-    let active = true;
-    setLoading(true);
-    setError(null);
-    const fetchToken = token || localStorage.getItem('accessToken') || null;
+  React.useEffect(() => { void publishedTrips.ensure(); }, []);
 
-    void (async () => {
-      try {
-        const resp = await apiServices.getPublishedTrips(fetchToken ?? undefined);
-        if (!active) return;
-        const data = Array.isArray(resp?.data)
-          ? resp.data
-          : Array.isArray(resp?.data?.trips) ? resp.data.trips : [];
-        setTrips(data);
-      } catch {
-        if (!active) return;
-        try {
-          const resp2 = await apiServices.getPublicTrips(fetchToken ?? undefined);
-          if (!active) return;
-          setTrips(Array.isArray(resp2?.data) ? resp2.data : []);
-        } catch {
-          if (active) setError('Unable to load community trips. Please try again.');
-        }
-      } finally {
-        if (active) setLoading(false);
-      }
-    })();
-
-    return () => { active = false; };
-  }, [token, reloadKey]);
-
-  const reload = React.useCallback(() => setReloadKey((k) => k + 1), []);
-  return { trips, loading, error, reload };
+  const reload = React.useCallback(() => { void publishedTrips.ensure(true); }, []);
+  return { trips: snap.data, loading: snap.loading, error: snap.error, reload };
 }
-
-export const isRecruiting = (t: any): boolean =>
-  (t?.joinPolicy ?? t?.JoinPolicy) === 'OpenToRequests';

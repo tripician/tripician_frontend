@@ -50,7 +50,7 @@ export const CATEGORIES: CommunityCategory[] = [
   { id: 'luxury', label: 'Luxury', Icon: IconDiamond },
 ];
 
-/** Three-up card grid, used by every community surface. */
+/** Three-up card grid, used by Browse, the crew directory and templates. */
 export const gridSx = {
   display: 'grid',
   gridTemplateColumns: {
@@ -59,6 +59,25 @@ export const gridSx = {
     lg: 'repeat(3, minmax(0, 1fr))',
   },
   gap: 3,
+} as const;
+
+/**
+ * The community wall.
+ *
+ * Denser than `gridSx` and fluid rather than stepped: a wall wants as many
+ * columns as the viewport can hold, so a wide screen gets four or five instead
+ * of stopping at three and leaving the cards enormous. `auto-fill` rather than
+ * `auto-fit` so a single card keeps its column width instead of stretching to
+ * the full measure, which is what makes a sparse wall still read as a wall.
+ *
+ * 260px is the floor where the 4:5 jacket still carries a title, a place and a
+ * name without clipping.
+ */
+export const wallGridSx = {
+  display: 'grid',
+  gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))',
+  gap: { xs: 2, sm: 2.5 },
+  alignItems: 'start',
 } as const;
 
 /*

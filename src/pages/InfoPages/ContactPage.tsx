@@ -4,6 +4,7 @@ import { Box, Typography, Container, Button, TextField } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { Link } from 'react-router-dom';
 import InfoPageShell from './InfoPageShell';
+import Seo from '../../components/Seo';
 import ContactMailRoundedIcon from '@mui/icons-material/ContactMailRounded';
 import EmailRoundedIcon from '@mui/icons-material/EmailRounded';
 import SendRoundedIcon from '@mui/icons-material/SendRounded';
@@ -33,6 +34,11 @@ const ContactPage: React.FC = () => {
 
   return (
     <InfoPageShell>
+      <Seo
+        title="Contact Tripician"
+        description="Get in touch with the Tripician team about your account, a trip, a partnership or a privacy request."
+        path="/contact-us"
+      />
       {/* Hero */}
       <Box sx={{ background: 'linear-gradient(135deg,#FFF5F6 0%,#FFFAFA 100%)', borderBottom: '1px solid rgba(0,0,0,0.06)', px: { xs: 3, md: 8 }, py: { xs: 6, md: 8 } }}>
         <Container maxWidth="md">
@@ -42,7 +48,7 @@ const ContactPage: React.FC = () => {
             </Box>
             <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'primary.main', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Contact Us</Typography>
           </Box>
-          <Typography variant="h2" sx={{ fontWeight: 700, fontSize: { xs: '2rem', md: '2.8rem' }, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.15, mb: 2 }}>
+          <Typography variant="h2" component="h1" sx={{ fontWeight: 700, fontSize: { xs: '2rem', md: '2.8rem' }, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.15, mb: 2 }}>
             We'd love to hear from you.
           </Typography>
           <Typography sx={{ fontSize: '1.05rem', color: '#666', lineHeight: 1.75 }}>

@@ -36,9 +36,14 @@ export const loadRazorpay = (): Promise<boolean> => {
   return loading;
 };
 
+/** The parts of a server-made intent the sheet needs; book orders and credit packs both carry them. */
+type CheckoutIntent = Pick<PaymentIntent, 'keyId' | 'amountPaise' | 'currency' | 'razorpayOrderId' | 'customerName' | 'customerEmail'>
+  & { customerPhone?: string | null };
+
 interface OpenOptions {
-  intent: PaymentIntent;
-  storyTitle: string;
+  intent: CheckoutIntent;
+  /** What the sheet says is being bought. */
+  description: string;
   onPaid: (result: RazorpayResult) => void;
   /** They closed the sheet. Not an error: the order is still there to pay later. */
   onDismissed: () => void;
@@ -53,7 +58,7 @@ interface OpenOptions {
  * the product is broken.
  */
 export const openRazorpayCheckout = ({
-  intent, storyTitle, onPaid, onDismissed, onFailed,
+  intent, description, onPaid, onDismissed, onFailed,
 }: OpenOptions): void => {
   const Razorpay = (window as unknown as { Razorpay?: new (options: unknown) => {
     open: () => void;
@@ -73,7 +78,7 @@ export const openRazorpayCheckout = ({
     currency: intent.currency,
     order_id: intent.razorpayOrderId,
     name: 'Tripician',
-    description: `Story Book: ${storyTitle}`,
+    description,
     prefill: {
       name: intent.customerName ?? undefined,
       email: intent.customerEmail ?? undefined,

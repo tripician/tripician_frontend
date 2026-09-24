@@ -4,6 +4,7 @@ import { Box, Typography, Container } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { Link } from 'react-router-dom';
 import InfoPageShell from './InfoPageShell';
+import Seo from '../../components/Seo';
 import GavelRoundedIcon from '@mui/icons-material/GavelRounded';
 
 const P = ({ children }: { children: React.ReactNode }) => (
@@ -143,7 +144,7 @@ const TermsPage: React.FC = () => {
         <>
           <P>THE SERVICE IS PROVIDED "AS IS" AND "AS AVAILABLE" WITHOUT WARRANTIES OF ANY KIND, EITHER EXPRESS OR IMPLIED, TO THE FULLEST EXTENT PERMITTED BY APPLICABLE LAW. WE DISCLAIM ALL WARRANTIES INCLUDING WARRANTIES OF FITNESS FOR A PARTICULAR PURPOSE, MERCHANTABILITY, AND NON-INFRINGEMENT.</P>
           <Warn>
-            <strong>Travel Information Disclaimer:</strong> All destination information, safety ratings, risk assessments, visa guidance, and AI-generated itinerary suggestions displayed within the Service are sourced from publicly available data and are provided for general informational purposes only. This information may be inaccurate, incomplete, out of date, or not applicable to your specific circumstances. You must independently verify all travel requirements - including entry requirements, visa regulations, health requirements, and safety conditions - with official government sources and relevant embassies before making any travel decisions. Tripician accepts no liability for decisions made based on information displayed in the Service.
+            <strong>Travel Information Disclaimer:</strong> All destination information, visa guidance, and AI-generated itinerary suggestions displayed within the Service are sourced from publicly available data and are provided for general informational purposes only. This information may be inaccurate, incomplete, out of date, or not applicable to your specific circumstances. You must independently verify all travel requirements - including entry requirements, visa regulations, health requirements, and safety conditions - with official government sources and relevant embassies before making any travel decisions. Tripician accepts no liability for decisions made based on information displayed in the Service.
           </Warn>
           <P>We do not warrant that the Service will be uninterrupted, error-free, or free from security vulnerabilities. We are not responsible for any data loss resulting from technical failures.</P>
         </>
@@ -207,8 +208,25 @@ const TermsPage: React.FC = () => {
       ),
     },
     {
+      id: 'billing',
+      title: '14. Paid Plans, Billing, Cancellation and Refunds',
+      content: (
+        <>
+          <P>Tripician Basic is free. Tripician Pro is a paid personal plan, and Tripician Business is a paid plan held by a business group. TripicianAI credits can also be bought on their own as one-off packs, without any subscription.</P>
+          <P><strong>Payment.</strong> Subscriptions are billed monthly or annually in advance, in Indian Rupees, and are taken by Razorpay Software Private Limited. Your card details are entered on Razorpay's own checkout. Tripician never sees or stores them.</P>
+          <P><strong>Renewal.</strong> A subscription renews automatically at the end of each billing period, at the price then in force, until it is cancelled. We will tell you before any price change takes effect on your renewal.</P>
+          <P><strong>Cancelling.</strong> A group subscription can be cancelled by an admin from that group's Settings tab. To cancel a personal subscription, email <Box component="a" href="mailto:support@tripician.com" sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box>. When a subscription is cancelled it stays active until the end of the period you have already paid for, after which the account returns to Tripician Basic.</P>
+          <P><strong>Credits.</strong> TripicianAI credits are added to your balance each month on a plan that includes them, and bought credits are added the same way. Credits are spent when TripicianAI does work for you. They have no cash value, cannot be transferred between accounts, and there is no mechanism to convert them back into money.</P>
+          <P><strong>Refunds.</strong> If you cancel within 7 days of a payment, we will refund that payment in full. This applies to your first payment and to each renewal payment. A credit pack can be refunded on the same terms, as long as none of the credits bought in it have been spent. Ask by emailing <Box component="a" href="mailto:support@tripician.com" sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box> from the address the account is registered to. A refunded subscription ends straight away and the account returns to Tripician Basic. After those 7 days a payment is not refundable: cancelling then stops the next renewal rather than refunding the period you are already in.</P>
+          <P><strong>If you are a consumer in the UK or the EU.</strong> You have a statutory right to cancel a contract made at a distance within 14 days of entering into it. That is longer than the 7 days above, and where it applies it takes precedence. If you asked us to start providing the service straight away, we may keep a proportionate amount for what you used before cancelling. This right is in addition to the policy above rather than instead of it, and nothing in these Terms removes it.</P>
+          <P><strong>How a refund reaches you.</strong> Refunds are made to the original payment method through Razorpay, normally within 14 days of us agreeing to it. How soon it appears after that is decided by your bank or card issuer, not by us.</P>
+          <P><strong>If something has gone wrong.</strong> If you believe you have been charged in error, or a payment has not given you what it should have, email <Box component="a" href="mailto:support@tripician.com" sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box> and we will look into it regardless of the 7 days. Nothing in this section affects any statutory right you have to cancel or to a refund under the consumer law that applies where you live.</P>
+        </>
+      ),
+    },
+    {
       id: 'general',
-      title: '14. General Provisions',
+      title: '15. General Provisions',
       content: (
         <>
           <P><strong>Entire Agreement:</strong> These Terms, together with our Privacy Policy, constitute the entire agreement between you and Tripician regarding the Service and supersede all prior understandings.</P>
@@ -224,6 +242,11 @@ const TermsPage: React.FC = () => {
 
   return (
     <InfoPageShell>
+      <Seo
+        title="Terms and Conditions"
+        description="The terms you agree to when you use Tripician. What the service is, what it is not, how trips run by travel businesses work, and where our responsibility ends."
+        path="/terms-and-conditions"
+      />
       {/* Hero */}
       <Box sx={{ background: 'linear-gradient(135deg,#FFF5F6 0%,#FFFAFA 100%)', borderBottom: '1px solid rgba(0,0,0,0.06)', px: { xs: 3, md: 8 }, py: { xs: 6, md: 8 } }}>
         <Container maxWidth="lg">
@@ -233,7 +256,7 @@ const TermsPage: React.FC = () => {
             </Box>
             <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, color: 'primary.main', letterSpacing: '0.1em', textTransform: 'uppercase' }}>Terms & Conditions</Typography>
           </Box>
-          <Typography variant="h2" sx={{ fontWeight: 700, fontSize: { xs: '2rem', md: '2.8rem' }, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.15, mb: 2 }}>
+          <Typography variant="h2" component="h1" sx={{ fontWeight: 700, fontSize: { xs: '2rem', md: '2.8rem' }, color: '#111', letterSpacing: '-0.03em', lineHeight: 1.15, mb: 2 }}>
             Clear terms you can{' '}
             <Box component="span" sx={{ color: 'primary.main' }}>actually understand.</Box>
           </Typography>
@@ -242,7 +265,7 @@ const TermsPage: React.FC = () => {
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, mt: 3, flexWrap: 'wrap' }}>
             <Box sx={{ background: alpha(BRAND.coral, 0.08), borderRadius: '20px', px: 2, py: 0.75, border: `1px solid ${alpha(BRAND.coral, 0.15)}` }}>
-              <Typography sx={{ fontSize: '0.78rem', color: 'primary.main', fontWeight: 600 }}>Last updated: May 1, 2026</Typography>
+              <Typography sx={{ fontSize: '0.78rem', color: 'primary.main', fontWeight: 600 }}>Last updated: September 24, 2026</Typography>
             </Box>
             <Box sx={{ background: 'rgba(0,0,0,0.04)', borderRadius: '20px', px: 2, py: 0.75, border: '1px solid rgba(0,0,0,0.08)' }}>
               <Typography sx={{ fontSize: '0.78rem', color: '#555', fontWeight: 500 }}>Version 1.0</Typography>

@@ -13,10 +13,7 @@ const today = new Date().toISOString().split('T')[0];
 
 const staticRoutes = [
   { path: '/',                      priority: '1.0', changefreq: 'weekly'  },
-  { path: '/community',             priority: '0.9', changefreq: 'daily'   },
-  // /discover was dropped: it redirects to /community, and listing a redirect
-  // in the sitemap is a crawl-budget own goal.
-  { path: '/trips/looking-for-people', priority: '0.8', changefreq: 'daily' },
+  // /community and /discover are both 301s to /stories now; listing a redirect in a sitemap wastes crawl budget.
   { path: '/stories',               priority: '0.9', changefreq: 'daily'   },
   { path: '/posts',                 priority: '0.7', changefreq: 'hourly'  },
   { path: '/pricing',               priority: '0.7', changefreq: 'monthly' },

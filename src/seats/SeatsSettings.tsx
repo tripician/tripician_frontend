@@ -3,6 +3,7 @@ import {
   Alert, Box, Button, FormControlLabel, MenuItem, Select, Switch, TextField, Typography,
 } from '@mui/material';
 import { apiServices } from '../services/APIs/apiServices';
+import { Link as RouterLink } from 'react-router-dom';
 import { useAuthToken } from '../hooks/useAuth0Token';
 import type { JoinPolicy, TripSeats } from './types';
 import { useVerification } from './useVerification';
@@ -29,7 +30,8 @@ const SeatsSettings: React.FC<SeatsSettingsProps> = ({ tripId, published }) => {
   const { token } = useAuthToken();
   const verification = useVerification();
 
-  const [seats, setSeats] = React.useState<TripSeats | null>(null);
+    const [seats, setSeats] = React.useState<TripSeats | null>(null);
+    const [loaded, setLoaded] = React.useState(false);
   const [policy, setPolicy] = React.useState<JoinPolicy>('Closed');
   const [capacity, setCapacity] = React.useState('');
   const [price, setPrice] = React.useState('');
@@ -51,8 +53,9 @@ const SeatsSettings: React.FC<SeatsSettingsProps> = ({ tripId, published }) => {
         setPrice(s.pricePerPerson != null ? String(s.pricePerPerson) : '');
         setBlurb(s.listingBlurb ?? '');
         setConfirmed(s.confirmed);
+        setLoaded(true);
       })
-      .catch(() => { /* leave defaults */ });
+      .catch(() => { if (active) setLoaded(true); });
     return () => { active = false; };
   }, [token, tripId]);
 
@@ -85,6 +88,23 @@ const SeatsSettings: React.FC<SeatsSettingsProps> = ({ tripId, published }) => {
 
   const active = POLICIES.find((p) => p.value === policy);
   const listingPending = policy === 'OpenToRequests' && !published;
+
+  if (!loaded) return null;
+
+  // Said plainly rather than hidden: an organiser who looked for this deserves to know where it went.
+  if (seats && !seats.canRecruit) {
+    return (
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1, alignItems: 'flex-start' }}>
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+          Taking join requests from travellers is part of Tripician Business. A business group on the Business
+          plan can list its trips here; invite links still work on any trip.
+        </Typography>
+        <Button component={RouterLink} to="/pricing" size="small" sx={{ textTransform: 'none', fontWeight: 700, px: 0 }}>
+          See what Business includes
+        </Button>
+      </Box>
+    );
+  }
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', gap: 2 }}>

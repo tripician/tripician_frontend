@@ -16,6 +16,10 @@ export interface Conversation {
   lastMessageAt: string;
   lastMessagePreview: string | null;
   unreadCount: number;
+  /** The last message was the reader's own. */
+  lastMessageMine?: boolean;
+  /** A join request between the two that is still open, and whose move it is. */
+  pending?: 'their-request' | 'my-request' | null;
 }
 
 export interface ConversationMessage {

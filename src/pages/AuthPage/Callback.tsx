@@ -7,7 +7,7 @@ import type { AppDispatch } from '../../store';
 import { fetchUserProfile } from '../../store/userSlice';
 import { clearSessionData } from '../../utils/authSession';
 import { setAccessToken, setRefreshToken } from '../../services/auth/sessionStatus';
-import { peekPendingPrompt } from '../../utils/pendingNaviaPrompt';
+import { peekPendingPrompt } from '../../utils/pendingTripicianAIPrompt';
 import { takeReturnTo } from '../../utils/pendingDraft';
 import { authAPI } from '../../services/APIs/Auth/auth';
 
@@ -116,7 +116,7 @@ const Callback = () => {
           // that survived a full page reload out to Auth0 and back. That reload
           // is also why the destination comes from storage: `?next=` was on the
           // sign-in URL, which no longer exists.
-          navigate(peekPendingPrompt() ? '/navia' : (takeReturnTo() ?? '/home'), { replace: true });
+          navigate(peekPendingPrompt() ? '/tripicianai' : (takeReturnTo() ?? '/home'), { replace: true });
         } else {
           console.error('[Callback] Unexpected response:', response.data);
           setCallbackError('Unexpected response from server.');

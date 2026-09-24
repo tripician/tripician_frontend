@@ -1,5 +1,5 @@
 import { Suspense, lazy } from 'react'
-import { Routes, Route, Navigate } from 'react-router-dom'
+import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
 import Landingpage from './pages/LandingPage/LandingPage'
 import ProtectedRoute from './services/APIs/Auth/ProtectedRoute'
 import GuestRoute from './services/APIs/Auth/GuestRoute'
@@ -18,25 +18,28 @@ const Signup = lazy(() => import('./pages/AuthPage/Signup'))
 const ForgotPassword = lazy(() => import('./pages/AuthPage/ForgotPassword'))
 const Callback = lazy(() => import('./pages/AuthPage/Callback'))
 const AuthenticatedLayout = lazy(() => import('./pages/PageLayout/AuthenticatedLayout'))
+// Same chunk AuthenticatedLayout pulls in, so "/" costs no extra download.
+const NavigationPannel = lazy(() => import('./pages/PageLayout/CommonLayouts/NavigationPanel'))
 const SuccessOverlay = lazy(() => import('./components/CommonComponents/SuccessOverlay'))
 const Profile = lazy(() => import('./pages/ProfilePage/Profile'))
-const Community = lazy(() => import('./pages/CommunityPage/Community'))
+const Board = lazy(() => import('./board/Board'))
 const Crew = lazy(() => import('./pages/CrewPage/Crew'))
 const OperatorPage = lazy(() => import('./operator/OperatorPage'))
 const OrganizationsPage = lazy(() => import('./organization/OrganizationsPage'))
 const OrganizationProfilePage = lazy(() => import('./organization/OrganizationProfilePage'))
 const OrganizationWorkspace = lazy(() => import('./organization/OrganizationWorkspace'))
+const JoinGroupPage = lazy(() => import('./organization/JoinGroupPage'))
+const JoinTripPage = lazy(() => import('./seats/JoinTripPage'))
 const PricingPage = lazy(() => import('./pricing/PricingPage'))
 const Templates = lazy(() => import('./pages/TemplatesPage/Templates'))
-const TripsPage = lazy(() => import('./pages/TripsPage/TripsPage'))
+const SearchPage = lazy(() => import('./pages/SearchPage/SearchPage'))
 const PostsPage = lazy(() => import('./posts/PostsPage'))
 const PostPage = lazy(() => import('./posts/PostPage'))
 const TravelerProfile = lazy(() => import('./pages/ProfilePage/TravelerProfile'))
 const Settings = lazy(() => import('./pages/SettingsPage/Settings'))
 const UnsubscribePage = lazy(() => import('./pages/SettingsPage/UnsubscribePage'))
 const MessagesPage = lazy(() => import('./messages/MessagesPage'))
-const RiskMonitor = lazy(() => import('./pages/RiskMonitorPage/RiskMonitor'))
-const NaviaPage = lazy(() => import('./pages/NaviaPage/NaviaPage'))
+const TripicianAIPage = lazy(() => import('./pages/TripicianAIPage/TripicianAIPage'))
 const TripPlannerEntry = lazy(() => import('./pages/CreateTripPage/TripPlannerEntry.tsx'))
 const TripPlannerRoute = lazy(() => import('./pages/CreateTripPage/TripPlannerRoute.tsx'))
 const TripView = lazy(() => import('./pages/TripViewPage/TripView'))
@@ -60,20 +63,41 @@ if (import.meta.env.DEV) {
 
 
 /**
- * Smart root: signed-in users skip the landing page and go straight to community.
+ * Smart root: the landing page for a guest, the board for everybody else.
  *
  * The single authority on what "/" shows. LandingPage used to run its own redirect
  * from the Auth0 SDK's `isAuthenticated`, which disagreed with this and produced the
  * production back-button loop; that effect is gone and must not come back.
  *
+ * It RENDERS the board rather than redirecting to it. This IS the product's front
+ * door now, not a hop to a page called Community that a traveller never typed.
+ *
+ * The shell is composed by hand here because AuthenticatedLayout is a layout route
+ * that renders an Outlet, and "/" is not inside it. NavigationPannel takes children,
+ * so this is the same shell the layout builds, minus the routing indirection. The
+ * guest branch deliberately stays outside it: app chrome around a marketing page
+ * would be worse than the redirect this replaces.
+ *
  * Reads the same status enum as the two route guards. `expired` renders the landing
  * page rather than redirecting, which is right: someone whose session lapsed should
  * see the front door, not be thrown at a guard that sends them somewhere else.
  */
+// Organisations became groups; old links keep working, query string and all.
+function OrganizationRedirect() {
+  const { orgId } = useParams();
+  const { search } = useLocation();
+  return <Navigate to={`/groups${orgId ? `/${orgId}` : ''}${search}`} replace />;
+}
+
 function RootRedirect() {
   const { status } = useAuthToken();
   if (status === 'refreshing') return <div style={{ minHeight: '100vh' }} />;
-  return status === 'valid' ? <Navigate to="/community" replace /> : <Landingpage />;
+  if (status !== 'valid') return <Landingpage />;
+  return (
+    <NavigationPannel>
+      <Board />
+    </NavigationPannel>
+  );
 }
 
 function App() {
@@ -92,45 +116,54 @@ function App() {
         
           {/* Protected Routes grouped under persistent layout */}
           <Route element={<ProtectedRoute><AuthenticatedLayout /></ProtectedRoute>}>
-            <Route path="/home" element={<Navigate to="/community" replace />} />
+            {/* The post-auth landing for every password sign-in without a ?next=
+                and every social sign-in, via nextDestination's FALLBACK. It used
+                to point at /community; pointing it anywhere that does not resolve
+                404s sign-in itself, which is why the fallback stays /home and
+                only its destination moves. */}
+            <Route path="/home" element={<Navigate to="/" replace />} />
             {/* Trips merged into Profile, which already carried the same data
                 from the same endpoint. Redirected rather than removed: the path
                 is in people's history and muscle memory, and a 404 there would
                 read as lost work. */}
             <Route path="/dashboard" element={<Navigate to="/profile?tab=trips" replace />} />
             <Route path="/profile" element={<Profile />} />
-            <Route path="/navia" element={<NaviaPage />} />
+            <Route path="/tripicianai" element={<TripicianAIPage />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/messages" element={<MessagesPage />} />
             <Route path="/operator" element={<OperatorPage />} />
-            <Route path="/organizations" element={<OrganizationsPage />} />
-            <Route path="/organizations/:orgId" element={<OrganizationWorkspace />} />
+            <Route path="/groups" element={<OrganizationsPage />} />
+            <Route path="/groups/:orgId" element={<OrganizationWorkspace />} />
+            <Route path="/organizations" element={<OrganizationRedirect />} />
+            <Route path="/organizations/:orgId" element={<OrganizationRedirect />} />
           </Route>
           {/* Semi-public routes: full app layout but no auth gate - guests can browse, login prompted on action */}
           <Route element={<AuthenticatedLayout />}>
-            <Route path="/community" element={<Community />} />
-            {/* Semi-public like /community: a guest can browse, and signing in is
-                prompted on the action rather than at the door. */}
+            {/* Semi-public: a guest can browse, and signing in is prompted on the
+                action rather than at the door. */}
             <Route path="/stories" element={<BrowsePage />} />
-            {/* Lifted out of the Community tabs: finding a person and copying a
-                starting point are lookups, not browsing, and both deserve a URL. */}
+            {/* Instagram-style search: people, places, plans, stories, groups, tags. noindex. */}
+            <Route path="/search" element={<SearchPage />} />
+            {/* Finding a person and copying a starting point are lookups, not
+                browsing, and both deserve a URL. */}
             <Route path="/crew" element={<Crew />} />
             <Route path="/templates" element={<Templates />} />
-            {/* Community is an editorial scroll, so browsing everything needs its own page. */}
             {/* One library, filtered. /trips is in links and history, so it lands there. */}
             <Route path="/trips" element={<Navigate to="/stories?kind=plans" replace />} />
             {/* Short notes from travellers. Semi-public: browsing needs no account, posting does. */}
             <Route path="/posts" element={<PostsPage />} />
             <Route path="/post/:postId" element={<PostPage />} />
-            <Route path="/trips/looking-for-people" element={<TripsPage recruitingOnly />} />
             <Route path="/traveler/:userId" element={<TravelerProfile />} />
-            <Route path="/risk-monitor" element={<RiskMonitor />} />
+            {/* A group's public page, inside the shell so browsing groups never drops the nav. */}
+            <Route path="/o/:slug" element={<OrganizationProfilePage />} />
+            {/* Where an invite link lands. A guest sees the group first and signs in to join. */}
+            <Route path="/join/group/:token" element={<JoinGroupPage />} />
+            <Route path="/join/trip/:token" element={<JoinTripPage />} />
           </Route>
           {/* Trip Planner entry: redirect /tripplanner -> /tripplanner/:generatedId (reusing last draft if available) */}
           <Route path="/tripplanner" element={<ProtectedRoute><TripPlannerEntry /></ProtectedRoute>} />
           <Route path="/tripplanner/:tripId" element={<ProtectedRoute><TripPlannerRoute /></ProtectedRoute>} />
           {/* Read-only trip view route (partially public: published/shared trips viewable without login) */}
-          <Route path="/o/:slug" element={<OrganizationProfilePage />} />
           <Route path="/trip/:tripId" element={<TripView />} />
           {/* After Story editor. Protected and noindex: a draft is private by definition. */}
           <Route path="/story/:storyId/edit" element={<ProtectedRoute><StoryEditPage /></ProtectedRoute>} />
@@ -166,11 +199,10 @@ function App() {
           {/* Blog routes - public, no auth required (SEO) */}
           <Route path="/blog" element={<BlogsList />} />
           <Route path="/blog/:slug" element={<BlogPost />} />
-          {/* /discover rendered a second copy of the published-trips feed under a
-              different name, with its own H1 and its own SEO - so the community
-              had two front doors and no single name. It now redirects to the one
-              that keeps it. `replace` so Back does not bounce the user. */}
-          <Route path="/discover" element={<Navigate to="/community" replace />} />
+          {/* Retired feed URLs. Browse is the content they indexed and it is public, so a guest is not bounced to the landing page. */}
+          {/* vercel.json sends the same two as real 301s in production; these cover dev and any path that skips the CDN. */}
+          <Route path="/discover" element={<Navigate to="/stories" replace />} />
+          <Route path="/community" element={<Navigate to="/stories" replace />} />
         
           {/* Final catch-all -> 404 page */}
           <Route path="*" element={<NotFound404 />} />

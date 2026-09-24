@@ -1,8 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import fs from 'node:fs';
 import path from 'node:path';
-import { onCommandBarRoute } from '../../navia/commandbar/commandModes';
-import { APP_NAV_ITEMS, MOBILE_NAV_EXCLUDED, navItemFromPath } from './navConfig';
+import { onCommandBarRoute } from '../../tripicianai/commandbar/commandModes';
+import { APP_NAV_ITEMS, MOBILE_NAV_EXCLUDED, isNavItemActive, navItemFromPath } from './navConfig';
 
 /**
  * These guard an information-architecture change, not a component.
@@ -57,6 +57,27 @@ describe('APP_NAV_ITEMS', () => {
     expect(APP_NAV_ITEMS.some((i) => i.id === 'trips')).toBe(false);
   });
 
+  it('orders the bar as Wall, Search, Groups & Stories, Profile', () => {
+    expect(APP_NAV_ITEMS.map((i) => i.id)).toEqual(['wall', 'search', 'stories', 'profile']);
+  });
+
+  it('holds places to go, never the assistant, which is a tool with its own doors', () => {
+    expect(APP_NAV_ITEMS.some((i) => i.id === 'tripicianai' || i.path === '/tripicianai')).toBe(false);
+  });
+
+  it('keeps Groups & Stories at /stories, the indexed URL every old link points at', () => {
+    const hub = APP_NAV_ITEMS.find((i) => i.id === 'stories');
+    expect(hub?.path).toBe('/stories');
+    expect(hub?.desktopLabel).toBe('Groups & Stories');
+    expect(hub?.shortLabel).toBe('G&S');
+  });
+
+  it('only gives a desktop label to an item whose short label is an abbreviation', () => {
+    for (const item of APP_NAV_ITEMS) {
+      if (item.desktopLabel) expect(item.desktopLabel).not.toBe(item.shortLabel);
+    }
+  });
+
   it('keeps /dashboard resolvable, because it is in people history', () => {
     // Removed from the nav, but redirected rather than deleted.
     expect(appSource).toContain('path="/dashboard"');
@@ -74,6 +95,28 @@ describe('navItemFromPath', () => {
   it('returns undefined for an unregistered path rather than throwing', () => {
     expect(navItemFromPath('/nowhere')).toBeUndefined();
     expect(navItemFromPath('/dashboard')).toBeUndefined();
+  });
+
+  it('lights the destination a deeper or related page belongs to', () => {
+    expect(navItemFromPath('/trips')?.id).toBe('stories');
+    expect(navItemFromPath('/o/himalaya-treks')?.id).toBe('stories');
+    expect(navItemFromPath('/groups/abc')?.id).toBe('stories');
+    expect(navItemFromPath('/join/group/token')?.id).toBe('stories');
+    expect(navItemFromPath('/crew')?.id).toBe('search');
+    // The assistant is not a destination any more, so its page lights no tab.
+    expect(navItemFromPath('/tripicianai')).toBeUndefined();
+  });
+
+  it('never lets the wall claim every path through its root prefix', () => {
+    expect(navItemFromPath('/posts')).toBeUndefined();
+    expect(navItemFromPath('/')?.id).toBe('wall');
+  });
+
+  it('gives both navs the same answer', () => {
+    const hub = APP_NAV_ITEMS.find((i) => i.id === 'stories')!;
+    const wall = APP_NAV_ITEMS.find((i) => i.id === 'wall')!;
+    expect(isNavItemActive(hub, '/trips')).toBe(true);
+    expect(isNavItemActive(wall, '/trips')).toBe(false);
   });
 });
 
@@ -123,11 +166,11 @@ describe('mobile nav wiring', () => {
 
   it('reaches the excluded item from every destination that IS in the bar', () => {
     /*
-     * The whole argument for taking Navia off the phone is that the floating
-     * command bar is a better Navia surface and covers everywhere the bar can
+     * The whole argument for taking TripicianAI off the phone is that the floating
+     * command bar is a better TripicianAI surface and covers everywhere the bar can
      * take you. This asserts that argument instead of trusting it.
      *
-     * Delete '/profile' from COMMAND_BAR_ROUTES and this fails, saying Navia
+     * Delete '/profile' from COMMAND_BAR_ROUTES and this fails, saying TripicianAI
      * just became unreachable from Profile. Nothing else in the suite could
      * catch that, because it spans two files that had no test relationship.
      */

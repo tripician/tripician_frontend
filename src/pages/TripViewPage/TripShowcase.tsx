@@ -17,8 +17,7 @@ import {
   IconArrowLeft, IconHeart, IconHeartFilled, IconBookmark, IconBookmarkFilled,
   IconShare2, IconPencil, IconCopy, IconMapPin, IconMoonStars, IconCalendar, IconFileDownload,
   IconUsers, IconToolsKitchen2, IconNotes, IconRoute, IconInfoCircle, IconBed,
-  IconWallet, IconExternalLink, IconPlane, IconTrain, IconBus, IconCar,
-  IconSailboat, IconWalk, IconStar, IconLock, IconChevronDown,
+  IconExternalLink, IconStar, IconLock, IconChevronDown,
   IconRosetteDiscountCheckFilled,
 } from '@tabler/icons-react';
 import dayjs from 'dayjs';
@@ -26,6 +25,7 @@ import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { fetchUnsplashImage } from '../../services/unsplashService';
 import { resolveTripCover } from '../../utils/tripCover';
+import { transportIcon, transportLabel } from '../../utils/transportModes';
 import { VIBES } from '../CommunityPage/vibes';
 import { safeExternalUrl } from '../../utils/sanitizeHtml';
 import TripShareModal from '../../components/TripShareModal';
@@ -36,11 +36,10 @@ import VerifiedTripBadge from '../../components/CommonComponents/VerifiedTripBad
 import ExpandableText from '../../components/ui/ExpandableText';
 import type { SpotProvenance } from '../../store/plannerSlice';
 import TripComments from '../CreateTripPage/TripComments';
+import PlaceQuestions from '../../posts/PlaceQuestions';
 import ShowcaseMap from './ShowcaseMap';
 import { BRAND } from '../../theme';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
-import PackingSection from './sections/PackingSection';
-import BudgetSection from './sections/BudgetSection';
 import StorySection from './sections/StorySection';
 import {
   TRIP_SECTION_LABELS, isTripSectionId, visibleTripSections, accessRank,
@@ -98,15 +97,6 @@ const stopMapsHref = (stop: { name: string; lat?: number; lng?: number }): strin
     ? `https://www.google.com/maps/search/?api=1&query=${stop.lat},${stop.lng}`
     : `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(stop.name)}`;
 
-/** Small caption telling members a section is hidden from the public. */
-const MembersOnlyTag: React.FC = () => (
-  <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.5, color: 'text.disabled' }}>
-    <IconLock size={12} />
-    <Typography component="span" sx={{ fontSize: 11, fontWeight: 600,}}>
-      Visible to trip members only
-    </Typography>
-  </Box>
-);
 
 /** Google-Maps link for a spot: prefer its own mapUrl, else the place id, else a name search. */
 function spotMapsHref(spot: any, stopName: string): string | undefined {
@@ -165,26 +155,16 @@ function normaliseStops(rawTrip: any): ShowcaseStopFull[] {
   });
 }
 
-/** Transport label → Tabler icon. */
-function transportIcon(mode: string) {
-  const m = mode.toLowerCase();
-  if (/plane|flight|fly|air/.test(m)) return IconPlane;
-  if (/train|rail/.test(m)) return IconTrain;
-  if (/bus|coach/.test(m)) return IconBus;
-  if (/car|drive|taxi|cab|road/.test(m)) return IconCar;
-  if (/boat|ferry|cruise|ship/.test(m)) return IconSailboat;
-  if (/walk|hike|trek|foot/.test(m)) return IconWalk;
-  return IconRoute;
-}
-
 /**
- * Timeline geometry, named because three places have to agree on it: the vertical
- * space between stops, the connector segments that cross it, and the numbered node
- * they run into. Hard-coding 40 and 30 in each spot is how a rail drifts out of
- * alignment the first time someone changes the spacing.
+ * Timeline geometry, named because four places have to agree on it: the vertical
+ * space between stops, the leg row that sits in that space, the connector segments
+ * that cross both, and the numbered node they run into. Hard-coding these in each
+ * spot is how a rail drifts out of alignment the first time someone changes the
+ * spacing, which is exactly how the leg chip once left a break in the line.
  */
 const STOP_GAP_PX = 40;
 const RAIL_NODE_PX = 30;
+const LEG_BLOCK_PX = 36;
 
 /**
  * The chevron that opens and closes a stop.
@@ -293,11 +273,6 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
     (typeof root.importantNotes === 'string' && root.importantNotes.trim()) ? root.importantNotes.trim()
       : (typeof root.ImportantNotes === 'string' && root.ImportantNotes.trim()) ? root.ImportantNotes.trim()
         : undefined;
-  const budget = Number(rawTrip?.budget ?? rawTrip?.Budget) || 0;
-  const currencyCode: string = root.currencyCode || root.CurrencyCode || 'USD';
-  const budgetLabel = budget > 0
-    ? `${new Intl.NumberFormat(undefined, { style: 'currency', currency: currencyCode, maximumFractionDigits: 0 }).format(budget)} budget`
-    : null;
 
   // ── Photos: trip banner + per-stop Unsplash fallbacks ──
   const [photos, setPhotos] = React.useState<Record<string, string>>({});
@@ -433,14 +408,10 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
   const canManageTrip = root.canEditPlan === true || root.CanEditPlan === true
     || accessRank(accessLevel) >= accessRank('admin');
 
-  const budgetVisibility: string | undefined = root.budgetVisibility ?? root.BudgetVisibility;
-  const checklistVisibility: string | undefined = root.checklistVisibility ?? root.ChecklistVisibility;
   const sections = React.useMemo(() => visibleTripSections({
     level: accessLevel,
-    budgetVisibility,
-    checklistVisibility,
     storyEnabled: FEATURE_FLAGS.afterStory,
-  }), [accessLevel, budgetVisibility, checklistVisibility]);
+  }), [accessLevel]);
 
   const [searchParams, setSearchParams] = useSearchParams();
   const requestedTab = searchParams.get('tab');
@@ -546,7 +517,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
             Back
           </Button>
           <Button
-            onClick={() => navigate('/community')}
+            onClick={() => navigate('/stories?kind=plans')}
             sx={{ color: '#fff', textTransform: 'none', fontWeight: 600, fontSize: 13.5, bgcolor: 'rgba(10,12,16,0.42)', borderRadius: '50px', px: 1.75, py: 0.6, '&:hover': { bgcolor: 'rgba(10,12,16,0.62)' } }}
           >
             Explore more trips
@@ -729,11 +700,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
         <StorySection tripId={tripId} tripName={name} canEdit={canManageTrip} isMember={memberView} />
       )}
 
-      {section === 'packing' && <PackingSection tripId={tripId} rawTrip={rawTrip} />}
 
-      {section === 'budget' && (
-        <BudgetSection rawTrip={rawTrip} currencyCode={currencyCode} canEdit={canManageTrip} onEdit={onEdit} />
-      )}
 
       {section === 'plan' && (
         <>
@@ -847,7 +814,8 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
               const { dayLabel } = stopMeta[idx];
               const photo = stop.photoUrl || photos[stop.id];
               const isLast = idx === stops.length - 1;
-              const TransportIcon = stop.transport ? transportIcon(stop.transport) : null;
+              const legMode = idx > 0 ? (stops[idx - 1].transport ?? '').trim() : '';
+              const TransportIcon = legMode ? transportIcon(legMode) : null;
               const hasContent = stop.spots.length > 0 || stop.foods.length > 0
                 || !!stop.notes || stop.stays.length > 0 || !!stop.stayNotes;
               const expanded = !!expandedStops[stop.id];
@@ -883,16 +851,15 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                      with a negative offset instead. */
                   sx={{ scrollMarginTop: '132px', mb: isLast ? 0 : `${STOP_GAP_PX}px` }}
                 >
-                {/* Transport leg into this stop */}
-                {idx > 0 && stop.transport && TransportIcon && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, ml: '7px', mb: 2, mt: -2 }}>
-                    <Box sx={{ width: 16, display: 'flex', justifyContent: 'center' }}>
-                      <Box sx={{ width: 2, height: 26, bgcolor: border, borderRadius: 1 }} />
-                    </Box>
+                {/* Transport leg into this stop. Exactly LEG_BLOCK_PX tall and carrying no
+                    line of its own: the rail above it is one segment that crosses the whole
+                    distance, and the chip simply sits beside it. */}
+                {legMode && TransportIcon && (
+                  <Box sx={{ display: 'flex', alignItems: 'center', height: `${LEG_BLOCK_PX}px`, pl: `${RAIL_NODE_PX / 2 + 8}px` }}>
                     <Box sx={{ display: 'inline-flex', alignItems: 'center', gap: 0.75, border: `1px solid ${border}`, borderRadius: '50px', px: 1.5, py: 0.5, bgcolor: 'background.paper' }}>
                       <TransportIcon size={14} style={{ color: 'primary.main' }} />
                       <Typography sx={{ fontSize: 12, fontWeight: 600, color: 'text.secondary', textTransform: 'capitalize' }}>
-                        By {stop.transport}
+                        By {transportLabel(legMode).toLowerCase()}
                       </Typography>
                     </Box>
                   </Box>
@@ -922,7 +889,9 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                       <Box sx={{
                         position: 'absolute', left: '50%', transform: 'translateX(-50%)',
                         width: 2, borderRadius: 1, bgcolor: border,
-                        top: `calc(50% + ${RAIL_NODE_PX / 2 + 4}px)`, bottom: `-${STOP_GAP_PX}px`,
+                        // Reaches the next card, which is the gap plus the leg row when this stop has one.
+                        top: `calc(50% + ${RAIL_NODE_PX / 2 + 4}px)`,
+                        bottom: `-${STOP_GAP_PX + ((stop.transport ?? '').trim() ? LEG_BLOCK_PX : 0)}px`,
                       }} />
                     )}
                     <Box sx={{ position: 'relative', zIndex: 1, width: RAIL_NODE_PX, height: RAIL_NODE_PX, borderRadius: '50%', bgcolor: 'text.primary', color: 'background.paper', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 13, fontWeight: 700, flexShrink: 0 }}>
@@ -1277,17 +1246,6 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
                   </Typography>
                 </Box>
               )}
-              {memberView && budgetLabel && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
-                  <IconWallet size={17} style={{ color: 'primary.main', flexShrink: 0 }} />
-                  <Box sx={{ minWidth: 0 }}>
-                    <Typography sx={{ fontSize: 14, fontWeight: 600, color: 'text.primary',}}>
-                      {budgetLabel}
-                    </Typography>
-                    <MembersOnlyTag />
-                  </Box>
-                </Box>
-              )}
             </Box>
 
             <Divider sx={{ my: 2 }} />
@@ -1339,7 +1297,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
             </Typography>
             <Typography sx={{ fontSize: 14.5, color: 'text.secondary', lineHeight: 1.6, mb: 2.5 }}>
               {canEdit
-                ? 'Ask the community to look over your plan before you book - people who have been will tell you what you have missed.'
+                ? 'Ask other travellers to look over your plan before you book - people who have been will tell you what you have missed.'
                 : `Tell ${ownerName.split(' ')[0]} what you would change, what they have missed, or what is worth skipping. That advice is the most useful thing on this page.`}
             </Typography>
             <TripComments tripId={tripId} authToken={token ?? null} />
@@ -1357,6 +1315,15 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
           </Box>
         </Box>
       ) : null}
+
+      {/* What travellers asked about this place: useful while planning, and where a reader goes next. */}
+      {countries.length > 0 && (
+        <Box sx={{ borderTop: `1px solid ${border}` }}>
+          <Box sx={{ maxWidth: 760, mx: 'auto', px: { xs: 2, md: 4 }, py: { xs: 4, md: 6 } }}>
+            <PlaceQuestions countries={countries} />
+          </Box>
+        </Box>
+      )}
 
         </>
       )}

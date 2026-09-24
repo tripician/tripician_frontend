@@ -344,7 +344,7 @@ export function stripHtml(html: string): string {
 /**
  * Plain text to paragraph html, escaping as it goes.
  *
- * Used when Navia's proof-read result is accepted: it is handed text and returns
+ * Used when TripicianAI's proof-read result is accepted: it is handed text and returns
  * text, so it has to become markup again before it lands in a block. That output
  * eventually reaches innerHTML, which is why the escape happens here rather than
  * being left to the sanitizer downstream. Blank lines become paragraphs and
