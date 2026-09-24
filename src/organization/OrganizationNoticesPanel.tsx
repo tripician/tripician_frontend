@@ -1,24 +1,6 @@
-/**
- * The organisation's internal desk: its staff notice board, and every join
- * request waiting across its trips.
- *
- * ## Why these two together
- *
- * Both answer "what needs somebody's attention here", and both are staff-only.
- * Split across two tabs, the queue is the one nobody remembers to open, which is
- * the failure this exists to fix: a request lands on a colleague's trip, that
- * colleague is away, and nothing else in the product tells anyone.
- *
- * ## What this is not
- *
- * Not mail. There are no threads, no replies and no recipients to choose: one
- * author, everyone in the member list, and it never leaves that list. Every
- * organisation already has email, Slack or WhatsApp, and this is not competing
- * with them. It is the notice board that sits beside the trips it is about.
- *
- * Public messages are OrganizationPostsPanel; notices to travellers on one trip
- * are trip announcements. Neither is reachable from here.
- */
+// The group's announcements: one author, everyone in the member list, and it never leaves that list.
+// Not mail and not a feed. Public messages are OrganizationPostsPanel; notices to one trip's travellers are trip announcements.
+// The join queue used to live under this too. It sits with the trips it is about now, on the Trips tab.
 
 import React from 'react';
 import {
@@ -27,7 +9,6 @@ import {
 import { IconPin, IconPinnedFilled, IconTrash } from '@tabler/icons-react';
 import { apiServices } from '../services/APIs/apiServices';
 import SectionHeader from '../components/ui/SectionHeader';
-import JoinRequestsInbox from '../seats/JoinRequestsInbox';
 import { runsOrganizationTrips, type Organization, type OrganizationAnnouncement } from './types';
 
 const MAX_BODY = 2000;
@@ -39,6 +20,7 @@ interface Props {
 const OrganizationNoticesPanel: React.FC<Props> = ({ organization }) => {
   const theme = useTheme();
   const canPost = runsOrganizationTrips(organization);
+  const business = organization.kind === 'business';
 
   const [notices, setNotices] = React.useState<OrganizationAnnouncement[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -112,8 +94,8 @@ const OrganizationNoticesPanel: React.FC<Props> = ({ organization }) => {
   return (
     <Box>
       <SectionHeader
-        title="Notice board"
-        subtitle="Everyone in this organisation sees these. Travellers never do."
+        title="Announcements"
+        subtitle="Everyone in this group sees these. Nobody outside it does."
       />
 
       {error && <Alert severity="error" sx={{ mb: 2 }} onClose={() => setError(null)}>{error}</Alert>}
@@ -123,7 +105,7 @@ const OrganizationNoticesPanel: React.FC<Props> = ({ organization }) => {
           <TextField
             value={body}
             onChange={(e) => setBody(e.target.value.slice(0, MAX_BODY))}
-            placeholder="Something the team needs to know."
+            placeholder={business ? 'Something the team needs to know.' : 'Something the group needs to know.'}
             multiline
             minRows={2}
             fullWidth
@@ -135,7 +117,7 @@ const OrganizationNoticesPanel: React.FC<Props> = ({ organization }) => {
               {body.length > MAX_BODY - 200 ? `${MAX_BODY - body.length} characters left` : ''}
             </Typography>
             <Button variant="contained" size="small" onClick={() => void post()} disabled={!body.trim() || busy}>
-              {busy ? 'Posting...' : 'Post notice'}
+              {busy ? 'Posting...' : 'Post'}
             </Button>
           </Box>
         </Box>
@@ -147,8 +129,8 @@ const OrganizationNoticesPanel: React.FC<Props> = ({ organization }) => {
         <Box sx={{ ...card, borderStyle: 'dashed', textAlign: 'center', py: 3 }}>
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
             {canPost
-              ? 'Nothing on the board. Post the first notice.'
-              : 'Nothing on the board yet.'}
+              ? 'Nothing announced yet. Post the first one.'
+              : 'Nothing announced yet.'}
           </Typography>
         </Box>
       ) : (
@@ -205,17 +187,6 @@ const OrganizationNoticesPanel: React.FC<Props> = ({ organization }) => {
         </Box>
       )}
 
-      {/* The queue only means anything to someone who can act on it. A plain
-          member seeing a list they cannot approve is a wall, not information. */}
-      {canPost && (
-        <Box sx={{ mt: 5 }}>
-          <SectionHeader
-            title="Waiting to join"
-            subtitle="Every trip this organisation runs, not only the ones you own."
-          />
-          <JoinRequestsInbox organizationId={organization.id} showWhenEmpty />
-        </Box>
-      )}
     </Box>
   );
 };

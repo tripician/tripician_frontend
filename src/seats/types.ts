@@ -37,6 +37,12 @@ export interface TripSeats {
   viewerStatus: ViewerSeatStatus;
   /** Set when an approved travel business runs this trip: enquiry, not join. */
   operatorName: string | null;
+  /** Whether this trip may be listed at all: a business group on a plan that carries recruiting. */
+  canRecruit: boolean;
+  /** You belong to the group running this trip, so you may raise a hand whatever the policy says. */
+  viewerIsGroupMember?: boolean;
+  /** The group running it, sent only to somebody who belongs to it. */
+  groupName?: string | null;
 }
 
 export interface TripJoinRequest {
@@ -80,7 +86,8 @@ export function describeSpots(seats: Pick<TripSeats, 'spotsLeft'>): string | nul
  */
 export function canRequestToJoin(seats: TripSeats, isOwner: boolean): boolean {
   if (isOwner) return false;
-  if (seats.joinPolicy !== 'OpenToRequests') return false;
+  // A group trip is never listed, so its policy reads Closed to everyone. Belonging to the group is the other door in.
+  if (seats.joinPolicy !== 'OpenToRequests' && !seats.viewerIsGroupMember) return false;
   if (seats.viewerStatus !== null) return false;
   return seats.spotsLeft === null || seats.spotsLeft > 0;
 }

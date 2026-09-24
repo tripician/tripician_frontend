@@ -209,7 +209,7 @@ describe('createBlock', () => {
 });
 
 describe('plainTextToHtml', () => {
-  // This runs on Navia's proof-read output when an author accepts it, and the
+  // This runs on TripicianAI's proof-read output when an author accepts it, and the
   // result lands in a block that is eventually rendered through innerHTML. If a
   // model ever returned markup, it has to arrive as visible text, not as a tag.
   it('escapes markup rather than emitting it', () => {

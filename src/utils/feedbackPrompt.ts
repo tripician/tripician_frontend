@@ -1,12 +1,12 @@
 /**
  * Cross-component signal for the "give us feedback" balloon beside the support
  * FAB. Two independent triggers race to request it - a trip being created, or
- * ten seconds of active Navia use - and whichever happens first wins; the
+ * ten seconds of active TripicianAI use - and whichever happens first wins; the
  * listener (SupportWidget) is what actually marks it shown, so it fires at
  * most once per browser, ever.
  *
  * A window CustomEvent rather than Redux/Context: the triggers live in
- * TripCreationModal and NaviaPage, the listener lives in SupportWidget deep in
+ * TripCreationModal and TripicianAIPage, the listener lives in SupportWidget deep in
  * the layout tree, and none of the three otherwise share state. This mirrors
  * the `trip:create` event the app already uses for the same kind of
  * cross-component "open create-trip" signal.
@@ -14,7 +14,7 @@
 const SHOWN_KEY = 'tripician:feedbackPromptShown';
 const EVENT_NAME = 'feedback:prompt';
 
-export type FeedbackPromptReason = 'trip_created' | 'navia_used';
+export type FeedbackPromptReason = 'trip_created' | 'tripicianai_used';
 
 export function hasShownFeedbackPrompt(): boolean {
   try { return localStorage.getItem(SHOWN_KEY) === '1'; } catch { return true; }

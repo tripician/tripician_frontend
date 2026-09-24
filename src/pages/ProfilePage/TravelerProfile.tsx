@@ -1,5 +1,5 @@
 import React from 'react';
-import { Avatar, Box, Button, IconButton, Skeleton, Tooltip, Typography, useTheme } from '@mui/material';
+import { Avatar, Box, Button, IconButton, Menu, MenuItem, Skeleton, Tooltip, Typography, useTheme } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { motion } from 'framer-motion';
 import { useNavigate, useParams, Navigate } from 'react-router-dom';
@@ -15,18 +15,19 @@ import {
   IconLink,
   IconMapPin,
   IconUserPlus,
-  IconArrowRight,
+  IconBan,
+  IconDots,
 } from '@tabler/icons-react';
+import { confirmAndBlock } from '../../utils/blocking';
 import type { RootState } from '../../store';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { tripPath } from '../../utils/tripSlug';
-import { describeSpots } from '../../seats/types';
 import { safeExternalUrl } from '../../utils/sanitizeHtml';
 import Seo from '../../components/Seo';
 import CommunityTripCard from '../CommunityPage/CommunityTripCard';
 import type { PassportView } from './ProfilePassport';
-import TravelConstellation from './TravelConstellation';
+import TravelHistoryPanel from './TravelHistoryPanel';
 import ProfileIdentityRail, { railHasContent } from './ProfileIdentityRail';
 import { apiServices as api } from '../../services/APIs/apiServices';
 import type { OrganiserRecord } from '../../seats/types';
@@ -94,6 +95,41 @@ const TravelerProfile: React.FC = () => {
   }, [userId]);
 
   const [isFollowing, setIsFollowing] = React.useState(false);
+  const [blocked, setBlocked] = React.useState(false);
+  const [menuAnchor, setMenuAnchor] = React.useState<HTMLElement | null>(null);
+
+  // Whether the viewer blocked this person. Their own list, so it is only asked when signed in.
+  React.useEffect(() => {
+    if (!token || !Number.isFinite(userId)) { setBlocked(false); return; }
+    let active = true;
+    apiServices.getBlocks()
+      .then((r) => { if (active) setBlocked((r.data ?? []).some((b) => b.userId === userId)); })
+      .catch(() => { if (active) setBlocked(false); });
+    return () => { active = false; };
+  }, [token, userId]);
+
+  const block = async () => {
+    setMenuAnchor(null);
+    if (!requireAuth({ reason: 'Sign in to block people you do not want to hear from.' })) return;
+    try {
+      if (await confirmAndBlock(userId, user?.name)) {
+        setBlocked(true);
+        setIsFollowing(false);
+      }
+    } catch {
+      window.dispatchEvent(new CustomEvent('app:error', { detail: { message: 'That person could not be blocked. Try again.' } }));
+    }
+  };
+
+  const unblock = async () => {
+    setMenuAnchor(null);
+    try {
+      await apiServices.unblockUser(userId);
+      setBlocked(false);
+    } catch {
+      window.dispatchEvent(new CustomEvent('app:error', { detail: { message: 'That did not save. Try again.' } }));
+    }
+  };
 
   /*
    * The public half of this person's travel record, from the same endpoint the
@@ -158,22 +194,6 @@ const TravelerProfile: React.FC = () => {
     return () => { active = false; };
   }, [token, userId]);
 
-  /**
-   * The trips this traveller is open to being joined on.
-   *
-   * Read off the trips already fetched for the grid below, so this costs no
-   * request. Both casings, because the serializer is not consistent across
-   * endpoints and the landing page normalises the same two fields.
-   *
-   * A full trip is not "looking for people", so zero spots is excluded. A null
-   * is not zero: it means the organiser set no capacity, which the seats model
-   * is explicit is "they did not say" rather than "no room".
-   */
-  const recruiting = React.useMemo(() => trips.filter((t: any) => {
-    const policy = t?.joinPolicy ?? t?.JoinPolicy;
-    const spots = t?.spotsLeft ?? t?.SpotsLeft;
-    return policy === 'OpenToRequests' && spots !== 0;
-  }).slice(0, 3), [trips]);
 
   // Viewing yourself → your own profile page has the full experience
   if (myProfile?.id && String(myProfile.id) === String(userId)) {
@@ -394,17 +414,41 @@ const TravelerProfile: React.FC = () => {
                       </IconButton>
                     </Tooltip>
                   ))}
-                  <Button
-                    onClick={handleFollowToggle}
-                    disabled={followBusy}
-                    variant={isFollowing ? 'outlined' : 'contained'}
-                    startIcon={isFollowing ? <IconCheck size={15} /> : <IconUserPlus size={15} />}
-                    sx={isFollowing
-                      ? { borderColor: 'success.main', color: 'success.main', '&:hover': { borderColor: 'success.main', color: 'success.main', bgcolor: alpha(theme.palette.success.main, 0.06) } }
-                      : undefined}
-                  >
-                    {isFollowing ? 'Following' : 'Follow'}
-                  </Button>
+                  {blocked ? (
+                    <Button variant="outlined" onClick={() => void unblock()} startIcon={<IconBan size={15} />}>
+                      Unblock
+                    </Button>
+                  ) : (
+                    <Button
+                      onClick={handleFollowToggle}
+                      disabled={followBusy}
+                      variant={isFollowing ? 'outlined' : 'contained'}
+                      startIcon={isFollowing ? <IconCheck size={15} /> : <IconUserPlus size={15} />}
+                      sx={isFollowing
+                        ? { borderColor: 'success.main', color: 'success.main', '&:hover': { borderColor: 'success.main', color: 'success.main', bgcolor: alpha(theme.palette.success.main, 0.06) } }
+                        : undefined}
+                    >
+                      {isFollowing ? 'Following' : 'Follow'}
+                    </Button>
+                  )}
+                  {!blocked && (
+                    <>
+                      <IconButton
+                        size="small"
+                        aria-label="More options"
+                        onClick={(e) => setMenuAnchor(e.currentTarget)}
+                        sx={{ color: 'text.secondary', border: `1px solid ${theme.custom.surface.border}`, '&:hover': { color: 'text.primary' } }}
+                      >
+                        <IconDots size={16} />
+                      </IconButton>
+                      <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
+                        <MenuItem onClick={() => void block()} sx={{ color: 'error.main' }}>
+                          <IconBan size={15} style={{ marginRight: 10 }} />
+                          Block {user?.name?.split(' ')[0] || 'this person'}
+                        </MenuItem>
+                      </Menu>
+                    </>
+                  )}
                 </Box>
               )}
             </Box>
@@ -457,68 +501,16 @@ const TravelerProfile: React.FC = () => {
 
               {userId ? (
                 <Box sx={{ mt: { xs: 3, md: 4 } }}>
-                  <TravelConstellation userId={Number(userId)} />
+                  <TravelHistoryPanel userId={Number(userId)} />
                 </Box>
               ) : null}
 
-              {/* Where they are going, and whether there is room.
-                  Sits after the travel history on purpose: the reader has just
-                  seen where this person has been, and this is the one thing on
-                  the page they can act on. */}
-              {recruiting.length > 0 && (
-                <Box sx={{ mt: { xs: 5, md: 6 } }}>
-                  <SectionHeader
-                    title="Looking for people"
-                    subtitle={user
-                      ? `${user.name.split(' ')[0]} is taking join requests on these. The organiser reads your note before deciding.`
-                      : undefined}
-                  />
-                  <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1.5 }}>
-                    {recruiting.map((trip: any, i: number) => {
-                      const countries = Array.isArray(trip?.countries)
-                        ? trip.countries.filter(Boolean).join(', ')
-                        : (trip?.countries || trip?.Countries || '');
-                      const spots = describeSpots({
-                        spotsLeft: (trip?.spotsLeft ?? trip?.SpotsLeft ?? null) as number | null,
-                      });
-                      return (
-                        <Box
-                          key={trip.id || i}
-                          onClick={() => handleTripClick(trip)}
-                          role="button"
-                          tabIndex={0}
-                          onKeyDown={(e: React.KeyboardEvent) => {
-                            if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); handleTripClick(trip); }
-                          }}
-                          sx={{
-                            display: 'flex', alignItems: 'center', gap: 2, cursor: 'pointer',
-                            p: 2, borderRadius: 2,
-                            border: `1px solid ${theme.custom.surface.border}`,
-                            transition: 'border-color 120ms ease',
-                            '&:hover': { borderColor: 'primary.main' },
-                          }}
-                        >
-                          <Box sx={{ minWidth: 0, flex: 1 }}>
-                            <Typography variant="subtitle2" noWrap sx={{ color: 'text.primary' }}>
-                              {trip?.name || trip?.Name || 'Untitled trip'}
-                            </Typography>
-                            <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-                              {[countries, spots].filter(Boolean).join(' \u00b7 ')}
-                            </Typography>
-                          </Box>
-                          <IconArrowRight size={16} stroke={1.8} aria-hidden="true" />
-                        </Box>
-                      );
-                    })}
-                  </Box>
-                </Box>
-              )}
 
               {/* Published trips */}
               <Box sx={{ mt: { xs: 5, md: 6 } }}>
                 <SectionHeader
                   title="Published trips"
-                  subtitle={user ? `Itineraries ${user.name} has shared with the community` : undefined}
+                  subtitle={user ? `Itineraries ${user.name} has published` : undefined}
                 />
                 {tripsLoading ? (
                   <CardGridSkeleton count={6} minWidth={280} />
@@ -527,8 +519,8 @@ const TravelerProfile: React.FC = () => {
                     icon={IconCompass}
                     title="No published trips yet"
                     description="When this traveler publishes an itinerary, it will show up here."
-                    actionLabel="Explore the community"
-                    onAction={() => navigate('/community')}
+                    actionLabel="Browse trips"
+                    onAction={() => navigate('/stories?kind=plans')}
                   />
                 ) : (
                   <Box sx={{

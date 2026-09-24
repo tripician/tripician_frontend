@@ -5,14 +5,17 @@ import type {
   TripSeats, TripJoinRequest, UpdateTripSeatsDto, OrganiserRecord, PendingRequestsGroup,
 } from '../../seats/types';
 import type { Conversation, ConversationMessage } from '../../messages/types';
+import type { TravelMap } from '../../pages/ProfilePage/travelHistory';
 import type { TripAnnouncement } from '../../types/announcements';
 import type {
   OperatorProfile, OperatorApplication, OperatorLead, OperatorLeadResult,
 } from '../../operator/types';
 import type {
-  Organization, OrganizationAnnouncement, OrganizationMember, OrganizationPost, OrganizationPublic,
-  OrganizationTrip, OrganizationWrite,
+  Organization, OrganizationAnnouncement, OrganizationDirectoryEntry, OrganizationMember, OrganizationPost, OrganizationPublic,
+  OrganizationTrip, OrganizationWrite, GroupTrip, GroupJoinRequest, GroupInvite, GroupInvitePreview, GroupSuggestion,
+  GroupDiscussionPost, GroupCredits,
 } from '../../organization/types';
+import type { AfterStorySummaryDto } from '../../afterstory/types';
 import type {
   Plan, PlanList, StoryBookPriceList, StoryBookQuote, SubscriptionIntent, SubscriptionState,
 } from '../../pricing/types';
@@ -210,6 +213,39 @@ export const telemetryAPI = {
 };
 
 // API service that accepts token
+/** A TripicianAI credit pack on sale. */
+export interface CreditPack { packId: string; credits: number; price: number }
+
+/** What the browser needs to open the payment sheet for a pack; the amount only ever travels outward. */
+export interface CreditPurchaseIntent {
+  ok: boolean;
+  error: string | null;
+  keyId: string;
+  razorpayOrderId: string;
+  amountPaise: number;
+  currency: string;
+  orderId: string;
+  credits: number;
+  customerName: string | null;
+  customerEmail: string | null;
+}
+
+/** Somebody the caller blocked. */
+export interface BlockedUser { userId: number; name: string | null; avatarUrl: string | null; blockedAt: string }
+
+/** What a trip invite link shows before anyone signs in. */
+export interface TripInvitePreview {
+  tripId: string;
+  name: string;
+  bannerPhotoUrl: string | null;
+  countries: string[];
+  startDate: string | null;
+  endDate: string | null;
+  ownerName: string | null;
+  memberCount: number;
+  alreadyMember: boolean;
+}
+
 export const apiServices = {
   // User Profile methods - matching your backend routes
   getUserProfile: (token: string) => 
@@ -301,7 +337,7 @@ export const apiServices = {
     plannerMode?: 'Easy' | 'Advanced';
     /**
      * The create dialog's mood answers. Stored on the trip and read server-side by
-     * every generative Navia call, so the first draft is already informed.
+     * every generative TripicianAI call, so the first draft is already informed.
      * Omitted by the one-sentence shortcut, which has nothing to send.
      */
     preferences?: TripPreferences;
@@ -394,8 +430,6 @@ export const apiServices = {
       docs: Array<{ id:string; originalName:string; mimeType:string; url?:string }>;
     }>;
     legs: Array<{ fromId:string; toId:string; mode:string; distanceKm:number|null; from:{lat?:number; lng?:number}; to:{lat?:number; lng?:number} }>;
-    expenses: any[];
-    budget: number | null | undefined;
     comments: any[];
     pinnedDocIds: string[];
     globalDocs: Array<{ id:string; originalName:string; mimeType:string }>;
@@ -433,9 +467,9 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  // PATCH /api/trips/{tripId}/publish - publish or unpublish (owner only)
-  setTripPublished: (token: string, tripId: string, published: boolean) =>
-    apiClient.patch(`/api/trips/${tripId}/publish`, { published }, {
+  // PATCH /api/trips/{tripId}/publish - publish or unpublish (owner only). A caption rides on the wall postcard.
+  setTripPublished: (token: string, tripId: string, published: boolean, caption?: string) =>
+    apiClient.patch(`/api/trips/${tripId}/publish`, { published, caption: caption || null }, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
@@ -553,6 +587,24 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
+  // TripicianAI credit packs. Empty while payments are off, so nothing unbuyable is offered.
+  getCreditPacks: () =>
+    apiClient.get<{ currency: string; packs: CreditPack[] }>('/api/pricing/credit-packs'),
+
+  createCreditOrder: (token: string, packId: string) =>
+    apiClient.post<CreditPurchaseIntent>('/api/credits/orders', { packId }, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  verifyCreditOrder: (
+    token: string,
+    orderId: string,
+    dto: { razorpayOrderId: string; razorpayPaymentId: string; razorpaySignature: string },
+  ) =>
+    apiClient.post<{ ok: boolean; credits: number; balance: number }>(`/api/credits/orders/${orderId}/verify`, dto, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
   // ── Story Book orders and payment ───────────────────────────────────────
   // Note what createBookPayment does NOT send: an amount. The figure charged
   // comes from the order the server priced and stored.
@@ -631,6 +683,100 @@ export const apiServices = {
 
   getPublicOrganization: (slug: string) =>
     apiClient.get<OrganizationPublic>(`/api/organizations/by-slug/${encodeURIComponent(slug)}`),
+
+  // Approved organisations with a public page and at least one published trip. Anonymous.
+  getOrganizationDirectory: () =>
+    apiClient.get<OrganizationDirectoryEntry[]>('/api/organizations/directory'),
+
+  // Groups. The client attaches the session itself; these read the viewer's standing from it.
+  getGroupTrips: (groupId: string) =>
+    apiClient.get<GroupTrip[]>(`/api/organizations/${groupId}/group-trips`),
+
+  getGroupStories: (groupId: string) =>
+    apiClient.get<AfterStorySummaryDto[]>(`/api/organizations/${groupId}/stories`),
+
+  requestToJoinGroup: (groupId: string, message?: string) =>
+    apiClient.post<{ status: string }>(`/api/organizations/${groupId}/membership-requests`, { message: message ?? null }),
+
+  cancelGroupRequest: (groupId: string) =>
+    apiClient.delete(`/api/organizations/${groupId}/membership-requests/me`),
+
+  getGroupRequests: (groupId: string) =>
+    apiClient.get<GroupJoinRequest[]>(`/api/organizations/${groupId}/membership-requests`),
+
+  decideGroupRequest: (groupId: string, userId: number, approve: boolean) =>
+    apiClient.post(`/api/organizations/${groupId}/membership-requests/${userId}/${approve ? 'approve' : 'decline'}`, {}),
+
+  getGroupInvite: (groupId: string) =>
+    apiClient.get<GroupInvite>(`/api/organizations/${groupId}/invite`),
+
+  rotateGroupInvite: (groupId: string) =>
+    apiClient.post<GroupInvite>(`/api/organizations/${groupId}/invite`, {}),
+
+  revokeGroupInvite: (groupId: string) =>
+    apiClient.delete(`/api/organizations/${groupId}/invite`),
+
+  previewGroupInvite: (token: string) =>
+    apiClient.get<GroupInvitePreview>(`/api/groups/invite/${encodeURIComponent(token)}`),
+
+  joinGroupByInvite: (token: string) =>
+    apiClient.post<{ organizationId: string }>(`/api/groups/invite/${encodeURIComponent(token)}/join`, {}),
+
+  getGroupSuggestions: () =>
+    apiClient.get<GroupSuggestion[]>('/api/organizations/suggestions'),
+
+  getGroupDiscussion: (groupId: string, before?: string) =>
+    apiClient.get<GroupDiscussionPost[]>(
+      `/api/organizations/${groupId}/discussion${before ? `?before=${encodeURIComponent(before)}` : ''}`),
+
+  postGroupDiscussion: (groupId: string, body: string) =>
+    apiClient.post<GroupDiscussionPost>(`/api/organizations/${groupId}/discussion`, { body }),
+
+  replyGroupDiscussion: (groupId: string, postId: string, body: string) =>
+    apiClient.post<GroupDiscussionPost>(`/api/organizations/${groupId}/discussion/${postId}/replies`, { body }),
+
+  removeGroupDiscussion: (groupId: string, postId: string) =>
+    apiClient.delete(`/api/organizations/${groupId}/discussion/${postId}`),
+
+  getGroupCredits: (groupId: string) =>
+    apiClient.get<GroupCredits>(`/api/organizations/${groupId}/credits`),
+
+  getPeopleSuggestions: (take = 8) =>
+    apiClient.get<Array<{
+      userId: number;
+      name: string;
+      avatar: string | null;
+      identityVerified: boolean;
+      reason: string;
+      reasonKind: 'tripmate' | 'follows_you' | 'mutual' | 'same_places' | 'publisher';
+    }>>(`/api/users/suggestions?take=${take}`),
+
+  // Owner puts a trip into a group; owner or that group's admin takes it out (null).
+  moveTripToGroup: (tripId: string, organizationId: string | null) =>
+    apiClient.put(`/api/trips/${tripId}/group`, { organizationId }),
+
+  // Blocking. Always the caller's own list; the other person is never told.
+  getBlocks: () => apiClient.get<BlockedUser[]>('/api/blocks'),
+
+  blockUser: (userId: number) => apiClient.post(`/api/blocks/${userId}`, {}),
+
+  unblockUser: (userId: number) => apiClient.delete(`/api/blocks/${userId}`),
+
+  // A trip's invite link. Managing it needs the right to manage members; previewing it needs nothing.
+  getTripInvite: (tripId: string) =>
+    apiClient.get<{ token?: string | null; createdAt?: string | null }>(`/api/trips/${tripId}/invite`),
+
+  rotateTripInvite: (tripId: string) =>
+    apiClient.post<{ token?: string | null; createdAt?: string | null }>(`/api/trips/${tripId}/invite`, {}),
+
+  revokeTripInvite: (tripId: string) =>
+    apiClient.delete(`/api/trips/${tripId}/invite`),
+
+  previewTripInvite: (token: string) =>
+    apiClient.get<TripInvitePreview>(`/api/trip-invites/${encodeURIComponent(token)}`),
+
+  joinTripByInvite: (token: string) =>
+    apiClient.post<{ tripId: string }>(`/api/trip-invites/${encodeURIComponent(token)}/join`, {}),
 
   createOrganization: (token: string, dto: OrganizationWrite) =>
     apiClient.post<Organization>('/api/organizations', dto, {
@@ -912,10 +1058,7 @@ export const apiServices = {
 
   // GET /api/users/{userId}/travel-map - countries, tiered, in the order reached
   getTravelMap: (userId: number) =>
-    apiClient.get<{
-      countries: Array<{ name: string; tier: 'locked' | 'unlocked' | 'gold'; firstAt: string | null; published?: boolean }>;
-      legs: string[][];
-    }>(`/api/users/${userId}/travel-map`),
+    apiClient.get<TravelMap>(`/api/users/${userId}/travel-map`),
 
   // POST /api/follow/{followeeId} - follow a user (JWT resolves follower)
   followUser: (token: string, followeeId: number) =>

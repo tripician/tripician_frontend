@@ -49,8 +49,10 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick, typeTag = '
   const vibe = VIBES[trip.vibe?.toLowerCase?.()] || null;
   // Backend returns owner as { id, name, profilePicture } (TripUserDto)
   const ownerId = trip.owner?.id ?? trip.ownerUserId ?? trip.OwnerUserId ?? null;
-  const ownerName = trip.owner?.name?.trim() || trip.ownerName || trip.OwnerName || 'Explorer';
-  const ownerAvatar = trip.owner?.profilePicture || trip.ownerAvatar || trip.OwnerAvatar || null;
+  // A trip a group runs wears the group's logo on the cover, the way the trip page bylines it.
+  const orgName: string | null = typeof trip.organizationName === 'string' && trip.organizationName.trim() ? trip.organizationName.trim() : null;
+  const ownerName = orgName ?? (trip.owner?.name?.trim() || trip.ownerName || trip.OwnerName || 'Explorer');
+  const ownerAvatar = orgName ? trip.organizationLogoUrl ?? null : trip.owner?.profilePicture || trip.ownerAvatar || trip.OwnerAvatar || null;
   const countries: string[] = Array.isArray(trip.countries) ? trip.countries : [];
   const isOpen = trip.joinPolicy === 'OpenToRequests';
 
@@ -157,7 +159,7 @@ const CommunityTripCard: React.FC<TripCardProps> = ({ trip, onClick, typeTag = '
       title={trip.name || 'Untitled Trip'}
       onClick={onClick}
       countries={countries}
-      host={{ id: ownerId, name: ownerName, avatar: ownerAvatar, verified: trip.owner?.identityVerified === true }}
+      host={{ id: ownerId, name: ownerName, avatar: ownerAvatar, verified: !orgName && trip.owner?.identityVerified === true }}
       members={members}
       rating={typeof trip.rating === 'number' ? trip.rating : null}
       description={typeof trip.description === 'string' ? trip.description.trim() : null}

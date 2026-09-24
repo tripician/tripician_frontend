@@ -157,7 +157,7 @@ const BlogsList: React.FC = () => {
             Travel Stories & Guides
           </Typography>
           <Typography sx={{ fontSize: { xs: '0.95rem', md: '1.05rem' }, color: '#888',}}>
-            Real destinations. Real vibes. Curated by the Tripician community.
+            Real destinations. Real vibes. Curated by Tripician.
           </Typography>
         </Box>
 
@@ -369,10 +369,10 @@ const BlogsList: React.FC = () => {
     <>
       <Helmet>
         <title>Travel Blog - Tips, Guides &amp; Destinations | Tripician</title>
-        <meta name="description" content="Explore travel guides, destination tips, packing advice, and trip inspiration from the Tripician community." />
+        <meta name="description" content="Explore travel guides, destination tips, packing advice, and trip inspiration from Tripician." />
         <link rel="canonical" href="https://tripician.com/blog" />
         <meta property="og:title" content="Tripician Travel Blog" />
-        <meta property="og:description" content="Explore travel guides, destination tips, packing advice, and trip inspiration from the Tripician community." />
+        <meta property="og:description" content="Explore travel guides, destination tips, packing advice, and trip inspiration from Tripician." />
         <meta property="og:url" content="https://tripician.com/blog" />
         <meta name="robots" content="index, follow" />
       </Helmet>

@@ -46,6 +46,16 @@ export function recruitingRank(t: any): number {
   return spots === 0 ? 0 : 1;
 }
 
+const DAY_MS = 86_400_000;
+
+/** Recruiting with room AND not over: a completed trip, or one whose last day has passed, cannot be joined. */
+export function isJoinable(t: any, now: number = Date.now()): boolean {
+  if (recruitingRank(t) !== 1) return false;
+  if ((t?.tripStatus ?? t?.TripStatus) === 2) return false;
+  const end = Date.parse(t?.endDate ?? t?.EndDate ?? '');
+  return Number.isNaN(end) || end + DAY_MS > now;
+}
+
 /**
  * The community ordering: verified first as a hard tier, then trips looking for
  * people, then engagement.

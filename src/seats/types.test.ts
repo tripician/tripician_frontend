@@ -14,6 +14,7 @@ const seats = (over: Partial<TripSeats> = {}): TripSeats => ({
   pendingRequests: 0,
   viewerStatus: null,
   operatorName: null,
+  canRecruit: true,
   ...over,
 });
 

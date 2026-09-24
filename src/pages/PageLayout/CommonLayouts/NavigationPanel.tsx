@@ -5,7 +5,8 @@ import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../../store';
 import { fetchUserProfile } from '../../../store/userSlice';
 import { Box } from '@mui/material';
-import TripCreationModal from '../../../components/CreateTripComponents/TripCreationModal';
+import { useAuthToken } from '../../../hooks/useAuth0Token';
+import NewTripDialog from '../../../components/CreateTripComponents/newTrip/NewTripDialog';
 import SupportWidget from '../../../components/CommonComponents/SupportWidget';
 import OnboardingCarousel from '../../../components/Onboarding/OnboardingCarousel';
 import AppShellHeader from './AppShellHeader';
@@ -13,12 +14,13 @@ import { DESKTOP_NAV_MIN_WIDTH } from '../navConfig';
 import AppBottomNav from './AppBottomNav';
 import { AppShellProvider, type CreateTripPrefill } from '../AppShellContext';
 import ProDialog from '../../../pricing/ProDialog';
-import NaviaCommandBar from '../../../navia/commandbar/NaviaCommandBar';
+import { ChatDockProvider } from '../../../messages/ChatDock';
+import TripicianAICommandBar from '../../../tripicianai/commandbar/TripicianAICommandBar';
 import {
   COMMAND_BAR_STATE_EVENT,
   onCommandBarRoute,
   type CommandBarState,
-} from '../../../navia/commandbar/commandModes';
+} from '../../../tripicianai/commandbar/commandModes';
 
 interface Props {
   children: React.ReactNode;
@@ -28,15 +30,18 @@ interface Props {
  * The More drawer is gone.
  *
  * It only ever held one item at a time - Risk, then Crew - and each of those
- * turned out to belong somewhere with more context: Risk in the account menu,
- * Crew as the Travellers segment on Browse. With the drawer empty, "More" was a
- * button that opened nothing, so the slot went to From the road instead. Every
- * nav item is now one tap on every breakpoint.
+ * turned out to belong somewhere with more context, or to leave the product
+ * altogether. With the drawer empty, "More" was a button that opened nothing,
+ * so the slot went to From the road instead. Every nav item is now one tap on
+ * every breakpoint.
  */
 
 const NavigationPannel: React.FC<Props> = ({ children }) => {
   const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
+  // The site footer is for visitors and crawlers; signed in, its links live in the account menu and the Wall's side column.
+  const { token } = useAuthToken();
+  const showFooter = !token;
 
   const [createTripOpen, setCreateTripOpen] = useState(false);
   const [createTripPrefill, setCreateTripPrefill] = useState<CreateTripPrefill | undefined>(undefined);
@@ -108,6 +113,8 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
 
   return (
     <AppShellProvider value={{ openCreateTrip, openProDialog }}>
+      {/* Above the pages, so a quick-reply chat stays open while the reader moves around the app. */}
+      <ChatDockProvider>
       <Box sx={{ display: 'flex', flexDirection: 'column', height: '100vh', maxWidth: '100vw', overflow: 'hidden' }}>
         <AppShellHeader onCreateTrip={openCreateTrip} />
 
@@ -131,27 +138,42 @@ const NavigationPannel: React.FC<Props> = ({ children }) => {
              * the shortfall would have shown up on two more pages.
              */
             pb: commandBarState === 'none' ? 10 : 17,
+            // With a footer, the footer carries the clearance itself, so no empty band opens up beneath it.
             [`@media (min-width:${DESKTOP_NAV_MIN_WIDTH}px)`]: {
-              pb: commandBarState === 'none' ? 0 : 12,
+              pb: showFooter || commandBarState === 'none' ? 0 : 12,
             },
           }}
         >
           <Box sx={{ flexGrow: 1 }}>{children}</Box>
-          <Box sx={{ display: { xs: 'none', md: 'block' } }}>
-            <Footer />
-          </Box>
+          {showFooter && (
+            <Box
+              sx={{
+                // Desktop only: below this the bottom nav is up, and a row of links wedged between it and the TripicianAI bar reads as clutter.
+                display: 'none',
+                bgcolor: 'background.paper',
+                [`@media (min-width:${DESKTOP_NAV_MIN_WIDTH}px)`]: {
+                  display: 'block',
+                  pb: commandBarState === 'none' ? 0 : 12,
+                },
+              }}
+            >
+              <Footer />
+            </Box>
+          )}
         </Box>
 
         <AppBottomNav onCreateTrip={openCreateTrip} />
 
         {/* The app's single create dialog. Pages call openCreateTrip rather than
             mounting their own copy. */}
-        <TripCreationModal open={createTripOpen} onClose={closeCreateTrip} initial={createTripPrefill} />
+        <NewTripDialog open={createTripOpen} onClose={closeCreateTrip} initial={createTripPrefill} />
         <ProDialog open={proOpen} onClose={() => setProOpen(false)} />
-        {!hideSupportWidget && <NaviaCommandBar />}
-        {!hideSupportWidget && <SupportWidget commandBar={commandBarState} />}
+        {!hideSupportWidget && <TripicianAICommandBar />}
+        {/* Hidden under the new trip dialog: its fixed button sits above MUI dialogs and floated over the full-screen phone flow. */}
+        {!hideSupportWidget && !createTripOpen && <SupportWidget commandBar={commandBarState} />}
         {!hideSupportWidget && <OnboardingCarousel />}
       </Box>
+      </ChatDockProvider>
     </AppShellProvider>
   );
 };

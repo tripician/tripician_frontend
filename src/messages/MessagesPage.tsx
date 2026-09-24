@@ -19,6 +19,8 @@ import Seo from '../components/Seo';
 import EmptyState from '../components/ui/EmptyState';
 import PageHeader from '../components/ui/PageHeader';
 import ConversationThread from './ConversationThread';
+import DecisionBar from './DecisionBar';
+import { SCREENING_REPLIES, pendingLabel, previewLine, sortInbox } from './inbox';
 import type { Conversation } from './types';
 
 const CONTENT_MAX = 1280;
@@ -44,17 +46,37 @@ const MessagesPage: React.FC = () => {
 
   const [conversations, setConversations] = React.useState<Conversation[]>([]);
   const [loading, setLoading] = React.useState(true);
+  // What was decided on a join request from this page, so the bar keeps saying it while the reader stays.
+  const [decided, setDecided] = React.useState<Record<string, string>>({});
 
   React.useEffect(() => {
     let active = true;
     void apiServices.getConversations()
-      .then((resp) => { if (active) setConversations(Array.isArray(resp.data) ? resp.data : []); })
+      .then((resp) => { if (active) setConversations(sortInbox(Array.isArray(resp.data) ? resp.data : [])); })
       .catch(() => { if (active) setConversations([]); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, []);
 
   const selected = conversations.find((c) => c.id === selectedId) ?? null;
+
+  // The same decision bar and openers as the docked chat, so a phone can approve from the thread too.
+  const thread = (c: Conversation) => (
+    <ConversationThread
+      conversation={c}
+      meUserId={meUserId}
+      live
+      quickReplies={c.pending === 'their-request' && !decided[c.id] ? SCREENING_REPLIES : undefined}
+      banner={(
+        <DecisionBar
+          conversation={c}
+          outcome={decided[c.id]}
+          onDecided={(o) => setDecided((prev) => ({ ...prev, [c.id]: o }))}
+          sx={{ borderRadius: '10px', mt: 1.5 }}
+        />
+      )}
+    />
+  );
 
   const select = (id: string | null) =>
     setParams((prev) => {
@@ -99,8 +121,13 @@ const MessagesPage: React.FC = () => {
                 {c.otherName ?? 'Traveller'}
               </Typography>
               <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block' }} noWrap>
-                {c.lastMessagePreview ?? c.tripName ?? ''}
+                {previewLine(c)}
               </Typography>
+              {pendingLabel(c) && (
+                <Typography variant="caption" sx={{ color: c.pending === 'their-request' ? 'primary.main' : 'text.disabled', display: 'block', fontWeight: 600 }} noWrap>
+                  {pendingLabel(c)}
+                </Typography>
+              )}
             </Box>
           </Box>
         );
@@ -127,8 +154,8 @@ const MessagesPage: React.FC = () => {
             icon={IconMessage}
             title="No conversations yet"
             description="You can message someone who has asked to join your trip, or anyone travelling with you. Threads start from the trip they are about."
-            actionLabel="Browse the community"
-            onAction={() => navigate('/community')}
+            actionLabel="Find a trip to join"
+            onAction={() => navigate('/stories?kind=plans&open=1')}
           />
         ) : narrow ? (
           selected ? (
@@ -141,7 +168,7 @@ const MessagesPage: React.FC = () => {
               >
                 All messages
               </Button>
-              <ConversationThread conversation={selected} meUserId={meUserId} />
+              {thread(selected)}
             </Box>
           ) : list
         ) : (
@@ -157,7 +184,7 @@ const MessagesPage: React.FC = () => {
               }}
             >
               {selected ? (
-                <ConversationThread conversation={selected} meUserId={meUserId} />
+                thread(selected)
               ) : (
                 <Box sx={{ display: 'grid', placeItems: 'center', height: '100%' }}>
                   <Typography variant="body2" sx={{ color: 'text.secondary' }}>

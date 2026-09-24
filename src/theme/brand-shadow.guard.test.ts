@@ -71,12 +71,12 @@ describe('brand shadow guard', () => {
 
   /**
    * Buttons take a flat fill. The gradient survives only where it is genuinely
-   * decorative - the Navia orb IS a gradient, and the landing page uses washes
+   * decorative - the TripicianAI orb IS a gradient, and the landing page uses washes
    * and scrims behind photography.
    */
   const DECORATIVE_GRADIENT_ALLOWLIST = [
     'theme/index.ts',              // defines custom.gradients.*
-    'navia/NaviaOrb.tsx',          // the orb is a gradient
+    'tripicianai/TripicianAIOrb.tsx',          // the orb is a gradient
     'assets/css/LandingPage.css',  // hero scrims + section washes
     // Add a file here only with a comment naming the decorative element.
     'pages/BlogsPage/BlogPost.tsx',            // reading-progress bar, pull-quote rule, hero wash

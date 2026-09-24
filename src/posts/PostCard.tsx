@@ -4,7 +4,7 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
-  IconHeart, IconHeartFilled, IconMessageCircle2, IconTrash, IconDots, IconLink,
+  IconHeart, IconHeartFilled, IconMessageCircle2, IconTrash, IconDots, IconLink, IconFlag, IconBan,
   IconRosetteDiscountCheckFilled,
 } from '@tabler/icons-react';
 import { useRequireAuth } from '../auth/AuthGate';
@@ -12,9 +12,16 @@ import { formatRelativeTime } from '../utils/relativeTime';
 import CardTypeTag from '../components/ui/CardTypeTag';
 import PhotoMosaic from '../components/ui/PhotoMosaic';
 import CommentRow from './CommentRow';
+import PostAttachmentStrip from './PostAttachment';
+import PlanPostcard from './PlanPostcard';
+import StoryPostcard from '../afterstory/cards/StoryPostcard';
+import LikersDialog from './LikersDialog';
+import { likedByLine } from './postcardPreview';
 import PostComposer from './PostComposer';
 import { POST_LIMITS } from './types';
 import { postsService } from './postsService';
+import ReportDialog from '../components/ui/ReportDialog';
+import { confirmAndBlock } from '../utils/blocking';
 import type { TravelerPost } from './types';
 
 interface PostCardProps {
@@ -51,10 +58,12 @@ const PostCard: React.FC<PostCardProps> = ({
   const [likeCount, setLikeCount] = React.useState(post.likeCount);
   const [busy, setBusy] = React.useState(false);
   const [menuAnchor, setMenuAnchor] = React.useState<HTMLElement | null>(null);
+  const [reporting, setReporting] = React.useState(false);
   const [expanded, setExpanded] = React.useState(false);
   const [replies, setReplies] = React.useState<TravelerPost[] | null>(null);
   const [loadingReplies, setLoadingReplies] = React.useState(false);
   const [replyCount, setReplyCount] = React.useState(post.replyCount);
+  const [likersOpen, setLikersOpen] = React.useState(false);
 
   // The permalink already renders the thread under the post, so only a card that
   // links somewhere else opens one of its own.
@@ -119,6 +128,8 @@ const PostCard: React.FC<PostCardProps> = ({
   const open = () => { if (linkToPost) navigate(`/post/${post.id}`); };
 
   const photos = post.media.slice(0, POST_LIMITS.maxPhotos);
+  const faces = post.likedBy ?? [];
+  const likedBy = likedByLine(faces, likeCount, liked);
 
   // Padded hit areas rather than bare glyphs, which is most of what separates a
   // finished action row from a row of icons.
@@ -130,6 +141,12 @@ const PostCard: React.FC<PostCardProps> = ({
     transition: `background-color ${theme.custom.motion.duration.fast} ${theme.custom.motion.easing.standard}`,
     '&:hover': { color: 'primary.main', bgcolor: theme.custom.surface.hover },
   } as const;
+
+  // A caption-less postcard whose plan or story was unpublished has nothing left to show, so it would be a blank card.
+  // Hidden here, not filtered on the server: PostList stops paging when a page comes back short, so dropping rows there ends the wall early.
+  const orphanedPostcard = Boolean(post.tripId || post.storyId) && !post.attachment
+    && !post.title && !post.body?.trim() && photos.length === 0;
+  if (orphanedPostcard) return null;
 
   return (
     <Box
@@ -150,9 +167,19 @@ const PostCard: React.FC<PostCardProps> = ({
         width: '100%',
       }}
     >
-      {showTypeTag && (
+      {/*
+        The ribbon.
+
+        A post carrying a plan or a story always wears one, whatever the caller
+        asked for: that is the whole point of a postcard, and it is what makes one
+        legible in a scroll of notes. `showTypeTag` still governs the note and
+        question ribbons, which are a mixed-feed nicety rather than a marking.
+      */}
+      {post.attachment ? (
+        <CardTypeTag kind={post.attachment.kind} right={44} />
+      ) : showTypeTag ? (
         <CardTypeTag kind={post.kind === 'question' ? 'question' : 'post'} right={44} />
-      )}
+      ) : null}
 
       {/* One line: who, where, when. The timestamp never shrinks, so a long name
           or a long place truncates before the thing that dates the post does. */}
@@ -236,26 +263,81 @@ const PostCard: React.FC<PostCardProps> = ({
         <PhotoMosaic photos={photos} sx={{ mb: 1 }} />
       )}
 
-      {post.tripId && post.tripName && (
-        <Box
-          component="button"
-          type="button"
-          onClick={(e) => { e.stopPropagation(); navigate(`/trip/${post.tripId}`); }}
-          sx={{
-            display: 'inline-flex', alignItems: 'center', gap: 0.5, mb: 1,
-            border: `1px solid ${border}`, bgcolor: 'transparent', cursor: 'pointer',
-            borderRadius: '50px', px: 1.25, py: 0.4,
-            fontFamily: 'inherit', fontSize: 12, fontWeight: 600, color: 'text.secondary',
-            '&:hover': { borderColor: 'text.disabled', color: 'text.primary' },
-          }}
-        >
-          {post.tripName}
+      {/* A text-only pill naming the trip used to sit here. It said which trip
+          and nothing else, and it was unreachable anyway: no UI ever set tripId.
+          The strip says what kind of thing it is, shows it, and links to it. */}
+      {/* The previews need the server's preview fields; an older server or a failed preview read falls back to the strip. */}
+      {post.attachment?.story ? (
+        <StoryPostcard attachment={post.attachment} story={post.attachment.story} />
+      ) : post.attachment?.plan ? (
+        <PlanPostcard attachment={post.attachment} plan={post.attachment.plan} isOwn={post.viewerCanDelete} />
+      ) : post.attachment ? (
+        <PostAttachmentStrip attachment={post.attachment} />
+      ) : null}
+
+      {/* Who liked it and how many replied, above the buttons, the way Facebook sets it. Nothing when both are zero. */}
+      {(likedBy || replyCount > 0) && (
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 1, minHeight: 22 }}>
+          {likedBy && (
+            <Box
+              component="button"
+              type="button"
+              onClick={(e: React.MouseEvent) => { e.stopPropagation(); setLikersOpen(true); }}
+              aria-label={`${likedBy}. See everyone who liked this`}
+              sx={{
+                display: 'inline-flex', alignItems: 'center', gap: 0.75, minWidth: 0,
+                p: 0, border: 0, bgcolor: 'transparent', cursor: 'pointer', font: 'inherit',
+                '&:hover .liked-by-text': { textDecoration: 'underline' },
+                '&:focus-visible': { outline: `2px solid ${theme.custom.ring}`, outlineOffset: 2, borderRadius: '6px' },
+              }}
+            >
+              {faces.length > 0 ? (
+                <Box sx={{ display: 'flex', flexShrink: 0 }}>
+                  {faces.slice(0, 3).map((f, i) => (
+                    <Avatar
+                      key={f.userId}
+                      src={f.avatarUrl ?? undefined}
+                      alt=""
+                      sx={{
+                        width: 20, height: 20, fontSize: 10, bgcolor: 'primary.main',
+                        ml: i === 0 ? 0 : '-6px',
+                        border: `2px solid ${theme.palette.background.paper}`,
+                        boxSizing: 'content-box',
+                      }}
+                    >
+                      {f.name.charAt(0).toUpperCase()}
+                    </Avatar>
+                  ))}
+                </Box>
+              ) : (
+                <Box sx={{ display: 'grid', placeItems: 'center', width: 18, height: 18, borderRadius: '50%', bgcolor: 'primary.main', color: 'primary.contrastText', flexShrink: 0 }}>
+                  <IconHeartFilled size={10} />
+                </Box>
+              )}
+              <Typography className="liked-by-text" variant="caption" noWrap sx={{ color: 'text.secondary', fontSize: 12.5 }}>
+                {likedBy}
+              </Typography>
+            </Box>
+          )}
+          {replyCount > 0 && (
+            <Box
+              component="button"
+              type="button"
+              onClick={inlineThread ? toggleThread : (e: React.MouseEvent) => { e.stopPropagation(); navigate(`/post/${post.id}`); }}
+              sx={{
+                ml: 'auto', flexShrink: 0, p: 0, border: 0, bgcolor: 'transparent', cursor: 'pointer', font: 'inherit',
+                fontSize: 12.5, color: 'text.secondary', '&:hover': { textDecoration: 'underline' },
+              }}
+            >
+              {replyCount === 1 ? '1 comment' : `${replyCount} comments`}
+            </Box>
+          )}
         </Box>
       )}
 
       {/* Labelled rather than bare glyphs, and split evenly, because two lonely
           outlines under a one line post read as unfinished. */}
-      <Box sx={{ display: 'flex', gap: 0.5, mt: 1, pt: 0.5, borderTop: `1px solid ${border}` }}>
+      <Box sx={{ display: 'flex', gap: 0.5, mt: likedBy || replyCount > 0 ? 0.75 : 1, pt: 0.5, borderTop: `1px solid ${border}` }}>
         <Box
           component="button"
           type="button"
@@ -264,7 +346,7 @@ const PostCard: React.FC<PostCardProps> = ({
           sx={{ ...actionSx, color: liked ? 'primary.main' : 'text.secondary' }}
         >
           {liked ? <IconHeartFilled size={15} /> : <IconHeart size={15} stroke={1.9} />}
-          {likeCount > 0 ? `${likeCount} ${likeCount === 1 ? 'like' : 'likes'}` : 'Like'}
+          {liked ? 'Liked' : 'Like'}
         </Box>
 
         <Box
@@ -275,7 +357,7 @@ const PostCard: React.FC<PostCardProps> = ({
           sx={{ ...actionSx, color: expanded ? 'primary.main' : 'text.secondary' }}
         >
           <IconMessageCircle2 size={15} stroke={1.9} />
-          {replyCount > 0 ? `${replyCount} ${replyCount === 1 ? 'comment' : 'comments'}` : 'Comment'}
+          Comment
         </Box>
       </Box>
 
@@ -331,13 +413,47 @@ const PostCard: React.FC<PostCardProps> = ({
           <IconLink size={15} style={{ marginRight: 10 }} />
           Copy link
         </MenuItem>
-        {post.viewerCanDelete && (
+        {post.viewerCanDelete ? (
           <MenuItem onClick={remove} sx={{ color: 'error.main' }}>
             <IconTrash size={15} style={{ marginRight: 10 }} />
             Delete post
           </MenuItem>
+        ) : (
+          <MenuItem onClick={() => { setMenuAnchor(null); setReporting(true); }}>
+            <IconFlag size={15} style={{ marginRight: 10 }} />
+            Report
+          </MenuItem>
+        )}
+        {!post.viewerCanDelete && (
+          <MenuItem
+            onClick={() => {
+              setMenuAnchor(null);
+              if (!requireAuth({ reason: 'Sign in to block people you do not want to hear from.' })) return;
+              void confirmAndBlock(post.authorUserId, post.authorName).catch(() => {
+                window.dispatchEvent(new CustomEvent('app:error', { detail: { message: 'That person could not be blocked. Try again.' } }));
+              });
+            }}
+          >
+            <IconBan size={15} style={{ marginRight: 10 }} />
+            Block {post.authorName?.split(' ')[0] || 'this person'}
+          </MenuItem>
         )}
       </Menu>
+
+      <LikersDialog
+        postId={post.id}
+        open={likersOpen}
+        likeCount={likeCount}
+        viewerLiked={liked}
+        onClose={() => setLikersOpen(false)}
+      />
+
+      <ReportDialog
+        open={reporting}
+        noun={post.kind === 'question' ? 'question' : 'post'}
+        onClose={() => setReporting(false)}
+        onSubmit={(reason, detail) => postsService.report(post.id, reason, detail)}
+      />
     </Box>
   );
 };

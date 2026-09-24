@@ -1,5 +1,6 @@
 import React from 'react';
 import { Box, Button, Typography, useTheme } from '@mui/material';
+import { useNavigate } from 'react-router-dom';
 import { useAppShell } from '../pages/PageLayout/AppShellContext';
 import { IconSparkles } from '@tabler/icons-react';
 import { hasFeature } from './types';
@@ -23,6 +24,9 @@ interface PlanGateProps {
 const PlanGate: React.FC<PlanGateProps> = ({ organization, feature, title, body, children }) => {
   const theme = useTheme();
   const { openProDialog } = useAppShell();
+  const navigate = useNavigate();
+  // A community group buys Club from its own settings, where the price and the member count sit together.
+  const community = organization?.kind === 'community';
 
   if (hasFeature(organization, feature)) return <>{children}</>;
 
@@ -45,10 +49,10 @@ const PlanGate: React.FC<PlanGateProps> = ({ organization, feature, title, body,
       </Typography>
       <Button
         variant="contained"
-        onClick={openProDialog}
+        onClick={community && organization ? () => navigate(`/groups/${organization.id}?tab=settings`) : openProDialog}
         sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '50px', px: 2.5 }}
       >
-        See Tripician Business
+        {community ? 'See Tripician Club' : 'See Tripician Business'}
       </Button>
     </Box>
   );

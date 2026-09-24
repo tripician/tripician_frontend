@@ -17,16 +17,10 @@ import { apiServices } from '../services/APIs/apiServices';
 import { useAuthToken } from '../hooks/useAuth0Token';
 import { useAppShell } from '../pages/PageLayout/AppShellContext';
 import EmptyState from '../components/ui/EmptyState';
-import SegmentedControl from '../components/ui/SegmentedControl';
 import StaffTripDialog from './StaffTripDialog';
 import { runsOrganizationTrips, hasFeature, PLAN_FEATURES } from './types';
-import type { TripFeatureVisibility } from '../utils/normalizeTrip';
 import type { Organization, OrganizationTrip } from './types';
 
-const VISIBILITY_OPTIONS: { value: TripFeatureVisibility; label: string }[] = [
-  { value: 'admins', label: 'Admins only' },
-  { value: 'members', label: 'Everyone on the trip' },
-];
 
 interface OrganizationTripsPanelProps {
   organizationId: string;
@@ -41,8 +35,6 @@ const OrganizationTripsPanel: React.FC<OrganizationTripsPanelProps> = ({ organiz
 
   const [trips, setTrips] = React.useState<OrganizationTrip[]>([]);
   const [loading, setLoading] = React.useState(true);
-  const [busyTripId, setBusyTripId] = React.useState<string | null>(null);
-  const [error, setError] = React.useState<string | null>(null);
   const [staffing, setStaffing] = React.useState<OrganizationTrip | null>(null);
 
   const canRunTrips = runsOrganizationTrips(organization);
@@ -63,30 +55,6 @@ const OrganizationTripsPanel: React.FC<OrganizationTripsPanelProps> = ({ organiz
 
   React.useEffect(() => { void load(); }, [load]);
 
-  const setVisibility = async (
-    trip: OrganizationTrip,
-    key: 'budgetVisibility' | 'checklistVisibility',
-    value: TripFeatureVisibility,
-  ) => {
-    if (!token) return;
-    setBusyTripId(trip.tripId);
-    setError(null);
-
-    // Optimistic: the switch should move under the finger, not after a round trip.
-    const previous = trips;
-    setTrips((rows) => rows.map((r) => (r.tripId === trip.tripId ? { ...r, [key]: value } : r)));
-
-    try {
-      await apiServices.updateTripSettings(token, trip.tripId, {
-        [key]: value,
-      } as Record<string, unknown>);
-    } catch {
-      setTrips(previous);
-      setError('That could not be saved. Please try again.');
-    } finally {
-      setBusyTripId(null);
-    }
-  };
 
   if (loading) {
     return (
@@ -104,7 +72,7 @@ const OrganizationTripsPanel: React.FC<OrganizationTripsPanelProps> = ({ organiz
       onClick={() => openCreateTrip({ organizationId })}
       sx={{ textTransform: 'none', fontWeight: 700, borderRadius: '50px', justifySelf: 'start' }}
     >
-      New trip for {organization?.name ?? 'this organization'}
+      New trip for {organization?.name ?? 'this group'}
     </Button>
   ) : null;
 
@@ -114,7 +82,7 @@ const OrganizationTripsPanel: React.FC<OrganizationTripsPanelProps> = ({ organiz
         <EmptyState
           icon={IconMap2}
           title="No trips yet"
-          description="Trips created under this organization appear here, with control over what their members can see."
+          description="Trips created in this group appear here, with control over what the people on each can see."
         />
         {newTripButton}
       </Box>
@@ -124,8 +92,7 @@ const OrganizationTripsPanel: React.FC<OrganizationTripsPanelProps> = ({ organiz
   return (
     <Box sx={{ display: 'grid', gap: 1.5 }}>
       <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-        Announcements, the plan and the after story are always visible to everyone on a trip.
-        Budget and checklist are yours to decide.
+        Everyone on a trip sees its plan, announcements and after story.
       </Typography>
 
       {newTripButton}
@@ -137,7 +104,6 @@ const OrganizationTripsPanel: React.FC<OrganizationTripsPanelProps> = ({ organiz
             p: 2.25, borderRadius: '16px',
             border: `1px solid ${theme.custom.surface.border}`,
             bgcolor: 'background.paper',
-            opacity: busyTripId === trip.tripId ? 0.6 : 1,
           }}
         >
           <Box sx={{ display: 'flex', gap: 2, alignItems: 'flex-start' }}>
@@ -172,27 +138,6 @@ const OrganizationTripsPanel: React.FC<OrganizationTripsPanelProps> = ({ organiz
           </Box>
 
           <Box sx={{ display: 'grid', gap: 1.5, mt: 2 }}>
-            <Box>
-              <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mb: 0.5 }}>
-                Budget
-              </Typography>
-              <SegmentedControl
-                value={trip.budgetVisibility}
-                options={VISIBILITY_OPTIONS}
-                onChange={(value) => void setVisibility(trip, 'budgetVisibility', value)}
-              />
-            </Box>
-
-            <Box>
-              <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mb: 0.5 }}>
-                Checklist
-              </Typography>
-              <SegmentedControl
-                value={trip.checklistVisibility}
-                options={VISIBILITY_OPTIONS}
-                onChange={(value) => void setVisibility(trip, 'checklistVisibility', value)}
-              />
-            </Box>
 
             {canStaff && (
               <Button
@@ -208,7 +153,6 @@ const OrganizationTripsPanel: React.FC<OrganizationTripsPanelProps> = ({ organiz
         </Box>
       ))}
 
-      {error && <Typography variant="body2" color="error">{error}</Typography>}
 
       {organization && (
         <StaffTripDialog

@@ -2,9 +2,8 @@ User-agent: *
 Allow: /
 Allow: /blog
 Allow: /blog/
-Allow: /community
-# /discover was a duplicate of /community and now 301s to it; leaving it
-# crawlable only invites duplicate-content indexing of a redirect.
+# /community is left crawlable on purpose: it 301s to /stories, and a crawler has to fetch it to carry its signal across.
+# /discover was a duplicate of the old feed and also 301s to /stories.
 Disallow: /discover
 Allow: /trip/
 # Traveller questions and answers. Covered by Allow: / already, but every other
@@ -25,7 +24,6 @@ Disallow: /dashboard
 Disallow: /profile
 Disallow: /settings
 Disallow: /tripplanner
-Disallow: /risk-monitor
 Disallow: /callback
 Disallow: /signin
 Disallow: /signup

@@ -11,7 +11,7 @@
  * putting it in the store would re-render the whole planner subtree - a
  * 3,600-line component with framer-motion cards - on every mouse move. The
  * codebase already uses window events for cross-tree signals
- * (`tripician:route-updated`, `navia:response`, `auth:401`).
+ * (`tripician:route-updated`, `tripicianai:response`, `auth:401`).
  */
 
 const EVENT = 'tripician:stop-hover';

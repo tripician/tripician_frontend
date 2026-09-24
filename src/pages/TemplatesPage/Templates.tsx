@@ -132,7 +132,7 @@ const Templates: React.FC = () => {
                     : 'Try another vibe, or browse everything.'
                 }
                 {...(category === 'all'
-                  ? { actionLabel: 'Browse the community', onAction: () => navigate('/community') }
+                  ? { actionLabel: 'Browse trips', onAction: () => navigate('/stories?kind=plans') }
                   : { actionLabel: 'Show all templates', onAction: () => setCategory('all') })}
               />
             ) : (

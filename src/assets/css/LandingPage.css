@@ -501,7 +501,7 @@
   .lp-step__frame { aspect-ratio: 16 / 9; }
 }
 
-/* --- the small diagram, now used only by the Navia demo ------------------
+/* --- the small diagram, now used only by the TripicianAI demo ------------------
    Visibly a diagram, never dressed up as a screenshot. That distinction is what
    keeps it honest: it explains a mechanism rather than claiming real data. */
 .lp-fig {
@@ -608,53 +608,6 @@
 }
 .lp-trips__more a:hover { color: var(--lp-primary-type); border-color: var(--lp-primary-type); }
 
-/* ========================= LOOKING FOR PEOPLE ========================= */
-.lp-open {
-  padding-block: var(--lp-gap);
-  border-top: 1px solid var(--lp-rule);
-  background: var(--lp-paper-alt);
-}
-.lp-open__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-  gap: clamp(16px, 2vw, 24px);
-}
-.lp-opencard {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 12px;
-  border-radius: var(--lp-radius);
-  background: var(--lp-paper);
-  border: 1px solid var(--lp-rule);
-  text-decoration: none;
-  transition: border-color .2s ease;
-}
-.lp-opencard:hover { border-color: var(--lp-rule-strong); }
-.lp-opencard__frame {
-  flex: 0 0 auto;
-  width: 64px;
-  height: 64px;
-  border-radius: 10px;
-  overflow: hidden;
-  background: var(--lp-paper-alt);
-}
-.lp-opencard__frame img { width: 100%; height: 100%; object-fit: cover; display: block; }
-.lp-opencard__body { min-width: 0; }
-.lp-opencard__body strong {
-  display: block;
-  font-size: 0.9375rem;
-  font-weight: 600;
-  color: var(--lp-ink);
-  line-height: 1.35;
-}
-.lp-opencard__line {
-  display: block;
-  margin-top: 4px;
-  font-size: 0.8125rem;
-  color: var(--lp-ink-mute);
-}
-
 /* ============================== STORIES =============================== */
 .lp-stories { padding-block: var(--lp-gap); border-top: 1px solid var(--lp-rule); }
 .lp-stories__grid {
@@ -751,16 +704,16 @@
   color: var(--lp-dark-mute);
 }
 
-/* =============================== NAVIA ================================ */
-.lp-navia { padding-block: var(--lp-gap); border-top: 1px solid var(--lp-rule); }
-.lp-navia__inner {
+/* =============================== TRIPICIANAI ================================ */
+.lp-tripicianai { padding-block: var(--lp-gap); border-top: 1px solid var(--lp-rule); }
+.lp-tripicianai__inner {
   display: grid;
   grid-template-columns: minmax(0, 1fr) minmax(0, 0.9fr);
   gap: clamp(32px, 5vw, 72px);
   align-items: center;
 }
-.lp-navia__text { display: flex; flex-direction: column; gap: 16px; align-items: flex-start; }
-.lp-navia__caveat {
+.lp-tripicianai__text { display: flex; flex-direction: column; gap: 16px; align-items: flex-start; }
+.lp-tripicianai__caveat {
   max-width: var(--lp-measure);
   margin: 0;
   font-size: 0.875rem;
@@ -769,8 +722,8 @@
   padding-left: 14px;
   border-left: 2px solid var(--lp-rule-strong);
 }
-.lp-navia__demo { display: flex; flex-direction: column; gap: 12px; }
-.lp-navia__prompt {
+.lp-tripicianai__demo { display: flex; flex-direction: column; gap: 12px; }
+.lp-tripicianai__prompt {
   display: flex;
   align-items: center;
   gap: 10px;
@@ -782,7 +735,7 @@
   color: var(--lp-ink-soft);
 }
 @media (max-width: 900px) {
-  .lp-navia__inner { grid-template-columns: minmax(0, 1fr); }
+  .lp-tripicianai__inner { grid-template-columns: minmax(0, 1fr); }
 }
 
 /* ============================== FEATURES ============================== */
@@ -1014,12 +967,9 @@
 
 .lp-plans__grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
   gap: 20px;
   align-items: stretch;
-}
-@media (max-width: 900px) {
-  .lp-plans__grid { grid-template-columns: 1fr; }
 }
 
 .lp-plan {
@@ -1142,7 +1092,7 @@
 }
 
 /* ========================= HERO CHAT =================================
-   Navia on the front door, for visitors with no account.
+   TripicianAI on the front door, for visitors with no account.
 
    Takes the full width of .lp-hero__cta-group so the two links wrap beneath
    it rather than sitting alongside. Its children inherit the group's
@@ -1161,7 +1111,7 @@
 .lp-root { padding-bottom: var(--lp-dock-space); }
 
 /* A dock at the bottom of the screen, not a field inside the hero.
-   Same geometry as the Navia command bar on Community: full width with a 16px
+   Same geometry as the TripicianAI command bar on Community: full width with a 16px
    inset on small screens, and a centred 720px column from lg.
 
    column-reverse is what puts the panel ABOVE the bar while leaving the DOM in
@@ -1280,7 +1230,7 @@
   white-space: pre-line;
 }
 .lp-herochat__msg--user { color: #fff; font-weight: 600; }
-.lp-herochat__msg--navia { color: rgba(255, 255, 255, 0.85); }
+.lp-herochat__msg--tripicianai { color: rgba(255, 255, 255, 0.85); }
 
 .lp-herochat__build {
   display: inline-flex;

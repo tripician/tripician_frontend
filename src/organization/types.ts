@@ -21,7 +21,21 @@ export interface Organization {
   plan: string;
   /** What this plan unlocks. Rendered from, never derived by comparing plan ids. */
   features: string[];
+  kind: GroupKind;
+  visibility: GroupVisibility;
+  planCreation: GroupPlanCreation;
+  /** Decided by the server from role, group state and the plan-creation setting. */
+  canCreatePlans: boolean;
+  memberCount: number;
+  /** The most people this group may hold on its plan. Absent means no limit. */
+  memberLimit?: number | null;
 }
+
+/** A community group is self-serve; a business is reviewed, can be verified and can take enquiries. */
+export type GroupKind = 'community' | 'business';
+/** Public groups are listed and take join requests; private ones are invite only. */
+export type GroupVisibility = 'public' | 'private';
+export type GroupPlanCreation = 'members' | 'admins';
 
 export interface OrganizationMember {
   userId: number;
@@ -35,6 +49,20 @@ export interface OrganizationMember {
  * The public face. Narrower than Organization on purpose: no contact email
  * unless the organisation takes enquiries, and never a member list.
  */
+/** One entry of the public directory: approved, with a public page and at least one published trip. */
+export interface OrganizationDirectoryEntry {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string | null;
+  coverUrl: string | null;
+  description: string | null;
+  verified: boolean;
+  publishedTripCount: number;
+  kind?: GroupKind;
+  memberCount?: number;
+}
+
 export interface OrganizationPublic {
   id: string;
   name: string;
@@ -46,7 +74,41 @@ export interface OrganizationPublic {
   verified: boolean;
   acceptsLeads: boolean;
   memberSince: string | null;
+  kind: GroupKind;
+  visibility: GroupVisibility;
+  memberCount: number;
+  /** The viewer's role when they belong; absent otherwise. */
+  viewerRole?: OrganizationRole | null;
+  /** The viewer's request, when they asked to join. */
+  viewerRequestStatus?: 'pending' | 'approved' | 'declined' | 'cancelled' | null;
+  /** Absent means no limit. */
+  memberLimit?: number | null;
 }
+
+/** A post in a group's own discussion. Only members read it; replies go one level deep. */
+export interface GroupDiscussionPost {
+  id: string;
+  authorUserId: number;
+  authorName: string | null;
+  authorAvatarUrl: string | null;
+  body: string;
+  createdAt: string;
+  canRemove: boolean;
+  replies: GroupDiscussionPost[];
+}
+
+/** The group's shared TripicianAI wallet. A group trip draws on it when its own credits run out. */
+export interface GroupCredits {
+  balance: number;
+  monthlyCredits: number;
+  planId: string;
+}
+
+/** A wallet only when the response really is one, so a surprise body hides the line instead of breaking the page. */
+export const asGroupCredits = (data: unknown): GroupCredits | null => {
+  const c = data as Partial<GroupCredits> | null | undefined;
+  return typeof c?.balance === 'number' && typeof c.monthlyCredits === 'number' ? c as GroupCredits : null;
+};
 
 export interface OrganizationWrite {
   name?: string;
@@ -58,6 +120,70 @@ export interface OrganizationWrite {
   contactEmail?: string;
   registrationNumber?: string;
   acceptsLeads?: boolean;
+  kind?: GroupKind;
+  visibility?: GroupVisibility;
+  planCreation?: GroupPlanCreation;
+}
+
+/** One trip of a group, as the group's list shows it. Members see drafts; visitors see published ones. */
+export interface GroupTrip {
+  tripId: string;
+  name: string;
+  coverUrl: string | null;
+  countries: string[];
+  startDate: string | null;
+  endDate: string | null;
+  /** 0 planning, 1 live, 2 completed. */
+  status: number;
+  published: boolean;
+  joinPolicy: string;
+  spotsLeft?: number | null;
+  goingCount: number;
+  ownerUserId: number;
+  ownerName: string | null;
+  viewerOnTrip: boolean;
+  viewerCanEdit: boolean;
+  /** You belong to the group, you are not on this trip, and it can still take you. */
+  viewerCanAskToJoin?: boolean;
+  /** Where you stand when you are not on it: requested, declined, invited, left. */
+  viewerRequestStatus?: string | null;
+  /** People waiting on a decision. Zero unless you are the one who makes it. */
+  interestedCount?: number;
+}
+
+export interface GroupJoinRequest {
+  userId: number;
+  name: string | null;
+  avatarUrl: string | null;
+  message: string | null;
+  createdAt: string;
+}
+
+export interface GroupInvite {
+  token?: string | null;
+  createdAt?: string | null;
+}
+
+export interface GroupInvitePreview {
+  id: string;
+  name: string;
+  logoUrl: string | null;
+  description: string | null;
+  kind: GroupKind;
+  memberCount: number;
+  alreadyMember: boolean;
+}
+
+export interface GroupSuggestion {
+  id: string;
+  name: string;
+  slug: string;
+  logoUrl: string | null;
+  verified: boolean;
+  memberCount: number;
+  openTripCount: number;
+  reason: string;
+  requestable: boolean;
 }
 
 export const isOrganizationAdmin = (organization: Organization | null | undefined): boolean =>
@@ -71,7 +197,6 @@ export const PLAN_FEATURES = {
   posts: 'organization_posts',
   staffing: 'organization_staffing',
   managerRole: 'organization_manager_role',
-  coverImage: 'organization_cover_image',
 } as const;
 
 export const hasFeature = (organization: Organization | null | undefined, feature: string): boolean =>
@@ -115,7 +240,6 @@ export interface OrganizationTrip {
   coverUrl: string | null;
   startDate: string | null;
   published: boolean;
-  budgetVisibility: 'admins' | 'members';
   checklistVisibility: 'admins' | 'members';
   crewCount: number;
 }

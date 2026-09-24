@@ -187,7 +187,7 @@ export interface StoryQuestion {
   answers: StoryQuestion[];
 }
 
-/** Navia's suggestion for one block. Never applied without the author accepting. */
+/** TripicianAI's suggestion for one block. Never applied without the author accepting. */
 export interface StoryPolishResult {
   text: string;
   changed: boolean;

@@ -104,7 +104,7 @@ const StaffTripDialog: React.FC<StaffTripDialogProps> = ({ organization, trip, o
 
         {members.length === 0 && (
           <Typography variant="caption" sx={{ color: 'text.disabled' }}>
-            Nobody belongs to this organization yet. Add people on the People tab first.
+            Nobody belongs to this group yet. Add people on the Members tab first.
           </Typography>
         )}
 

@@ -1,9 +1,7 @@
-import type { PackingCategory } from '../../store/packingSlice';
-
 /**
  * A plan that already exists, handed to the planner to lay out.
  *
- * Two things produce one: the Navia chat ("Create this trip"), which fills only
+ * Two things produce one: the TripicianAI chat ("Create this trip"), which fills only
  * `stops`, and importing a plan the traveller wrote elsewhere, which fills the
  * rest. The planner treats them identically, so an imported plan gets the same
  * geocoding, the same place verification and the same provenance marks as
@@ -32,53 +30,8 @@ export interface PlanSeedStop {
 
 export interface PlanSeed {
   stops: PlanSeedStop[];
-  /** Trip-wide notes, already merged with anything that fitted nowhere else. */
+  /** Trip-wide notes, already merged with anything that fitted nowhere else, including checklist, budget and cost lines. */
   importantNotes?: string;
-  checklist?: { category: string; name: string; qty: number }[];
-  budget?: number | null;
-  expenses?: { label: string; amount: number; category: string }[];
-}
-
-/** Slug that survives a round trip, matching how packingSlice names user categories. */
-function categoryId(name: string): string {
-  const slug = name.toLowerCase().trim().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '');
-  return slug || 'packing';
-}
-
-/**
- * Turns a flat imported checklist into the planner's packing categories.
- *
- * Everything arrives unchecked. A traveller who wrote "passport" on a list
- * three weeks ago did not tell us whether it is in the bag yet, and starting
- * items ticked would be an answer we invented on their behalf.
- */
-export function checklistToPackingCategories(
-  items: { category: string; name: string; qty: number }[],
-): PackingCategory[] {
-  const byCategory = new Map<string, PackingCategory>();
-
-  for (const item of items) {
-    const name = item.name?.trim();
-    if (!name) continue;
-    const label = item.category?.trim() || 'Packing';
-    const id = categoryId(label);
-
-    let category = byCategory.get(id);
-    if (!category) {
-      category = { id, name: label, type: 'individual', items: [] };
-      byCategory.set(id, category);
-    }
-
-    if (category.items.some((i) => i.name.toLowerCase() === name.toLowerCase())) continue;
-    category.items.push({
-      id: `${id}-${category.items.length}`,
-      name,
-      qty: Math.max(1, Math.min(99, Math.round(item.qty) || 1)),
-      checked: false,
-    });
-  }
-
-  return [...byCategory.values()].filter((c) => c.items.length > 0);
 }
 
 /**
@@ -95,4 +48,14 @@ export function composeImportantNotes(importantNotes: string, unplaced: string[]
 
   const block = ['From your notes:', ...rest.map((r) => `- ${r}`)].join('\n');
   return notes ? `${notes}\n\n${block}` : block;
+}
+
+/** Lines for what the planner does not keep separately, so an imported plan loses none of it. */
+export function composeImportedExtras(
+  checklist: { category?: string; name: string; qty?: number }[] | undefined,
+): string[] {
+  const items = (checklist ?? [])
+    .map((i) => i.name?.trim() ? `${i.name.trim()}${(i.qty ?? 1) > 1 ? ` x${i.qty}` : ''}` : '')
+    .filter(Boolean);
+  return items.length ? [`To bring: ${items.join(', ')}`] : [];
 }

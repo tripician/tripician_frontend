@@ -4,17 +4,20 @@
  * Shared by the messages page and the dialog that opens from a join request, so
  * an organiser answering an applicant sees the same thing either way.
  *
- * There is no realtime here yet. Messages arrive when the thread is opened or
- * sent to, and the composer is optimistic. Polling every few seconds for every
- * open thread is a cost worth paying only once somebody is actually waiting on
- * the other end, and SignalR already exists for when that day comes.
+ * A live thread (the docked chat window) re-reads every few seconds while it is
+ * visible, and at once when the notification hub says something arrived. The
+ * Messages page reads on open and on send, and the composer is optimistic.
  */
 
 import React from 'react';
-import { Alert, Avatar, Box, CircularProgress, IconButton, TextField, Typography, useTheme } from '@mui/material';
+import { Alert, Avatar, Box, Chip, CircularProgress, IconButton, TextField, Typography, useTheme } from '@mui/material';
 import { IconSend } from '@tabler/icons-react';
 import { apiServices } from '../services/APIs/apiServices';
+import { INBOX_CHANGED_EVENT, MESSAGES_READ_EVENT } from './inbox';
 import { REASON_COPY, type Conversation, type ConversationMessage } from './types';
+
+// How often an open, visible chat re-reads its thread when the notification hub has said nothing.
+const LIVE_POLL_MS = 6000;
 
 const MAX_BODY = 2000;
 
@@ -32,9 +35,17 @@ interface Props {
   reason?: string | null;
   /** Told when a message goes out, so a list can reorder without refetching. */
   onSent?: (message: ConversationMessage) => void;
+  /** Drops the name header, for a window that already shows who this is. */
+  compact?: boolean;
+  /** Keeps re-reading while the thread is open and visible: somebody is waiting on the other end. */
+  live?: boolean;
+  /** One-tap openers that fill the box for the reader to edit, never send on their own. */
+  quickReplies?: readonly string[];
+  /** Shown under the name header, above the messages: what the thread is about right now. */
+  banner?: React.ReactNode;
 }
 
-const ConversationThread: React.FC<Props> = ({ conversation, meUserId, reason, onSent }) => {
+const ConversationThread: React.FC<Props> = ({ conversation, meUserId, reason, onSent, compact, live, quickReplies, banner }) => {
   const theme = useTheme();
   const [messages, setMessages] = React.useState<ConversationMessage[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -42,6 +53,12 @@ const ConversationThread: React.FC<Props> = ({ conversation, meUserId, reason, o
   const [sending, setSending] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const endRef = React.useRef<HTMLDivElement | null>(null);
+  const inputRef = React.useRef<HTMLTextAreaElement | null>(null);
+  const messagesRef = React.useRef<ConversationMessage[]>([]);
+  React.useEffect(() => { messagesRef.current = messages; }, [messages]);
+
+  // Reading a thread marks it read on the server, so the header badge is told to re-ask.
+  const hadUnread = React.useRef(conversation.unreadCount > 0);
 
   React.useEffect(() => {
     let wanted = conversation.id;
@@ -50,11 +67,43 @@ const ConversationThread: React.FC<Props> = ({ conversation, meUserId, reason, o
       .then((resp) => {
         if (wanted !== conversation.id) return;
         setMessages(Array.isArray(resp.data) ? resp.data : []);
+        if (hadUnread.current) window.dispatchEvent(new Event(MESSAGES_READ_EVENT));
+        hadUnread.current = false;
       })
       .catch(() => { if (wanted === conversation.id) setError('Could not load this conversation.'); })
       .finally(() => { if (wanted === conversation.id) setLoading(false); });
     return () => { wanted = ''; };
   }, [conversation.id]);
+
+  // A quiet re-read for a live thread: no spinner, and only a real change replaces what is on screen.
+  React.useEffect(() => {
+    if (!live) return;
+    let active = true;
+    const refresh = () => {
+      if (document.visibilityState !== 'visible') return;
+      void apiServices.getConversationMessages(conversation.id)
+        .then((resp) => {
+          if (!active || !Array.isArray(resp.data)) return;
+          const next = resp.data;
+          const prev = messagesRef.current;
+          const changed = next.length !== prev.length || next[next.length - 1]?.id !== prev[prev.length - 1]?.id;
+          if (!changed) return;
+          // Something new from them was just read by this fetch, so the badge is out of date.
+          if (next.some((m) => m.senderUserId !== meUserId && !prev.some((old) => old.id === m.id))) {
+            window.dispatchEvent(new Event(MESSAGES_READ_EVENT));
+          }
+          setMessages(next);
+        })
+        .catch(() => { /* the next tick tries again */ });
+    };
+    const timer = window.setInterval(refresh, LIVE_POLL_MS);
+    window.addEventListener(INBOX_CHANGED_EVENT, refresh);
+    return () => {
+      active = false;
+      window.clearInterval(timer);
+      window.removeEventListener(INBOX_CHANGED_EVENT, refresh);
+    };
+  }, [live, conversation.id, meUserId]);
 
   // Newest message in view on open and after sending, which is where a reader
   // expects to land in anything shaped like a chat.
@@ -88,24 +137,28 @@ const ConversationThread: React.FC<Props> = ({ conversation, meUserId, reason, o
 
   return (
     <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%', minHeight: 0 }}>
-      <Box
-        sx={{
-          display: 'flex', alignItems: 'center', gap: 1.5,
-          pb: 1.5, borderBottom: `1px solid ${theme.custom.surface.border}`, flexShrink: 0,
-        }}
-      >
-        <Avatar src={conversation.otherAvatarUrl ?? undefined} sx={{ width: 36, height: 36 }}>
-          {(conversation.otherName ?? '?').charAt(0).toUpperCase()}
-        </Avatar>
-        <Box sx={{ minWidth: 0 }}>
-          <Typography variant="body1" sx={{ fontWeight: 600 }} noWrap>
-            {conversation.otherName ?? 'Traveller'}
-          </Typography>
-          <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
-            {[conversation.tripName, reasonText].filter(Boolean).join('  ·  ')}
-          </Typography>
+      {!compact && (
+        <Box
+          sx={{
+            display: 'flex', alignItems: 'center', gap: 1.5,
+            pb: 1.5, borderBottom: `1px solid ${theme.custom.surface.border}`, flexShrink: 0,
+          }}
+        >
+          <Avatar src={conversation.otherAvatarUrl ?? undefined} sx={{ width: 36, height: 36 }}>
+            {(conversation.otherName ?? '?').charAt(0).toUpperCase()}
+          </Avatar>
+          <Box sx={{ minWidth: 0 }}>
+            <Typography variant="body1" sx={{ fontWeight: 600 }} noWrap>
+              {conversation.otherName ?? 'Traveller'}
+            </Typography>
+            <Typography variant="caption" sx={{ color: 'text.secondary' }} noWrap>
+              {[conversation.tripName, reasonText].filter(Boolean).join('  ·  ')}
+            </Typography>
+          </Box>
         </Box>
-      </Box>
+      )}
+
+      {banner}
 
       <Box sx={{ flex: 1, overflowY: 'auto', py: 2, minHeight: 0 }}>
         {loading ? (
@@ -151,6 +204,21 @@ const ConversationThread: React.FC<Props> = ({ conversation, meUserId, reason, o
 
       {error && <Alert severity="error" sx={{ mb: 1 }} onClose={() => setError(null)}>{error}</Alert>}
 
+      {quickReplies && quickReplies.length > 0 && !body && (
+        <Box sx={{ display: 'flex', gap: 0.75, overflowX: 'auto', pb: 1, flexShrink: 0, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
+          {quickReplies.map((text) => (
+            <Chip
+              key={text}
+              label={text}
+              size="small"
+              variant="outlined"
+              onClick={() => { setBody(text); window.setTimeout(() => inputRef.current?.focus(), 0); }}
+              sx={{ flexShrink: 0, fontWeight: 600 }}
+            />
+          ))}
+        </Box>
+      )}
+
       <Box sx={{ display: 'flex', gap: 1, alignItems: 'flex-end', flexShrink: 0 }}>
         <TextField
           value={body}
@@ -161,6 +229,7 @@ const ConversationThread: React.FC<Props> = ({ conversation, meUserId, reason, o
             if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); void send(); }
           }}
           placeholder="Write a message"
+          inputRef={inputRef}
           multiline
           maxRows={4}
           fullWidth

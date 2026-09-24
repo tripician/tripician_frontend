@@ -15,14 +15,15 @@ import {
   ListItemIcon,
   Button,
   ButtonBase,
-  Menu,
-  MenuItem,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
+import MessagesMenu from '../../../messages/MessagesMenu';
+import { useChatDock } from '../../../messages/chatDockContext';
+import { INBOX_CHANGED_EVENT, MESSAGES_READ_EVENT } from '../../../messages/inbox';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import NotificationsOffOutlinedIcon from '@mui/icons-material/NotificationsOffOutlined';
 import NotificationsActiveRoundedIcon from '@mui/icons-material/NotificationsActiveRounded';
@@ -31,8 +32,8 @@ import FavoriteRoundedIcon from '@mui/icons-material/FavoriteRounded';
 import ChatBubbleOutlineRoundedIcon from '@mui/icons-material/ChatBubbleOutlineRounded';
 import FlightTakeoffRoundedIcon from '@mui/icons-material/FlightTakeoffRounded';
 import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
+import TaskAltRoundedIcon from '@mui/icons-material/TaskAltRounded';
 import AutoStoriesRoundedIcon from '@mui/icons-material/AutoStoriesRounded';
-import EditNoteRoundedIcon from '@mui/icons-material/EditNoteRounded';
 import { FEATURE_FLAGS } from '../../../config/featureFlags';
 import StoryCreationModal from '../../../afterstory/StoryCreationModal';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
@@ -42,10 +43,8 @@ import ShieldIcon from '@mui/icons-material/PrivacyTip';
 import GavelIcon from '@mui/icons-material/Gavel';
 import ContactSupportIcon from '@mui/icons-material/ContactSupport';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import KeyboardArrowDownRoundedIcon from '@mui/icons-material/KeyboardArrowDownRounded';
 import SettingsRoundedIcon from '@mui/icons-material/SettingsRounded';
 import ApartmentRoundedIcon from '@mui/icons-material/ApartmentRounded';
-import RadarRoundedIcon from '@mui/icons-material/RadarRounded';
 import CampaignRoundedIcon from '@mui/icons-material/CampaignRounded';
 import { useSelector, useDispatch } from 'react-redux';
 import type { RootState, AppDispatch } from '../../../store';
@@ -65,63 +64,14 @@ import { apiServices } from '../../../services/APIs/apiServices';
 import { useAuthToken } from '../../../hooks/useAuth0Token';
 import ProPill from '../../../pricing/ProPill';
 import { useAppShell } from '../AppShellContext';
+import StudioMenu from './StudioMenu';
+import { STUDIO_LABEL, studioActions } from '../studioActions';
+import { notificationTarget } from './notificationTarget';
 
 interface NotificationMeta {
   Icon: React.ElementType;
   color: string;
   bg: string;
-}
-
-/**
- * Where a notification takes you, or null to only mark it read.
- *
- * The panel has always rendered rows with `cursor: pointer` that went nowhere.
- * This is not an attempt to fix that everywhere: it routes the notifications
- * that exist to prompt an action, because a nudge saying "write the after story"
- * that does not open the story is worse than no nudge at all.
- *
- * Types with no obvious destination stay as they were.
- */
-function notificationTarget(n: {
-  notificationType?: string;
-  referenceId?: string | null;
-  referenceType?: string | null;
-}): string | null {
-  const id = n.referenceId;
-  if (!id) return null;
-
-  switch (n.notificationType) {
-    // Straight into the tab being asked for, not the trip's front page.
-    case 'StoryReady':
-      return n.referenceType === 'Trip' ? `/tripplanner/${id}?tab=story` : null;
-    // The editor is where the accept-or-decline prompt lives.
-    case 'StoryInvite':
-      return n.referenceType === 'Story' ? `/story/${id}/edit` : null;
-    case 'TripPublished':
-    case 'TripUpdated':
-    case 'TripInvite':
-    case 'TripJoined':
-    case 'TripCreated':
-    case 'Announcement':
-      return n.referenceType === 'Trip' ? `/trip/${id}` : null;
-    /*
-     * Recruitment. These three had no case at all, so the row rendered with a
-     * pointer cursor and went nowhere.
-     *
-     * The organiser is sent to the trip's public page, because that is where
-     * TripSeatsBand renders the requests panel and the approve/decline buttons -
-     * the only place the request can actually be acted on.
-     */
-    case 'JoinRequested':
-      return n.referenceType === 'Trip' ? `/trip/${id}` : null;
-    // The applicant's answer is the seats band too: it shows "You are on this
-    // trip" or the decline line, keyed off their own membership.
-    case 'JoinApproved':
-    case 'JoinDeclined':
-      return n.referenceType === 'Trip' ? `/trip/${id}` : null;
-    default:
-      return null;
-  }
 }
 
 // The backend now sends notificationType - key icons on the type first and
@@ -141,8 +91,21 @@ function notifMeta(type: string | undefined, msg: string): NotificationMeta {
     case 'JoinRequested': return { Icon: GroupsRoundedIcon, color: 'primary.main', bg: alpha(BRAND.coral, 0.10) };
     case 'JoinApproved':  return { Icon: PublicRoundedIcon, color: '#10B981', bg: 'rgba(16,185,129,0.10)' };
     case 'JoinDeclined':  return { Icon: GroupsRoundedIcon, color: '#6E6E78', bg: 'rgba(110,110,120,0.10)' };
+    case 'GroupJoinRequested': return { Icon: GroupsRoundedIcon, color: 'primary.main', bg: alpha(BRAND.coral, 0.10) };
+    case 'GroupJoinApproved':
+    case 'GroupMemberAdded':   return { Icon: GroupsRoundedIcon, color: '#10B981', bg: 'rgba(16,185,129,0.10)' };
+    case 'GroupJoinDeclined':  return { Icon: GroupsRoundedIcon, color: '#6E6E78', bg: 'rgba(110,110,120,0.10)' };
+    case 'OrgAnnouncement':    return { Icon: CampaignRoundedIcon, color: '#F59E0B', bg: 'rgba(245,158,11,0.10)' };
+    case 'GroupDiscussionReply': return { Icon: ChatBubbleOutlineRoundedIcon, color: '#0EA5E9', bg: 'rgba(14,165,233,0.10)' };
+    case 'EnquiryReceived':    return { Icon: CampaignRoundedIcon, color: 'primary.main', bg: alpha(BRAND.coral, 0.10) };
+    case 'TripMemberJoined':   return { Icon: GroupsRoundedIcon, color: '#10B981', bg: 'rgba(16,185,129,0.10)' };
     case 'Comment':
     case 'Reply':         return { Icon: ChatBubbleOutlineRoundedIcon, color: '#0EA5E9', bg: 'rgba(14,165,233,0.10)' };
+    case 'PostLiked':
+    case 'StoryReaction': return { Icon: FavoriteRoundedIcon, color: '#EF4444', bg: 'rgba(239,68,68,0.10)' };
+    case 'PostReplied':
+    case 'StoryQuestion': return { Icon: ChatBubbleOutlineRoundedIcon, color: '#0EA5E9', bg: 'rgba(14,165,233,0.10)' };
+    case 'AnswerAccepted': return { Icon: TaskAltRoundedIcon, color: '#10B981', bg: 'rgba(16,185,129,0.10)' };
   }
   const m = (msg || '').toLowerCase();
   if (m.includes('follow') || m.includes('connect')) return { Icon: PersonAddAltRoundedIcon, color: '#8B5CF6', bg: 'rgba(139,92,246,0.12)' };
@@ -315,6 +278,33 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
       .catch(() => { /* a missing badge says less than a wrong one */ });
   }, [sessionKey]);
 
+  // Read through a ref by the hub handlers, so a new count function never tears down the connection.
+  const refreshMessageCountRef = React.useRef(refreshMessageCount);
+  React.useEffect(() => { refreshMessageCountRef.current = refreshMessageCount; }, [refreshMessageCount]);
+
+  // A thread read in a docked window or the dropdown changes the badge without anybody leaving a page.
+  React.useEffect(() => {
+    const onRead = () => refreshMessageCountRef.current();
+    window.addEventListener(MESSAGES_READ_EVENT, onRead);
+    return () => window.removeEventListener(MESSAGES_READ_EVENT, onRead);
+  }, []);
+
+  const [messagesAnchor, setMessagesAnchor] = React.useState<HTMLElement | null>(null);
+  const chatDock = useChatDock();
+
+  // A message notification opens that very thread in a quick-reply window; anything else falls back to its page.
+  const openMessageNotification = async (n: { referenceId?: string | null; actorUserId?: number | null }) => {
+    if (!chatDock || !n.referenceId || typeof n.actorUserId !== 'number') return false;
+    try {
+      const resp = await apiServices.openConversation(n.referenceId, n.actorUserId);
+      if (!resp.data) return false;
+      chatDock.openChat(resp.data);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
 
   const notificationHubRef = React.useRef<signalR.HubConnection | null>(null);
 
@@ -351,11 +341,25 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
     return () => window.removeEventListener('story:create', open);
   }, []);
 
+  // The story handler opens the modal directly rather than dispatching
+  // `story:create`, because this component is the thing listening for it.
+  const studioItems = React.useMemo(
+    () => studioActions({
+      onCreateTrip,
+      onWriteStory: () => setCreateStoryOpen(true),
+      onAskTripicianAI: () => navigate('/tripicianai'),
+    }),
+    [onCreateTrip, navigate],
+  );
+
   const activeNav = navItemFromPath(location.pathname);
   const displayName = profile ? `${profile.fname ?? ''} ${profile.lname ?? ''}`.trim() || 'Traveler' : 'Traveler';
   const initials = displayName.charAt(0).toUpperCase();
 
   useEffect(() => {
+    // Nothing to ask for without a session. This used to run on every semi-public
+    // route for signed-out readers, which was two 401s per visitor every 30 seconds.
+    if (!sessionKey) return;
     dispatch(fetchUnreadCount());
     dispatch(fetchNotifications());
     refreshMessageCount();
@@ -376,7 +380,7 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
       clearInterval(poll);
       document.removeEventListener('visibilitychange', onVisible);
     };
-  }, [dispatch, refreshMessageCount]);
+  }, [dispatch, refreshMessageCount, sessionKey]);
 
   /*
    * Re-ask on the way out of /messages, which is the one moment the number is
@@ -422,6 +426,9 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
     connection.on('NotificationCreated', () => {
       dispatch(fetchNotifications());
       dispatch(fetchUnreadCount());
+      // A message also arrives as a notification: the badge, the dropdown and any open chat re-read at once.
+      refreshMessageCountRef.current();
+      window.dispatchEvent(new Event(INBOX_CHANGED_EVENT));
     });
 
     connection.on('NotificationRead', (payload: any) => {
@@ -540,9 +547,20 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
           gap: { xs: 1, md: 2 },
         }}
       >
-        {/* Brand */}
+        {/* Brand.
+            Load-bearing now: the board has no nav item, so this is the way home
+            at every width. It used to point at /community. */}
         <Box
-          onClick={() => navigate('/community')}
+          onClick={() => navigate('/')}
+          role="link"
+          tabIndex={0}
+          aria-label="Tripician, go to your feed"
+          onKeyDown={(e: React.KeyboardEvent) => {
+            if (e.key === 'Enter' || e.key === ' ') {
+              e.preventDefault();
+              navigate('/');
+            }
+          }}
           sx={{
             display: 'flex',
             alignItems: 'center',
@@ -634,42 +652,16 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
                     },
                   }}
                 >
-                  {/* The Navia orb renders larger than the other icons but must not
-                      stretch the pill height, negative margin lets it overflow. */}
-                  <Box sx={{ position: 'relative', display: 'flex', ...(item.id === 'navia' ? { my: -0.75 } : {}) }}>
-                    <item.Icon size={item.id === 'navia' ? 30 : 20} stroke={1.9} color="currentColor" />
-                    {item.id === 'risk' && (
-                      <Box
-                        aria-hidden="true"
-                        sx={{
-                          position: 'absolute',
-                          top: -2,
-                          right: -2,
-                          width: 6,
-                          height: 6,
-                          borderRadius: '50%',
-                          background: theme.palette.success.main,
-                          '&::after': {
-                            content: '""',
-                            position: 'absolute',
-                            inset: '-3px',
-                            borderRadius: '50%',
-                            background: 'rgba(34,197,94,0.4)',
-                            animation: 'radar-ping 1.8s ease-out infinite',
-                          },
-                        }}
-                      />
-                    )}
+                  {/* Fixed height: the brand mark is optically scaled smaller, and without this the pill changed height between tabs. */}
+                  <Box sx={{ position: 'relative', display: 'flex', alignItems: 'center', height: 20 }}>
+                    <item.Icon size={20} stroke={1.9} color="currentColor" />
                   </Box>
-                  {/* Navia is represented by the orb alone - no text label */}
-                  {item.id !== 'navia' && (
-                    <Typography
-                      component="span"
-                      sx={{ fontSize: '0.84rem', fontWeight: active ? 700 : 600, lineHeight: 1, whiteSpace: 'nowrap' }}
-                    >
-                      {item.shortLabel}
-                    </Typography>
-                  )}
+                  <Typography
+                    component="span"
+                    sx={{ fontSize: '0.84rem', fontWeight: active ? 700 : 600, lineHeight: 1, whiteSpace: 'nowrap' }}
+                  >
+                    {item.desktopLabel ?? item.shortLabel}
+                  </Typography>
                 </Box>
               );
 
@@ -734,93 +726,52 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
               <ProPill onClick={openProDialog} />
 
               {/*
-                One create control, at every width.
-                
-                The header owned three of these: a labelled story button, an icon
-                story button, and Plan a trip in two variants, while the bottom bar
-                carried a fourth for the same trip dialog. Below 600px two coral
-                "+"s sat on screen together with the same aria-label.
-                
-                Now creation lives in exactly one place per width: this split
-                button where the desktop pill is showing, and the bottom bar's
-                centre button everywhere else. The left half still plans a trip in
-                one click, which navConfig protects as the primary action; the
-                chevron holds everything else you can start.
+                Studio: one door to everything you can make.
+
+                It replaces a split button whose left half planned a trip and whose
+                chevron held exactly one other item. That shape put the product's
+                three creation tools at three different depths - one click, two
+                clicks, and nowhere at all for TripicianAI - and hid all of it below
+                1280px, where the bottom bar took over.
+
+                Studio is reachable at every width, but never twice: this button
+                where the desktop pill is showing, and the bottom bar's centre
+                button everywhere else, which now carries the same name and opens
+                the same panel. That is the one-control-per-width rule navConfig
+                documents, and it is why this still hides below the breakpoint
+                rather than following the "visible everywhere" instinct.
               */}
-              <Box
+              <ButtonBase
+                onClick={(e) => setCreateAnchor(e.currentTarget)}
+                aria-label={STUDIO_LABEL}
+                aria-haspopup="dialog"
+                aria-expanded={Boolean(createAnchor)}
                 sx={{
                   display: 'none',
                   [`@media (min-width:${DESKTOP_NAV_MIN_WIDTH}px)`]: { display: 'inline-flex' },
-                  alignItems: 'stretch',
+                  alignItems: 'center',
+                  gap: 0.75,
                   flexShrink: 0,
                   height: 36,
+                  px: 1.75,
                   borderRadius: 999,
-                  overflow: 'hidden',
                   bgcolor: 'primary.main',
                   color: 'primary.contrastText',
+                  fontSize: '0.84rem',
+                  fontWeight: 700,
+                  fontFamily: 'inherit',
+                  '&:hover': { bgcolor: 'primary.dark' },
                 }}
               >
-                <ButtonBase
-                  onClick={onCreateTrip}
-                  sx={{
-                    display: 'inline-flex',
-                    alignItems: 'center',
-                    gap: 0.75,
-                    px: 1.75,
-                    fontSize: '0.84rem',
-                    fontWeight: 700,
-                    fontFamily: 'inherit',
-                    '&:hover': { bgcolor: 'primary.dark' },
-                  }}
-                >
-                  <AddRoundedIcon sx={{ fontSize: 19 }} />
-                  Plan a trip
-                </ButtonBase>
+                <AddRoundedIcon sx={{ fontSize: 19 }} />
+                {STUDIO_LABEL}
+              </ButtonBase>
 
-                <ButtonBase
-                  onClick={(e) => setCreateAnchor(e.currentTarget)}
-                  aria-label="More ways to create"
-                  aria-haspopup="menu"
-                  aria-expanded={Boolean(createAnchor)}
-                  sx={{
-                    px: 0.9,
-                    // A hairline in white, not a gap: the two halves have to read
-                    // as one control that has been divided, not two buttons that
-                    // happen to touch.
-                    borderLeft: `1px solid ${alpha('#fff', 0.28)}`,
-                    '&:hover': { bgcolor: 'primary.dark' },
-                  }}
-                >
-                  <KeyboardArrowDownRoundedIcon sx={{ fontSize: 18 }} />
-                </ButtonBase>
-              </Box>
-
-              <Menu
+              <StudioMenu
                 anchorEl={createAnchor}
-                open={Boolean(createAnchor)}
                 onClose={() => setCreateAnchor(null)}
-                anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-                transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-                slotProps={{ paper: { sx: { minWidth: 236, borderRadius: '14px', mt: 1 } } }}
-              >
-                {FEATURE_FLAGS.afterStory && (
-                  <MenuItem
-                    onClick={() => { setCreateAnchor(null); setCreateStoryOpen(true); }}
-                    sx={{ py: 1.1 }}
-                  >
-                    <ListItemIcon sx={{ minWidth: 32 }}>
-                      <EditNoteRoundedIcon sx={{ fontSize: 19 }} />
-                    </ListItemIcon>
-                    <ListItemText
-                      primaryTypographyProps={{ fontSize: 13, fontWeight: 600 }}
-                      secondaryTypographyProps={{ fontSize: 11.5 }}
-                      secondary="Write up a trip you already took"
-                    >
-                      Write a story
-                    </ListItemText>
-                  </MenuItem>
-                )}
-              </Menu>
+                actions={studioItems}
+              />
 
 
               {/* Beside the bell, not behind the avatar. Messaging went live and
@@ -830,7 +781,9 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
                 <IconButton
                   size="small"
                   aria-label={messageCount > 0 ? `Messages, ${messageCount} unread` : 'Messages'}
-                  onClick={() => navigate('/messages')}
+                  aria-haspopup="dialog"
+                  aria-expanded={Boolean(messagesAnchor)}
+                  onClick={(e) => setMessagesAnchor(e.currentTarget)}
                   sx={{ width: 36, height: 36 }}
                 >
                   <Badge badgeContent={messageCount} color="error" max={99}>
@@ -838,6 +791,10 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
                   </Badge>
                 </IconButton>
               </Tooltip>
+              <MessagesMenu
+                anchorEl={messagesAnchor}
+                onClose={() => { setMessagesAnchor(null); refreshMessageCount(); }}
+              />
 
               <Tooltip title="Notifications" arrow>
                 <IconButton
@@ -974,11 +931,17 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
           <Box sx={{ maxHeight: 400, overflowY: 'auto' }}>
             {notifications.map((notification: any) => {
               const meta = notifMeta(notification.notificationType, notification.message || '');
+              const goes = notification.notificationType === 'Message' || notificationTarget(notification) !== null;
               return (
                 <Box
                   key={notification.id}
                   onClick={() => {
                     markOneRead(String(notification.id));
+                    if (notification.notificationType === 'Message') {
+                      setNotifAnchorEl(null);
+                      void openMessageNotification(notification).then((opened) => { if (!opened) navigate('/messages'); });
+                      return;
+                    }
                     const target = notificationTarget(notification);
                     if (target) {
                       setNotifAnchorEl(null);
@@ -991,7 +954,7 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
                     gap: 1.5,
                     px: 2.25,
                     py: 1.75,
-                    cursor: 'pointer',
+                    cursor: goes ? 'pointer' : 'default',
                     bgcolor: notification?.isRead ? 'transparent' : theme.custom.surface.brandTint,
                     borderBottom: '1px solid',
                     borderColor: 'divider',
@@ -1062,19 +1025,12 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
         </Box>
         <Divider sx={{ mx: 2 }} />
         <List dense disablePadding sx={{ py: 1, px: 1 }}>
-          {/* Risk Monitor lives here rather than in the nav. It is a tool you
-              reach for about a specific destination, not a place you go, and it
-              was holding a fifth of the top-level nav that Stories needed. */}
-          <ListItemButton onClick={() => { navigate('/risk-monitor'); setAnchorEl(null); }} sx={{ py: 0.9 }}>
-            <ListItemIcon sx={{ minWidth: 32 }}><RadarRoundedIcon sx={{ fontSize: 17 }} /></ListItemIcon>
-            <ListItemText primary="Risk Monitor" primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }} />
-          </ListItemButton>
           {/* Shown to everyone. Hiding it until you already had one was the reason a
               business had no way in: the page it needed was the page it could not reach. */}
-          <ListItemButton onClick={() => { navigate('/organizations'); setAnchorEl(null); }} sx={{ py: 0.9 }}>
+          <ListItemButton onClick={() => { navigate(hasOrganization ? '/groups' : '/groups?new=1'); setAnchorEl(null); }} sx={{ py: 0.9 }}>
             <ListItemIcon sx={{ minWidth: 32 }}><ApartmentRoundedIcon sx={{ fontSize: 17 }} /></ListItemIcon>
             <ListItemText
-              primary={hasOrganization ? 'Your organization' : 'Create a business account'}
+              primary={hasOrganization ? 'Your groups' : 'Start a group'}
               primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }}
             />
           </ListItemButton>

@@ -30,7 +30,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import HeadsetMicRoundedIcon from '@mui/icons-material/HeadsetMicRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
-import NaviaOrb from '../../navia/NaviaOrb';
+import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
 import FeedbackOutlinedIcon from '@mui/icons-material/FeedbackOutlined';
 import NewReleasesOutlinedIcon from '@mui/icons-material/NewReleasesOutlined';
 import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded';
@@ -40,17 +40,16 @@ import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import TravelExploreRoundedIcon from '@mui/icons-material/TravelExploreRounded';
 import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
-import AutoAwesomeRoundedIcon from '@mui/icons-material/AutoAwesomeRounded';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { apiServices } from '../../services/APIs/apiServices';
 import { onFeedbackPromptRequested, markFeedbackPromptShown } from '../../utils/feedbackPrompt';
 
 /**
  * SupportWidget - the quiet corner concierge.
- * Replaces the old floating Navia chatbot: Navia now lives on its own page
+ * Replaces the old floating TripicianAI chatbot: TripicianAI now lives on its own page
  * (and inside every trip), while this button handles feedback, updates and help.
  */
-import type { CommandBarState } from '../../navia/commandbar/commandModes';
+import type { CommandBarState } from '../../tripicianai/commandbar/commandModes';
 
 interface SupportWidgetProps {
   /** The command bar shares this corner below lg. Step up, or stand down. */
@@ -79,7 +78,7 @@ const SupportWidget: React.FC<SupportWidgetProps> = ({ commandBar = 'none' }) =>
 
   /**
    * The feedback nudge balloon. Requested by TripCreationModal (trip created)
-   * or NaviaPage (ten seconds of Navia use) via the shared feedbackPrompt
+   * or TripicianAIPage (ten seconds of TripicianAI use) via the shared feedbackPrompt
    * event - see utils/feedbackPrompt.ts for why a window event rather than
    * shared state. `markFeedbackPromptShown` is called here, not by the
    * requester, so the one-time flag is only burned once something was
@@ -113,10 +112,10 @@ const SupportWidget: React.FC<SupportWidgetProps> = ({ commandBar = 'none' }) =>
   };
 
   const appVersion = import.meta.env.VITE_APP_VERSION || '3.0.0';
-  // 2.0.0, not 1.1.0: Navia stopped being a signed-in feature this release. It
+  // 2.0.0, not 1.1.0: TripicianAI stopped being a signed-in feature this release. It
   // answers people with no account on the landing page, from its own endpoint,
   // its own prompt and its own allowance. That is a change in what it is.
-  const naviaVersion = '2.0.0';
+  const tripicianAIVersion = '2.0.0';
 
   /*
    * Newest first, and every line has to name something that actually shipped.
@@ -133,21 +132,21 @@ const SupportWidget: React.FC<SupportWidgetProps> = ({ commandBar = 'none' }) =>
    * Every line points at something that shipped. Nothing here is a plan.
    */
   const updateItems = [
-    { icon: AutoAwesomeRoundedIcon,  text: 'Navia before you sign up - ask about a trip on the front page with no account. Sign in only to keep what it drafts.' },
-    { icon: TravelExploreRoundedIcon, text: 'Your stories turn up in search - a published story is now served to search engines as a real page, and every one is submitted in the sitemap.' },
-    { icon: ForumRoundedIcon,        text: 'Reply without leaving the feed - comments open in place on a post instead of taking you to another page.' },
-    { icon: GroupsRoundedIcon,       text: 'See who else is editing - other people on a plan appear beside the save state, and if two of you save at once the second is stopped rather than quietly overwriting the first.' },
-    { icon: VerifiedRoundedIcon,     text: 'Know who you are joining - a recruiting trip shows what the organiser has actually run, and says plainly when Tripician has not reviewed it.' },
+    { icon: <TripicianAIOrb size={20} />, text: 'TripicianAI before you sign up - ask about a trip on the front page with no account. Sign in only to keep what it drafts.' },
+    { icon: <TravelExploreRoundedIcon fontSize="small" />, text: 'Your stories turn up in search - a published story is now served to search engines as a real page, and every one is submitted in the sitemap.' },
+    { icon: <ForumRoundedIcon fontSize="small" />, text: 'Reply without leaving the feed - comments open in place on a post instead of taking you to another page.' },
+    { icon: <GroupsRoundedIcon fontSize="small" />, text: 'See who else is editing - other people on a plan appear beside the save state, and if two of you save at once the second is stopped rather than quietly overwriting the first.' },
+    { icon: <VerifiedRoundedIcon fontSize="small" />, text: 'Know who you are joining - a trip taking join requests shows what the business behind it has actually run, and says plainly when Tripician has not reviewed it.' },
   ];
 
   const closeMenu = () => setAnchorEl(null);
 
   const menuItems = [
     {
-      icon: <NaviaOrb size={18} />,
-      label: 'Ask Navia',
+      icon: <TripicianAIOrb size={18} />,
+      label: 'Ask TripicianAI',
       sub: 'Your travel companion',
-      onClick: () => { closeMenu(); navigate('/navia'); },
+      onClick: () => { closeMenu(); navigate('/tripicianai'); },
     },
     {
       icon: <FeedbackOutlinedIcon sx={{ fontSize: 18, color: '#8B5CF6' }} />,
@@ -327,7 +326,7 @@ const SupportWidget: React.FC<SupportWidgetProps> = ({ commandBar = 'none' }) =>
           </Typography>
           <Typography sx={{ fontSize: '0.66rem', color: 'text.disabled' }}>·</Typography>
           <Typography sx={{ fontSize: '0.66rem', color: 'text.disabled', fontWeight: 600 }}>
-            Navia v{naviaVersion}
+            TripicianAI v{tripicianAIVersion}
           </Typography>
         </Box>
       </Popover>
@@ -343,7 +342,6 @@ const SupportWidget: React.FC<SupportWidgetProps> = ({ commandBar = 'none' }) =>
             <Typography variant="body2" color="text.secondary">New drops engineered to make planning with friends effortless.</Typography>
             <List disablePadding>
               {updateItems.map(item => {
-                const IconComponent = item.icon;
                 return (
                   <ListItem key={item.text} disableGutters sx={{ py: 1 }}>
                     <ListItemIcon sx={{ minWidth: 40 }}>
@@ -352,7 +350,7 @@ const SupportWidget: React.FC<SupportWidgetProps> = ({ commandBar = 'none' }) =>
                         backgroundColor: theme.palette.mode === 'light' ? 'common.white' : 'background.paper',
                         border: '1px solid', borderColor: 'warning.light', color: 'warning.dark',
                       }}>
-                        <IconComponent fontSize="small" />
+                        {item.icon}
                       </Box>
                     </ListItemIcon>
                     <ListItemText primary={item.text} primaryTypographyProps={{ variant: 'body2', sx: { fontWeight: 600 } }} />
@@ -362,7 +360,7 @@ const SupportWidget: React.FC<SupportWidgetProps> = ({ commandBar = 'none' }) =>
             </List>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
               <Chip icon={<VerifiedRoundedIcon />} label={`Tripician v${appVersion}`} color="primary" size="small" />
-              <Chip icon={<PublicRoundedIcon />} label={`Navia v${naviaVersion}`} color="secondary" size="small" />
+              <Chip icon={<PublicRoundedIcon />} label={`TripicianAI v${tripicianAIVersion}`} color="secondary" size="small" />
             </Stack>
           </Stack>
         </DialogContent>

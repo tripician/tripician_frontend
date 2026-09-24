@@ -1,18 +1,19 @@
 import React from 'react';
-import { Box, ListItemIcon, ListItemText, Menu, MenuItem, Typography } from '@mui/material';
+import { Box, Typography } from '@mui/material';
 import { useLocation, useNavigate } from 'react-router-dom';
 import AddRoundedIcon from '@mui/icons-material/AddRounded';
-import EditNoteRoundedIcon from '@mui/icons-material/EditNoteRounded';
-import MapRoundedIcon from '@mui/icons-material/MapRounded';
-import { APP_NAV_ITEMS, DESKTOP_NAV_MIN_WIDTH, type AppNavItem } from '../navConfig';
+import { APP_NAV_ITEMS, DESKTOP_NAV_MIN_WIDTH, isNavItemActive, type AppNavItem } from '../navConfig';
+import StudioMenu from './StudioMenu';
+import { STUDIO_LABEL, studioActions } from '../studioActions';
 
 /**
  * Items shown LEFT of the create button.
  *
- * Community then Stories: the two reading surfaces sit together, which is what
- * someone opening the app without a trip to plan is actually here for.
+ * The wall leads, wearing the Tripician mark. On a phone the header logo is a
+ * 24px mark in a corner, which nobody reads as navigation, so the root needs a
+ * tab of its own however obvious the logo looks on a desktop.
  */
-const MOBILE_NAV_LEFT = ['explore', 'stories'] as const;
+const MOBILE_NAV_LEFT = ['wall', 'search'] as const;
 /**
  * Items shown RIGHT of the create button.
  *
@@ -20,11 +21,14 @@ const MOBILE_NAV_LEFT = ['explore', 'stories'] as const;
  * of your trips. Leaving it behind a drawer would put your own trips two taps
  * deep on the surface where most planning actually happens.
  *
- * Navia used to sit at the head of this list and no longer does. See
+ * `road` used to lead this list. The board carries notes and questions now, so
+ * the tab pointed at a subset of the root. /posts still resolves as the archive.
+ *
+ * TripicianAI used to sit at the head of this list and no longer does. See
  * MOBILE_NAV_EXCLUDED in navConfig for why, and for the guard that stops it
  * being read as an item somebody dropped by accident.
  */
-const MOBILE_NAV_RIGHT = ['road', 'profile'] as const;
+const MOBILE_NAV_RIGHT = ['stories', 'profile'] as const;
 
 interface AppBottomNavProps {
   onCreateTrip: () => void;
@@ -44,7 +48,8 @@ const NavTab: React.FC<{ item: AppNavItem; active: boolean; onClick: () => void 
   <Box
     component="button"
     onClick={onClick}
-    aria-label={item.label}
+    // The visible short label is part of the name ("G&S, Groups & Stories"), so voice control can say what it sees.
+    aria-label={item.label.includes(item.shortLabel) ? item.label : `${item.shortLabel}, ${item.label}`}
     aria-current={active ? 'page' : undefined}
     sx={{
       flex: 1,
@@ -104,30 +109,25 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip }) => {
    * An exact match meant /community/anything lit no tab at all, so following a
    * link out of a feed silently unselected the section you were still in.
    */
-  const isActive = (path: string) =>
-    location.pathname === path || location.pathname.startsWith(`${path}/`);
+  const isActive = (item: AppNavItem) => isNavItemActive(item, location.pathname);
 
   /*
-   * Both creation routes behind one control.
+   * The same Studio list the header opens, so the two can no longer drift. They
+   * had already: this held an array while the header held inline JSX, and they
+   * disagreed on the trip icon and on whether TripicianAI was offered at all.
    *
    * StoryCreationModal lives in AppShellHeader, not here, so the story item goes
    * through the window event that header already listens for rather than this
    * component mounting a second copy of the modal.
    */
-  const createItems = [
-    {
-      key: 'trip',
-      label: 'Plan a trip',
-      Icon: MapRoundedIcon,
-      run: onCreateTrip,
-    },
-    {
-      key: 'story',
-      label: 'Write a story',
-      Icon: EditNoteRoundedIcon,
-      run: () => window.dispatchEvent(new Event('story:create')),
-    },
-  ];
+  const createItems = React.useMemo(
+    () => studioActions({
+      onCreateTrip,
+      onWriteStory: () => window.dispatchEvent(new Event('story:create')),
+      onAskTripicianAI: () => navigate('/tripicianai'),
+    }),
+    [onCreateTrip, navigate],
+  );
 
   return (
     <Box
@@ -159,24 +159,38 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip }) => {
         borderColor: 'divider',
       }}
     >
-      {leftItems.map((item) => (
-        <NavTab
-          key={item.id}
-          item={item}
-          active={isActive(item.path)}
-          onClick={() => navigate(item.path)}
-        />
-      ))}
+      {/*
+        Each side takes half the bar, so the centre button is centred on the
+        SCREEN rather than on the number of tabs.
+
+        The tabs used to be flex:1 siblings of the button, which centred it only
+        while the two sides held the same count. Halves keep it centred whatever
+        each side holds.
+      */}
+      <Box sx={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'space-evenly' }}>
+        {leftItems.map((item) => (
+          <NavTab
+            key={item.id}
+            item={item}
+            active={isActive(item)}
+            onClick={() => navigate(item.path)}
+          />
+        ))}
+      </Box>
 
       {/*  Create - centre slot  */}
       <Box
         component="button"
         onClick={() => setCreateOpen(true)}
-        aria-label="Create"
-        aria-haspopup="menu"
+        aria-label={STUDIO_LABEL}
+        aria-haspopup="dialog"
         aria-expanded={createOpen}
         sx={{
-          flex: 1,
+          // Sized to itself, not a share of the row: the two halves either side
+          // are what place it, and flex:1 here would make its width depend on how
+          // many tabs happen to exist.
+          flex: '0 0 auto',
+          px: 1.5,
           minWidth: 0,
           display: 'flex',
           flexDirection: 'column',
@@ -211,45 +225,30 @@ const AppBottomNav: React.FC<AppBottomNavProps> = ({ onCreateTrip }) => {
           <AddRoundedIcon sx={{ fontSize: 28 }} />
         </Box>
         <Typography variant="navLabel" noWrap sx={{ fontWeight: 700, color: 'primary.main', mt: 0.25 }}>
-          Create
+          {STUDIO_LABEL}
         </Typography>
       </Box>
 
-      <Menu
-        anchorEl={createTileRef.current}
-        open={createOpen}
+      {/* The same panel the header opens, anchored upward off the tile. Two-line
+          rows rather than the old bare MenuItems, because the hint is what tells
+          somebody a story is for a trip they have already taken. */}
+      <StudioMenu
+        anchorEl={createOpen ? createTileRef.current : null}
         onClose={() => setCreateOpen(false)}
-        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
-        transformOrigin={{ vertical: 'bottom', horizontal: 'center' }}
-        slotProps={{ paper: { sx: { minWidth: 208, borderRadius: '14px', mb: 1 } } }}
-      >
-        {createItems.map(({ key, label, Icon, run }) => (
-          <MenuItem
-            key={key}
-            onClick={() => {
-              setCreateOpen(false);
-              run();
-            }}
-            sx={{ py: 1.1 }}
-          >
-            <ListItemIcon sx={{ minWidth: 34 }}>
-              <Icon sx={{ fontSize: 19 }} />
-            </ListItemIcon>
-            <ListItemText primaryTypographyProps={{ fontSize: 14, fontWeight: 600 }}>
-              {label}
-            </ListItemText>
-          </MenuItem>
-        ))}
-      </Menu>
+        actions={createItems}
+        placement="above"
+      />
 
-      {rightItems.map((item) => (
-        <NavTab
-          key={item.id}
-          item={item}
-          active={isActive(item.path)}
-          onClick={() => navigate(item.path)}
-        />
-      ))}
+      <Box sx={{ flex: 1, minWidth: 0, display: 'flex', justifyContent: 'space-evenly' }}>
+        {rightItems.map((item) => (
+          <NavTab
+            key={item.id}
+            item={item}
+            active={isActive(item)}
+            onClick={() => navigate(item.path)}
+          />
+        ))}
+      </Box>
     </Box>
   );
 };

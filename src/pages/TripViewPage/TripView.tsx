@@ -146,8 +146,10 @@ const TripView: React.FC = () => {
   const isMember = isOwner || Boolean(currentUserEmail && memberEmails.some(email => String(email).toLowerCase() === String(currentUserEmail).toLowerCase()));
   // Only decide readability after profile resolved if private
   // Link-shared trips (ReadOnly visibility) are always readable (like Google Drive link sharing)
+  // The server only returns a draft to a member of its group after checking that membership itself.
+  const groupView = tripRoot?.groupView === true || rawTrip?.groupView === true;
   const readable = trip ? (
-    isPublished || isLinkShare ? true : (isPrivate ? (profileResolved && (isOwner || isMember)) : true)
+    isPublished || isLinkShare || groupView ? true : (isPrivate ? (profileResolved && (isOwner || isMember)) : true)
   ) : false;
 
   // Loading guard: wait for trip fetch + (private trips also wait for profile to determine access)

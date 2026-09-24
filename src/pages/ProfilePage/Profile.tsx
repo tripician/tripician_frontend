@@ -58,7 +58,7 @@ import { safeExternalUrl } from '../../utils/sanitizeHtml';
 import { tripPath } from '../../utils/tripSlug';
 import { mapTripVM, rowsFrom, type TripVM } from './tripViewModel';
 import { passportViewFromDto, type VibePassport } from './ProfilePassport';
-import TravelConstellation from './TravelConstellation';
+import TravelHistoryPanel from './TravelHistoryPanel';
 import ProfileIdentityRail from './ProfileIdentityRail';
 import { pickDefaultTab, type TabId } from './profileTabs';
 import PostComposer from '../../posts/PostComposer';
@@ -66,7 +66,6 @@ import PostCard from '../../posts/PostCard';
 import { postsService } from '../../posts/postsService';
 import type { TravelerPost } from '../../posts/types';
 import IdentityVerifiedMark from '../../components/ui/IdentityVerifiedMark';
-import NextTripCard from './NextTripCard';
 import JoinRequestsInbox from '../../seats/JoinRequestsInbox';
 
 /** Community's measure. This page sat at 1200 and TravelerProfile at 1140, so
@@ -351,15 +350,6 @@ const Profile: React.FC = () => {
     }
   }, [tripFilter, activeTrips, ownedTrips]);
 
-  const nextUpcoming = useMemo(() => {
-    const today = new Date().setHours(0, 0, 0, 0);
-    return (
-      ownedTrips
-        .filter((t) => t.startDate && new Date(t.startDate).getTime() > today)
-        .sort((a, b) => new Date(a.startDate as string).getTime() - new Date(b.startDate as string).getTime())[0] ??
-      null
-    );
-  }, [ownedTrips]);
 
   const openTrip = useCallback(
     (t: TripVM) => {
@@ -380,6 +370,18 @@ const Profile: React.FC = () => {
     } finally {
       setDeleting(false);
       setDeleteTarget(null);
+    }
+  };
+
+  // Finishing is the moment the story is fresh, so it goes straight to writing it.
+  const finishTrip = async (t: TripVM) => {
+    if (!token || !window.confirm(`Mark "${t.title}" as finished? Everyone on it will be asked to write the story.`)) return;
+    try {
+      await apiServices.setTripStatus(token, t.id, 2);
+      setAllTrips((prev) => prev.map((x) => (x.id === t.id ? { ...x, tripStatus: 2 } : x)));
+      navigate(`/tripplanner/${t.id}?tab=story`);
+    } catch {
+      setSnackbar('Could not finish that trip.');
     }
   };
 
@@ -498,7 +500,7 @@ const Profile: React.FC = () => {
       isOwner
       onEdit={() => navigate('/settings')}
       onPlanTrip={openCreateTrip}
-      onFindCrew={(q) => navigate(q ? `/crew?q=${encodeURIComponent(q)}` : '/crew')}
+      onFindCrew={(q) => navigate(q ? `/search?tab=people&q=${encodeURIComponent(q)}` : '/crew')}
       onOpenTraveller={(id) => navigate(`/traveler/${id}`)}
       onOpenTrip={openTrip}
       viewerId={Number.isFinite(Number(profile?.id)) ? Number(profile?.id) : undefined}
@@ -541,6 +543,7 @@ const Profile: React.FC = () => {
               }
             : {})}
           {...(t.isOwner && t.tripStatus === 0 ? { onGoLive: () => void goLive(t) } : {})}
+          {...(t.isOwner && t.tripStatus === 1 ? { onFinish: () => void finishTrip(t) } : {})}
         />
       ))}
     </Box>
@@ -723,16 +726,10 @@ const Profile: React.FC = () => {
                     it cannot disagree with the figures in the rail. */}
                 {Number.isFinite(Number(profile?.id)) ? (
                   <motion.div variants={staggerItem}>
-                    <TravelConstellation userId={Number(profile?.id)} isOwner />
+                    <TravelHistoryPanel userId={Number(profile?.id)} isOwner />
                   </motion.div>
                 ) : null}
 
-            {/* ── Next trip ── */}
-            {!tripsLoading && nextUpcoming && (
-              <motion.div variants={staggerItem}>
-                <NextTripCard trip={nextUpcoming} onOpen={() => openTrip(nextUpcoming)} />
-              </motion.div>
-            )}
 
             {/* ── Requests waiting on you ──
                 Above the tabs, because somebody is waiting on an answer and that
@@ -853,7 +850,7 @@ const Profile: React.FC = () => {
                         }
                         {...(tripFilter === 'all' || tripFilter === 'mine'
                           ? { actionLabel: 'Plan a trip', onAction: openCreateTrip }
-                          : { actionLabel: 'Browse the community', onAction: () => navigate('/community') })}
+                          : { actionLabel: 'Browse trips', onAction: () => navigate('/stories?kind=plans') })}
                       />
                     ) : (
                       renderTripGrid(filteredTrips)
@@ -893,9 +890,9 @@ const Profile: React.FC = () => {
                       <EmptyState
                         icon={IconBookmark}
                         title="Nothing saved yet"
-                        description="Save a trip or a story from the community and it will wait for you here."
-                        actionLabel="Browse the community"
-                        onAction={() => navigate('/community')}
+                        description="Save a trip or a story from Groups & Stories and it will wait for you here."
+                        actionLabel="Open Groups & Stories"
+                        onAction={() => navigate('/stories')}
                       />
                     ) : (
                       <Box sx={{ display: 'grid', gap: 5 }}>

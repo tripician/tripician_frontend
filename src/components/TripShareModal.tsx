@@ -1,9 +1,11 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { Box, Typography, IconButton, Skeleton, Tooltip, useMediaQuery, Switch, CircularProgress, useTheme } from '@mui/material';
+import { Box, Typography, IconButton, Tooltip, useMediaQuery, Switch, CircularProgress, useTheme } from '@mui/material';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
 import CheckRoundedIcon from '@mui/icons-material/CheckRounded';
 import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
 import IosShareRoundedIcon from '@mui/icons-material/IosShareRounded';
+import { apiServices } from '../services/APIs/apiServices';
+import { tripInviteUrl } from '../seats/tripInvite';
 import { useTripShare } from '../hooks/useTripShare';
 import { BRAND } from '../theme';
 
@@ -15,7 +17,7 @@ interface TripShareModalProps {
   tripName: string;
   destinationCount: number;
   totalNights: number;
-  /** Whether the current user owns this trip (shows link-share toggle when true) */
+  /** Whether the current user owns this trip: only an owner gets the invite link and the visibility switch. */
   isOwner?: boolean;
   /** Whether link sharing is currently enabled (Visibility = ReadOnly) */
   linkShareEnabled?: boolean;
@@ -43,12 +45,6 @@ const XIcon = () => (
   </svg>
 );
 
-const InstagramIcon = () => (
-  <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
-    <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zM12 0C8.741 0 8.333.014 7.053.072 2.695.272.273 2.69.073 7.052.014 8.333 0 8.741 0 12c0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98C8.333 23.986 8.741 24 12 24c3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98C15.668.014 15.259 0 12 0zm0 5.838a6.162 6.162 0 100 12.324 6.162 6.162 0 000-12.324zM12 16a4 4 0 110-8 4 4 0 010 8zm6.406-11.845a1.44 1.44 0 100 2.881 1.44 1.44 0 000-2.881z"/>
-  </svg>
-);
-
 const RedditIcon = () => (
   <svg width="26" height="26" viewBox="0 0 24 24" fill="currentColor">
     <path d="M12 0A12 12 0 0 0 0 12a12 12 0 0 0 12 12 12 12 0 0 0 12-12A12 12 0 0 0 12 0zm5.01 4.744c.688 0 1.25.561 1.25 1.249a1.25 1.25 0 0 1-2.498.056l-2.597-.547-.8 3.747c1.824.07 3.48.632 4.674 1.488.308-.309.73-.491 1.207-.491.968 0 1.754.786 1.754 1.754 0 .716-.435 1.333-1.01 1.614a3.111 3.111 0 0 1 .042.52c0 2.694-3.13 4.87-7.004 4.87-3.874 0-7.004-2.176-7.004-4.87 0-.183.015-.366.043-.534A1.748 1.748 0 0 1 4.028 12c0-.968.786-1.754 1.754-1.754.463 0 .898.196 1.207.49 1.207-.883 2.878-1.43 4.744-1.487l.885-4.182a.342.342 0 0 1 .14-.197.35.35 0 0 1 .238-.042l2.906.617a1.214 1.214 0 0 1 1.108-.701zM9.25 12C8.561 12 8 12.562 8 13.25c0 .687.561 1.248 1.25 1.248.687 0 1.248-.561 1.248-1.249 0-.688-.561-1.249-1.249-1.249zm5.5 0c-.687 0-1.248.561-1.248 1.25 0 .687.561 1.248 1.249 1.248.688 0 1.249-.561 1.249-1.249 0-.687-.562-1.249-1.25-1.249zm-5.466 3.99a.327.327 0 0 0-.231.094.33.33 0 0 0 0 .463c.842.842 2.484.913 2.961.913.477 0 2.105-.056 2.961-.913a.361.361 0 0 0 .029-.463.33.33 0 0 0-.464 0c-.547.533-1.684.73-2.512.73-.828 0-1.979-.196-2.512-.73a.326.326 0 0 0-.232-.095z"/>
@@ -73,20 +69,16 @@ interface ShareButtonConfig {
 }
 
 /**
- * Labels say what each platform actually does with a link, rather than pretending
- * they all behave the same:
- *  - WhatsApp and Messenger render link previews natively, so a link is ideal
- *  - Facebook throttles posts containing external links, so the image is the post
- *    and the link belongs in the first comment
- *  - Instagram has no clickable caption links at all, so it's image + link in bio
+ * The plan link, for anywhere a link is worth reading. Instagram is gone with the
+ * share card: it allows no clickable link in a caption, so without an image to
+ * post there was nothing left for it to do.
  */
 const SHARE_BUTTONS: ShareButtonConfig[] = [
-  { id: 'whatsapp',  label: 'WhatsApp - link previews perfectly here', Icon: WhatsAppIcon,  brandColor: '#25D366' },
-  { id: 'facebook',  label: 'Facebook - post it, then put the link in your first comment', Icon: FacebookIcon,  brandColor: '#1877F2' },
-  { id: 'instagram', label: 'Instagram - saves the image, copies your caption', Icon: InstagramIcon, brandColor: '#E1306C' },
-  { id: 'x',         label: 'Share on X',           Icon: XIcon,         brandColor: 'text.primary' },
-  { id: 'reddit',    label: 'Share on Reddit',      Icon: RedditIcon,    brandColor: '#FF4500' },
-  { id: 'copy',      label: 'Copy link',            Icon: LinkIcon,      brandColor: '#6366f1' },
+  { id: 'whatsapp',  label: 'Send on WhatsApp',  Icon: WhatsAppIcon,  brandColor: '#25D366' },
+  { id: 'facebook',  label: 'Share on Facebook', Icon: FacebookIcon,  brandColor: '#1877F2' },
+  { id: 'x',         label: 'Share on X',        Icon: XIcon,         brandColor: 'text.primary' },
+  { id: 'reddit',    label: 'Share on Reddit',   Icon: RedditIcon,    brandColor: '#FF4500' },
+  { id: 'copy',      label: 'Copy link',         Icon: LinkIcon,      brandColor: '#6366f1' },
 ];
 
 // Main component
@@ -105,18 +97,19 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
   const theme = useTheme();
   const isMobile = useMediaQuery('(max-width:767px)');
 
-  const { isLoading, cardImageUrl, cardBlob, error, shareText, tripUrl } = useTripShare(tripId, {
-    tripName,
-    destinationCount,
-    totalNights,
-  });
+  const { shareText, tripUrl } = useTripShare(tripId, { tripName, destinationCount, totalNights });
 
   const [copied, setCopied] = useState(false);
-  const [imageCopied, setImageCopied] = useState(false);
-  const [downloaded, setDownloaded] = useState(false);
-  const [igHint, setIgHint] = useState<string | null>(null);
+  const [inviteCopied, setInviteCopied] = useState(false);
   const [visible, setVisible] = useState(false);
   const [linkShareToggling, setLinkShareToggling] = useState(false);
+
+  /* The invite link: the one link that puts somebody ON the trip rather than in
+     front of it. Only an owner can read or make it, so guests never ask. */
+  const [inviteToken, setInviteToken] = useState<string | null>(null);
+  const [inviteLoading, setInviteLoading] = useState(false);
+  const [inviteBusy, setInviteBusy] = useState(false);
+  const [inviteError, setInviteError] = useState<string | null>(null);
 
   // Drive entry animation
   useEffect(() => {
@@ -135,32 +128,25 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
     return () => window.removeEventListener('keydown', handler);
   }, [open, onClose]);
 
+  useEffect(() => {
+    if (!open || !isOwner || !tripId) return;
+    let active = true;
+    setInviteLoading(true);
+    apiServices.getTripInvite(tripId)
+      .then((resp) => { if (active) setInviteToken(resp.data?.token ?? null); })
+      .catch(() => { if (active) setInviteToken(null); })
+      .finally(() => { if (active) setInviteLoading(false); });
+    return () => { active = false; };
+  }, [open, isOwner, tripId]);
+
+  const inviteUrl = inviteToken ? tripInviteUrl(window.location.origin, inviteToken) : null;
+  const inviteText = `Come on this trip with me: ${tripName}`;
+
   const encodedUrl = encodeURIComponent(tripUrl);
   const encodedText = encodeURIComponent(shareText);
 
-  const fileName = `tripician-${tripName.replace(/\s+/g, '-').toLowerCase()}.png`;
-
-  /**
-   * Can this device hand the card image to the OS share sheet?
-   *
-   * This is the only realistic route from a web app into Instagram: the
-   * `instagram-stories://` scheme is native-app only, and Instagram does not
-   * accept clickable links in captions at all. A shared *file* lands in the
-   * normal share sheet next to Instagram, WhatsApp and Messenger.
-   */
-  const canShareFile = useCallback((blob: Blob | null): boolean => {
-    if (!blob || typeof navigator === 'undefined' || !navigator.canShare) return false;
-    try {
-      const file = new File([blob], 'trip.png', { type: blob.type || 'image/png' });
-      return navigator.canShare({ files: [file] });
-    } catch {
-      return false;
-    }
-  }, []);
-
-  const [nativeShareBusy, setNativeShareBusy] = useState(false);
-
   const supportsNativeShare = typeof navigator !== 'undefined' && !!navigator.share;
+  const [nativeShareBusy, setNativeShareBusy] = useState(false);
 
   const copyLink = useCallback(async () => {
     try {
@@ -170,86 +156,49 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
     } catch { /* clipboard unavailable - nothing useful to say */ }
   }, [tripUrl]);
 
-  /** One tap: image + caption + link straight into the OS share sheet. */
-  const handleNativeShare = useCallback(async () => {
+  const createInvite = useCallback(async () => {
+    setInviteBusy(true);
+    setInviteError(null);
+    try {
+      const resp = await apiServices.rotateTripInvite(tripId);
+      setInviteToken(resp.data?.token ?? null);
+    } catch {
+      setInviteError('The link could not be made. Try again.');
+    } finally {
+      setInviteBusy(false);
+    }
+  }, [tripId]);
+
+  const copyInvite = useCallback(async () => {
+    if (!inviteUrl) return;
+    try {
+      await navigator.clipboard.writeText(inviteUrl);
+      setInviteCopied(true);
+      setTimeout(() => setInviteCopied(false), 2000);
+    } catch {
+      setInviteError('Copy failed. Select the link and copy it by hand.');
+    }
+  }, [inviteUrl]);
+
+  /** The share sheet, carrying whichever link this button belongs to. */
+  const nativeShare = useCallback(async (url: string, text: string) => {
     if (nativeShareBusy) return;
     setNativeShareBusy(true);
     try {
-      const file = cardBlob
-        ? new File([cardBlob], fileName, { type: cardBlob.type || 'image/png' })
-        : null;
-
-      // Sharing the image and the link together is what makes this worth a tap:
-      // the picture travels natively, the link still comes along for chat apps.
-      if (file && canShareFile(cardBlob)) {
-        await navigator.share({ files: [file], text: shareText, title: tripName, url: tripUrl });
-      } else {
-        await navigator.share({ text: shareText, title: tripName, url: tripUrl });
-      }
+      await navigator.share({ text, title: tripName, url });
     } catch {
-      // AbortError just means the user dismissed the sheet - nothing to report.
+      // AbortError just means the sheet was dismissed - nothing to report.
     } finally {
       setNativeShareBusy(false);
     }
-  }, [cardBlob, canShareFile, fileName, nativeShareBusy, shareText, tripName, tripUrl]);
-
-  /**
-   * The primary action, and it is never dead. Where the OS has a share sheet that
-   * is the shortest path anywhere; where it does not - most desktops - the useful
-   * primary is the link, so that is what the button becomes. Previously the button
-   * simply did not render without navigator.share, which left desktop with a modal
-   * that had no primary action at all.
-   */
-  const primaryIsNativeShare = supportsNativeShare;
-  const handlePrimary = primaryIsNativeShare ? handleNativeShare : copyLink;
-
-  const primaryLabel = primaryIsNativeShare
-    ? (cardBlob ? 'Share trip & image' : 'Share trip')
-    : (copied ? 'Link copied' : 'Copy link');
-
-  const handleCopyImage = useCallback(async () => {
-    try {
-      if (cardBlob) {
-        const item = new ClipboardItem({ [cardBlob.type || 'image/png']: cardBlob });
-        await navigator.clipboard.write([item]);
-        setImageCopied(true);
-        setTimeout(() => setImageCopied(false), 2000);
-      }
-    } catch {
-      // Clipboard write not supported silently ignore
-    }
-  }, [cardBlob]);
-
-  const saveImage = useCallback(() => {
-    const a = document.createElement('a');
-    if (cardBlob) {
-      const blobUrl = URL.createObjectURL(cardBlob);
-      a.href = blobUrl;
-      a.download = fileName;
-      a.click();
-      setTimeout(() => URL.revokeObjectURL(blobUrl), 5000);
-    } else if (cardImageUrl) {
-      a.href = cardImageUrl;
-      a.download = fileName;
-      a.click();
-    } else {
-      return false;
-    }
-    return true;
-  }, [cardBlob, cardImageUrl, fileName]);
-
-  const handleDownload = useCallback(() => {
-    if (!saveImage()) return;
-    setDownloaded(true);
-    setTimeout(() => setDownloaded(false), 2000);
-  }, [saveImage]);
+  }, [nativeShareBusy, tripName]);
 
   const handleShareButton = useCallback(
     async (id: string) => {
       switch (id) {
         case 'facebook':
-          // The link now previews properly (server-rendered OG tags on /t/{id}),
-          // so the sharer dialog finally shows this trip's own photo and title.
+          // The link previews properly (server-rendered OG tags on /t/{id}), so
+          // the sharer dialog shows this trip's own photo and title.
           window.open(`https://www.facebook.com/sharer/sharer.php?u=${encodedUrl}&quote=${encodedText}`, '_blank', 'noopener,noreferrer');
           break;
         case 'whatsapp':
@@ -258,26 +207,6 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
         case 'x':
           window.open(`https://twitter.com/intent/tweet?text=${encodedText}&url=${encodedUrl}`, '_blank', 'noopener,noreferrer');
           break;
-        case 'instagram': {
-          // Instagram accepts no clickable link in a caption, so there is nothing
-          // to "share" as a URL. The image is the post; the caption is copied for
-          // pasting, and the link belongs in the bio. Prefer the native sheet when
-          // the device has one - that goes straight into the app.
-          const viaSheet = cardBlob !== null && canShareFile(cardBlob);
-          if (viaSheet) {
-            await handleNativeShare();
-          } else {
-            saveImage();
-          }
-          try { await navigator.clipboard.writeText(shareText); } catch { /* clipboard optional */ }
-          // The hint has to match the branch taken: it used to say the image had
-          // been downloaded even when it had gone to the share sheet instead.
-          setIgHint(viaSheet
-            ? 'Caption copied - paste it in Instagram'
-            : 'Image saved - caption copied, ready to paste');
-          setTimeout(() => setIgHint(null), 3000);
-          break;
-        }
         case 'reddit':
           window.open(`https://reddit.com/submit?url=${encodedUrl}&title=${encodedText}`, '_blank', 'noopener,noreferrer');
           break;
@@ -286,60 +215,128 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
           break;
       }
     },
-    [cardBlob, canShareFile, copyLink, encodedText, encodedUrl, handleNativeShare, saveImage, shareText],
+    [copyLink, encodedText, encodedUrl],
   );
-
-  // When the primary button already is Copy link, the icon would be the same
-  // action twice in the same modal.
-  const shareButtons = primaryIsNativeShare
-    ? SHARE_BUTTONS
-    : SHARE_BUTTONS.filter((b) => b.id !== 'copy');
-
-  const hasImage = !!(cardBlob || cardImageUrl);
-  const canCopyImage = typeof window !== 'undefined' && 'ClipboardItem' in window && !!cardBlob;
 
   if (!open) return null;
 
   const border = theme.custom.surface.border;
+  const overline = { fontSize: 11, fontWeight: 700, letterSpacing: '0.06em', textTransform: 'uppercase', color: 'text.disabled' } as const;
 
-  /** Quiet text action - Download / Copy image live here rather than as buttons. */
-  const textAction = (
-    label: string,
-    active: boolean,
-    activeLabel: string,
-    onClick: () => void,
-    disabled = false,
-  ) => (
+  const primaryButton = (label: string, active: boolean, onClick: () => void, icon: React.ReactNode) => (
     <Box
       component="button"
       onClick={onClick}
-      disabled={disabled}
+      disabled={nativeShareBusy || inviteBusy}
       sx={{
-        background: 'none',
-        border: 'none',
-        p: 0,
+        width: '100%',
+        borderRadius: '12px',
+        padding: '13px',
+        fontSize: 14.5,
+        fontWeight: 600,
         font: 'inherit',
-        
-        fontSize: 13,
-        fontWeight: 500,
-        color: active ? 'success.main' : 'text.secondary',
-        cursor: disabled ? 'not-allowed' : 'pointer',
-        opacity: disabled ? 0.45 : 1,
-        outline: 'none',
-        display: 'inline-flex',
+        fontFamily: 'inherit',
+        backgroundColor: 'primary.main',
+        color: 'primary.contrastText',
+        border: 'none',
+        cursor: nativeShareBusy || inviteBusy ? 'wait' : 'pointer',
+        display: 'flex',
         alignItems: 'center',
-        gap: 0.5,
-        transition: `color ${theme.custom.motion.duration.fast} ${theme.custom.motion.easing.standard}`,
-        '&:hover:not(:disabled)': { color: 'text.primary' },
+        justifyContent: 'center',
+        gap: '8px',
+        outline: 'none',
+        transition: `background-color ${theme.custom.motion.duration.fast} ${theme.custom.motion.easing.standard}`,
+        '&:hover:not(:disabled)': { backgroundColor: BRAND.coralDark },
+        '&:active:not(:disabled)': { backgroundColor: BRAND.coralDeep },
+        boxSizing: 'border-box',
       }}
     >
-      {active && <CheckRoundedIcon sx={{ fontSize: 15 }} />}
-      {active ? activeLabel : label}
+      {active ? <CheckRoundedIcon sx={{ fontSize: 18 }} /> : icon}
+      {label}
+    </Box>
+  );
+
+  // What an owner sees first: the link that brings somebody onto the trip.
+  const invitePanel = (
+    <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+      <Typography sx={overline}>Invite people to join</Typography>
+      <Typography sx={{ fontSize: 13, color: 'text.secondary', lineHeight: 1.5 }}>
+        Anyone who opens this link joins the trip and can plan it with you, even if they are new to Tripician.
+      </Typography>
+
+      {inviteLoading ? (
+        <Box sx={{ display: 'flex', justifyContent: 'center', py: 1.5 }}>
+          <CircularProgress size={20} />
+        </Box>
+      ) : inviteUrl ? (
+        <>
+          <Box
+            component="input"
+            readOnly
+            value={inviteUrl}
+            aria-label="Invite link"
+            onFocus={(e: React.FocusEvent<HTMLInputElement>) => e.currentTarget.select()}
+            sx={{
+              width: '100%', height: 40, px: 1.5, borderRadius: '10px', boxSizing: 'border-box',
+              border: `1px solid ${border}`, bgcolor: 'background.default',
+              color: 'text.secondary', font: 'inherit', fontSize: 13,
+            }}
+          />
+          {primaryButton(
+            inviteCopied ? 'Invite link copied' : supportsNativeShare ? 'Send invite' : 'Copy invite link',
+            inviteCopied,
+            () => { if (supportsNativeShare) void nativeShare(inviteUrl, inviteText); else void copyInvite(); },
+            supportsNativeShare ? <IosShareRoundedIcon sx={{ fontSize: 18 }} /> : <LinkRoundedIcon sx={{ fontSize: 18 }} />,
+          )}
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 1.5, flexWrap: 'wrap' }}>
+            <Box
+              component="button"
+              onClick={() => window.open(`https://api.whatsapp.com/send?text=${encodeURIComponent(`${inviteText} ${inviteUrl}`)}`, '_blank', 'noopener,noreferrer')}
+              sx={{
+                background: 'none', border: 'none', p: 0, font: 'inherit', fontSize: 13, fontWeight: 500,
+                color: 'text.secondary', cursor: 'pointer', display: 'inline-flex', alignItems: 'center', gap: 0.75,
+                '&:hover': { color: '#25D366' },
+              }}
+            >
+              <Box component="span" sx={{ display: 'inline-flex', '& svg': { width: 16, height: 16 } }}><WhatsAppIcon /></Box>
+              Send on WhatsApp
+            </Box>
+            {supportsNativeShare && (
+              <>
+                <Box component="span" sx={{ color: 'text.disabled', fontSize: 12 }}>·</Box>
+                <Box
+                  component="button"
+                  onClick={() => void copyInvite()}
+                  sx={{
+                    background: 'none', border: 'none', p: 0, font: 'inherit', fontSize: 13, fontWeight: 500,
+                    color: inviteCopied ? 'success.main' : 'text.secondary', cursor: 'pointer',
+                    '&:hover': { color: 'text.primary' },
+                  }}
+                >
+                  {inviteCopied ? 'Copied' : 'Copy instead'}
+                </Box>
+              </>
+            )}
+          </Box>
+          <Typography sx={{ fontSize: 11, color: 'text.disabled', textAlign: 'center' }}>
+            Replace it or switch it off in Trip settings, under Crew.
+          </Typography>
+        </>
+      ) : (
+        primaryButton('Create an invite link', false, () => void createInvite(), <LinkRoundedIcon sx={{ fontSize: 18 }} />)
+      )}
+
+      {inviteError && (
+        <Typography sx={{ fontSize: 12, color: 'error.main', textAlign: 'center' }}>{inviteError}</Typography>
+      )}
     </Box>
   );
 
   const panel = (
     <Box
+      role="dialog"
+      aria-modal="true"
+      aria-label="Share your trip"
       onClick={(e) => e.stopPropagation()}
       sx={{
         width: '100%',
@@ -364,146 +361,78 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
     >
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-        <Typography sx={{ fontSize: 16, fontWeight: 600, color: 'text.primary' }}>
-          Share your trip
-        </Typography>
-        <IconButton size="small" onClick={onClose} sx={{ color: 'text.secondary', '&:hover': { color: 'text.primary', bgcolor: 'action.hover' } }}>
+        <Box sx={{ minWidth: 0 }}>
+          <Typography sx={{ fontSize: 16, fontWeight: 600, color: 'text.primary' }}>
+            {isOwner ? 'Share your trip' : 'Share this trip'}
+          </Typography>
+          <Typography noWrap sx={{ fontSize: 12.5, color: 'text.secondary' }}>{tripName}</Typography>
+        </Box>
+        <IconButton size="small" onClick={onClose} sx={{ color: 'text.secondary', flexShrink: 0, '&:hover': { color: 'text.primary', bgcolor: 'action.hover' } }}>
           <CloseRoundedIcon fontSize="small" />
         </IconButton>
       </Box>
 
-      {/* Card preview. The box is 4:5 whatever happens, so the modal never resizes
-          when the image arrives - the old fixed 372x210 skeleton matched neither
-          the card's real shape nor its replacement. */}
-      <Box sx={{ display: 'flex', justifyContent: 'center' }}>
-        <Box sx={{ width: 240, maxWidth: '100%', aspectRatio: '4 / 5', position: 'relative' }}>
-          {isLoading ? (
-            <Skeleton variant="rectangular" sx={{ width: '100%', height: '100%', borderRadius: '14px' }} />
-          ) : error && error !== 'generating' ? (
-            <Box sx={{
-              width: '100%', height: '100%', borderRadius: '14px',
-              border: '1px dashed', borderColor: 'divider',
-              display: 'flex', alignItems: 'center', justifyContent: 'center', px: 2,
-            }}>
-              <Typography sx={{ fontSize: 13, color: 'text.disabled', textAlign: 'center' }}>
-                Could not load the card. Your link still works.
-              </Typography>
-            </Box>
-          ) : (
-            <Box
-              component="img"
-              src={cardImageUrl ?? undefined}
-              alt={`Share card for ${tripName}`}
-              sx={{
-                width: '100%', height: '100%', objectFit: 'cover',
-                borderRadius: '14px', display: 'block',
-                boxShadow: theme.custom.shadows.card,
-              }}
-            />
-          )}
+      {isOwner && invitePanel}
+
+      {isOwner && <Box sx={{ height: '1px', bgcolor: border }} />}
+
+      {/* The plan link: for people who should read it, not come along. */}
+      <Box sx={{ display: 'flex', flexDirection: 'column', gap: 1 }}>
+        {isOwner && <Typography sx={overline}>Or just share the plan</Typography>}
+
+        {!isOwner && primaryButton(
+          copied ? 'Link copied' : supportsNativeShare ? 'Share trip' : 'Copy link',
+          copied,
+          () => { if (supportsNativeShare) void nativeShare(tripUrl, shareText); else void copyLink(); },
+          supportsNativeShare ? <IosShareRoundedIcon sx={{ fontSize: 18 }} /> : <LinkRoundedIcon sx={{ fontSize: 18 }} />,
+        )}
+
+        <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.25, flexWrap: 'wrap' }}>
+          {SHARE_BUTTONS.map((btn) => {
+            const isActive = btn.id === 'copy' && copied;
+            return (
+              <Tooltip
+                key={btn.id}
+                title={isActive ? 'Copied!' : btn.label}
+                placement="top"
+                arrow
+                open={isActive ? true : undefined}
+              >
+                <Box
+                  component="button"
+                  aria-label={btn.label}
+                  onClick={() => handleShareButton(btn.id)}
+                  sx={{
+                    width: 44,
+                    height: 44,
+                    borderRadius: '50%',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    flexShrink: 0,
+                    background: 'none',
+                    border: 'none',
+                    color: isActive ? 'success.main' : 'text.secondary',
+                    cursor: 'pointer',
+                    outline: 'none',
+                    transition: `color ${theme.custom.motion.duration.base} ${theme.custom.motion.easing.standard}, background-color ${theme.custom.motion.duration.base} ${theme.custom.motion.easing.standard}`,
+                    '&:hover': {
+                      color: isActive ? 'success.main' : btn.brandColor,
+                      backgroundColor: theme.custom.surface.hover,
+                    },
+                    '&:active': { transform: 'scale(0.92)' },
+                    boxSizing: 'border-box',
+                  }}
+                >
+                  {isActive ? <CheckRoundedIcon sx={{ fontSize: 24 }} /> : <btn.Icon />}
+                </Box>
+              </Tooltip>
+            );
+          })}
         </Box>
       </Box>
 
-      {isLoading && (
-        <Typography sx={{ fontSize: 12, color: 'text.secondary', textAlign: 'center', mt: -1 }}>
-          {error === 'generating' ? 'Generating your card…' : 'Loading your card…'}
-        </Typography>
-      )}
-
-      {/* Primary action */}
-      <Box
-        component="button"
-        onClick={handlePrimary}
-        disabled={nativeShareBusy}
-        sx={{
-          width: '100%',
-          borderRadius: '12px',
-          padding: '13px',
-          fontSize: 14.5,
-          fontWeight: 600,
-          
-          backgroundColor: 'primary.main',
-          color: 'primary.contrastText',
-          border: 'none',
-          cursor: nativeShareBusy ? 'wait' : 'pointer',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          gap: '8px',
-          outline: 'none',
-          transition: `background-color ${theme.custom.motion.duration.fast} ${theme.custom.motion.easing.standard}`,
-          '&:hover:not(:disabled)': { backgroundColor: BRAND.coralDark },
-          '&:active:not(:disabled)': { backgroundColor: BRAND.coralDeep },
-          boxSizing: 'border-box',
-        }}
-      >
-        {primaryIsNativeShare
-          ? <IosShareRoundedIcon sx={{ fontSize: 18 }} />
-          : copied ? <CheckRoundedIcon sx={{ fontSize: 18 }} /> : <LinkRoundedIcon sx={{ fontSize: 18 }} />}
-        {primaryLabel}
-      </Box>
-
-      {/* Secondary: the per-platform routes */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', gap: 0.25, flexWrap: 'wrap' }}>
-        {shareButtons.map((btn) => {
-          const isInstagram = btn.id === 'instagram';
-          const isCopy = btn.id === 'copy';
-          const isActive = isCopy && copied;
-
-          return (
-            <Tooltip
-              key={btn.id}
-              title={isInstagram && igHint ? igHint : isActive ? 'Copied!' : btn.label}
-              placement="top"
-              arrow
-              open={isInstagram ? (igHint ? true : undefined) : isActive ? true : undefined}
-            >
-              <Box
-                component="button"
-                aria-label={btn.label}
-                onClick={() => handleShareButton(btn.id)}
-                sx={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexShrink: 0,
-                  background: 'none',
-                  border: 'none',
-                  color: isActive ? 'success.main' : 'text.secondary',
-                  cursor: 'pointer',
-                  outline: 'none',
-                  transition: `color ${theme.custom.motion.duration.base} ${theme.custom.motion.easing.standard}, background-color ${theme.custom.motion.duration.base} ${theme.custom.motion.easing.standard}`,
-                  '&:hover': {
-                    color: isActive ? 'success.main' : btn.brandColor,
-                    backgroundColor: theme.custom.surface.hover,
-                  },
-                  '&:active': { transform: 'scale(0.92)' },
-                  boxSizing: 'border-box',
-                }}
-              >
-                {isActive ? <CheckRoundedIcon sx={{ fontSize: 24 }} /> : <btn.Icon />}
-              </Box>
-            </Tooltip>
-          );
-        })}
-      </Box>
-
-      {/* Tertiary: image actions. These were a full-width button and a pill that
-          only appeared on hover - which meant it did not exist on touch at all. */}
-      <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: 1.5 }}>
-        {textAction('Download image', downloaded, 'Saved', handleDownload, !hasImage)}
-        {canCopyImage && (
-          <>
-            <Box component="span" sx={{ color: 'text.disabled', fontSize: 12 }}>·</Box>
-            {textAction('Copy image', imageCopied, 'Copied', handleCopyImage)}
-          </>
-        )}
-      </Box>
-
-      {/* Link sharing toggle (owner only - Google Drive style) */}
+      {/* Who the plan link works for (owner only - Google Drive style) */}
       {isOwner && (
         <Box
           sx={{
@@ -524,7 +453,7 @@ const TripShareModal: React.FC<TripShareModalProps> = ({
                 Anyone with the link can view
               </Typography>
               <Typography sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.4 }}>
-                {linkShareEnabled ? 'Link sharing is on - anyone can see this trip' : 'Only trip members can access this link'}
+                {linkShareEnabled ? 'Link sharing is on - anyone can see this trip' : 'Only trip members can open the plan link'}
               </Typography>
             </Box>
           </Box>

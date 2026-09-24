@@ -10,7 +10,7 @@ import { apiClient } from '../services/APIs/apiServices';
 import { uploadSignedAsset, UploadError } from '../utils/signedUpload';
 import { POST_LIMITS, PostRejectedError } from './types';
 import type {
-  PostDraft, PostMediaInput, TravelerPost, PostTagCount, QuestionPage, QuestionSort,
+  PostDraft, PostMediaInput, TravelerPost, PostTagCount, QuestionPage, QuestionSort, PostLiker,
 } from './types';
 
 function toError(err: unknown, fallback: string): Error {
@@ -45,11 +45,15 @@ export const postsService = {
     }
   },
 
-  async feed(take = 20, before?: string | null, kind?: 'note' | 'question'): Promise<TravelerPost[]> {
+  async feed(take = 20, before?: string | null, kind?: 'note' | 'question', photosOnly = false, following = false): Promise<TravelerPost[]> {
     const params = new URLSearchParams({ take: String(take) });
     if (before) params.set('before', before);
     // Omitted means both kinds, which is what a "what is happening" rail wants.
     if (kind) params.set('kind', kind);
+    // Notes with a photo and no plan or story attached, for the Search grid.
+    if (photosOnly) params.set('photos', 'true');
+    // Only people the viewer follows, plus the viewer's own posts.
+    if (following) params.set('following', 'true');
     try {
       const { data } = await apiClient.get<TravelerPost[]>(`/api/posts?${params}`);
       return Array.isArray(data) ? data : [];
@@ -129,6 +133,15 @@ export const postsService = {
     }
   },
 
+  /** Flags a post for a moderator. Works signed out; the server rate limits it. */
+  async report(postId: string, reason: string, detail?: string): Promise<void> {
+    try {
+      await apiClient.post(`/api/posts/${postId}/report`, { reason, detail: detail || null });
+    } catch (err) {
+      throw toError(err, 'Could not send that report.');
+    }
+  },
+
   /** 1, -1, or 0 to clear. Returns the new score and the caller's own vote. */
   async vote(postId: string, value: number): Promise<{ score: number; viewerVote: number }> {
     const { data } = await apiClient.post<{ score: number; viewerVote: number }>(
@@ -140,6 +153,15 @@ export const postsService = {
   /** Asker only. Sending the same answer again un-accepts it. */
   async accept(questionId: string, answerId: string): Promise<void> {
     await apiClient.post(`/api/posts/${questionId}/accept/${answerId}`);
+  },
+
+  async likers(postId: string, take = 50): Promise<PostLiker[]> {
+    try {
+      const { data } = await apiClient.get<PostLiker[]>(`/api/posts/${postId}/likes?take=${take}`);
+      return Array.isArray(data) ? data : [];
+    } catch {
+      return [];
+    }
   },
 
   async toggleLike(postId: string): Promise<number> {

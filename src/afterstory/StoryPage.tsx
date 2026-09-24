@@ -51,6 +51,7 @@ import BookPreviewDialog from './book/BookPreviewDialog';
 import BookCheckoutDialog from './book/BookCheckoutDialog';
 import { FEATURE_FLAGS } from '../config/featureFlags';
 import StoryQuestions from './StoryQuestions';
+import PlaceQuestions from '../posts/PlaceQuestions';
 import { afterStoryService, AfterStoryError } from './afterStoryService';
 import { parseBlocks, readingMinutes } from './blockSchema';
 import { templateStyle } from './render/templates';
@@ -209,8 +210,8 @@ const StoryPage: React.FC = () => {
         <Typography variant="body2" sx={{ color: 'text.secondary', mb: 3 }}>
           {error?.message ?? 'It may have been removed, or the link may be wrong.'}
         </Typography>
-        <Button variant="contained" onClick={() => navigate('/community')}>
-          Browse the community
+        <Button variant="contained" onClick={() => navigate('/stories?kind=stories')}>
+          Browse stories
         </Button>
       </Box>
     );
@@ -275,7 +276,7 @@ const StoryPage: React.FC = () => {
           '@context': 'https://schema.org',
           '@type': 'BreadcrumbList',
           itemListElement: [
-            { '@type': 'ListItem', position: 1, name: 'Community', item: `${SITE_URL}/community` },
+            { '@type': 'ListItem', position: 1, name: 'Stories', item: `${SITE_URL}/stories?kind=stories` },
             { '@type': 'ListItem', position: 2, name: story.title, item: `${SITE_URL}${canonicalPath}` },
           ],
         },
@@ -628,6 +629,11 @@ const StoryPage: React.FC = () => {
             authorName={story.author?.displayName ?? undefined}
             isAuthor={story.canEdit}
           />
+        )}
+
+        {/* The wider conversation about the place, for readers the story has made curious. */}
+        {isPublic && (story.countries?.length ?? 0) > 0 && (
+          <PlaceQuestions countries={story.countries ?? []} sx={{ mt: 6 }} />
         )}
 
         {/* An invitation at the end, for the author only. The button up in the

@@ -54,7 +54,9 @@ const TripSeatsBand: React.FC<TripSeatsBandProps> = ({ tripId, isOwner, verified
   if (!seats) return null;
 
   const isOpen = seats.joinPolicy === 'OpenToRequests';
-  if (!isOpen && !(isOwner && seats.pendingRequests > 0)) return null;
+  // A group trip shows this band to its own members, and to its organiser once somebody has raised a hand.
+  const groupDoor = !!seats.viewerIsGroupMember;
+  if (!isOpen && !groupDoor && !(isOwner && seats.pendingRequests > 0)) return null;
 
   const spots = describeSpots(seats);
 
@@ -73,10 +75,12 @@ const TripSeatsBand: React.FC<TripSeatsBandProps> = ({ tripId, isOwner, verified
             <IconUsers size={18} stroke={1.8} />
             <Typography variant="subtitle1">
               {isOwner
-                ? 'Your listing'
-                : seats.operatorName
+                ? isOpen ? 'Your listing' : 'Who wants to come'
+                : seats.operatorName && !groupDoor
                   ? `Run by ${seats.operatorName}`
-                  : 'This trip is looking for people'}
+                  : !isOpen && seats.groupName
+                    ? `A trip in ${seats.groupName}`
+                    : 'This trip is looking for people'}
             </Typography>
           </Box>
 
@@ -107,7 +111,7 @@ const TripSeatsBand: React.FC<TripSeatsBandProps> = ({ tripId, isOwner, verified
             </Typography>
           )}
 
-          {!isOwner && (seats.operatorName ? (
+          {!isOwner && (seats.operatorName && !groupDoor ? (
             <Button variant="contained" onClick={() => setEnquireOpen(true)}>Enquire</Button>
           ) : (
             <JoinRequestButton

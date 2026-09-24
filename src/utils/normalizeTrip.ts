@@ -5,6 +5,8 @@
 // }
 // We deliberately drop wide key / fallback scanning to reduce overhead.
 
+import { UNTITLED_TRIP_NAME } from './tripNames';
+
 /**
  * Which planner surface a trip opens in. Mirrors the backend
  * `Tripician.WebApi.Models.TripCoreModel.PlannerMode` enum (Easy = 0, Advanced = 1).
@@ -80,7 +82,7 @@ export interface NormalizedTripMeta {
   organizationSlug?: string | null;
   organizationLogoUrl?: string | null;
   organizationVerified?: boolean;
-  budgetVisibility?: TripFeatureVisibility;
+  countries?: string[];
   checklistVisibility?: TripFeatureVisibility;
 }
 
@@ -96,7 +98,9 @@ export function normalizeTrip(input: any): NormalizedTrip | null {
   if (!input || typeof input !== 'object') return null;
   const tripRoot = (input.trip && typeof input.trip === 'object') ? input.trip : input;
   const id = toStringOrUndefined(tripRoot.id) || 'unknown';
-  const name = toStringOrUndefined(tripRoot.name) || 'Untitled Trip';
+  const name = toStringOrUndefined(tripRoot.name) || UNTITLED_TRIP_NAME;
+  // Carried so a planner opened by link or reload knows the trip's countries, not only one opened from a card.
+  const countries = Array.isArray(tripRoot.countries) ? tripRoot.countries.filter((c: unknown): c is string => typeof c === 'string' && c.trim().length > 0) : undefined;
   const visibility =
     toStringOrUndefined(tripRoot.visibility) ||
     toStringOrUndefined(tripRoot.Visibility) ||
@@ -133,7 +137,6 @@ export function normalizeTrip(input: any): NormalizedTrip | null {
   const organizationSlug = asText(tripRoot.organizationSlug ?? tripRoot.OrganizationSlug);
   const organizationLogoUrl = asText(tripRoot.organizationLogoUrl ?? tripRoot.OrganizationLogoUrl);
   const organizationVerified = (tripRoot.organizationVerified ?? tripRoot.OrganizationVerified) === true;
-  const budgetVisibility = parseFeatureVisibility(tripRoot.budgetVisibility ?? tripRoot.BudgetVisibility);
   const checklistVisibility = parseFeatureVisibility(tripRoot.checklistVisibility ?? tripRoot.ChecklistVisibility);
   const photoUrl = typeof tripRoot.photoUrl === 'string' && tripRoot.photoUrl.trim().length ? tripRoot.photoUrl : null;
   // Not the legacy `version` beside it, which is the cosmetic "1.0.0" string.
@@ -182,7 +185,7 @@ export function normalizeTrip(input: any): NormalizedTrip | null {
     Array.isArray(tripRoot.Destinations) ? tripRoot.Destinations :
     [];
   return { meta: { id, name, visibility, startDate, endDate, currencyCode, targetNights, importantNotes, description, vibe, photoUrl, published, planVersion, verified, verifiedAt, plannerMode, myAccessLevel, canEditPlan, canManageMembers, canManageAdmins, canDelete,
-      crewCount, crewLimit, crewLimitEnforced, organizationId, organizationName, organizationSlug, organizationLogoUrl, organizationVerified, budgetVisibility, checklistVisibility }, itinerary, raw: input };
+      crewCount, crewLimit, crewLimitEnforced, organizationId, organizationName, organizationSlug, organizationLogoUrl, organizationVerified, countries, checklistVisibility }, itinerary, raw: input };
 }
 
 export default normalizeTrip;

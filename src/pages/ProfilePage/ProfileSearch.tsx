@@ -29,6 +29,7 @@ import { Avatar, Box, Typography, useTheme } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { IconSearch, IconMap2, IconCheck, IconUserPlus } from '@tabler/icons-react';
 import { apiServices } from '../../services/APIs/apiServices';
+import { useFollowState } from '../../hooks/useFollowState';
 
 /**
  * Hints that rotate while the box is empty.
@@ -72,21 +73,9 @@ const ProfileSearch: React.FC<ProfileSearchProps> = ({
   const [loading, setLoading] = React.useState(false);
   const [hint, setHint] = React.useState(0);
 
-  /**
-   * Who the reader already follows.
-   *
-   * Fetched once as a set rather than asked per row. The crew payload carries no
-   * follow flag, so the alternative was one is-following request per result on
-   * every keystroke, and a button that guessed would show "Follow" to somebody
-   * who already does.
-   *
-   * Null means not loaded yet, which is why the button waits rather than
-   * rendering a state it cannot stand behind.
-   */
-  const [following, setFollowing] = React.useState<Set<number> | null>(null);
-  const [busyId, setBusyId] = React.useState<number | null>(null);
   const allTrips = React.useRef<any[] | null>(null);
-  const followLoaded = React.useRef(false);
+  // Who the reader already follows, loaded once the first real search runs.
+  const { following, busyId, toggle: toggleFollow } = useFollowState(viewerId, token, applied.length >= MIN_QUERY);
 
   // Only while there is nothing to read. Rotating text under a typed query, or
   // under results, is movement for its own sake.
@@ -114,15 +103,6 @@ const ProfileSearch: React.FC<ProfileSearchProps> = ({
     let active = true;
     setLoading(true);
     const needle = applied.toLowerCase();
-
-    // Once, on the first real search, and never again this mount.
-    if (!followLoaded.current && viewerId) {
-      followLoaded.current = true;
-      void apiServices
-        .getFollowing(viewerId)
-        .then((r) => setFollowing(new Set((r.data || []).map((f: any) => f.userId))))
-        .catch(() => setFollowing(new Set()));
-    }
 
     const peoplePromise = apiServices
       .getTravelersCrew(undefined, undefined, undefined, false, applied)
@@ -165,43 +145,6 @@ const ProfileSearch: React.FC<ProfileSearchProps> = ({
       active = false;
     };
   }, [applied, viewerId]);
-
-  /**
-   * Optimistic, and put back on failure.
-   *
-   * A follow that silently did not happen is worse than a slow button: the row
-   * would read "Following" while the server disagreed, and the reader would only
-   * find out on the next page load.
-   */
-  const toggleFollow = async (userId: number) => {
-    if (!token || busyId === userId || following === null) return;
-    const wasFollowing = following.has(userId);
-
-    setBusyId(userId);
-    setFollowing((prev) => {
-      const next = new Set(prev ?? []);
-      if (wasFollowing) next.delete(userId);
-      else next.add(userId);
-      return next;
-    });
-
-    try {
-      if (wasFollowing) await apiServices.unfollowUser(token, userId);
-      else await apiServices.followUser(token, userId);
-    } catch {
-      setFollowing((prev) => {
-        const next = new Set(prev ?? []);
-        if (wasFollowing) next.add(userId);
-        else next.delete(userId);
-        return next;
-      });
-      window.dispatchEvent(
-        new CustomEvent('app:error', { detail: { message: 'That did not save. Try again.' } }),
-      );
-    } finally {
-      setBusyId(null);
-    }
-  };
 
   const open = applied.length >= MIN_QUERY;
   const nothing = open && !loading && people?.length === 0 && trips?.length === 0;

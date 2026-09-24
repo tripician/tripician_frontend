@@ -3,46 +3,24 @@ import React from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { useRequireAuth } from '../../auth/AuthGate';
 import { alpha } from '@mui/material/styles';
-import { Box, Typography, Divider, Button, Avatar, AvatarGroup, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Paper, Snackbar, Alert, Menu, MenuItem, ListItemIcon, useTheme, useMediaQuery, Drawer, Fab } from '@mui/material';
+import { Box, Typography, Divider, Button, Avatar, Tooltip, IconButton, InputBase, CircularProgress, Dialog, DialogTitle, DialogContent, DialogActions, Snackbar, Alert, Menu, MenuItem, ListItemIcon, useTheme, Drawer, Fab } from '@mui/material';
 // Props-based TripPlanner; tripId + optional initialTrip provided by route wrapper
-import DownloadIcon from '@mui/icons-material/Download';
-import PushPinIcon from '@mui/icons-material/PushPin';
-import PushPinOutlinedIcon from '@mui/icons-material/PushPinOutlined';
-import DeleteForeverIcon from '@mui/icons-material/DeleteForever';
 import { useSelector, useDispatch, useStore } from 'react-redux';
 import type { RootState, AppDispatch } from '../../store';
-import { updateDestinationNights, setTransport, addDestination, removeDestination, reorderChainExact, addVisaDoc, removeVisaDoc, removeGlobalDoc, pinDoc, unpinDoc, loadState, resetPlanner, setTripDates, setTargetNights, addSpot, addFoodItem, setDestinationNotes, clearDestinationDiscover, setDestinationCoords, addStayEntry, setTripBudget, addExpense } from '../../store/plannerSlice';
-import { togglePin as togglePinDocSlice, removeDocument as removeDocsSliceDocument } from '../../store/docsSlice';
-import { loadPacking, resetPacking } from '../../store/packingSlice';
-import { checklistToPackingCategories, type PlanSeed, type PlanSeedStop } from './planSeed';
-import { DEFAULT_DOC_RULE } from '../../utils/fileValidation'; // legacy use (validateFiles removed after refactor)
-import ValidatedFileInput from '../../components/CommonComponents/ValidatedFileInput';
-import CreateTripNav from './TripPlannerNav';
-import NewsPanel from './NewsPanel';
+import { addDestination, loadState, resetPlanner, setTripDates, setTargetNights, addSpot, addFoodItem, setDestinationNotes, clearDestinationDiscover, setDestinationCoords, addStayEntry } from '../../store/plannerSlice';
+import { type PlanSeed, type PlanSeedStop } from './planSeed';
 import TripSettingsDialog from './TripSettingsDialog';
-import DestinationsPanel, { type DestinationRow } from './DestinationsPanel';
 import DestinationCardsPanel from './DestinationCardsPanel';
-import ExpensesPanel from './ExpensesPanel';
-import TripChatPanel from '../../navia/TripChatPanel';
-import PackingPanel from './PackingPanel';
+import TripChatPanel from '../../tripicianai/TripChatPanel';
 // Lazy: the story editor pulls in the whole After Story module, and most planner
 // sessions never open the tab. This is also the only import the planner has from
 // that module, which is what keeps the two separable.
 const AfterStoryPanel = React.lazy(() => import('../../afterstory/AfterStoryPanel'));
-import TripPulse, { type PulseDimension } from './TripPulse';
 import {
-	IconMapPin as PulseRouteIcon,
-	IconCalendar as PulseDatesIcon,
-	IconMoonStars as PulseNightsIcon,
-	IconBed as PulseStaysIcon,
-	IconWallet as PulseBudgetIcon,
-	IconLuggage as PulseLuggageIcon,
 	IconUsers as PulseCrewIcon,
-	IconFileDescription as PulseStoryIcon,
+	IconRoute,
+	IconBook2,
 	IconPlane,
-	IconDeviceMobile,
-	IconLayoutGrid,
-	IconSparkles,
 	IconRulerMeasure,
 	IconAlertTriangle,
 	IconCheck,
@@ -52,8 +30,6 @@ import TripComments from './TripComments';
 import PlanReviewDialog from './PlanReviewDialog';
 import { useFeasibility } from './useFeasibility';
 import { emitStopHover } from '../../utils/stopHoverBus';
-import { visiblePlannerNavItems } from './plannerNavItems';
-import MenuRoundedIcon from '@mui/icons-material/MenuRounded';
 import PlannerTour from '../../components/Onboarding/PlannerTour';
 import { shouldAutoStartPlannerTour } from '../../utils/walkthroughCoordinator';
 import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded';
@@ -81,25 +57,21 @@ import LinkRoundedIcon from '@mui/icons-material/LinkRounded';
 import VisibilityOffRoundedIcon from '@mui/icons-material/VisibilityOffRounded';
 import { tripPath } from '../../utils/tripSlug';
 import NightsStayRoundedIcon from '@mui/icons-material/NightsStayRounded';
-import TuneRoundedIcon from '@mui/icons-material/TuneRounded';
 import TopBar from '../PageLayout/CommonLayouts/TopBar';
-import Docs from '../DocsPage/Docs';
-import SoonTag from '../../components/CommonComponents/SoonTag';
 import TripShareModal from '../../components/TripShareModal';
 import PublishValidationModal, { type PublishChecks } from './PublishValidationModal';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
 import { apiServices } from '../../services/APIs/apiServices';
-import { useNavia, type UseNaviaReturn } from '../../navia/useNavia';
-import { planDestination } from '../../navia/naviaService';
+import { useTripicianAI, type UseTripicianAIReturn } from '../../tripicianai/useTripicianAI';
+import { planDestination } from '../../tripicianai/tripicianAIService';
 import { resolveSpots, resolvePlaceLocation, ensurePlacesReady, getPlaceDetails } from '../../services/placeVerification';
 import { isUsableCoord } from '../../utils/geo';
-import { suggestCountryItinerary, NaviaRequestError } from '../../navia/naviaService';
-import NaviaMessage from '../../navia/NaviaMessage';
+import { suggestCountryItinerary, TripicianAIRequestError } from '../../tripicianai/tripicianAIService';
+import TripicianAIMessage from '../../tripicianai/TripicianAIMessage';
 import { useAuthToken } from '../../hooks/useAuth0Token';
-import { normalizeTrip, parsePlannerMode, plannerModeToWire, parseFeatureVisibility, type NormalizedTrip, type PlannerMode, type TripFeatureVisibility } from '../../utils/normalizeTrip';
+import { normalizeTrip, type NormalizedTrip } from '../../utils/normalizeTrip';
 import { parseTripPreferences } from '../../utils/tripPreferences';
-import EasyPlanHeader from './EasyPlanHeader';
-import PlannerHeaderShell from './PlannerHeaderShell';
+import PlanHeader from './PlanHeader';
 import SegmentedControl from '../../components/ui/SegmentedControl';
 import SaveIndicator, { type SaveState } from '../../components/ui/SaveIndicator';
 import { usePlanPresence } from './usePlanPresence';
@@ -107,6 +79,8 @@ import PlanPresence from './PlanPresence';
 import { countryNameFromCode } from '../../utils/countryFlags';
 import { differenceInDays } from 'date-fns';
 import { BRAND } from '../../theme';
+import { UNTITLED_TRIP_NAME, isUntitledTripName } from '../../utils/tripNames';
+import { ideasToAdd, isEmptyStop } from './stopIdeas';
 
 type OwnerInfo = { id?: string; email?: string; name?: string; handle?: string; avatar?: string };
 
@@ -243,7 +217,7 @@ interface LocatableStop { name: string; nights: number; context?: string; lat?: 
 /**
  * Attaches coordinates to AI-named stops before they enter the plan.
  *
- * Navia only ever returns a stop's NAME (`SuggestItineraryStop` is
+ * TripicianAI only ever returns a stop's NAME (`SuggestItineraryStop` is
  * `{ name, nights }`), so an AI-drafted route used to carry no geometry at all -
  * which meant `MapPanel` filtered every stop out and the camera never left its
  * default globe. Geocoding here, before `addDestination`, is preferable to
@@ -285,8 +259,8 @@ interface TripPlannerProps {
 	onRequestEdit?: () => void;
 	isExternalNonOwner?: boolean; // viewing someone else's published trip
 	isOwnerExternal?: boolean; // current user owns trip (controls publish)
-	aiGenerated?: boolean; // when true, auto-generate destinations via Navia on mount
-	planSeed?: PlanSeed; // a plan that already exists, from the Navia chat or an import (no AI calls needed)
+	aiGenerated?: boolean; // when true, auto-generate destinations via TripicianAI on mount
+	planSeed?: PlanSeed; // a plan that already exists, from the TripicianAI chat or an import (no AI calls needed)
 }
 
 /**
@@ -345,10 +319,10 @@ const SUGGESTED_PROMPTS = [
 	'Best local food near my stops?',
 ];
 
-interface PremiumChatPanelProps { naviaHook: UseNaviaReturn; }
+interface PremiumChatPanelProps { tripicianAIHook: UseTripicianAIReturn; }
 
-const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
-	const { messages, isStreaming, sendMessage } = naviaHook;
+const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ tripicianAIHook }) => {
+	const { messages, isStreaming, sendMessage } = tripicianAIHook;
 	const theme = useTheme();
 	const isLight = theme.palette.mode === 'light';
 	const [input, setInput] = React.useState('');
@@ -440,7 +414,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 							color: isLight ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)',
 							fontFamily: 'inherit', textTransform: 'uppercase',
 							userSelect: 'none',
-						}}>NAVIA</Typography>
+						}}>TRIPICIANAI</Typography>
 					</Box>
 				</Box>
 			) : (
@@ -466,7 +440,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 						</Box>
 						<Box sx={{ flex: 1, minWidth: 0 }}>
 							<Typography sx={{ fontWeight: 700, fontSize: 14, lineHeight: 1, color: isLight ? '#0d0d0d' : '#f0f0f0', fontFamily: 'inherit', letterSpacing: -0.3 }}>
-								Navia
+								TripicianAI
 							</Typography>
 							<Box sx={{ display: { xs: 'flex', lg: 'none' }, alignItems: 'center', gap: 0.5, mt: 0.3 }}>
 								<Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#22c55e', boxShadow: '0 0 5px rgba(34,197,94,0.7)' }} />
@@ -502,12 +476,12 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 									<path d='M36 20 L22 22 L24 20 L22 18 Z' fill='currentColor'/>
 								</Box>
 								<Typography sx={{ fontSize: 12, color: isLight ? 'rgba(0,0,0,0.40)' : 'rgba(255,255,255,0.30)', textAlign: 'center', maxWidth: 200, lineHeight: 1.6, fontFamily: 'inherit' }}>
-									Your trip story starts here. Ask Navia anything  routes, hidden gems, packing tips, local culture.
+									Your trip story starts here. Ask TripicianAI anything  routes, hidden gems, packing tips, local culture.
 								</Typography>
 							</Box>
 						)}
 						{messages.map(m => (
-							<NaviaMessage key={m.id} message={m} isLight={isLight} />
+							<TripicianAIMessage key={m.id} message={m} isLight={isLight} />
 						))}
 						<div ref={endRef} />
 					</Box>
@@ -569,7 +543,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ naviaHook }) => {
 								value={input}
 								onChange={e => setInput(e.target.value)}
 								onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-								placeholder='Ask Navia anything'
+								placeholder='Ask TripicianAI anything'
 								multiline
 								maxRows={4}
 								sx={{
@@ -1097,12 +1071,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	tripId,
 	initialTrip,
 	readOnly = false,
-	hideSections = [],
-	canAccessDocs = true,
 	effectiveCanEdit: effectiveCanEditProp = true,
 	showViewEditAction = false,
 	onRequestEdit,
-	isExternalNonOwner = false,
 	isOwnerExternal = true,
 	aiGenerated: aiGeneratedProp = false,
 	planSeed,
@@ -1111,19 +1082,18 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	// Selectors & dispatch
 	// ---------------------------------------------------------------------------
 	const dispatch = useDispatch<AppDispatch>();
-	// Needed by the Navia completion pass: it dispatches adds and then has to read
+	// Needed by the TripicianAI completion pass: it dispatches adds and then has to read
 	// the resulting state back inside the same async closure, which a useSelector
 	// snapshot cannot give it.
 	const store = useStore<RootState>();
 	const navigate = useNavigate();
 	const location = useLocation();
-	// Read AI-generation flag from navigation state (set by TripCreationModal "Generate with AI" flow)
+	// Read AI-generation flag from navigation state (set by the new trip flow's "Plan it for me")
 	const aiGenerated = (location.state as any)?.aiGenerated === true || aiGeneratedProp;
 	const planner = useSelector((s:RootState)=> s.planner);
-	const docsState = useSelector((s:RootState)=> s.docs);
 	const auth = useAuthToken();
 	const authToken = auth.token; // string | null
-	useNavia(tripId, authToken);
+	useTripicianAI(tripId, authToken);
 
 	// Normalize initial trip (stable backend shape: { trip, itinerary })
 		const normalizedInitial = React.useMemo<NormalizedTrip | null>(() => initialTrip ? normalizeTrip(initialTrip) : null, [initialTrip]);
@@ -1171,7 +1141,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const [tripUsers, setTripUsers] = React.useState<any[]>([]); // authoritative members list from /trips/{id}/users
 	const remoteRefreshKeyRef = React.useRef(0);
 
-	// Re-fetch the trip from the server and force re-hydration (used after Navia mutations).
+	// Re-fetch the trip from the server and force re-hydration (used after TripicianAI mutations).
 	const refreshTripFromServer = React.useCallback(async () => {
 		if (!authToken || !tripId) return;
 		try {
@@ -1182,7 +1152,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				setRemoteTrip({ ...resp.data, _refreshed: remoteRefreshKeyRef.current });
 				// Commit snapshot after a server-driven refresh so the planner is not
 				// considered dirty (which would cause the next save to push stale data
-				// back and overwrite Navia-added destinations).
+				// back and overwrite TripicianAI-added destinations).
 				// requestAnimationFrame ensures Redux has re-rendered with the new state.
 				requestAnimationFrame(() => {
 					lastCommittedRef.current = computeSignatureRef.current();
@@ -1194,8 +1164,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		return remoteTrip ? normalizeTrip(remoteTrip) : normalizedInitial;
 	}, [normalizedInitial, remoteTrip]); // naming retained for downstream references
 	const hydratedRef = React.useRef<string | null>(null);
-	/** Trip id whose planner mode has already been taken from the server. */
-	const plannerModeHydratedRef = React.useRef<string | null>(null);
 	// True while the AI auto-generation pipeline is dispatching into Redux.
 	// Re-hydration during that window would replace client destination ids with
 	// server ids, making every queued addSpot/addFoodItem silently no-op.
@@ -1213,7 +1181,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	}
 
 	// Core meta state
-	const [title, setTitle] = React.useState<string>(normalizedInitial?.meta.name || 'Untitled Trip');
+	const [title, setTitle] = React.useState<string>(normalizedInitial?.meta.name || UNTITLED_TRIP_NAME);
 	const [tripDescription, setTripDescription] = React.useState<string>(normalizedInitial?.meta.description || '');
 	const [vibe, setVibe] = React.useState<string | null>(normalizedInitial?.meta.vibe ?? null);
 	// editingTitle removed  title editing moved to Settings dialog
@@ -1273,60 +1241,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					? String(rawInitialTrip.status).toUpperCase() === 'PUBLISHED'
 					: false;
 	const [isDraft, setIsDraft] = React.useState<boolean>(!initialPublished);
-	/**
-	 * Which planner surface this trip opens in. The DB is the source of truth -
-	 * we seed from whatever the nav-state payload already carried so the first
-	 * paint is right, then the hydration effect corrects it from the server.
-	 * Falls back to 'advanced' so an unknown/legacy payload can never hide
-	 * content a user already has.
-	 */
 	const theme = useTheme();
-	/** Phone-or-portrait-tablet. Same boundary the rest of the planner uses to drop the nav rail and Publish. */
-	const isMobile = useMediaQuery(theme.breakpoints.down('md'));
-	/** Below lg the side rail is gone and chat lives in the bottom sheet instead. */
-	const chatIsInDrawer = useMediaQuery(theme.breakpoints.down('lg'));
 
-	const [budgetVisibility, setBudgetVisibility] = React.useState<TripFeatureVisibility>(
-		normalizedInitial?.meta.budgetVisibility ?? parseFeatureVisibility(rawInitialTrip?.budgetVisibility)
-	);
-	const [checklistVisibility, setChecklistVisibility] = React.useState<TripFeatureVisibility>(
-		normalizedInitial?.meta.checklistVisibility ?? parseFeatureVisibility(rawInitialTrip?.checklistVisibility)
-	);
 
-	const changeVisibilitySetting = React.useCallback(async (key: 'budget' | 'checklist', value: TripFeatureVisibility) => {
-		if (key === 'budget') setBudgetVisibility(value); else setChecklistVisibility(value);
-		if (!authToken || !tripId) return;
-		try {
-			await apiServices.updateTripSettings(authToken, tripId, {
-				[key === 'budget' ? 'BudgetVisibility' : 'ChecklistVisibility']: value,
-			} as any);
-		} catch { /* the control reverts on the next hydrate */ }
-	}, [authToken, tripId]);
-
-	const [plannerMode, setPlannerMode] = React.useState<PlannerMode>(
-		normalizedInitial?.meta.plannerMode ?? parsePlannerMode(rawInitialTrip?.plannerMode) ?? 'advanced'
-	);
-	/**
-	 * Session-only opt-in to the full planner on a phone.
-	 *
-	 * Phones RENDER Simple whatever the trip has stored, because every pre-existing
-	 * trip was backfilled to Advanced and the dense board is unusable at that width.
-	 * This is deliberately a view override and nothing more: on a phone the mode
-	 * switch never writes `plannerMode`, so someone glancing at a shared trip from
-	 * their phone can never downgrade it for the desktop owner or the rest of the
-	 * crew. Reset per visit, so the phone always opens calm.
-	 */
-	const [phoneAdvancedOptIn, setPhoneAdvancedOptIn] = React.useState(false);
-
-	/**
-	 * The mode actually RENDERED. Distinct from `plannerMode`, which is what the
-	 * trip has stored and what gets persisted. Everything downstream (nav sections,
-	 * card variant, side rail, publish, the tour deck) reads this.
-	 */
-	const easy = isMobile ? !phoneAdvancedOptIn : plannerMode === 'easy';
-	/** What the mode switch shows as selected: the rendered mode, not the stored one. */
-	const renderedMode: PlannerMode = easy ? 'easy' : 'advanced';
-	const [easyConfirmOpen, setEasyConfirmOpen] = React.useState(false);
 	// Link-share state: true when Visibility = ReadOnly (anyone with link can view, like Google Drive)
 	const [linkShareEnabled, setLinkShareEnabled] = React.useState<boolean>(() => {
 		const v = String(rawInitialTrip?.visibility || rawInitialTrip?.Visibility || '').toLowerCase();
@@ -1374,24 +1291,21 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 
 
 	// Section + tab UI state  persisted in ?tab= query param so refresh keeps the same panel
-	const VALID_SECTIONS = ['plan', 'story', 'news', 'docs', 'packing'] as const;
+	const VALID_SECTIONS = ['plan', 'story'] as const;
 	const [searchParams, setSearchParams] = useSearchParams();
 	const rawTab = searchParams.get('tab') as typeof VALID_SECTIONS[number] | null;
 	const section: typeof VALID_SECTIONS[number] = rawTab && (VALID_SECTIONS as readonly string[]).includes(rawTab) ? rawTab : 'plan';
 	const setSectionDebug = (s: typeof VALID_SECTIONS[number]) => {
 		setSearchParams(prev => { prev.set('tab', s); return prev; }, { replace: true });
 	};
-	const [tab, setTab] = React.useState(0);
 
 	// Derived counts
 	const totalNights = React.useMemo(()=> planner.destinations.reduce((a,d)=> a + (d.nights||0), 0), [planner.destinations]);
 	const targetNights = planner.targetNights || totalNights || 1;
-	const currency = planner.currency || 'EUR';
 
 	// Dirty tracking (signature of key planning fields)
 	const lastCommittedRef = React.useRef<string>('');
 	const persistedPayloadRef = React.useRef<any|null>(null);
-	const packingCategories = useSelector((s: RootState) => s.packing.categories);
 	const computeSignature = React.useCallback(()=> {
 		return JSON.stringify({
 			t:title,
@@ -1400,29 +1314,25 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			e:tripEndDate,
 			// Every persisted, user-editable field must be in here: anything missing
 			// never flips isDirty, so autosave/Save silently skip it (this is exactly
-			// how Navia-generated spots/notes were being lost before).
+			// how TripicianAI-generated spots/notes were being lost before).
 			// Deliberately excluded: spot.verifiedAt. It is re-stamped on every
 			// re-verification, so hashing it would leave the plan permanently dirty
 			// and fire an autosave loop.
 			d:planner.destinations.map(d=> ({
 				id:d.id, n:d.name, ti:d.title, sd:d.startDate, ed:d.endDate, nts:d.nights,
-				lat:d.lat, lng:d.lng, tr:d.transport, cat:d.category, cp:d.completed, bud:d.budget,
+				lat:d.lat, lng:d.lng, tr:d.transport, cat:d.category, cp:d.completed,
 				sp:(d.spots ?? []).map(s=> ({ n:s.name, ck:s.checked, ds:s.description, pid:s.placeId ?? null, pv:s.provenance ?? null })),
 				fd:(d.foods ?? []).map(f=> ({ n:f.name, ck:f.checked })),
 				no:d.notes ?? null,
 				st:(d.stays ?? []).map(s=> ({ n:s.name, r:s.reference })),
 				sn:d.stayNotes ?? null,
 			})),
-			c:currency,
 			in:importantNotes.trim(),
 			b:bannerUrl,
 			cs:countries,
-			bg:planner.tripBudget ?? null,
-			ex:planner.expenses ?? [],
-			pk:packingCategories,
-			pm:plannerMode
+			pr:planner.preferences ?? null
 		});
-	}, [title, privacy, tripStartDate, tripEndDate, planner.destinations, currency, importantNotes, bannerUrl, countries, planner.tripBudget, planner.expenses, packingCategories, plannerMode]);
+	}, [title, privacy, tripStartDate, tripEndDate, planner.destinations, importantNotes, bannerUrl, countries, planner.preferences]);
 	// Always keep a ref to the latest computeSignature so rAF callbacks and async
 	// handlers never capture a stale closure (the main cause of false-positive isDirty).
 	const computeSignatureRef = React.useRef(computeSignature);
@@ -1475,17 +1385,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		if (!unifiedTrip) return;
 		if (aiGenActiveRef.current) return; // never reset Redux mid AI-generation
 		const { meta, itinerary } = unifiedTrip;
-		// Planner mode is read from the DB and applied ONCE per trip, deliberately
-		// ahead of the itinerary-count guard below: the guard exists to avoid
-		// re-hydrating destinations, but the mode is a single scalar that must land
-		// even when the itinerary is unchanged (the Dashboard hands us a payload
-		// with no mode, and the real value only arrives with the remote fetch).
-		// Latching also means a mid-session refreshTripFromServer - which Navia
-		// proposals trigger - can't stomp a toggle the user hasn't saved yet.
-		if (meta.plannerMode && plannerModeHydratedRef.current !== meta.id) {
-			plannerModeHydratedRef.current = meta.id;
-			setPlannerMode(meta.plannerMode);
-		}
 		// Allow re-hydration if the incoming data has more stops than what was previously loaded
 		// (e.g. Dashboard passes no itinerary, then remoteTrip arrives with the full list)
 		const refreshKey = Number((unifiedTrip.raw as any)?._refreshed ?? 0);
@@ -1495,7 +1394,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			const prevRefreshKey = parseInt(prevRefreshRaw || '0', 10);
 			if (prevRefreshKey >= refreshKey && prevCount >= itinerary.length) return;
 		}
-		if (title === 'Untitled Trip') setTitle(meta.name);
+		if (isUntitledTripName(title)) setTitle(meta.name);
 		// hydrate notes (fallback to meta.importantNotes or meta.notes if present)
 		try {
 			const candidate = (meta as any).importantNotes || (meta as any).notes;
@@ -1530,9 +1429,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		if(!originalDatesRef.current) {
 			originalDatesRef.current = { start: metaStart, end: metaEnd };
 		}
-		const allowedCurrencies = ['EUR','USD','GBP'] as const;
-		const currencyCode = meta.currencyCode;
-		const normalizedCurrency = allowedCurrencies.includes(currencyCode as any) ? currencyCode as typeof allowedCurrencies[number] : 'EUR';
 		const hydratedDestinations = itinerary.map((it:any, idx:number) => {
 			const startDateRaw = sanitizeDateString(it.startDate) || new Date().toISOString().slice(0,10);
 			const endDateRaw = sanitizeDateString(it.endDate) || sanitizeDateString(it.startDate) || startDateRaw;
@@ -1570,7 +1466,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				endDate: endDateRaw,
 				nights,
 				transport: it.transport || '',
-				budget: it.budget ?? 0,
 				lat: typeof it.lat === 'number'? it.lat : undefined,
 				lng: typeof it.lng === 'number'? it.lng : undefined,
 				placeId: it.placeId || undefined,
@@ -1579,7 +1474,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				completed: !!it.completed,
 				spots: Array.isArray(it.spots)? it.spots: [],
 				foods: Array.isArray(it.foods)? it.foods: [],
-				docs: Array.isArray(it.docs)? it.docs: [],
 				notes: it.notes,
 				stay: it.stay || undefined,
 				stays: Array.isArray(it.stays) ? it.stays : (it.stay ? [it.stay] : []),
@@ -1624,44 +1518,19 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			effectiveTarget = (planner.targetNights || 1); lockTarget = false;
 		}
 		dispatch(resetPlanner({ tripId: meta.id }));
-		// Server-persisted extras (TripExtras table): budget, expenses, packing, preferences
+		// Server-persisted extras (TripExtras table): the answers given at creation
 		const rawExtras: any = remoteTrip || initialTrip || {};
 		dispatch(loadState({
 			destinations: cleanedDestinations,
-			currency: normalizedCurrency,
 			targetNights: effectiveTarget,
 			targetLocked: lockTarget,
 						tripStartDate: metaStart || undefined,
 						tripEndDate: metaEnd || undefined,
-			globalDocs: [],
-			visaDocs: [],
-			pinnedDocIds: [],
-			tripBudget: typeof rawExtras.budget === 'number' ? rawExtras.budget : undefined,
-			expenses: Array.isArray(rawExtras.expenses) ? rawExtras.expenses : [],
-			simplifyGroupExpenses: false,
-			expenseVisibilityEmails: [],
-			comments: [],
 			// What they answered at creation. Reality check reads the pace from
 			// here, and the save below sends the whole object back so a plan save
 			// cannot silently drop what the prompts read.
 			preferences: parseTripPreferences(rawExtras.preferences) ?? undefined
 		}));
-		// The server copy wins when there is one.
-		//
-		// The empty case only CLEARS on a genuine trip change, never on a re-hydration
-		// of the same trip. This effect re-runs whenever the server copy is refreshed,
-		// and a list the traveller has only just added is not saved yet at that moment,
-		// so clearing unconditionally would throw it away. Cross-trip carry-over is the
-		// thing being prevented here, and that only needs the id comparison.
-		const serverPacking = rawExtras.packing && Array.isArray(rawExtras.packing.categories) && rawExtras.packing.categories.length > 0
-			? rawExtras.packing
-			: null;
-		if (serverPacking) {
-			dispatch(loadPacking(serverPacking));
-		} else if (packingHydratedRef.current !== meta.id) {
-			dispatch(resetPacking());
-		}
-		packingHydratedRef.current = meta.id;
 		hydratedRef.current = `${meta.id}:${itinerary.length}:${refreshKey}`;
 		// Commit initial snapshot after first hydration.
 		// Use computeSignatureRef (not the closure-captured computeSignature) so the rAF
@@ -1670,16 +1539,13 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	}, [unifiedTrip, title, dispatch, planner.targetNights, derivePrivacyFromDraft, isDraft]);
 
 	// Centralized feature flags
-	const ENABLE_EXPENSES = FEATURE_FLAGS.expenses;
 	const ENABLE_COMMENTS = FEATURE_FLAGS.comments;
-	const ENABLE_DOC_UPLOAD = FEATURE_FLAGS.docsUpload;
 	// (moved earlier)
 	const [settingsOpen, setSettingsOpen] = React.useState(false);
 	// Which tab the settings dialog opens on. 'overview' unless something deep
 	// links into it, so the gear icon still behaves normally.
 	const [settingsTab, setSettingsTab] = React.useState<'overview' | 'crew'>('overview');
 	const [planReviewOpen, setPlanReviewOpen] = React.useState(false);
-	const [optimizingRoute, setOptimizingRoute] = React.useState(false);
 	const [saving, setSaving] = React.useState(false);
 	const [lastSaveTs, setLastSaveTs] = React.useState<number>(0);
 	// A Date, not a pre-formatted string. It used to render as the literal word
@@ -1778,7 +1644,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						allStops.push({ name: alloc.country, nights: alloc.nights, context: alloc.country });
 					}
 				} catch (err) {
-					if (err instanceof NaviaRequestError && err.status === 402) creditBlocked = true;
+					if (err instanceof TripicianAIRequestError && err.status === 402) creditBlocked = true;
 					// Fallback: single stop for the country covering its allocated nights
 					allStops.push({ name: alloc.country, nights: alloc.nights, context: alloc.country });
 				}
@@ -1805,7 +1671,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [aiGenerated, isHydrated, authToken, tripId]);
 
-	// Phase 1 (plan seed): the plan already exists, from the Navia chat or from a
+	// Phase 1 (plan seed): the plan already exists, from the TripicianAI chat or from a
 	// screenshot the traveller imported. Seed destinations here; Phase 2 fills
 	// spots/foods/notes from the seeded content POSITIONALLY (no network calls, no
 	// credits). Same guards as the AI-generation flow so hydration and autosave
@@ -1814,12 +1680,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	React.useEffect(() => {
 		if (!planSeed) return;
 		const hasStops = planSeed.stops.length > 0;
-		const hasExtras = Boolean(
-			planSeed.importantNotes?.trim()
-			|| planSeed.checklist?.length
-			|| planSeed.expenses?.length
-			|| planSeed.budget,
-		);
+		const hasExtras = Boolean(planSeed.importantNotes?.trim());
 		if (!hasStops && !hasExtras) return;
 		if (aiAutoTriggeredRef.current || !isHydrated || !tripId) return;
 		aiAutoTriggeredRef.current = true;
@@ -1832,30 +1693,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		// the traveller wrote, rather than nothing.
 		const seedNotes = planSeed.importantNotes?.trim();
 		if (seedNotes) setImportantNotes(seedNotes);
-
-		if (planSeed.checklist?.length) {
-			const categories = checklistToPackingCategories(planSeed.checklist);
-			if (categories.length > 0) dispatch(loadPacking({ categories }));
-		}
-
-		if (typeof planSeed.budget === 'number' && planSeed.budget > 0) {
-			dispatch(setTripBudget({ amount: planSeed.budget }));
-		}
-
-		// Dated today rather than guessed: the plan gave an amount, not a day, and
-		// inventing one would put a made-up date on the traveller's own figure.
-		const seedExpenseDate = new Date().toISOString().slice(0, 10);
-		for (const expense of planSeed.expenses ?? []) {
-			if (!expense.label?.trim() || !(expense.amount > 0)) continue;
-			dispatch(addExpense({
-				expense: {
-					label: expense.label.trim(),
-					amount: expense.amount,
-					category: expense.category?.trim() || undefined,
-					date: seedExpenseDate,
-				},
-			}));
-		}
 
 		if (!hasStops) return;
 
@@ -1880,7 +1717,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [planSeed, isHydrated, tripId]);
 
-	// Phase 2: Once destinations reach expected count, plan each one via Navia
+	// Phase 2: Once destinations reach expected count, plan each one via TripicianAI
 	const aiPlanningActiveRef = React.useRef(false);
 	React.useEffect(() => {
 		if (!aiAutoGenerating || !authToken || !tripId) return;
@@ -2005,7 +1842,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						planned++;
 					} catch (err) {
 						failed++;
-						if (err instanceof NaviaRequestError && err.status === 402) creditBlocked = true;
+						if (err instanceof TripicianAIRequestError && err.status === 402) creditBlocked = true;
 					}
 				}
 			} finally {
@@ -2017,9 +1854,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				aiCreditBlockedRef.current = false;
 				// Report what actually happened instead of a blanket success.
 				if (creditBlocked) {
-					openToast('error', 'This trip ran out of Navia credits - generation stopped early. Your route was saved.');
+					openToast('error', 'TripicianAI credits ran out, so planning stopped early. Your route was saved. You can buy more under Settings, Credits.');
 				} else if (planned === 0 && failed > 0) {
-					openToast('error', 'Navia could not plan your stops right now. Your route was saved - try "Plan with Navia" on each stop shortly.');
+					openToast('error', 'TripicianAI could not plan your stops right now. Your route was saved - try "Plan with TripicianAI" on each stop shortly.');
 				} else if (failed > 0) {
 					openToast('info', `Trip drafted. ${failed} stop${failed === 1 ? '' : 's'} could not be planned - use "Plan this stop" to retry.`);
 				} else if (droppedTotal > 0) {
@@ -2142,100 +1979,33 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	
 	const [mapDrawerOpen, setMapDrawerOpen] = React.useState(false);
 	// Right side-panel rail (desktop editors): which tab is active.
-	// Easy mode leads with the map - seeing the route on a map is what makes a
-	// list of place names feel like a trip, and the group chat is the secondary
-	// surface there rather than the default.
-	const [sidePanelTab, setSidePanelTab] = React.useState<'chat' | 'comments' | 'map' | 'info'>(
-		readOnly ? 'info' : easy ? 'map' : 'chat'
-	);
+	// Leads with the map: seeing the route is what makes a list of place names feel like a trip.
+	const [sidePanelTab, setSidePanelTab] = React.useState<'chat' | 'comments' | 'map' | 'info'>(readOnly ? 'info' : 'map');
 	// Collapsed until asked for. Expanded, the panel claimed ~30vw of the board
 	// before anyone had said they wanted to chat; the rail is always there and one
 	// click away.
 	const [sidePanelCollapsed, setSidePanelCollapsed] = React.useState(true);
 	const [chatUnread, setChatUnread] = React.useState(0);
-	// Map mounts on first visit, then stays mounted (hidden) so it doesn't re-initialise
-	// per switch. In Easy it is the default tab, so it has to be mounted from the start
-	// or the panel paints empty until the user clicks a rail they are already on.
-	const [sideMapMounted, setSideMapMounted] = React.useState(easy);
+	// The default tab, so it is mounted from the start and then stays mounted so switching never re-initialises it.
+	const [sideMapMounted, setSideMapMounted] = React.useState(true);
 	const containerRef = React.useRef<HTMLDivElement|null>(null);
-	const [visaErrors, setVisaErrors] = React.useState<string[]>([]);
 
-	const [visaOpen, setVisaOpen] = React.useState(false);
-	const [pinnedOpen, setPinnedOpen] = React.useState(false);
 	const [exitConfirmOpen, setExitConfirmOpen] = React.useState(false);
 	const [savePermissionDenied, setSavePermissionDenied] = React.useState(false);
 	const [showCelebration, setShowCelebration] = React.useState(false);
 	const [showPublishCheck, setShowPublishCheck] = React.useState(false);
 	const [publishChecks, setPublishChecks] = React.useState<PublishChecks | null>(null);
-	const [naviaDrawerOpen, setNaviaDrawerOpen] = React.useState(false);
+	const [tripicianAIDrawerOpen, setTripicianAIDrawerOpen] = React.useState(false);
 	/** First-run spotlight tour. Also reopenable from the TopBar help button. */
 	const [tourOpen, setTourOpen] = React.useState(false);
-	/**
-	 * Phone-only section switcher.
-	 *
-	 * The 72px nav rail is `md`+ and the planner passes `showBurger={false}`, so on a
-	 * phone there was NO route to Budget, News, Packing or Docs in either mode: the
-	 * sections existed and were simply unreachable. This sheet is that route.
-	 */
-	const [sectionSheetOpen, setSectionSheetOpen] = React.useState(false);
 	const [exiting, setExiting] = React.useState(false);
 	const [deletingTrip, setDeletingTrip] = React.useState(false);
 	const [confirmDeleteOpen, setConfirmDeleteOpen] = React.useState(false);
 	const [shareModalOpen, setShareModalOpen] = React.useState(false);
 
-	// Auto-close doc-related dialogs when feature disabled to prevent stray popups
-	React.useEffect(()=> {
-		if(!ENABLE_DOC_UPLOAD){
-			if(visaOpen) setVisaOpen(false);
-			if(pinnedOpen) setPinnedOpen(false);
-		}
-	}, [ENABLE_DOC_UPLOAD, visaOpen, pinnedOpen]);
 
 	// (Removed secondary meta extraction effect; consolidated into primary hydration effect)
 
-	// passportIconUrl / pinnedIconUrl reserved for future settings dialogs
-	const passportIconUrl = React.useMemo(() => {
-		return import.meta.env.MODE === 'production'
-			? (import.meta.env.VITE_PASSPORT_ICON_URL_PROD || import.meta.env.VITE_PASSPORT_ICON_URL)
-			: (import.meta.env.VITE_PASSPORT_ICON_URL_DEV || import.meta.env.VITE_PASSPORT_ICON_URL);
-	}, []);
-	const pinnedIconUrl = React.useMemo(() => {
-		return import.meta.env.MODE === 'production'
-			? (import.meta.env.VITE_PINNEDDOCS_ICON_URL_PROD || import.meta.env.VITE_PINNEDDOCS_ICON_URL)
-			: (import.meta.env.VITE_PINNEDDOCS_ICON_URL_DEV || import.meta.env.VITE_PINNEDDOCS_ICON_URL);
-	}, []); void passportIconUrl; void pinnedIconUrl;
-	const combinedPinnedDocs = React.useMemo(() => {
-		const plannerPinned = ['visaDocs','globalDocs','destinations'].flatMap(src => {
-			if(src==='destinations') return planner.destinations.flatMap(d=> (d.docs||[]));
-			return (planner as any)[src] || [];
-		}).filter((doc:any)=> planner.pinnedDocIds?.includes(doc.id)).map((doc:any)=> ({
-			unifiedId: 'planner:'+doc.id,
-			source: 'planner' as const,
-			id: doc.id,
-			originalName: doc.originalName,
-			mimeType: doc.mimeType,
-			url: doc.url
-		}));
-		const externalPinned = docsState.docs.filter(d=> d.pinned).map(d=> ({
-			unifiedId: 'external:'+d.id,
-			source: 'external' as const,
-			id: d.id,
-			originalName: d.name,
-			mimeType: d.type,
-			url: d.content
-		}));
-		const combined = [...plannerPinned, ...externalPinned];
-		const seen = new Set<string>();
-		const deduped: typeof combined = [];
-		for(const doc of combined){
-			if(seen.has(doc.id)) continue;
-			seen.add(doc.id);
-			deduped.push(doc);
-		}
-		const finalList = deduped;
-		// diagnostics removed
-		return finalList;
-	}, [planner.destinations, planner.globalDocs, planner.visaDocs, planner.pinnedDocIds, docsState.docs]);
 
 	// isUsableCoord, not `!= null`: the loose test admits (0,0), so a failed geocode
 	// at Null Island used to count as "geocoded" - enabling route optimisation and
@@ -2247,7 +2017,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	/**
 	 * Backfills coordinates onto saved stops that have none.
 	 *
-	 * Every trip drafted by Navia before this shipped has coordinate-less stops, so
+	 * Every trip drafted by TripicianAI before this shipped has coordinate-less stops, so
 	 * without a sweep those trips would show an empty globe forever. Prefers the
 	 * stored `placeId` (hydration preserves it) because `getPlaceDetails` is a
 	 * single cheap call; falls back to a name search only when there is no id.
@@ -2303,71 +2073,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [isHydrated, tripId, readOnly, missingCoordKey]);
 
-	const dateFormatter = React.useCallback((iso: string) => {
-		try { const d = new Date(iso + 'T00:00:00'); return d.toLocaleDateString(undefined, { weekday:'short', day:'2-digit', month:'short' }); } catch { return iso; }
-	}, []);
-	const panelDestinations: DestinationRow[] = React.useMemo(()=> planner.destinations.map(d=> ({
-		id:d.id, name:d.name, start:dateFormatter(d.startDate), end:dateFormatter(d.endDate), nights:d.nights, transport:d.transport||'', todo:''
-	})), [planner.destinations, dateFormatter]);
-	const ENABLE_CARD_LAYOUT = true;
-	const handleChangeNights = (id:string, delta:number)=> dispatch(updateDestinationNights({ id, delta }));
-	const handleChangeTransport = (id:string, mode:string)=> dispatch(setTransport({ id, transport: mode }));
-	const handleAddDestination = (name:string, coords?:{lat:number; lng:number})=> dispatch(addDestination({ name, lat:coords?.lat, lng:coords?.lng }));
-	const handleRemoveDestination = (id:string)=> dispatch(removeDestination(id));
 
 
 
-	const computeShortestRoute = () => {
-		// Same reason as geocodedCount: a (0,0) stop would drag the nearest-neighbour
-		// route across two hemispheres.
-		const pts = planner.destinations.filter(d=> isUsableCoord(d.lat, d.lng));
-		if(pts.length < 3){
-			if(import.meta.env.development){ console.warn('[RouteOptimize] Need at least 3 geocoded destinations. Found:', pts.length); }
-			return;
-		}
-		// Haversine distance for better geographic accuracy
-		const R = 6371; // km
-		const hav = (a:any,b:any)=> {
-			const toRad = (deg:number)=> deg*Math.PI/180;
-			const dLat = toRad(b.lat - a.lat);
-			const dLon = toRad(b.lng - a.lng);
-			const lat1 = toRad(a.lat); const lat2 = toRad(b.lat);
-			const h = Math.sin(dLat/2)**2 + Math.cos(lat1)*Math.cos(lat2)*Math.sin(dLon/2)**2;
-			return 2*R*Math.asin(Math.min(1, Math.sqrt(h)));
-		};
-		const routeDistance = (arr:any[]) => arr.reduce((acc:number,_,i)=> i===0?0:acc + hav(arr[i-1],arr[i]),0);
-		// Multi-start nearest neighbor (try each point as start) then refine with 2-opt
-		const twoOptSwap=(arr:any[],i:number,k:number)=> arr.slice(0,i).concat(arr.slice(i,k+1).reverse()).concat(arr.slice(k+1));
-		let bestOrder:any[] = []; let bestLen = Infinity;
-		for(let sIdx=0; sIdx<pts.length; sIdx++){
-			const start = pts[sIdx];
-			const remaining = pts.filter((_,i)=> i!==sIdx);
-			const path=[start]; let curr=start;
-			while(remaining.length){
-				let bestI=0, bestD=Infinity;
-				for(let i=0;i<remaining.length;i++){ const dVal=hav(curr,remaining[i]); if(dVal<bestD){ bestD=dVal; bestI=i; } }
-				curr = remaining.splice(bestI,1)[0]; path.push(curr);
-			}
-			// 2-opt improvement on this path
-			let improved=true; let localBest = path; let localLen = routeDistance(localBest); let iter=0;
-			while(improved && iter<60){
-				improved=false; iter++;
-				for(let i=1;i<localBest.length-2;i++){
-					for(let k=i+1;k<localBest.length-1;k++){
-						const swapped = twoOptSwap(localBest,i,k); const len = routeDistance(swapped);
-						if(len < localLen - 1e-9){ localBest = swapped; localLen = len; improved=true; }
-					}
-				}
-			}
-			if(localLen < bestLen - 1e-9){ bestLen = localLen; bestOrder = localBest; }
-		}
-		const optimizedIds = bestOrder.map(d=> d.id);
-		// route optimization diagnostics removed
-		// Use exact reorder allowing first to move
-		dispatch(reorderChainExact({ ids: optimizedIds }));
-		window.dispatchEvent(new CustomEvent('tripician:route-updated',{ detail:{ ids: optimizedIds }}));
-	};
-	const handleOptimizeRouteClick=()=>{ if(optimizingRoute||geocodedCount<3) return; setOptimizingRoute(true); requestAnimationFrame(()=>{ try { computeShortestRoute(); } finally { setTimeout(()=> setOptimizingRoute(false),120); } }); };
 
 	// Build backend-ready persistence payload (draft or publish)
 	// Mapping Notes (TripPlanImportDto tentative):
@@ -2446,7 +2154,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				lng:d.lng,
 				placeId:d.placeId ?? null,
 				transport:d.transport,
-				budget: d.budget ?? 0,
 				category: d.category || 'general',
 				completed: !!d.completed,
 				photoUrl: d.photoUrl ?? null,
@@ -2456,7 +2163,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				stayNotes: stayNotesUnified,
 				spots:(d.spots||[]).map(s=> ({ id:s.id, name:s.name, placeId:s.placeId ?? null, checked:!!s.checked, photoUrl:s.photoUrl ?? null, description:s.description ?? null, mapUrl:s.mapUrl ?? null, known: !!s.known, provenance:s.provenance ?? null, verifiedAt:s.verifiedAt ?? null, lat:s.lat ?? null, lng:s.lng ?? null, mustVisit: !!s.mustVisit })),
 				foods:(d.foods||[]).map(f=> ({ id:f.id, name:f.name, checked:!!f.checked, known: !!(f as any).known })),
-				docs:(d.docs||[]).map(doc=> ({ id:doc.id, originalName:doc.originalName, mimeType:doc.mimeType, url:doc.url }))
 			};
 		});
 		// ------------------------------------------------------------------
@@ -2507,7 +2213,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				// changeTripVisibility. Omitting the field here makes the server keep
 				// whatever is stored (its switch falls through to trip.Visibility on any
 				// unrecognised or absent value).
-				currency,
 				startDate: formatDateToIsoUtc(finalStart),
 				endDate: formatDateToIsoUtc(finalEnd),
 				generatedAt: new Date().toISOString(),
@@ -2522,33 +2227,18 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				countries: countries,
 				description: tripDescription || null,
 				vibe: vibe ?? null,
-				plannerMode: plannerModeToWire(plannerMode)
 			},
 			itinerary,
 			legs,
-			expenses: planner.expenses || [],
-			budget: planner.tripBudget ?? null,
-			// null, not an empty object, when there is no list. The backend stores
-			// null for a non-object, and the public trip page hides the whole packing
-			// block when nothing comes back, so a trip nobody has packed for shows no
-			// section at all rather than an empty one. Simple-mode trips never open
-			// the packing surface, so this is what they always send.
-			packing: packingCategories.length > 0 ? { categories: packingCategories } : null,
 			// Sent back verbatim so a plan save cannot blank what the generative
 			// prompts read. Omitted when the trip predates the question, which the
 			// server reads as "leave the stored value alone".
 			...(planner.preferences ? { preferences: planner.preferences } : {}),
-			docs: [],
-			comments: [],
-			pinnedDocIds: planner.pinnedDocIds || [],
-			globalDocs: (planner.globalDocs || []).map(doc => ({ id: doc.id, originalName: doc.originalName, mimeType: doc.mimeType })),
-			visaDocs: (planner.visaDocs || []).map(doc => ({ id: doc.id, originalName: doc.originalName, mimeType: doc.mimeType })),
-			destinationDocsCount: planner.destinations.reduce((sum, d) => sum + (d.docs?.length || 0), 0),
 			// Zero is the server's opt-out, and it is what an unloaded planner sends.
 			// Better to save without the guard than to refuse to save at all.
 			version: planVersionRef.current ?? 0
 		};
-	}, [planner.destinations, planner.expenses, planner.tripBudget, planner.preferences, packingCategories, planner.pinnedDocIds, planner.globalDocs, planner.visaDocs, tripId, title, currency, tripStartDate, tripEndDate, targetNights, totalNights, geocodedCount, importantNotes, vibe, tripDescription, bannerUrl, derivePrivacyFromDraft, plannerMode]);
+	}, [planner.destinations, planner.preferences, tripId, title, tripStartDate, tripEndDate, targetNights, totalNights, geocodedCount, importantNotes, vibe, tripDescription, bannerUrl, countries, derivePrivacyFromDraft]);
 
 
 	// Persist helper (debounced save)
@@ -2558,7 +2248,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		if(saving || (now - lastSaveTs) < 1200) return false;
 		setSaving(true);
 		setLastSaveTs(now);
-		// Snapshot the refresh key before the async save. If a Navia mutation triggers
+		// Snapshot the refresh key before the async save. If a TripicianAI mutation triggers
 		// refreshTripFromServer() during the save, remoteRefreshKeyRef.current will be
 		// incremented and we must NOT overwrite remoteTrip with the stale payload data.
 		const refreshKeyAtSaveStart = remoteRefreshKeyRef.current;
@@ -2584,13 +2274,14 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			if (typeof nextVersion === 'number') setPlanVersion(nextVersion);
 			// success log
 			console.info('[TripPersist] updateTrip succeeded for', tripId);
-			// Only update in-memory remoteTrip if no server-side Navia refresh ran while
+			// Only update in-memory remoteTrip if no server-side TripicianAI refresh ran while
 			// the save was in-flight. If refreshTripFromServer() incremented the key, the
 			// authoritative data is already in remoteTrip and must not be overwritten with
-			// the stale payload (which would delete the Navia-added destination from Redux
+			// the stale payload (which would delete the TripicianAI-added destination from Redux
 			// and trigger a follow-up save that would delete it from the DB too).
 			if (remoteRefreshKeyRef.current === refreshKeyAtSaveStart) {
-				setRemoteTrip({ trip: payload.trip, itinerary: payload.itinerary });
+				// Hydration re-reads extras from this object when the stop count grows, so it carries them too.
+				setRemoteTrip({ trip: payload.trip, itinerary: payload.itinerary, preferences: payload.preferences ?? null });
 			} else {
 				console.debug('[TripPersist] Skipping remoteTrip overwrite - server refresh happened during save (refreshKey changed).');
 			}
@@ -2600,7 +2291,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			// NOTE: no refreshTripFromServer() here. The server round-trips our external
 			// ids (TripDay Meta), so there is nothing to reconcile, and the refetch it
 			// used to do triggered a full Redux re-hydration that WIPED any edits made
-			// while the fetch was in flight (Navia-generated spots/notes vanishing).
+			// while the fetch was in flight (TripicianAI-generated spots/notes vanishing).
 			// Server-authored changes still refresh via explicit paths (chat proposals).
 			return true;
 		} catch(err:any){
@@ -2736,7 +2427,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 
 	const computePublishChecks = React.useCallback((): PublishChecks => {
 		const trimmedTitle = title.trim();
-		const hasTitle = trimmedTitle.length > 0 && trimmedTitle !== 'Untitled Trip';
+		const hasTitle = trimmedTitle.length > 0 && !isUntitledTripName(trimmedTitle);
 
 		const words = (tripDescription || '').trim().split(/\s+/).filter(w => w.length > 0);
 		const wordCount = words.length;
@@ -2763,14 +2454,15 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	 * button that was disabled once published. Two named functions cannot develop a
 	 * dead half.
 	 */
-	const handlePublish = async () => {
+	const handlePublish = async (caption?: string) => {
 		if(!currentUserIsOwner || !authToken) return; // safety
 		if(!isDraft) return;
 		setSaving(true);
 		try {
 			// Publishing should always make the trip publicly readable.
 			await apiServices.changeTripVisibility(authToken, tripId, { visibility: 'Everyone' });
-			await apiServices.setTripPublished(authToken, tripId, true);
+			// The server posts the trip to the owner's wall on publish, with this caption if one was given.
+			await apiServices.setTripPublished(authToken, tripId, true, caption);
 			setPrivacy('Everyone');
 			commitSnapshot(false);
 			setShowCelebration(true);
@@ -2828,51 +2520,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		}
 	};
 
-	/**
-	 * Does this trip hold anything Easy mode would hide? Drives the confirm on the
-	 * way down to Easy - switching an empty trip needs no ceremony, switching one
-	 * with hotels and a budget does.
-	 */
-	const hasAdvancedContent = React.useMemo(() => (
-		planner.destinations.some(d =>
-			(d.spots?.length ?? 0) > 0
-			|| (d.foods?.length ?? 0) > 0
-			|| (d.stays?.length ?? 0) > 0
-			|| !!d.stay?.name || !!d.stay?.reference)
-		|| planner.tripBudget != null
-		|| (planner.expenses?.length ?? 0) > 0
-		|| packingCategories.some(c => c.items.length > 0)
-	), [planner.destinations, planner.tripBudget, planner.expenses, packingCategories]);
-
-	/**
-	 * Change the planner surface. The value is persisted by the normal autosave -
-	 * it is in computeSignature, so flipping it marks the plan dirty like any
-	 * other edit rather than needing its own endpoint.
-	 */
-	const applyPlannerMode = React.useCallback((mode: PlannerMode) => {
-		setEasyConfirmOpen(false);
-		if (isMobile) {
-			// View-only on a phone. Flipping the stored mode here would push the change
-			// to the server and to every co-planner, so a phone gets to choose what IT
-			// shows and nothing more.
-			setPhoneAdvancedOptIn(mode === 'advanced');
-			return;
-		}
-		setPlannerMode(mode);
-	}, [isMobile]);
-
-	const handleModeChange = React.useCallback((mode: PlannerMode) => {
-		// Compare against the RENDERED mode: on a phone the stored value can already
-		// be 'advanced' while the screen is showing Simple, and the tap still has to
-		// register.
-		const current: PlannerMode = easy ? 'easy' : 'advanced';
-		if (mode === current) return;
-		// The "this hides your stays and places" confirm is about losing sight of
-		// content. On a phone nothing is being changed for anyone else and the switch
-		// back is right there, so it would be a dialog for a reversible view toggle.
-		if (mode === 'easy' && hasAdvancedContent && !isMobile) { setEasyConfirmOpen(true); return; }
-		applyPlannerMode(mode);
-	}, [easy, hasAdvancedContent, applyPlannerMode, isMobile]);
 
 	const redirectToTripView = React.useCallback(() => {
 		try { navigate(`/trip/${tripId}`, { replace: true }); } catch { try { window.location.href = `/trip/${tripId}`; } catch {} }
@@ -2907,38 +2554,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		setExitConfirmOpen(true);
 	};
 
-	/**
-	 * Easy mode leaves only Plan (and the pinned Settings gear) in the left rail.
-	 * TripPlannerNav already filters on this prop, so hiding a section is a matter
-	 * of naming it rather than editing the nav.
-	 */
-	// Simple mode used to hide Budget/News/Packing/Docs. It no longer hides
-	// anything: the mode is about how much detail a STOP carries, not about which
-	// parts of the trip you are allowed to open. Hiding them also made the After
-	// Story rail item a dead click, because the guard below bounced every section
-	// that was not 'plan'.
-	const hideSectionsArr: string[] = Array.isArray(hideSections) ? hideSections : [];
 
-	// Each mode PRE-SELECTS a different side panel: Easy the map, Advanced the
-	// group chat. Applied whenever the mode changes - including when hydration
-	// corrects it after first paint - not just at mount.
-	//
-	// It does not open the panel. Which tab is selected and whether the panel is
-	// expanded are separate questions, and this used to answer both: it called
-	// setSidePanelCollapsed(false), so the collapsed default could never survive
-	// the hydration mode correction that lands just after first paint.
-	React.useEffect(() => {
-		if (readOnly) return;
-		if (easy) { setSideMapMounted(true); setSidePanelTab('map'); }
-		else { setSidePanelTab('chat'); }
-	}, [easy, readOnly]);
-
-	// NOTE: there used to be an effect here that forced `section` back to 'plan'
-	// whenever Easy was on. It was written for sections Easy hid, but the test was
-	// `section !== 'plan'`, so it also caught 'story' - which Easy never hid. The
-	// After Story panel mounted and was torn down within a frame, and the
-	// `?tab=story` notification deep link bounced too. Nothing is hidden now, so
-	// there is nothing to bounce off.
 
 	// Build dynamic trip members list (owner + any backend-provided members if structure exists)
 	const userProfile = useSelector((s:RootState)=> s.user.profile);
@@ -3040,37 +2656,27 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	}, [authToken, tripId, currentUserIsOwner, openToast]);
 
 	/**
-	 * Send a message to Navia and make sure the user can actually see the reply.
-	 * In Easy the side panel opens on the map, so firing the bare `navia:send`
+	 * Send a message to TripicianAI and make sure the user can actually see the reply.
+	 * In Easy the side panel opens on the map, so firing the bare `tripicianai:send`
 	 * event would drop the answer into a panel that is not on screen. Declared
 	 * here rather than beside the other planner callbacks because it needs the
 	 * breakpoint - opening the bottom sheet on desktop would mount an invisible
 	 * modal that still traps focus.
 	 */
-	const askNavia = React.useCallback((message: string) => {
-		if (chatIsInDrawer) setNaviaDrawerOpen(true);
-		else { setSidePanelCollapsed(false); setSidePanelTab('chat'); }
-		window.dispatchEvent(new CustomEvent('navia:send', { detail: { message } }));
-	}, [chatIsInDrawer]);
 
 	/**
-	 * "Plan the whole trip" / "Complete the rest of my plan" - the Easy-mode Navia
-	 * card. This mutates the plan directly; it is not a chat message.
-	 *
-	 * Deliberately NOT the aiGenerated Phase 1/2 pipeline. That one plans every
-	 * stop unconditionally and calls clearDestinationDiscover first, which would
-	 * overwrite notes the user wrote by hand. This fills only what is missing:
-	 * nights no stop covers get new stops, and only note-less stops get planned.
+	 * "Plan it for me" / "Fill in the rest": the board's TripicianAI card. It changes the plan directly; it is not a chat message.
+	 * It only fills gaps: nights no stop covers get new stops, and only empty stops get ideas, so nothing anyone added is overwritten.
 	 */
 	const completingPlanRef = React.useRef(false);
 	const handleCompletePlan = React.useCallback(async () => {
 		if (completingPlanRef.current || aiAutoGenerating) return;
 		if (readOnly || !effectiveCanEdit) return;
-		if (!authToken || !tripId) { openToast('error', 'Sign in and save your trip before Navia can plan it.'); return; }
+		if (!authToken || !tripId) { openToast('error', 'Sign in and save your trip before TripicianAI can plan it.'); return; }
 
 		const startState = store.getState().planner.destinations;
 		if (startState.length === 0 && countries.length === 0) {
-			openToast('info', 'Add a destination in trip settings first, then Navia can draft the route.');
+			openToast('info', 'Add your first stop, then TripicianAI can plan the rest.');
 			return;
 		}
 
@@ -3139,17 +2745,15 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 							addedStops += located.length;
 						}
 					} catch (err) {
-						if (err instanceof NaviaRequestError && err.status === 402) creditBlocked = true;
+						if (err instanceof TripicianAIRequestError && err.status === 402) creditBlocked = true;
 					}
 				}
 				// Deliberately NOT resetting the target back down to the achieved total:
 				// that would re-cap the plan and block the next manual stop.
 			}
 
-			// 2. Write notes for stops that have nothing said about them yet. Stops the
-			//    user already annotated are left alone: this completes a plan, it does
-			//    not overwrite one.
-			const toPlan = store.getState().planner.destinations.filter(d => !(d.notes || '').trim());
+			// 2. Fill the stops nobody has touched. A stop with notes, places or food is left exactly as it is.
+			const toPlan = store.getState().planner.destinations.filter(isEmptyStop);
 			for (const dest of toPlan) {
 				if (creditBlocked) break;
 				setAiAutoMessage(`Planning ${dest.name}…`);
@@ -3172,17 +2776,14 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					if (!live) continue;
 
 					const notes = (result.journalNotes ?? '').trim();
-					if (notes) dispatch(setDestinationNotes({ id: live.id, notes }));
+					if (notes && !(live.notes || '').trim()) dispatch(setDestinationNotes({ id: live.id, notes }));
 
-					// Places are still verified and stored even though Easy hides them:
-					// it is the same single API call either way, and they are waiting in
-					// Advanced (the card says so).
+					// Places are verified before they land, and merged so a place already on the stop is never added twice.
 					const candidates = (result.spots ?? []).filter(s => s.name?.trim());
 					if (candidates.length > 0) {
 						setAiAutoMessage(`Checking places in ${dest.name}…`);
 						const resolved = await resolveSpots(candidates, dest.name);
-						dispatch(clearDestinationDiscover({ destinationId: live.id }));
-						for (const spot of resolved) {
+						for (const spot of ideasToAdd(live.spots ?? [], resolved)) {
 							dispatch(addSpot({
 								destinationId: live.id,
 								name: spot.name,
@@ -3197,14 +2798,14 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 								known: Boolean(spot.mapUrl),
 							}));
 						}
-						for (const food of result.foods ?? []) {
-							if (food.name?.trim()) dispatch(addFoodItem({ destinationId: live.id, name: food.name.trim() }));
+						for (const food of ideasToAdd(live.foods ?? [], (result.foods ?? []).map(x => ({ name: x.name?.trim() ?? '' })))) {
+							dispatch(addFoodItem({ destinationId: live.id, name: food.name }));
 						}
 					}
 					plannedStops++;
 				} catch (err) {
 					failedStops++;
-					if (err instanceof NaviaRequestError && err.status === 402) creditBlocked = true;
+					if (err instanceof TripicianAIRequestError && err.status === 402) creditBlocked = true;
 				}
 			}
 		} finally {
@@ -3217,10 +2818,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			const stopWord = (n: number) => `${n} stop${n === 1 ? '' : 's'}`;
 			if (creditBlocked) {
 				openToast('error', addedStops || plannedStops
-					? 'This trip ran out of Navia credits partway - what it finished is saved.'
-					: 'This trip is out of Navia credits.');
+					? 'This trip ran out of TripicianAI credits partway - what it finished is saved.'
+					: 'This trip is out of TripicianAI credits.');
 			} else if (addedStops === 0 && plannedStops === 0 && failedStops === 0) {
-				openToast('info', 'Your plan already looks complete - every night is covered and every stop has notes.');
+				openToast('info', 'Your plan already looks complete: every night is covered and every stop has something in it.');
 			} else if (failedStops > 0) {
 				openToast('info', `${addedStops > 0 ? `Added ${stopWord(addedStops)}. ` : ''}${plannedStops} planned, ${failedStops} could not be reached - try again shortly.`);
 			} else if (addedStops > 0) {
@@ -3231,48 +2832,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		}
 	}, [aiAutoGenerating, readOnly, effectiveCanEdit, authToken, tripId, store, countries, vibe, tripStartDate, tripEndDate, dispatch]);
 
-	// ── Trip Pulse: readiness model ─────────────────────────────────────────
-	// ── Packing persistence (per-trip, localStorage) ──────────────────────────
-	// Until packing gets a backend field, hydrate/save per trip so refreshes don't lose the list.
-	//
-	// The ref holds the trip id, not a boolean. As a boolean it latched on the
-	// first trip of the session and never hydrated again, so opening a second trip
-	// in the same SPA session showed the FIRST trip's list. That was invisible
-	// while every trip was seeded with the same 70 defaults; now that a trip can
-	// legitimately have no list, it would be a visible cross-trip leak.
-	const packingHydratedRef = React.useRef<string | null>(null);
-	React.useEffect(() => {
-		if (!tripId || packingHydratedRef.current === tripId) return;
-		packingHydratedRef.current = tripId;
-		// Clear first: a trip with nothing stored must show nothing, not whatever
-		// the previous trip left in the store.
-		dispatch(resetPacking());
-		try {
-			const raw = localStorage.getItem(`tripPacking:${tripId}`);
-			if (raw) {
-				const parsed = JSON.parse(raw);
-				if (parsed && Array.isArray(parsed.categories)) dispatch(loadPacking(parsed));
-			}
-		} catch { /* corrupt entry - leave the list empty */ }
-	}, [tripId, dispatch]);
-	React.useEffect(() => {
-		if (!tripId || packingHydratedRef.current !== tripId) return;
-		try {
-			localStorage.setItem(`tripPacking:${tripId}`, JSON.stringify({ categories: packingCategories }));
-		} catch { /* storage full - non-fatal */ }
-	}, [tripId, packingCategories]);
 
-	const daysToGo = React.useMemo(() => {
-		if (!tripStartDate) return null;
-		const start = new Date(tripStartDate).getTime();
-		if (!Number.isFinite(start)) return null;
-		return Math.ceil((start - Date.now()) / 86400000);
-	}, [tripStartDate]);
 
-	const expenseMembers = React.useMemo(
-		() => tripMembers.map((m: any) => ({ id: String(m.id), name: m.name || 'Member', avatarUrl: m.avatar || null })),
-		[tripMembers],
-	);
 
 	/**
 	 * The reality check, computed here rather than only inside its dialog so the
@@ -3345,7 +2906,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 		const target = planner.destinations.find(d => d.name === stopName);
 		if (!target) return;
 		setSectionDebug('plan');
-		setTab(0);
 		// A frame, so a section switch has painted the board before we measure it.
 		requestAnimationFrame(() => {
 			try {
@@ -3359,109 +2919,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, [planner.destinations]);
 
-	const pulseDimensions = React.useMemo((): PulseDimension[] => {
-		const destCount = planner.destinations.length;
-		const checks = computePublishChecks();
-		const staysCovered = planner.destinations.filter((d) => d.stay?.name || (d.stays?.length ?? 0) > 0).length;
-		const packingItems = packingCategories.flatMap((c) => c.items);
-		const packedCount = packingItems.filter((i) => i.checked).length;
-		const hasBudget = planner.tripBudget != null || (planner.expenses?.length ?? 0) > 0;
-		const goPlan = () => { setSectionDebug('plan'); setTab(0); };
-		return [
-			{
-				id: 'route', label: 'Plan your route', weight: 20, icon: PulseRouteIcon,
-				progress: destCount > 0 ? 1 : 0,
-				detail: destCount > 0 ? `${destCount} stop${destCount === 1 ? '' : 's'} planned` : 'No destinations yet',
-				actionLabel: 'Add stops', onAction: goPlan,
-			},
-			{
-				id: 'dates', label: 'Set travel dates', weight: 15, icon: PulseDatesIcon,
-				progress: tripStartDate && tripEndDate ? 1 : 0,
-				detail: tripStartDate && tripEndDate ? `${tripStartDate} → ${tripEndDate}` : 'No dates yet',
-				actionLabel: 'Set dates', onAction: () => { setSettingsTab('overview'); setSettingsOpen(true); },
-			},
-			{
-				id: 'nights', label: 'Allocate every night', weight: 15, icon: PulseNightsIcon,
-				progress: targetNights > 0 ? Math.min(1, totalNights / targetNights) : 0,
-				detail: `${totalNights} of ${targetNights} nights placed`,
-				actionLabel: 'Fill nights', onAction: goPlan,
-			},
-			{
-				id: 'stays', label: 'Book your stays', weight: 15, icon: PulseStaysIcon,
-				progress: destCount > 0 ? staysCovered / destCount : 0,
-				detail: destCount > 0 ? `${staysCovered} of ${destCount} stops have a stay` : 'Add stops first',
-				actionLabel: 'Add stays', onAction: goPlan,
-			},
-			{
-				id: 'budget', label: 'Set up the budget', weight: 10, icon: PulseBudgetIcon,
-				progress: hasBudget ? 1 : 0,
-				detail: hasBudget
-					? planner.tripBudget != null ? 'Budget set' : `${planner.expenses?.length ?? 0} expenses tracked`
-					: 'No budget yet',
-				actionLabel: 'Open budget', onAction: () => { setSectionDebug('plan'); setTab(1); },
-			},
-			{
-				id: 'packing', label: 'Start the packing list', weight: 10, icon: PulseLuggageIcon,
-				progress: packingItems.length === 0 ? 0 : 0.5 + 0.5 * (packedCount / packingItems.length),
-				detail: packingItems.length === 0 ? 'Nothing on the list yet' : `${packedCount} of ${packingItems.length} items packed`,
-				actionLabel: 'Pack', onAction: () => setSectionDebug('packing'),
-			},
-			{
-				id: 'crew', label: 'Invite your crew', weight: 10, icon: PulseCrewIcon,
-				progress: tripMembers.length >= 2 ? 1 : 0,
-				detail: tripMembers.length >= 2 ? `${tripMembers.length} travelers on board` : 'Planning solo so far',
-				actionLabel: 'Invite', onAction: () => setShareModalOpen(true),
-			},
-			{
-				id: 'story', label: 'Name & describe the trip', weight: 5, icon: PulseStoryIcon,
-				progress: (checks.hasTitle ? 0.5 : 0) + (checks.hasDescription ? 0.5 : 0),
-				detail: checks.hasTitle && checks.hasDescription ? 'Title & description set' : !checks.hasTitle ? 'Still untitled' : 'Description too short',
-				actionLabel: 'Edit', onAction: () => { setSettingsTab('overview'); setSettingsOpen(true); },
-			},
-		];
-	}, [planner.destinations, planner.tripBudget, planner.expenses, packingCategories, tripMembers.length, tripStartDate, tripEndDate, totalNights, targetNights, computePublishChecks]);
 
-	// Mobile users CAN plan trips now; we just greet them once with a soft
-	// disclaimer that the planner shines on a bigger screen, then let them in.
-	// The acknowledgement is remembered per-device so returning mobile planners
-	// aren't nagged on every visit.
-	const [mobilePlannerNoticeAck, setMobilePlannerNoticeAck] = React.useState<boolean>(() => {
-		try { return localStorage.getItem('tripician:mobilePlannerNoticeAck') === '1'; } catch { return false; }
-	});
-	if (isMobile && !readOnly && !mobilePlannerNoticeAck) {
-		return (
-			<Box sx={{
-				display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-				minHeight: '100dvh', px: 3, textAlign: 'center', gap: 2,
-				background: theme.palette.background.default,
-			}}>
-				<Box sx={{ color: 'text.disabled' }}><IconDeviceMobile size={36} stroke={1.4} /></Box>
-				<Typography sx={{ fontWeight: 700, fontSize: '1.4rem', color: 'text.primary' }}>
-					Planning is better on a bigger screen
-				</Typography>
-				<Typography sx={{ fontSize: '0.9rem', color: 'text.secondary', maxWidth: 340, lineHeight: 1.7 }}>
-					You can absolutely plan right here on your phone. For the full experience, where every one of Navia's magical features has room to breathe, open Tripician on a tablet or computer.
-				</Typography>
-				<Button
-					variant="contained"
-					onClick={() => {
-						try { localStorage.setItem('tripician:mobilePlannerNoticeAck', '1'); } catch { /* best-effort */ }
-						setMobilePlannerNoticeAck(true);
-					}}
-					sx={{ mt: 1, borderRadius: '50px', textTransform: 'none', background: BRAND.coral, boxShadow: 'none', '&:hover': { background: BRAND.coralDark, boxShadow: 'none' } }}
-				>
-					Continue on this device
-				</Button>
-				<Button
-					variant="text"
-					onClick={() => navigate('/home')}
-					sx={{ borderRadius: '50px', textTransform: 'none', color: 'text.secondary', '&:hover': { background: 'transparent', color: 'text.primary' } }}
-				>
-					Back to Home
-				</Button>
-			</Box>
-		);
-	}
 
 	/**
 	 * Publish / Published / Share, as one node.
@@ -3475,16 +2933,14 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			{/*
 			  Recruitment, given a door.
 
-			  Opening a trip to join requests was reachable only by going planner ->
-			  Settings dialog -> a tab named "Crew" -> a field block, four levels down,
-			  on a tab that otherwise just lists members. The backend for it has been
-			  complete since 2026-08-17 and essentially nobody could have found it.
-
 			  It sits beside Publish because they are the same kind of decision - who
 			  gets to see this, and who gets to come - and this is where the eye
 			  already goes when a trip is ready to leave the drafting stage.
+
+			  Only a group trip shows it: listing a trip is a Business capability, and
+			  the settings panel behind this button says so for a group without it.
 			*/}
-			{!readOnly && effectiveCanEdit && currentUserIsOwner && (
+			{!readOnly && effectiveCanEdit && currentUserIsOwner && !!unifiedTrip?.meta.organizationId && (
 				<Tooltip arrow placement='bottom' title='Let travellers ask to join this trip. You approve everyone.'>
 					<Button
 						size='small'
@@ -3635,20 +3091,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			</Box>
 		)}
 		<Box sx={{ display:'flex', flexDirection:'row', height:'100vh', overflow:'hidden' }}>
-		<CreateTripNav
-			active={section === 'plan' && tab === 1 ? 'budget' : section}
-			onChange={(id)=> {
-				if (id === 'budget') { setSectionDebug('plan'); setTab(1); return; }
-				if (id === 'plan') { setSectionDebug('plan'); setTab(0); return; }
-				setSectionDebug(id as any);
-			}}
-			onSettingsClick={()=> { setSettingsTab('overview'); setSettingsOpen(true); }}
-			hideSections={hideSectionsArr}
-			canAccessDocs={canAccessDocs}
-			docsEnabled={ENABLE_DOC_UPLOAD}
-			budgetEnabled={ENABLE_EXPENSES}
-			settingsDisabled={readOnly || !effectiveCanEdit}
-		/>
 			<Box sx={{ flex:1, display:'flex', flexDirection:'column', minWidth:0, minHeight:0 }}>
 				<TopBar showSearch={false} showBurger={false} logo={
 					<Box sx={{ display: 'flex', alignItems: 'center', gap: 0.6 }}>
@@ -3670,7 +3112,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						</Tooltip>
 						{/* Replay the tour. In the TopBar rather than a floating corner button
 						    because every corner of the planner is taken at some breakpoint: the
-						    Navia FAB owns bottom-right below lg, the board-tools column owns
+						    TripicianAI FAB owns bottom-right below lg, the board-tools column owns
 						    bottom-left, and the Save footer owns the bottom edge. Here it is
 						    in-flow, collides with nothing, and survives every overlay. */}
 						{!readOnly && (
@@ -3731,7 +3173,19 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 						)}
 					</Box>
 				} centerNode={
-					<Typography noWrap sx={{ fontWeight: 700, fontSize:'1.2rem', letterSpacing:'-0.4px', lineHeight:1.15 }}>{title}</Typography>
+					FEATURE_FLAGS.afterStory ? (
+						<SegmentedControl<'plan' | 'story'>
+							aria-label='Plan or story'
+							value={section}
+							onChange={(v) => setSectionDebug(v)}
+							options={[
+								{ value: 'plan', label: 'Plan', Icon: IconRoute, tip: 'Your stops, day by day' },
+								{ value: 'story', label: 'Story', Icon: IconBook2, tip: 'Write up the trip once you are back' },
+							]}
+						/>
+					) : (
+						<Typography noWrap sx={{ fontWeight: 700, fontSize:'1.2rem', letterSpacing:'-0.4px', lineHeight:1.15 }}>{title}</Typography>
+					)
 				} />
 				<Box ref={containerRef} sx={{ flex:1, display:'flex', position:'relative', minHeight:0 }}>
 					{/* Centre content column */}
@@ -3751,355 +3205,50 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 									/>
 								</React.Suspense>
 							</Box>
-						) : section==='news' ? (
-						<Box sx={{ flex:1, overflowY:'auto', overflowX:'hidden', display:'flex', flexDirection:'column' }}>
-							<NewsPanel selectedCountries={countries} />
-						</Box>
-					) : section==='docs' ? (
-						<Box sx={{ flex:1, overflow:'hidden', display:'flex', flexDirection:'column' }}>
-							<Docs />
-						</Box>
-					) : section==='packing' ? (
-						<Box sx={{ flex:1, overflowY:'auto', overflowX:'hidden', display:'flex', flexDirection:'column', p:3 }}>
-							<PackingPanel />
-						</Box>
 					) : (
-					<Box sx={(theme)=>({ flex:1, minWidth:0, minHeight:0, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative',
-						/* Advanced is a board (dot grid = workspace); Easy is a document,
-						   so it sits on the plain page canvas. This one swap carries most
-						   of the "these are two different places" feeling. */
-						...(easy ? {
-							backgroundColor: theme.palette.background.default,
-						} : {
-							backgroundColor: theme.palette.mode==='light' ? '#f9fafb' : '#111315',
-							backgroundImage: theme.palette.mode==='light'
-								? 'radial-gradient(circle, rgba(0,0,0,0.10) 1px, transparent 1px)'
-								: 'radial-gradient(circle, rgba(255,255,255,0.06) 1px, transparent 1px)',
-							backgroundSize: '22px 22px',
-						}),
-					})}>
-						{!easy && <Divider />}
-						{section==='plan' && easy && (
-						<EasyPlanHeader
-							stopCount={planner.destinations.length}
-							totalNights={totalNights}
+					<Box sx={{ flex:1, minWidth:0, minHeight:0, display:'flex', flexDirection:'column', overflow:'hidden', position:'relative', bgcolor:'background.default' }}>
+						<PlanHeader
+							title={title}
+							origin={planner.preferences?.origin?.name ?? null}
 							startDate={tripStartDate}
 							endDate={tripEndDate}
+							stopCount={planner.destinations.length}
+							plannedNights={totalNights}
 							travelers={tripUsers.map((u: any) => ({ id: u.id, name: u.name || u.displayName, avatar: u.avatar || u.profilePic || u.profilePicture }))}
 							canEdit={!readOnly && effectiveCanEdit}
-							// Rendered, not stored: on a phone the trip can be stored as
-							// Advanced while this Simple header is on screen, and the switch
-							// must show which one you are actually looking at.
-							mode={renderedMode}
-							onModeChange={handleModeChange}
 							onOpenSettings={() => { setSettingsTab('overview'); setSettingsOpen(true); }}
 							onOpenShare={() => setShareModalOpen(true)}
+							realityCheck={realityCheck}
+							onRealityCheck={() => setPlanReviewOpen(true)}
 							actions={publishCluster}
 						/>
-						)}
-						{section==='plan' && !easy && (
-							<PlannerHeaderShell dense>
-							{/* Vital trip info - dates · stops · travelers. On phones these wrap into tidy rows instead of scrolling off-screen. */}
-							<Box sx={{ flex:1, minWidth:0, display:'flex', alignItems:'center', flexWrap:{ xs:'wrap', md:'nowrap' }, rowGap:.75, gap:1, overflowX:{ xs:'visible', md:'auto' }, '::-webkit-scrollbar':{ display:'none' }, scrollbarWidth:'none' }}>
-								<Tooltip title={(!readOnly && effectiveCanEdit) ? 'Edit trip dates' : 'Trip dates'} arrow placement='bottom'>
-									<Box
-										component='button'
-										type='button'
-										onClick={() => { if (!readOnly && effectiveCanEdit) { setSettingsTab('overview'); setSettingsOpen(true); } }}
-										sx={(t) => ({
-											display:'flex', alignItems:'center', gap:.6, height:32, px:1.2, borderRadius:'20px', flexShrink:0,
-											border:`1px solid ${t.palette.divider}`, bgcolor:'transparent',
-											color:'text.primary', fontFamily:'inherit', fontSize:12.5, fontWeight:600, lineHeight:1,
-											cursor:(!readOnly && effectiveCanEdit) ? 'pointer' : 'default',
-											transition:'all .15s',
-											'&:hover': (!readOnly && effectiveCanEdit) ? { borderColor:alpha(BRAND.coral, 0.4), color:'primary.main' } : {},
-										})}
-									>
-										<PulseDatesIcon size={13} stroke={2} />
-										{tripStartDate && tripEndDate
-											? `${new Date(tripStartDate).toLocaleDateString(undefined, { day:'numeric', month:'short' })} - ${new Date(tripEndDate).toLocaleDateString(undefined, { day:'numeric', month:'short' })}`
-											: 'Set dates'}
-									</Box>
-								</Tooltip>
-								{/* No "N stops" pill: the stop cards sit directly below and are
-								    countable, so it was a label for something already on screen. */}
-								<Tooltip title='Travelers - invite your crew' arrow placement='bottom'>
-									<Box
-										component='button'
-										type='button'
-										onClick={() => setShareModalOpen(true)}
-										sx={(t) => ({
-											display:'flex', alignItems:'center', gap:.7, height:32, px:1.2, borderRadius:'20px', flexShrink:0,
-											border:`1px solid ${t.palette.divider}`, bgcolor:'transparent',
-											color:'text.primary', fontFamily:'inherit', fontSize:12.5, fontWeight:600, lineHeight:1,
-											// The label was being clipped by the row's overflow when the bar was full.
-											whiteSpace:'nowrap',
-											cursor:'pointer', transition:'all .15s',
-											'&:hover': { borderColor:alpha(BRAND.coral, 0.4), color:'primary.main' },
-										})}
-									>
-										{tripUsers.length > 0 && (
-											<AvatarGroup max={3} sx={{ '& .MuiAvatar-root': { width:20, height:20, fontSize:9, fontWeight:700, border:'1.5px solid', borderColor:'background.paper' } }}>
-												{tripUsers.map((u: any, i: number) => (
-													<Avatar key={u.id || i} src={u.avatar || u.profilePic || u.profilePicture || undefined} sx={{ bgcolor:'primary.main' }}>
-														{(u.name || u.displayName || 'T').charAt(0).toUpperCase()}
-													</Avatar>
-												))}
-											</AvatarGroup>
-										)}
-										{tripUsers.length <= 1 ? 'Invite crew' : `${tripUsers.length} travelers`}
-									</Box>
-								</Tooltip>
-								{ENABLE_EXPENSES && planner.tripBudget != null && (
-									<Tooltip title='Open budget & expenses' arrow placement='bottom'>
-										<Box
-											component='button'
-											type='button'
-											onClick={() => { setSectionDebug('plan'); setTab(1); }}
-											sx={(t) => ({
-												display:{ xs:'none', md:'flex' }, alignItems:'center', gap:.6, height:32, px:1.2, borderRadius:'20px', flexShrink:0,
-												border:`1px solid ${t.palette.divider}`, bgcolor:'transparent',
-												color:'text.primary', fontFamily:'inherit', fontSize:12.5, fontWeight:600, lineHeight:1,
-												cursor:'pointer', transition:'all .15s',
-												'&:hover': { borderColor:alpha(BRAND.coral, 0.4), color:'primary.main' },
-											})}
-										>
-											<PulseBudgetIcon size={13} stroke={2} />
-											{new Intl.NumberFormat().format(planner.tripBudget)} budget
-										</Box>
-									</Tooltip>
-								)}
-							</Box>
-							{/* Readiness ring, desktop only (mobile is draft-focused) */}
-							<Box sx={{ display: { xs: 'none', md: 'flex' }, alignItems: 'center', flexShrink: 0 }}>
-								<TripPulse dimensions={pulseDimensions} daysToGo={daysToGo} />
-							</Box>
-								{/* No "N / N nights" pill: the dates pill already states the span, and the
-								    readiness ring's "Allocate every night" row carries the allocation state
-								    in more detail. Three counters for one fact was the clutter. */}
-							{!readOnly && effectiveCanEdit && (
-							<Tooltip title={realityCheck.tip} arrow placement='bottom'>
-								<Box
-									component='button'
-									type='button'
-									onClick={() => setPlanReviewOpen(true)}
-										data-tour='reality-check'
-									aria-label={`Reality check: ${realityCheck.label}`}
-									sx={(t) => ({
-										// A labelled PILL, matching every other control in this bar (h32,
-										// borderRadius 20px, icon 13, 12.5/600). It was an icon-only 50% circle -
-										// the only circle here - which read as a utility rather than the
-										// signature feature it is, and could never report what it had found.
-										display:{ xs:'none', md:'inline-flex' }, alignItems:'center', justifyContent:'center', gap:.6,
-										height:32, px:1.2, borderRadius:'20px', flexShrink:0, whiteSpace:'nowrap',
-										border:`1px solid ${realityCheck.borderColor ?? t.palette.divider}`,
-										bgcolor: realityCheck.bg ?? 'transparent',
-										color: realityCheck.color ?? 'text.primary',
-										fontFamily:'inherit', fontSize:12.5, fontWeight:600, lineHeight:1,
-										cursor:'pointer', transition:'all .15s',
-										'&:hover': { borderColor:alpha(BRAND.coral, 0.4), color:'primary.main' },
-										'&:focus-visible': { outline:`2px solid ${t.custom.ring}`, outlineOffset:2 },
-									})}
-								>
-									{realityCheck.icon}
-									{realityCheck.label}
-								</Box>
+						{/* Below lg the side map is gone, so the map gets a button; phones also get the tour here. */}
+						<Box sx={{ position: 'absolute', bottom: 88, left: 16, zIndex: 10, display: { xs: 'flex', lg: 'none' }, flexDirection: 'column', gap: .85 }}>
+							<Tooltip title='View map' placement='right' arrow>
+								<IconButton data-tour='map' aria-label='View map' onClick={() => setMapDrawerOpen(true)} sx={(t) => ({ width: 44, height: 44, borderRadius: '14px', bgcolor: 'background.paper', border: `1px solid ${t.custom.surface.border}`, color: 'text.primary', boxShadow: t.custom.shadows.card, '&:hover': { bgcolor: 'background.paper', borderColor: 'text.secondary' } })}>
+									<MapOutlinedIcon sx={{ fontSize: 19 }} />
+								</IconButton>
 							</Tooltip>
-							)}
-							{publishCluster}
-								{/* Mode switch: LAST item, pinned to the right edge of the same 900px
-								    content column the Easy header uses. It has to sit in the same place in
-								    both modes or switching moves the control out from under the cursor -
-								    it used to be first-left here and right-aligned in Simple, so it jumped
-								    across the screen every time you used it. */}
-								{!readOnly && effectiveCanEdit && (
-								<Box data-tour='planner-mode' sx={{ display:'inline-flex', flexShrink:0, ml:'auto' }}>
-									<SegmentedControl<PlannerMode>
-										aria-label='Planner mode'
-										value={renderedMode}
-										onChange={handleModeChange}
-										options={[
-											{
-												value: 'easy',
-												label: 'Simple',
-												Icon: IconSparkles,
-												// No longer locked on a published trip. Simple can publish now, and every
-												// section is reachable from it, so switching can no longer strand a live
-												// trip in a mode with no way to manage it.
-												tip: 'Stops, nights and notes, without the stay and place detail',
-											},
-											{ value: 'advanced', label: 'Advanced', Icon: IconLayoutGrid, tip: 'Adds stays, places to visit and food to every stop' },
-										]}
-									/>
-								</Box>
-								)}
-							</PlannerHeaderShell>
-						)}
-						{/* The Easy header already draws its own bottom hairline. */}
-						{!easy && <Divider />}
-						{/* -- Floating board tools: Map + Optimize -- */}
-						{section === 'plan' && (
-							<Box sx={{ position: 'absolute', bottom: 72, left: 16, zIndex: 10, display: { xs: 'flex', lg: 'none' }, flexDirection: 'column', gap: .85 }}>
-								{/* Sections, phone only. The nav rail is md+ and the burger is off in the
-								    planner, so without this Budget / News / Packing / Docs are unreachable
-								    on a phone. Shown in both modes now that Simple hides nothing - it is
-								    the only route to those sections at this width. */}
-								{isMobile && (
-									<Tooltip title='Trip sections' placement='right' arrow>
-										<IconButton
-										onClick={() => setSectionSheetOpen(true)}
-										aria-label='Open trip sections'
-										sx={(t) => ({
-											width: 40, height: 40, borderRadius: '13px',
-											bgcolor: t.palette.mode === 'dark' ? 'rgba(18,20,24,0.88)' : 'rgba(255,255,255,0.90)',
-											border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.09)'}`,
-											color: 'text.secondary', backdropFilter: 'blur(10px)',
-											boxShadow: '0 2px 12px rgba(0,0,0,0.13)',
-											transition: 'all .15s',
-											'&:hover': { bgcolor: alpha(BRAND.coral, 0.08), borderColor: alpha(BRAND.coral, 0.38), color: 'primary.main' },
-										})}
-										>
-										<MenuRoundedIcon sx={{ fontSize: 18 }} />
-										</IconButton>
-									</Tooltip>
-								)}
-								<Tooltip title='View map' placement='right' arrow>
-									<IconButton
-										data-tour='map'
-										onClick={() => setMapDrawerOpen(true)}
-										sx={(t) => ({
-											width: 40, height: 40, borderRadius: '13px',
-											bgcolor: t.palette.mode === 'dark' ? 'rgba(18,20,24,0.88)' : 'rgba(255,255,255,0.90)',
-											border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.09)'}`,
-											color: 'text.secondary', backdropFilter: 'blur(10px)',
-											boxShadow: '0 2px 12px rgba(0,0,0,0.13)',
-											transition: 'all .15s',
-											'&:hover': { bgcolor: alpha(BRAND.coral, 0.08), borderColor: alpha(BRAND.coral, 0.38), color: 'primary.main' },
-										})}
-									>
-										<MapOutlinedIcon sx={{ fontSize: 18 }} />
-									</IconButton>
-								</Tooltip>
-								{!isExternalNonOwner && !easy && (
-									<Tooltip
-										placement='right' arrow
-										title={geocodedCount < 3 ? 'Add at least 3 destinations with coordinates to optimize' : optimizingRoute ? 'Optimizing' : 'Optimize route order'}
-									>
-										{/* Route optimization is a power feature, hidden on phones (map + settings only) */}
-										<Box component='span' sx={{ display: { xs: 'none', md: 'inline-flex' } }}>
-											<IconButton
-												aria-label='Optimize route'
-												onClick={handleOptimizeRouteClick}
-												disabled={geocodedCount < 3 || optimizingRoute}
-												sx={(t) => ({
-													width: 40, height: 40, borderRadius: '13px',
-													bgcolor: t.palette.mode === 'dark' ? 'rgba(18,20,24,0.88)' : 'rgba(255,255,255,0.90)',
-													border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.09)'}`,
-													color: 'text.secondary', backdropFilter: 'blur(10px)',
-													boxShadow: '0 2px 12px rgba(0,0,0,0.13)',
-													transition: 'all .15s',
-													'&:hover': { bgcolor: 'rgba(99,102,241,0.08)', borderColor: 'rgba(99,102,241,0.38)', color: '#6366f1' },
-													'&.Mui-disabled': { bgcolor: t.palette.mode === 'dark' ? 'rgba(18,20,24,0.5)' : 'rgba(255,255,255,0.55)', color: 'text.disabled', boxShadow: 'none', border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.05)' : 'rgba(0,0,0,0.06)'}` },
-												})}
-											>
-												{optimizingRoute
-													? <Box sx={{ width: 16, height: 16, border: '2px solid rgba(99,102,241,0.3)', borderTopColor: '#6366f1', borderRadius: '50%', animation: 'spin 0.8s linear infinite', '@keyframes spin': { to: { transform: 'rotate(360deg)' } } }} />
-													: <AltRouteIcon sx={{ fontSize: 18 }} />
-												}
-											</IconButton>
-										</Box>
-									</Tooltip>
-								)}
-							{/* Settings  mobile only (desktop uses sidebar) */}
-							{(!readOnly && effectiveCanEdit) && (
-								<Tooltip title='Trip settings' placement='right' arrow>
-									<IconButton
-										onClick={() => setSettingsOpen(true)}
-										sx={(t) => ({
-											display: { xs: 'flex', md: 'none' },
-											width: 40, height: 40, borderRadius: '13px',
-											bgcolor: t.palette.mode === 'dark' ? 'rgba(18,20,24,0.88)' : 'rgba(255,255,255,0.90)',
-											border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.09)'}`,
-											color: 'text.secondary', backdropFilter: 'blur(10px)',
-											boxShadow: '0 2px 12px rgba(0,0,0,0.13)',
-											transition: 'all .15s',
-											'&:hover': { bgcolor: alpha(BRAND.coral, 0.08), borderColor: alpha(BRAND.coral, 0.38), color: 'primary.main' },
-										})}
-									>
-										<TuneRoundedIcon sx={{ fontSize: 18 }} />
-									</IconButton>
-								</Tooltip>
-							)}
-							{/* Replay the tour, phone only. The TopBar copy of this button is md+, and
-							    this column is already where the phone keeps its board tools, so it lands
-							    beside map and settings instead of fighting the Navia FAB for the
-							    opposite corner. */}
 							{!readOnly && (
 								<Tooltip title='How this planner works' placement='right' arrow>
-									<IconButton
-										onClick={() => setTourOpen(true)}
-										aria-label='Show me around the planner'
-										sx={(t) => ({
-											display: { xs: 'flex', md: 'none' },
-											width: 40, height: 40, borderRadius: '13px',
-											bgcolor: t.palette.mode === 'dark' ? 'rgba(18,20,24,0.88)' : 'rgba(255,255,255,0.90)',
-											border: `1px solid ${t.palette.mode === 'dark' ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.09)'}`,
-											color: 'text.secondary', backdropFilter: 'blur(10px)',
-											boxShadow: '0 2px 12px rgba(0,0,0,0.13)',
-											transition: 'all .15s',
-											'&:hover': { bgcolor: alpha(BRAND.coral, 0.08), borderColor: alpha(BRAND.coral, 0.38), color: 'primary.main' },
-										})}
-									>
-										<HelpOutlineRoundedIcon sx={{ fontSize: 18 }} />
+									<IconButton onClick={() => setTourOpen(true)} aria-label='Show me around the planner' sx={(t) => ({ display: { xs: 'flex', md: 'none' }, width: 44, height: 44, borderRadius: '14px', bgcolor: 'background.paper', border: `1px solid ${t.custom.surface.border}`, color: 'text.secondary', boxShadow: t.custom.shadows.card, '&:hover': { bgcolor: 'background.paper', borderColor: 'text.secondary' } })}>
+										<HelpOutlineRoundedIcon sx={{ fontSize: 19 }} />
 									</IconButton>
 								</Tooltip>
 							)}
 						</Box>
-					)}
-					<Box sx={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column'}}>
-							{section==='plan' && tab===0 && (
-								<Box sx={{ px:0 }}>
-									{ENABLE_CARD_LAYOUT ? (
-										<DestinationCardsPanel
-											// Easy never caps the route: it has no night-budget UI, so the
-											// panel's ensureNightHeadroom raises the target on demand instead.
-											maxed={easy ? false : totalNights >= targetNights}
-											readOnly={readOnly || !effectiveCanEdit}
-											canAccessDocs={canAccessDocs}
-											canEdit={effectiveCanEdit}
-											tripId={tripId}
-											authToken={authToken}
-											tripVibe={vibe}
-											tripCountries={countries}
-											easy={easy}
-											onSwitchToAdvanced={() => applyPlannerMode('advanced')}
-											onAskNavia={askNavia}
-											onCompletePlan={handleCompletePlan}
-											completingPlan={aiAutoGenerating}
-											onNaviaToast={openToast}
-											onRequestNaviaTip={(msg) => window.dispatchEvent(new CustomEvent('navia:send', { detail: { message: msg } }))}
-										/>
-									) : (
-										<DestinationsPanel
-											destinations={panelDestinations}
-											maxed={totalNights >= targetNights}
-											onChangeNights={handleChangeNights}
-											onChangeTransport={handleChangeTransport}
-											onAddDestination={handleAddDestination}
-											onRemoveDestination={handleRemoveDestination}
-											onNaviaToast={openToast}
-										/>
-									)}
-								</Box>
-							)}
-								{section==='plan' && tab===1 && ENABLE_EXPENSES && (
-									<ExpensesPanel
-										readOnly={readOnly || !effectiveCanEdit}
-										members={expenseMembers}
-										myUserId={userProfile?.id != null ? String(userProfile.id) : null}
-										onInvite={() => setShareModalOpen(true)}
-									/>
-								)}
+						<Box sx={{ flex:1, overflowY:'auto', display:'flex', flexDirection:'column'}}>
+							<DestinationCardsPanel
+								readOnly={readOnly || !effectiveCanEdit}
+								tripId={tripId}
+								authToken={authToken}
+								tripVibe={vibe}
+								tripCountries={countries}
+								onTripicianAIToast={openToast}
+								onCompletePlan={handleCompletePlan}
+								completingPlan={aiAutoGenerating}
+								onStopCountry={handleAddCountry}
+							/>
 						</Box>
 					</Box>
 					)}
@@ -4120,7 +3269,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
                                                     {/* Active panel */}
                                                     <Box sx={{ flex: 1, minWidth: 0, height: '100%', display: sidePanelCollapsed ? 'none' : 'flex', flexDirection: 'column', overflow: 'hidden' }}>
                                                             {(!readOnly && effectiveCanEdit) ? (
-                                                                    /* Navia group chat - kept mounted so the live connection survives tab switches */
+                                                                    /* TripicianAI group chat - kept mounted so the live connection survives tab switches */
                                                                     <Box sx={(t) => ({ flex: 1, minHeight: 0, display: sidePanelTab === 'chat' ? 'flex' : 'none', flexDirection: 'column', overflow: 'hidden', borderLeft: `1px solid ${t.palette.divider}` })}>
                                                                             <TripChatPanel
                                                                                    tripId={tripId}
@@ -4186,7 +3335,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
                                                                     </Box>
                                                             )}
                                                     </Box>
-                                                    {/* Vertical text rail - NAVIA | COMMENTS | MAP */}
+                                                    {/* Vertical text rail - TRIPICIANAI | COMMENTS | MAP */}
                                                     <Box sx={(t) => ({
                                                             width: 44,
                                                             flexShrink: 0,
@@ -4214,7 +3363,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
                                                                     // now that it can, the tab is present and simply disabled until
                                                                     // the trip goes public, exactly as in Advanced.
                                                                     ? [
-                                                                            { id: 'chat', label: 'Discussion', tip: 'Group chat - type @navia to bring in the co-planner', disabled: false },
+                                                                            { id: 'chat', label: 'Discussion', tip: 'Group chat - type @tripicianai to bring in the co-planner', disabled: false },
                                                                             ...(ENABLE_COMMENTS ? [{ id: 'comments', label: 'Comments', tip: isDraft ? 'Publish this trip to enable public comments' : 'Public comments on this trip', disabled: isDraft }] : []),
                                                                             { id: 'map', label: 'Map', tip: 'Trip map - see your route at a glance', disabled: false },
                                                                     ]
@@ -4287,10 +3436,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
                                                     </Box>
                                             </Box>
 		</Box>
-		{/* Mobile Navia FAB (visible only on xs/sm) */}
+		{/* Mobile TripicianAI FAB (visible only on xs/sm) */}
 		{(!readOnly && effectiveCanEdit) && (
 			<Fab
-				onClick={() => setNaviaDrawerOpen(true)}
+				onClick={() => setTripicianAIDrawerOpen(true)}
 				sx={{
 					position: 'fixed', bottom: 86, right: 20,
 					display: { xs: 'flex', lg: 'none' },
@@ -4303,18 +3452,18 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				<ChatRoundedIcon />
 			</Fab>
 		)}
-		{/* Mobile Navia bottom sheet */}
+		{/* Mobile TripicianAI bottom sheet */}
 		<Drawer
 			anchor='bottom'
-			open={naviaDrawerOpen}
-			onClose={() => setNaviaDrawerOpen(false)}
+			open={tripicianAIDrawerOpen}
+			onClose={() => setTripicianAIDrawerOpen(false)}
 			sx={{ display: { xs: 'block', lg: 'none' } }}
 			slotProps={{ paper: { sx: { height: '75vh', borderRadius: '16px 16px 0 0', overflow: 'hidden', background: 'transparent', boxShadow: 'none' } } }}
 		>
 			<Box sx={{ height: '100%', display: { xs: 'flex', lg: 'none' }, flexDirection: 'column', overflow: 'hidden', bgcolor: 'background.paper', borderRadius: '16px 16px 0 0' }}>
 				<Box sx={{ display: { xs: 'flex', lg: 'none' }, alignItems: 'center', justifyContent: 'space-between', px: 2, py: 1.25, borderBottom: '1px solid', borderColor: 'divider' }}>
 					<Typography sx={{ fontWeight: 700, fontSize: 15 }}>Trip Chat</Typography>
-					<IconButton size='small' onClick={() => setNaviaDrawerOpen(false)}><CloseIcon fontSize='small' /></IconButton>
+					<IconButton size='small' onClick={() => setTripicianAIDrawerOpen(false)}><CloseIcon fontSize='small' /></IconButton>
 				</Box>
 				<Box sx={{ flex: 1, overflow: 'hidden' }}>
 					<TripChatPanel
@@ -4328,65 +3477,10 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				</Box>
 
 		</Drawer>
-		{/* Phone section sheet: the mobile stand-in for the desktop nav rail. Reads the
-		    same visiblePlannerNavItems() the rail does, so the two cannot disagree
-		    about which sections exist. */}
-		<Drawer
-			anchor='bottom'
-			open={sectionSheetOpen}
-			onClose={() => setSectionSheetOpen(false)}
-			sx={{ display: { xs: 'block', md: 'none' } }}
-			slotProps={{ paper: { sx: { borderRadius: '16px 16px 0 0', overflow: 'hidden', pb: 1 } } }}
-		>
-			<Box sx={{ pt: 1.5 }}>
-				{/* Grab handle, so it reads as a sheet you can pull down. */}
-				<Box sx={{ width: 36, height: 4, borderRadius: 999, bgcolor: 'divider', mx: 'auto', mb: 1.5 }} />
-				<Typography variant='overline' sx={{ display: 'block', px: 2.5, pb: 0.5, color: 'text.secondary' }}>
-					Trip sections
-				</Typography>
-				{visiblePlannerNavItems({
-					hideSections: hideSectionsArr,
-					canAccessDocs,
-					docsEnabled: ENABLE_DOC_UPLOAD,
-					budgetEnabled: ENABLE_EXPENSES,
-				}).map(item => {
-					const activeId = section === 'plan' && tab === 1 ? 'budget' : section;
-					const isActive = item.id === activeId;
-					return (
-						<Box
-							key={item.id}
-							component='button'
-							type='button'
-							onClick={() => {
-								setSectionSheetOpen(false);
-								// Same mapping the desktop rail's onChange uses: Budget is a tab
-								// inside the plan section, not a section of its own.
-								if (item.id === 'budget') { setSectionDebug('plan'); setTab(1); return; }
-								if (item.id === 'plan') { setSectionDebug('plan'); setTab(0); return; }
-								setSectionDebug(item.id as any);
-							}}
-							sx={(t) => ({
-								display: 'flex', alignItems: 'center', gap: 1.5, width: '100%',
-								px: 2.5, py: 1.5, border: 'none', textAlign: 'left',
-								bgcolor: isActive ? t.custom.surface.brandTint : 'transparent',
-								color: isActive ? 'primary.main' : 'text.primary',
-								fontFamily: 'inherit', fontSize: 15, fontWeight: isActive ? 600 : 500,
-								cursor: 'pointer',
-								'&:active': { bgcolor: t.custom.surface.active },
-							})}
-						>
-							<Box sx={{ display: 'flex', color: isActive ? 'primary.main' : 'text.secondary' }}>{item.icon}</Box>
-							{item.label}
-						</Box>
-					);
-				})}
-			</Box>
-		</Drawer>
-		{/* First-run walkthrough. Steps whose anchor is missing are skipped, so this
-		    one deck serves both Simple and Advanced without knowing which is active. */}
+		{/* First-run walkthrough. Steps whose anchor is missing are skipped. */}
 		<PlannerTour open={tourOpen} onClose={() => setTourOpen(false)} />
-		{/* Reality check (advanced editors only) - deterministic, so it re-runs instantly on open */}
-		{!readOnly && effectiveCanEdit && !easy && (
+		{/* Reality check for editors. Deterministic, so it re-runs instantly on open. */}
+		{!readOnly && effectiveCanEdit && (
 			<PlanReviewDialog
 				open={planReviewOpen}
 				onClose={() => setPlanReviewOpen(false)}
@@ -4452,7 +3546,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					</Typography>
 					<Box component='ul' sx={{ m: 0, pl: 2.25, display: 'flex', flexDirection: 'column', gap: .75 }}>
 						{[
-							'It leaves the community feed straight away.',
+							'It leaves Groups & Stories straight away, and its postcard on your wall stops showing it.',
 							'Public comments close. The ones already there are kept, and reopen if you publish again.',
 							'Anyone who saved or liked it keeps a card that no longer opens for them.',
 							'Search engines can take a while to catch up, because the sitemap is rebuilt on release.',
@@ -4481,153 +3575,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 					</Button>
 				</DialogActions>
 			</Dialog>
-				{canAccessDocs && ENABLE_DOC_UPLOAD && (
-				<Dialog open={visaOpen} onClose={()=> setVisaOpen(false)} fullWidth maxWidth='sm'>
-					<DialogTitle>Visa Documents</DialogTitle>
-					<DialogContent dividers>
-						{effectiveCanEdit && ENABLE_DOC_UPLOAD && (
-							<ValidatedFileInput
-							  buttonLabel='Upload File(s)'
-							  onAccept={(accepted)=> {
-								setVisaErrors([]);
-								accepted.forEach(f=> {
-								  try {
-									const url = URL.createObjectURL(f);
-									dispatch(addVisaDoc({ doc:{ id: 'visa_'+Date.now()+'_'+Math.random().toString(36).slice(2), originalName:f.name, mimeType:f.type, url } }));
-								  } catch(err){ console.error('[VisaUpload] object URL failed', err); }
-								});
-							  }}
-							  rule={DEFAULT_DOC_RULE}
-							  multiple
-							  hideErrors
-							  sx={{ mb:2 }}
-							/>
-						)}
-						{!ENABLE_DOC_UPLOAD && <SoonTag sx={{ mb:2 }} />}
-						{/* Display aggregated errors captured via state for backwards compatibility */}
-						{visaErrors.length>0 && (
-							<Box sx={{ mb:2, border:'1px solid', borderColor:'error.light', background:(t)=> t.palette.mode==='dark'? '#2a1818':'#fff5f5', p:1, borderRadius:1.5 }}>
-								<Typography variant='caption' sx={{ fontWeight:700, color:'error.main', display:'flex', gap:.5 }}>Upload issues:</Typography>
-								{visaErrors.map((er,i)=>(<Typography key={i} variant='caption' sx={{ display:'block', color:'error.main' }}> {er}</Typography>))}
-							</Box>
-						)}
-						{planner.visaDocs && planner.visaDocs.length>0 ? (
-							<Box sx={{ display:'flex', flexWrap:'wrap', gap:1.5 }}>
-								{planner.visaDocs.map(doc => {
-									const isImage = /(png|jpe?g|gif|webp|bmp|svg)$/i.test(doc.originalName);
-									const pinned = planner.pinnedDocIds?.includes(doc.id);
-									return (
-										<Paper key={doc.id} sx={{ width:160, position:'relative', p:0.5, border:'1px solid', borderColor:'divider', borderRadius:1.5, display:'flex', flexDirection:'column', gap:.5 }}>
-											<Box sx={{ width:'100%', height:80, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', background:'linear-gradient(135deg,#eef2f6,#e2e8f0)' }}>
-												{isImage ? <Box component='img' src={doc.url} alt={doc.originalName} sx={{ width:'100%', height:'100%', objectFit:'cover' }} /> : <Typography variant='caption' sx={{ fontWeight:600 }}>{doc.originalName.split('.').pop()?.toUpperCase()}</Typography>}
-											</Box>
-											<Typography variant='caption' sx={{ lineHeight:1.2, wordBreak:'break-all' }}>{doc.originalName}</Typography>
-											<Box sx={{ display:'flex', justifyContent:'flex-end', alignItems:'center', gap:.5 }}>
-												{effectiveCanEdit && ENABLE_DOC_UPLOAD && (
-													<>
-													<Tooltip title={pinned? 'Unpin':'Pin'}>
-														<IconButton size='small' onClick={()=> { if(pinned){ dispatch(unpinDoc({ docId: doc.id })); } else { dispatch(pinDoc({ docId: doc.id })); } }} sx={{ color: pinned? 'primary.main':'text.secondary', transition:'color .2s', '&:hover':{ color: pinned? 'warning.main':'primary.main' } }}>
-															{pinned? <PushPinIcon fontSize='small' /> : <PushPinOutlinedIcon fontSize='small' />}
-														</IconButton>
-													</Tooltip>
-													<Tooltip title='Delete'>
-														<IconButton size='small' onClick={()=> dispatch(removeVisaDoc({ docId: doc.id }))} sx={{ color:'text.secondary', transition:'color .2s', '&:hover':{ color:'error.main' } }}>
-															<DeleteForeverIcon fontSize='small' />
-														</IconButton>
-													</Tooltip>
-													</>
-												)}
-											</Box>
-										</Paper>
-									);
-								})}
-							</Box>
-						) : (
-							<Typography variant='body2' sx={{ opacity:.6 }}>No visa documents uploaded.</Typography>
-						)}
-					</DialogContent>
-					<DialogActions>
-						<Button onClick={()=> setVisaOpen(false)}>Close</Button>
-					</DialogActions>
-				</Dialog>
-				)}
-				{canAccessDocs && ENABLE_DOC_UPLOAD && (
-				<Dialog open={pinnedOpen} onClose={()=> setPinnedOpen(false)} fullWidth maxWidth='md'>
-					<DialogTitle>Pinned Documents</DialogTitle>
-					<DialogContent dividers>
-						<Typography variant='caption' sx={{ display:'block', mb:1, opacity:.7 }}>Pin documents from other sections (Docs, Visa, etc.). { !effectiveCanEdit && '(view only)' }</Typography>
-						<Box sx={{ display:'flex', flexWrap:'wrap', gap:1.5 }}>
-							{combinedPinnedDocs.length===0 && (
-								<Typography variant='body2' sx={{ opacity:.6 }}>No pinned documents yet.</Typography>
-							)}
-							{combinedPinnedDocs.map(doc => {
-								const isImage = /(png|jpe?g|gif|webp|bmp|svg)$/i.test(doc.originalName);
-								return (
-									<Paper key={doc.unifiedId} sx={{ width:150, position:'relative', p:0.5, border:'2px solid', borderColor:'primary.main', borderRadius:2, display:'flex', flexDirection:'column', gap:.5 }}>
-										<Box sx={{ width:'100%', height:90, display:'flex', alignItems:'center', justifyContent:'center', overflow:'hidden', background:'linear-gradient(135deg,#eef2f6,#e2e8f0)' }}>
-											{isImage ? <Box component='img' src={doc.url} alt={doc.originalName} sx={{ width:'100%', height:'100%', objectFit:'cover' }} /> : <Typography variant='caption' sx={{ fontWeight:600 }}>{doc.originalName.split('.').pop()?.toUpperCase()}</Typography>}
-										</Box>
-										<Typography variant='caption' sx={{ lineHeight:1.2, wordBreak:'break-all' }}>{doc.originalName}</Typography>
-										<Box sx={{ display:'flex', justifyContent:'flex-end', alignItems:'center', gap:.25 }}>
-											{effectiveCanEdit && ENABLE_DOC_UPLOAD && (
-												<>
-												<Tooltip title='Unpin'>
-													<IconButton size='small' onClick={()=> {
-														if(doc.source==='planner') {
-															dispatch(unpinDoc({ docId: doc.id }));
-														} else {
-															dispatch(togglePinDocSlice(doc.id));
-														}
-													}} sx={{ color:'text.secondary', transition:'color .2s', '&:hover':{ color:'warning.main' } }}>
-														<PushPinIcon fontSize='inherit' />
-													</IconButton>
-												</Tooltip>
-												<Tooltip title='Delete'>
-													<IconButton size='small' onClick={()=> {
-														if(doc.source==='planner') {
-															const inGlobal = planner.globalDocs?.some(g=> g.id===doc.id);
-															const inVisa = planner.visaDocs?.some(v=> v.id===doc.id);
-															if(inGlobal) dispatch(removeGlobalDoc({ docId: doc.id }));
-															else if(inVisa) dispatch(removeVisaDoc({ docId: doc.id }));
-															else dispatch(unpinDoc({ docId: doc.id }));
-															dispatch(unpinDoc({ docId: doc.id }));
-														} else {
-															dispatch(togglePinDocSlice(doc.id));
-															dispatch(removeDocsSliceDocument(doc.id));
-														}
-													}} sx={{ color:'text.secondary', transition:'color .2s', '&:hover':{ color:'error.main' } }}>
-														<DeleteForeverIcon fontSize='inherit' />
-													</IconButton>
-												</Tooltip>
-												</>
-											)}
-											<Tooltip title='Download'>
-												<IconButton size='small' onClick={()=> {
-													try {
-														const fileName = doc.originalName || 'document';
-														const url = doc.url;
-														if(/^https?:\/\//i.test(url) || /^data:/i.test(url)) {
-															const a = document.createElement('a'); a.href=url; a.download=fileName; a.target='_blank'; document.body.appendChild(a); a.click(); a.remove(); return; }
-														const a = document.createElement('a'); a.href=url; a.download=fileName; a.target='_blank'; document.body.appendChild(a); a.click(); a.remove();
-													} catch(err) { console.error('Download failed', err); }
-												}} sx={{ color:'text.secondary', transition:'color .2s', '&:hover':{ color:'primary.main' } }}>
-													<DownloadIcon fontSize='inherit' />
-												</IconButton>
-											</Tooltip>
-										</Box>
-										<Box sx={{ position:'absolute', top:4, left:4, bgcolor:'primary.main', color:'primary.contrastText', borderRadius:1, px:.5, py:.2, fontSize:9, fontWeight:600, letterSpacing:.4 }}>
-											{doc.source==='planner' ? 'Trip' : 'Library'}
-										</Box>
-									</Paper>
-								);
-							})}
-						</Box>
-					</DialogContent>
-					<DialogActions>
-						<Button onClick={()=> setPinnedOpen(false)}>Close</Button>
-					</DialogActions>
-				</Dialog>
-				)}
 			</Box>
 			<TripSettingsDialog
 				open={settingsOpen}
@@ -4642,14 +3589,12 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				members={tripMembers}
 				bannerUrl={bannerUrl}
 				currentUserIsOwner={currentUserIsOwner}
-				budgetVisibility={budgetVisibility}
-				checklistVisibility={checklistVisibility}
 				canManageMembers={normalizedInitial?.meta.canManageMembers ?? rawInitialTrip?.canManageMembers ?? false}
 				canManageAdmins={normalizedInitial?.meta.canManageAdmins ?? rawInitialTrip?.canManageAdmins ?? false}
 				onCrewChanged={() => { try { window.location.reload(); } catch {} }}
 				crewLimit={normalizedInitial?.meta.crewLimit ?? rawInitialTrip?.crewLimit ?? null}
 				crewLimitEnforced={normalizedInitial?.meta.crewLimitEnforced ?? rawInitialTrip?.crewLimitEnforced ?? false}
-				onChangeVisibilitySetting={changeVisibilitySetting}
+				organizationId={normalizedInitial?.meta.organizationId ?? null}
 				onChangeBanner={async ({ url, file }) => {
 					// If a local file was picked, upload directly to Cloudinary then persist
 					if (file && authToken && tripId) {
@@ -4693,36 +3638,6 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				importantNotes={importantNotes}
 				onChangeImportantNotes={setImportantNotes}
 			/>
-			{/* Switching down to Simple hides real content the user put there. It is
-			    fully reversible, so this is a heads-up rather than a warning - but
-			    silently emptying someone's plan is not an option. */}
-			<Dialog
-				open={easyConfirmOpen}
-				onClose={()=> setEasyConfirmOpen(false)}
-				maxWidth='xs'
-				fullWidth
-				slotProps={{ paper: { sx: { borderRadius: { xs: '16px', sm: '12px' }, mx: { xs: 2, sm: 'auto' } } } }}
-			>
-				<DialogTitle sx={{ fontSize: { xs: 17, sm: 20 }, fontWeight: 700, pb: .5 }}>Switch to Simple?</DialogTitle>
-				<DialogContent dividers>
-					<Typography variant='body2'>
-						Simple mode shows just your stops, nights and notes. Your stays, places, budget
-						and packing list are hidden while you're in it. Nothing is deleted, and switching
-						back to Advanced brings it all straight back.
-					</Typography>
-					<Typography variant='body2' sx={{ mt: 1.5, color: 'text.secondary' }}>
-						You can't publish a trip from Simple mode.
-					</Typography>
-				</DialogContent>
-				<DialogActions sx={{ p: { xs: 2, sm: 1.5 }, gap: 1 }}>
-					<Button onClick={()=> setEasyConfirmOpen(false)} sx={{ textTransform: 'none', color: 'text.secondary' }}>
-						Stay in Advanced
-					</Button>
-					<Button variant='contained' onClick={()=> applyPlannerMode('easy')} sx={{ textTransform: 'none' }}>
-						Switch to Simple
-					</Button>
-				</DialogActions>
-			</Dialog>
 			<Dialog
 				open={exitConfirmOpen}
 				onClose={()=> setExitConfirmOpen(false)}
@@ -4866,9 +3781,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				onClose={() => setShowPublishCheck(false)}
 				checks={publishChecks}
 				publishing={saving}
-				onPublish={() => {
+				onPublish={(caption) => {
 					setShowPublishCheck(false);
-					handlePublish();
+					handlePublish(caption);
 					requestAnimationFrame(() => { lastCommittedRef.current = computeSignature(); });
 				}}
 			/>

@@ -1,5 +1,5 @@
 /**
- * Navia's proof-reading pass, shown for approval.
+ * TripicianAI's proof-reading pass, shown for approval.
  *
  * Two things this deliberately does not do. It does not write anything: the
  * options are a grammar fix and a rephrase of what the author already wrote,
@@ -21,8 +21,8 @@ import {
   Typography,
   useTheme,
 } from '@mui/material';
-import { IconCheck, IconX, IconSparkles } from '@tabler/icons-react';
-import NaviaOrb from '../../navia/NaviaOrb';
+import { IconCheck, IconX } from '@tabler/icons-react';
+import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
 import { afterStoryService, AfterStoryError } from '../afterStoryService';
 import { stripHtml } from '../blockSchema';
 
@@ -68,7 +68,7 @@ const PolishPopover: React.FC<PolishPopoverProps> = ({ anchorEl, html, onClose, 
       if (!polished.changed) setUnchanged(true);
       else setResult(polished.text);
     } catch (err) {
-      setError(err instanceof AfterStoryError ? err.message : 'Navia could not check that passage.');
+      setError(err instanceof AfterStoryError ? err.message : 'TripicianAI could not check that passage.');
     } finally {
       setBusy(false);
     }
@@ -86,9 +86,9 @@ const PolishPopover: React.FC<PolishPopoverProps> = ({ anchorEl, html, onClose, 
       slotProps={{ paper: { sx: { width: { xs: 320, sm: 460 }, p: 2, borderRadius: '16px' } } }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-        <NaviaOrb size={14} processing={busy} />
+        <TripicianAIOrb size={14} />
         <Typography variant="overline" sx={{ color: 'text.secondary' }}>
-          Navia checks your writing
+          TripicianAI checks your writing
         </Typography>
       </Box>
 
@@ -116,7 +116,6 @@ const PolishPopover: React.FC<PolishPopoverProps> = ({ anchorEl, html, onClose, 
               variant={mode === 'rephrase' ? 'contained' : 'outlined'}
               disabled={busy}
               onClick={() => void run('rephrase')}
-              startIcon={<IconSparkles size={14} />}
             >
               Improve flow
             </Button>
@@ -157,7 +156,7 @@ const PolishPopover: React.FC<PolishPopoverProps> = ({ anchorEl, html, onClose, 
                   here is "do I prefer this", not "what exactly moved". */}
               <Box sx={{ display: 'grid', gap: 1.25, maxHeight: 260, overflowY: 'auto', mb: 1.5 }}>
                 <Panel label="Yours" text={original} muted />
-                <Panel label="Navia's suggestion" text={result} />
+                <Panel label="TripicianAI's suggestion" text={result} />
               </Box>
 
               <Box sx={{ display: 'flex', gap: 1 }}>
