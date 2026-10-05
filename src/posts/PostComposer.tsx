@@ -89,7 +89,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
 
   // A guest gets the neutral line, since there is no name to address.
   const restingPlaceholder = displayName
-    ? (isQuestion ? `What do you need to know, ${displayName}?` : `What is happening, ${displayName}?`)
+    ? (isQuestion ? `What do you need to know, ${displayName}?` : `Where are you, ${displayName}?`)
     : 'Say something, or ask something';
 
   const pickPhotos = async (files: File[]) => {

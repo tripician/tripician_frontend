@@ -45,9 +45,10 @@ describe('planBenefits', () => {
     expect(lines.some((l) => l.includes('0 travellers'))).toBe(false);
   });
 
-  it('says nothing about book pricing on the retail tier', () => {
-    expect(planBenefits(plan())).not.toContain('Member price on Story Books');
-    expect(planBenefits(plan({ storyBookPriceTier: 'pro_member' }))).toContain('Member price on Story Books');
+  it('never advertises a book price, on any tier', () => {
+    for (const tier of ['retail', 'pro_member', 'business_member'] as const) {
+      expect(planBenefits(plan({ storyBookPriceTier: tier })).join(' ')).not.toMatch(/book/i);
+    }
   });
 
   it('only names features the server actually sent', () => {
@@ -114,7 +115,6 @@ describe('planUpgrade', () => {
     const lines = planUpgrade(basic, pro);
     expect(lines).toContain('5 travellers can join from a public listing, up from 2');
     expect(lines).toContain('1,200 more TripicianAI credits every month');
-    expect(lines).toContain('Member price on every Story Book you print');
     // Trip size is the same on both, so it must not be sold as an upgrade.
     expect(lines.some((l) => l.includes('people on a trip'))).toBe(false);
   });

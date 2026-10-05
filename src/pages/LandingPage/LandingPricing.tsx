@@ -2,8 +2,9 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IconCheck, IconMinus } from '@tabler/icons-react';
 import { apiServices } from '../../services/APIs/apiServices';
+import { saleLabel, strikePrice } from '../../pricing/planSale';
 import { formatMoney, isUnlimited } from '../../pricing/types';
-import type { Plan, PlanId } from '../../pricing/types';
+import type { Plan, PlanId, PlanSale } from '../../pricing/types';
 import { groupMemberLimit } from '../../pricing/planBenefits';
 
 /**
@@ -22,7 +23,7 @@ import { groupMemberLimit } from '../../pricing/planBenefits';
 
 const PITCH: Record<PlanId, string> = {
   basic: 'Everything you need to plan a real trip, write it up and keep it.',
-  pro: 'For people who travel often, plan with others and print what they wrote.',
+  pro: 'For people who travel often, plan with others and lean on TripicianAI more.',
   club: 'For clubs and travel communities that have outgrown a free group.',
   business: 'For agencies, trekking outfits and travel communities running trips for other people.',
 };
@@ -53,10 +54,6 @@ const ROWS: Array<{ label: string; value: (p: Plan, all: Plan[]) => string | boo
   {
     label: 'TripicianAI credits each month',
     value: (p) => p.tripicianAIMonthlyCredits.toLocaleString('en-IN'),
-  },
-  {
-    label: 'Member price on Story Books',
-    value: (p) => p.storyBookPriceTier !== 'retail',
   },
   {
     label: 'Plan, publish and write after stories',
@@ -97,6 +94,7 @@ const Cell: React.FC<{ value: string | boolean }> = ({ value }) => {
 const LandingPricing: React.FC = () => {
   const navigate = useNavigate();
   const [plans, setPlans] = useState<Plan[] | null>(null);
+  const [sale, setSale] = useState<PlanSale | null>(null);
   const [currency, setCurrency] = useState('INR');
   const [annual, setAnnual] = useState(false);
 
@@ -107,11 +105,12 @@ const LandingPricing: React.FC = () => {
         if (!active) return;
         const list = Array.isArray(r.data?.plans) ? r.data.plans : [];
         setPlans(list.length > 0 ? list : null);
+        setSale(r.data?.sale ?? null);
         setCurrency(r.data?.currency ?? 'INR');
       })
       // Silence rather than a placeholder table. A price is the one thing on
       // this page that must never be invented.
-      .catch(() => { if (active) setPlans(null); });
+      .catch(() => { if (active) { setPlans(null); setSale(null); } });
     return () => { active = false; };
   }, []);
 
@@ -156,6 +155,11 @@ const LandingPricing: React.FC = () => {
         <div className="lp-plans__grid">
           {ordered.map((plan) => {
             const price = annual ? plan.annualPrice : plan.monthlyPrice;
+            // The server already applied the sale, so the MRP is what gets struck.
+            // This page used to render the payable figure alone, which meant a live
+            // sale looked like a price cut nobody could see the reason for.
+            const mrp = annual ? plan.annualMrp : plan.monthlyMrp;
+            const struck = strikePrice(mrp, price);
             // Only claimed when it is arithmetically true, and shown as the real
             // figure rather than a rounded percentage.
             const saving = plan.monthlyPrice * 12 - plan.annualPrice;
@@ -172,11 +176,24 @@ const LandingPricing: React.FC = () => {
                 <p className="lp-plan__pitch">{PITCH[plan.planId]}</p>
 
                 <p className="lp-plan__price">
-                  {price === 0 ? 'Free' : formatMoney(price, currency)}
+                  {price === 0 ? 'Free' : (
+                    <>
+                      {struck !== null && (
+                        <span className="lp-plan__was">{formatMoney(struck, currency)}</span>
+                      )}
+                      {formatMoney(price, currency)}
+                    </>
+                  )}
                   {price > 0 && (
                     <span className="lp-plan__per">{annual ? ' a year' : ' a month'}</span>
                   )}
                 </p>
+
+                {/* A struck-through price needs a stated reason next to it, or it is
+                    just a bigger number printed for effect. */}
+                {saleLabel(sale?.label, mrp, price) && (
+                  <p className="lp-plan__sale">{saleLabel(sale?.label, mrp, price)}</p>
+                )}
 
                 {annual && saving > 0 && (
                   <p className="lp-plan__saving">
@@ -225,9 +242,8 @@ const LandingPricing: React.FC = () => {
         </div>
 
         <p className="lp-plans__note">
-          Story Books are bought one at a time and are not part of a plan. Paid plans pay a
-          member price on them. Nothing here takes a payment for a trip: when travellers
-          share costs, they settle it between themselves.
+          Nothing here takes a payment for a trip: when travellers share costs, they settle
+          it between themselves.
         </p>
       </div>
     </section>

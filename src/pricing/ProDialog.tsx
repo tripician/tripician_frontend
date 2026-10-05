@@ -24,7 +24,7 @@ interface ProDialogProps {
  * sent, so a price or a limit changing in configuration changes this with it.
  *
  * It explains rather than gates: checkout lives on the pricing page, which is
- * one click away and is also where the Story Book price list is.
+ * one click away.
  */
 const ProDialog: React.FC<ProDialogProps> = ({ open, onClose }) => {
   const theme = useTheme();

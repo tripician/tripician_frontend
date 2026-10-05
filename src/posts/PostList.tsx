@@ -98,7 +98,7 @@ const PostList = React.forwardRef<PostListHandle, PostListProps>(({
   if (posts.length === 0) {
     return (
       <Typography variant="body2" sx={{ color: 'text.secondary', py: 3 }}>
-        {emptyMessage ?? 'Nothing yet. Be the first to say something.'}
+        {emptyMessage ?? 'Nothing here yet. Say where you are, or ask the people who have been.'}
       </Typography>
     );
   }

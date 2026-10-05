@@ -11,7 +11,7 @@ import EmailRoundedIcon from '@mui/icons-material/EmailRounded';
 const FAQS = [
   {
     q: 'What is Tripician?',
-    a: 'Tripician is a social network for travellers, built around the whole arc of a trip: plan an itinerary, find people to go with, then write up what it was actually like afterwards and keep it as a printed book. TripicianAI can plan the days for you, and every plan is checked against real travel times and opening hours. Tripician is not a travel agency and does not book flights, hotels, or any travel services.',
+    a: 'Tripician is a social network for travellers and explorers. The people here publish the trips they actually took, answer questions about places they have been, and find others to go with. Around that sit the tools: a planner your whole crew can edit, groups that plan together, TripicianAI to draft the days, and after stories to write up how it went. Every plan is checked against real travel times and opening hours. Tripician is not a travel agency and does not book flights, hotels, or any travel services.',
   },
   {
     q: 'Is Tripician free to use?',
@@ -50,8 +50,8 @@ const FAQS = [
     a: 'An after story is what a trip was actually like, written afterwards in your own words with your own photographs. Publish one and it sits on your profile, where people deciding whether to travel with you will read it. Readers can ask the author questions underneath. Read everyone else\'s in Groups & Stories, under Stories.',
   },
   {
-    q: 'Can I get a story printed as a book?',
-    a: 'Any story you wrote lays out as an A5 hardcover. Open the story and choose "See it as a book" to look through every page exactly as it would print, then download the print-ready PDF. Ordering a physical copy is not open yet, so the PDF is the finished book for now.',
+    q: 'Can I keep a copy of my story?',
+    a: 'Yes. Open the story and choose "See it as a book" to look through every page laid out the way it would be printed, then download the print-ready PDF. It is free on every plan, and it is yours to keep or print yourself.',
   },
   {
     q: 'Can I collaborate with others on my trip?',

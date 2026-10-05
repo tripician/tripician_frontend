@@ -13,23 +13,23 @@ import Seo from '../../components/Seo';
 const VALUES = [
   {
     Icon: AutoAwesomeRoundedIcon,
-    title: 'Made for Explorers',
-    desc: 'Every feature is designed around real travellers - from spontaneous adventurers to meticulous planners.',
+    title: 'The people, not the places',
+    desc: 'A place is a search result. A traveller who stood there last month is not, and they are who you came here to reach.',
   },
   {
     Icon: GroupsRoundedIcon,
-    title: 'Built to Be Shared',
-    desc: 'Travel is better together. Collaborate on trips, share itineraries, and inspire each other.',
+    title: 'Nobody travels alone here',
+    desc: 'Plan with your crew on one shared link, run a group together, and decide trip by trip who is coming along.',
   },
   {
     Icon: SecurityRoundedIcon,
-    title: 'Privacy First',
-    desc: 'Your trip data is yours. We never sell your information and we give you full control over your data.',
+    title: 'Your trip is yours',
+    desc: 'It stays private until you publish it, you choose who sees what, and we never sell your information to anybody.',
   },
   {
     Icon: MapRoundedIcon,
-    title: 'Thoughtfully Designed',
-    desc: 'We obsess over the details - because planning a trip should feel as exciting as the trip itself.',
+    title: 'We check rather than guess',
+    desc: 'Travel times, opening hours and whether a place still exists, measured against real data before the plan ever reaches you.',
   },
 ];
 
@@ -81,7 +81,7 @@ const AboutPage: React.FC = () => (
       <Box sx={{ background: `linear-gradient(135deg,${BRAND.coral},${BRAND.coralDeep})`, borderRadius: '16px', p: { xs: 3, md: 5 }, mb: 3, color: '#fff' }}>
         <Typography sx={{ fontSize: '0.72rem', fontWeight: 700, letterSpacing: '0.1em', textTransform: 'uppercase', opacity: 0.75, mb: 1.5 }}>Our Mission</Typography>
         <Typography sx={{ fontWeight: 700, fontSize: { xs: '1.1rem', md: '1.35rem' }, lineHeight: 1.5 }}>
-          "To build the place where every traveller finds their tribe - and a plan they can trust enough to book."
+          "To build the place where a traveller finds the people who have already been, and a plan good enough to go on."
         </Typography>
       </Box>
 

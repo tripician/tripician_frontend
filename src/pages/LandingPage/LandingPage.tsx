@@ -10,8 +10,8 @@ import {
   IconMessageCircleQuestion,
   IconRosetteDiscountCheckFilled,
   IconUserCheck,
-  IconMapPin,
-  IconRoute,
+  IconUsers,
+  IconUsersGroup,
 } from '@tabler/icons-react';
 import '../../assets/css/LandingPage.css';
 import Seo, { SITE_URL } from '../../components/Seo';
@@ -64,22 +64,22 @@ gsap.registerPlugin(ScrollTrigger);
 const STEPS = [
   {
     n: '01',
-    title: 'Get inspired',
-        desc: 'Real itineraries, travelled and published by the people who went. The best of them carry a verified mark, and you can copy any of them into your own planner instead of starting from nothing.',
+    title: 'Find the people who went',
+    desc: 'Every itinerary here was planned, taken and published by the traveller who went. Copy one into your own plan, or ask them the thing you could not find online.',
     img: '/img/onboarding/community.jpg',
     alt: 'Travellers reading a map together on a city street',
   },
   {
     n: '02',
     title: 'Take your turn',
-    desc: 'Say where and how long, and TripicianAI drafts it. Try it at the top of this page, no account needed. Every plan is then checked against real distances and opening hours, so it holds up when you are standing there.',
+    desc: 'Say where and how long, and TripicianAI drafts it. Try it at the top of this page, no account needed. Bring your crew in on one link, and every plan is checked against real distances and opening hours so it holds up when you are standing there.',
     img: '/img/onboarding/reality-check.jpg',
     alt: 'A traveller checking a route against a printed map',
   },
   {
     n: '03',
     title: 'Write your story',
-    desc: 'Come home and say what it was actually like. Keep it as a book, and send the next traveller somewhere worth going.',
+    desc: 'Come home and say what it was actually like. It goes on your profile, it answers the next person asking, and it is yours to keep.',
     img: '/img/onboarding/itinerary.jpg',
     alt: 'A traveller sitting at a table with a book',
   },
@@ -92,9 +92,24 @@ const STEPS = [
  */
 const FEATURES = [
   {
-    icon: <IconRosetteDiscountCheckFilled size={22} />,
-    title: 'Tripician Verified',
-    desc: 'Some itineraries carry a verified mark. It means a person on our team read the whole plan and put our name on it, not a score an algorithm handed out.',
+    icon: <IconUsers size={22} stroke={1.75} />,
+    title: 'Travellers who have actually been',
+    desc: 'Every itinerary here was planned, taken and published by the person who went. Not a listicle, not an advert, and nobody was paid to write it.',
+  },
+  {
+    icon: <IconMessageCircleQuestion size={22} stroke={1.75} />,
+    title: 'Ask, and a person answers',
+    desc: 'Ask the traveller who wrote the story, or put the question to everyone. Nothing is generated, nobody is paid to reply, and whoever asked marks the answer that actually helped.',
+  },
+  {
+    icon: <IconUsersGroup size={22} stroke={1.75} />,
+    title: 'Groups that actually go somewhere',
+    desc: 'A few friends, a club or a company. The group talks it through in one place, plans together, and decides trip by trip who is coming.',
+  },
+  {
+    icon: <IconUserCheck size={22} stroke={1.75} />,
+    title: 'You choose who comes',
+    desc: 'Share one link and your crew is on the trip, planning beside you. Anybody asking to join waits for the organiser to say yes, and no money passes through us.',
   },
   {
     icon: <TripicianAIOrb size={22} />,
@@ -102,24 +117,9 @@ const FEATURES = [
     desc: 'TripicianAI drafts the route and the stops, then each place is matched against a live listing. Anything permanently closed is dropped, and anything unconfirmed says so.',
   },
   {
-    icon: <IconRoute size={22} stroke={1.75} />,
-    title: 'We catch what breaks the trip',
-    desc: 'Real distances and opening hours, measured rather than guessed: the hours you lose between stops, the days you have overloaded, anything shut for your whole stay.',
-  },
-  {
-    icon: <IconUserCheck size={22} stroke={1.75} />,
-    title: 'You choose who comes',
-        desc: 'Share one link and your crew is on the trip, planning beside you. Travel businesses can also take join requests from travellers, with a note to read before deciding, and no money passes through us.',
-  },
-  {
-    icon: <IconMessageCircleQuestion size={22} stroke={1.75} />,
-    title: 'A few simple questions',
-    desc: 'Where you start, where you are going and roughly when. Trip type and food are up to you. Then TripicianAI plans it, or you do.',
-  },
-  {
-    icon: <IconMapPin size={22} stroke={1.75} />,
-    title: 'Everything on the stop',
-    desc: 'Each stop keeps what to see, where you will sleep and what to eat in one place, with a note for the rest.',
+    icon: <IconRosetteDiscountCheckFilled size={22} />,
+    title: 'Tripician Verified',
+    desc: 'Some itineraries carry a verified mark. It means a person on our team read the whole plan and put our name on it, not a score an algorithm handed out.',
   },
 ];
 
@@ -182,17 +182,15 @@ const toLandingTrip = (raw: any): LandingTrip | null => {
 const LP_FAQS = [
   {
     q: 'What exactly is Tripician?',
-        a: "Tripician is a social network for travellers, built around the whole arc of a trip. Browse itineraries published by the people who travelled them, plan your own with your crew or with TripicianAI, and afterwards write up what it was actually like and keep it as a printed book. We are not a travel agency and we do not book flights or accommodation.",
+        a: "Tripician is a social network for travellers, built around the whole arc of a trip. Browse itineraries published by the people who travelled them, plan your own with your crew or with TripicianAI, and afterwards write up what it was actually like and keep it, laid out page by page, as something worth reading. We are not a travel agency and we do not book flights or accommodation.",
   },
   {
     q: 'What is an after story?',
     a: "An after story is the trip in your own words and your own photographs, written once you are home. Publishing one puts it on your profile, where people deciding whether to travel with you will read it, and readers can ask you questions underneath. It is the part of the product that keeps working long after the plan is done.",
   },
   {
-    q: 'Can I really get a book of it?',
-    a: FEATURE_FLAGS.bookOrdering
-      ? 'Yes. Any story you wrote lays out as an A5 hardcover: your photographs at full resolution, your words set in print. You look through every page exactly as it would arrive, then order a copy. Books are produced close to the delivery address rather than shipped across the world.'
-      : 'Any story you wrote lays out as an A5 hardcover, and you can look through every page exactly as it would print, then download the print-ready PDF. Ordering a physical copy is not open yet, so the PDF is the finished book for now.',
+    q: 'What happens to a story once I have written it?',
+    a: 'It goes on your profile, where anyone deciding whether to travel with you will read it, and it lays out page by page the way it would be printed. Look through it, then keep the whole thing as a print-ready PDF.',
   },
   {
     q: 'How do I find people to travel with?',
@@ -589,8 +587,8 @@ export default function LandingPage() {
          * " | Tripician", so this stays inside the ~60 characters Google shows
          * before truncating.
          */
-        title="Plan Your Trip, Write Your Story"
-        description="Browse trip itineraries published by the travellers who took them, plan your own, find people to come along, then write up how it went and keep it as a printed book. Free to join."
+        title="Tripician, A Social Network For Travellers And Explorers"
+        description="Travellers publish the trips they actually took. Read them, ask the people who went, and find others to travel with. Plan your own with your crew or with TripicianAI. Free to join."
         path="/"
         image={OG_IMAGE || undefined}
         jsonLd={[
@@ -719,7 +717,7 @@ export default function LandingPage() {
             subline is what changed in the rebuild: it now carries the whole arc
             rather than stopping at "copy one into your own plan". */}
         <div className="lp-hero__content">
-          <span className="lp-hero__eyebrow">A social network for travellers</span>
+          <span className="lp-hero__eyebrow">A social network for travellers and explorers</span>
 
           {/* The words are separate spans so GSAP can stagger them, and each is
               followed by a REAL space rather than a CSS margin. With margins
@@ -727,10 +725,10 @@ export default function LandingPage() {
               storyor join with others" - which is what a screen reader announces,
               what a crawler indexes, and what you get if you copy the headline. */}
           <h1 className="lp-hero__title">
-            {['Plan', 'your', 'travel,', null, 'or join with others.'].map((word, i) =>
+            {['Somebody', 'has', null, 'where', 'you', 'are', 'going.'].map((word, i) =>
               word === null ? (
                 <Fragment key={i}>
-                  <span className="word lp-hero__em">write your story</span>{' '}
+                  <span className="word lp-hero__em">already been</span>{' '}
                 </Fragment>
               ) : (
                 <Fragment key={i}>
@@ -741,8 +739,8 @@ export default function LandingPage() {
           </h1>
 
           <p className="lp-hero__subtitle">
-            Don&apos;t think too much. It&apos;s easy to take a step towards your dream,
-            It&apos;s never too late!
+            Read what they actually did, ask them what the internet cannot tell you, and
+            find people to come with you.
           </p>
 
           <div className="lp-hero__cta-group">
@@ -809,9 +807,8 @@ export default function LandingPage() {
             <span className="lp-kicker">How it works</span>
             <h2 className="lp-h2">Take your turn</h2>
             <p className="lp-lede">
-              Get inspired by plans that already worked, make one your own with a real
-              check against the world, then write the story that sends somebody else
-              somewhere worth going.
+              Somebody has already planned the trip you are thinking about, and published it.
+              Take what they learned, make it yours, then leave yours for the next person.
             </p>
           </div>
           {/* An ordered list, because it is one: the numbering is meaning, not
@@ -887,20 +884,16 @@ export default function LandingPage() {
         </section>
       )}
 
-      {/*  THE BOOK - the one dark band on the page, because a printed object
-           deserves a different ground than the rest of the scroll.
-
-           The ordering language is gated: with `bookOrdering` off this says the
-           PDF is the finished book, which is what BookPreviewDialog says inside
-           the app. The two must not disagree.  */}
+      {/*  THE FINISHED STORY - the one dark band on the page, because a finished
+           thing deserves a different ground than the rest of the scroll.  */}
       <section className="lp-book">
         <div className="lp-shell lp-book__inner">
-          <span className="lp-kicker lp-kicker--light">The book</span>
-          <h2 className="lp-h2 lp-h2--light">A story you can hold</h2>
+          <span className="lp-kicker lp-kicker--light">The finished story</span>
+          <h2 className="lp-h2 lp-h2--light">A story worth keeping</h2>
           <p className="lp-lede lp-lede--light">
-            Any after story lays out as an A5 hardcover: your photographs at full
-            resolution, your words set in print. Look through every page exactly as it
-            would arrive, and nothing is produced until you have.
+            Any after story lays out page by page: your photographs at full resolution,
+            your words set the way they would be printed. Look through the whole thing
+            before anyone else reads a word of it.
           </p>
           <div className="lp-book__spread" aria-hidden="true">
             <span className="lp-book__page" />
@@ -908,9 +901,7 @@ export default function LandingPage() {
             <span className="lp-book__page" />
           </div>
           <p className="lp-book__note">
-            {FEATURE_FLAGS.bookOrdering
-              ? 'Printed close to the delivery address rather than shipped across the world.'
-              : 'Printed copies are not on sale yet. The PDF is the finished book, at print resolution.'}
+            Yours as a print-ready PDF, free on every plan.
           </p>
         </div>
       </section>
@@ -959,8 +950,8 @@ export default function LandingPage() {
       <section className="lp-features" id="features">
         <div className="lp-shell">
           <div className="lp-sec-head lp-features__head">
-            <span className="lp-kicker">Details</span>
-            <h2 className="lp-h2">The parts that took longest to get right</h2>
+            <span className="lp-kicker">Why here</span>
+            <h2 className="lp-h2">What you cannot get from a search result</h2>
           </div>
           <div className="lp-features__grid">
             {FEATURES.map((f) => (
@@ -985,8 +976,8 @@ export default function LandingPage() {
         <div className="lp-cta__content">
           <h2 className="lp-cta__title">Go somewhere worth writing about.</h2>
           <p className="lp-cta__sub">
-            Free to join. Browse what other people have done, plan your own, and keep it
-            when you get back.
+            Free to join. Read what other travellers did, ask them anything, and find
+            people to go with.
           </p>
           <div className="lp-cta__actions">
             <button className="lp-btn lp-btn--cta-primary" onClick={() => navigate('/signup')}>
