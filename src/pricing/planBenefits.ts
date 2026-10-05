@@ -107,8 +107,12 @@ export function planUpgrade(from: Plan | null, to: Plan): string[] {
   }
 
   if (to.tripicianAIMonthlyCredits > from.tripicianAIMonthlyCredits) {
-    const extra = to.tripicianAIMonthlyCredits - from.tripicianAIMonthlyCredits;
-    lines.push(`${extra.toLocaleString('en-IN')} more TripicianAI credits every month`);
+    // Where you land, and what you leave: the same shape as the trip size line
+    // above it, and easier to judge than a difference on its own.
+    lines.push(
+      `${to.tripicianAIMonthlyCredits.toLocaleString('en-IN')} TripicianAI credits a month, `
+      + `up from ${from.tripicianAIMonthlyCredits.toLocaleString('en-IN')}`,
+    );
   }
 
   const had = new Set(from.features ?? []);

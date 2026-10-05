@@ -7,10 +7,12 @@ import { useNavigate } from 'react-router-dom';
 import { IconCheck } from '@tabler/icons-react';
 import { apiServices } from '../services/APIs/apiServices';
 import { useAuthToken } from '../hooks/useAuth0Token';
-import { planBenefits, planUpgrade } from './planBenefits';
+import { planUpgrade } from './planBenefits';
+import { saleLabel, strikePrice } from './planSale';
+import SalePrice from './SalePrice';
 import { formatMoney } from './types';
 import { approximateLabel, regionOf, visitorCurrency, type DisplayRates } from './localPrice';
-import type { Plan, PlanId } from './types';
+import type { Plan, PlanId, PlanSale } from './types';
 
 interface ProDialogProps {
   open: boolean;
@@ -35,6 +37,7 @@ const ProDialog: React.FC<ProDialogProps> = ({ open, onClose }) => {
   const [plans, setPlans] = React.useState<Plan[]>([]);
   const [currency, setCurrency] = React.useState('INR');
   const [rates, setRates] = React.useState<DisplayRates | null>(null);
+  const [sale, setSale] = React.useState<PlanSale | null>(null);
   const [myPlanId, setMyPlanId] = React.useState<PlanId | null>(null);
   const [loading, setLoading] = React.useState(true);
 
@@ -55,8 +58,9 @@ const ProDialog: React.FC<ProDialogProps> = ({ open, onClose }) => {
         setPlans(Array.isArray(r.data?.plans) ? r.data.plans : []);
         setCurrency(r.data?.currency ?? 'INR');
         setRates(r.data?.display ?? null);
+        setSale(r.data?.sale ?? null);
       })
-      .catch(() => { if (active) { setPlans([]); setRates(null); } })
+      .catch(() => { if (active) { setPlans([]); setRates(null); setSale(null); } })
       .finally(() => { if (active) setLoading(false); });
 
     // The profile column carries the raw plan and ignores expiry, so the plan
@@ -79,6 +83,11 @@ const ProDialog: React.FC<ProDialogProps> = ({ open, onClose }) => {
   const target = onPro ? business : pro;
   const upgrade = target ? planUpgrade(current, target) : [];
 
+  // The server has already applied any sale, so the MRP is what gets struck.
+  const monthlyStruck = target ? strikePrice(target.monthlyMrp, target.monthlyPrice) : null;
+  const monthlySale = target ? saleLabel(sale?.label, target.monthlyMrp, target.monthlyPrice) : null;
+  const annualSaving = target ? target.monthlyPrice * 12 - target.annualPrice : 0;
+
   return (
     <Dialog open={open} onClose={onClose} fullWidth maxWidth="xs" PaperProps={{ sx: { borderRadius: '18px' } }}>
       {/* No glyph. The sparkle that was here meant four different things across
@@ -100,26 +109,10 @@ const ProDialog: React.FC<ProDialogProps> = ({ open, onClose }) => {
         ) : (
           <>
             {current && (
-              <Box sx={{ mb: 2 }}>
-                <Typography variant="overline" sx={{ color: 'text.disabled', display: 'block' }}>
-                  Your plan
-                </Typography>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
-                  <Typography variant="subtitle1" sx={{ color: 'text.primary' }}>{current.name}</Typography>
-                  <Chip
-                    size="small"
-                    label={current.monthlyPrice === 0 ? 'Free' : `${formatMoney(current.monthlyPrice, currency)} a month`}
-                    sx={{ fontWeight: 700, fontSize: 11, height: 22 }}
-                  />
-                </Box>
-                <Box sx={{ display: 'grid', gap: 0.5, mt: 1 }}>
-                  {planBenefits(current).map((line) => (
-                    <Typography key={line} variant="caption" sx={{ color: 'text.secondary' }}>
-                      {line}
-                    </Typography>
-                  ))}
-                </Box>
-              </Box>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+                You are on {current.name}
+                {current.monthlyPrice === 0 ? ', which is free' : `, at ${formatMoney(current.monthlyPrice, currency)} a month`}.
+              </Typography>
             )}
 
             {/*
@@ -134,7 +127,6 @@ const ProDialog: React.FC<ProDialogProps> = ({ open, onClose }) => {
             */}
             <Box
               sx={{
-                mt: 2,
                 p: 2.25,
                 borderRadius: '14px',
                 bgcolor: 'background.default',
@@ -154,18 +146,36 @@ const ProDialog: React.FC<ProDialogProps> = ({ open, onClose }) => {
                 from the type scale, so no font is named here.
               */}
               <Typography variant="h3" component="p" sx={{ color: 'text.primary', mt: 0.5, lineHeight: 1.1 }}>
-                {formatMoney(target.monthlyPrice, currency)}
+                {monthlyStruck !== null
+                  ? <SalePrice mrp={monthlyStruck} payable={target.monthlyPrice} currency={currency} />
+                  : formatMoney(target.monthlyPrice, currency)}
               </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
-                a month, or {formatMoney(target.annualPrice, currency)} a year
-              </Typography>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>a month</Typography>
+
+              {/* A struck price needs its reason beside it, the same rule as /pricing. */}
+              {monthlySale && (
+                <Chip
+                  size="small"
+                  color="primary"
+                  variant="outlined"
+                  label={monthlySale}
+                  sx={{ mt: 1, fontWeight: 700 }}
+                />
+              )}
 
               {/* Approximate, and charged in rupees whatever it says here. */}
               {approximateLabel(target.monthlyPrice, local, rates) && (
-                <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mb: 2 }}>
+                <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mt: 0.5 }}>
                   {approximateLabel(target.monthlyPrice, local, rates)} a month, charged in {currency}
                 </Typography>
               )}
+
+              {/* The yearly price with what it saves, because "or X a year" on its
+                  own asks the reader to do the twelve times table. */}
+              <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1.5, mb: 2 }}>
+                or {formatMoney(target.annualPrice, currency)} a year
+                {annualSaving > 0 && `, ${formatMoney(annualSaving, currency)} less than paying monthly`}
+              </Typography>
 
               {upgrade.length > 0 ? (
                 <Box sx={{ display: 'grid', gap: 1.1 }}>
