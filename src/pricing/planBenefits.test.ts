@@ -114,7 +114,7 @@ describe('planUpgrade', () => {
   it('names only what actually changes', () => {
     const lines = planUpgrade(basic, pro);
     expect(lines).toContain('5 travellers can join from a public listing, up from 2');
-    expect(lines).toContain('1,200 more TripicianAI credits every month');
+    expect(lines).toContain('1,500 TripicianAI credits a month, up from 300');
     // Trip size is the same on both, so it must not be sold as an upgrade.
     expect(lines.some((l) => l.includes('people on a trip'))).toBe(false);
   });
@@ -144,7 +144,7 @@ describe('planUpgrade', () => {
 
   it('never claims a downgrade as a gain', () => {
     const lines = planUpgrade(pro, basic);
-    expect(lines.some((l) => l.includes('more TripicianAI credits'))).toBe(false);
+    expect(lines.some((l) => l.includes('TripicianAI credits'))).toBe(false);
     expect(lines.some((l) => l.includes('up from'))).toBe(false);
   });
 
