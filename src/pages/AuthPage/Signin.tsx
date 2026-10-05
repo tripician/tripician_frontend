@@ -223,8 +223,8 @@ const Signin = () => {
           </motion.p>
           <motion.ul className="auth-left__perks" variants={staggerContainer(0.08, 0)}>
             <motion.li variants={staggerItem}><Globe size={14} /> Real itineraries from travellers who took them</motion.li>
+            <motion.li variants={staggerItem}><Brain size={14} /> Questions answered by the travellers who went</motion.li>
             <motion.li variants={staggerItem}><MapPin size={14} /> Day-by-day planning with your crew</motion.li>
-            <motion.li variants={staggerItem}><Brain size={14} /> Every place checked against a live listing</motion.li>
           </motion.ul>
         </motion.div>
       </motion.div>

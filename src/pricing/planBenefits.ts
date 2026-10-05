@@ -49,8 +49,6 @@ export function planBenefits(plan: Plan): string[] {
     ? `${plan.tripicianAIMonthlyCredits.toLocaleString('en-IN')} TripicianAI credits a month, shared by the group`
     : `${plan.tripicianAIMonthlyCredits.toLocaleString('en-IN')} TripicianAI credits a month`);
 
-  if (plan.storyBookPriceTier !== 'retail') lines.push('Member price on Story Books');
-
   for (const feature of plan.features ?? []) {
     const label = FEATURE_LABELS[feature];
     if (label) lines.push(label);
@@ -111,10 +109,6 @@ export function planUpgrade(from: Plan | null, to: Plan): string[] {
   if (to.tripicianAIMonthlyCredits > from.tripicianAIMonthlyCredits) {
     const extra = to.tripicianAIMonthlyCredits - from.tripicianAIMonthlyCredits;
     lines.push(`${extra.toLocaleString('en-IN')} more TripicianAI credits every month`);
-  }
-
-  if (to.storyBookPriceTier !== 'retail' && from.storyBookPriceTier === 'retail') {
-    lines.push('Member price on every Story Book you print');
   }
 
   const had = new Set(from.features ?? []);

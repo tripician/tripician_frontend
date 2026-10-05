@@ -48,8 +48,6 @@ import AfterStoryReader from './render/AfterStoryReader';
 import StoryVideoCover from './render/StoryVideoCover';
 import ReportStoryDialog from './ReportStoryDialog';
 import BookPreviewDialog from './book/BookPreviewDialog';
-import BookCheckoutDialog from './book/BookCheckoutDialog';
-import { FEATURE_FLAGS } from '../config/featureFlags';
 import StoryQuestions from './StoryQuestions';
 import PlaceQuestions from '../posts/PlaceQuestions';
 import { afterStoryService, AfterStoryError } from './afterStoryService';
@@ -79,7 +77,6 @@ const StoryPage: React.FC = () => {
   const [copied, setCopied] = React.useState(false);
   const [reactions, setReactions] = React.useState<StoryReactionSummary | null>(null);
   const [bookOpen, setBookOpen] = React.useState(false);
-  const [checkoutOpen, setCheckoutOpen] = React.useState(false);
   const [reactionBusy, setReactionBusy] = React.useState(false);
   const [coverFailed, setCoverFailed] = React.useState(false);
 
@@ -655,29 +652,21 @@ const StoryPage: React.FC = () => {
           >
             <Box sx={{ flex: 1, minWidth: 240 }}>
               <Typography variant="h4" component="h2" sx={{ color: 'text.primary' }}>
-                This story makes a book
+                This story lays out as a book
               </Typography>
               <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1, maxWidth: '58ch' }}>
-                Laid out as an A5 hardcover, photographs at full resolution, your words set in
-                print. Look through every page before you decide you like it.
+                Every page set the way it would be printed, photographs at full resolution. Look
+                through it, then keep the PDF.
               </Typography>
             </Box>
             <Box sx={{ display: 'flex', gap: 1.25, flexWrap: 'wrap' }}>
               <Button
-                variant={FEATURE_FLAGS.bookOrdering ? 'outlined' : 'contained'}
+                variant="contained"
                 startIcon={<IconBook size={16} />}
                 onClick={() => setBookOpen(true)}
               >
                 See it as a book
               </Button>
-              {/* Ordering stays hidden until a book can actually be printed and
-                  paid for. A buy button that cannot take money is worse than
-                  none at all. */}
-              {FEATURE_FLAGS.bookOrdering && (
-                <Button variant="contained" onClick={() => setCheckoutOpen(true)}>
-                  Order a printed copy
-                </Button>
-              )}
             </Box>
           </Box>
         )}
@@ -711,11 +700,6 @@ const StoryPage: React.FC = () => {
         token={token}
       />
 
-      <BookCheckoutDialog
-        open={checkoutOpen}
-        onClose={() => setCheckoutOpen(false)}
-        story={{ id: story.id, title: story.title }}
-      />
     </Box>
   );
 };

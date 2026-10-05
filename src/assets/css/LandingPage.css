@@ -1024,6 +1024,21 @@
   letter-spacing: 0;
   color: var(--lp-ink-mute);
 }
+/* The price before a live sale, struck. Lighter and smaller than the payable
+   figure beside it, so the number somebody pays stays the loudest thing. */
+.lp-plan__was {
+  margin-right: 10px;
+  font-size: 1.5rem;
+  font-weight: 600;
+  color: var(--lp-ink-mute);
+  text-decoration: line-through;
+}
+.lp-plan__sale {
+  margin: 6px 0 0;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  color: var(--lp-primary-type);
+}
 .lp-plan__saving {
   margin: 0;
   font-size: 0.8125rem;

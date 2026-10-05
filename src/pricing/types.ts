@@ -7,8 +7,17 @@ export interface Plan {
   name: string;
   /** "user" or "organization". Business is never a personal plan. */
   scope: 'user' | 'organization';
+  /** What is payable now, with any sale already applied by the server. */
   monthlyPrice: number;
   annualPrice: number;
+  /**
+   * The price before the sale. Equal to the payable price when nothing is running.
+   *
+   * Optional because a server that predates admin pricing sends neither, and a
+   * missing MRP must read as "no sale" rather than as a free plan.
+   */
+  monthlyMrp?: number;
+  annualMrp?: number;
   /**
    * No limit. Business is configured that way on purpose.
    *
@@ -31,6 +40,8 @@ export interface Plan {
 export interface PlanList {
   currency: string;
   plans: Plan[];
+  /** A sale running on subscriptions now, or null. The server has already applied it to each price. */
+  sale?: PlanSale | null;
 }
 
 export interface StoryBookProduct {
@@ -40,6 +51,18 @@ export interface StoryBookProduct {
   business: number;
   /** False until a real printer product is configured for that size. */
   orderable: boolean;
+}
+
+/**
+ * The discount running on plans now.
+ *
+ * No percentage: a prepared discount holds two real prices, and the saving on a
+ * monthly plan is rarely the same as on an annual one, so one number here would
+ * be wrong for one of them. The UI works each out from the MRP beside it.
+ */
+export interface PlanSale {
+  label: string | null;
+  endsAt: string | null;
 }
 
 export interface PublicSale {

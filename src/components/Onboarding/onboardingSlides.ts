@@ -51,9 +51,9 @@ export const ONBOARDING_SLIDES: OnboardingSlide[] = [
   {
     slug: 'itinerary',
     image: photo('itinerary'),
-    alt: 'A traveller sitting at a table, reading a book',
+    alt: 'A traveller sitting at a table, writing up a trip',
     eyebrow: 'After the trip',
     title: 'Write it down while you still remember the small things',
-    body: 'An after story is what the trip was actually like, in your words and your photographs. Publish it and it turns up in search for the next person looking, it becomes the thing people read before they travel with you, and it lays out as a printed book you can hold.',
+    body: 'An after story is what the trip was actually like, in your words and your photographs. Publish it and it turns up in search for the next person looking, it becomes the thing people read before they travel with you, and it lays out page by page as something you keep.',
   },
 ];
