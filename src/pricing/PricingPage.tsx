@@ -23,6 +23,7 @@ import SegmentedControl from '../components/ui/SegmentedControl';
 import { loadRazorpay, openRazorpaySubscription } from '../afterstory/book/razorpay';
 import SalePrice from './SalePrice';
 import { saleLabel, strikePrice } from './planSale';
+import { approximateLabel, conversionNote, regionOf, visitorCurrency, type DisplayRates } from './localPrice';
 import { formatMoney, type Plan, type PlanId, type PlanSale } from './types';
 
 const CONTENT_MAX = 1120;
@@ -61,6 +62,7 @@ const PricingPage: React.FC = () => {
   const [billing, setBilling] = React.useState<Billing>('monthly');
   const [plans, setPlans] = React.useState<Plan[]>([]);
   const [sale, setSale] = React.useState<PlanSale | null>(null);
+  const [rates, setRates] = React.useState<DisplayRates | null>(null);
   const [myPlanId, setMyPlanId] = React.useState<PlanId | null>(null);
   const [loading, setLoading] = React.useState(true);
 
@@ -71,8 +73,9 @@ const PricingPage: React.FC = () => {
         if (cancelled) return;
         setPlans(Array.isArray(planResp.data?.plans) ? planResp.data.plans : []);
         setSale(planResp.data?.sale ?? null);
+        setRates(planResp.data?.display ?? null);
       })
-      .catch(() => { if (!cancelled) { setPlans([]); setSale(null); } })
+      .catch(() => { if (!cancelled) { setPlans([]); setSale(null); setRates(null); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
@@ -85,6 +88,12 @@ const PricingPage: React.FC = () => {
       .catch(() => { if (!cancelled) setMyPlanId(null); });
     return () => { cancelled = true; };
   }, [token]);
+
+  // Rupees unless the browser says where it is and the server sent a rate for there.
+  const local = React.useMemo(
+    () => visitorCurrency(regionOf(typeof navigator === 'undefined' ? [] : navigator.languages), rates),
+    [rates],
+  );
 
   const [subscribing, setSubscribing] = React.useState<PlanId | null>(null);
   const [subscribeError, setSubscribeError] = React.useState<string | null>(null);
@@ -182,12 +191,20 @@ const PricingPage: React.FC = () => {
               plan={plan}
               sale={sale}
               billing={billing}
+              local={local}
+              rates={rates}
               current={myPlanId === plan.planId}
               busy={subscribing === plan.planId}
               onChoose={() => void subscribe(plan)}
             />
           ))}
         </Box>
+
+        {conversionNote(local, 'INR', rates) && (
+          <Typography variant="caption" sx={{ display: 'block', mt: 2, color: 'text.secondary', maxWidth: 680 }}>
+            {conversionNote(local, 'INR', rates)}
+          </Typography>
+        )}
 
         {subscribeError && (
           <Typography variant="body2" color="error" sx={{ mt: 2 }}>{subscribeError}</Typography>
@@ -219,10 +236,12 @@ const PlanCard: React.FC<{
   plan: Plan;
   sale: PlanSale | null;
   billing: Billing;
+  local: string | null;
+  rates: DisplayRates | null;
   current: boolean;
   busy: boolean;
   onChoose: () => void;
-}> = ({ plan, sale, billing, current, busy, onChoose }) => {
+}> = ({ plan, sale, billing, local, rates, current, busy, onChoose }) => {
   const theme = useTheme();
   const free = plan.monthlyPrice === 0;
   const price = billing === 'annual' ? plan.annualPrice : plan.monthlyPrice;
@@ -265,6 +284,14 @@ const PlanCard: React.FC<{
           </Typography>
         )}
       </Box>
+
+      {/* What the price feels like to somebody who does not think in rupees. Never
+          the amount charged, which is why it says approximately and says it first. */}
+      {!free && approximateLabel(price, local, rates) && (
+        <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+          {approximateLabel(price, local, rates)} {billing === 'annual' ? 'a year' : 'a month'}
+        </Typography>
+      )}
 
       {/* A struck-through price needs a stated reason next to it, or it is just
           a bigger number printed for effect. */}
