@@ -1,8 +1,9 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { IconCheck, IconMinus } from '@tabler/icons-react';
 import { apiServices } from '../../services/APIs/apiServices';
 import { saleLabel, strikePrice } from '../../pricing/planSale';
+import { approximateLabel, conversionNote, regionOf, visitorCurrency, type DisplayRates } from '../../pricing/localPrice';
 import { formatMoney, isUnlimited } from '../../pricing/types';
 import type { Plan, PlanId, PlanSale } from '../../pricing/types';
 import { groupMemberLimit } from '../../pricing/planBenefits';
@@ -96,6 +97,7 @@ const LandingPricing: React.FC = () => {
   const [plans, setPlans] = useState<Plan[] | null>(null);
   const [sale, setSale] = useState<PlanSale | null>(null);
   const [currency, setCurrency] = useState('INR');
+  const [rates, setRates] = useState<DisplayRates | null>(null);
   const [annual, setAnnual] = useState(false);
 
   useEffect(() => {
@@ -107,12 +109,19 @@ const LandingPricing: React.FC = () => {
         setPlans(list.length > 0 ? list : null);
         setSale(r.data?.sale ?? null);
         setCurrency(r.data?.currency ?? 'INR');
+        setRates(r.data?.display ?? null);
       })
       // Silence rather than a placeholder table. A price is the one thing on
       // this page that must never be invented.
-      .catch(() => { if (active) { setPlans(null); setSale(null); } });
+      .catch(() => { if (active) { setPlans(null); setSale(null); setRates(null); } });
     return () => { active = false; };
   }, []);
+
+  // Rupees unless the browser says where it is and the server sent a rate for there.
+  const local = useMemo(
+    () => visitorCurrency(regionOf(typeof navigator === 'undefined' ? [] : navigator.languages), rates),
+    [rates],
+  );
 
   if (!plans) return null;
 
@@ -189,6 +198,14 @@ const LandingPricing: React.FC = () => {
                   )}
                 </p>
 
+                {/* What the price feels like to somebody who does not think in rupees.
+                    Never the amount charged, which is why it says approximately. */}
+                {price > 0 && approximateLabel(price, local, rates) && (
+                  <p className="lp-plan__approx">
+                    {approximateLabel(price, local, rates)} {annual ? 'a year' : 'a month'}
+                  </p>
+                )}
+
                 {/* A struck-through price needs a stated reason next to it, or it is
                     just a bigger number printed for effect. */}
                 {saleLabel(sale?.label, mrp, price) && (
@@ -216,6 +233,10 @@ const LandingPricing: React.FC = () => {
             );
           })}
         </div>
+
+        {conversionNote(local, currency, rates) && (
+          <p className="lp-plans__rate-note">{conversionNote(local, currency, rates)}</p>
+        )}
 
         <div className="lp-plans__table-wrap">
           <table className="lp-plans__table">

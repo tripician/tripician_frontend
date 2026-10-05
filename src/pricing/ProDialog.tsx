@@ -9,6 +9,7 @@ import { apiServices } from '../services/APIs/apiServices';
 import { useAuthToken } from '../hooks/useAuth0Token';
 import { planBenefits, planUpgrade } from './planBenefits';
 import { formatMoney } from './types';
+import { approximateLabel, regionOf, visitorCurrency, type DisplayRates } from './localPrice';
 import type { Plan, PlanId } from './types';
 
 interface ProDialogProps {
@@ -33,8 +34,15 @@ const ProDialog: React.FC<ProDialogProps> = ({ open, onClose }) => {
 
   const [plans, setPlans] = React.useState<Plan[]>([]);
   const [currency, setCurrency] = React.useState('INR');
+  const [rates, setRates] = React.useState<DisplayRates | null>(null);
   const [myPlanId, setMyPlanId] = React.useState<PlanId | null>(null);
   const [loading, setLoading] = React.useState(true);
+
+  // Rupees unless the browser says where it is and the server sent a rate for there.
+  const local = React.useMemo(
+    () => visitorCurrency(regionOf(typeof navigator === 'undefined' ? [] : navigator.languages), rates),
+    [rates],
+  );
 
   React.useEffect(() => {
     if (!open) return;
@@ -46,8 +54,9 @@ const ProDialog: React.FC<ProDialogProps> = ({ open, onClose }) => {
         if (!active) return;
         setPlans(Array.isArray(r.data?.plans) ? r.data.plans : []);
         setCurrency(r.data?.currency ?? 'INR');
+        setRates(r.data?.display ?? null);
       })
-      .catch(() => { if (active) setPlans([]); })
+      .catch(() => { if (active) { setPlans([]); setRates(null); } })
       .finally(() => { if (active) setLoading(false); });
 
     // The profile column carries the raw plan and ignores expiry, so the plan
@@ -147,9 +156,16 @@ const ProDialog: React.FC<ProDialogProps> = ({ open, onClose }) => {
               <Typography variant="h3" component="p" sx={{ color: 'text.primary', mt: 0.5, lineHeight: 1.1 }}>
                 {formatMoney(target.monthlyPrice, currency)}
               </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary' }}>
                 a month, or {formatMoney(target.annualPrice, currency)} a year
               </Typography>
+
+              {/* Approximate, and charged in rupees whatever it says here. */}
+              {approximateLabel(target.monthlyPrice, local, rates) && (
+                <Typography variant="caption" sx={{ display: 'block', color: 'text.secondary', mb: 2 }}>
+                  {approximateLabel(target.monthlyPrice, local, rates)} a month, charged in {currency}
+                </Typography>
+              )}
 
               {upgrade.length > 0 ? (
                 <Box sx={{ display: 'grid', gap: 1.1 }}>

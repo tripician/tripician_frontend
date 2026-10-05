@@ -1,3 +1,5 @@
+import type { DisplayRates } from './localPrice';
+
 export type PlanId = 'basic' | 'pro' | 'club' | 'business';
 
 export type StoryBookPriceTier = 'retail' | 'pro_member' | 'business_member';
@@ -42,6 +44,8 @@ export interface PlanList {
   plans: Plan[];
   /** A sale running on subscriptions now, or null. The server has already applied it to each price. */
   sale?: PlanSale | null;
+  /** Rates for showing an approximate local price. Absent when none could be read. */
+  display?: DisplayRates | null;
 }
 
 export interface StoryBookProduct {
@@ -121,7 +125,7 @@ export interface StoryBookQuote {
   currency: string;
 }
 
-/** Indian formatting, because every price in the system is quoted in rupees. */
+/** Indian formatting, because every price in the system is charged in rupees. */
 export const formatMoney = (amount: number, currency = 'INR'): string =>
   new Intl.NumberFormat('en-IN', {
     style: 'currency',
