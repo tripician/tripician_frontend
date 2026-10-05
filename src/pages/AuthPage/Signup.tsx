@@ -168,10 +168,10 @@ const Signup = () => {
             Read the trips other people actually took, then plan your own from one.
           </motion.p>
           <motion.ul className="auth-left__perks" variants={staggerContainer(0.08, 0)}>
-            <motion.li variants={staggerItem}><Globe size={14} /> Browse and copy real published itineraries</motion.li>
+            <motion.li variants={staggerItem}><Globe size={14} /> Real trips, published by the travellers who took them</motion.li>
+            <motion.li variants={staggerItem}><Brain size={14} /> Ask the traveller who wrote it, and get a real answer</motion.li>
             <motion.li variants={staggerItem}><MapPin size={14} /> Plan day by day with your crew</motion.li>
-            <motion.li variants={staggerItem}><Brain size={14} /> Every place checked against a live listing</motion.li>
-            <motion.li variants={staggerItem}><Check size={14} /> Free to join - no credit card needed</motion.li>
+            <motion.li variants={staggerItem}><Check size={14} /> Free to join, no credit card needed</motion.li>
           </motion.ul>
         </motion.div>
       </motion.div>

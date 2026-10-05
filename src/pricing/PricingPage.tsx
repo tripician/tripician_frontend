@@ -1,5 +1,5 @@
 /**
- * /pricing , three plans and the book price list.
+ * /pricing , the plans, and what each one costs.
  *
  * The rule this page is built around: nobody should have to do arithmetic to
  * find out what Tripician costs. Page bands, margins, taxes and discounts are
@@ -11,10 +11,7 @@
  */
 
 import React from 'react';
-import {
-  Box, Button, Chip, CircularProgress, Table, TableBody, TableCell,
-  TableContainer, TableHead, TableRow, Typography, useTheme,
-} from '@mui/material';
+import { Box, Button, Chip, CircularProgress, Typography, useTheme } from '@mui/material';
 import { IconCheck } from '@tabler/icons-react';
 import { Link as RouterLink, useNavigate } from 'react-router-dom';
 import { planBenefits } from './planBenefits';
@@ -24,10 +21,9 @@ import Seo from '../components/Seo';
 import PageHeader from '../components/ui/PageHeader';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import { loadRazorpay, openRazorpaySubscription } from '../afterstory/book/razorpay';
-import {
-  formatMoney,
-  type Plan, type PlanId, type PublicSale, type StoryBookProduct,
-} from './types';
+import SalePrice from './SalePrice';
+import { saleLabel, strikePrice } from './planSale';
+import { formatMoney, type Plan, type PlanId, type PlanSale } from './types';
 
 const CONTENT_MAX = 1120;
 
@@ -59,27 +55,24 @@ function refusalMessage(source: unknown): string | undefined {
 }
 
 const PricingPage: React.FC = () => {
-  const theme = useTheme();
   const navigate = useNavigate();
   const { token } = useAuthToken();
 
   const [billing, setBilling] = React.useState<Billing>('monthly');
   const [plans, setPlans] = React.useState<Plan[]>([]);
-  const [books, setBooks] = React.useState<StoryBookProduct[]>([]);
-  const [sale, setSale] = React.useState<PublicSale | null>(null);
+  const [sale, setSale] = React.useState<PlanSale | null>(null);
   const [myPlanId, setMyPlanId] = React.useState<PlanId | null>(null);
   const [loading, setLoading] = React.useState(true);
 
   React.useEffect(() => {
     let cancelled = false;
-    Promise.all([apiServices.getPlans(), apiServices.getStoryBookPrices()])
-      .then(([planResp, bookResp]) => {
+    apiServices.getPlans()
+      .then((planResp) => {
         if (cancelled) return;
         setPlans(Array.isArray(planResp.data?.plans) ? planResp.data.plans : []);
-        setBooks(Array.isArray(bookResp.data?.products) ? bookResp.data.products : []);
-        setSale(bookResp.data?.sale ?? null);
+        setSale(planResp.data?.sale ?? null);
       })
-      .catch(() => { if (!cancelled) { setPlans([]); setBooks([]); setSale(null); } })
+      .catch(() => { if (!cancelled) { setPlans([]); setSale(null); } })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
   }, []);
@@ -158,7 +151,7 @@ const PricingPage: React.FC = () => {
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <Seo
         title="Pricing"
-        description="Tripician is free to plan with and free to write on. Pro and Business add more room, more TripicianAI and better Story Book prices."
+        description="Tripician is free to plan with and free to write on. Pro and Business add more room to plan, and more TripicianAI."
         path="/pricing"
       />
 
@@ -187,6 +180,7 @@ const PricingPage: React.FC = () => {
             <PlanCard
               key={plan.planId}
               plan={plan}
+              sale={sale}
               billing={billing}
               current={myPlanId === plan.planId}
               busy={subscribing === plan.planId}
@@ -215,104 +209,27 @@ const PricingPage: React.FC = () => {
           </Box>
         </Typography>
 
-        {books.length > 0 && (
-          <Box sx={{ mt: 8 }}>
-            <Typography variant="h2" sx={{ color: 'text.primary' }}>Story Books</Typography>
-            <Typography variant="body1" sx={{ color: 'text.secondary', mt: 1, maxWidth: 680 }}>
-              A printed book of your trip, made after you have travelled. Bought one at a time,
-              not part of any plan. Pro and Business pay a member price for the same book.
-            </Typography>
-
-            {/* A struck-through price needs a stated reason next to it, or it is
-                just a bigger number printed for effect. */}
-            {sale && sale.percent > 0 && (
-              <Chip
-                color="primary"
-                label={`${sale.label ?? 'Sale'}: ${sale.percent}% off${
-                  sale.endsAt ? ` until ${new Date(sale.endsAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}` : ''
-                }`}
-                sx={{ mt: 2 }}
-              />
-            )}
-
-            <TableContainer
-              sx={{
-                mt: 3,
-                overflowX: 'auto',
-                borderRadius: '16px',
-                border: `1px solid ${theme.custom.surface.border}`,
-                bgcolor: 'background.paper',
-              }}
-            >
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Pages</TableCell>
-                    <TableCell align="right">Basic</TableCell>
-                    <TableCell align="right">Pro</TableCell>
-                    <TableCell align="right">Business</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {books.map((product) => (
-                    <TableRow key={product.pageCount}>
-                      <TableCell>{product.pageCount}</TableCell>
-                      <TableCell align="right"><SalePrice price={product.retail} sale={sale} /></TableCell>
-                      <TableCell align="right" sx={{ color: 'primary.main', fontWeight: 600 }}>
-                        <SalePrice price={product.pro} sale={sale} />
-                      </TableCell>
-                      <TableCell align="right" sx={{ color: 'primary.main', fontWeight: 600 }}>
-                        <SalePrice price={product.business} sale={sale} />
-                      </TableCell>
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-
-            <Typography variant="caption" sx={{ display: 'block', color: 'text.disabled', mt: 1.5 }}>
-              Shipping and taxes are shown separately at checkout. A story prints at the next size
-              up from its own length, and the checkout tells you which one before you pay.
-            </Typography>
-          </Box>
-        )}
       </Box>
     </Box>
   );
 };
 
 
-/**
- * The old price struck through, the new one beside it.
- *
- * Only when a sale is actually running. A permanent strike-through against a
- * price nobody ever paid is the oldest trick in retail and the fastest way to
- * stop being believed.
- */
-const SalePrice: React.FC<{ price: number; sale: PublicSale | null }> = ({ price, sale }) => {
-  if (!sale || sale.percent <= 0) return <>{formatMoney(price)}</>;
-
-  const discounted = Math.round(price * (100 - sale.percent)) / 100;
-
-  return (
-    <Box component="span" sx={{ display: 'inline-flex', gap: 0.75, alignItems: 'baseline' }}>
-      <Box component="span" sx={{ textDecoration: 'line-through', color: 'text.disabled', fontWeight: 400 }}>
-        {formatMoney(price)}
-      </Box>
-      <Box component="span">{formatMoney(discounted)}</Box>
-    </Box>
-  );
-};
 const PlanCard: React.FC<{
   plan: Plan;
+  sale: PlanSale | null;
   billing: Billing;
   current: boolean;
   busy: boolean;
   onChoose: () => void;
-}> = ({ plan, billing, current, busy, onChoose }) => {
+}> = ({ plan, sale, billing, current, busy, onChoose }) => {
   const theme = useTheme();
   const free = plan.monthlyPrice === 0;
   const price = billing === 'annual' ? plan.annualPrice : plan.monthlyPrice;
+  // The server already applied the sale, so the MRP is what the strike-through needs.
+  // A plan the sale does not move shows one number, however loudly the sale is running.
+  const mrp = billing === 'annual' ? plan.annualMrp : plan.monthlyMrp;
+  const struck = strikePrice(mrp, price);
 
   // Only claimed when it is arithmetically true, and shown as the real figure
   // rather than a rounded percentage.
@@ -338,9 +255,9 @@ const PlanCard: React.FC<{
         {current && <Chip size="small" color="primary" label="Your plan" />}
       </Box>
 
-      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, mt: 1.5 }}>
+      <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, mt: 1.5, flexWrap: 'wrap' }}>
         <Typography variant="h2" sx={{ color: 'text.primary' }}>
-          {free ? 'Free' : formatMoney(price)}
+          {free ? 'Free' : struck !== null ? <SalePrice mrp={struck} payable={price} /> : formatMoney(price)}
         </Typography>
         {!free && (
           <Typography variant="body2" sx={{ color: 'text.secondary' }}>
@@ -348,6 +265,12 @@ const PlanCard: React.FC<{
           </Typography>
         )}
       </Box>
+
+      {/* A struck-through price needs a stated reason next to it, or it is just
+          a bigger number printed for effect. */}
+      {saleLabel(sale?.label, mrp, price) && (
+        <Chip size="small" color="primary" variant="outlined" label={saleLabel(sale?.label, mrp, price)} sx={{ mt: 1, alignSelf: 'flex-start', fontWeight: 700 }} />
+      )}
 
       {!free && billing === 'annual' && annualSaving > 0 && (
         <Typography variant="caption" sx={{ color: 'primary.main', mt: 0.5 }}>

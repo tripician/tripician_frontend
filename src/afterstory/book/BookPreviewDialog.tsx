@@ -150,10 +150,10 @@ const BookPreviewDialog: React.FC<BookPreviewDialogProps> = ({ open, onClose, st
       >
         <Box sx={{ minWidth: 0 }}>
           <Typography variant="h6" component="h2" noWrap sx={{ color: 'text.primary' }}>
-            {story?.title || 'Your book'}
+            {story?.title || 'Your story'}
           </Typography>
           <Typography variant="caption" sx={{ color: 'text.secondary' }}>
-            {total > 0 ? `Page ${index + 1} of ${total}  ·  A5 hardcover` : 'A5 hardcover'}
+            {total > 0 ? `Page ${index + 1} of ${total}` : 'Every page, as it is set'}
           </Typography>
         </Box>
         <Box sx={{ flex: 1 }} />
@@ -179,8 +179,7 @@ const BookPreviewDialog: React.FC<BookPreviewDialogProps> = ({ open, onClose, st
               Setting the pages
             </Typography>
             <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1 }}>
-              We print the real book and photograph every page, so this takes a moment.
-              What you see is what arrives.
+              Every page is laid out and photographed, so this takes a moment.
             </Typography>
           </Box>
         )}
@@ -309,11 +308,8 @@ const BookPreviewDialog: React.FC<BookPreviewDialogProps> = ({ open, onClose, st
           borderTop: `1px solid ${theme.custom.surface.border}`,
         }}
       >
-        {/* Said plainly, and said here rather than after a click. Ordering is
-            genuinely not built, and a "Buy" button that opened a waitlist would
-            be the kind of thing this product has decided not to do. */}
         <Typography variant="body2" sx={{ color: 'text.secondary', flex: 1, minWidth: 200 }}>
-          Printed copies are not on sale yet. The PDF is the finished book, at print resolution.
+          The PDF is the finished thing, at print resolution. Keep it, or print it yourself.
         </Typography>
         <Button
           variant="contained"
