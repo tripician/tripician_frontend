@@ -553,6 +553,7 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
             display: 'flex',
             alignItems: 'center',
             gap: 1,
+            position: 'relative',
             gridColumn: 1,
             justifySelf: 'start',
             flexShrink: 0,

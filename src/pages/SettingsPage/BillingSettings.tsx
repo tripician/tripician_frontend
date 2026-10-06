@@ -11,6 +11,7 @@ import {
   formatDay,
   formatRupees,
   groupStatusLabel,
+  missingHistoryNote,
   periodText,
   planStatusSentence,
   statusLabel,
@@ -263,7 +264,12 @@ const BillingSettings: React.FC = () => {
           )}
 
           {items.length === 0 ? (
-            <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem', py: 1.5 }}>No payments on record yet.</Typography>
+            <>
+              <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem', py: 1.5 }}>No payments on record yet.</Typography>
+              {missingHistoryNote(summary, items.length) && (
+                <Typography sx={{ ...introSx, mt: 0.5 }}>{missingHistoryNote(summary, items.length)}</Typography>
+              )}
+            </>
           ) : (
             <Box component="ul" sx={{ m: 0, p: 0 }}>
               {items.map((item) => (

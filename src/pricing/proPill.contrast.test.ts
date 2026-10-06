@@ -22,7 +22,7 @@
  */
 
 import { describe, it, expect } from 'vitest';
-import { createAppTheme } from '../theme';
+import { BRAND, createAppTheme } from '../theme';
 
 function channels(colour: string): [number, number, number] {
   const rgba = colour.match(/rgba?\(\s*([\d.]+)[,\s]+([\d.]+)[,\s]+([\d.]+)/i);
@@ -77,6 +77,13 @@ describe.each(['light', 'dark'] as const)('Pro pill in %s', (mode) => {
     expect(ratio(ink, palette.background.paper)).toBeGreaterThanOrEqual(4.5);
   });
 
+  /*
+   * The corner badge is a solid deep coral with white type. The light coral end of the brand
+   * gradient would fail AA for small text, so the badge uses the deep end.
+   */
+  it('the corner badge label clears AA on its solid fill', () => {
+    expect(ratio(palette.common.white, BRAND.coralDeep)).toBeGreaterThanOrEqual(4.5);
+  });
   /*
    * The tone the pill must NOT use. `primary.main` is a fill, and at label sizes
    * it does not clear AA on a light surface - which is why custom.brand.onLight

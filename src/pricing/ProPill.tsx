@@ -105,6 +105,47 @@ const ProPill: React.FC<ProPillProps> = ({ onClick }) => {
     ? theme.custom.brand.onLight
     : theme.custom.brand.onDark;
 
+  // A badge on the logo's corner, so it reads as a mark of status rather than a control, and it scales for the phone.
+  if (onPro) {
+    return (
+      <Tooltip title="Your plan, and what Business adds" arrow>
+        <Box
+          component="button"
+          type="button"
+          onClick={onClick}
+          aria-label="Your Tripician Pro plan"
+          sx={{
+            position: 'absolute',
+            top: { xs: -5, md: -7 },
+            left: '100%',
+            transform: 'translateX(-40%)',
+            zIndex: 1,
+            height: { xs: 14, md: 17 },
+            px: { xs: 0.75, md: 1 },
+            border: 0,
+            borderRadius: '999px',
+            bgcolor: BRAND.coralDeep,
+            color: theme.palette.common.white,
+            boxShadow: `inset 0 0 0 1px ${alpha(theme.palette.common.white, 0.35)}`,
+            fontFamily: 'inherit',
+            fontSize: { xs: 8, md: 9 },
+            fontWeight: 800,
+            letterSpacing: '0.18em',
+            lineHeight: { xs: '14px', md: '17px' },
+            textTransform: 'uppercase',
+            whiteSpace: 'nowrap',
+            cursor: 'pointer',
+            transition: `box-shadow ${theme.custom.motion.duration.fast} ${theme.custom.motion.easing.standard}`,
+            '&:hover': { boxShadow: theme.custom.shadows.ringBrand },
+            '&:focus-visible': { outline: `2px solid ${theme.custom.ring}`, outlineOffset: 2 },
+          }}
+        >
+          Pro
+        </Box>
+      </Tooltip>
+    );
+  }
+
   return (
     <Tooltip title={onPro ? 'Your plan, and what Business adds' : 'What Tripician Pro adds'} arrow>
       <Box
