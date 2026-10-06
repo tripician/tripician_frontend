@@ -170,8 +170,7 @@ const ProDialog: React.FC<ProDialogProps> = ({ open, onClose }) => {
                 </Typography>
               )}
 
-              {/* The yearly price with what it saves, because "or X a year" on its
-                  own asks the reader to do the twelve times table. */}
+              {/* The yearly price with what it saves, so nobody has to do the twelve times table. */}
               <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1.5, mb: 2 }}>
                 or {formatMoney(target.annualPrice, currency)} a year
                 {annualSaving > 0 && `, ${formatMoney(annualSaving, currency)} less than paying monthly`}

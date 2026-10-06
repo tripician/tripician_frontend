@@ -1033,8 +1033,7 @@
   color: var(--lp-ink-mute);
   text-decoration: line-through;
 }
-/* The same price in the reader own currency, approximate and quiet: the rupee
-   figure above it is the one that gets charged. */
+/* The same price in the reader own currency, quiet because the rupee figure above is the one charged. */
 .lp-plan__approx {
   margin: 4px 0 0;
   font-size: 0.8125rem;

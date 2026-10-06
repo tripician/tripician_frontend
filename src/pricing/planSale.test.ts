@@ -57,8 +57,7 @@ describe('saleLabel', () => {
     expect(saleLabel('Launch offer', 199, 0)).toBeNull();
   });
 
-  // A discount may cover one period and not the other: the server then sends the
-  // MRP as the payable price for the period it left alone.
+  // A discount may cover one period only; the server sends the MRP as the price for the other.
   it('marks only the period a yearly offer actually cuts', () => {
     expect(saleLabel('Pro 50% Yearly', 149, 149)).toBeNull();
     expect(strikePrice(149, 149)).toBeNull();

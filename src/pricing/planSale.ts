@@ -1,13 +1,4 @@
-/**
- * Whether a plan's price is actually struck through, and at what.
- *
- * The server sends both numbers: what is payable now, and the MRP it was before
- * the sale. This decides whether showing both is honest, and it refuses in every
- * case where it would not be. A permanent strike-through against a price nobody
- * ever paid is the oldest trick in retail and the fastest way to stop being
- * believed, so the rule lives here where it can be tested rather than inside a
- * component that cannot be.
- */
+/** The MRP to strike through, or null whenever showing a struck price would not be honest. */
 export function strikePrice(mrp: number | null | undefined, payable: number): number | null {
   // An older server sends no MRP at all. One number is the right answer then.
   if (typeof mrp !== 'number' || !Number.isFinite(mrp)) return null;
@@ -18,18 +9,7 @@ export function strikePrice(mrp: number | null | undefined, payable: number): nu
   return mrp;
 }
 
-/**
- * How a running sale names itself beside a struck-through price.
- *
- * The percentage is worked out here, per period, rather than sent by the server.
- * A discount is a prepared pair of Razorpay plans holding two real prices, and
- * the saving on a monthly plan is rarely the same as the saving on an annual
- * one, so a single percentage would be wrong for one of them.
- *
- * A name is used only when it reads like a reason: a label that is just digits
- * renders next to a price as a stray number, which is exactly what "99" looked
- * like under Tripician Pro.
- */
+/** How a running sale names itself, with the saving worked out per period and a digits-only name dropped. */
 export function saleLabel(
   label: string | null | undefined,
   mrp: number | null | undefined,

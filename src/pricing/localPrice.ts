@@ -1,13 +1,4 @@
-/**
- * An approximate price in the visitor's own currency.
- *
- * Every subscription is charged in rupees by a Razorpay plan, so nothing here
- * decides what anybody pays. It exists because a rupee figure tells a reader in
- * Berlin or Chicago nothing at all, and a number they can feel is worth showing
- * as long as it never pretends to be the charge. Hence the rules below: the rate
- * comes from the server with the date it was published, an unknown region gets
- * rupees rather than a guess, and the word "approximately" is not optional.
- */
+/** An approximate price in the visitor's own currency. Display only: every charge is in rupees. */
 
 /** Rates the server published, keyed by currency code, per one rupee. */
 export interface DisplayRates {
@@ -15,8 +6,7 @@ export interface DisplayRates {
   rates: Record<string, number>;
 }
 
-// Euro members, plus the rest of the EU and EEA where the euro is the closest
-// familiar yardstick. A second conversion is still a better guide than rupees.
+// The euro for its members and for the rest of the EU and EEA, where it is the closest familiar yardstick.
 const EURO_REGIONS = new Set([
   'AT', 'BE', 'HR', 'CY', 'EE', 'FI', 'FR', 'DE', 'GR', 'IE', 'IT', 'LV', 'LT',
   'LU', 'MT', 'NL', 'PT', 'SK', 'SI', 'ES',
@@ -42,12 +32,7 @@ export function regionOf(locales: readonly string[] | undefined): string | null 
   return null;
 }
 
-/**
- * The currency to show beside the rupee price, or null to show rupees alone.
- *
- * Null is the right answer far more often than it looks: India, anywhere we hold
- * no rate for, and any visitor whose browser does not say where they are.
- */
+/** The currency to show beside the rupee price, or null to show rupees alone. */
 export function visitorCurrency(
   region: string | null,
   rates: DisplayRates | null | undefined,
@@ -61,11 +46,7 @@ export function visitorCurrency(
   return typeof rate === 'number' && rate > 0 ? wanted : null;
 }
 
-/**
- * The converted figure, rounded to how people read money rather than to the
- * precision of the rate. Small amounts keep their cents, large ones do not: a
- * price of about 180 dollars does not become truer by claiming 179.94 of them.
- */
+/** The converted figure, keeping cents only while the number is small enough to need them. */
 export function approximate(
   amount: number,
   currency: string,

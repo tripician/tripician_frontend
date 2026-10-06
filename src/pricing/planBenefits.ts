@@ -107,8 +107,7 @@ export function planUpgrade(from: Plan | null, to: Plan): string[] {
   }
 
   if (to.tripicianAIMonthlyCredits > from.tripicianAIMonthlyCredits) {
-    // Where you land, and what you leave: the same shape as the trip size line
-    // above it, and easier to judge than a difference on its own.
+    // Where you land and what you leave, the same shape as the trip size line above.
     lines.push(
       `${to.tripicianAIMonthlyCredits.toLocaleString('en-IN')} TripicianAI credits a month, `
       + `up from ${from.tripicianAIMonthlyCredits.toLocaleString('en-IN')}`,

@@ -228,6 +228,7 @@ export interface CreditPurchaseIntent {
   credits: number;
   customerName: string | null;
   customerEmail: string | null;
+  customerPhone: string | null;
 }
 
 /** Somebody the caller blocked. */
