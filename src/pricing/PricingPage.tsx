@@ -24,6 +24,7 @@ import { loadRazorpay, openRazorpaySubscription } from '../afterstory/book/razor
 import SalePrice from './SalePrice';
 import { saleLabel, strikePrice } from './planSale';
 import { CARD_SAVING_NOTE } from './billingCopy';
+import { waitForPlan } from './planActivation';
 import { approximateLabel, conversionNote, regionOf, visitorCurrency, type DisplayRates } from './localPrice';
 import { formatMoney, type Plan, type PlanId, type PlanSale } from './types';
 
@@ -97,8 +98,30 @@ const PricingPage: React.FC = () => {
   );
 
   const [subscribing, setSubscribing] = React.useState<PlanId | null>(null);
-  const [subscribeError, setSubscribeError] = React.useState<string | null>(null);
-  const [subscribeNotice, setSubscribeNotice] = React.useState<string | null>(null);
+  // One message at a time: a declined card and a later success must never sit side by side.
+  const [outcome, setOutcome] = React.useState<{ tone: 'error' | 'info'; text: string } | null>(null);
+  const fail = (text: string) => setOutcome({ tone: 'error', text });
+
+  // A payment is confirmed after the sheet closes, so nothing may navigate once the buyer has left this page.
+  const onPage = React.useRef(true);
+  React.useEffect(() => {
+    onPage.current = true;
+    return () => { onPage.current = false; };
+  }, []);
+
+  // Waits for the plan to really turn on, then takes the buyer home with one clear line.
+  const settle = async (plan: Plan, bearer: string) => {
+    setSubscribing(plan.planId);
+    setOutcome({ tone: 'info', text: 'Payment received. Turning on your plan.' });
+
+    const active = await waitForPlan({
+      read: async () => (await apiServices.getMyPlan(bearer)).data?.planId,
+      wanted: plan.planId,
+    });
+
+    if (!onPage.current) return;
+    navigate('/', { state: { planWelcome: { planName: plan.name, active } } });
+  };
 
   // Club and Business belong to a group, so they are chosen from that group's settings: this page cannot know which group.
   const subscribe = async (plan: Plan) => {
@@ -107,13 +130,12 @@ const PricingPage: React.FC = () => {
     if (plan.scope === 'organization') { navigate('/groups'); return; }
 
     setSubscribing(plan.planId);
-    setSubscribeError(null);
-    setSubscribeNotice(null);
+    setOutcome(null);
 
     try {
       const scriptReady = await loadRazorpay();
       if (!scriptReady) {
-        setSubscribeError('The payment window could not load. Check your connection and try again.');
+        fail('The payment window could not load. Check your connection and try again.');
         return;
       }
 
@@ -124,27 +146,26 @@ const PricingPage: React.FC = () => {
 
       // For a 2xx that still says no. The server refuses with a 400 today, but a refusal is a refusal whichever status carries it.
       if (!intent.data?.ok) {
-        setSubscribeError(refusalMessage(intent) ?? 'That plan could not be opened for payment.');
+        fail(refusalMessage(intent) ?? 'That plan could not be opened for payment.');
         return;
       }
 
+      // Once a payment has gone through, nothing the sheet says afterwards may overwrite that.
+      let paid = false;
       openRazorpaySubscription({
         keyId: intent.data.keyId,
         subscriptionId: intent.data.subscriptionId,
         description: intent.data.description ?? plan.name,
         payer: { name: intent.data.customerName, email: intent.data.customerEmail, phone: intent.data.customerPhone },
-        // Nothing is granted here. The plan turns on when Razorpay confirms the
-        // first payment over the webhook, so this says what is true so far.
-        onPaid: () => setSubscribeNotice('Thank you. Your plan turns on as soon as the payment settles.'),
-        onDismissed: () => setSubscribeNotice('No payment was taken.'),
-        onFailed: (message) => setSubscribeError(message),
+        // Nothing is granted here: the webhook turns the plan on, so the page waits for that before saying so.
+        onPaid: () => { paid = true; void settle(plan, token); },
+        // A failed attempt has already said why, which is worth more than this line.
+        onDismissed: () => { if (!paid) setOutcome((current) => (current?.tone === 'error' ? current : { tone: 'info', text: 'No payment was taken.' })); },
+        onFailed: (message) => { if (!paid) fail(message); },
       });
     } catch (err) {
       // Refusals are 400s, so they land here. Saying "try again" threw away the reason the server wrote.
-      setSubscribeError(
-        refusalMessage(err)
-        ?? 'We could not start that subscription. Please try again.',
-      );
+      fail(refusalMessage(err) ?? 'We could not start that subscription. Please try again.');
     } finally {
       setSubscribing(null);
     }
@@ -208,11 +229,14 @@ const PricingPage: React.FC = () => {
           </Typography>
         )}
 
-        {subscribeError && (
-          <Typography variant="body2" color="error" sx={{ mt: 2 }}>{subscribeError}</Typography>
-        )}
-        {subscribeNotice && (
-          <Typography variant="body2" sx={{ mt: 2, color: 'text.secondary' }}>{subscribeNotice}</Typography>
+        {outcome && (
+          <Typography
+            variant="body2"
+            role={outcome.tone === 'error' ? 'alert' : 'status'}
+            sx={{ mt: 2, color: outcome.tone === 'error' ? 'error.main' : 'text.secondary' }}
+          >
+            {outcome.text}
+          </Typography>
         )}
 
         <Typography variant="body2" sx={{ mt: 3, color: 'text.secondary', maxWidth: 680 }}>

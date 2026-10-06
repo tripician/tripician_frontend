@@ -8,6 +8,7 @@ import NotificationsSettings from './NotificationsSettings';
 import PrivacySettings from './PrivacySettings';
 import PreferencesSettings from './PreferencesSettings';
 import CreditsSettings from './CreditsSettings';
+import BillingSettings from './BillingSettings';
 import { staggerContainer, staggerItem, tabContent } from '../../utils/animations';
 
 // Deep-linkable tabs, e.g. /settings?tab=credits from the credit usage balloon.
@@ -17,6 +18,7 @@ const TAB_FROM_PARAM: Record<string, string> = {
   privacy: 'Privacy',
   preferences: 'Preferences',
   credits: 'Credits',
+  billing: 'Billing',
 };
 
 const Settings: React.FC = () => {
@@ -81,6 +83,7 @@ const Settings: React.FC = () => {
               {selectedSettingsMenuItem === 'Privacy'       && <PrivacySettings />}
               {selectedSettingsMenuItem === 'Preferences'   && <PreferencesSettings />}
               {selectedSettingsMenuItem === 'Credits'       && <CreditsSettings />}
+              {selectedSettingsMenuItem === 'Billing'       && <BillingSettings />}
             </motion.div>
           </AnimatePresence>
         </Box>
