@@ -1,5 +1,9 @@
 import { BRAND } from '../../theme';
+import { checkoutIdentity, checkoutLogo, type Payer } from './checkoutIdentity';
 import type { PaymentIntent, RazorpayResult } from './types';
+
+// Without an image Razorpay prints the first letter of the name in a tile, which is the "T" people took for a made-up logo.
+const LOGO = checkoutLogo(import.meta.env.VITE_TRIPICIAN_LOGO_ICON_URL as string | undefined);
 
 /**
  * Razorpay's checkout script, loaded when somebody actually wants to pay.
@@ -78,12 +82,9 @@ export const openRazorpayCheckout = ({
     currency: intent.currency,
     order_id: intent.razorpayOrderId,
     name: 'Tripician',
+    image: LOGO,
     description,
-    prefill: {
-      name: intent.customerName ?? undefined,
-      email: intent.customerEmail ?? undefined,
-      contact: intent.customerPhone ?? undefined,
-    },
+    ...checkoutIdentity({ name: intent.customerName, email: intent.customerEmail, phone: intent.customerPhone }),
     // The payment sheet is Razorpay's, but it should still look like Tripician.
     theme: { color: BRAND.coral },
     handler: (response: unknown) => onPaid(response as RazorpayResult),
@@ -102,6 +103,8 @@ interface SubscriptionOptions {
   keyId: string;
   subscriptionId: string;
   description: string;
+  /** The signed-in buyer. Without it the sheet shows whoever Razorpay remembers on this device. */
+  payer: Payer;
   onPaid: () => void;
   onDismissed: () => void;
   onFailed: (message: string) => void;
@@ -117,7 +120,7 @@ interface SubscriptionOptions {
  * "the sheet closed happily".
  */
 export const openRazorpaySubscription = ({
-  keyId, subscriptionId, description, onPaid, onDismissed, onFailed,
+  keyId, subscriptionId, description, payer, onPaid, onDismissed, onFailed,
 }: SubscriptionOptions): void => {
   const Razorpay = (window as unknown as { Razorpay?: new (options: unknown) => {
     open: () => void;
@@ -133,7 +136,9 @@ export const openRazorpaySubscription = ({
     key: keyId,
     subscription_id: subscriptionId,
     name: 'Tripician',
+    image: LOGO,
     description,
+    ...checkoutIdentity(payer),
     theme: { color: BRAND.coral },
     handler: () => onPaid(),
     modal: { ondismiss: () => onDismissed() },
