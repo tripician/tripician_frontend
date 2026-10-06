@@ -163,4 +163,8 @@ export interface SubscriptionIntent {
   /** A code takes its percentage off the first charge only; renewals are full price. */
   firstChargeDiscountPercent: number | null;
   promoCode: string | null;
+  /** The signed-in buyer's own details, so the payment sheet opens as them. */
+  customerName: string | null;
+  customerEmail: string | null;
+  customerPhone: string | null;
 }

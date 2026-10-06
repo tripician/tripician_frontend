@@ -8,6 +8,7 @@ import SegmentedControl from '../components/ui/SegmentedControl';
 import SectionHeader from '../components/ui/SectionHeader';
 import { loadRazorpay, openRazorpaySubscription } from '../afterstory/book/razorpay';
 import { planUpgrade } from '../pricing/planBenefits';
+import { CARD_SAVING_NOTE } from '../pricing/billingCopy';
 import { formatMoney, type Plan, type SubscriptionState } from '../pricing/types';
 import { serverMessage } from '../utils/apiError';
 import { groupIsFull } from './groupLogic';
@@ -80,6 +81,7 @@ const GroupPlanPanel: React.FC<{ organization: Organization }> = ({ organization
         keyId: intent.data.keyId,
         subscriptionId: intent.data.subscriptionId,
         description: intent.data.description ?? `${offer.name} for ${organization.name}`,
+        payer: { name: intent.data.customerName, email: intent.data.customerEmail, phone: intent.data.customerPhone },
         // Nothing turns on here: the plan starts when Razorpay confirms the first payment to the server.
         onPaid: () => setNotice(`Thank you. ${organization.name} moves to ${offer.name} as soon as the payment settles.`),
         onDismissed: () => setNotice('No payment was taken.'),
@@ -202,6 +204,9 @@ const GroupPlanPanel: React.FC<{ organization: Organization }> = ({ organization
           </Button>
           <Typography variant="caption" component="p" sx={{ color: 'text.secondary', mt: 1 }}>
             Billed to you, for this group. Cancel any time; the group keeps the plan until the paid period ends.
+          </Typography>
+          <Typography variant="caption" component="p" sx={{ color: 'text.secondary', mt: 0.5 }}>
+            {CARD_SAVING_NOTE}
           </Typography>
         </Box>
       )}

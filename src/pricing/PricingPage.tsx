@@ -23,6 +23,7 @@ import SegmentedControl from '../components/ui/SegmentedControl';
 import { loadRazorpay, openRazorpaySubscription } from '../afterstory/book/razorpay';
 import SalePrice from './SalePrice';
 import { saleLabel, strikePrice } from './planSale';
+import { CARD_SAVING_NOTE } from './billingCopy';
 import { approximateLabel, conversionNote, regionOf, visitorCurrency, type DisplayRates } from './localPrice';
 import { formatMoney, type Plan, type PlanId, type PlanSale } from './types';
 
@@ -131,6 +132,7 @@ const PricingPage: React.FC = () => {
         keyId: intent.data.keyId,
         subscriptionId: intent.data.subscriptionId,
         description: intent.data.description ?? plan.name,
+        payer: { name: intent.data.customerName, email: intent.data.customerEmail, phone: intent.data.customerPhone },
         // Nothing is granted here. The plan turns on when Razorpay confirms the
         // first payment over the webhook, so this says what is true so far.
         onPaid: () => setSubscribeNotice('Thank you. Your plan turns on as soon as the payment settles.'),
@@ -226,6 +228,11 @@ const PricingPage: React.FC = () => {
           </Box>
         </Typography>
 
+        {/* Said before the sheet opens, so a forced save-card tick does not read as something Tripician chose. */}
+        <Typography variant="body2" sx={{ mt: 1.5, color: 'text.secondary', maxWidth: 680 }}>
+          {CARD_SAVING_NOTE}
+        </Typography>
+
       </Box>
     </Box>
   );
@@ -285,8 +292,7 @@ const PlanCard: React.FC<{
         )}
       </Box>
 
-      {/* What the price feels like to somebody who does not think in rupees. Never
-          the amount charged, which is why it says approximately and says it first. */}
+      {/* What the price feels like outside India. Never the amount charged, so it says approximately. */}
       {!free && approximateLabel(price, local, rates) && (
         <Typography variant="caption" sx={{ color: 'text.secondary' }}>
           {approximateLabel(price, local, rates)} {billing === 'annual' ? 'a year' : 'a month'}

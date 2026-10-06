@@ -198,8 +198,7 @@ const LandingPricing: React.FC = () => {
                   )}
                 </p>
 
-                {/* What the price feels like to somebody who does not think in rupees.
-                    Never the amount charged, which is why it says approximately. */}
+                {/* What the price feels like outside India. Never the amount charged, so it says approximately. */}
                 {price > 0 && approximateLabel(price, local, rates) && (
                   <p className="lp-plan__approx">
                     {approximateLabel(price, local, rates)} {annual ? 'a year' : 'a month'}

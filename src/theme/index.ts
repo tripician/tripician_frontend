@@ -395,13 +395,7 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
         styleOverrides: {
           html: { scrollBehavior: 'smooth' },
           body: {
-            // Playfair sets old style figures by default, so every number in a
-            // heading sat at a different height and prices read as handwriting.
-            // Lining figures line up on the baseline at cap height, which is what
-            // a price, a credit balance or a year is supposed to look like. It is
-            // set here so it inherits everywhere, including the landing page CSS
-            // and anything that reaches for the display font directly. The font
-            // carries no tnum, so tabular-nums is not worth asking for.
+            // Playfair defaults to old style figures; lining ones sit on the baseline, and set here they inherit everywhere.
             fontVariantNumeric: 'lining-nums',
             '&::-webkit-scrollbar': { width: 10, height: 10 },
             '&::-webkit-scrollbar-thumb': {
