@@ -91,6 +91,12 @@ export function fileDay(iso: string): string {
   }).format(new Date(iso));
 }
 
+/** Shown only when nothing is listed on a paid plan, so a missing charge is never hidden. */
+export function missingHistoryNote(summary: BillingSummary, itemCount: number): string | null {
+  if (itemCount > 0 || summary.planId === 'basic') return null;
+  return 'Payments appear here once Tripician receives Razorpay confirmation. If a charge is missing, email support@tripician.com.';
+}
+
 /** Plain words for a group's plan state, never the raw provider status. */
 export function groupStatusLabel(status: string): string {
   switch (status) {
