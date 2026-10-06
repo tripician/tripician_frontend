@@ -38,6 +38,7 @@ import { FEATURE_FLAGS } from '../../../config/featureFlags';
 import StoryCreationModal from '../../../afterstory/StoryCreationModal';
 import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
 import LogoutIcon from '@mui/icons-material/Logout';
+import ReceiptLongOutlinedIcon from '@mui/icons-material/ReceiptLongOutlined';
 import HelpOutlineIcon from '@mui/icons-material/HelpOutline';
 import ShieldIcon from '@mui/icons-material/PrivacyTip';
 import GavelIcon from '@mui/icons-material/Gavel';
@@ -547,58 +548,70 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
           gap: { xs: 1, md: 2 },
         }}
       >
-        {/* Brand.
-            Load-bearing now: the board has no nav item, so this is the way home
-            at every width. It used to point at /community. */}
         <Box
-          onClick={() => navigate('/')}
-          role="link"
-          tabIndex={0}
-          aria-label="Tripician, go to your feed"
-          onKeyDown={(e: React.KeyboardEvent) => {
-            if (e.key === 'Enter' || e.key === ' ') {
-              e.preventDefault();
-              navigate('/');
-            }
-          }}
           sx={{
             display: 'flex',
             alignItems: 'center',
             gap: 1,
-            cursor: 'pointer',
-            flexShrink: 0,
-            justifySelf: 'start',
             gridColumn: 1,
+            justifySelf: 'start',
+            flexShrink: 0,
             minWidth: 0,
             mr: { lg: 1 },
           }}
         >
-          {/*
-            The mark on a phone, the lockup from sm.
-
-            The wordmark is 106px wide. Measured at 320px that left the cluster
-            13px past the right edge and overlapping the logo by 3px, and none of
-            it showed up as page overflow because an ancestor clips at 100vw - it
-            was simply cutting the avatar in half. Shrinking the lockup would have
-            made it 14px tall and apologetic; the mark is what this asset is for.
-          */}
+          {/* Brand.
+              Load-bearing now: the board has no nav item, so this is the way home
+              at every width. It used to point at /community. */}
           <Box
-            component="img"
-            src={import.meta.env.VITE_TRIPICIAN_LOGO_ICON_URL}
-            alt="Tripician"
-            sx={{ height: 24, width: 'auto', display: { xs: 'block', sm: 'none' } }}
-          />
-          <Box
-            component="img"
-            src={import.meta.env.VITE_TRIPICIAN_LOGO_FULL_BLACK_2_URL}
-            alt="Tripician"
-            sx={{
-              height: { xs: 18, md: 22 },
-              width: 'auto',
-              objectFit: 'contain',
-              display: { xs: 'none', sm: 'block' },
+            onClick={() => navigate('/')}
+            role="link"
+            tabIndex={0}
+            aria-label="Tripician, go to your feed"
+            onKeyDown={(e: React.KeyboardEvent) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                navigate('/');
+              }
             }}
-          />
+            sx={{
+              display: 'flex',
+              alignItems: 'center',
+              gap: 1,
+              cursor: 'pointer',
+              flexShrink: 0,
+              minWidth: 0,
+            }}
+          >
+            {/*
+              The mark on a phone, the lockup from sm.
+
+              The wordmark is 106px wide. Measured at 320px that left the cluster
+              13px past the right edge and overlapping the logo by 3px, and none of
+              it showed up as page overflow because an ancestor clips at 100vw - it
+              was simply cutting the avatar in half. Shrinking the lockup would have
+              made it 14px tall and apologetic; the mark is what this asset is for.
+            */}
+            <Box
+              component="img"
+              src={import.meta.env.VITE_TRIPICIAN_LOGO_ICON_URL}
+              alt="Tripician"
+              sx={{ height: 24, width: 'auto', display: { xs: 'block', sm: 'none' } }}
+            />
+            <Box
+              component="img"
+              src={import.meta.env.VITE_TRIPICIAN_LOGO_FULL_BLACK_2_URL}
+              alt="Tripician"
+              sx={{
+                height: { xs: 18, md: 22 },
+                width: 'auto',
+                objectFit: 'contain',
+                display: { xs: 'none', sm: 'block' },
+              }}
+            />
+          </Box>
+          {/* Outside the brand link, so a tap on the pill cannot also go home. */}
+          {isAuthenticated && <ProPill onClick={openProDialog} />}
         </Box>
 
         {/* Desktop nav - labeled pills, centered */}
@@ -720,11 +733,6 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
                 button stays nearest the bell and the avatar, where the eye
                 finishes.
               */}
-              {/* First in the cluster on purpose. It is brand-tinted rather than a
-                  second solid fill, so it does not compete with Plan a trip, and it
-                  leaves the documented story / trip / bell / avatar order intact. */}
-              <ProPill onClick={openProDialog} />
-
               {/*
                 Studio: one door to everything you can make.
 
@@ -1047,6 +1055,10 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
           <ListItemButton onClick={() => { navigate('/settings'); setAnchorEl(null); }} sx={{ py: 0.9 }}>
             <ListItemIcon sx={{ minWidth: 32 }}><SettingsRoundedIcon sx={{ fontSize: 17 }} /></ListItemIcon>
             <ListItemText primary="Settings" primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }} />
+          </ListItemButton>
+          <ListItemButton onClick={() => { navigate('/settings?tab=billing'); setAnchorEl(null); }} sx={{ py: 0.9 }}>
+            <ListItemIcon sx={{ minWidth: 32 }}><ReceiptLongOutlinedIcon sx={{ fontSize: 17 }} /></ListItemIcon>
+            <ListItemText primary="Payments & billing" primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }} />
           </ListItemButton>
           <Divider sx={{ my: 0.5, mx: 0.5 }} />
           {[

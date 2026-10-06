@@ -2,7 +2,7 @@ import React from "react";
 import { BRAND } from '../../theme';
 import { alpha } from '@mui/material/styles';
 import { Box } from "@mui/material";
-import { User, Bell, Shield, Globe, Coins } from "lucide-react";
+import { User, Bell, Shield, Globe, Coins, Receipt } from "lucide-react";
 import { motion } from 'framer-motion';
 
 interface SettingsTopNavProps {
@@ -16,6 +16,7 @@ const NAV_ITEMS = [
   { value: 'privacy',       label: 'Privacy',       Icon: Shield },
   { value: 'preferences',   label: 'Preferences',   Icon: Globe  },
   { value: 'credits',       label: 'Credits',       Icon: Coins  },
+  { value: 'billing',       label: 'Billing',       Icon: Receipt },
 ];
 
 const SettingsTopNav: React.FC<SettingsTopNavProps> = ({ selectedSettingsMenuItem, onChange }) => (

@@ -7,6 +7,7 @@ import type {
 import type { Conversation, ConversationMessage } from '../../messages/types';
 import type { TravelMap } from '../../pages/ProfilePage/travelHistory';
 import type { TripAnnouncement } from '../../types/announcements';
+import type { BillingItem, BillingSummary } from '../../billing/types';
 import type {
   OperatorProfile, OperatorApplication, OperatorLead, OperatorLeadResult,
 } from '../../operator/types';
@@ -583,8 +584,23 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  cancelSubscription: (token: string, organizationId?: string) =>
-    apiClient.post('/api/subscriptions/cancel', { organizationId }, {
+  getBillingSummary: (token: string) =>
+    apiClient.get<BillingSummary>('/api/billing/summary', {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  getBillingPayments: (token: string, take = 20) =>
+    apiClient.get<BillingItem[]>(`/api/billing/payments?take=${take}`, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  getBillingReceipt: (token: string, itemId: string) =>
+    apiClient.get<Blob>(`/api/billing/payments/${encodeURIComponent(itemId)}/receipt`, {
+      headers: { Authorization: `Bearer ${token}` },
+      responseType: 'blob',
+    }),
+
+  cancelSubscription: (token: string, organizationId?: string) =>    apiClient.post('/api/subscriptions/cancel', { organizationId }, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 

@@ -24,6 +24,7 @@ import SegmentedControl from '../components/ui/SegmentedControl';
 import PostComposer from '../posts/PostComposer';
 import PostList, { type PostListHandle } from '../posts/PostList';
 import CreateRow from './CreateRow';
+import PlanWelcomeBanner from './PlanWelcomeBanner';
 import WallSuggestions from './WallSuggestions';
 import RailFooter from './RailFooter';
 import { useWallSuggestions } from './useWallSuggestions';
@@ -92,6 +93,7 @@ const Board: React.FC = () => {
           Your travel feed
         </Box>
 
+        <PlanWelcomeBanner />
         <PostComposer onPosted={(post) => listRef.current?.prepend(post)} />
         <CreateRow />
 
