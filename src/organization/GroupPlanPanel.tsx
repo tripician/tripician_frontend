@@ -9,6 +9,7 @@ import SectionHeader from '../components/ui/SectionHeader';
 import { loadRazorpay, openRazorpaySubscription } from '../afterstory/book/razorpay';
 import { planUpgrade } from '../pricing/planBenefits';
 import { CARD_SAVING_NOTE } from '../pricing/billingCopy';
+import { waitForPlan } from '../pricing/planActivation';
 import { formatMoney, type Plan, type SubscriptionState } from '../pricing/types';
 import { serverMessage } from '../utils/apiError';
 import { groupIsFull } from './groupLogic';
@@ -32,6 +33,41 @@ const GroupPlanPanel: React.FC<{ organization: Organization }> = ({ organization
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [notice, setNotice] = React.useState<string | null>(null);
+
+  // A payment is confirmed after the sheet closes, so nothing is written once this panel is gone.
+  const onPanel = React.useRef(true);
+  React.useEffect(() => {
+    onPanel.current = true;
+    return () => { onPanel.current = false; };
+  }, []);
+
+  // The plan turns on by webhook, so the panel asks until it has and only then shows it.
+  const settle = async (planId: string, planName: string) => {
+    setError(null);
+    setNotice(`Payment received. Moving ${organization.name} to ${planName}.`);
+
+    const seen: { credits: GroupCredits | null } = { credits: null };
+    const active = await waitForPlan({
+      read: async () => {
+        seen.credits = asGroupCredits((await apiServices.getGroupCredits(organization.id)).data);
+        return seen.credits?.planId;
+      },
+      wanted: planId,
+    });
+
+    if (!onPanel.current) return;
+    if (active) {
+      setCredits(seen.credits);
+      if (token) {
+        apiServices.getMySubscription(token, organization.id)
+          .then((r) => { if (onPanel.current) setSubscription(r.data ?? null); })
+          .catch(() => undefined);
+      }
+    }
+    setNotice(active
+      ? `${organization.name} is on ${planName} now.`
+      : `Payment received. ${planName} turns on as soon as Razorpay confirms it, usually within a minute.`);
+  };
 
   React.useEffect(() => {
     let active = true;
@@ -77,15 +113,17 @@ const GroupPlanPanel: React.FC<{ organization: Organization }> = ({ organization
         setError(intent.data?.error ?? 'That plan could not be opened for payment.');
         return;
       }
+      // Once a payment has gone through, nothing the sheet says afterwards may overwrite that.
+      let paid = false;
       openRazorpaySubscription({
         keyId: intent.data.keyId,
         subscriptionId: intent.data.subscriptionId,
         description: intent.data.description ?? `${offer.name} for ${organization.name}`,
         payer: { name: intent.data.customerName, email: intent.data.customerEmail, phone: intent.data.customerPhone },
         // Nothing turns on here: the plan starts when Razorpay confirms the first payment to the server.
-        onPaid: () => setNotice(`Thank you. ${organization.name} moves to ${offer.name} as soon as the payment settles.`),
-        onDismissed: () => setNotice('No payment was taken.'),
-        onFailed: (message) => setError(message),
+        onPaid: () => { paid = true; void settle(offer.planId, offer.name); },
+        onDismissed: () => { if (!paid) setNotice('No payment was taken.'); },
+        onFailed: (message) => { if (!paid) { setNotice(null); setError(message); } },
       });
     } catch (err) {
       setError(serverMessage(err) ?? 'That could not be started. Please try again.');
