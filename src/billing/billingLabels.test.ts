@@ -6,6 +6,7 @@ import {
   formatDay,
   formatRupees,
   groupStatusLabel,
+  missingHistoryNote,
   periodText,
   planStatusSentence,
   statusLabel,
@@ -166,5 +167,21 @@ describe('groupStatusLabel', () => {
     expect(groupStatusLabel('halted')).toBe('Ended');
     expect(groupStatusLabel('refunded')).toBe('Refunded');
     expect(groupStatusLabel('something_new')).toBe('Not active');
+  });
+});
+
+describe('missingHistoryNote', () => {
+  it('says nothing for a free account, which may simply have no payments', () => {
+    expect(missingHistoryNote(summary({ planId: 'basic', planName: 'Tripician Basic', status: 'none', renewsAt: null, nextChargeAmount: null }), 0)).toBeNull();
+  });
+
+  it('explains how a missing charge is handled on a paid plan with nothing listed', () => {
+    expect(missingHistoryNote(summary(), 0)).toBe(
+      'Payments appear here once Tripician receives Razorpay confirmation. If a charge is missing, email support@tripician.com.',
+    );
+  });
+
+  it('says nothing once there is something to read', () => {
+    expect(missingHistoryNote(summary(), 1)).toBeNull();
   });
 });
