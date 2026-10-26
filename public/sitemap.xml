@@ -120,4 +120,40 @@
     <changefreq>monthly</changefreq>
     <priority>0.8</priority>
   </url>
+  <url>
+    <loc>https://tripician.com/trip/explore-the-edge-of-sri-lanka-809c2494-d944-4632-8644-33f0ccf0081b</loc>
+    <lastmod>2026-10-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://tripician.com/trip/coffee-trails-coastal-sunsets-6f168b6b-c64c-4692-8445-75bc7cbacc8c</loc>
+    <lastmod>2026-10-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://tripician.com/trip/trip-to-belgium-736fa9a1-c65a-44a6-8151-e678bd1eaee2</loc>
+    <lastmod>2026-10-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://tripician.com/trip/explore-ethiopia-cf06aea9-a154-4c3f-8902-d826046ae220</loc>
+    <lastmod>2026-10-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://tripician.com/trip/exploring-south-east-asia-d0aae827-f61f-4de6-a7ee-ff7f4799f790</loc>
+    <lastmod>2026-10-07</lastmod>
+    <changefreq>weekly</changefreq>
+    <priority>0.7</priority>
+  </url>
+  <url>
+    <loc>https://tripician.com/story/explore-the-edge-of-sri-lanka-fa5fed7c</loc>
+    <lastmod>2026-09-24</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.7</priority>
+  </url>
 </urlset>

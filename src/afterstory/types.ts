@@ -245,5 +245,4 @@ export const STORY_LIMITS = {
   maxSummaryChars: 300,
 } as const;
 
-export const STORY_MEDIA_MAX_BYTES = 10 * 1024 * 1024;
 export const STORY_MEDIA_ACCEPT = 'image/jpeg,image/png,image/webp,image/gif,image/avif';
