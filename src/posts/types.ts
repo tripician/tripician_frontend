@@ -164,8 +164,6 @@ export const POST_LIMITS = {
   maxTopicTags: 2,
   maxPlaceTags: 2,
   maxPhotos: 4,
-  /** 6MB, matching what the upload endpoint advertises. */
-  maxPhotoBytes: 6 * 1024 * 1024,
 } as const;
 
 /**

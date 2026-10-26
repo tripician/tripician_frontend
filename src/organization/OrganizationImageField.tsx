@@ -3,8 +3,6 @@ import { Box, Button, CircularProgress, Typography, useTheme } from '@mui/materi
 import { IconPhotoPlus, IconTrash } from '@tabler/icons-react';
 import { uploadSigned, UploadError } from '../utils/signedUpload';
 
-const MAX_BYTES = 8 * 1024 * 1024;
-
 interface OrganizationImageFieldProps {
   organizationId: string | null;
   slot: 'logo' | 'cover' | 'post';
@@ -20,7 +18,7 @@ interface OrganizationImageFieldProps {
 /**
  * Pick a picture for an organisation.
  *
- * Uploads straight to Cloudinary through a signature this organisation's admins
+ * Uploads through a signature this organisation's admins
  * are the only ones who can mint. A brand-new organisation has no id yet, so the
  * field falls back to explaining that rather than offering a control that cannot
  * work.
@@ -42,7 +40,6 @@ const OrganizationImageField: React.FC<OrganizationImageFieldProps> = ({
       const url = await uploadSigned({
         signUrl: `/api/organizations/${organizationId}/media/upload-url`,
         file,
-        maxBytes: MAX_BYTES,
         signBody: { slot },
       });
       // Cache-bust: logo and cover keep a stable public id and overwrite, so the
