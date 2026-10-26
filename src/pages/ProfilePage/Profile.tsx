@@ -642,14 +642,16 @@ const Profile: React.FC = () => {
             >
               <Box sx={{ minWidth: 0, flex: 1 }}>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+                  {/* Shrinks but never grows, so the verified badge sits right
+                      after the name, not at the far end of the row. */}
                   <Typography
                     component="h1"
                     variant="h1"
-                    sx={{ color: 'text.primary', flex: '1 1 auto', minWidth: 0 }}
+                    sx={{ color: 'text.primary', flex: '0 1 auto', minWidth: 0 }}
                   >
                     {fullName}
                   </Typography>
-                  <VerifiedProfileMark verified={!!profile.profileVerifiedAt} verifiedAt={profile.profileVerifiedAt} />
+                  <VerifiedProfileMark verified={!!profile.profileVerifiedAt} verifiedAt={profile.profileVerifiedAt} size={22} />
                 </Box>
                 {profile.location && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, color: 'text.secondary' }}>

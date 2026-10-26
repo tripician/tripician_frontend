@@ -14,14 +14,25 @@ import {
   InputAdornment,
   CircularProgress,
   Autocomplete,
+  Tooltip,
 } from "@mui/material";
-import { LocationOn, Language, Email, Phone, Visibility, VisibilityOff, Save } from "@mui/icons-material";
+import { LocationOn, Language, Email, Phone, Visibility, VisibilityOff, Save, MyLocation, Close } from "@mui/icons-material";
+import { locateCurrentPlace, LocateError, type LocateFailure } from '../../utils/deviceLocation';
 import { COUNTRIES } from '../../utils/countryData';
 import { countryNameFromCode } from '../../utils/countryFlags';
 import CountryFlag from '../../components/ui/CountryFlag';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '../../store';
 import { fetchUserProfile, setUserProfile, type UserProfile } from '../../store/userSlice';
+
+/** What went wrong, in words, for each way the device lookup can fail. */
+const LOCATE_MESSAGES: Record<LocateFailure, string> = {
+  unsupported: "This browser can't share your location.",
+  denied: 'Location access is blocked. Allow it for this site in your browser settings, then try again.',
+  unavailable: "Your device couldn't find your location. Try again.",
+  timeout: 'Finding your location took too long. Try again.',
+  lookup: "We couldn't name that place. Try again in a moment.",
+};
 
 const ProfileSettings: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -37,7 +48,11 @@ const ProfileSettings: React.FC = () => {
     dreamPlace: '',
     from: ''
   });
+  // Never typed: set from the device's position with the person's permission,
+  // or cleared. See utils/deviceLocation.
   const [location, setLocation] = useState('');
+  const [locating, setLocating] = useState(false);
+  const [locateError, setLocateError] = useState<string | null>(null);
   /*
    * ISO alpha-2, not a name.
    *
@@ -447,14 +462,53 @@ const ProfileSettings: React.FC = () => {
           />
 
           <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-            <TextField 
-              fullWidth 
-              label="Current Location" 
+            <TextField
+              fullWidth
+              label="Current Location"
               value={location}
-              onChange={e=> setLocation(e.target.value)}
               size="small"
               disabled={loading}
-              InputProps={{ startAdornment: (<InputAdornment position="start"><LocationOn sx={{ color: "text.secondary", fontSize: 20 }} /></InputAdornment>) }}
+              error={!!locateError}
+              helperText={locateError ?? 'Set from your device, with your permission. Save to keep it.'}
+              InputProps={{
+                readOnly: true,
+                startAdornment: (<InputAdornment position="start"><LocationOn sx={{ color: "text.secondary", fontSize: 20 }} /></InputAdornment>),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    {location && !locating && (
+                      <Tooltip title="Clear location">
+                        <IconButton size="small" aria-label="Clear location" onClick={() => { setLocation(''); setLocateError(null); }}>
+                          <Close sx={{ fontSize: 18 }} />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    <Tooltip title={location ? 'Update from my location' : 'Use my location'}>
+                      {/* span: a disabled button fires no events, so the tooltip needs a live parent. */}
+                      <span>
+                        <IconButton
+                          size="small"
+                          aria-label="Use my current location"
+                          disabled={loading || locating}
+                          onClick={async () => {
+                            setLocating(true);
+                            setLocateError(null);
+                            try {
+                              setLocation(await locateCurrentPlace());
+                            } catch (err) {
+                              setLocateError(LOCATE_MESSAGES[err instanceof LocateError ? err.reason : 'lookup']);
+                            } finally {
+                              setLocating(false);
+                            }
+                          }}
+                          sx={{ color: 'primary.main' }}
+                        >
+                          {locating ? <CircularProgress size={16} /> : <MyLocation sx={{ fontSize: 18 }} />}
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  </InputAdornment>
+                ),
+              }}
               sx={{"& .MuiOutlinedInput-root": { borderRadius: 1.5 }}}
             />
             <Autocomplete

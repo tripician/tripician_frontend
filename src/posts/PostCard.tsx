@@ -194,7 +194,13 @@ const PostCard: React.FC<PostCardProps> = ({
         </Avatar>
 
         <Box sx={{ minWidth: 0, flex: 1, display: 'flex', alignItems: 'center', gap: 0.5 }}>
-          <Typography variant="body2" sx={{ fontWeight: 700, color: 'text.primary', minWidth: 0 }} noWrap>
+          {/* The name goes where the avatar goes. Most people tap the name. */}
+          <Typography
+            variant="body2"
+            noWrap
+            onClick={(e) => { e.stopPropagation(); navigate(`/traveler/${post.authorUserId}`); }}
+            sx={{ fontWeight: 700, color: 'text.primary', minWidth: 0, cursor: 'pointer', '&:hover': { textDecoration: 'underline' } }}
+          >
             {post.authorName}
           </Typography>
 

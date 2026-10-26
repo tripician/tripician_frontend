@@ -32,7 +32,12 @@ import { ProfilePassport, ProfileDetails, type PassportView } from './ProfilePas
 interface ProfileIdentityRailProps {
   /** Drives the credibility facts. Omitted while the profile is still loading. */
   userId?: number;
-  passport: PassportView | null;
+  /**
+   * Own profile only. A stranger's page has no passport card: its one figure
+   * worth keeping, the country count, sits in the stats row beside followers,
+   * and only once the profile is verified.
+   */
+  passport?: PassportView | null;
   passportLoading?: boolean;
   /** The raw profile object, for the intro and the detail rows. */
   profile: any;
@@ -58,13 +63,11 @@ interface ProfileIdentityRailProps {
  * a child reporting upward after paint jumps on first load.
  */
 export function railHasContent(args: {
-  passport: PassportView | null;
   profile: any;
   isOwner?: boolean;
 }): boolean {
-  const { passport, profile, isOwner } = args;
+  const { profile, isOwner } = args;
   if (isOwner) return true; // The intro prompt and Edit are always worth showing.
-  if (passport && (passport.trips > 0 || passport.countryCount > 0 || passport.nights > 0)) return true;
   if (readIntro(profile)) return true;
   const highlights = Array.isArray(profile?.bio?.highlights) ? profile.bio.highlights : [];
   if (highlights.some((h: any) => h?.key !== 'intro' && h?.value)) return true;
@@ -107,16 +110,19 @@ const ProfileIdentityRail: React.FC<ProfileIdentityRailProps> = ({
           />
         : null}
 
-      {/* The figures, then the evidence for them. That order on purpose: the
+      {/* Your figures, then the evidence for them. That order on purpose: the
           numbers are the claim and the strip below is what backs it, so a
-          reader meets the assertion and its support together. */}
-      <ProfilePassport
-        passport={passport}
-        loading={passportLoading}
-        orientation="column"
-        onPlanTrip={onPlanTrip}
-        hideWhenEmpty={!isOwner}
-      />
+          reader meets the assertion and its support together. Owner only:
+          ProfilePassport draws a skeleton for a null passport, so it must not
+          render at all where there is none to give it. */}
+      {isOwner && (
+        <ProfilePassport
+          passport={passport ?? null}
+          loading={passportLoading}
+          orientation="column"
+          onPlanTrip={onPlanTrip}
+        />
+      )}
 
       {typeof userId === 'number' && Number.isFinite(userId) ? (
         <CredibilityStrip userId={userId} direction="column" />
