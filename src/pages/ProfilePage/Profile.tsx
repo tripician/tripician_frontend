@@ -66,6 +66,7 @@ import PostCard from '../../posts/PostCard';
 import { postsService } from '../../posts/postsService';
 import type { TravelerPost } from '../../posts/types';
 import IdentityVerifiedMark from '../../components/ui/IdentityVerifiedMark';
+import VerifiedProfileMark from '../../components/ui/VerifiedProfileMark';
 import JoinRequestsInbox from '../../seats/JoinRequestsInbox';
 
 /** Community's measure. This page sat at 1200 and TravelerProfile at 1140, so
@@ -640,13 +641,16 @@ const Profile: React.FC = () => {
               }}
             >
               <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Typography
-                  component="h1"
-                  variant="h1"
-                  sx={{ color: 'text.primary' }}
-                >
-                  {fullName}
-                </Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+                  <Typography
+                    component="h1"
+                    variant="h1"
+                    sx={{ color: 'text.primary', flex: '1 1 auto', minWidth: 0 }}
+                  >
+                    {fullName}
+                  </Typography>
+                  <VerifiedProfileMark verified={!!profile.profileVerifiedAt} verifiedAt={profile.profileVerifiedAt} />
+                </Box>
                 {profile.location && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, color: 'text.secondary' }}>
                     <IconMapPin size={14} stroke={1.9} />

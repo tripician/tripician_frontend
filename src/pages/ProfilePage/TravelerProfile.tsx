@@ -32,6 +32,7 @@ import ProfileIdentityRail, { railHasContent } from './ProfileIdentityRail';
 import { apiServices as api } from '../../services/APIs/apiServices';
 import type { OrganiserRecord } from '../../seats/types';
 import IdentityVerifiedMark from '../../components/ui/IdentityVerifiedMark';
+import VerifiedProfileMark from '../../components/ui/VerifiedProfileMark';
 import SectionHeader from '../../components/ui/SectionHeader';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
 import StoryDiary from '../../afterstory/cards/StoryDiary';
@@ -60,6 +61,7 @@ interface PublicUser {
   bio?: { highlights?: Array<{ key?: string; label?: string; value?: string; icon?: string }> } | null;
   joinedAt?: string | null;
   identityVerifiedAt?: string | null;
+  profileVerifiedAt?: string | null;
 }
 
 /**
@@ -372,11 +374,16 @@ const TravelerProfile: React.FC = () => {
                     {/* Same masthead as /profile: variant h1, display face. This
                         was a hand-tuned fontSize a step smaller, so the same
                         person's name changed size depending on who was looking. */}
-                    <Typography component="h1" variant="h1" noWrap sx={{
-                      color: 'text.primary',
-                    }}>
-                      {user?.name || 'Explorer'}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+                      <Typography component="h1" variant="h1" noWrap sx={{
+                        color: 'text.primary',
+                        flex: '1 1 auto',
+                        minWidth: 0,
+                      }}>
+                        {user?.name || 'Explorer'}
+                      </Typography>
+                      <VerifiedProfileMark verified={!!user?.profileVerifiedAt} verifiedAt={user?.profileVerifiedAt} />
+                    </Box>
                     {locationLine && (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, color: 'text.secondary' }}>
                         <IconMapPin size={14} stroke={1.9} />

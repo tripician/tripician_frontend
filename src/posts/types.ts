@@ -89,6 +89,8 @@ export interface TravelerPost {
   authorName: string;
   authorAvatarUrl: string | null;
   authorIdentityVerified: boolean;
+  /** Separate from authorIdentityVerified - see VerifiedProfileMark. Null until the backend ships AuthorProfileVerifiedAt. */
+  authorProfileVerifiedAt: string | null;
   kind: PostKind;
   /** Questions only. What the list is scanned by. */
   title: string | null;

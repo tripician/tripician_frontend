@@ -21,6 +21,7 @@ import PostComposer from './PostComposer';
 import { POST_LIMITS } from './types';
 import { postsService } from './postsService';
 import ReportDialog from '../components/ui/ReportDialog';
+import VerifiedProfileMark from '../components/ui/VerifiedProfileMark';
 import { confirmAndBlock } from '../utils/blocking';
 import type { TravelerPost } from './types';
 
@@ -204,6 +205,8 @@ const PostCard: React.FC<PostCardProps> = ({
               </Box>
             </Tooltip>
           )}
+
+          <VerifiedProfileMark verified={!!post.authorProfileVerifiedAt} verifiedAt={post.authorProfileVerifiedAt} />
 
           {post.placeName && (
             <Typography variant="caption" noWrap sx={{ color: 'text.disabled', minWidth: 0, maxWidth: 180 }}>
