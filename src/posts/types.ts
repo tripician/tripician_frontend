@@ -89,6 +89,8 @@ export interface TravelerPost {
   authorName: string;
   authorAvatarUrl: string | null;
   authorIdentityVerified: boolean;
+  /** Separate from authorIdentityVerified - see VerifiedProfileMark. Null until the backend ships AuthorProfileVerifiedAt. */
+  authorProfileVerifiedAt: string | null;
   kind: PostKind;
   /** Questions only. What the list is scanned by. */
   title: string | null;
@@ -164,8 +166,6 @@ export const POST_LIMITS = {
   maxTopicTags: 2,
   maxPlaceTags: 2,
   maxPhotos: 4,
-  /** 6MB, matching what the upload endpoint advertises. */
-  maxPhotoBytes: 6 * 1024 * 1024,
 } as const;
 
 /**

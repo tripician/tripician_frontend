@@ -1,4 +1,5 @@
 // TripPlanner main page component (formerly CreateTrip)
+import { uploadSignedPhoto, UploadError } from '../../utils/signedUpload';
 import React from 'react';
 import { useSearchParams, useNavigate, useLocation } from 'react-router-dom';
 import { useRequireAuth } from '../../auth/AuthGate';
@@ -3596,25 +3597,18 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				crewLimitEnforced={normalizedInitial?.meta.crewLimitEnforced ?? rawInitialTrip?.crewLimitEnforced ?? false}
 				organizationId={normalizedInitial?.meta.organizationId ?? null}
 				onChangeBanner={async ({ url, file }) => {
-					// If a local file was picked, upload directly to Cloudinary then persist
+					// If a local file was picked, send it through the server, then persist it.
 					if (file && authToken && tripId) {
 						try {
 							const { data: uploadData } = await apiServices.getTripBannerUploadUrl(authToken, tripId);
-							const fd = new FormData();
-							fd.append('file', file);
-							fd.append('api_key', uploadData.apiKey);
-							fd.append('timestamp', String(uploadData.timestamp));
-							fd.append('signature', uploadData.signature);
-							fd.append('folder', uploadData.folder);
-							fd.append('public_id', uploadData.public_id);
-							const cloudRes = await fetch(uploadData.uploadUrl, { method: 'POST', body: fd });
-							if (cloudRes.ok) {
-								const cdnUrl = `${uploadData.fileUrl}?v=${uploadData.timestamp}`;
-								setBannerUrl(cdnUrl);
-								try { await apiServices.saveTripBannerUrl(authToken, tripId, uploadData.fileUrl); } catch {}
-								return;
-							}
-						} catch { /* fall through to DataURL preview */ }
+							await uploadSignedPhoto(uploadData, file);
+							setBannerUrl(`${uploadData.fileUrl}?v=${uploadData.timestamp}`);
+							try { await apiServices.saveTripBannerUrl(authToken, tripId, uploadData.fileUrl); } catch {}
+						} catch (err) {
+							// A refused photo must say why, so it is never shown as if it had been saved.
+							openToast('error', err instanceof UploadError ? err.message : 'That banner could not be uploaded.');
+						}
+						return;
 					}
 					setBannerUrl(url);
 				}}

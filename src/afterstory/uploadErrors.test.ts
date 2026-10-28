@@ -7,10 +7,14 @@ import { explainUploadFailure } from './uploadErrors';
  */
 
 describe('explainUploadFailure', () => {
-  it('names the size limit when Cloudinary rejects on size', () => {
-    const said = explainUploadFailure('File size too large. Got 31457280. Maximum is 20971520.', true);
-    expect(said).toContain('too large');
-    expect(said).toContain('10MB');
+  it('passes the photo server refusals through unchanged', () => {
+    const refusals = [
+      'HEIC photos are not supported yet. Save the photo as a JPEG or PNG and try again.',
+      'That upload link has expired. Try adding the photo again.',
+      'Too many photos are being processed right now. Try again in a moment.',
+      'That photo is too small to use. Its shortest side must be at least 600 pixels.',
+    ];
+    for (const refusal of refusals) expect(explainUploadFailure(refusal, true)).toBe(refusal);
   });
 
   it('lists the accepted formats when the type is rejected', () => {

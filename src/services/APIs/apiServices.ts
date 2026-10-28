@@ -1066,7 +1066,7 @@ export const apiServices = {
 
   // GET /api/users/{userId} - public profile by ID
   getUserById: (userId: number) =>
-    apiClient.get<{ id: number; name: string; avatar: string | null; cover: string | null; country: string | null; location: string | null; website: string | null; instagram: string | null; twitter: string | null; facebook: string | null; bio?: { highlights?: Array<{ key?: string; label?: string; value?: string; icon?: string }> } | null; joinedAt?: string | null; identityVerifiedAt?: string | null }>
+    apiClient.get<{ id: number; name: string; avatar: string | null; cover: string | null; country: string | null; location: string | null; website: string | null; instagram: string | null; twitter: string | null; facebook: string | null; bio?: { highlights?: Array<{ key?: string; label?: string; value?: string; icon?: string }> } | null; joinedAt?: string | null; identityVerifiedAt?: string | null; profileVerifiedAt?: string | null }>
       (`/api/users/${userId}`),
 
   // GET /api/users/{userId}/track-record - what this organiser has actually run

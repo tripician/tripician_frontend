@@ -23,8 +23,7 @@ import type {
   StoryStatus,
   StoryTemplate,
 } from './types';
-import { STORY_MEDIA_MAX_BYTES } from './types';
-import { explainUploadFailure } from './uploadErrors';
+import { uploadSignedAsset, UploadError } from '../utils/signedUpload';
 
 /**
  * A failed request, carrying enough for the caller to say something useful.
@@ -359,71 +358,16 @@ export const afterStoryService = {
     }
   },
 
-  /**
-   * Uploads one photo straight to Cloudinary using a signed payload the server
-   * mints only after checking the caller may edit this story. The file never
-   * passes through the API.
-   */
+  // Sends one photo through the server, which checks the story signature and stores it.
   async uploadPhoto(storyId: string, file: File): Promise<string> {
-    if (file.size > STORY_MEDIA_MAX_BYTES) {
-      throw new AfterStoryError(
-        `That image is ${(file.size / 1024 / 1024).toFixed(1)}MB. The limit is ${STORY_MEDIA_MAX_BYTES / 1024 / 1024}MB.`,
-        0,
-      );
-    }
     if (!file.type.startsWith('image/')) {
       throw new AfterStoryError('Only image files can be added to a story.', 0);
     }
-
-    let signed: {
-      folder: string;
-      public_id: string;
-      timestamp: number;
-      signature: string;
-      allowed_formats: string;
-      apiKey: string;
-      cloudName: string;
-      uploadUrl: string;
-    };
-
     try {
-      const { data } = await apiClient.post(`/api/stories/${storyId}/media/upload-url`, {
-        fileName: file.name,
-      });
-      signed = data;
+      return (await uploadSignedAsset({ signUrl: `/api/stories/${storyId}/media/upload-url`, file })).url;
     } catch (err) {
-      throw toError(err, 'Could not prepare that upload.');
-    }
-
-    // Every signed field has to be echoed back exactly, or Cloudinary rejects
-    // the signature. `allowed_formats` is a real upload parameter, so the format
-    // cap is enforced server-side. There is deliberately no size field here:
-    // `max_file_size` is an upload-PRESET setting, not an upload parameter, and
-    // signing it made every request fail. The size cap is the client check above.
-    const form = new FormData();
-    form.append('file', file);
-    form.append('api_key', signed.apiKey);
-    form.append('timestamp', String(signed.timestamp));
-    form.append('signature', signed.signature);
-    form.append('folder', signed.folder);
-    form.append('public_id', signed.public_id);
-    form.append('allowed_formats', signed.allowed_formats);
-
-    try {
-      const response = await axios.post<{ secure_url?: string; url?: string }>(signed.uploadUrl, form);
-      const url = response.data.secure_url ?? response.data.url;
-      if (!url) throw new Error('no url returned');
-      return url;
-    } catch (err) {
-      // Cloudinary explains every rejection in { error: { message } }. Discarding
-      // it is what made this failure unreportable: the traveller got the same
-      // sentence for an oversized file, a HEIC, and an expired signature.
-      const response = axios.isAxiosError(err) ? err.response : undefined;
-      const body = response?.data as { error?: { message?: string } } | undefined;
-      throw new AfterStoryError(
-        explainUploadFailure(body?.error?.message, response !== undefined),
-        response?.status ?? 0,
-      );
+      if (err instanceof UploadError) throw new AfterStoryError(err.message, err.status);
+      throw err;
     }
   },
 };

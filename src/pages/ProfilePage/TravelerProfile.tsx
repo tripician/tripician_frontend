@@ -23,15 +23,16 @@ import type { RootState } from '../../store';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { tripPath } from '../../utils/tripSlug';
+import { countryNameFromCode } from '../../utils/countryFlags';
 import { safeExternalUrl } from '../../utils/sanitizeHtml';
 import Seo from '../../components/Seo';
 import CommunityTripCard from '../CommunityPage/CommunityTripCard';
-import type { PassportView } from './ProfilePassport';
 import TravelHistoryPanel from './TravelHistoryPanel';
 import ProfileIdentityRail, { railHasContent } from './ProfileIdentityRail';
 import { apiServices as api } from '../../services/APIs/apiServices';
 import type { OrganiserRecord } from '../../seats/types';
 import IdentityVerifiedMark from '../../components/ui/IdentityVerifiedMark';
+import VerifiedProfileMark from '../../components/ui/VerifiedProfileMark';
 import SectionHeader from '../../components/ui/SectionHeader';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
 import StoryDiary from '../../afterstory/cards/StoryDiary';
@@ -60,6 +61,7 @@ interface PublicUser {
   bio?: { highlights?: Array<{ key?: string; label?: string; value?: string; icon?: string }> } | null;
   joinedAt?: string | null;
   identityVerifiedAt?: string | null;
+  profileVerifiedAt?: string | null;
 }
 
 /**
@@ -204,31 +206,14 @@ const TravelerProfile: React.FC = () => {
     return <Navigate to="/error/404" replace />;
   }
 
-  /*
-   * Everything the rail states about this traveller, from the published-only
-   * track record rather than from the trips this page happens to have fetched.
-   * A stranger's figures must not depend on which grid finished loading first.
-   */
-  const railPassport: PassportView | null = record && record.countriesVisited > 0
-    ? {
-        trips: record.tripsRun,
-        nights: record.nightsTravelled,
-        countryCount: record.countriesVisited,
-        countries: record.topCountries,
-        // A stranger is not shown what somebody is planning. Their drafts are
-        // not public and their intentions are not a fact about them.
-        planned: 0,
-        vibes: [],
-        favoriteVibe: null,
-      }
-    : null;
-
-  const hasRail = !userLoading && !!user && railHasContent({ passport: railPassport, profile: user });
+  // The rail's credibility strip speaks for anyone with a track record, even
+  // when they wrote nothing about themselves.
+  const hasRail = !userLoading && !!user
+    && ((record?.tripsRun ?? 0) > 0 || railHasContent({ profile: user }));
 
   const railNode = (
     <ProfileIdentityRail
       userId={Number.isFinite(userId) ? userId : undefined}
-      passport={railPassport}
       profile={user}
     />
   );
@@ -268,7 +253,14 @@ const TravelerProfile: React.FC = () => {
     .map(s => ({ ...s, url: safeExternalUrl(s.url) }))
     .filter((s): s is { url: string; Icon: typeof IconLink; label: string } => !!s.url) : [];
 
-  const locationLine = user ? [user.location, user.country].filter(Boolean).join(', ') : '';
+  // Current Location already reads "City, Country" (it comes from the device
+  // now), so the account country is only added when it says something new. It
+  // may be an ISO code, so it is compared, and shown, as a name.
+  const countryName = user?.country ? (countryNameFromCode(user.country) ?? user.country) : '';
+  const locationLine = user
+    ? [user.location, user.location?.toLowerCase().includes(countryName.toLowerCase()) ? '' : countryName]
+        .filter(Boolean).join(', ')
+    : '';
 
   // How long someone has been here is part of deciding whether to travel with
   // them, and it is the one fact on this page they cannot edit.
@@ -278,21 +270,18 @@ const TravelerProfile: React.FC = () => {
     : '';
   const showCover = !!user?.cover && !coverFailed;
 
+  // Verified profiles only: the country count is a claim, and it is only shown
+  // where Tripician has reviewed the person making it. From the published-only
+  // track record, never from whichever trips this page happened to fetch.
+  const countryCount = user?.profileVerifiedAt && record ? record.countriesVisited : null;
+
   const statItems = [
-    { value: trips.length, label: trips.length === 1 ? 'trip' : 'trips' },
+    ...(countryCount !== null
+      ? [{ value: countryCount, label: countryCount === 1 ? 'country' : 'countries' }]
+      : []),
     { value: stats.followers, label: stats.followers === 1 ? 'follower' : 'followers' },
     { value: stats.following, label: 'following' },
   ];
-
-  /**
-   * The passport, derived from the published trips already on the page.
-   *
-   * /profile reads /api/trips/vibe-passport, which is authenticated-user only:
-   * there is no endpoint for someone else's passport, and adding one would mean
-   * deciding in public what a stranger's night count and vibe mix are. Published
-   * trips are already public, so their countries are the honest subset, and the
-   * band keeps the row that makes it recognisable across both pages.
-   */
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -372,11 +361,18 @@ const TravelerProfile: React.FC = () => {
                     {/* Same masthead as /profile: variant h1, display face. This
                         was a hand-tuned fontSize a step smaller, so the same
                         person's name changed size depending on who was looking. */}
-                    <Typography component="h1" variant="h1" noWrap sx={{
-                      color: 'text.primary',
-                    }}>
-                      {user?.name || 'Explorer'}
-                    </Typography>
+                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
+                      {/* Shrinks but never grows, so the verified badge sits
+                          right after the name, not at the far end of the row. */}
+                      <Typography component="h1" variant="h1" noWrap sx={{
+                        color: 'text.primary',
+                        flex: '0 1 auto',
+                        minWidth: 0,
+                      }}>
+                        {user?.name || 'Explorer'}
+                      </Typography>
+                      <VerifiedProfileMark verified={!!user?.profileVerifiedAt} verifiedAt={user?.profileVerifiedAt} size={22} />
+                    </Box>
                     {locationLine && (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, color: 'text.secondary' }}>
                         <IconMapPin size={14} stroke={1.9} />

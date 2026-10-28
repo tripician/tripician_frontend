@@ -8,6 +8,7 @@ import Seo, { SITE_URL } from '../components/Seo';
 import EmptyState from '../components/ui/EmptyState';
 import CardTypeTag from '../components/ui/CardTypeTag';
 import PhotoMosaic from '../components/ui/PhotoMosaic';
+import VerifiedProfileMark from '../components/ui/VerifiedProfileMark';
 import { formatRelativeTime, formatAbsoluteDateTime } from '../utils/relativeTime';
 import PostCard from './PostCard';
 import PostComposer from './PostComposer';
@@ -223,6 +224,7 @@ const PostPage: React.FC = () => {
                     </Box>
                   </Tooltip>
                 )}
+                <VerifiedProfileMark verified={!!post.authorProfileVerifiedAt} verifiedAt={post.authorProfileVerifiedAt} />
               </Typography>
               <Tooltip title={formatAbsoluteDateTime(post.createdAt)} arrow>
                 <Typography variant="caption" sx={{ color: 'text.disabled' }}>

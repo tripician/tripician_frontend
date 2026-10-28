@@ -13,19 +13,11 @@
  * Cloudinary's API-facing phrasing with something addressed to a person.
  */
 
-import { STORY_MEDIA_MAX_BYTES } from './types';
-
-const MAX_MB = Math.round(STORY_MEDIA_MAX_BYTES / 1024 / 1024);
-
 /**
  * Ordered because the first match wins and some Cloudinary strings overlap:
  * "Invalid Signature" and "Invalid image file" both contain "Invalid".
  */
 const RULES: Array<{ match: RegExp; say: string }> = [
-  {
-    match: /file size too large|larger than.*bytes|maximum.*file size/i,
-    say: `That image is too large. The limit is ${MAX_MB}MB.`,
-  },
   {
     match: /invalid signature|stale request|signature.*expired/i,
     say: 'That upload link expired. Try adding the photo again.',

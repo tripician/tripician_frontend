@@ -6,6 +6,7 @@ import { alpha } from '@mui/material/styles';
 import { useRequireAuth } from '../auth/AuthGate';
 import { takeDraft } from '../utils/pendingDraft';
 import { useSelector } from 'react-redux';
+import { useNavigate } from 'react-router-dom';
 import { IconPhotoPlus, IconMapPin, IconRoute } from '@tabler/icons-react';
 import type { RootState } from '../store';
 import { BRAND } from '../theme';
@@ -44,6 +45,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
 }) => {
   const theme = useTheme();
   const requireAuth = useRequireAuth();
+  const navigate = useNavigate();
   const profile = useSelector((s: RootState) => s.user.profile);
 
   // Scoped to what is being written, so a reply draft cannot surface on the feed.
@@ -233,10 +235,14 @@ const PostComposer: React.FC<PostComposerProps> = ({
       <Box sx={{ display: 'flex', gap: 1.25, alignItems: open ? 'stretch' : 'center', flex: 1, minHeight: 0 }}>
         <Avatar
           src={profile?.profilepicture ?? undefined}
+          // Your own face goes to your own profile. Stopped here so the card's
+          // click-to-focus underneath does not fire on the way out.
+          onClick={profile ? (e) => { e.stopPropagation(); navigate('/profile'); } : undefined}
           sx={{
             width: 34, height: 34, fontSize: 14, bgcolor: 'primary.main',
             // The row stretches now, so this has to opt out of it.
             flexShrink: 0, alignSelf: open ? 'flex-start' : 'center',
+            cursor: profile ? 'pointer' : 'inherit',
           }}
         >
           {(displayName || 'T').charAt(0).toUpperCase()}
