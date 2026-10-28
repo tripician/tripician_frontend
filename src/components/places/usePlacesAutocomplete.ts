@@ -74,6 +74,8 @@ export function usePlacesAutocomplete({ types, exclude, limit = 6, bias }: Optio
             if (status !== 'OK' || !Array.isArray(res)) { setPredictions([]); return; }
             const hidden = excludeKey ? excludeKey.split(',') : [];
             setPredictions(res
+              .filter((p) => !typesKey.split(',').includes('(cities)') ||
+                p.types?.some((t: string) => ['locality', 'postal_town', 'administrative_area_level_3', 'colloquial_area'].includes(t)))
               .filter((p) => !hidden.some((t) => p.types?.includes(t)))
               .slice(0, limit)
               .map((p) => ({
