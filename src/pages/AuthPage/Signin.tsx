@@ -3,14 +3,12 @@ import { motion } from 'framer-motion';
 import { useAuth0 } from '@auth0/auth0-react';
 import '../../assets/css/Signin.css';
 import { Eye, EyeOff, Plane, MapPin, Globe, Brain, ArrowLeft } from 'lucide-react';
-import { authAPI } from '../../services/APIs/Auth/auth';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { nextFrom, safeNext } from '../../services/APIs/Auth/nextDestination';
 import { stashReturnTo } from '../../utils/pendingDraft';
-import { fetchUserProfile } from '../../store/userSlice';
-import { clearSessionData } from '../../utils/authSession';
-import { setAccessToken, setRefreshToken } from '../../services/auth/sessionStatus';
 import { peekPendingPrompt } from '../../utils/pendingTripicianAIPrompt';
+import { signInWithPassword } from './passwordSignIn';
+import VerifyEmailStep from './VerifyEmailStep';
 import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../store';
 import { fadeInLeft, fadeInRight, staggerContainer, staggerItem } from '../../utils/animations';
@@ -55,6 +53,8 @@ const Signin = () => {
       : ''
   ));
   const [success, setSuccess] = useState('');
+  /** True while the account's emailed sign-up code is being asked for. */
+  const [askingForCode, setAskingForCode] = useState(false);
 
   const handleInputChange = (field: string) => (event: React.ChangeEvent<HTMLInputElement>) => {
     setFormData(prev => ({
@@ -87,75 +87,45 @@ const Signin = () => {
     setError('');
     setSuccess('');
 
-    try {
-      const signInData = {
-        email: formData.email,
-        password: formData.password
-      };
-
-      // Never log `signInData` or the response: the first is the user's password
-      // in plain text, the second carries the access and refresh tokens. The
-      // production build strips console calls, but dev consoles and screen
-      // shares are not a safe place for either.
-      const response = await authAPI.signin(signInData);
-
-      if (response.data?.success && response.data?.accessToken) {
-        // Start from a clean browser: whoever was signed in here before must
-        // leave nothing that this session could read. No `preserveAuth0Cache` here,
-        // unlike /callback: this path establishes no Auth0 SDK session, so there is
-        // nothing of ours in that cache worth keeping.
-        clearSessionData();
-
-        // Refresh token first: it is what renews this session, and storing it after
-        // the access token would leave a window where a refresh has nothing to use.
-        if (response.data.refreshToken) {
-          setRefreshToken(response.data.refreshToken);
-        }
-        // `password`: renewals go through POST /auth/refresh, because this token came
-        // from the backend's confidential client and only it can redeem the refresh
-        // token Auth0 bound to that client.
-        setAccessToken(response.data.accessToken, 'password');
-
-        // Ensure profile is fetched using this exact token before navigating to avoid race.
-        // `force` skips the cache outright - belt and braces alongside clearSessionData().
-        try {
-          await dispatch(fetchUserProfile({ token: response.data.accessToken, force: true })).unwrap();
-        } catch (e) {
-          console.error('[Signin] fetchUserProfile failed after signin', e);
-          setError('Failed to load user profile after sign in. Please try again.');
-          setLoading(false);
-          return;
-        }
-
-        setSuccess('Sign in successful! Redirecting to home...');
-        setFormData({ email: '', password: '' });
-
-        setTimeout(() => {
-          // A prompt typed on the landing hero is the reason this sign-in is
-          // happening. Take them to it rather than to the generic /home.
-          // `peek`, not `take`: consuming it belongs to TripicianAIPage, so a failed
-          // navigation cannot silently eat the prompt.
-          // A ?next= wins over the generic home, but not over a TripicianAI prompt the
-          // visitor typed: that prompt IS the reason they signed in.
-          navigate(peekPendingPrompt() ? '/tripicianai' : nextFrom(location.search));
-        }, 1500);
-      } else {
-        setError('Unexpected response from server. Please try again.');
-      }
-    } catch (err: any) {
-      console.error('SignIn error:', err);
-      if (err.response?.status === 401) {
-        setError('Invalid email or password. Please try again.');
-      } else if (err.response?.status === 400) {
-        setError(err.response?.data?.message || 'Invalid signin data. Please check your information.');
-      } else if (err.response?.status >= 500) {
-        setError('Server error occurred. Please try again later.');
-      } else {
-        setError(err.response?.data?.message || 'An error occurred during sign in. Please try again.');
-      }
-    } finally {
-      setLoading(false);
+    const result = await signInWithPassword({ email: formData.email, password: formData.password }, dispatch);
+    setLoading(false);
+    if (result.status === 'signedIn') {
+      finishSignIn();
+    } else if (result.status === 'unverified') {
+      // Right password, but the sign-up code is still owed (the server has sent
+      // a fresh one): ask for it, then sign in with what was just typed.
+      setAskingForCode(true);
+    } else {
+      setError(result.error);
     }
+  };
+
+  const finishSignIn = () => {
+    setSuccess('Sign in successful! Redirecting to home...');
+    setFormData({ email: '', password: '' });
+
+    setTimeout(() => {
+      // A prompt typed on the landing hero is the reason this sign-in is
+      // happening. Take them to it rather than to the generic /home.
+      // `peek`, not `take`: consuming it belongs to TripicianAIPage, so a failed
+      // navigation cannot silently eat the prompt.
+      // A ?next= wins over the generic home, but not over a TripicianAI prompt the
+      // visitor typed: that prompt IS the reason they signed in.
+      navigate(peekPendingPrompt() ? '/tripicianai' : nextFrom(location.search));
+    }, 1500);
+  };
+
+  /** The code was accepted: sign in with the password still in the form. */
+  const signInAfterCode = async () => {
+    const result = await signInWithPassword({ email: formData.email, password: formData.password }, dispatch);
+    if (result.status === 'signedIn') {
+      setAskingForCode(false);
+      finishSignIn();
+      return;
+    }
+    // Still owing the code straight after it was accepted: the step shows its own
+    // "verified, but signing in failed" message.
+    throw new Error(result.status === 'failed' ? result.error : undefined);
   };
 
   const handleForgotPassword = () => {
@@ -247,6 +217,15 @@ const Signin = () => {
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ type: 'spring', stiffness: 300, damping: 28, delay: 0.15 }}
         >
+          {askingForCode ? (
+            <VerifyEmailStep
+              email={formData.email.trim()}
+              onVerified={signInAfterCode}
+              onBack={() => setAskingForCode(false)}
+              backLabel="Back to sign in"
+            />
+          ) : (
+          <>
           <motion.h1
             className="auth-card__heading"
             initial={{ opacity: 0, y: 12 }}
@@ -358,6 +337,8 @@ const Signin = () => {
               <span>Continue with Google</span>
             </motion.button>
           </motion.div>
+          </>
+          )}
         </motion.div>
       </motion.div>
     </div>
