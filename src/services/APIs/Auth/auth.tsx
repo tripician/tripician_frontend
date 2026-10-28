@@ -66,6 +66,15 @@ export const publicAPI = {
   signin: (credentials: SignInData) => apiClient.post('/auth/signin', credentials),
   // Forgot password - always returns success for security (even if email not found)
   forgotPassword: (email: string) => apiClient.post('/auth/forgot-password', { email }),
+  /**
+   * The 6-digit code from the sign-up email. Every email sign-up must enter one
+   * before it can sign in; this returns no tokens, so sign in follows.
+   */
+  verifyEmail: (email: string, code: string) =>
+    apiClient.post<{ success?: boolean; message?: string }>('/auth/verify-email', { email, code }),
+  /** Another sign-up code. Always answers the same, whether or not the email has an account waiting. */
+  resendVerification: (email: string) =>
+    apiClient.post<{ success?: boolean; message?: string }>('/auth/resend-verification', { email }),
   // Social / OAuth sign-in (Google via Auth0). The token is an Auth0 access token
   // for the API audience; the backend accepts either that or an id_token.
   socialCallback: (accessToken: string) => apiClient.post('/auth/social-callback', { AccessToken: accessToken }),
