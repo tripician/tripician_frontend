@@ -8,7 +8,7 @@
 import axios from 'axios';
 import { apiClient } from '../services/APIs/apiServices';
 import { uploadSignedAsset, UploadError } from '../utils/signedUpload';
-import { POST_LIMITS, PostRejectedError } from './types';
+import { PostRejectedError } from './types';
 import type {
   PostDraft, PostMediaInput, TravelerPost, PostTagCount, QuestionPage, QuestionSort, PostLiker,
 } from './types';
@@ -184,7 +184,6 @@ export const postsService = {
     const asset = await uploadSignedAsset({
       signUrl: '/api/posts/media/upload-url',
       file,
-      maxBytes: POST_LIMITS.maxPhotoBytes,
     });
     return { url: asset.url, publicId: asset.publicId };
   },

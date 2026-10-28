@@ -1,3 +1,4 @@
+import { uploadSignedPhoto, UploadError } from '../../utils/signedUpload';
 import React, { useState, useEffect, useRef } from "react";
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { apiServices } from '../../services/APIs/apiServices';
@@ -13,14 +14,25 @@ import {
   InputAdornment,
   CircularProgress,
   Autocomplete,
+  Tooltip,
 } from "@mui/material";
-import { LocationOn, Language, Email, Phone, Visibility, VisibilityOff, Save } from "@mui/icons-material";
+import { LocationOn, Language, Email, Phone, Visibility, VisibilityOff, Save, MyLocation, Close } from "@mui/icons-material";
+import { locateCurrentPlace, LocateError, type LocateFailure } from '../../utils/deviceLocation';
 import { COUNTRIES } from '../../utils/countryData';
 import { countryNameFromCode } from '../../utils/countryFlags';
 import CountryFlag from '../../components/ui/CountryFlag';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '../../store';
 import { fetchUserProfile, setUserProfile, type UserProfile } from '../../store/userSlice';
+
+/** What went wrong, in words, for each way the device lookup can fail. */
+const LOCATE_MESSAGES: Record<LocateFailure, string> = {
+  unsupported: "This browser can't share your location.",
+  denied: 'Location access is blocked. Allow it for this site in your browser settings, then try again.',
+  unavailable: "Your device couldn't find your location. Try again.",
+  timeout: 'Finding your location took too long. Try again.',
+  lookup: "We couldn't name that place. Try again in a moment.",
+};
 
 const ProfileSettings: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
@@ -36,7 +48,11 @@ const ProfileSettings: React.FC = () => {
     dreamPlace: '',
     from: ''
   });
+  // Never typed: set from the device's position with the person's permission,
+  // or cleared. See utils/deviceLocation.
   const [location, setLocation] = useState('');
+  const [locating, setLocating] = useState(false);
+  const [locateError, setLocateError] = useState<string | null>(null);
   /*
    * ISO alpha-2, not a name.
    *
@@ -136,7 +152,7 @@ const ProfileSettings: React.FC = () => {
             >
               {!profilePicture && (fname?.[0]?.toUpperCase() || 'U')}
             </Avatar>
-            {/* Hidden file picker - accepts jpg/png/webp up to 5 MB */}
+            {/* Hidden file picker - accepts jpg, png and webp */}
             <input
               ref={fileInputRef}
               type="file"
@@ -163,14 +179,6 @@ const ProfileSettings: React.FC = () => {
                   return;
                 }
 
-                if (file.size > 5 * 1024 * 1024) {
-                  console.log('[Upload] STOPPED: file too large');
-                  window.dispatchEvent(new CustomEvent('app:error', {
-                    detail: { message: 'Image is too large. Please upload a photo smaller than 5 MB.' }
-                  }));
-                  return;
-                }
-
                 setIsUploadingPhoto(true);
                 setError(null);
                 try {
@@ -179,24 +187,8 @@ const ProfileSettings: React.FC = () => {
                   const { data: uploadData } = await apiServices.getProfileUploadUrl(authToken, userId);
                   console.log('[Upload] got uploadData:', uploadData);
 
-                  // 2. Upload directly to Cloudinary using the signed params
-                  const formData = new FormData();
-                  formData.append('file', file);
-                  formData.append('api_key', uploadData.apiKey);
-                  formData.append('timestamp', String(uploadData.timestamp));
-                  formData.append('signature', uploadData.signature);
-                  formData.append('folder', uploadData.folder);
-                  formData.append('public_id', uploadData.public_id);
-                  // Note: do NOT append 'overwrite' here unless it is included
-
-                  const cloudRes = await fetch(uploadData.uploadUrl, {
-                    method: 'POST',
-                    body: formData,
-                  });
-                  if (!cloudRes.ok) {
-                    const errBody = await cloudRes.text();
-                    throw new Error(`Cloudinary upload failed: ${errBody}`);
-                  }
+                  // 2. Send the photo through our server, which stores it
+                  await uploadSignedPhoto(uploadData, file);
 
                   // 3. Persist the URL to DB (non-fatal - endpoint may not exist yet)
                   const newUrl = `${uploadData.fileUrl}?v=${uploadData.timestamp}`;
@@ -221,8 +213,7 @@ const ProfileSettings: React.FC = () => {
                   window.dispatchEvent(new CustomEvent('app:success', { detail: { message: 'Profile photo updated' } }));
                 } catch (err: any) {
                   console.error('[Upload] FAILED:', err?.response?.status, err?.response?.data, err?.message);
-                  setError('Failed to upload photo. Please try again.');
-                  window.dispatchEvent(new CustomEvent('app:error', { detail: { message: 'Photo upload failed' } }));
+                  setError(err instanceof UploadError ? err.message : 'Failed to upload photo. Please try again.');
                 } finally {
                   setIsUploadingPhoto(false);
                 }
@@ -279,7 +270,7 @@ const ProfileSettings: React.FC = () => {
             </Box>
           </Box>
           <Typography variant="body2" sx={{ color: "text.secondary", mt: 2, fontSize: "0.875rem" }}>
-            Recommended: Square image, at least 400×400px · Max 5 MB (JPG, PNG, WebP)
+            Recommended: Square image, at least 400×400px (JPG, PNG, WebP)
           </Typography>
         </CardContent>
       </Card>
@@ -302,22 +293,10 @@ const ProfileSettings: React.FC = () => {
               if (!file || !authToken) return;
               const userId = currentProfile?.id;
               if (!userId) return;
-              if (file.size > 8 * 1024 * 1024) {
-                window.dispatchEvent(new CustomEvent('app:error', { detail: { message: 'Cover image must be under 8 MB.' } }));
-                return;
-              }
               setIsUploadingCover(true);
               try {
                 const { data: uploadData } = await apiServices.getCoverUploadUrl(authToken, String(userId));
-                const formData = new FormData();
-                formData.append('file', file);
-                formData.append('api_key', uploadData.apiKey);
-                formData.append('timestamp', String(uploadData.timestamp));
-                formData.append('signature', uploadData.signature);
-                formData.append('folder', uploadData.folder);
-                formData.append('public_id', uploadData.public_id);
-                const cloudRes = await fetch(uploadData.uploadUrl, { method: 'POST', body: formData });
-                if (!cloudRes.ok) throw new Error('Cloudinary upload failed');
+                await uploadSignedPhoto(uploadData, file);
                 const newUrl = `${uploadData.fileUrl}?v=${uploadData.timestamp}`;
                 await apiServices.saveCoverPictureUrl(authToken, uploadData.fileUrl);
                 setCoverPicture(newUrl);
@@ -325,8 +304,8 @@ const ProfileSettings: React.FC = () => {
                 dispatch(setUserProfile(optimisticProfile));
                 await dispatch(fetchUserProfile({ force: true } as any)).unwrap().catch(() => {});
                 window.dispatchEvent(new CustomEvent('app:success', { detail: { message: 'Cover photo updated' } }));
-              } catch {
-                window.dispatchEvent(new CustomEvent('app:error', { detail: { message: 'Cover photo upload failed' } }));
+              } catch (err) {
+                setError(err instanceof UploadError ? err.message : 'Cover photo upload failed');
               } finally {
                 setIsUploadingCover(false);
               }
@@ -381,7 +360,7 @@ const ProfileSettings: React.FC = () => {
             )}
           </Box>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 2, fontSize: '0.875rem' }}>
-            Recommended: 1500×500px landscape image · Max 8 MB (JPG, PNG, WebP)
+            Recommended: 1500×500px landscape image (JPG, PNG, WebP)
           </Typography>
         </CardContent>
       </Card>
@@ -483,14 +462,53 @@ const ProfileSettings: React.FC = () => {
           />
 
           <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
-            <TextField 
-              fullWidth 
-              label="Current Location" 
+            <TextField
+              fullWidth
+              label="Current Location"
               value={location}
-              onChange={e=> setLocation(e.target.value)}
               size="small"
               disabled={loading}
-              InputProps={{ startAdornment: (<InputAdornment position="start"><LocationOn sx={{ color: "text.secondary", fontSize: 20 }} /></InputAdornment>) }}
+              error={!!locateError}
+              helperText={locateError ?? 'Set from your device, with your permission. Save to keep it.'}
+              InputProps={{
+                readOnly: true,
+                startAdornment: (<InputAdornment position="start"><LocationOn sx={{ color: "text.secondary", fontSize: 20 }} /></InputAdornment>),
+                endAdornment: (
+                  <InputAdornment position="end">
+                    {location && !locating && (
+                      <Tooltip title="Clear location">
+                        <IconButton size="small" aria-label="Clear location" onClick={() => { setLocation(''); setLocateError(null); }}>
+                          <Close sx={{ fontSize: 18 }} />
+                        </IconButton>
+                      </Tooltip>
+                    )}
+                    <Tooltip title={location ? 'Update from my location' : 'Use my location'}>
+                      {/* span: a disabled button fires no events, so the tooltip needs a live parent. */}
+                      <span>
+                        <IconButton
+                          size="small"
+                          aria-label="Use my current location"
+                          disabled={loading || locating}
+                          onClick={async () => {
+                            setLocating(true);
+                            setLocateError(null);
+                            try {
+                              setLocation(await locateCurrentPlace());
+                            } catch (err) {
+                              setLocateError(LOCATE_MESSAGES[err instanceof LocateError ? err.reason : 'lookup']);
+                            } finally {
+                              setLocating(false);
+                            }
+                          }}
+                          sx={{ color: 'primary.main' }}
+                        >
+                          {locating ? <CircularProgress size={16} /> : <MyLocation sx={{ fontSize: 18 }} />}
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  </InputAdornment>
+                ),
+              }}
               sx={{"& .MuiOutlinedInput-root": { borderRadius: 1.5 }}}
             />
             <Autocomplete

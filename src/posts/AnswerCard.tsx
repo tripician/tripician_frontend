@@ -8,6 +8,7 @@ import { formatRelativeTime, formatAbsoluteDateTime } from '../utils/relativeTim
 import { useRequireAuth } from '../auth/AuthGate';
 import VoteControl from './VoteControl';
 import PhotoMosaic from '../components/ui/PhotoMosaic';
+import VerifiedProfileMark from '../components/ui/VerifiedProfileMark';
 import { postsService } from './postsService';
 import type { TravelerPost } from './types';
 
@@ -111,6 +112,7 @@ const AnswerCard: React.FC<AnswerCardProps> = ({ answer, onRemoved, onAccepted }
                 </Box>
               </Tooltip>
             )}
+            <VerifiedProfileMark verified={!!answer.authorProfileVerifiedAt} verifiedAt={answer.authorProfileVerifiedAt} />
           </Typography>
 
           <Tooltip title={formatAbsoluteDateTime(answer.createdAt)} arrow>

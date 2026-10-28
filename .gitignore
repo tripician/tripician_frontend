@@ -141,3 +141,6 @@ vite.config.ts.timestamp-*
 .env.local
 .env.development
 .env.production
+
+# Visual Studio local cache (Copilot indices, editor state)
+.vs/

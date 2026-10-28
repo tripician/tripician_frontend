@@ -31,6 +31,8 @@ interface UserProfile {
   joinedAt?: string;
   /** ISO date, or absent when the traveller has not verified. */
   identityVerifiedAt?: string;
+  /** ISO date, or absent. Separate from identityVerifiedAt - see VerifiedProfileMark. */
+  profileVerifiedAt?: string;
 }
 
 interface UserState {
@@ -88,6 +90,7 @@ const normalizeProfile = (raw: any, previous: UserProfile | null = null): UserPr
     website: previous?.website,
     joinedAt: previous?.joinedAt,
     identityVerifiedAt: previous?.identityVerifiedAt,
+    profileVerifiedAt: previous?.profileVerifiedAt,
   };
 
   const assign = (field: keyof UserProfile, keys: string[]) => {
@@ -119,6 +122,7 @@ const normalizeProfile = (raw: any, previous: UserProfile | null = null): UserPr
   assign('website', ['website', 'Website', 'site', 'Site']);
   assign('joinedAt', ['joinedAt', 'JoinedAt', 'createdAt', 'CreatedAt']);
   assign('identityVerifiedAt', ['identityVerifiedAt', 'IdentityVerifiedAt']);
+  assign('profileVerifiedAt', ['profileVerifiedAt', 'ProfileVerifiedAt']);
 
   return base;
 };

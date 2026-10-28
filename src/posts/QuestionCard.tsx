@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { IconCircleCheckFilled, IconMessageCircle2, IconRosetteDiscountCheckFilled } from '@tabler/icons-react';
 import { formatRelativeTime, formatAbsoluteDateTime } from '../utils/relativeTime';
 import CardTypeTag from '../components/ui/CardTypeTag';
+import VerifiedProfileMark from '../components/ui/VerifiedProfileMark';
 import type { TravelerPost } from './types';
 
 interface QuestionCardProps {
@@ -123,6 +124,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, onTagClick }) => 
               </Box>
             </Tooltip>
           )}
+          <VerifiedProfileMark verified={!!question.authorProfileVerifiedAt} verifiedAt={question.authorProfileVerifiedAt} />
         </Typography>
 
         {/* Relative on the face, exact in the tooltip. The pairing the trip cards

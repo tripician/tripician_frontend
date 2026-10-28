@@ -1021,7 +1021,21 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
         transformOrigin={{ vertical: 'top', horizontal: 'right' }}
         PaperProps={{ sx: { mt: 1.5, width: 280 } }}
       >
-        <Box sx={{ px: 2.5, pt: 2.5, pb: 2, textAlign: 'center' }}>
+        {/* The whole identity block is the way to your own profile, the same as
+            tapping your own face anywhere else. */}
+        <ButtonBase
+          onClick={() => { navigate('/profile'); setAnchorEl(null); }}
+          aria-label="View your profile"
+          sx={{
+            display: 'block',
+            width: '100%',
+            px: 2.5,
+            pt: 2.5,
+            pb: 2,
+            textAlign: 'center',
+            '&:hover': { bgcolor: 'action.hover' },
+          }}
+        >
           <Avatar src={profile?.profilepicture || undefined} sx={{ width: 56, height: 56, mx: 'auto', mb: 1, bgcolor: 'primary.main' }}>
             {!profile?.profilepicture && initials}
           </Avatar>
@@ -1031,7 +1045,7 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
           <Typography sx={{ fontSize: '0.73rem', color: 'text.disabled' }} noWrap>
             {profile?.email}
           </Typography>
-        </Box>
+        </ButtonBase>
         <Divider sx={{ mx: 2 }} />
         <List dense disablePadding sx={{ py: 1, px: 1 }}>
           {/* Shown to everyone. Hiding it until you already had one was the reason a
