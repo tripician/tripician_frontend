@@ -12,6 +12,7 @@ import { nextFrom, withNext } from '../../services/APIs/Auth/nextDestination';
 import { peekPendingPrompt } from '../../utils/pendingTripicianAIPrompt';
 import { signInWithPassword } from './passwordSignIn';
 import VerifyEmailStep from './VerifyEmailStep';
+import { emailTakenFrom, type SignInMethod } from './emailTaken';
 import { fadeInLeft, fadeInRight, staggerContainer, staggerItem } from '../../utils/animations';
 import { validateSignupEmail } from '../../utils/emailValidation';
 import Seo from '../../components/Seo';
@@ -48,6 +49,8 @@ const Signup = () => {
     const dispatch = useDispatch<AppDispatch>();
     /** True once the account exists and its emailed code is being asked for. */
     const [askingForCode, setAskingForCode] = useState(false);
+    /** How the account that already has this email signs in, when sign-up said so. */
+    const [emailTakenWith, setEmailTakenWith] = useState<SignInMethod | null>(null);
 
     const handleClickShowPassword = () => setShowPassword(v => !v);
     const handleMouseDownPassword = (event: React.MouseEvent<HTMLButtonElement>) => {
@@ -64,6 +67,7 @@ const Signup = () => {
       }));
       if (error) {
         setError('');
+        setEmailTakenWith(null);
       }
     };
 
@@ -94,6 +98,7 @@ const Signup = () => {
 
       setLoading(true);
       setError('');
+      setEmailTakenWith(null);
       setSuccess('');
 
       try {
@@ -119,7 +124,15 @@ const Signup = () => {
           navigate(withNext('/signin', new URLSearchParams(location.search).get('next')));
         }, 2000);
       } catch (err: any) {
-        console.error('Signup error:', err);
+        // Status only: the error's request config holds the password.
+        console.error('Signup error:', err?.response?.status ?? err?.message);
+        // The email already has an account: say how it signs in and offer that.
+        const taken = emailTakenFrom(err);
+        if (taken) {
+          setEmailTakenWith(taken.signInWith);
+          setError(taken.message);
+          return;
+        }
         const errData = err.response?.data;
         const errMsg = typeof errData === 'string' ? errData
           : errData?.message || errData?.title || errData?.error
@@ -144,6 +157,13 @@ const Signup = () => {
       // As on the sign-in page: a TripicianAI prompt typed on the landing hero
       // wins, then a ?next= carried here, then home.
       navigate(peekPendingPrompt() ? '/tripicianai' : nextFrom(location.search));
+    };
+
+    /** To sign-in with the email already typed, keeping any ?next= this page was given. */
+    const goToSignIn = () => {
+      navigate(withNext('/signin', new URLSearchParams(location.search).get('next')), {
+        state: { email: formData.email.trim() },
+      });
     };
 
     const handleGoogleSignUp = () => {
@@ -246,7 +266,21 @@ const Signup = () => {
             transition={{ delay: 0.35, duration: 0.4 }}
           >Free to join. Start from someone else&apos;s trip.</motion.p>
 
-          {error && <div className="auth-alert auth-alert--error">{error}</div>}
+          {error && (
+            <div className="auth-alert auth-alert--error" role="alert">
+              {error}
+              {emailTakenWith === 'google' && (
+                <button type="button" className="auth-link-btn auth-alert__action" onClick={handleGoogleSignUp}>
+                  Continue with Google
+                </button>
+              )}
+              {emailTakenWith === 'password' && (
+                <button type="button" className="auth-link-btn auth-alert__action" onClick={goToSignIn}>
+                  Go to sign in
+                </button>
+              )}
+            </div>
+          )}
           {success && <div className="auth-alert auth-alert--success">{success}</div>}
 
           <motion.form

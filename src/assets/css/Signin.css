@@ -886,3 +886,12 @@
   color: #9a9a9a;
   cursor: default;
 }
+
+/* The way in that an error offers, such as Continue with Google; its own line, darker for contrast. */
+.auth-alert__action {
+  display: block;
+  margin-top: 6px;
+  color: #b91c1c;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
