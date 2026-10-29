@@ -77,6 +77,18 @@ const Footer: React.FC<FooterProps> = ({ fixed = false }) => {
               Privacy Policy
             </Link>
             <Link
+              href="/child-safety-standards"
+              sx={{
+                color: 'text.primary',
+                textDecoration: 'none',
+                fontSize: '0.9rem',
+                '&:hover': { textDecoration: 'underline', color: 'primary.main' },
+                transition: 'color 0.2s ease',
+              }}
+            >
+              Child Safety
+            </Link>
+            <Link
               href="/for-operators"
               sx={{
                 color: 'text.primary',
