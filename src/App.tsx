@@ -8,6 +8,7 @@ import TermsPage from './pages/InfoPages/TermsPage';
 import PrivacyPage from './pages/InfoPages/PrivacyPage';
 import AboutPage from './pages/InfoPages/AboutPage';
 import ForOperatorsPage from './pages/InfoPages/ForOperatorsPage';
+import ChildSafetyPage from './pages/InfoPages/ChildSafetyPage';
 import BlogsList from './pages/BlogsPage/BlogsList';
 import BlogPost from './pages/BlogsPage/BlogPost';
 import { useAuthToken } from './hooks/useAuth0Token';
@@ -190,6 +191,7 @@ function App() {
           {/* Info pages */}
           <Route path="/terms-and-conditions" element={<TermsPage />} />
           <Route path="/privacy-policy" element={<PrivacyPage />} />
+          <Route path="/child-safety-standards" element={<ChildSafetyPage />} />
           <Route path="/get-help" element={<HelpPage />} />
           <Route path="/contact-us" element={<ContactPage />} />
           <Route path="/about-us" element={<AboutPage />} />

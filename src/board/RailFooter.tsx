@@ -9,6 +9,7 @@ const LINKS: Array<[string, string]> = [
   ['For operators', '/for-operators'],
   ['Privacy', '/privacy-policy'],
   ['Terms', '/terms-and-conditions'],
+  ['Child safety', '/child-safety-standards'],
   ['Contact', '/contact-us'],
 ];
 

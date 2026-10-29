@@ -1038,6 +1038,7 @@ export default function LandingPage() {
               <h4>Legal</h4>
               <a href="/privacy-policy">Privacy Policy</a>
               <a href="/terms-and-conditions">Terms &amp; Conditions</a>
+              <a href="/child-safety-standards">Child Safety Standards</a>
             </div>
           </div>
         </div>
