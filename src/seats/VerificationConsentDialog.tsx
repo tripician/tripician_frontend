@@ -12,6 +12,14 @@ const PARAGRAPHS = [
   'Verifying is optional. You can use Tripician without it, though asking to join, or listing, a public trip may need it.',
 ];
 
+/**
+ * What verifying earns. Both halves are real: the badge comes only from this check, and
+ * suggestions put verified people first (UserSuggestionService). Kept in step with the app's
+ * identity screen.
+ */
+const VERIFY_BENEFIT =
+  'Verified travellers get the Verified badge on their profile and are shown first when Tripician suggests people to follow and travel with. Every verified profile helps keep Tripician a place of real people.';
+
 const CONSENT_LABEL =
   'I agree to Didit collecting and using my ID document and biometric face data to verify my identity, as described above.';
 
@@ -44,6 +52,10 @@ const VerificationConsentDialog: React.FC<Props> = ({ open, onAgree, onClose }) 
     <Dialog open={open} onClose={onClose} maxWidth="xs" fullWidth onClick={(e) => e.stopPropagation()}>
       <DialogTitle sx={{ fontWeight: 700 }}>Before you verify your identity</DialogTitle>
       <DialogContent>
+        {/* Why it is worth two minutes, before the notice the law asks for. */}
+        <Typography variant="body2" sx={{ color: 'text.primary', fontWeight: 600, mb: 1.5 }}>
+          {VERIFY_BENEFIT}
+        </Typography>
         {PARAGRAPHS.map((text) => (
           <Typography key={text} variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
             {text}

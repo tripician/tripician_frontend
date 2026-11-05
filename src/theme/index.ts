@@ -149,6 +149,11 @@ export const BRAND = {
   coralDeep: '#D91A50',
   /** = palette primary.light. Named here so call sites stop writing the hex. */
   coralLight: '#FF8A9F',
+  /**
+   * The red of the T in the Tripician logo, measured from the logo file. For marks that sit
+   * on the logo itself (the PRO badge) and must read as part of it; everything else stays coral.
+   */
+  logoRed: '#FB0205',
   gradient: 'linear-gradient(135deg, #FF385C 0%, #D91A50 100%)',
   gradientHover: 'linear-gradient(135deg, #E31C5F 0%, #B01550 100%)',
 } as const;
