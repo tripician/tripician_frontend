@@ -50,6 +50,7 @@ const PrivacyPage: React.FC = () => {
           <P><strong>Usage Data:</strong> Information about how you interact with the Service, such as features used, pages visited, session timestamps, and error events.</P>
           <P><strong>Technical Data:</strong> Your IP address, browser type and version, operating system, device type, and referring URL, collected automatically when you access the Service.</P>
           <P><strong>Authentication Data:</strong> Login sessions and authentication tokens managed by Auth0, Inc. We do not store your raw password at any point.</P>
+          <P><strong>Identity Verification (optional):</strong> If you choose to verify your identity, the check is run by our verification provider, Didit. You photograph an official ID document and take a selfie, and Didit compares your face with the photo on the ID. That comparison uses biometric data: a map of your facial features taken from those images. Didit collects and holds the ID images, the selfie and liveness capture, the details read from your document and the biometric data. Tripician keeps only the outcome of the check (for example approved or declined) and when it happened. Didit's message to us about the outcome can include details read from your document; we use it only to record the outcome and do not store it.</P>
           <P><strong>Security &amp; Accountability Logs:</strong> Each time you sign in, we record the time, your IP address, and coarse device information (device type, operating system, and browser family). We also measure aggregate time spent using the Service, including time spent in the trip planner, to keep accounts secure, investigate abuse, and understand feature engagement. These logs are visible only to authorised administrators.</P>
         </>
       ),
@@ -64,6 +65,7 @@ const PrivacyPage: React.FC = () => {
             <><strong>Performance of Contract (Art. 6(1)(b)):</strong> Processing necessary to provide the Service you requested, including account management and trip storage.</>,
             <><strong>Legitimate Interests (Art. 6(1)(f)):</strong> Improving and securing the Service, fraud prevention, and understanding feature engagement. We always balance these interests against your rights.</>,
             <><strong>Consent (Art. 6(1)(a)):</strong> Where you have given explicit consent, such as for marketing communications. You may withdraw consent at any time by contacting us.</>,
+            <><strong>Explicit Consent for Biometric Data (Art. 9(2)(a)):</strong> The optional identity check processes biometric data only after you agree to it on the screen that starts the check. You may withdraw that consent at any time; doing so does not affect checks already completed.</>,
             <><strong>Legal Obligation (Art. 6(1)(c)):</strong> Where we are required to process data to comply with applicable law.</>,
           ]} />
         </>
@@ -79,6 +81,7 @@ const PrivacyPage: React.FC = () => {
             'Create, maintain, and manage your account',
             'Store, process, and deliver your trip plans and itineraries',
             'Authenticate you securely via Auth0',
+            'Run the optional identity check and show the Verified badge on your profile when it passes',
             'Detect and prevent fraud, abuse, and security incidents',
             'Monitor and improve Service performance and reliability',
             'Respond to your support and data requests',
@@ -98,8 +101,9 @@ const PrivacyPage: React.FC = () => {
           <P>We share data with trusted third-party processors solely to operate the Service:</P>
           <Ul items={[
             <><strong>Auth0, Inc.</strong> - manages user authentication. Your email and authentication credentials are processed under Auth0's Privacy Policy and a Data Processing Agreement.</>,
-            <><strong>Groq, Inc.</strong> - runs the AI model behind TripicianAI. When you ask TripicianAI to plan, suggest or proof-read something, the text of your request and the parts of the trip it needs are sent to Groq so it can generate a reply.</>,
+            <><strong>Groq, Inc.</strong> - runs the AI model behind Tripician Intelligence. When you ask Tripician Intelligence to plan, suggest or proof-read something, the text of your request and the parts of the trip it needs are sent to Groq so it can generate a reply.</>,
             <><strong>Cloudinary Ltd.</strong> - stores and serves the images you upload: profile and cover pictures, photographs on posts and after stories, and group logos.</>,
+            <><strong>Didit Identity Spain, S.L.</strong> and <strong>Didit Identity, Inc.</strong> - run the optional identity check. Didit collects your ID document images, your selfie and liveness capture, and the biometric data used to compare them, processes them on our behalf to confirm your identity, and tells us the outcome. Didit does not sell biometric data. See Didit's <Box component="a" href="https://didit.me/terms/verification-privacy-notice" target="_blank" rel="noopener noreferrer" sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500 }}>verification privacy notice</Box> and <Box component="a" href="https://didit.me/terms/biometric-data-policy" target="_blank" rel="noopener noreferrer" sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500 }}>biometric data policy</Box>.</>,
             <><strong>Razorpay Software Private Limited</strong> - processes payments for subscriptions and credit purchases. Card details are entered on Razorpay's own checkout and are never seen or stored by Tripician.</>,
             <><strong>Google LLC</strong> - provides place search and map data. When you search for a place while planning, the text of that search is sent to Google Places.</>,
             <><strong>Unsplash Inc.</strong> and <strong>Pexels</strong> - provide destination photographs via their APIs. No personal data is shared with either. Image URLs are cached in your browser's local storage for performance only.</>,
@@ -120,6 +124,7 @@ const PrivacyPage: React.FC = () => {
             'Encrypted backups: Residual copies in encrypted backups are purged within 90 days of the deletion date.',
             'Usage logs: Anonymised and aggregated usage statistics may be retained for up to 24 months for security and service improvement.',
             'Sign-in and session activity logs: retained for up to 12 months, then automatically deleted.',
+            'Identity verification: we keep the outcome of your check and its date while your account exists. Didit deletes the ID images, selfie and biometric data once the check has served its purpose or our retention setting ends, and in any case by the deadlines in its biometric data policy (for example 3 years after your last check in Illinois, 24 months in Colorado and 12 months in Texas). To have them deleted sooner, contact us or Didit at privacy@didit.me.',
           ]} />
         </>
       ),
@@ -231,7 +236,7 @@ const PrivacyPage: React.FC = () => {
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, mt: 3, flexWrap: 'wrap' }}>
             <Box sx={{ background: alpha(BRAND.coral, 0.08), borderRadius: '20px', px: 2, py: 0.75, border: `1px solid ${alpha(BRAND.coral, 0.15)}` }}>
-              <Typography sx={{ fontSize: '0.78rem', color: 'primary.main', fontWeight: 600 }}>Last updated: September 24, 2026</Typography>
+              <Typography sx={{ fontSize: '0.78rem', color: 'primary.main', fontWeight: 600 }}>Last updated: November 6, 2026</Typography>
             </Box>
             <Box sx={{ background: 'rgba(0,0,0,0.04)', borderRadius: '20px', px: 2, py: 0.75, border: '1px solid rgba(0,0,0,0.08)' }}>
               <Typography sx={{ fontSize: '0.78rem', color: '#555', fontWeight: 500 }}>GDPR · UK GDPR · CCPA/CPRA</Typography>

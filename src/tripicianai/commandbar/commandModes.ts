@@ -30,7 +30,7 @@ export const COMMAND_MODES: Record<CommandMode, CommandModeSpec> = {
     Icon: TripicianAIOrb,
     acceptsImages: true,
     cost: null,
-    contract: () => 'TripicianAI decides · nothing runs yet',
+    contract: () => 'Tripician Intelligence decides · nothing runs yet',
   },
   plan: {
     id: 'plan',

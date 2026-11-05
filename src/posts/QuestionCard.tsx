@@ -1,7 +1,7 @@
 import React from 'react';
 import { Avatar, Box, Tooltip, Typography, useTheme } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
-import { IconCircleCheckFilled, IconMessageCircle2, IconRosetteDiscountCheckFilled } from '@tabler/icons-react';
+import { IconCircleCheckFilled, IconMessageCircle2 } from '@tabler/icons-react';
 import { formatRelativeTime, formatAbsoluteDateTime } from '../utils/relativeTime';
 import CardTypeTag from '../components/ui/CardTypeTag';
 import VerifiedProfileMark from '../components/ui/VerifiedProfileMark';
@@ -117,14 +117,7 @@ const QuestionCard: React.FC<QuestionCardProps> = ({ question, onTagClick }) => 
 
         <Typography variant="caption" sx={{ color: 'text.secondary', display: 'inline-flex', alignItems: 'center', gap: 0.35 }}>
           {question.authorName}
-          {question.authorIdentityVerified && (
-            <Tooltip title="Identity verified" arrow>
-              <Box component="span" sx={{ display: 'inline-flex', color: '#0EA5E9' }}>
-                <IconRosetteDiscountCheckFilled size={13} />
-              </Box>
-            </Tooltip>
-          )}
-          <VerifiedProfileMark verified={!!question.authorProfileVerifiedAt} verifiedAt={question.authorProfileVerifiedAt} />
+          <VerifiedProfileMark verified={question.authorIdentityVerified} verifiedAt={question.authorProfileVerifiedAt} />
         </Typography>
 
         {/* Relative on the face, exact in the tooltip. The pairing the trip cards

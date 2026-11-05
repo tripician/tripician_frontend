@@ -233,11 +233,11 @@ const GroupTripsPanel: React.FC<GroupTripsPanelProps> = ({ organization, trips, 
       {plans && (
         <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5, flexWrap: 'wrap', mb: 2 }}>
           {credits ? (
-            <Tooltip title={`When a plan in this group runs out of its own TripicianAI credits, it draws on these.${credits.monthlyCredits > 0 ? ` ${credits.monthlyCredits.toLocaleString('en-IN')} are added each month.` : ''}`}>
+            <Tooltip title={`When a plan in this group runs out of its own Tripician Intelligence credits, it draws on these.${credits.monthlyCredits > 0 ? ` ${credits.monthlyCredits.toLocaleString('en-IN')} are added each month.` : ''}`}>
               <Chip
                 icon={<TripicianAIOrb size={16} />}
                 variant="outlined"
-                label={`${credits.balance.toLocaleString('en-IN')} shared TripicianAI credits`}
+                label={`${credits.balance.toLocaleString('en-IN')} shared Tripician Intelligence credits`}
                 sx={{ fontWeight: 700 }}
               />
             </Tooltip>

@@ -76,8 +76,10 @@ const CreditsSettings: React.FC = () => {
             <Typography sx={sectionTitleSx}>Personal wallet</Typography>
           </Box>
           <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', mb: 3, maxWidth: 520 }}>
-            Credits power every conversation with TripicianAI. Each trip has its own shared credits the whole
-            group plans from; when those run out, yours cover what you ask for on that trip.
+            Credits power every conversation with Tripician Intelligence. Each trip has its own shared credits the whole
+            group plans from; when those run out, yours cover what you ask for on that trip. Free and plan
+            credits reset at the start of each month, so what you leave unused does not carry over. Credits you
+            buy never expire.
           </Typography>
 
           {loading && (
@@ -151,7 +153,7 @@ const CreditsSettings: React.FC = () => {
         <CardContent sx={{ p: 3 }}>
           <Typography sx={{ ...sectionTitleSx, mb: 0.5 }}>What a credit buys</Typography>
           <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', mb: 2.5 }}>
-            Simple, fixed prices, you always know the cost before TripicianAI gets to work.
+            Simple, fixed prices, you always know the cost before Tripician Intelligence gets to work.
           </Typography>
 
           <Box sx={{ display: 'flex', flexDirection: 'column' }}>
@@ -190,7 +192,7 @@ const CreditsSettings: React.FC = () => {
 
           <Typography sx={{ fontSize: '0.75rem', color: 'text.disabled', mt: 2 }}>
             Trip-wallet actions spend from the trip's shared balance, check it any time from the coin
-            chip in that trip's chat panel. If TripicianAI ever fails to answer, the credits come straight back.
+            chip in that trip's chat panel. If Tripician Intelligence ever fails to answer, the credits come straight back.
           </Typography>
         </CardContent>
       </Card>
@@ -211,7 +213,7 @@ const CreditsSettings: React.FC = () => {
 
           {!loading && !error && (history?.entries?.length ?? 0) === 0 && (
             <Typography sx={{ fontSize: '0.82rem', color: 'text.disabled', py: 1 }}>
-              Nothing yet, say hello to TripicianAI and your first entry will appear here.
+              Nothing yet, say hello to Tripician Intelligence and your first entry will appear here.
             </Typography>
           )}
 

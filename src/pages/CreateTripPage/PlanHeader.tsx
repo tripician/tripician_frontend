@@ -95,7 +95,7 @@ const PlanHeader: React.FC<PlanHeaderProps> = ({
         </Tooltip>
         {stopCount === 0 && canEdit && (
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.25 }}>
-            Add your first stop below, or let TripicianAI plan it for you.
+            Add your first stop below, or let Tripician Intelligence plan it for you.
           </Typography>
         )}
       </Box>

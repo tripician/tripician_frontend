@@ -2,7 +2,7 @@ import React from 'react';
 import { Avatar, Box, IconButton, Tooltip, Typography, useTheme } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
-  IconCircleCheck, IconCircleCheckFilled, IconRosetteDiscountCheckFilled, IconTrash,
+  IconCircleCheck, IconCircleCheckFilled, IconTrash,
 } from '@tabler/icons-react';
 import { formatRelativeTime, formatAbsoluteDateTime } from '../utils/relativeTime';
 import { useRequireAuth } from '../auth/AuthGate';
@@ -105,14 +105,7 @@ const AnswerCard: React.FC<AnswerCardProps> = ({ answer, onRemoved, onAccepted }
 
           <Typography variant="caption" sx={{ fontWeight: 700, color: 'text.primary', display: 'inline-flex', alignItems: 'center', gap: 0.3 }}>
             {answer.authorName}
-            {answer.authorIdentityVerified && (
-              <Tooltip title="Identity verified" arrow>
-                <Box component="span" sx={{ display: 'inline-flex', color: '#0EA5E9' }}>
-                  <IconRosetteDiscountCheckFilled size={13} />
-                </Box>
-              </Tooltip>
-            )}
-            <VerifiedProfileMark verified={!!answer.authorProfileVerifiedAt} verifiedAt={answer.authorProfileVerifiedAt} />
+            <VerifiedProfileMark verified={answer.authorIdentityVerified} verifiedAt={answer.authorProfileVerifiedAt} />
           </Typography>
 
           <Tooltip title={formatAbsoluteDateTime(answer.createdAt)} arrow>

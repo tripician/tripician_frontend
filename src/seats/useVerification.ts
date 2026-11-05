@@ -1,6 +1,7 @@
 import React from 'react';
 import { apiServices } from '../services/APIs/apiServices';
 import { useAuthToken } from '../hooks/useAuth0Token';
+import VerificationConsentDialog from './VerificationConsentDialog';
 
 export interface VerificationState {
   verified: boolean;
@@ -30,7 +31,9 @@ export function useVerification() {
     return () => { active = false; };
   }, [token]);
 
-  const start = React.useCallback(async () => {
+  const [consentOpen, setConsentOpen] = React.useState(false);
+
+  const begin = React.useCallback(async () => {
     if (!token || starting) return;
     setStarting(true);
     try {
@@ -41,10 +44,27 @@ export function useVerification() {
     }
   }, [token, starting]);
 
+  /** Shows the biometric notice first; the check itself starts only once they agree. */
+  const start = React.useCallback(async () => {
+    if (!token || starting) return;
+    setConsentOpen(true);
+  }, [token, starting]);
+
+  // Render this wherever `start` is offered.
+  const consentDialog = React.createElement(VerificationConsentDialog, {
+    open: consentOpen,
+    onClose: () => setConsentOpen(false),
+    onAgree: () => {
+      setConsentOpen(false);
+      void begin();
+    },
+  });
+
   return {
     state,
     starting,
     blocked: Boolean(state?.gateEnabled && !state.verified),
     start,
+    consentDialog,
   };
 }

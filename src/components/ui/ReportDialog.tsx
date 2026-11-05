@@ -11,10 +11,14 @@ const REASONS = [
   { value: 'other', label: 'Something else' },
 ] as const;
 
+export type ReportReasonOption = { value: string; label: string };
+
 interface ReportDialogProps {
   open: boolean;
   /** "story", "post": named in the title. */
   noun: string;
+  /** The choices offered; the first is preselected. Defaults to the set for published content. */
+  reasons?: ReadonlyArray<ReportReasonOption>;
   onSubmit: (reason: string, detail?: string) => Promise<void>;
   onClose: () => void;
   fieldSx?: object;
@@ -23,8 +27,9 @@ interface ReportDialogProps {
 }
 
 // Reporting anything people publish. Closes on a thank-you and never reports the outcome back, so moderation state cannot be probed.
-const ReportDialog: React.FC<ReportDialogProps> = ({ open, noun, onSubmit, onClose, fieldSx, titleSx }) => {
-  const [reason, setReason] = React.useState<string>('spam');
+const ReportDialog: React.FC<ReportDialogProps> = ({ open, noun, reasons = REASONS, onSubmit, onClose, fieldSx, titleSx }) => {
+  const firstReason = reasons[0]?.value ?? 'other';
+  const [reason, setReason] = React.useState<string>(firstReason);
   const [detail, setDetail] = React.useState('');
   const [busy, setBusy] = React.useState(false);
   const [sent, setSent] = React.useState(false);
@@ -32,11 +37,11 @@ const ReportDialog: React.FC<ReportDialogProps> = ({ open, noun, onSubmit, onClo
 
   React.useEffect(() => {
     if (!open) return;
-    setReason('spam');
+    setReason(firstReason);
     setDetail('');
     setSent(false);
     setError(null);
-  }, [open]);
+  }, [open, firstReason]);
 
   const submit = async () => {
     setBusy(true);
@@ -69,7 +74,7 @@ const ReportDialog: React.FC<ReportDialogProps> = ({ open, noun, onSubmit, onClo
               What is wrong with it?
             </Typography>
             <RadioGroup value={reason} onChange={(e) => setReason(e.target.value)}>
-              {REASONS.map((r) => (
+              {reasons.map((r) => (
                 <FormControlLabel
                   key={r.value}
                   value={r.value}

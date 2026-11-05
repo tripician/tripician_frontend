@@ -42,7 +42,7 @@ import { formatRelativeTime, formatAbsoluteDateTime } from '../../utils/relative
 import { normaliseCountries } from '../../utils/tripMeta';
 import VerifiedTripBadge from '../CommonComponents/VerifiedTripBadge';
 import CountryFlag from './CountryFlag';
-import IdentityVerifiedMark from './IdentityVerifiedMark';
+import VerifiedProfileMark from './VerifiedProfileMark';
 import CardTypeTag from './CardTypeTag';
 import type { CardTypeKind } from './cardTypes';
 
@@ -511,7 +511,13 @@ const TripListingCard: React.FC<TripListingCardProps> = ({
               >
                 {host.name?.charAt(0)?.toUpperCase() ?? <IconUser size={20} />}
               </Avatar>
-              <IdentityVerifiedMark verified={host.verified} />
+              {/* This card shows the host's photo but not their name, so the Verified
+                  badge sits on the photo's corner here. */}
+              {host.verified && (
+                <Box sx={{ position: 'absolute', right: -3, bottom: -3, lineHeight: 0, bgcolor: 'background.paper', borderRadius: '50%', p: '1px' }}>
+                  <VerifiedProfileMark verified size={18} />
+                </Box>
+              )}
             </Box>
           </Box>
         )}

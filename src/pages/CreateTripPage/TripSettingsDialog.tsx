@@ -168,9 +168,9 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
       if (brief.description) onChangeDescription?.(brief.description.slice(0, 300));
     } catch (err) {
       if (err instanceof TripicianAIRequestError && err.status === 402) {
-        setBriefError('This trip is out of TripicianAI credits.');
+        setBriefError('This trip is out of Tripician Intelligence credits.');
       } else {
-        setBriefError('TripicianAI could not write a description right now. Try again shortly.');
+        setBriefError('Tripician Intelligence could not write a description right now. Try again shortly.');
       }
     } finally {
       setBriefLoading(false);
@@ -721,7 +721,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                   action={
                     <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25 }}>
                       {tripId && (
-                        <Tooltip title="Let TripicianAI draft a description from your route, dates and vibe (1 trip credit)" placement="top">
+                        <Tooltip title="Let Tripician Intelligence draft a description from your route, dates and vibe (1 trip credit)" placement="top">
                           <Box
                             onClick={handleWriteWithTripicianAI}
                             sx={{
@@ -734,7 +734,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                             }}
                           >
                             <TripicianAIOrb size={13} />
-                            {briefLoading ? 'Writing…' : 'Write with TripicianAI'}
+                            {briefLoading ? 'Writing…' : 'Write with Tripician Intelligence'}
                           </Box>
                         </Tooltip>
                       )}

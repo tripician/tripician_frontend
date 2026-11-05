@@ -322,24 +322,6 @@ export const afterStoryService = {
   },
 
   /**
-   * Every page of the printed book, as images, in order.
-   *
-   * Server-side Playwright screenshots of the same document the PDF is rendered
-   * from, so this is a proof rather than a mock-up. It is genuinely slow and
-   * rate limited: call it when someone asks to see the book, never on mount.
-   */
-  async getBookPreview(storyId: string): Promise<string[]> {
-    try {
-      const { data } = await apiClient.get<{ pages: string[] }>(
-        `/api/stories/${storyId}/book/preview`,
-      );
-      return Array.isArray(data?.pages) ? data.pages : [];
-    } catch (err) {
-      throw toError(err, 'Could not lay out that book.');
-    }
-  },
-
-  /**
    * Asks TripicianAI to proof-read one passage. Never applies the result: the caller
    * shows it for approval. A 402 means the personal credit wallet is empty.
    */
@@ -350,11 +332,11 @@ export const afterStoryService = {
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 402) {
         throw new AfterStoryError(
-          'You have used all your TripicianAI credits. Top-ups are on the way, see Settings then Credits.',
+          'You have used all your Tripician Intelligence credits. Top-ups are on the way, see Settings then Credits.',
           402,
         );
       }
-      throw toError(err, 'TripicianAI could not check that passage.');
+      throw toError(err, 'Tripician Intelligence could not check that passage.');
     }
   },
 

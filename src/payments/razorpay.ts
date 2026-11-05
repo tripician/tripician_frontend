@@ -1,9 +1,9 @@
-import { BRAND } from '../../theme';
+import { BRAND } from '../theme';
 import { checkoutIdentity, checkoutLogo, type Payer } from './checkoutIdentity';
-import type { PaymentIntent, RazorpayResult } from './types';
+import type { CheckoutIntent, RazorpayResult } from './types';
 
 // Without an image Razorpay prints the first letter of the name in a tile, which is the "T" people took for a made-up logo.
-const LOGO = checkoutLogo(import.meta.env.VITE_TRIPICIAN_LOGO_ICON_URL as string | undefined);
+const LOGO = checkoutLogo(import.meta.env.VITE_LOGO_ICON as string | undefined);
 
 /**
  * Razorpay's checkout script, loaded when somebody actually wants to pay.
@@ -39,10 +39,6 @@ export const loadRazorpay = (): Promise<boolean> => {
 
   return loading;
 };
-
-/** The parts of a server-made intent the sheet needs; book orders and credit packs both carry them. */
-type CheckoutIntent = Pick<PaymentIntent, 'keyId' | 'amountPaise' | 'currency' | 'razorpayOrderId' | 'customerName' | 'customerEmail'>
-  & { customerPhone?: string | null };
 
 interface OpenOptions {
   intent: CheckoutIntent;

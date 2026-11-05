@@ -19,6 +19,7 @@ import { fetchMyCredits, extractTripFromChat, type TripicianAICreditBalance } fr
 import CreditUsagePopover from '../../tripicianai/CreditUsagePopover';
 import TripicianAIMessage from '../../tripicianai/TripicianAIMessage';
 import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
+import TripicianAIWordmark from '../../tripicianai/TripicianAIWordmark';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { useAppShell } from '../PageLayout/AppShellContext';
 import { useSelector } from 'react-redux';
@@ -29,6 +30,8 @@ import { PlanImportAttachButton, PlanImportStrip } from '../../tripicianai/PlanI
 import { matchCountryName } from '../../utils/countries';
 import { scheduleFeedbackPrompt } from '../../utils/feedbackPrompt';
 import { takePendingPrompt } from '../../utils/pendingTripicianAIPrompt';
+import { useReportAnswer } from '../../tripicianai/useReportAnswer';
+import { promptFor } from '../../tripicianai/reportAnswer';
 
 const STARTERS = [
   'Plan a 7-day trip to Japan for two people',
@@ -46,6 +49,7 @@ const TripicianAIPage: React.FC = () => {
   const { openCreateTrip } = useAppShell();
   const { profile } = useSelector((state: RootState) => state.user);
   const { messages, isStreaming, sendMessage, clearMessages } = useTripicianAI('', token);
+  const { openReport, reportDialog } = useReportAnswer('web:tripicianai');
 
   const [input, setInput] = useState('');
   const importer = usePlanImport(token);
@@ -177,7 +181,7 @@ const TripicianAIPage: React.FC = () => {
       ));
 
       const name = extracted.name?.trim()
-        || (countries.length > 0 ? `Trip to ${countries[0]}` : 'My TripicianAI Trip');
+        || (countries.length > 0 ? `Trip to ${countries[0]}` : 'My Tripician Intelligence Trip');
 
       salvaged = { name, countries, vibe: extracted.vibe ?? null };
 
@@ -251,16 +255,8 @@ const TripicianAIPage: React.FC = () => {
           flexShrink: 0,
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <TripicianAIOrb size={40} />
-          <Box>
-            <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.2 }}>
-              TripicianAI
-            </Typography>
-            <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled',}}>
-              Your travel companion
-            </Typography>
-          </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
+          <TripicianAIWordmark height={40} />
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -292,7 +288,7 @@ const TripicianAIPage: React.FC = () => {
             onClose={() => setCreditAnchor(null)}
             wallet={wallet}
             title="Personal credits"
-            subtitle="Powers your one-on-one chat with TripicianAI."
+            subtitle="Powers your one-on-one chat with Tripician Intelligence."
           />
         {!isEmpty && (
           <Tooltip title="Clear conversation" arrow>
@@ -387,8 +383,14 @@ const TripicianAIPage: React.FC = () => {
         ) : (
           <>
             {messages.map((msg) => (
-              <TripicianAIMessage key={msg.id} message={msg} isLight={isLight} />
+              <TripicianAIMessage
+                key={msg.id}
+                message={msg}
+                isLight={isLight}
+                onReport={() => openReport(msg.content, promptFor(messages, msg.id))}
+              />
             ))}
+            {reportDialog}
 
             {/* Create Trip CTA - shown after any trip-plan-like response */}
             {showCreateTrip && (
@@ -492,7 +494,7 @@ const TripicianAIPage: React.FC = () => {
             fullWidth
             placeholder={importer.screenshots.length > 0
               ? 'Anything to add about this plan? (optional)'
-              : 'Ask TripicianAI anything about travel…'}
+              : 'Ask Tripician Intelligence anything about travel…'}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -539,7 +541,7 @@ const TripicianAIPage: React.FC = () => {
             ? importer.busyMessage
             : importer.error
               ? importer.error
-              : 'TripicianAI can make mistakes. Always verify travel details before booking.'}
+              : 'Tripician Intelligence can make mistakes. Always verify travel details before booking.'}
         </Typography>
       </Box>
 

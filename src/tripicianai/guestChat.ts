@@ -54,7 +54,7 @@ export async function* streamGuestChat(
       }),
     });
   } catch {
-    yield { token: 'TripicianAI could not be reached. Check your connection and try again.' };
+    yield { token: 'Tripician Intelligence could not be reached. Check your connection and try again.' };
     return;
   }
 
@@ -70,7 +70,7 @@ export async function* streamGuestChat(
   }
 
   if (!response.ok || !response.body) {
-    yield { token: 'TripicianAI had trouble answering that one. Try again in a moment.' };
+    yield { token: 'Tripician Intelligence had trouble answering that one. Try again in a moment.' };
     return;
   }
 
@@ -133,7 +133,7 @@ export async function draftGuestTrip(prompt: string): Promise<GuestDraft | null>
     // Unwrapped, this threw a raw TypeError that the caller printed in TripicianAI's
     // voice: a dropped connection said "Failed to fetch" and withdrew the offer
     // to build, as though the trip itself had been refused.
-    throw new Error('TripicianAI could not be reached. Check your connection and try again.');
+    throw new Error('Tripician Intelligence could not be reached. Check your connection and try again.');
   }
 
   if (resp.status === 429) {
@@ -157,7 +157,7 @@ export async function draftGuestTrip(prompt: string): Promise<GuestDraft | null>
    * trip" after typing "Hi" did nothing at all: no draft, no message, no clue.
    * The server now declines that with 422 and says why.
    */
-  let message = 'TripicianAI could not draft that one. Try describing the trip a little differently.';
+  let message = 'Tripician Intelligence could not draft that one. Try describing the trip a little differently.';
   try {
     const body = await resp.json();
     if (typeof body?.message === 'string') message = body.message;

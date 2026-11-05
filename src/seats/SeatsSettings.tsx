@@ -205,6 +205,7 @@ const SeatsSettings: React.FC<SeatsSettingsProps> = ({ tripId, published }) => {
               <Typography sx={{ fontSize: 12, color: 'text.disabled' }}>
                 Required before a trip can be listed publicly.
               </Typography>
+              {verification.consentDialog}
             </Box>
           )}
         </>

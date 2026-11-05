@@ -24,7 +24,7 @@ import { groupMemberLimit } from '../../pricing/planBenefits';
 
 const PITCH: Record<PlanId, string> = {
   basic: 'Everything you need to plan a real trip, write it up and keep it.',
-  pro: 'For people who travel often, plan with others and lean on TripicianAI more.',
+  pro: 'For people who travel often, plan with others and lean on Tripician Intelligence more.',
   club: 'For clubs and travel communities that have outgrown a free group.',
   business: 'For agencies, trekking outfits and travel communities running trips for other people.',
 };
@@ -53,7 +53,7 @@ const ROWS: Array<{ label: string; value: (p: Plan, all: Plan[]) => string | boo
     },
   },
   {
-    label: 'TripicianAI credits each month',
+    label: 'Tripician Intelligence credits each month',
     value: (p) => p.tripicianAIMonthlyCredits.toLocaleString('en-IN'),
   },
   {

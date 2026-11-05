@@ -31,7 +31,7 @@ const BlogPost: React.FC = () => {
   const navigate = useNavigate();
   const profile = useSelector((state: any) => state.user?.profile);
   const isAuthenticated = !!profile;
-  const logoFullBlackUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_BLACK_2_URL as string | undefined;
+  const logoFullBlackUrl = import.meta.env.VITE_LOGO_BLACK as string | undefined;
 
   const blog = blogsData.find((b) => b.slug === slug) as BlogEntry | undefined;
 

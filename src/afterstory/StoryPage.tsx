@@ -37,7 +37,6 @@ import {
   IconHeart,
   IconHeartFilled,
   IconMapPin,
-  IconBook,
   IconPencil,
   IconShare2,
   IconCalendar,
@@ -47,7 +46,6 @@ import { resolveStoryCover, formatTravelWindow } from './storyFormat';
 import AfterStoryReader from './render/AfterStoryReader';
 import StoryVideoCover from './render/StoryVideoCover';
 import ReportStoryDialog from './ReportStoryDialog';
-import BookPreviewDialog from './book/BookPreviewDialog';
 import StoryQuestions from './StoryQuestions';
 import PlaceQuestions from '../posts/PlaceQuestions';
 import { afterStoryService, AfterStoryError } from './afterStoryService';
@@ -76,7 +74,6 @@ const StoryPage: React.FC = () => {
   const [reporting, setReporting] = React.useState(false);
   const [copied, setCopied] = React.useState(false);
   const [reactions, setReactions] = React.useState<StoryReactionSummary | null>(null);
-  const [bookOpen, setBookOpen] = React.useState(false);
   const [reactionBusy, setReactionBusy] = React.useState(false);
   const [coverFailed, setCoverFailed] = React.useState(false);
 
@@ -409,22 +406,13 @@ const StoryPage: React.FC = () => {
           </Typography>
           <Box sx={{ flex: 1 }} />
           {story.status !== 'Removed' && (
-            <>
-              <Button
-                size="small"
-                startIcon={<IconBook size={14} />}
-                onClick={() => setBookOpen(true)}
-              >
-                See it as a book
-              </Button>
-              <Button
-                size="small"
-                startIcon={<IconPencil size={14} />}
-                onClick={() => navigate(storyEditPath(story.id))}
-              >
-                Edit
-              </Button>
-            </>
+            <Button
+              size="small"
+              startIcon={<IconPencil size={14} />}
+              onClick={() => navigate(storyEditPath(story.id))}
+            >
+              Edit
+            </Button>
           )}
         </Box>
       )}
@@ -633,44 +621,6 @@ const StoryPage: React.FC = () => {
           <PlaceQuestions countries={story.countries ?? []} sx={{ mt: 6 }} />
         )}
 
-        {/* An invitation at the end, for the author only. The button up in the
-            status bar is easy to miss and easy to read as an export; finishing
-            your own story is the moment the idea of holding it actually lands. */}
-        {story.canEdit && story.status !== 'Removed' && (
-          <Box
-            sx={{
-              mt: 6,
-              p: { xs: 3, md: 4 },
-              borderRadius: '20px',
-              border: `1px solid ${theme.custom.surface.border}`,
-              bgcolor: theme.custom.surface.brandTint,
-              display: 'flex',
-              alignItems: 'center',
-              gap: 3,
-              flexWrap: 'wrap',
-            }}
-          >
-            <Box sx={{ flex: 1, minWidth: 240 }}>
-              <Typography variant="h4" component="h2" sx={{ color: 'text.primary' }}>
-                This story lays out as a book
-              </Typography>
-              <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1, maxWidth: '58ch' }}>
-                Every page set the way it would be printed, photographs at full resolution. Look
-                through it, then keep the PDF.
-              </Typography>
-            </Box>
-            <Box sx={{ display: 'flex', gap: 1.25, flexWrap: 'wrap' }}>
-              <Button
-                variant="contained"
-                startIcon={<IconBook size={16} />}
-                onClick={() => setBookOpen(true)}
-              >
-                See it as a book
-              </Button>
-            </Box>
-          </Box>
-        )}
-
         {story.status === 'Removed' && story.canEdit && (
           <Alert severity="warning" sx={{ mt: 5 }}>
             A moderator took this story down, so it is not visible to anyone else. Get in touch through the
@@ -692,13 +642,6 @@ const StoryPage: React.FC = () => {
       </Menu>
 
       <ReportStoryDialog open={reporting} storyId={story.id} onClose={() => setReporting(false)} />
-
-      <BookPreviewDialog
-        open={bookOpen}
-        onClose={() => setBookOpen(false)}
-        story={story}
-        token={token}
-      />
 
     </Box>
   );
