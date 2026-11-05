@@ -32,15 +32,24 @@ export function useVerification() {
   }, [token]);
 
   const [consentOpen, setConsentOpen] = React.useState(false);
+  // Why a start failed, for whoever offers `start` to show. Silence used to leave the
+  // person on "Agree and continue" with nothing happening.
+  const [error, setError] = React.useState<string | null>(null);
 
   const begin = React.useCallback(async () => {
     if (!token || starting) return;
     setStarting(true);
+    setError(null);
     try {
       const resp = await apiServices.startVerification(token);
       if (resp.data?.url) window.location.href = resp.data.url;
-    } catch {
+      else setStarting(false);
+    } catch (err) {
       setStarting(false);
+      const message = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
+      setError(typeof message === 'string' && message
+        ? message
+        : 'The identity check could not start. Please try again in a moment.');
     }
   }, [token, starting]);
 
@@ -66,5 +75,7 @@ export function useVerification() {
     blocked: Boolean(state?.gateEnabled && !state.verified),
     start,
     consentDialog,
+    error,
+    clearError: () => setError(null),
   };
 }

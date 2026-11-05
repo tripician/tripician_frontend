@@ -106,6 +106,7 @@ const ProPill: React.FC<ProPillProps> = ({ onClick }) => {
     : theme.custom.brand.onDark;
 
   // A badge on the logo's corner, so it reads as a mark of status rather than a control, and it scales for the phone.
+  // Filled with the logo T's own red, so the badge reads as part of the logo rather than as a coral button.
   if (onPro) {
     return (
       <Tooltip title="Your plan, and what Business adds" arrow>
@@ -124,7 +125,7 @@ const ProPill: React.FC<ProPillProps> = ({ onClick }) => {
             px: { xs: 0.75, md: 1 },
             border: 0,
             borderRadius: '999px',
-            bgcolor: BRAND.coralDeep,
+            bgcolor: BRAND.logoRed,
             color: theme.palette.common.white,
             boxShadow: `inset 0 0 0 1px ${alpha(theme.palette.common.white, 0.35)}`,
             fontFamily: 'inherit',

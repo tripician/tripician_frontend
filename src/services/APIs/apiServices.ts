@@ -710,7 +710,7 @@ export const apiServices = {
       avatar: string | null;
       identityVerified: boolean;
       reason: string;
-      reasonKind: 'tripmate' | 'follows_you' | 'mutual' | 'same_places' | 'publisher';
+      reasonKind: 'tripmate' | 'follows_you' | 'mutual' | 'same_places' | 'publisher' | 'verified';
     }>>(`/api/users/suggestions?take=${take}`),
 
   // Owner puts a trip into a group; owner or that group's admin takes it out (null).
