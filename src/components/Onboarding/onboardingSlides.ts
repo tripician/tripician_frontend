@@ -44,9 +44,9 @@ export const ONBOARDING_SLIDES: OnboardingSlide[] = [
     slug: 'reality-check',
     image: photo('reality-check'),
     alt: 'A hiker checking a printed route map against the trail',
-    eyebrow: 'Plan with TripicianAI',
+    eyebrow: 'Plan with Tripician Intelligence',
     title: 'A full itinerary, with far less typing',
-    body: 'Tell TripicianAI where you’re headed and what you’re into, and it drafts the route, the stops and the pacing. Then every plan gets checked: travel time between stops, overloaded days, places that have closed, measured against real data rather than guessed.',
+    body: 'Tell Tripician Intelligence where you’re headed and what you’re into, and it drafts the route, the stops and the pacing. Then every plan gets checked: travel time between stops, overloaded days, places that have closed, measured against real data rather than guessed.',
   },
   {
     slug: 'itinerary',

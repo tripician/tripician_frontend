@@ -145,7 +145,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
   const handlePlanDestination = React.useCallback(async (destinationId: string) => {
     const dest = store.getState().planner.destinations.find((d) => d.id === destinationId);
     if (!dest || !tripId || !authToken) {
-      onTripicianAIToast?.('error', 'Sign in and save your trip before using TripicianAI here.');
+      onTripicianAIToast?.('error', 'Sign in and save your trip before using Tripician Intelligence here.');
       return;
     }
     setPlanningId(destinationId);
@@ -180,7 +180,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
 
       const dropped = candidates.length - resolvedSpots.length;
       if (newSpots.length === 0 && newFoods.length === 0) {
-        onTripicianAIToast?.('info', `${dest.name} already has everything TripicianAI suggested.`);
+        onTripicianAIToast?.('info', `${dest.name} already has everything Tripician Intelligence suggested.`);
       } else if (dropped > 0) {
         onTripicianAIToast?.('info', `Added ideas for ${dest.name}. ${dropped} place${dropped === 1 ? ' had' : 's had'} closed for good, so we left ${dropped === 1 ? 'it' : 'them'} out.`);
       } else {
@@ -188,8 +188,8 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
       }
     } catch (err) {
       onTripicianAIToast?.('error', err instanceof TripicianAIRequestError && err.status === 402
-        ? 'This trip is out of TripicianAI credits.'
-        : 'TripicianAI could not fill this stop. Try again.');
+        ? 'This trip is out of Tripician Intelligence credits.'
+        : 'Tripician Intelligence could not fill this stop. Try again.');
     } finally {
       setPlanningId(null);
     }
@@ -492,13 +492,13 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
               <TripicianAIOrb size={26} />
               <Box sx={{ minWidth: 0 }}>
                 <Typography sx={{ fontSize: 14.5, fontWeight: 700, lineHeight: 1.3 }}>
-                  {completingPlan ? 'TripicianAI is working on your plan' : empty ? 'Plan it for me' : 'Fill in the rest for me'}
+                  {completingPlan ? 'Tripician Intelligence is working on your plan' : empty ? 'Plan it for me' : 'Fill in the rest for me'}
                 </Typography>
                 <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.2 }}>
                   {completingPlan
                     ? 'Every place is checked against a real listing, so this takes a moment.'
                     : empty
-                      ? 'TripicianAI picks the stops and adds places, food and tips. Uses trip credits.'
+                      ? 'Tripician Intelligence picks the stops and adds places, food and tips. Uses trip credits.'
                       : 'Adds stops for the nights left open and ideas for empty stops. Nothing you added is changed.'}
                 </Typography>
               </Box>

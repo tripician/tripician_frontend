@@ -181,7 +181,7 @@ const TripicianAIPage: React.FC = () => {
       ));
 
       const name = extracted.name?.trim()
-        || (countries.length > 0 ? `Trip to ${countries[0]}` : 'My TripicianAI Trip');
+        || (countries.length > 0 ? `Trip to ${countries[0]}` : 'My Tripician Intelligence Trip');
 
       salvaged = { name, countries, vibe: extracted.vibe ?? null };
 
@@ -256,7 +256,7 @@ const TripicianAIPage: React.FC = () => {
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
-          <TripicianAIWordmark height={34} />
+          <TripicianAIWordmark height={40} />
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -288,7 +288,7 @@ const TripicianAIPage: React.FC = () => {
             onClose={() => setCreditAnchor(null)}
             wallet={wallet}
             title="Personal credits"
-            subtitle="Powers your one-on-one chat with TripicianAI."
+            subtitle="Powers your one-on-one chat with Tripician Intelligence."
           />
         {!isEmpty && (
           <Tooltip title="Clear conversation" arrow>
@@ -494,7 +494,7 @@ const TripicianAIPage: React.FC = () => {
             fullWidth
             placeholder={importer.screenshots.length > 0
               ? 'Anything to add about this plan? (optional)'
-              : 'Ask TripicianAI anything about travel…'}
+              : 'Ask Tripician Intelligence anything about travel…'}
             value={input}
             onChange={(e) => setInput(e.target.value)}
             onKeyDown={handleKeyDown}
@@ -541,7 +541,7 @@ const TripicianAIPage: React.FC = () => {
             ? importer.busyMessage
             : importer.error
               ? importer.error
-              : 'TripicianAI can make mistakes. Always verify travel details before booking.'}
+              : 'Tripician Intelligence can make mistakes. Always verify travel details before booking.'}
         </Typography>
       </Box>
 

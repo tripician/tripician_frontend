@@ -132,7 +132,7 @@ const SupportWidget: React.FC<SupportWidgetProps> = ({ commandBar = 'none' }) =>
    * Every line points at something that shipped. Nothing here is a plan.
    */
   const updateItems = [
-    { icon: <TripicianAIOrb size={20} />, text: 'TripicianAI before you sign up - ask about a trip on the front page with no account. Sign in only to keep what it drafts.' },
+    { icon: <TripicianAIOrb size={20} />, text: 'Tripician Intelligence before you sign up - ask about a trip on the front page with no account. Sign in only to keep what it drafts.' },
     { icon: <TravelExploreRoundedIcon fontSize="small" />, text: 'Your stories turn up in search - a published story is now served to search engines as a real page, and every one is submitted in the sitemap.' },
     { icon: <ForumRoundedIcon fontSize="small" />, text: 'Reply without leaving the feed - comments open in place on a post instead of taking you to another page.' },
     { icon: <GroupsRoundedIcon fontSize="small" />, text: 'See who else is editing - other people on a plan appear beside the save state, and if two of you save at once the second is stopped rather than quietly overwriting the first.' },
@@ -144,7 +144,7 @@ const SupportWidget: React.FC<SupportWidgetProps> = ({ commandBar = 'none' }) =>
   const menuItems = [
     {
       icon: <TripicianAIOrb size={18} />,
-      label: 'Ask TripicianAI',
+      label: 'Ask Tripician Intelligence',
       sub: 'Your travel companion',
       onClick: () => { closeMenu(); navigate('/tripicianai'); },
     },
@@ -326,7 +326,7 @@ const SupportWidget: React.FC<SupportWidgetProps> = ({ commandBar = 'none' }) =>
           </Typography>
           <Typography sx={{ fontSize: '0.66rem', color: 'text.disabled' }}>·</Typography>
           <Typography sx={{ fontSize: '0.66rem', color: 'text.disabled', fontWeight: 600 }}>
-            TripicianAI v{tripicianAIVersion}
+            Tripician Intelligence v{tripicianAIVersion}
           </Typography>
         </Box>
       </Popover>
@@ -360,7 +360,7 @@ const SupportWidget: React.FC<SupportWidgetProps> = ({ commandBar = 'none' }) =>
             </List>
             <Stack direction={{ xs: 'column', sm: 'row' }} spacing={1.5}>
               <Chip icon={<VerifiedRoundedIcon />} label={`Tripician v${appVersion}`} color="primary" size="small" />
-              <Chip icon={<PublicRoundedIcon />} label={`TripicianAI v${tripicianAIVersion}`} color="secondary" size="small" />
+              <Chip icon={<PublicRoundedIcon />} label={`Tripician Intelligence v${tripicianAIVersion}`} color="secondary" size="small" />
             </Stack>
           </Stack>
         </DialogContent>

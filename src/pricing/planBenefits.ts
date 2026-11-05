@@ -46,8 +46,8 @@ export function planBenefits(plan: Plan): string[] {
   }
 
   lines.push(plan.scope === 'organization'
-    ? `${plan.tripicianAIMonthlyCredits.toLocaleString('en-IN')} TripicianAI credits a month, shared by the group`
-    : `${plan.tripicianAIMonthlyCredits.toLocaleString('en-IN')} TripicianAI credits a month`);
+    ? `${plan.tripicianAIMonthlyCredits.toLocaleString('en-IN')} Tripician Intelligence credits a month, shared by the group`
+    : `${plan.tripicianAIMonthlyCredits.toLocaleString('en-IN')} Tripician Intelligence credits a month`);
 
   for (const feature of plan.features ?? []) {
     const label = FEATURE_LABELS[feature];
@@ -109,7 +109,7 @@ export function planUpgrade(from: Plan | null, to: Plan): string[] {
   if (to.tripicianAIMonthlyCredits > from.tripicianAIMonthlyCredits) {
     // Where you land and what you leave, the same shape as the trip size line above.
     lines.push(
-      `${to.tripicianAIMonthlyCredits.toLocaleString('en-IN')} TripicianAI credits a month, `
+      `${to.tripicianAIMonthlyCredits.toLocaleString('en-IN')} Tripician Intelligence credits a month, `
       + `up from ${from.tripicianAIMonthlyCredits.toLocaleString('en-IN')}`,
     );
   }

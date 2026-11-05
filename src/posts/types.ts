@@ -89,7 +89,7 @@ export interface TravelerPost {
   authorName: string;
   authorAvatarUrl: string | null;
   authorIdentityVerified: boolean;
-  /** Separate from authorIdentityVerified - see VerifiedProfileMark. Null until the backend ships AuthorProfileVerifiedAt. */
+  /** When the author passed the identity check: the date behind the Verified badge (authorIdentityVerified decides whether it shows). */
   authorProfileVerifiedAt: string | null;
   kind: PostKind;
   /** Questions only. What the list is scanned by. */

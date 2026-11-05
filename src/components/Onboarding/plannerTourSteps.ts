@@ -39,8 +39,8 @@ export const PLANNER_TOUR_STEPS: PlannerTourStep[] = [
   },
   {
     target: 'tripicianai',
-    title: 'Let TripicianAI plan it',
-    body: 'TripicianAI can add stops for the nights left open and ideas for empty stops. It never changes what you added, and every place is checked against a real listing first.',
+    title: 'Let Tripician Intelligence plan it',
+    body: 'Tripician Intelligence can add stops for the nights left open and ideas for empty stops. It never changes what you added, and every place is checked against a real listing first.',
     placement: 'top',
   },
   {

@@ -2,7 +2,7 @@ import React from 'react';
 import { Avatar, Box, Button, CircularProgress, Tooltip, Typography, useTheme } from '@mui/material';
 import { useNavigate, useParams } from 'react-router-dom';
 import {
-  IconArrowLeft, IconMessageCircle2, IconRosetteDiscountCheckFilled, IconTrash,
+  IconArrowLeft, IconMessageCircle2, IconTrash,
 } from '@tabler/icons-react';
 import Seo, { SITE_URL } from '../components/Seo';
 import EmptyState from '../components/ui/EmptyState';
@@ -217,14 +217,7 @@ const PostPage: React.FC = () => {
               </Avatar>
               <Typography variant="caption" sx={{ color: 'text.secondary', display: 'inline-flex', alignItems: 'center', gap: 0.3 }}>
                 Asked by {post.authorName}
-                {post.authorIdentityVerified && (
-                  <Tooltip title="Identity verified" arrow>
-                    <Box component="span" sx={{ display: 'inline-flex', color: '#0EA5E9' }}>
-                      <IconRosetteDiscountCheckFilled size={13} />
-                    </Box>
-                  </Tooltip>
-                )}
-                <VerifiedProfileMark verified={!!post.authorProfileVerifiedAt} verifiedAt={post.authorProfileVerifiedAt} />
+                <VerifiedProfileMark verified={post.authorIdentityVerified} verifiedAt={post.authorProfileVerifiedAt} />
               </Typography>
               <Tooltip title={formatAbsoluteDateTime(post.createdAt)} arrow>
                 <Typography variant="caption" sx={{ color: 'text.disabled' }}>

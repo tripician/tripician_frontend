@@ -6,7 +6,7 @@ import { useTheme } from '@mui/material/styles';
  *
  * The two hosted logo files carry different blank margins, so drawn at one size the
  * lockup would shift whenever the theme changed. Trimmed, both are the same
- * 1135x220 box. Non-Cloudinary URLs pass through untouched.
+ * 1135x261 box. Non-Cloudinary URLs pass through untouched.
  */
 function cloudinaryTrimmed(url: string | undefined): string | undefined {
   if (!url) return undefined;
@@ -19,13 +19,13 @@ const ON_LIGHT = cloudinaryTrimmed(import.meta.env.VITE_AILOGO_BLACK as string |
 const ON_DARK = cloudinaryTrimmed(import.meta.env.VITE_AILOGO_WHITE as string | undefined);
 
 /** Width over height of the trimmed lockup, so the space is reserved before it loads. */
-const ASPECT = 1135 / 220;
+const ASPECT = 1135 / 261;
 
 interface Props {
   /**
-   * Rendered height in px; width follows. Keep it at 26 or more, and 28 or more for a
-   * header: "Intelligence" sits across the wordmark and stops reading below that,
-   * sooner on a standard-density screen.
+   * Rendered height in px; width follows. 28 for a label, 32 or more for a header, and
+   * never under 24, where "Intelligence" stops reading on a standard-density screen.
+   * "Intelligence" hangs below the wordmark, so the T is only 63% of this height.
    */
   height?: number;
   /** Force the white-lettered version (over a photo or dark hero), regardless of theme. */
@@ -37,7 +37,7 @@ interface Props {
  * TripicianAI's lockup ("TRIPICIAN." with "Intelligence"). Used on its own wherever
  * TripicianAI introduces itself, never beside its written name or the orb.
  */
-const TripicianAIWordmark: React.FC<Props> = ({ height = 28, onDark, style }) => {
+const TripicianAIWordmark: React.FC<Props> = ({ height = 32, onDark, style }) => {
   const theme = useTheme();
   const src = (onDark ?? theme.palette.mode === 'dark') ? ON_DARK : ON_LIGHT;
 
@@ -45,7 +45,7 @@ const TripicianAIWordmark: React.FC<Props> = ({ height = 28, onDark, style }) =>
   if (!src) {
     return (
       <span style={{ fontWeight: 700, fontSize: Math.round(height * 0.6), lineHeight: `${height}px`, ...style }}>
-        TripicianAI
+        Tripician Intelligence
       </span>
     );
   }
@@ -53,7 +53,7 @@ const TripicianAIWordmark: React.FC<Props> = ({ height = 28, onDark, style }) =>
   return (
     <img
       src={src}
-      alt="TripicianAI"
+      alt="Tripician Intelligence"
       width={Math.round(height * ASPECT)}
       height={height}
       draggable={false}

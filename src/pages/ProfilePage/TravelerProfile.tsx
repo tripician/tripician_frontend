@@ -31,7 +31,6 @@ import TravelHistoryPanel from './TravelHistoryPanel';
 import ProfileIdentityRail, { railHasContent } from './ProfileIdentityRail';
 import { apiServices as api } from '../../services/APIs/apiServices';
 import type { OrganiserRecord } from '../../seats/types';
-import IdentityVerifiedMark from '../../components/ui/IdentityVerifiedMark';
 import VerifiedProfileMark from '../../components/ui/VerifiedProfileMark';
 import SectionHeader from '../../components/ui/SectionHeader';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
@@ -270,10 +269,10 @@ const TravelerProfile: React.FC = () => {
     : '';
   const showCover = !!user?.cover && !coverFailed;
 
-  // Verified profiles only: the country count is a claim, and it is only shown
-  // where Tripician has reviewed the person making it. From the published-only
-  // track record, never from whichever trips this page happened to fetch.
-  const countryCount = user?.profileVerifiedAt && record ? record.countriesVisited : null;
+  // Verified people only: the country count is a claim, and it is only shown
+  // for someone whose identity has been checked. From the published-only track
+  // record, never from whichever trips this page happened to fetch.
+  const countryCount = user?.identityVerifiedAt && record ? record.countriesVisited : null;
 
   const statItems = [
     ...(countryCount !== null
@@ -336,7 +335,6 @@ const TravelerProfile: React.FC = () => {
                   >
                     {(user?.name || 'T').charAt(0).toUpperCase()}
                   </Avatar>
-                  <IdentityVerifiedMark verified={!!user?.identityVerifiedAt} size={24} />
                 </Box>
               )}
             </Box>
@@ -371,7 +369,8 @@ const TravelerProfile: React.FC = () => {
                       }}>
                         {user?.name || 'Explorer'}
                       </Typography>
-                      <VerifiedProfileMark verified={!!user?.profileVerifiedAt} verifiedAt={user?.profileVerifiedAt} size={22} />
+                      {/* The one verified mark: the identity check, with its date. */}
+                      <VerifiedProfileMark verified={!!user?.identityVerifiedAt} verifiedAt={user?.identityVerifiedAt} size={22} />
                     </Box>
                     {locationLine && (
                       <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, color: 'text.secondary' }}>

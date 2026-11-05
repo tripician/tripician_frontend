@@ -1,22 +1,9 @@
 /**
- * Verified Profile: Tripician's own team reviewed this person's whole profile
- * and is willing to vouch for them, not just for one trip or one KYC check.
- *
- * A third mark, deliberately distinct from the two "Verified" marks this
- * codebase already has, because nobody should ever see two different
- * "Verified" glyphs and wonder which one this is:
- *
- *   IdentityVerifiedMark  "this account passed an automated KYC check" - a fact
- *                         about the account, checked by a webhook, lives on the
- *                         avatar corner and never becomes a pill next to a title
- *                         (per that component's own doc comment).
- *   VerifiedTripBadge     "our team reviewed this one itinerary" - an editorial
- *                         judgement about a trip, granted by hand, blue rosette,
- *                         inline next to that trip's heading.
- *   this mark             "our team reviewed this person's whole profile" - also
- *                         granted by hand, but about the account rather than a
- *                         trip, requested from Settings or set directly from the
- *                         admin portal.
+ * The Verified badge: this person passed the identity check (Didit compared their
+ * ID with a selfie). That check is the only way to it: nobody can request the
+ * badge and admins cannot grant it. It is the one verified mark a person carries;
+ * the separate blue rosette, VerifiedTripBadge, is about a trip ("our team
+ * reviewed this itinerary"), not about a person.
  *
  * **The shape everyone already reads as "verified"**: a scalloped badge with a
  * white tick, the Instagram idiom. An earlier version used `IconCertificate` to
@@ -25,15 +12,13 @@
  * a glyph they would have to learn. Drawn here rather than taken from Tabler so
  * the tick is a real white stroke: `IconRosetteDiscountCheckFilled` knocks the
  * tick out, so it shows whatever is behind it and turns dark on a dark card.
- * **Brand red**, which is what separates it from the blue trip rosette and the
- * blue identity marks. VerifiedTripBadge avoids coral because it is "the
- * everywhere-colour" on a trip card; this mark is Tripician vouching for the
- * person, so the platform's own colour is the right one - the same red as the
- * Follow button. Always through the `primary.main` token, never a hardcoded
- * hex, so `colour-literal.guard.test.ts` stays green.
- * **Inline, next to the name**, mirroring VerifiedTripBadge's shape - never the
- * avatar corner, which IdentityVerifiedMark's own doc comment reserves for
- * itself.
+ * **Brand red**, which is what separates it from the blue trip rosette. This mark
+ * is about the person, so the platform's own colour is the right one - the same
+ * red as the Follow button. Always through the `primary.main` token, never a
+ * hardcoded hex, so `colour-literal.guard.test.ts` stays green.
+ * **Inline, next to the name** wherever a name is shown. Only a card that shows
+ * the person's photo without their name (TripListingCard's host) puts it on the
+ * photo's corner.
  *
  * Returns null when not verified, so call sites stay unconditional.
  */
@@ -79,13 +64,13 @@ const VerifiedProfileMark: React.FC<VerifiedProfileMarkProps> = ({ verified, ver
   if (!verified) return null;
 
   const on = formatVerifiedOn(verifiedAt);
-  const tooltip = on ? `Verified Profile since ${on}` : 'Verified Profile';
+  const tooltip = on ? `Identity verified since ${on}` : 'Identity verified';
 
   return (
     <Tooltip title={tooltip} arrow placement="top">
       <Box
         component="span"
-        aria-label="Verified Profile"
+        aria-label="Verified"
         sx={{
           display: 'inline-flex',
           alignItems: 'center',

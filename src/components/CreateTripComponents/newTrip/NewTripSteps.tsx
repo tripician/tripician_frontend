@@ -285,7 +285,7 @@ export const TripTypeStep: React.FC<StepProps> = ({ state, dispatch }) => {
     <StepShell
       Icon={IconUsers}
       question="What kind of trip is it?"
-      hint="So TripicianAI picks places that suit you."
+      hint="So Tripician Intelligence picks places that suit you."
       footer={(
         <>
           <TextAction onClick={() => { dispatch({ type: 'setTripType', value: null }); dispatch({ type: 'next' }); }}>Skip</TextAction>
@@ -397,7 +397,7 @@ export const FinishStep: React.FC<StepProps & { onCreate: (mode: CreateMode) => 
           primary
           icon={<TripicianAIOrb size={30} />}
           title="Plan it for me"
-          body="TripicianAI adds places to see, food to try and tips for each stop. Uses trip credits."
+          body="Tripician Intelligence adds places to see, food to try and tips for each stop. Uses trip credits."
           onClick={() => onCreate('ai')}
           busy={busy === 'ai'}
           disabled={busy !== null}

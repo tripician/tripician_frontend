@@ -200,7 +200,7 @@ const GroupPlanPanel: React.FC<{ organization: Organization }> = ({ organization
 
         {credits && (
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1.5 }}>
-            {credits.balance.toLocaleString('en-IN')} TripicianAI credits in the group wallet
+            {credits.balance.toLocaleString('en-IN')} Tripician Intelligence credits in the group wallet
             {credits.monthlyCredits > 0 ? `, ${credits.monthlyCredits.toLocaleString('en-IN')} added each month` : ''}.
             A plan in the group draws on them when its own run out.
           </Typography>

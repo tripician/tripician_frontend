@@ -25,7 +25,7 @@ describe('planBenefits', () => {
     const lines = planBenefits(plan({ features: ['trip_recruiting'] }));
     expect(lines).toContain('Up to 12 people on a trip');
     expect(lines).toContain('2 travellers can join from a public listing');
-    expect(lines).toContain('300 TripicianAI credits a month');
+    expect(lines).toContain('300 Tripician Intelligence credits a month');
   });
 
   // Recruiting is a Business capability, so a plan without it must not sell an allowance nobody can spend.
@@ -77,7 +77,7 @@ describe('planBenefits', () => {
     expect(pro.some((l) => l.toLowerCase().includes('group'))).toBe(false);
     const club = planBenefits(plan({ planId: 'club', scope: 'organization', monthlyPrice: 299, maxGroupMembers: undefined, tripicianAIMonthlyCredits: 1500 }));
     expect(club).toContain('No limit on group members');
-    expect(club).toContain('1,500 TripicianAI credits a month, shared by the group');
+    expect(club).toContain('1,500 Tripician Intelligence credits a month, shared by the group');
   });
 });
 
@@ -114,7 +114,7 @@ describe('planUpgrade', () => {
   it('names only what actually changes', () => {
     const lines = planUpgrade(basic, pro);
     expect(lines).toContain('5 travellers can join from a public listing, up from 2');
-    expect(lines).toContain('1,500 TripicianAI credits a month, up from 300');
+    expect(lines).toContain('1,500 Tripician Intelligence credits a month, up from 300');
     // Trip size is the same on both, so it must not be sold as an upgrade.
     expect(lines.some((l) => l.includes('people on a trip'))).toBe(false);
   });
@@ -143,7 +143,7 @@ describe('planUpgrade', () => {
 
   it('never claims a downgrade as a gain', () => {
     const lines = planUpgrade(pro, basic);
-    expect(lines.some((l) => l.includes('TripicianAI credits'))).toBe(false);
+    expect(lines.some((l) => l.includes('Tripician Intelligence credits'))).toBe(false);
     expect(lines.some((l) => l.includes('up from'))).toBe(false);
   });
 

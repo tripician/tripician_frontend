@@ -123,7 +123,7 @@ export default function HeroChat() {
        */
       const message = err instanceof Error && err.message
         ? err.message
-        : 'Tell TripicianAI where you would like to go and it can build that.';
+        : 'Tell Tripician Intelligence where you would like to go and it can build that.';
       setMessages((prev) => [...prev, { role: 'tripicianai', content: message }]);
 
       // Only a refusal stands the offer down. A timeout is not a verdict on the
@@ -150,7 +150,7 @@ export default function HeroChat() {
    */
   const saveTrip = useCallback(() => {
     requireAuth({
-      reason: 'Sign in and TripicianAI will build this trip in your account.',
+      reason: 'Sign in and Tripician Intelligence will build this trip in your account.',
       draft: {
         key: COMMAND_BAR_DRAFT_KEY,
         text: messagesRef.current.find((m) => m.role === 'user')?.content ?? '',
@@ -204,14 +204,14 @@ export default function HeroChat() {
           value={input}
           onChange={(e) => setInput(e.target.value)}
           placeholder="Where do you want to go?"
-          aria-label="Ask TripicianAI about a trip"
+          aria-label="Ask Tripician Intelligence about a trip"
           disabled={Boolean(spent)}
         />
         <button
           type="submit"
           className="lp-herochat__send"
           disabled={busy || !input.trim() || Boolean(spent)}
-          aria-label="Ask TripicianAI"
+          aria-label="Ask Tripician Intelligence"
         >
           <IconArrowRight size={18} aria-hidden="true" />
         </button>

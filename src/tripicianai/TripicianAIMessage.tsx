@@ -30,9 +30,9 @@ const TripicianAIMessageComponent: React.FC<TripicianAIMessageProps> = ({
       }}
     >
       {!isUser && (
-        // The lockup in place of the orb and written name, at the smallest size that stays readable.
+        // The lockup in place of the orb and written name, at label size.
         <TripicianAIWordmark
-          height={26}
+          height={28}
           onDark={!isLight}
           style={{ marginBottom: 6, marginLeft: 2 }}
         />

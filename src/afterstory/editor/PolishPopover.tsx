@@ -68,7 +68,7 @@ const PolishPopover: React.FC<PolishPopoverProps> = ({ anchorEl, html, onClose, 
       if (!polished.changed) setUnchanged(true);
       else setResult(polished.text);
     } catch (err) {
-      setError(err instanceof AfterStoryError ? err.message : 'TripicianAI could not check that passage.');
+      setError(err instanceof AfterStoryError ? err.message : 'Tripician Intelligence could not check that passage.');
     } finally {
       setBusy(false);
     }
@@ -88,7 +88,7 @@ const PolishPopover: React.FC<PolishPopoverProps> = ({ anchorEl, html, onClose, 
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
         <TripicianAIOrb size={14} />
         <Typography variant="overline" sx={{ color: 'text.secondary' }}>
-          TripicianAI checks your writing
+          Tripician Intelligence checks your writing
         </Typography>
       </Box>
 
@@ -156,7 +156,7 @@ const PolishPopover: React.FC<PolishPopoverProps> = ({ anchorEl, html, onClose, 
                   here is "do I prefer this", not "what exactly moved". */}
               <Box sx={{ display: 'grid', gap: 1.25, maxHeight: 260, overflowY: 'auto', mb: 1.5 }}>
                 <Panel label="Yours" text={original} muted />
-                <Panel label="TripicianAI's suggestion" text={result} />
+                <Panel label="Tripician Intelligence's suggestion" text={result} />
               </Box>
 
               <Box sx={{ display: 'flex', gap: 1 }}>

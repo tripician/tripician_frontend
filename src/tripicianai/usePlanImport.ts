@@ -179,7 +179,7 @@ export function usePlanImport(token?: string | null) {
       return true;
     } catch (err) {
       if (err instanceof TripicianAIRequestError) {
-        setError(err.status === 402 ? 'You are out of TripicianAI credits.' : err.message);
+        setError(err.status === 402 ? 'You are out of Tripician Intelligence credits.' : err.message);
       } else {
         setError('Could not read that plan. Please try again.');
       }

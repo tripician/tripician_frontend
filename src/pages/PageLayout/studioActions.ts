@@ -63,7 +63,7 @@ export function studioActions(handlers: StudioHandlers): Array<StudioAction & { 
 
   actions.push({
     key: 'tripicianai',
-    label: 'Ask TripicianAI',
+    label: 'Ask Tripician Intelligence',
     hint: 'Your travel companion, in a sentence',
     Icon: TripicianAIOrb,
     logo: true,

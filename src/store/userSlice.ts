@@ -31,7 +31,7 @@ interface UserProfile {
   joinedAt?: string;
   /** ISO date, or absent when the traveller has not verified. */
   identityVerifiedAt?: string;
-  /** ISO date, or absent. Separate from identityVerifiedAt - see VerifiedProfileMark. */
+  /** ISO date, or absent. The server now sends the identity check's date here too; the badge reads identityVerifiedAt. */
   profileVerifiedAt?: string;
 }
 

@@ -332,11 +332,11 @@ export const afterStoryService = {
     } catch (err) {
       if (axios.isAxiosError(err) && err.response?.status === 402) {
         throw new AfterStoryError(
-          'You have used all your TripicianAI credits. Top-ups are on the way, see Settings then Credits.',
+          'You have used all your Tripician Intelligence credits. Top-ups are on the way, see Settings then Credits.',
           402,
         );
       }
-      throw toError(err, 'TripicianAI could not check that passage.');
+      throw toError(err, 'Tripician Intelligence could not check that passage.');
     }
   },
 

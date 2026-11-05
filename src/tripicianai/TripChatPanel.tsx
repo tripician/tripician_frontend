@@ -144,7 +144,7 @@ const ProposalBubble: React.FC<ProposalBubbleProps> = ({ msg, actionState, onAcc
     >
       {/* Header: the lockup stands in for the written name */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <TripicianAIWordmark height={26} onDark={!isLight} />
+        <TripicianAIWordmark height={28} onDark={!isLight} />
         <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'primary.main', lineHeight: 1 }}>
           Suggestion
         </Typography>
@@ -290,7 +290,7 @@ interface MessageBubbleProps {
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ msg, isMine, isLight, showAvatar, showTime = true }) => {
   const isTripicianAI = msg.messageType === 'TripicianAI';
-  const name = isTripicianAI ? 'TripicianAI' : (msg.displayName || `User ${msg.userId ?? ''}`);
+  const name = isTripicianAI ? 'Tripician Intelligence' : (msg.displayName || `User ${msg.userId ?? ''}`);
   const initials = isTripicianAI ? 'N' : getInitials(name);
 
   return (
@@ -322,8 +322,8 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ msg, isMine, isLight, sho
           }}
         >
           {!isMine && showAvatar && (isTripicianAI ? (
-            // The lockup in place of the written name, at the smallest size that stays readable.
-            <TripicianAIWordmark height={26} onDark={!isLight} style={{ marginBottom: 4 }} />
+            // The lockup in place of the written name, at label size.
+            <TripicianAIWordmark height={28} onDark={!isLight} style={{ marginBottom: 4 }} />
           ) : (
             <Typography sx={{ fontSize: 11, fontWeight: 700, mb: 0.35, color: isLight ? '#666' : 'rgba(255,255,255,0.55)' }}>
               {name}
@@ -536,7 +536,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
 
   // All mentionable participants: TripicianAI first, then trip members
   const mentionables = useMemo(() => [
-    { id: 'tripicianai', insertName: TRIPICIAN_HANDLE, displayName: 'TripicianAI', isTripicianAI: true as const, avatarUrl: undefined as string | null | undefined },
+    { id: 'tripicianai', insertName: TRIPICIAN_HANDLE, displayName: 'Tripician Intelligence', isTripicianAI: true as const, avatarUrl: undefined as string | null | undefined },
     ...members.map(m => ({
       id: String(m.id),
       insertName: m.name,
@@ -742,7 +742,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
           </Typography>
           <Typography noWrap sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.3 }}>
             {isSolo
-              ? 'Just you & TripicianAI · it replies to every message'
+              ? 'Just you & Tripician Intelligence · it replies to every message'
               : <>{members.length} travelers · <Box component='span' sx={{ color: 'primary.main', fontWeight: 600 }}>@{TRIPICIAN_HANDLE}</Box> to bring in the co-planner</>}
           </Typography>
         </Box>
@@ -770,7 +770,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
           onClose={() => setCreditAnchor(null)}
           wallet={tripWallet}
           title="Trip credits"
-          subtitle="A shared wallet, every member's TripicianAI requests on this trip spend from it."
+          subtitle="A shared wallet, every member's Tripician Intelligence requests on this trip spend from it."
         />
         <Tooltip title={statusLabel} arrow>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, flexShrink: 0 }}>
@@ -795,11 +795,11 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 6, gap: 1 }}>
             <TripicianAILogo size={40} />
             <Typography sx={{ fontWeight: 700, fontSize: 14.5, letterSpacing: '-0.01em', color: 'text.primary' }}>
-              {isSolo ? 'Plan it with TripicianAI' : 'Plan it together'}
+              {isSolo ? 'Plan it with Tripician Intelligence' : 'Plan it together'}
             </Typography>
             <Typography sx={{ fontSize: 13, color: 'text.secondary', textAlign: 'center', maxWidth: 260, lineHeight: 1.55 }}>
               {isSolo
-                ? "It's just you and TripicianAI here. Ask anything: routes, dates, places to add. It will suggest changes to your trip."
+                ? "It's just you and Tripician Intelligence here. Ask anything: routes, dates, places to add. It will suggest changes to your trip."
                 : <>All trip members can chat here. Type <Box component='span' sx={{ color: 'primary.main', fontWeight: 700 }}>@{TRIPICIAN_HANDLE}</Box> to get suggestions for your trip.</>}
             </Typography>
           </Box>
@@ -843,7 +843,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
                 )}
                 <Box component="span" sx={{ ml: 0.5, fontSize: '0.72rem', color: alpha(BRAND.coral, 0.85), fontWeight: 600, letterSpacing: 0.2 }}>
                   {tripicianAITyping
-                    ? 'TripicianAI is analysing...'
+                    ? 'Tripician Intelligence is analysing...'
                     : typingUsers.length === 1
                       ? `${typingUsers[0]} is typing...`
                       : `${typingUsers.join(', ')} are typing...`}
@@ -949,7 +949,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography sx={{ fontSize: 13, fontWeight: 600, color: isLight ? '#111' : 'rgba(255,255,255,0.88)', lineHeight: 1.3, display: 'flex', alignItems: 'center', gap: 0.75 }}>
                       {s.isTripicianAI
-                        ? <TripicianAIWordmark height={26} onDark={!isLight} />
+                        ? <TripicianAIWordmark height={28} onDark={!isLight} />
                         : s.displayName}
                       {/* Deliberate exception to dropping "AI" from the UI: in a chat with
                           real people, saying which speaker is a machine is disclosure that
@@ -987,7 +987,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
               }}>
                 <TripicianAILogo size={16} />
                 <Typography sx={{ flex: 1, fontSize: 11.5, color: 'primary.main', fontWeight: 600, lineHeight: 1.4 }}>
-                  Others just joined. Now type <Box component='span' sx={{ fontWeight: 700 }}>@{TRIPICIAN_HANDLE}</Box> to bring TripicianAI into the chat.
+                  Others just joined. Now type <Box component='span' sx={{ fontWeight: 700 }}>@{TRIPICIAN_HANDLE}</Box> to bring Tripician Intelligence into the chat.
                 </Typography>
                 <Box
                   component='button'
@@ -1021,7 +1021,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
               }}>
                 <TripicianAILogo size={14} />
                 <Typography sx={{ fontSize: 11.5, color: 'primary.main', fontWeight: 600 }}>
-                  TripicianAI will be summoned and suggest changes to your trip
+                  Tripician Intelligence will be summoned and suggest changes to your trip
                 </Typography>
               </Box>
             </motion.div>
@@ -1068,7 +1068,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
                 }
               }}
             onKeyDown={onKeyDown}
-            placeholder={!token ? 'Sign in to chat' : (isSolo ? 'Message TripicianAI, it replies to everything' : `Message the group or type @${TRIPICIAN_HANDLE}`)}
+            placeholder={!token ? 'Sign in to chat' : (isSolo ? 'Message Tripician Intelligence, it replies to everything' : `Message the group or type @${TRIPICIAN_HANDLE}`)}
             multiline
             maxRows={4}
             disabled={!token}
@@ -1131,7 +1131,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
           textAlign: 'center',
           color: isLight ? 'rgba(0,0,0,0.34)' : 'rgba(255,255,255,0.34)',
         }}>
-          TripicianAI can make mistakes. Always verify travel details before booking.
+          Tripician Intelligence can make mistakes. Always verify travel details before booking.
         </Typography>
       </Box>
     </Box>

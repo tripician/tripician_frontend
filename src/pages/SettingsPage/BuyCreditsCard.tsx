@@ -48,7 +48,7 @@ const BuyCreditsCard: React.FC<{ onPurchased: () => void; sx?: object }> = ({ on
       }
       openRazorpayCheckout({
         intent,
-        description: `${pack.credits.toLocaleString('en-IN')} TripicianAI credits`,
+        description: `${pack.credits.toLocaleString('en-IN')} Tripician Intelligence credits`,
         onPaid: async (result) => {
           try {
             await apiServices.verifyCreditOrder(token, intent.orderId, {
@@ -80,7 +80,7 @@ const BuyCreditsCard: React.FC<{ onPurchased: () => void; sx?: object }> = ({ on
           <IconBolt size={17} /> Buy credits
         </Typography>
         <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.5, mb: 2.5, maxWidth: 560 }}>
-          Credits you buy never expire, and they are only used once your free and plan credits for the month run out. When a trip&apos;s shared credits run out, yours cover what you ask TripicianAI for on that trip.
+          Credits you buy never expire, and they are only used once your free and plan credits for the month run out. When a trip&apos;s shared credits run out, yours cover what you ask Tripician Intelligence for on that trip.
         </Typography>
 
         <Box sx={{ display: 'grid', gap: 1.5, gridTemplateColumns: { xs: '1fr', sm: 'repeat(auto-fit, minmax(200px, 1fr))' } }}>

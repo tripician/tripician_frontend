@@ -118,7 +118,7 @@ const TripicianAICommandBar: React.FC = () => {
     // Every mode needs an account: TripicianAIController is [Authorize] throughout.
     if (!bar.token) {
       bar.requireAuth({
-        reason: 'Sign in and TripicianAI will pick this up where you left it.',
+        reason: 'Sign in and Tripician Intelligence will pick this up where you left it.',
         draft: { key: COMMAND_BAR_DRAFT_KEY, text: prompt, meta: bar.mode },
       });
       return;
@@ -277,7 +277,7 @@ const TripicianAICommandBar: React.FC = () => {
                             inputRef.current?.focus();
                           }}
                           size="small"
-                          aria-label="What TripicianAI should do"
+                          aria-label="What Tripician Intelligence should do"
                         />
                       </motion.div>
                     </motion.div>

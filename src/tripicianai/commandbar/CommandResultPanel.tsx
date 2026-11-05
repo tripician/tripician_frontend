@@ -36,7 +36,7 @@ const CommandResultPanel: React.FC<Props> = ({ turns, stories, citationsLoading,
   return (
     <Box
       role="region"
-      aria-label="TripicianAI answer"
+      aria-label="Tripician Intelligence answer"
       aria-live="polite"
       sx={(t) => ({
         maxHeight: 'min(60vh, 560px)',
@@ -47,7 +47,7 @@ const CommandResultPanel: React.FC<Props> = ({ turns, stories, citationsLoading,
       })}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-        <TripicianAIWordmark height={28} />
+        <TripicianAIWordmark height={32} />
         <IconButton size="small" onClick={onClose} aria-label="Close the answer">
           <IconX size={16} />
         </IconButton>

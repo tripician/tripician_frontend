@@ -8,8 +8,8 @@ export const DIDIT_BIOMETRIC_POLICY_URL = 'https://didit.me/terms/biometric-data
 
 const PARAGRAPHS = [
   "The check is run by Didit, our verification partner. You'll photograph an official ID (passport, national ID card or driving licence) and take a selfie. Didit compares your face with the photo on your ID, which uses biometric data: a map of your facial features.",
-  'Didit uses it only to confirm your identity for Tripician, and keeps and deletes it as its privacy notice and biometric data policy set out. Tripician never receives your ID images or face data: we keep only whether the check passed, and when.',
-  'Verifying is optional. You can use Tripician without it, apart from trips whose hosts ask for verified travellers.',
+  'Didit uses it only to confirm your identity for Tripician, and keeps and deletes it as its privacy notice and biometric data policy set out. Tripician does not keep your ID images or face data: we keep only whether the check passed, and when.',
+  'Verifying is optional. You can use Tripician without it, though asking to join, or listing, a public trip may need it.',
 ];
 
 const CONSENT_LABEL =

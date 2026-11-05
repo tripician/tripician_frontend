@@ -73,7 +73,7 @@ const STEPS = [
   {
     n: '02',
     title: 'Take your turn',
-    desc: 'Say where and how long, and TripicianAI drafts it. Try it at the top of this page, no account needed. Bring your crew in on one link, and every plan is checked against real distances and opening hours so it holds up when you are standing there.',
+    desc: 'Say where and how long, and Tripician Intelligence drafts it. Try it at the top of this page, no account needed. Bring your crew in on one link, and every plan is checked against real distances and opening hours so it holds up when you are standing there.',
     img: '/img/onboarding/reality-check.jpg',
     alt: 'A traveller checking a route against a printed map',
   },
@@ -115,7 +115,7 @@ const FEATURES = [
   {
     icon: <TripicianAIOrb size={22} />,
     title: 'Every place checked before you see it',
-    desc: 'TripicianAI drafts the route and the stops, then each place is matched against a live listing. Anything permanently closed is dropped, and anything unconfirmed says so.',
+    desc: 'Tripician Intelligence drafts the route and the stops, then each place is matched against a live listing. Anything permanently closed is dropped, and anything unconfirmed says so.',
   },
   {
     icon: <IconRosetteDiscountCheckFilled size={22} />,
@@ -183,7 +183,7 @@ const toLandingTrip = (raw: any): LandingTrip | null => {
 const LP_FAQS = [
   {
     q: 'What exactly is Tripician?',
-        a: "Tripician is a social network for travellers, built around the whole arc of a trip. Browse itineraries published by the people who travelled them, plan your own with your crew or with TripicianAI, and afterwards write up what it was actually like and keep it, laid out page by page, as something worth reading. We are not a travel agency and we do not book flights or accommodation.",
+        a: "Tripician is a social network for travellers, built around the whole arc of a trip. Browse itineraries published by the people who travelled them, plan your own with your crew or with Tripician Intelligence, and afterwards write up what it was actually like and keep it, laid out page by page, as something worth reading. We are not a travel agency and we do not book flights or accommodation.",
   },
   {
     q: 'What is an after story?',
@@ -199,11 +199,11 @@ const LP_FAQS = [
   },
   {
     q: 'Is Tripician free?',
-    a: 'Yes - planning, posting, stories and collaboration are free. Drafting with TripicianAI runs on included credits: every traveller gets 300 personal credits each month and each trip starts with its own shared 300-credit wallet, enough for roughly a month of regular use. Included credits reset at the start of each month rather than carrying over. The reality check costs nothing, because it is plain arithmetic rather than a model call.',
+    a: 'Yes - planning, posting, stories and collaboration are free. Drafting with Tripician Intelligence runs on included credits: every traveller gets 300 personal credits each month and each trip starts with its own shared 300-credit wallet, enough for roughly a month of regular use. Included credits reset at the start of each month rather than carrying over. The reality check costs nothing, because it is plain arithmetic rather than a model call.',
   },
   {
     q: 'Does Tripician use AI, and can I trust what it suggests?',
-    a: "Yes, and here is exactly how. TripicianAI drafts routes, stops, local food and notes using a language model - so on its own it would occasionally suggest somewhere that has closed or never existed. That is why nothing it produces reaches you unchecked: every place is matched against a live listing first. Anything permanently closed is dropped before you see it, and anything without a listing is labelled \"unchecked\" rather than presented as fact. TripicianAI never writes your story for you; it will proof-read one if you ask.",
+    a: "Yes, and here is exactly how. Tripician Intelligence drafts routes, stops, local food and notes using a language model - so on its own it would occasionally suggest somewhere that has closed or never existed. That is why nothing it produces reaches you unchecked: every place is matched against a live listing first. Anything permanently closed is dropped before you see it, and anything without a listing is labelled \"unchecked\" rather than presented as fact. Tripician Intelligence never writes your story for you; it will proof-read one if you ask.",
   },
   {
     q: 'Is my data safe?',
@@ -589,7 +589,7 @@ export default function LandingPage() {
          * before truncating.
          */
         title="Tripician, A Social Network For Travellers And Explorers"
-        description="Travellers publish the trips they actually took. Read them, ask the people who went, and find others to travel with. Plan your own with your crew or with TripicianAI. Free to join."
+        description="Travellers publish the trips they actually took. Read them, ask the people who went, and find others to travel with. Plan your own with your crew or with Tripician Intelligence. Free to join."
         path="/"
         image={OG_IMAGE || undefined}
         jsonLd={[
@@ -912,10 +912,10 @@ export default function LandingPage() {
         <div className="lp-shell lp-tripicianai__inner">
           <div className="lp-tripicianai__text">
             {/* The lockup in place of the written kicker. The landing page is always light. */}
-            <TripicianAIWordmark height={30} onDark={false} />
+            <TripicianAIWordmark height={36} onDark={false} />
             <h2 className="lp-h2">Say it in a sentence</h2>
             <p className="lp-lede">
-              Tell TripicianAI where you are going and how long for, and it drafts the route, the
+              Tell Tripician Intelligence where you are going and how long for, and it drafts the route, the
               stops, the local food and the notes. Then every place is matched against a
               live listing before you see it.
             </p>
@@ -926,11 +926,11 @@ export default function LandingPage() {
               messages, and not keeping them is the only way to be sure.
             </p>
             <p className="lp-tripicianai__caveat">
-              TripicianAI proof-reads an after story if you ask it to. It never writes one for
+              Tripician Intelligence proof-reads an after story if you ask it to. It never writes one for
               you: the whole value of a story is that a person wrote it.
             </p>
             <button className="lp-btn lp-btn--outline" onClick={() => navigate('/signup')}>
-              Try TripicianAI free <IconArrowRight size={16} aria-hidden="true" />
+              Try Tripician Intelligence free <IconArrowRight size={16} aria-hidden="true" />
             </button>
           </div>
           <div className="lp-tripicianai__demo" aria-hidden="true">

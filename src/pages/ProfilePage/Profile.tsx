@@ -64,7 +64,6 @@ import PostComposer from '../../posts/PostComposer';
 import PostCard from '../../posts/PostCard';
 import { postsService } from '../../posts/postsService';
 import type { TravelerPost } from '../../posts/types';
-import IdentityVerifiedMark from '../../components/ui/IdentityVerifiedMark';
 import VerifiedProfileMark from '../../components/ui/VerifiedProfileMark';
 import JoinRequestsInbox from '../../seats/JoinRequestsInbox';
 
@@ -617,7 +616,6 @@ const Profile: React.FC = () => {
                 >
                   {!profile.profilepicture && initials}
                 </Avatar>
-                <IdentityVerifiedMark verified={!!profile.identityVerifiedAt} size={26} />
               </Box>
             </Box>
           </motion.div>
@@ -649,7 +647,8 @@ const Profile: React.FC = () => {
                   >
                     {fullName}
                   </Typography>
-                  <VerifiedProfileMark verified={!!profile.profileVerifiedAt} verifiedAt={profile.profileVerifiedAt} size={22} />
+                  {/* The one verified mark: the identity check, with its date. */}
+                  <VerifiedProfileMark verified={!!profile.identityVerifiedAt} verifiedAt={profile.identityVerifiedAt} size={22} />
                 </Box>
                 {profile.location && (
                   <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, color: 'text.secondary' }}>
