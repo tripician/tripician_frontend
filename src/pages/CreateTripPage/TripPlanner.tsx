@@ -65,6 +65,9 @@ import { FEATURE_FLAGS } from '../../config/featureFlags';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useTripicianAI, type UseTripicianAIReturn } from '../../tripicianai/useTripicianAI';
 import { planDestination } from '../../tripicianai/tripicianAIService';
+import { useReportAnswer } from '../../tripicianai/useReportAnswer';
+import TripicianAIWordmark from '../../tripicianai/TripicianAIWordmark';
+import { promptFor } from '../../tripicianai/reportAnswer';
 import { resolveSpots, resolvePlaceLocation, ensurePlacesReady, getPlaceDetails } from '../../services/placeVerification';
 import { isUsableCoord } from '../../utils/geo';
 import { suggestCountryItinerary, TripicianAIRequestError } from '../../tripicianai/tripicianAIService';
@@ -324,6 +327,7 @@ interface PremiumChatPanelProps { tripicianAIHook: UseTripicianAIReturn; }
 
 const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ tripicianAIHook }) => {
 	const { messages, isStreaming, sendMessage } = tripicianAIHook;
+	const { openReport, reportDialog } = useReportAnswer('web:planner');
 	const theme = useTheme();
 	const isLight = theme.palette.mode === 'light';
 	const [input, setInput] = React.useState('');
@@ -429,21 +433,10 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ tripicianAIHook }) 
 						backdropFilter: 'blur(8px)',
 						flexShrink: 0,
 					}}>
-						{/* AI avatar */}
-						<Box sx={{
-							width: 32, height: 32, borderRadius: '10px', flexShrink: 0,
-							bgcolor: 'primary.main',
-							display: { xs: 'flex', lg: 'none' }, alignItems: 'center', justifyContent: 'center',
-						}}>
-							<Box component='svg' viewBox='0 0 24 24' sx={{ width: 16, height: 16 }}>
-								<path fill='#fff' d='M12 2a10 10 0 110 20A10 10 0 0112 2zm0 2a8 8 0 100 16A8 8 0 0012 4zm0 12a1 1 0 110 2 1 1 0 010-2zm.5-8v6h-1V8h1z'/>
-							</Box>
-						</Box>
 						<Box sx={{ flex: 1, minWidth: 0 }}>
-							<Typography sx={{ fontWeight: 700, fontSize: 14, lineHeight: 1, color: isLight ? '#0d0d0d' : '#f0f0f0', fontFamily: 'inherit', letterSpacing: -0.3 }}>
-								TripicianAI
-							</Typography>
-							<Box sx={{ display: { xs: 'flex', lg: 'none' }, alignItems: 'center', gap: 0.5, mt: 0.3 }}>
+							{/* The lockup alone stands for TripicianAI: no icon or written name beside it. */}
+							<TripicianAIWordmark height={28} />
+							<Box sx={{ display: { xs: 'flex', lg: 'none' }, alignItems: 'center', gap: 0.5, mt: 0.5 }}>
 								<Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#22c55e', boxShadow: '0 0 5px rgba(34,197,94,0.7)' }} />
 								<Typography sx={{ fontSize: 10.5, color: isLight ? 'rgba(0,0,0,0.50)' : 'rgba(255,255,255,0.45)', fontWeight: 500, fontFamily: 'inherit', letterSpacing: 0.2 }}>
 									Trip co-planner
@@ -482,8 +475,9 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ tripicianAIHook }) 
 							</Box>
 						)}
 						{messages.map(m => (
-							<TripicianAIMessage key={m.id} message={m} isLight={isLight} />
+							<TripicianAIMessage key={m.id} message={m} isLight={isLight} onReport={() => openReport(m.content, promptFor(messages, m.id))} />
 						))}
+						{reportDialog}
 						<div ref={endRef} />
 					</Box>
 
@@ -3364,7 +3358,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
                                                                     // now that it can, the tab is present and simply disabled until
                                                                     // the trip goes public, exactly as in Advanced.
                                                                     ? [
-                                                                            { id: 'chat', label: 'Discussion', tip: 'Group chat - type @tripicianai to bring in the co-planner', disabled: false },
+                                                                            { id: 'chat', label: 'Discussion', tip: 'Group chat - type @tripician to bring in the co-planner', disabled: false },
                                                                             ...(ENABLE_COMMENTS ? [{ id: 'comments', label: 'Comments', tip: isDraft ? 'Publish this trip to enable public comments' : 'Public comments on this trip', disabled: isDraft }] : []),
                                                                             { id: 'map', label: 'Map', tip: 'Trip map - see your route at a glance', disabled: false },
                                                                     ]

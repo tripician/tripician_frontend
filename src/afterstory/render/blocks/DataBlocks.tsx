@@ -206,8 +206,7 @@ export const StoryListBlock: React.FC<BlockProps<Extract<StoryBlock, { type: 'li
  *
  * A static image rather than an interactive map: mounting Mapbox GL here would
  * put a GL context and a tile bill on every story page, including the ones
- * crawlers fetch, and the printed book cannot pan anyway. The picture and the
- * page get identical pixels. The numbered list stays underneath, because it is
+ * crawlers fetch. The numbered list stays underneath, because it is
  * the half that survives a failed image fetch.
  */
 export const StoryMapBlock: React.FC<BlockProps<Extract<StoryBlock, { type: 'map' }>>> = ({ block, style }) => {

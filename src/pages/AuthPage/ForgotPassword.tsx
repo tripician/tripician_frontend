@@ -12,7 +12,7 @@ import { validateEmailFormat } from '../../utils/emailValidation';
 const ForgotPassword = () => {
   const navigate = useNavigate();
   const loginBackground = import.meta.env.VITE_SIGNINPAGE_IMAGE_URL as string | undefined;
-  const logoUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_2_URL as string | undefined;
+  const logoUrl = import.meta.env.VITE_LOGO_WHITE as string | undefined;
 
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);

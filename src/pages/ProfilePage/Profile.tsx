@@ -49,7 +49,6 @@ import TripCard from '../DashboardPage/TripCard';
 import TripShareModal from '../../components/TripShareModal';
 import Seo from '../../components/Seo';
 import StoryCard from '../../afterstory/cards/StoryCard';
-import BookPreviewDialog from '../../afterstory/book/BookPreviewDialog';
 import { afterStoryService } from '../../afterstory/afterStoryService';
 import type { AfterStorySummaryDto } from '../../afterstory/types';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
@@ -159,7 +158,6 @@ const Profile: React.FC = () => {
   // Which story's book is open. Only ever set from the author's own tab: the
   // preview endpoint is authorship-gated, so offering it on a saved story would
   // be an action that always fails.
-  const [bookStory, setBookStory] = useState<AfterStorySummaryDto | null>(null);
   const [storiesLoading, setStoriesLoading] = useState(false);
   const storiesFetched = useRef(false);
 
@@ -880,7 +878,7 @@ const Profile: React.FC = () => {
                     ) : (
                       <Box sx={tripGridSx}>
                         {myStories.map((s) => (
-                          <StoryCard key={s.id} story={s} onBook={setBookStory} />
+                          <StoryCard key={s.id} story={s} />
                         ))}
                       </Box>
                     )}
@@ -1000,13 +998,6 @@ const Profile: React.FC = () => {
           totalNights={0}
         />
       )}
-
-      <BookPreviewDialog
-        open={Boolean(bookStory)}
-        onClose={() => setBookStory(null)}
-        story={bookStory}
-        token={token}
-      />
     </Box>
   );
 };

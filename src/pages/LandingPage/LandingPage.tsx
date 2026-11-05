@@ -16,6 +16,7 @@ import {
 import '../../assets/css/LandingPage.css';
 import Seo, { SITE_URL } from '../../components/Seo';
 import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
+import TripicianAIWordmark from '../../tripicianai/TripicianAIWordmark';
 import LandingPricing from './LandingPricing';
 import HeroChat from './HeroChat';
 import { HERO_IMAGE, HERO_VIDEO, HERO_VIDEO_CREDIT, OG_IMAGE, TICKER, PHOTO_CREDITS } from './landingImages';
@@ -198,7 +199,7 @@ const LP_FAQS = [
   },
   {
     q: 'Is Tripician free?',
-    a: 'Yes - planning, posting, stories and collaboration are free. Drafting with TripicianAI runs on included credits: every traveller starts with 300 personal credits and each trip gets its own shared 300-credit wallet, enough for roughly a month of regular use. The reality check costs nothing, because it is plain arithmetic rather than a model call.',
+    a: 'Yes - planning, posting, stories and collaboration are free. Drafting with TripicianAI runs on included credits: every traveller gets 300 personal credits each month and each trip starts with its own shared 300-credit wallet, enough for roughly a month of regular use. Included credits reset at the start of each month rather than carrying over. The reality check costs nothing, because it is plain arithmetic rather than a model call.',
   },
   {
     q: 'Does Tripician use AI, and can I trust what it suggests?',
@@ -297,8 +298,8 @@ export default function LandingPage() {
    * truth, and it is not the SDK.
    */
 
-  const logoFullWhiteUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_2_URL as string | undefined;
-  const logoFullBlackUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_BLACK_2_URL as string | undefined;
+  const logoFullWhiteUrl = import.meta.env.VITE_LOGO_WHITE as string | undefined;
+  const logoFullBlackUrl = import.meta.env.VITE_LOGO_BLACK as string | undefined;
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [trips, setTrips] = useState<LandingTrip[]>([]);
@@ -598,7 +599,7 @@ export default function LandingPage() {
             name: 'Tripician',
             url: SITE_URL,
             // Was ${SITE_URL}/og-cover.jpg, a file that does not exist in public/.
-            logo: import.meta.env.VITE_TRIPICIAN_LOGO_ICON_URL || OG_IMAGE,
+            logo: import.meta.env.VITE_LOGO_ICON || OG_IMAGE,
             description: 'A social network for travellers, where people publish the trips they actually took, find others to travel with, and keep the story afterwards.',
             // `sameAs: []` was emitted as an empty array, which asserts "this
             // organisation has no other web presence". Omitted until there are
@@ -910,7 +911,8 @@ export default function LandingPage() {
       <section className="lp-tripicianai" id="tripicianai">
         <div className="lp-shell lp-tripicianai__inner">
           <div className="lp-tripicianai__text">
-            <span className="lp-kicker">TripicianAI</span>
+            {/* The lockup in place of the written kicker. The landing page is always light. */}
+            <TripicianAIWordmark height={30} onDark={false} />
             <h2 className="lp-h2">Say it in a sentence</h2>
             <p className="lp-lede">
               Tell TripicianAI where you are going and how long for, and it drafts the route, the

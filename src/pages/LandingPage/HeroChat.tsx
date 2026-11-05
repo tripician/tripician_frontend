@@ -1,5 +1,6 @@
-import { useCallback, useRef, useState } from 'react';
-import { IconArrowRight } from '@tabler/icons-react';
+import { Fragment, useCallback, useRef, useState } from 'react';
+import { IconArrowRight, IconFlag } from '@tabler/icons-react';
+import { useReportAnswer } from '../../tripicianai/useReportAnswer';
 import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
 import { renderMarkdown } from '../../tripicianai/markdown';
 import { useRequireAuth } from '../../auth/AuthGate';
@@ -31,6 +32,8 @@ const OPENERS = [
  */
 export default function HeroChat() {
   const requireAuth = useRequireAuth();
+  // Guests can report too: the endpoint takes anonymous reports.
+  const { openReport, reportDialog } = useReportAnswer('web:landing-guest');
 
   const [messages, setMessages] = useState<GuestMessage[]>([]);
   const [input, setInput] = useState('');
@@ -241,18 +244,38 @@ export default function HeroChat() {
 
       {started && (
         <div className="lp-herochat__thread">
-          {messages.map((m, i) => (
-            <div key={i} className={`lp-herochat__msg lp-herochat__msg--${m.role}`}>
-              {/* Same renderer the signed-in chat uses. The prompt asks for bold
-                  place names and day labels, so without this the reply arrives
-                  wearing its asterisks. */}
-              {m.role === 'tripicianai'
-                ? (m.content ? renderMarkdown(m.content) : (busy && i === messages.length - 1 ? 'Thinking...' : ''))
-                : m.content}
-            </div>
-          ))}
+          {messages.map((m, i) => {
+            const finishedAnswer =
+              m.role === 'tripicianai' && m.content.trim() !== '' && !(busy && i === messages.length - 1);
+            return (
+              <Fragment key={i}>
+                <div className={`lp-herochat__msg lp-herochat__msg--${m.role}`}>
+                  {/* Same renderer the signed-in chat uses. The prompt asks for bold
+                      place names and day labels, so without this the reply arrives
+                      wearing its asterisks. */}
+                  {m.role === 'tripicianai'
+                    ? (m.content ? renderMarkdown(m.content) : (busy && i === messages.length - 1 ? 'Thinking...' : ''))
+                    : m.content}
+                </div>
+                {finishedAnswer && (
+                  <button
+                    type="button"
+                    className="lp-herochat__report"
+                    aria-label="Report this answer"
+                    onClick={() =>
+                      openReport(m.content, messages[i - 1]?.role === 'user' ? messages[i - 1].content : undefined)
+                    }
+                  >
+                    <IconFlag size={12} stroke={1.8} />
+                    Report
+                  </button>
+                )}
+              </Fragment>
+            );
+          })}
         </div>
       )}
+      {reportDialog}
 
       {draft && (
         <div className="lp-herochat__draft">

@@ -17,7 +17,6 @@ const plan = (over: Partial<Plan> = {}): Plan => ({
   maxTripMembers: 12,
   maxRecruitedTravellers: 2,
   tripicianAIMonthlyCredits: 300,
-  storyBookPriceTier: 'retail',
   ...over,
 });
 
@@ -45,9 +44,11 @@ describe('planBenefits', () => {
     expect(lines.some((l) => l.includes('0 travellers'))).toBe(false);
   });
 
-  it('never advertises a book price, on any tier', () => {
-    for (const tier of ['retail', 'pro_member', 'business_member'] as const) {
-      expect(planBenefits(plan({ storyBookPriceTier: tier })).join(' ')).not.toMatch(/book/i);
+  // Printed books are no longer sold, so no plan may promise anything about one.
+  it('never mentions books', () => {
+    const business = plan({ planId: 'business', features: ['trip_recruiting', 'organization_posts'] });
+    for (const p of [plan(), business]) {
+      expect(planBenefits(p).join(' ')).not.toMatch(/book/i);
     }
   });
 
@@ -108,7 +109,6 @@ describe('planUpgrade', () => {
     maxRecruitedTravellers: 5,
     features: ['trip_recruiting'],
     tripicianAIMonthlyCredits: 1500,
-    storyBookPriceTier: 'pro_member',
   });
 
   it('names only what actually changes', () => {
@@ -125,7 +125,6 @@ describe('planUpgrade', () => {
       maxTripMembers: undefined,
       maxRecruitedTravellers: undefined,
       tripicianAIMonthlyCredits: 10000,
-      storyBookPriceTier: 'business_member',
       features: ['trip_recruiting'],
     });
     const lines = planUpgrade(basic, business);

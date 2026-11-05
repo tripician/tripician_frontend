@@ -9,7 +9,7 @@ interface Props { children: React.ReactNode }
 const InfoPageShell: React.FC<Props> = ({ children }) => {
   const profile = useSelector((state: any) => state.user?.profile);
   const isAuthenticated = !!profile;
-  const logoFullBlackUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_BLACK_2_URL as string | undefined;
+  const logoFullBlackUrl = import.meta.env.VITE_LOGO_BLACK as string | undefined;
 
   const pageContent = (
     <Box sx={{ minHeight: '100vh', background: '#FAFAFA',}}>

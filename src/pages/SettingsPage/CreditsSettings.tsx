@@ -77,7 +77,9 @@ const CreditsSettings: React.FC = () => {
           </Box>
           <Typography sx={{ fontSize: '0.8rem', color: 'text.secondary', mb: 3, maxWidth: 520 }}>
             Credits power every conversation with TripicianAI. Each trip has its own shared credits the whole
-            group plans from; when those run out, yours cover what you ask for on that trip.
+            group plans from; when those run out, yours cover what you ask for on that trip. Free and plan
+            credits reset at the start of each month, so what you leave unused does not carry over. Credits you
+            buy never expire.
           </Typography>
 
           {loading && (

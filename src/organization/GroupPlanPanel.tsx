@@ -6,7 +6,7 @@ import { apiServices } from '../services/APIs/apiServices';
 import { useAuthToken } from '../hooks/useAuth0Token';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import SectionHeader from '../components/ui/SectionHeader';
-import { loadRazorpay, openRazorpaySubscription } from '../afterstory/book/razorpay';
+import { loadRazorpay, openRazorpaySubscription } from '../payments/razorpay';
 import { planUpgrade } from '../pricing/planBenefits';
 import { CARD_SAVING_NOTE } from '../pricing/billingCopy';
 import { waitForPlan } from '../pricing/planActivation';

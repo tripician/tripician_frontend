@@ -18,11 +18,8 @@ import type {
 } from '../../organization/types';
 import type { AfterStorySummaryDto } from '../../afterstory/types';
 import type {
-  Plan, PlanList, StoryBookPriceList, StoryBookQuote, SubscriptionIntent, SubscriptionState,
+  Plan, PlanList, SubscriptionIntent, SubscriptionState,
 } from '../../pricing/types';
-import type {
-  BookOrder, CreateBookOrderRequest, PaymentIntent, RazorpayResult,
-} from '../../afterstory/book/types';
 import { forceSignOut, getFreshToken } from '../auth/tokenService';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL;
@@ -578,7 +575,7 @@ export const apiServices = {
 
   createSubscription: (
     token: string,
-    dto: { planId: string; annual: boolean; organizationId?: string; promoCode?: string },
+    dto: { planId: string; annual: boolean; organizationId?: string },
   ) =>
     apiClient.post<SubscriptionIntent>('/api/subscriptions', dto, {
       headers: { Authorization: `Bearer ${token}` }
@@ -622,66 +619,14 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  // ── Story Book orders and payment ───────────────────────────────────────
-  // Note what createBookPayment does NOT send: an amount. The figure charged
-  // comes from the order the server priced and stored.
-
-  createBookOrder: (token: string, dto: CreateBookOrderRequest) =>
-    apiClient.post<{ orderId: string; status: string; total: number; currency: string }>(
-      '/api/book-orders', dto, {
-        headers: { Authorization: `Bearer ${token}` }
-      }),
-
-  getBookOrder: (token: string, orderId: string) =>
-    apiClient.get<BookOrder>(`/api/book-orders/${orderId}`, {
-      headers: { Authorization: `Bearer ${token}` }
-    }),
-
-  approveBookPreview: (token: string, orderId: string) =>
-    apiClient.post(`/api/book-orders/${orderId}/approve-preview`, null, {
-      headers: { Authorization: `Bearer ${token}` }
-    }),
-
-  createBookPayment: (token: string, orderId: string) =>
-    apiClient.post<PaymentIntent>(`/api/book-orders/${orderId}/payment`, null, {
-      headers: { Authorization: `Bearer ${token}` }
-    }),
-
-  verifyBookPayment: (token: string, orderId: string, result: RazorpayResult) =>
-    apiClient.post(`/api/book-orders/${orderId}/payment/verify`, {
-      razorpayOrderId: result.razorpay_order_id,
-      razorpayPaymentId: result.razorpay_payment_id,
-      razorpaySignature: result.razorpay_signature,
-    }, {
-      headers: { Authorization: `Bearer ${token}` }
-    }),
-
   // ── Pricing ─────────────────────────────────────────────────────────────
-  // Plans and the book price list are public: somebody deciding whether to
-  // sign up has to be able to see what things cost without signing up first.
+  // Plans are public: somebody deciding whether to sign up has to be able to
+  // see what things cost without signing up first.
 
   getPlans: () => apiClient.get<PlanList>('/api/pricing/plans'),
 
-  getStoryBookPrices: () => apiClient.get<StoryBookPriceList>('/api/pricing/story-book'),
-
   getMyPlan: (token: string) =>
     apiClient.get<Plan>('/api/pricing/me', {
-      headers: { Authorization: `Bearer ${token}` }
-    }),
-
-  // Renders the book to measure it, so call this once at checkout.
-  //
-  // The destination is required, not optional: delivery is quoted from the
-  // printer for that address, and the server refuses to price a book it cannot
-  // work out the postage for.
-  getStoryBookQuote: (
-    token: string, storyId: string, country: string, postCode: string,
-    quantity = 1, promoCode?: string,
-  ) =>
-    apiClient.get<StoryBookQuote>(
-      `/api/pricing/story-book/${storyId}/quote?quantity=${quantity}`
-      + `&country=${encodeURIComponent(country)}&postCode=${encodeURIComponent(postCode)}`
-      + (promoCode ? `&promoCode=${encodeURIComponent(promoCode)}` : ''), {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
@@ -832,8 +777,10 @@ export const apiServices = {
       '/api/identity-verification/me',
       { headers: { Authorization: `Bearer ${token}` } }),
 
+  // Only after the person agreed to VerificationConsentDialog: the backend refuses
+  // a start without `consent: true` (400 CONSENT_REQUIRED).
   startVerification: (token: string) =>
-    apiClient.post<{ url: string }>('/api/identity-verification/start', {}, {
+    apiClient.post<{ url: string }>('/api/identity-verification/start', { consent: true }, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 

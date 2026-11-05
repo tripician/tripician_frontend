@@ -18,10 +18,9 @@
  */
 
 import React from 'react';
-import { Avatar, Box, Tooltip, Typography, useTheme } from '@mui/material';
+import { Avatar, Box, Typography, useTheme } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
-  IconBook,
   IconPhoto,
   IconPlayerPlayFilled,
   IconHeart,
@@ -40,12 +39,6 @@ interface StoryCardProps {
   story: AfterStorySummaryDto;
   /** Fixed width turns the card into a horizontal-strip item instead of a grid cell. */
   width?: number;
-  /**
-   * Opens the book preview. Only passed where the viewer is the author, since
-   * the preview endpoint is authorship-gated and would 404 for anyone else.
-   * Omitted everywhere the card is just a way into the story.
-   */
-  onBook?: (story: AfterStorySummaryDto) => void;
 }
 
 /** The small round control that sits over the photograph, top right. */
@@ -60,7 +53,7 @@ const PUCK = {
   backdropFilter: 'blur(4px)',
 } as const;
 
-const StoryCard: React.FC<StoryCardProps> = ({ story, width, onBook }) => {
+const StoryCard: React.FC<StoryCardProps> = ({ story, width }) => {
   const theme = useTheme();
   const navigate = useNavigate();
   const [failed, setFailed] = React.useState(false);
@@ -147,39 +140,15 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, width, onBook }) => {
 
       <CardTypeTag kind="story" />
 
-      {/* Top right, because the bottom of the card is now type. A row rather
-          than two absolutely positioned pucks, so the book action and the video
-          badge cannot land on top of each other on a video story.
-
-          Below the type ribbon, which hangs from the top edge in the same
-          corner. */}
-      {(story.coverKind === 'Video' || onBook) && (
+      {/* Top right, because the bottom of the card is now type, below the type
+          ribbon that hangs from the top edge in the same corner. A still frame
+          with a play badge, so it is obvious the story opens with video without
+          anything actually starting here. */}
+      {story.coverKind === 'Video' && (
         <Box sx={{ position: 'absolute', top: 42, right: 12, display: 'flex', gap: 0.75 }}>
-          {onBook && (
-            <Tooltip title="See it as a book" arrow>
-              <Box
-                component="button"
-                type="button"
-                aria-label="See it as a book"
-                // The whole card is the link to the story, so this has to stop
-                // the click before it bubbles or the preview never opens.
-                onClick={(e: React.MouseEvent) => {
-                  e.stopPropagation();
-                  onBook(story);
-                }}
-                sx={{ ...PUCK, border: 'none', cursor: 'pointer', p: 0 }}
-              >
-                <IconBook size={13} />
-              </Box>
-            </Tooltip>
-          )}
-          {/* A still frame with a play badge, so it is obvious the story opens
-              with video without anything actually starting here. */}
-          {story.coverKind === 'Video' && (
-            <Box sx={PUCK}>
-              <IconPlayerPlayFilled size={12} />
-            </Box>
-          )}
+          <Box sx={PUCK}>
+            <IconPlayerPlayFilled size={12} />
+          </Box>
         </Box>
       )}
 

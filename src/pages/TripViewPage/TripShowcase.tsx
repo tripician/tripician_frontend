@@ -37,7 +37,6 @@ import ExpandableText from '../../components/ui/ExpandableText';
 import type { SpotProvenance } from '../../store/plannerSlice';
 import TripComments from '../CreateTripPage/TripComments';
 import PlaceQuestions from '../../posts/PlaceQuestions';
-import ShowcaseMap from './ShowcaseMap';
 import { BRAND } from '../../theme';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
 import StorySection from './sections/StorySection';
@@ -45,6 +44,10 @@ import {
   TRIP_SECTION_LABELS, isTripSectionId, visibleTripSections, accessRank,
   type TripSectionId,
 } from './tripSections';
+
+// Lazy: mapbox-gl is 1.6 MB, more than the rest of this page put together. The trip
+// itself renders without it; the map fills its fixed-height box when it arrives.
+const ShowcaseMap = React.lazy(() => import('./ShowcaseMap'));
 
 // ─── Data normalisation ───────────────────────────────────────────────────────
 
@@ -1202,7 +1205,9 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
         <Box sx={{ minWidth: 0, position: { md: 'sticky' }, top: { md: 76 } }}>
           {/* Map */}
           <Box sx={{ height: 260, borderRadius: '18px', overflow: 'hidden', border: `1px solid ${border}`, boxShadow: theme.custom.shadows.card, mb: 2.5 }}>
-            <ShowcaseMap stops={stops} />
+            <React.Suspense fallback={<Box sx={{ height: '100%', bgcolor: 'action.hover' }} />}>
+              <ShowcaseMap stops={stops} />
+            </React.Suspense>
           </Box>
 
           {/* Facts */}

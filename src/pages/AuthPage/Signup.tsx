@@ -27,7 +27,7 @@ const Signup = () => {
     const location = useLocation();
     const { loginWithRedirect } = useAuth0();
     const signupBackground = import.meta.env.VITE_SIGNUPPAGE_IMAGE_URL as string | undefined;
-    const logoUrl = import.meta.env.VITE_TRIPICIAN_LOGO_FULL_WHITE_2_URL as string | undefined;
+    const logoUrl = import.meta.env.VITE_LOGO_WHITE as string | undefined;
 
     const [formData, setFormData] = useState({
       firstName: '',

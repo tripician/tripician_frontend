@@ -192,6 +192,17 @@ async function postTripicianAIJson<T>(path: string, body: unknown, token?: strin
   return response.json() as Promise<T>;
 }
 
+/**
+ * Flags a TripicianAI answer for our team (`POST /api/tripicianai/report`). Open to
+ * guests; unlike feedback it earns no credits. `reason` is one of AI_REPORT_REASONS.
+ */
+export async function reportTripicianAIAnswer(
+  report: { reason: string; response: string; prompt?: string; detail?: string; surface?: string },
+  token?: string | null,
+): Promise<void> {
+  await postTripicianAIJson<{ message: string }>('/api/tripicianai/report', report, token);
+}
+
 export async function planDestination(
   request: PlanDestinationRequest,
   token?: string | null,
@@ -434,7 +445,10 @@ export async function fetchMyCreditHistory(token?: string | null, limit = 50): P
 export const CREDIT_ACTION_LABELS: Record<string, string> = {
   general_chat: 'TripicianAI chat',
   trip_chat: 'Trip chat',
-  trip_agent_mention: '@tripicianai proposal',
+  trip_agent_mention: '@tripician proposal',
+  // What the trip-chat agent actually writes to the ledger.
+  trip_agent: '@tripician proposal',
+  refund_trip_agent: 'Refund · @tripician proposal',
   plan_destination: 'Destination plan',
   suggest_itinerary: 'Route suggestion',
   trip_brief: 'Trip brief',
@@ -463,6 +477,8 @@ const CREDIT_ACTION_PREFIXES: Array<[string, string]> = [
   ['trip_topup:', 'Covered a trip that ran out'],
   ['member_topup:', 'Covered by a member'],
   ['group_topup:', 'Covered by the group'],
+  // A month closing: free and plan credits left unused at its end (bought credits never expire).
+  ['credit_expiry:', 'Unused credits expired'],
 ];
 
 export function creditActionLabel(action: string): string {
@@ -491,7 +507,7 @@ export const CREDIT_COSTS = {
 export const CREDIT_PRICES: ({ label: string } & CreditPrice)[] = [
   { label: 'TripicianAI chat message', ...CREDIT_COSTS.general_chat },
   { label: 'Trip chat message', ...CREDIT_COSTS.trip_chat },
-  { label: '@tripicianai proposal in trip chat', ...CREDIT_COSTS.trip_agent_mention },
+  { label: '@tripician proposal in trip chat', ...CREDIT_COSTS.trip_agent_mention },
   { label: 'Drafting a stop', ...CREDIT_COSTS.plan_destination },
   { label: 'Drafting a route', ...CREDIT_COSTS.suggest_itinerary },
   { label: 'Writing a trip description', ...CREDIT_COSTS.trip_brief },

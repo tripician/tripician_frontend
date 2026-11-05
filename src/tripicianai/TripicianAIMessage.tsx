@@ -1,19 +1,25 @@
 import React from 'react';
+import { IconFlag } from '@tabler/icons-react';
 import { BRAND } from '../theme';
 import type { TripicianAIMessage as TripicianAIMessageType } from './useTripicianAI';
-import TripicianAIOrb from './TripicianAIOrb';
+import TripicianAIWordmark from './TripicianAIWordmark';
 import { renderMarkdown } from './markdown';
+import { isReportableAnswer } from './reportAnswer';
 
 interface TripicianAIMessageProps {
   message: TripicianAIMessageType;
   isLight: boolean;
+  /** Shows "Report" under a finished answer (see useReportAnswer). */
+  onReport?: () => void;
 }
 
 const TripicianAIMessageComponent: React.FC<TripicianAIMessageProps> = ({
   message,
   isLight,
+  onReport,
 }) => {
   const isUser = message.role === 'user';
+  const mutedColour = isLight ? '#6b7280' : 'rgba(255,255,255,0.55)';
 
   return (
     <div
@@ -24,29 +30,12 @@ const TripicianAIMessageComponent: React.FC<TripicianAIMessageProps> = ({
       }}
     >
       {!isUser && (
-        <div
-          style={{
-            display: 'flex',
-            alignItems: 'center',
-            gap: 6,
-            marginBottom: 6,
-            paddingLeft: 2,
-          }}
-        >
-          <TripicianAIOrb size={22} />
-
-          <span
-            style={{
-              fontSize: 11,
-              fontWeight: 600,
-              color: isLight
-                ? '#4b5563'
-                : 'rgba(255,255,255,0.75)',
-            }}
-          >
-            TripicianAI
-          </span>
-        </div>
+        // The lockup in place of the orb and written name, at the smallest size that stays readable.
+        <TripicianAIWordmark
+          height={26}
+          onDark={!isLight}
+          style={{ marginBottom: 6, marginLeft: 2 }}
+        />
       )}
 
       <div
@@ -104,6 +93,30 @@ const TripicianAIMessageComponent: React.FC<TripicianAIMessageProps> = ({
           </span>
         )}
       </div>
+
+      {onReport && isReportableAnswer(message) && (
+        <button
+          type="button"
+          onClick={onReport}
+          aria-label="Report this answer"
+          style={{
+            display: 'inline-flex',
+            alignItems: 'center',
+            gap: 4,
+            marginTop: 4,
+            padding: '3px 4px',
+            border: 'none',
+            background: 'none',
+            cursor: 'pointer',
+            fontSize: 11,
+            fontWeight: 500,
+            color: mutedColour,
+          }}
+        >
+          <IconFlag size={12} stroke={1.8} />
+          Report
+        </button>
+      )}
     </div>
   );
 };

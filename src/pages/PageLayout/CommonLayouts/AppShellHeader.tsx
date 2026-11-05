@@ -595,13 +595,13 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
             */}
             <Box
               component="img"
-              src={import.meta.env.VITE_TRIPICIAN_LOGO_ICON_URL}
+              src={import.meta.env.VITE_LOGO_ICON}
               alt="Tripician"
               sx={{ height: 24, width: 'auto', display: { xs: 'block', sm: 'none' } }}
             />
             <Box
               component="img"
-              src={import.meta.env.VITE_TRIPICIAN_LOGO_FULL_BLACK_2_URL}
+              src={import.meta.env.VITE_LOGO_BLACK}
               alt="Tripician"
               sx={{
                 height: { xs: 18, md: 22 },

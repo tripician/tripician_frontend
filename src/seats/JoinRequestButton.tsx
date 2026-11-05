@@ -192,6 +192,7 @@ const JoinRequestButton: React.FC<JoinRequestButtonProps> = ({
         <Typography variant="caption" sx={{ color: 'text.disabled' }}>
           Organisers only meet verified travellers.
         </Typography>
+        {verification.consentDialog}
       </Box>
     );
   }

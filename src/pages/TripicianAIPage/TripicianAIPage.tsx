@@ -19,6 +19,7 @@ import { fetchMyCredits, extractTripFromChat, type TripicianAICreditBalance } fr
 import CreditUsagePopover from '../../tripicianai/CreditUsagePopover';
 import TripicianAIMessage from '../../tripicianai/TripicianAIMessage';
 import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
+import TripicianAIWordmark from '../../tripicianai/TripicianAIWordmark';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { useAppShell } from '../PageLayout/AppShellContext';
 import { useSelector } from 'react-redux';
@@ -29,6 +30,8 @@ import { PlanImportAttachButton, PlanImportStrip } from '../../tripicianai/PlanI
 import { matchCountryName } from '../../utils/countries';
 import { scheduleFeedbackPrompt } from '../../utils/feedbackPrompt';
 import { takePendingPrompt } from '../../utils/pendingTripicianAIPrompt';
+import { useReportAnswer } from '../../tripicianai/useReportAnswer';
+import { promptFor } from '../../tripicianai/reportAnswer';
 
 const STARTERS = [
   'Plan a 7-day trip to Japan for two people',
@@ -46,6 +49,7 @@ const TripicianAIPage: React.FC = () => {
   const { openCreateTrip } = useAppShell();
   const { profile } = useSelector((state: RootState) => state.user);
   const { messages, isStreaming, sendMessage, clearMessages } = useTripicianAI('', token);
+  const { openReport, reportDialog } = useReportAnswer('web:tripicianai');
 
   const [input, setInput] = useState('');
   const importer = usePlanImport(token);
@@ -251,16 +255,8 @@ const TripicianAIPage: React.FC = () => {
           flexShrink: 0,
         }}
       >
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-          <TripicianAIOrb size={40} />
-          <Box>
-            <Typography sx={{ fontWeight: 700, fontSize: '1.1rem', lineHeight: 1.2 }}>
-              TripicianAI
-            </Typography>
-            <Typography sx={{ fontSize: '0.72rem', color: 'text.disabled',}}>
-              Your travel companion
-            </Typography>
-          </Box>
+        <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
+          <TripicianAIWordmark height={34} />
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
@@ -387,8 +383,14 @@ const TripicianAIPage: React.FC = () => {
         ) : (
           <>
             {messages.map((msg) => (
-              <TripicianAIMessage key={msg.id} message={msg} isLight={isLight} />
+              <TripicianAIMessage
+                key={msg.id}
+                message={msg}
+                isLight={isLight}
+                onReport={() => openReport(msg.content, promptFor(messages, msg.id))}
+              />
             ))}
+            {reportDialog}
 
             {/* Create Trip CTA - shown after any trip-plan-like response */}
             {showCreateTrip && (

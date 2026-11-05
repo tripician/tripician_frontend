@@ -15,7 +15,7 @@ const FAQS = [
   },
   {
     q: 'Is Tripician free to use?',
-    a: 'Planning trips, inviting your crew, writing stories, starting a group and asking TripicianAI for help are all free, and a free account is given 300 TripicianAI credits every month. Tripician Pro raises that to 1,500 a month. Tripician Business is for travel businesses that run trips for other people: it adds a public page with posts, lets you put your own staff onto a trip, and is the only plan that can list a trip publicly and take join requests from travellers you have never met. Credits can also be bought on their own, without a subscription. Current prices are on the pricing page.',
+    a: 'Planning trips, inviting your crew, writing stories, starting a group and asking TripicianAI for help are all free, and a free account is given 300 TripicianAI credits every month. Tripician Pro raises that to 1,500 a month. Monthly credits reset at the start of each month, so any left unused do not carry over. Tripician Business is for travel businesses that run trips for other people: it adds a public page with posts, lets you put your own staff onto a trip, and is the only plan that can list a trip publicly and take join requests from travellers you have never met. Credits can also be bought on their own, without a subscription, and bought credits never expire. Current prices are on the pricing page.',
   },
   {
     q: 'How do I create a trip?',
@@ -48,10 +48,6 @@ const FAQS = [
   {
     q: 'What is an after story?',
     a: 'An after story is what a trip was actually like, written afterwards in your own words with your own photographs. Publish one and it sits on your profile, where people deciding whether to travel with you will read it. Readers can ask the author questions underneath. Read everyone else\'s in Groups & Stories, under Stories.',
-  },
-  {
-    q: 'Can I keep a copy of my story?',
-    a: 'Yes. Open the story and choose "See it as a book" to look through every page laid out the way it would be printed, then download the print-ready PDF. It is free on every plan, and it is yours to keep or print yourself.',
   },
   {
     q: 'Can I collaborate with others on my trip?',

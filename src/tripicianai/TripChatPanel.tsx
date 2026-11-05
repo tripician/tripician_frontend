@@ -5,13 +5,13 @@
  *
  * Features:
  *   All trip members can send messages
- *   Type @tripicianai to summon the AI agent  the backend handles routing,
+ *   Type @tripician to summon the AI agent  the backend handles routing,
  *    TripicianAI's reply arrives back through SignalR as a Proposal or TripicianAI message
  *   Proposal bubbles surface the AI suggestion with structured Accept / Reject actions
  *   System messages show structured per-change results (destination added, dates updated)
  *   Auto-scroll + "New message" jump button
  *   Connection status indicator
- *   @tripicianai mention hint in the input
+ *   @tripician mention hint in the input
  */
 
 import React, { useRef, useEffect, useState, useCallback, useMemo } from 'react';
@@ -45,6 +45,8 @@ import {
 import { fetchTripCredits, type TripicianAICreditBalance } from './tripicianAIService';
 import CreditUsagePopover from './CreditUsagePopover';
 import TripicianAIOrb from './TripicianAIOrb';
+import TripicianAIWordmark from './TripicianAIWordmark';
+import { mentionsTripician, TRIPICIAN_HANDLE } from './tripicianMention';
 import { renderMarkdown } from './markdown';
 import {
   IconMapPin, IconInfoCircle, IconTrash, IconHelpCircle, IconCalendar,
@@ -55,7 +57,6 @@ import { BRAND } from '../theme';
 // ??? Constants ????????????????????????????????????????????????????????????????
 
 const MAX_CHARS = 1000;
-const TRIPICIANAI_MENTION_RE = /@tripicianai\b/i;
 
 // ??? Helpers ??????????????????????????????????????????????????????????????????
 
@@ -141,11 +142,11 @@ const ProposalBubble: React.FC<ProposalBubbleProps> = ({ msg, actionState, onAcc
         maxWidth: 460,
       }}
     >
-      {/* Header */}
-      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, mb: 1 }}>
-        <TripicianAILogo size={16} />
-        <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'primary.main' }}>
-          TripicianAI Suggestion
+      {/* Header: the lockup stands in for the written name */}
+      <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
+        <TripicianAIWordmark height={26} onDark={!isLight} />
+        <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'primary.main', lineHeight: 1 }}>
+          Suggestion
         </Typography>
       </Box>
 
@@ -320,11 +321,14 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ msg, isMine, isLight, sho
             color: isMine ? '#fff' : (isLight ? '#1a1a1a' : 'rgba(255,255,255,0.88)'),
           }}
         >
-          {!isMine && showAvatar && (
-            <Typography sx={{ fontSize: 11, fontWeight: 700, mb: 0.35, color: isTripicianAI ? 'primary.main' : (isLight ? '#666' : 'rgba(255,255,255,0.55)') }}>
+          {!isMine && showAvatar && (isTripicianAI ? (
+            // The lockup in place of the written name, at the smallest size that stays readable.
+            <TripicianAIWordmark height={26} onDark={!isLight} style={{ marginBottom: 4 }} />
+          ) : (
+            <Typography sx={{ fontSize: 11, fontWeight: 700, mb: 0.35, color: isLight ? '#666' : 'rgba(255,255,255,0.55)' }}>
               {name}
             </Typography>
-          )}
+          ))}
           {/* Same renderer for members and TripicianAI: whoever writes markdown gets it
               rendered, and plain text is unaffected. */}
           <Typography sx={{ fontSize: 'inherit', lineHeight: 'inherit', color: 'inherit' }}>
@@ -418,7 +422,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
   const [input, setInput] = useState('');
   const [showJump, setShowJump] = useState(false);
 
-  // One-time note when the chat flips solo → group: explains that @tripicianai is now
+  // One-time note when the chat flips solo → group: explains that @tripician is now
   // required to summon the AI, so returning solo users aren't surprised.
   const [showGroupHint, setShowGroupHint] = useState(false);
   const prevMemberCountRef = useRef(members.length);
@@ -523,16 +527,16 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
   // Solo vs group: a trip is "solo" when the owner is its only participant.
   // `members` mirrors the backend participant set (owner + active members), so
   // members.length <= 1 here matches the server-side solo routing exactly.
-  // Solo → every message reaches TripicianAI, so we drop all the @tripicianai ceremony.
+  // Solo → every message reaches TripicianAI, so we drop all the @tripician ceremony.
   const isSolo = members.length <= 1;
 
-  // Detect @tripicianai in input for hint (only relevant once the chat is a group)
-  const isTripicianAIMention = TRIPICIANAI_MENTION_RE.test(input);
+  // Detect @tripician in input for hint (only relevant once the chat is a group)
+  const isTripicianAIMention = mentionsTripician(input);
   const showMentionCue = !isSolo && isTripicianAIMention;
 
   // All mentionable participants: TripicianAI first, then trip members
   const mentionables = useMemo(() => [
-    { id: 'tripicianai', insertName: 'tripicianai', displayName: 'TripicianAI', isTripicianAI: true as const, avatarUrl: undefined as string | null | undefined },
+    { id: 'tripicianai', insertName: TRIPICIAN_HANDLE, displayName: 'TripicianAI', isTripicianAI: true as const, avatarUrl: undefined as string | null | undefined },
     ...members.map(m => ({
       id: String(m.id),
       insertName: m.name,
@@ -739,7 +743,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
           <Typography noWrap sx={{ fontSize: 11, color: 'text.secondary', lineHeight: 1.3 }}>
             {isSolo
               ? 'Just you & TripicianAI · it replies to every message'
-              : <>{members.length} travelers · <Box component='span' sx={{ color: 'primary.main', fontWeight: 600 }}>@tripicianai</Box> to bring in the co-planner</>}
+              : <>{members.length} travelers · <Box component='span' sx={{ color: 'primary.main', fontWeight: 600 }}>@{TRIPICIAN_HANDLE}</Box> to bring in the co-planner</>}
           </Typography>
         </Box>
         {tripCredits !== null && (
@@ -796,7 +800,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
             <Typography sx={{ fontSize: 13, color: 'text.secondary', textAlign: 'center', maxWidth: 260, lineHeight: 1.55 }}>
               {isSolo
                 ? "It's just you and TripicianAI here. Ask anything: routes, dates, places to add. It will suggest changes to your trip."
-                : <>All trip members can chat here. Type <Box component='span' sx={{ color: 'primary.main', fontWeight: 700 }}>@tripicianai</Box> to get suggestions for your trip.</>}
+                : <>All trip members can chat here. Type <Box component='span' sx={{ color: 'primary.main', fontWeight: 700 }}>@{TRIPICIAN_HANDLE}</Box> to get suggestions for your trip.</>}
             </Typography>
           </Box>
         )}
@@ -944,7 +948,9 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
                   )}
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography sx={{ fontSize: 13, fontWeight: 600, color: isLight ? '#111' : 'rgba(255,255,255,0.88)', lineHeight: 1.3, display: 'flex', alignItems: 'center', gap: 0.75 }}>
-                      {s.displayName}
+                      {s.isTripicianAI
+                        ? <TripicianAIWordmark height={26} onDark={!isLight} />
+                        : s.displayName}
                       {/* Deliberate exception to dropping "AI" from the UI: in a chat with
                           real people, saying which speaker is a machine is disclosure that
                           the reader needs. Keep this label. */}
@@ -981,7 +987,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
               }}>
                 <TripicianAILogo size={16} />
                 <Typography sx={{ flex: 1, fontSize: 11.5, color: 'primary.main', fontWeight: 600, lineHeight: 1.4 }}>
-                  Others just joined. Now type <Box component='span' sx={{ fontWeight: 700 }}>@tripicianai</Box> to bring TripicianAI into the chat.
+                  Others just joined. Now type <Box component='span' sx={{ fontWeight: 700 }}>@{TRIPICIAN_HANDLE}</Box> to bring TripicianAI into the chat.
                 </Typography>
                 <Box
                   component='button'
@@ -999,7 +1005,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
             </motion.div>
           )}
         </AnimatePresence>
-        {/* @tripicianai hint */}
+        {/* @tripician hint */}
         <AnimatePresence>
           {showMentionCue && (
             <motion.div
@@ -1062,7 +1068,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
                 }
               }}
             onKeyDown={onKeyDown}
-            placeholder={!token ? 'Sign in to chat' : (isSolo ? 'Message TripicianAI, it replies to everything' : 'Message the group or type @tripicianai')}
+            placeholder={!token ? 'Sign in to chat' : (isSolo ? 'Message TripicianAI, it replies to everything' : `Message the group or type @${TRIPICIAN_HANDLE}`)}
             multiline
             maxRows={4}
             disabled={!token}
