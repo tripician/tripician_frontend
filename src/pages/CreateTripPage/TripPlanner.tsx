@@ -65,6 +65,9 @@ import { FEATURE_FLAGS } from '../../config/featureFlags';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useTripicianAI, type UseTripicianAIReturn } from '../../tripicianai/useTripicianAI';
 import { planDestination } from '../../tripicianai/tripicianAIService';
+import { useReportAnswer } from '../../tripicianai/useReportAnswer';
+import TripicianAIWordmark from '../../tripicianai/TripicianAIWordmark';
+import { promptFor } from '../../tripicianai/reportAnswer';
 import { resolveSpots, resolvePlaceLocation, ensurePlacesReady, getPlaceDetails } from '../../services/placeVerification';
 import { isUsableCoord } from '../../utils/geo';
 import { suggestCountryItinerary, TripicianAIRequestError } from '../../tripicianai/tripicianAIService';
@@ -324,6 +327,7 @@ interface PremiumChatPanelProps { tripicianAIHook: UseTripicianAIReturn; }
 
 const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ tripicianAIHook }) => {
 	const { messages, isStreaming, sendMessage } = tripicianAIHook;
+	const { openReport, reportDialog } = useReportAnswer('web:planner');
 	const theme = useTheme();
 	const isLight = theme.palette.mode === 'light';
 	const [input, setInput] = React.useState('');
@@ -415,7 +419,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ tripicianAIHook }) 
 							color: isLight ? 'rgba(0,0,0,0.35)' : 'rgba(255,255,255,0.35)',
 							fontFamily: 'inherit', textTransform: 'uppercase',
 							userSelect: 'none',
-						}}>TRIPICIANAI</Typography>
+						}}>Tripician Intelligence</Typography>
 					</Box>
 				</Box>
 			) : (
@@ -429,21 +433,10 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ tripicianAIHook }) 
 						backdropFilter: 'blur(8px)',
 						flexShrink: 0,
 					}}>
-						{/* AI avatar */}
-						<Box sx={{
-							width: 32, height: 32, borderRadius: '10px', flexShrink: 0,
-							bgcolor: 'primary.main',
-							display: { xs: 'flex', lg: 'none' }, alignItems: 'center', justifyContent: 'center',
-						}}>
-							<Box component='svg' viewBox='0 0 24 24' sx={{ width: 16, height: 16 }}>
-								<path fill='#fff' d='M12 2a10 10 0 110 20A10 10 0 0112 2zm0 2a8 8 0 100 16A8 8 0 0012 4zm0 12a1 1 0 110 2 1 1 0 010-2zm.5-8v6h-1V8h1z'/>
-							</Box>
-						</Box>
 						<Box sx={{ flex: 1, minWidth: 0 }}>
-							<Typography sx={{ fontWeight: 700, fontSize: 14, lineHeight: 1, color: isLight ? '#0d0d0d' : '#f0f0f0', fontFamily: 'inherit', letterSpacing: -0.3 }}>
-								TripicianAI
-							</Typography>
-							<Box sx={{ display: { xs: 'flex', lg: 'none' }, alignItems: 'center', gap: 0.5, mt: 0.3 }}>
+							{/* The lockup alone stands for TripicianAI: no icon or written name beside it. */}
+							<TripicianAIWordmark height={32} />
+							<Box sx={{ display: { xs: 'flex', lg: 'none' }, alignItems: 'center', gap: 0.5, mt: 0.5 }}>
 								<Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#22c55e', boxShadow: '0 0 5px rgba(34,197,94,0.7)' }} />
 								<Typography sx={{ fontSize: 10.5, color: isLight ? 'rgba(0,0,0,0.50)' : 'rgba(255,255,255,0.45)', fontWeight: 500, fontFamily: 'inherit', letterSpacing: 0.2 }}>
 									Trip co-planner
@@ -477,13 +470,14 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ tripicianAIHook }) 
 									<path d='M36 20 L22 22 L24 20 L22 18 Z' fill='currentColor'/>
 								</Box>
 								<Typography sx={{ fontSize: 12, color: isLight ? 'rgba(0,0,0,0.40)' : 'rgba(255,255,255,0.30)', textAlign: 'center', maxWidth: 200, lineHeight: 1.6, fontFamily: 'inherit' }}>
-									Your trip story starts here. Ask TripicianAI anything  routes, hidden gems, packing tips, local culture.
+									Your trip story starts here. Ask Tripician Intelligence anything  routes, hidden gems, packing tips, local culture.
 								</Typography>
 							</Box>
 						)}
 						{messages.map(m => (
-							<TripicianAIMessage key={m.id} message={m} isLight={isLight} />
+							<TripicianAIMessage key={m.id} message={m} isLight={isLight} onReport={() => openReport(m.content, promptFor(messages, m.id))} />
 						))}
+						{reportDialog}
 						<div ref={endRef} />
 					</Box>
 
@@ -544,7 +538,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ tripicianAIHook }) 
 								value={input}
 								onChange={e => setInput(e.target.value)}
 								onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send(); } }}
-								placeholder='Ask TripicianAI anything'
+								placeholder='Ask Tripician Intelligence anything'
 								multiline
 								maxRows={4}
 								sx={{
@@ -1855,9 +1849,9 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 				aiCreditBlockedRef.current = false;
 				// Report what actually happened instead of a blanket success.
 				if (creditBlocked) {
-					openToast('error', 'TripicianAI credits ran out, so planning stopped early. Your route was saved. You can buy more under Settings, Credits.');
+					openToast('error', 'Tripician Intelligence credits ran out, so planning stopped early. Your route was saved. You can buy more under Settings, Credits.');
 				} else if (planned === 0 && failed > 0) {
-					openToast('error', 'TripicianAI could not plan your stops right now. Your route was saved - try "Plan with TripicianAI" on each stop shortly.');
+					openToast('error', 'Tripician Intelligence could not plan your stops right now. Your route was saved - try "Plan with Tripician Intelligence" on each stop shortly.');
 				} else if (failed > 0) {
 					openToast('info', `Trip drafted. ${failed} stop${failed === 1 ? '' : 's'} could not be planned - use "Plan this stop" to retry.`);
 				} else if (droppedTotal > 0) {
@@ -2673,11 +2667,11 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 	const handleCompletePlan = React.useCallback(async () => {
 		if (completingPlanRef.current || aiAutoGenerating) return;
 		if (readOnly || !effectiveCanEdit) return;
-		if (!authToken || !tripId) { openToast('error', 'Sign in and save your trip before TripicianAI can plan it.'); return; }
+		if (!authToken || !tripId) { openToast('error', 'Sign in and save your trip before Tripician Intelligence can plan it.'); return; }
 
 		const startState = store.getState().planner.destinations;
 		if (startState.length === 0 && countries.length === 0) {
-			openToast('info', 'Add your first stop, then TripicianAI can plan the rest.');
+			openToast('info', 'Add your first stop, then Tripician Intelligence can plan the rest.');
 			return;
 		}
 
@@ -2819,8 +2813,8 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			const stopWord = (n: number) => `${n} stop${n === 1 ? '' : 's'}`;
 			if (creditBlocked) {
 				openToast('error', addedStops || plannedStops
-					? 'This trip ran out of TripicianAI credits partway - what it finished is saved.'
-					: 'This trip is out of TripicianAI credits.');
+					? 'This trip ran out of Tripician Intelligence credits partway - what it finished is saved.'
+					: 'This trip is out of Tripician Intelligence credits.');
 			} else if (addedStops === 0 && plannedStops === 0 && failedStops === 0) {
 				openToast('info', 'Your plan already looks complete: every night is covered and every stop has something in it.');
 			} else if (failedStops > 0) {
@@ -3364,7 +3358,7 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
                                                                     // now that it can, the tab is present and simply disabled until
                                                                     // the trip goes public, exactly as in Advanced.
                                                                     ? [
-                                                                            { id: 'chat', label: 'Discussion', tip: 'Group chat - type @tripicianai to bring in the co-planner', disabled: false },
+                                                                            { id: 'chat', label: 'Discussion', tip: 'Group chat - type @tripician to bring in the co-planner', disabled: false },
                                                                             ...(ENABLE_COMMENTS ? [{ id: 'comments', label: 'Comments', tip: isDraft ? 'Publish this trip to enable public comments' : 'Public comments on this trip', disabled: isDraft }] : []),
                                                                             { id: 'map', label: 'Map', tip: 'Trip map - see your route at a glance', disabled: false },
                                                                     ]

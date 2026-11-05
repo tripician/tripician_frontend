@@ -6,8 +6,8 @@
  *  - Connects to SignalR hub, joins the trip group
  *  - Pushes incoming real-time messages into state
  *  - Sends user messages via REST
- *  - Detects @tripicianai in the message and routes to /api/trip-chat/send
- *    (the backend TripChatService intercepts @tripicianai and calls TripicianAI internally)
+ *  - Detects @tripician in the message and routes to /api/trip-chat/send
+ *    (the backend TripChatService intercepts @tripician and calls TripicianAI internally)
  *  - Exposes accept/reject handlers for Proposal messages
  *  - Enriches messages with member display names / avatars
  */
@@ -23,6 +23,7 @@ import {
   type TripChatMessage,
   type TripMember,
 } from './tripChatService';
+import { mentionsTripician } from './tripicianMention';
 import { tokenSubject } from '../utils/authSession';
 import { getFreshToken } from '../services/auth/tokenService';
 
@@ -39,7 +40,7 @@ export interface UseTripChatReturn {
   messages: TripChatMessage[];
   status: ChatStatus;
   sending: boolean;
-  /** Send a plain member message (or @tripicianai message � backend decides) */
+  /** Send a plain member message (or @tripician message � backend decides) */
   sendMessage: (text: string) => Promise<void>;
   acceptProposalMsg: (chatMessageId: string, proposalId: number) => Promise<void>;
   rejectProposalMsg: (chatMessageId: string, proposalId: number) => Promise<void>;
@@ -48,7 +49,7 @@ export interface UseTripChatReturn {
   myUserId: number | null;
   /** Names of members currently typing (empty = nobody) */
   typingUsers: string[];
-  /** True while TripicianAI is analysing a @tripicianai message */
+  /** True while TripicianAI is analysing a @tripician message */
   tripicianAITyping: boolean;
   /** Call when local input changes to broadcast typing state */
   notifyTyping: (text: string) => void;
@@ -261,12 +262,12 @@ export function useTripChat(
       setSending(true);
       try {
         // Optimistic insert for plain member-to-member messages only.
-        // Messages that route to TripicianAI (an explicit @tripicianai mention, OR any message
+        // Messages that route to TripicianAI (an explicit @tripician mention, OR any message
         // on a solo trip where the owner is the only participant) skip the optimistic echo
         // and rely on the server's SignalR broadcast / REST result as the single
         // source of truth. Otherwise the optimistic bubble and the server echo (which
         // carry different ids and can't be de-duped) briefly render the message twice.
-        const isTripicianAI = /@tripicianai\b/i.test(text);
+        const isTripicianAI = mentionsTripician(text);
         const routesToTripicianAI = isTripicianAI || members.length <= 1;
         if (!routesToTripicianAI && myUserId != null) {
           const optimistic: TripChatMessage = {

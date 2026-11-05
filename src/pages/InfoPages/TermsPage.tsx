@@ -203,7 +203,8 @@ const TermsPage: React.FC = () => {
       content: (
         <>
           <P>Before initiating any formal legal proceeding, you agree to attempt to resolve any dispute informally by contacting us at <Box component="a" href="mailto:support@tripician.com" sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box>. We will attempt to resolve disputes through good-faith negotiation within 30 days of receiving notice.</P>
-          <P>If you are located in the EU, you may also refer the dispute to the EU Online Dispute Resolution platform: <Box component="a" href="https://ec.europa.eu/consumers/odr" target="_blank" rel="noopener noreferrer" sx={{ color: 'primary.main', textDecoration: 'none', '&:hover': { textDecoration: 'underline' } }}>ec.europa.eu/consumers/odr</Box>.</P>
+          {/* The EU Online Dispute Resolution platform this pointed to closed on 20 July 2025
+              (Regulation (EU) 2024/3228), so the link was removed. */}
         </>
       ),
     },
@@ -212,11 +213,11 @@ const TermsPage: React.FC = () => {
       title: '14. Paid Plans, Billing, Cancellation and Refunds',
       content: (
         <>
-          <P>Tripician Basic is free. Tripician Pro is a paid personal plan, and Tripician Business is a paid plan held by a business group. TripicianAI credits can also be bought on their own as one-off packs, without any subscription.</P>
+          <P>Tripician Basic is free. Tripician Pro is a paid personal plan, and Tripician Business is a paid plan held by a business group. Tripician Intelligence credits can also be bought on their own as one-off packs, without any subscription.</P>
           <P><strong>Payment.</strong> Subscriptions are billed monthly or annually in advance, in Indian Rupees, and are taken by Razorpay Software Private Limited. Your card details are entered on Razorpay's own checkout. Tripician never sees or stores them.</P>
           <P><strong>Renewal.</strong> A subscription renews automatically at the end of each billing period, at the price then in force, until it is cancelled. We will tell you before any price change takes effect on your renewal.</P>
           <P><strong>Cancelling.</strong> A group subscription can be cancelled by an admin from that group's Settings tab. To cancel a personal subscription, use Cancel renewal in Settings, Billing, or email <Box component="a" href="mailto:support@tripician.com" sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box>. When a subscription is cancelled it stays active until the end of the period you have already paid for, after which the account returns to Tripician Basic.</P>
-          <P><strong>Credits.</strong> TripicianAI credits are added to your balance each month on a plan that includes them, and bought credits are added the same way. Credits are spent when TripicianAI does work for you. They have no cash value, cannot be transferred between accounts, and there is no mechanism to convert them back into money.</P>
+          <P><strong>Credits.</strong> Tripician Intelligence credits are added to your balance each month on a plan that includes them, and bought credits are added the same way. Credits are spent when Tripician Intelligence does work for you. Monthly plan credits, the welcome credits an account, trip or group starts with, and bonus credits last until the end of the calendar month (UTC) in which they were added. Any of them still unused then expire and do not carry over to the next month. Credits you buy in a pack do not expire, and they are spent only after your other credits have run out. Credits have no cash value, cannot be transferred between accounts, and there is no mechanism to convert them back into money.</P>
           <P><strong>Refunds.</strong> If you cancel within 7 days of a payment, we will refund that payment in full. This applies to your first payment and to each renewal payment. A credit pack can be refunded on the same terms, as long as none of the credits bought in it have been spent. Ask by emailing <Box component="a" href="mailto:support@tripician.com" sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box> from the address the account is registered to. A refunded subscription ends straight away and the account returns to Tripician Basic. After those 7 days a payment is not refundable: cancelling then stops the next renewal rather than refunding the period you are already in.</P>
           <P><strong>If you are a consumer in the UK or the EU.</strong> You have a statutory right to cancel a contract made at a distance within 14 days of entering into it. That is longer than the 7 days above, and where it applies it takes precedence. If you asked us to start providing the service straight away, we may keep a proportionate amount for what you used before cancelling. This right is in addition to the policy above rather than instead of it, and nothing in these Terms removes it.</P>
           <P><strong>How a refund reaches you.</strong> Refunds are made to the original payment method through Razorpay, normally within 14 days of us agreeing to it. How soon it appears after that is decided by your bank or card issuer, not by us.</P>
@@ -265,7 +266,7 @@ const TermsPage: React.FC = () => {
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, mt: 3, flexWrap: 'wrap' }}>
             <Box sx={{ background: alpha(BRAND.coral, 0.08), borderRadius: '20px', px: 2, py: 0.75, border: `1px solid ${alpha(BRAND.coral, 0.15)}` }}>
-              <Typography sx={{ fontSize: '0.78rem', color: 'primary.main', fontWeight: 600 }}>Last updated: September 24, 2026</Typography>
+              <Typography sx={{ fontSize: '0.78rem', color: 'primary.main', fontWeight: 600 }}>Last updated: November 5, 2026</Typography>
             </Box>
             <Box sx={{ background: 'rgba(0,0,0,0.04)', borderRadius: '20px', px: 2, py: 0.75, border: '1px solid rgba(0,0,0,0.08)' }}>
               <Typography sx={{ fontSize: '0.78rem', color: '#555', fontWeight: 500 }}>Version 1.0</Typography>

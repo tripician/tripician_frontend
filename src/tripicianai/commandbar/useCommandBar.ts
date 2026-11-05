@@ -29,8 +29,8 @@ function toIsoDate(d: Date): string {
 /** Status text the bar shows while a mode runs, mapped away from the emoji copy. */
 function messageForError(err: unknown): string {
   if (err instanceof TripicianAIRequestError) {
-    if (err.status === 402) return 'You are out of TripicianAI credits.';
-    if (err.status === 429) return 'TripicianAI has hit its hourly limit. Try again shortly.';
+    if (err.status === 402) return 'You are out of Tripician Intelligence credits.';
+    if (err.status === 429) return 'Tripician Intelligence has hit its hourly limit. Try again shortly.';
     return err.message;
   }
   return 'That did not work. Please try again.';
@@ -90,7 +90,7 @@ export function useCommandBar() {
 
   const takeFiles = React.useCallback((files: File[]) => {
     // A screenshot cannot be parked in sessionStorage, so sign-in has to come first.
-    if (!requireAuth({ reason: 'Sign in to let TripicianAI read your screenshots.' })) return;
+    if (!requireAuth({ reason: 'Sign in to let Tripician Intelligence read your screenshots.' })) return;
     importer.addFiles(files);
   }, [importer, requireAuth]);
 

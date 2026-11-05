@@ -54,7 +54,7 @@ const AboutPage: React.FC = () => (
           <Box component="span" sx={{ color: 'primary.main' }}>together</Box>.
         </Typography>
         <Typography sx={{ fontSize: '1.05rem', color: '#666', lineHeight: 1.75, maxWidth: 600 }}>
-          Tripician is a social network for travellers - the people who find their travel tribe here, plan as a crew, and let TripicianAI handle the busywork in between.
+          Tripician is a social network for travellers - the people who find their travel tribe here, plan as a crew, and let Tripician Intelligence handle the busywork in between.
         </Typography>
       </Container>
     </Box>
@@ -73,7 +73,7 @@ const AboutPage: React.FC = () => (
           Tripician is that place: a social network built entirely around the traveller, with a co-planner that works alongside your crew instead of handing you a list and leaving.
         </Typography>
         <Typography sx={{ color: '#444', lineHeight: 1.85, mt: 2, fontSize: '0.95rem' }}>
-          One thing we decided early: a plan is only worth having if the places in it are real. So every place TripicianAI drafts is matched against a live listing before it reaches you. Anything permanently closed is dropped, and anything we cannot confirm is labelled as such rather than quietly presented as fact.
+          One thing we decided early: a plan is only worth having if the places in it are real. So every place Tripician Intelligence drafts is matched against a live listing before it reaches you. Anything permanently closed is dropped, and anything we cannot confirm is labelled as such rather than quietly presented as fact.
         </Typography>
       </Box>
 

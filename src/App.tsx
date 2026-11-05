@@ -1,19 +1,23 @@
 import { Suspense, lazy } from 'react'
 import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
-import Landingpage from './pages/LandingPage/LandingPage'
 import ProtectedRoute from './services/APIs/Auth/ProtectedRoute'
 import GuestRoute from './services/APIs/Auth/GuestRoute'
 import { AuthGateProvider } from './auth/AuthGate'
-import TermsPage from './pages/InfoPages/TermsPage';
-import PrivacyPage from './pages/InfoPages/PrivacyPage';
-import AboutPage from './pages/InfoPages/AboutPage';
-import ForOperatorsPage from './pages/InfoPages/ForOperatorsPage';
-import ChildSafetyPage from './pages/InfoPages/ChildSafetyPage';
-import BlogsList from './pages/BlogsPage/BlogsList';
-import BlogPost from './pages/BlogsPage/BlogPost';
 import { useAuthToken } from './hooks/useAuth0Token';
 import { ActivityHeartbeat } from './hooks/useActivityHeartbeat';
 
+// Every page is lazy. The landing, info and blog pages used to be imported eagerly,
+// and through their shared header they put the whole app shell (date pickers, GSAP,
+// SignalR, the create dialogs) into the startup bundle of every page - including
+// "/" for a signed-in member, who sees the board and never the landing page.
+const Landingpage = lazy(() => import('./pages/LandingPage/LandingPage'))
+const TermsPage = lazy(() => import('./pages/InfoPages/TermsPage'))
+const PrivacyPage = lazy(() => import('./pages/InfoPages/PrivacyPage'))
+const AboutPage = lazy(() => import('./pages/InfoPages/AboutPage'))
+const ForOperatorsPage = lazy(() => import('./pages/InfoPages/ForOperatorsPage'))
+const ChildSafetyPage = lazy(() => import('./pages/InfoPages/ChildSafetyPage'))
+const BlogsList = lazy(() => import('./pages/BlogsPage/BlogsList'))
+const BlogPost = lazy(() => import('./pages/BlogsPage/BlogPost'))
 const Signin = lazy(() => import('./pages/AuthPage/Signin'))
 const Signup = lazy(() => import('./pages/AuthPage/Signup'))
 const ForgotPassword = lazy(() => import('./pages/AuthPage/ForgotPassword'))

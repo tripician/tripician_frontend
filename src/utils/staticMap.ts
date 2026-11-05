@@ -1,9 +1,8 @@
 /**
  * A route drawn as one flat image by Mapbox's Static Images API.
  *
- * Used where an interactive map would cost more than it is worth: a story page a
- * crawler fetches, and the printed book, which cannot pan anyway. Both surfaces
- * get the same pixels, which is the point.
+ * Used where an interactive map would cost more than it is worth: a story page,
+ * which crawlers fetch too.
  *
  * The URL is built at RENDER time and never stored on the block. Putting it in
  * `BodyJson` would ship the access token to every reader of every story.

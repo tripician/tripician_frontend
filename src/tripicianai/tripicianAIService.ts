@@ -2,12 +2,12 @@
 const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
 
 function errorMessageForStatus(status: number): string {
-  if (status === 401 || status === 403) return 'Please sign in to use TripicianAI.';
-  if (status === 400) return '⚠️ TripicianAI needs a bit more context to help you. Try opening a trip and chatting from there!';
-  if (status === 402) return "You've used all your TripicianAI credits. Top-ups are on the way, see Settings → Credits for your balance and usage.";
+  if (status === 401 || status === 403) return 'Please sign in to use Tripician Intelligence.';
+  if (status === 400) return '⚠️ Tripician Intelligence needs a bit more context to help you. Try opening a trip and chatting from there!';
+  if (status === 402) return "You've used all your Tripician Intelligence credits. Top-ups are on the way, see Settings → Credits for your balance and usage.";
   if (status === 404) return 'z z z z z... 💤\n\nTripicianAI is sleeping right now. Come back a little later and I\'ll be ready to plan your next adventure!';
-  if (status === 429) return '⏳ TripicianAI needs a breather - you\'ve hit the hourly limit. Try again in a little while!';
-  if (status >= 500) return '😵 TripicianAI bumped into something on the server. Give it a moment and try again!';
+  if (status === 429) return '⏳ Tripician Intelligence needs a breather - you\'ve hit the hourly limit. Try again in a little while!';
+  if (status >= 500) return '😵 Tripician Intelligence bumped into something on the server. Give it a moment and try again!';
   return '🤔 Hmm, something went sideways. Try again in a sec!';
 }
 
@@ -67,7 +67,7 @@ export async function* streamTripicianAIResponse(
       body: JSON.stringify(body),
     });
   } catch {
-    yield "📡 Whoops! Can't find TripicianAI - looks like it lost the network. Check your connection and try again!";
+    yield "📡 Whoops! Can't find Tripician Intelligence - looks like it lost the network. Check your connection and try again!";
     return;
   }
 
@@ -79,7 +79,7 @@ export async function* streamTripicianAIResponse(
   }
 
   if (!response.body) {
-    yield '🫙 TripicianAI sent back an empty reply - like an empty suitcase. Try again!';
+    yield '🫙 Tripician Intelligence sent back an empty reply - like an empty suitcase. Try again!';
     return;
   }
 
@@ -190,6 +190,17 @@ async function postTripicianAIJson<T>(path: string, body: unknown, token?: strin
   }
 
   return response.json() as Promise<T>;
+}
+
+/**
+ * Flags a TripicianAI answer for our team (`POST /api/tripicianai/report`). Open to
+ * guests; unlike feedback it earns no credits. `reason` is one of AI_REPORT_REASONS.
+ */
+export async function reportTripicianAIAnswer(
+  report: { reason: string; response: string; prompt?: string; detail?: string; surface?: string },
+  token?: string | null,
+): Promise<void> {
+  await postTripicianAIJson<{ message: string }>('/api/tripicianai/report', report, token);
 }
 
 export async function planDestination(
@@ -432,9 +443,12 @@ export async function fetchMyCreditHistory(token?: string | null, limit = 50): P
 
 /** Human labels for ledger actions (mirrors backend action keys). */
 export const CREDIT_ACTION_LABELS: Record<string, string> = {
-  general_chat: 'TripicianAI chat',
+  general_chat: 'Tripician Intelligence chat',
   trip_chat: 'Trip chat',
-  trip_agent_mention: '@tripicianai proposal',
+  trip_agent_mention: '@tripician proposal',
+  // What the trip-chat agent actually writes to the ledger.
+  trip_agent: '@tripician proposal',
+  refund_trip_agent: 'Refund · @tripician proposal',
   plan_destination: 'Destination plan',
   suggest_itinerary: 'Route suggestion',
   trip_brief: 'Trip brief',
@@ -445,7 +459,7 @@ export const CREDIT_ACTION_LABELS: Record<string, string> = {
   story_polish: 'Story proof-read',
   import_plan: 'Imported plan',
   trial_grant: 'Welcome credits',
-  refund_general_chat: 'Refund · TripicianAI chat',
+  refund_general_chat: 'Refund · Tripician Intelligence chat',
   refund_trip_chat: 'Refund · trip chat',
   refund_plan_destination: 'Refund · destination plan',
   refund_suggest_itinerary: 'Refund · route suggestion',
@@ -463,6 +477,8 @@ const CREDIT_ACTION_PREFIXES: Array<[string, string]> = [
   ['trip_topup:', 'Covered a trip that ran out'],
   ['member_topup:', 'Covered by a member'],
   ['group_topup:', 'Covered by the group'],
+  // A month closing: free and plan credits left unused at its end (bought credits never expire).
+  ['credit_expiry:', 'Unused credits expired'],
 ];
 
 export function creditActionLabel(action: string): string {
@@ -489,9 +505,9 @@ export const CREDIT_COSTS = {
 
 /** What credits buy, in the order the settings page lists them. */
 export const CREDIT_PRICES: ({ label: string } & CreditPrice)[] = [
-  { label: 'TripicianAI chat message', ...CREDIT_COSTS.general_chat },
+  { label: 'Tripician Intelligence chat message', ...CREDIT_COSTS.general_chat },
   { label: 'Trip chat message', ...CREDIT_COSTS.trip_chat },
-  { label: '@tripicianai proposal in trip chat', ...CREDIT_COSTS.trip_agent_mention },
+  { label: '@tripician proposal in trip chat', ...CREDIT_COSTS.trip_agent_mention },
   { label: 'Drafting a stop', ...CREDIT_COSTS.plan_destination },
   { label: 'Drafting a route', ...CREDIT_COSTS.suggest_itinerary },
   { label: 'Writing a trip description', ...CREDIT_COSTS.trip_brief },

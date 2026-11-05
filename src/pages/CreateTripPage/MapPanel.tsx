@@ -397,7 +397,9 @@ const MapPanel: React.FC<MapPanelProps> = ({ emptyHint }) => {
       // pole the way the flight does. fitBounds pulls regional trips in close
       // enough that the projection stops mattering.
       projection: { name: 'globe' },
-      attributionControl: false,
+      // Attribution stays on: Mapbox's terms require the wordmark and the
+      // "© Mapbox © OpenStreetMap" credit on any map using its tiles, and the
+      // OSM licence requires the latter. On narrow maps it collapses to an (i).
       config: { basemap: basemapConfig(isLight) },
     });
 

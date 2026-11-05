@@ -15,4 +15,4 @@ export const PLACEHOLDER_EXAMPLES = [
 export const PLACEHOLDER_INTERVAL_MS = 2800;
 
 /** The stable accessible name. The rotating text is decorative and aria-hidden. */
-export const COMMAND_BAR_LABEL = 'Ask TripicianAI, plan a trip, or drop screenshots';
+export const COMMAND_BAR_LABEL = 'Ask Tripician Intelligence, plan a trip, or drop screenshots';

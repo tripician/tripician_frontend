@@ -20,7 +20,7 @@ import { useAuthToken } from '../hooks/useAuth0Token';
 import Seo from '../components/Seo';
 import PageHeader from '../components/ui/PageHeader';
 import SegmentedControl from '../components/ui/SegmentedControl';
-import { loadRazorpay, openRazorpaySubscription } from '../afterstory/book/razorpay';
+import { loadRazorpay, openRazorpaySubscription } from '../payments/razorpay';
 import SalePrice from './SalePrice';
 import { saleLabel, strikePrice } from './planSale';
 import { CARD_SAVING_NOTE } from './billingCopy';
@@ -41,7 +41,7 @@ const BILLING_OPTIONS: { value: Billing; label: string }[] = [
 const PITCH: Record<PlanId, string> = {
   basic: 'Everything you need to plan a trip and write it up afterwards.',
   pro: 'For people who travel often, plan bigger and bring more people along.',
-  club: 'For clubs and travel communities: no member cap, managers, and TripicianAI credits the group shares.',
+  club: 'For clubs and travel communities: no member cap, managers, and Tripician Intelligence credits the group shares.',
   business: 'For agencies, trekking groups and travel communities running trips.',
 };
 
@@ -183,7 +183,7 @@ const PricingPage: React.FC = () => {
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
       <Seo
         title="Pricing"
-        description="Tripician is free to plan with and free to write on. Pro and Business add more room to plan, and more TripicianAI."
+        description="Tripician is free to plan with and free to write on. Pro and Business add more room to plan, and more Tripician Intelligence."
         path="/pricing"
       />
 

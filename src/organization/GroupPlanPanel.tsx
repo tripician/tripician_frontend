@@ -6,7 +6,7 @@ import { apiServices } from '../services/APIs/apiServices';
 import { useAuthToken } from '../hooks/useAuth0Token';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import SectionHeader from '../components/ui/SectionHeader';
-import { loadRazorpay, openRazorpaySubscription } from '../afterstory/book/razorpay';
+import { loadRazorpay, openRazorpaySubscription } from '../payments/razorpay';
 import { planUpgrade } from '../pricing/planBenefits';
 import { CARD_SAVING_NOTE } from '../pricing/billingCopy';
 import { waitForPlan } from '../pricing/planActivation';
@@ -200,7 +200,7 @@ const GroupPlanPanel: React.FC<{ organization: Organization }> = ({ organization
 
         {credits && (
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 1.5 }}>
-            {credits.balance.toLocaleString('en-IN')} TripicianAI credits in the group wallet
+            {credits.balance.toLocaleString('en-IN')} Tripician Intelligence credits in the group wallet
             {credits.monthlyCredits > 0 ? `, ${credits.monthlyCredits.toLocaleString('en-IN')} added each month` : ''}.
             A plan in the group draws on them when its own run out.
           </Typography>

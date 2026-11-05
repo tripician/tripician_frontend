@@ -1,10 +1,11 @@
 import React from 'react';
 import { Box, IconButton, Typography, CircularProgress } from '@mui/material';
-import { IconX, IconArrowRight } from '@tabler/icons-react';
+import { IconX, IconArrowRight, IconFlag } from '@tabler/icons-react';
 import { Link } from 'react-router-dom';
 
 import { renderMarkdown } from '../markdown';
-import TripicianAIOrb from '../TripicianAIOrb';
+import TripicianAIWordmark from '../TripicianAIWordmark';
+import { useReportAnswer } from '../useReportAnswer';
 import ScrollRail from '../../components/ui/ScrollRail';
 import StoryCard from '../../afterstory/cards/StoryCard';
 
@@ -26,6 +27,7 @@ interface Props {
 /** Real Tripician work sits under the model's answer, never mixed into it. */
 const CommandResultPanel: React.FC<Props> = ({ turns, stories, citationsLoading, onClose }) => {
   const bottomRef = React.useRef<HTMLDivElement>(null);
+  const { openReport, reportDialog } = useReportAnswer('web:command-bar');
 
   React.useEffect(() => {
     bottomRef.current?.scrollIntoView({ block: 'end' });
@@ -34,7 +36,7 @@ const CommandResultPanel: React.FC<Props> = ({ turns, stories, citationsLoading,
   return (
     <Box
       role="region"
-      aria-label="TripicianAI answer"
+      aria-label="Tripician Intelligence answer"
       aria-live="polite"
       sx={(t) => ({
         maxHeight: 'min(60vh, 560px)',
@@ -44,13 +46,8 @@ const CommandResultPanel: React.FC<Props> = ({ turns, stories, citationsLoading,
         py: 2,
       })}
     >
-      <Box sx={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 1 }}>
-        <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.8 }}>
-          <TripicianAIOrb size={14} />
-          <Typography variant="overline" sx={{ color: 'primary.main', lineHeight: 1 }}>
-            TripicianAI
-          </Typography>
-        </Box>
+      <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
+        <TripicianAIWordmark height={32} />
         <IconButton size="small" onClick={onClose} aria-label="Close the answer">
           <IconX size={16} />
         </IconButton>
@@ -65,8 +62,34 @@ const CommandResultPanel: React.FC<Props> = ({ turns, stories, citationsLoading,
             {renderMarkdown(turn.answer)}
             {turn.streaming && <span className="tripicianai-cursor">&#9611;</span>}
           </Box>
+          {!turn.streaming && turn.answer.trim() && (
+            <Box
+              component="button"
+              type="button"
+              onClick={() => openReport(turn.answer, turn.question)}
+              aria-label="Report this answer"
+              sx={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 0.5,
+                mt: 0.75,
+                p: '2px 0',
+                border: 'none',
+                background: 'none',
+                cursor: 'pointer',
+                font: 'inherit',
+                fontSize: '0.75rem',
+                color: 'text.secondary',
+                '&:hover': { color: 'text.primary' },
+              }}
+            >
+              <IconFlag size={12} stroke={1.8} />
+              Report
+            </Box>
+          )}
         </Box>
       ))}
+      {reportDialog}
 
       {(citationsLoading || stories.length > 0) && (
         <Box sx={{ mt: 3 }}>

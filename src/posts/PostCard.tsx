@@ -1,11 +1,10 @@
 import React from 'react';
 import {
-  Avatar, Box, CircularProgress, Collapse, IconButton, Menu, MenuItem, Tooltip, Typography, useTheme,
+  Avatar, Box, CircularProgress, Collapse, IconButton, Menu, MenuItem, Typography, useTheme,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
   IconHeart, IconHeartFilled, IconMessageCircle2, IconTrash, IconDots, IconLink, IconFlag, IconBan,
-  IconRosetteDiscountCheckFilled,
 } from '@tabler/icons-react';
 import { useRequireAuth } from '../auth/AuthGate';
 import { formatRelativeTime } from '../utils/relativeTime';
@@ -204,15 +203,8 @@ const PostCard: React.FC<PostCardProps> = ({
             {post.authorName}
           </Typography>
 
-          {post.authorIdentityVerified && (
-            <Tooltip title="Identity verified" arrow>
-              <Box component="span" sx={{ display: 'inline-flex', color: '#0EA5E9', flexShrink: 0 }}>
-                <IconRosetteDiscountCheckFilled size={14} />
-              </Box>
-            </Tooltip>
-          )}
-
-          <VerifiedProfileMark verified={!!post.authorProfileVerifiedAt} verifiedAt={post.authorProfileVerifiedAt} />
+          {/* The Verified badge is the identity check; its date rides on authorProfileVerifiedAt. */}
+          <VerifiedProfileMark verified={post.authorIdentityVerified} verifiedAt={post.authorProfileVerifiedAt} />
 
           {post.placeName && (
             <Typography variant="caption" noWrap sx={{ color: 'text.disabled', minWidth: 0, maxWidth: 180 }}>

@@ -11,15 +11,15 @@ import EmailRoundedIcon from '@mui/icons-material/EmailRounded';
 const FAQS = [
   {
     q: 'What is Tripician?',
-    a: 'Tripician is a social network for travellers and explorers. The people here publish the trips they actually took, answer questions about places they have been, and find others to go with. Around that sit the tools: a planner your whole crew can edit, groups that plan together, TripicianAI to draft the days, and after stories to write up how it went. Every plan is checked against real travel times and opening hours. Tripician is not a travel agency and does not book flights, hotels, or any travel services.',
+    a: 'Tripician is a social network for travellers and explorers. The people here publish the trips they actually took, answer questions about places they have been, and find others to go with. Around that sit the tools: a planner your whole crew can edit, groups that plan together, Tripician Intelligence to draft the days, and after stories to write up how it went. Every plan is checked against real travel times and opening hours. Tripician is not a travel agency and does not book flights, hotels, or any travel services.',
   },
   {
     q: 'Is Tripician free to use?',
-    a: 'Planning trips, inviting your crew, writing stories, starting a group and asking TripicianAI for help are all free, and a free account is given 300 TripicianAI credits every month. Tripician Pro raises that to 1,500 a month. Tripician Business is for travel businesses that run trips for other people: it adds a public page with posts, lets you put your own staff onto a trip, and is the only plan that can list a trip publicly and take join requests from travellers you have never met. Credits can also be bought on their own, without a subscription. Current prices are on the pricing page.',
+    a: 'Planning trips, inviting your crew, writing stories, starting a group and asking Tripician Intelligence for help are all free, and a free account is given 300 Tripician Intelligence credits every month. Tripician Pro raises that to 1,500 a month. Monthly credits reset at the start of each month, so any left unused do not carry over. Tripician Business is for travel businesses that run trips for other people: it adds a public page with posts, lets you put your own staff onto a trip, and is the only plan that can list a trip publicly and take join requests from travellers you have never met. Credits can also be bought on their own, without a subscription, and bought credits never expire. Current prices are on the pricing page.',
   },
   {
     q: 'How do I create a trip?',
-    a: 'Once signed in, use "Create plan" at the top of your wall, or open Studio (top right, or the middle of the bottom bar on a phone) and choose "Plan a trip". It asks a few quick questions, one at a time: where you are starting from, where you want to go, and roughly when. Trip type and food needs are optional. Then choose "Plan it for me" and TripicianAI fills in each stop, or "I\'ll plan it myself". Want a blank trip? Pick "I\'ll plan everything myself" and give just the dates.',
+    a: 'Once signed in, use "Create plan" at the top of your wall, or open Studio (top right, or the middle of the bottom bar on a phone) and choose "Plan a trip". It asks a few quick questions, one at a time: where you are starting from, where you want to go, and roughly when. Trip type and food needs are optional. Then choose "Plan it for me" and Tripician Intelligence fills in each stop, or "I\'ll plan it myself". Want a blank trip? Pick "I\'ll plan everything myself" and give just the dates.',
   },
   {
         q: 'How do I find people to come on my trip?',
@@ -48,10 +48,6 @@ const FAQS = [
   {
     q: 'What is an after story?',
     a: 'An after story is what a trip was actually like, written afterwards in your own words with your own photographs. Publish one and it sits on your profile, where people deciding whether to travel with you will read it. Readers can ask the author questions underneath. Read everyone else\'s in Groups & Stories, under Stories.',
-  },
-  {
-    q: 'Can I keep a copy of my story?',
-    a: 'Yes. Open the story and choose "See it as a book" to look through every page laid out the way it would be printed, then download the print-ready PDF. It is free on every plan, and it is yours to keep or print yourself.',
   },
   {
     q: 'Can I collaborate with others on my trip?',

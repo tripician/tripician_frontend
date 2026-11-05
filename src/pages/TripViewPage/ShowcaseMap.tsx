@@ -51,7 +51,8 @@ const ShowcaseMap: React.FC<ShowcaseMapProps> = ({ stops }) => {
         style: isLight ? MAP_STYLE_LIGHT : MAP_STYLE_DARK,
         center: [20, 20],
         zoom: 1.4,
-        attributionControl: false,
+        // Attribution stays on (Mapbox terms + OSM licence); it collapses to an
+        // (i) in this narrow sidebar box.
         interactive: true,
         scrollZoom: false,
       });

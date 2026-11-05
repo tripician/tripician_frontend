@@ -385,7 +385,7 @@ const StopCard: React.FC<StopCardProps> = ({
               )}
               {onFillWithAI && (
                 <MenuItem onClick={() => { setMenuAnchor(null); onFillWithAI(id); }} disabled={aiBusy}>
-                  <ListItemIcon><TripicianAIOrb size={16} /></ListItemIcon>Get ideas from TripicianAI
+                  <ListItemIcon><TripicianAIOrb size={16} /></ListItemIcon>Get ideas from Tripician Intelligence
                 </MenuItem>
               )}
               {onRemove && (

@@ -1262,6 +1262,23 @@
 .lp-herochat__msg--user { color: #fff; font-weight: 600; }
 .lp-herochat__msg--tripicianai { color: rgba(255, 255, 255, 0.85); }
 
+/* Under each finished answer: flag it for our team (Google Play's rule for AI apps, kept on the web too). */
+.lp-herochat__report {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  margin: -6px 0 10px;
+  padding: 2px 0;
+  border: none;
+  background: none;
+  color: rgba(255, 255, 255, 0.5);
+  font: inherit;
+  font-size: 0.75rem;
+  cursor: pointer;
+}
+.lp-herochat__report:hover,
+.lp-herochat__report:focus-visible { color: rgba(255, 255, 255, 0.85); }
+
 .lp-herochat__build {
   display: inline-flex;
   align-items: center;
