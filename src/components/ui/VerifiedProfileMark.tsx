@@ -32,6 +32,8 @@ interface VerifiedProfileMarkProps {
   verifiedAt?: string | null;
   /** Badge size in px. 16 suits body text; go larger next to a page-title name. */
   size?: number;
+  /** An icon beside words that already say it (a menu row): no tooltip, hidden from screen readers. */
+  decorative?: boolean;
 }
 
 /**
@@ -60,17 +62,17 @@ function formatVerifiedOn(iso?: string | null): string | null {
   return d.toLocaleDateString(undefined, { month: 'long', year: 'numeric' });
 }
 
-const VerifiedProfileMark: React.FC<VerifiedProfileMarkProps> = ({ verified, verifiedAt, size = 16 }) => {
+const VerifiedProfileMark: React.FC<VerifiedProfileMarkProps> = ({ verified, verifiedAt, size = 16, decorative = false }) => {
   if (!verified) return null;
 
   const on = formatVerifiedOn(verifiedAt);
   const tooltip = on ? `Identity verified since ${on}` : 'Identity verified';
 
-  return (
-    <Tooltip title={tooltip} arrow placement="top">
+  const mark = (
       <Box
         component="span"
-        aria-label="Verified"
+        aria-label={decorative ? undefined : 'Verified'}
+        aria-hidden={decorative || undefined}
         sx={{
           display: 'inline-flex',
           alignItems: 'center',
@@ -92,6 +94,12 @@ const VerifiedProfileMark: React.FC<VerifiedProfileMarkProps> = ({ verified, ver
           />
         </svg>
       </Box>
+  );
+
+  // Decorative copies (an icon in a menu row that already says it in words) carry no tooltip.
+  return decorative ? mark : (
+    <Tooltip title={tooltip} arrow placement="top">
+      {mark}
     </Tooltip>
   );
 };

@@ -15,9 +15,14 @@ import {
   ListItemIcon,
   Button,
   ButtonBase,
+  Snackbar,
+  Alert,
   useMediaQuery,
   useTheme,
 } from '@mui/material';
+import HourglassTopRoundedIcon from '@mui/icons-material/HourglassTopRounded';
+import VerifiedProfileMark from '../../../components/ui/VerifiedProfileMark';
+import { useVerification } from '../../../seats/useVerification';
 import { alpha } from '@mui/material/styles';
 import { useLocation, useNavigate } from 'react-router-dom';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
@@ -310,6 +315,8 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
   const notificationHubRef = React.useRef<signalR.HubConnection | null>(null);
 
   const [anchorEl, setAnchorEl] = React.useState<HTMLElement | null>(null);
+  // The identity check behind the Verified badge, offered from the account menu.
+  const verification = useVerification();
   const [createAnchor, setCreateAnchor] = React.useState<HTMLElement | null>(null);
   // Only people who actually belong to an organisation get the entry. Creating
   // a first one stays on /for-operators, so this never advertises an empty page.
@@ -1048,6 +1055,43 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
         </ButtonBase>
         <Divider sx={{ mx: 2 }} />
         <List dense disablePadding sx={{ py: 1, px: 1 }}>
+          {/* The website's way to the Verified badge (the Didit identity check), first in
+              the menu until it is passed. The agree-first notice opens outside this menu. */}
+          {verification.state && (verification.state.verified ? (
+            <ListItemButton onClick={() => { navigate('/profile'); setAnchorEl(null); }} sx={{ py: 0.9 }}>
+              <ListItemIcon sx={{ minWidth: 32 }}><VerifiedProfileMark verified decorative size={17} /></ListItemIcon>
+              <ListItemText
+                primary="Verified"
+                secondary="Your badge is on, and you're shown first in suggestions"
+                primaryTypographyProps={{ fontSize: 13, fontWeight: 600 }}
+                secondaryTypographyProps={{ fontSize: 11.5 }}
+              />
+            </ListItemButton>
+          ) : verification.state.status === 'pending' ? (
+            <ListItemButton disabled sx={{ py: 0.9, '&.Mui-disabled': { opacity: 1 } }}>
+              <ListItemIcon sx={{ minWidth: 32 }}><HourglassTopRoundedIcon sx={{ fontSize: 17 }} /></ListItemIcon>
+              <ListItemText
+                primary="Verification in review"
+                secondary="Usually a few minutes. We'll let you know."
+                primaryTypographyProps={{ fontSize: 13, fontWeight: 600 }}
+                secondaryTypographyProps={{ fontSize: 11.5 }}
+              />
+            </ListItemButton>
+          ) : (
+            <ListItemButton
+              onClick={() => { setAnchorEl(null); void verification.start(); }}
+              disabled={verification.starting}
+              sx={{ py: 0.9 }}
+            >
+              <ListItemIcon sx={{ minWidth: 32 }}><VerifiedProfileMark verified decorative size={17} /></ListItemIcon>
+              <ListItemText
+                primary="Get verified"
+                secondary="Earn the Verified badge and be shown first in suggestions"
+                primaryTypographyProps={{ fontSize: 13, fontWeight: 600, color: 'primary.main' }}
+                secondaryTypographyProps={{ fontSize: 11.5 }}
+              />
+            </ListItemButton>
+          ))}
           {/* Shown to everyone. Hiding it until you already had one was the reason a
               business had no way in: the page it needed was the page it could not reach. */}
           <ListItemButton onClick={() => { navigate(hasOrganization ? '/groups' : '/groups?new=1'); setAnchorEl(null); }} sx={{ py: 0.9 }}>
@@ -1057,16 +1101,8 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
               primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }}
             />
           </ListItemButton>
-          <ListItemButton onClick={() => { navigate('/messages'); setAnchorEl(null); }} sx={{ py: 0.9 }}>
-            {/* The row stays, so the destination never disappears for anyone who
-                already knows where it lives. The badge does not: the header now
-                carries that signal, and the same number in two places in one
-                viewport reads as unconsidered. */}
-            <ListItemIcon sx={{ minWidth: 32 }}>
-              <ChatBubbleOutlineIcon sx={{ fontSize: 17 }} />
-            </ListItemIcon>
-            <ListItemText primary="Messages" primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }} />
-          </ListItemButton>
+          {/* No Messages row: the header's own messages button already goes there, and one
+              destination in two places in one viewport reads as unconsidered. */}
           <ListItemButton onClick={() => { navigate('/settings'); setAnchorEl(null); }} sx={{ py: 0.9 }}>
             <ListItemIcon sx={{ minWidth: 32 }}><SettingsRoundedIcon sx={{ fontSize: 17 }} /></ListItemIcon>
             <ListItemText primary="Settings" primaryTypographyProps={{ fontSize: 13, fontWeight: 500 }} />
@@ -1097,6 +1133,19 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
           </ListItemButton>
         </Box>
       </Popover>
+
+      {/* Outside the menu, which closes as the notice opens. */}
+      {verification.consentDialog}
+      <Snackbar
+        open={Boolean(verification.error)}
+        autoHideDuration={6000}
+        onClose={verification.clearError}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <Alert severity="error" variant="filled" onClose={verification.clearError} sx={{ width: '100%' }}>
+          {verification.error}
+        </Alert>
+      </Snackbar>
 
       {FEATURE_FLAGS.afterStory && (
         <StoryCreationModal open={createStoryOpen} onClose={() => setCreateStoryOpen(false)} />
