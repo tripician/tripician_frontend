@@ -1043,6 +1043,10 @@ export const apiServices = {
   getTravelMap: (userId: number) =>
     apiClient.get<TravelMap>(`/api/users/${userId}/travel-map`),
 
+  // GET /api/users/{userId}/featured - the Featured row set in the app (raw; read it with normalizeFeaturedItems)
+  getProfileFeatured: (userId: number) =>
+    apiClient.get<unknown>(`/api/users/${userId}/featured`),
+
   // POST /api/follow/{followeeId} - follow a user (JWT resolves follower)
   followUser: (token: string, followeeId: number) =>
     apiClient.post(`/api/follow/${followeeId}`, {}, { headers: { Authorization: `Bearer ${token}` } }),
