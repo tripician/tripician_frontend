@@ -99,6 +99,7 @@ function notifMeta(type: string | undefined, msg: string): NotificationMeta {
     case 'JoinDeclined':  return { Icon: GroupsRoundedIcon, color: '#6E6E78', bg: 'rgba(110,110,120,0.10)' };
     case 'GroupJoinRequested': return { Icon: GroupsRoundedIcon, color: 'primary.main', bg: alpha(BRAND.coral, 0.10) };
     case 'GroupJoinApproved':
+    case 'GroupInvited':
     case 'GroupMemberAdded':   return { Icon: GroupsRoundedIcon, color: '#10B981', bg: 'rgba(16,185,129,0.10)' };
     case 'GroupJoinDeclined':  return { Icon: GroupsRoundedIcon, color: '#6E6E78', bg: 'rgba(110,110,120,0.10)' };
     case 'OrgAnnouncement':    return { Icon: CampaignRoundedIcon, color: '#F59E0B', bg: 'rgba(245,158,11,0.10)' };

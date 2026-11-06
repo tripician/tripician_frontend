@@ -14,7 +14,7 @@ import type {
 import type {
   Organization, OrganizationAnnouncement, OrganizationDirectoryEntry, OrganizationMember, OrganizationPost, OrganizationPublic,
   OrganizationTrip, OrganizationWrite, GroupTrip, GroupJoinRequest, GroupInvite, GroupInvitePreview, GroupSuggestion,
-  GroupDiscussionPost, GroupCredits,
+  GroupDiscussionPost, GroupCredits, GroupInvitation, GroupInvitee, GroupInviteResult,
 } from '../../organization/types';
 import type { AfterStorySummaryDto } from '../../afterstory/types';
 import type {
@@ -683,6 +683,25 @@ export const apiServices = {
 
   joinGroupByInvite: (token: string) =>
     apiClient.post<{ organizationId: string }>(`/api/groups/invite/${encodeURIComponent(token)}/join`, {}),
+
+  // Invitations by name: an admin asks people in, and each says yes before they are in.
+  getMyGroupInvitations: () =>
+    apiClient.get<GroupInvitation[]>('/api/organizations/invitations'),
+
+  acceptGroupInvitation: (groupId: string) =>
+    apiClient.post<{ organizationId: string; status: string }>(`/api/organizations/${groupId}/invitations/me/accept`, {}),
+
+  declineGroupInvitation: (groupId: string) =>
+    apiClient.delete(`/api/organizations/${groupId}/invitations/me`),
+
+  getGroupInvitees: (groupId: string) =>
+    apiClient.get<GroupInvitee[]>(`/api/organizations/${groupId}/invitations`),
+
+  inviteToGroup: (groupId: string, userIds: number[]) =>
+    apiClient.post<GroupInviteResult[]>(`/api/organizations/${groupId}/invitations`, { userIds }),
+
+  withdrawGroupInvitation: (groupId: string, userId: number) =>
+    apiClient.delete(`/api/organizations/${groupId}/invitations/${userId}`),
 
   getGroupSuggestions: () =>
     apiClient.get<GroupSuggestion[]>('/api/organizations/suggestions'),

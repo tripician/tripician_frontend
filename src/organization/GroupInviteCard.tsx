@@ -15,7 +15,7 @@ const GroupInviteCard: React.FC<{ organization: Organization }> = ({ organizatio
     <InviteLinkCard
       noun="group"
       description={organization.visibility === 'private'
-        ? 'This is the only way into a private group. Anyone with the link joins straight away.'
+        ? 'Besides inviting people by name, this is the only way into a private group. Anyone with the link joins straight away.'
         : 'Anyone with the link joins straight away, without waiting for approval.'}
       load={load}
       rotate={rotate}

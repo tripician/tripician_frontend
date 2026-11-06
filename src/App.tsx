@@ -94,6 +94,12 @@ function OrganizationRedirect() {
   return <Navigate to={`/groups${orgId ? `/${orgId}` : ''}${search}`} replace />;
 }
 
+// The app shared invite links as /groups/invite/:token before it matched the web's /join/group/:token.
+function LegacyGroupInviteRedirect() {
+  const { token } = useParams();
+  return <Navigate to={token ? `/join/group/${encodeURIComponent(token)}` : '/groups'} replace />;
+}
+
 function RootRedirect() {
   const { status } = useAuthToken();
   if (status === 'refreshing') return <div style={{ minHeight: '100vh' }} />;
@@ -139,6 +145,7 @@ function App() {
             <Route path="/operator" element={<OperatorPage />} />
             <Route path="/groups" element={<OrganizationsPage />} />
             <Route path="/groups/:orgId" element={<OrganizationWorkspace />} />
+            <Route path="/groups/invite/:token" element={<LegacyGroupInviteRedirect />} />
             <Route path="/organizations" element={<OrganizationRedirect />} />
             <Route path="/organizations/:orgId" element={<OrganizationRedirect />} />
           </Route>
