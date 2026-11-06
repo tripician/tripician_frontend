@@ -58,6 +58,7 @@ import { tripPath } from '../../utils/tripSlug';
 import { mapTripVM, rowsFrom, type TripVM } from './tripViewModel';
 import { passportViewFromDto, type VibePassport } from './ProfilePassport';
 import TravelHistoryPanel from './TravelHistoryPanel';
+import FeaturedRow from './FeaturedRow';
 import ProfileIdentityRail from './ProfileIdentityRail';
 import { pickDefaultTab, type TabId } from './profileTabs';
 import PostComposer from '../../posts/PostComposer';
@@ -722,6 +723,14 @@ const Profile: React.FC = () => {
               <Box sx={{ display: { xs: 'block', lg: 'none' }, mb: { xs: 3, md: 4 } }}>
                 {railNode}
               </Box>
+
+                {/* ── Featured: what you chose, in the app, to show first ──
+                    Read only on the web; empty, it shows a quote. */}
+                {Number.isFinite(Number(profile?.id)) ? (
+                  <motion.div variants={staggerItem}>
+                    <FeaturedRow userId={Number(profile?.id)} isOwner />
+                  </motion.div>
+                ) : null}
 
                 {/* ── Where you have been, and how much of it anyone can confirm ──
                     Replaces the eight-flag row the passport used to carry. On your

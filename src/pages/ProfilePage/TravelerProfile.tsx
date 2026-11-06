@@ -28,6 +28,7 @@ import { safeExternalUrl } from '../../utils/sanitizeHtml';
 import Seo from '../../components/Seo';
 import CommunityTripCard from '../CommunityPage/CommunityTripCard';
 import TravelHistoryPanel from './TravelHistoryPanel';
+import FeaturedRow from './FeaturedRow';
 import ProfileIdentityRail, { railHasContent } from './ProfileIdentityRail';
 import { apiServices as api } from '../../services/APIs/apiServices';
 import type { OrganiserRecord } from '../../seats/types';
@@ -471,6 +472,9 @@ const TravelerProfile: React.FC = () => {
                     {railNode}
                   </Box>
                 )}
+
+              {/* What they chose to show first, set in the app. Empty, it shows a quote. */}
+              {userId ? <FeaturedRow userId={Number(userId)} /> : null}
 
               {/* Their stories, above the trips.
                   They used to sit underneath, on the reasoning that a plan is what
