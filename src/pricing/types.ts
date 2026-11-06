@@ -34,6 +34,11 @@ export interface Plan {
    * unlock none, so read it through `planBenefits` rather than indexing it.
    */
   features?: string[];
+  /**
+   * Listed but not sold yet (appsettings `ComingSoon`): shown with a "Coming soon" tag and a
+   * disabled button. The server refuses its checkout either way. Absent means on sale.
+   */
+  comingSoon?: boolean;
 }
 
 export interface PlanList {

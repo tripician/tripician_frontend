@@ -5,7 +5,7 @@ import { useNavigate } from 'react-router-dom';
 import { useRequireAuth } from '../auth/AuthGate';
 import { apiServices } from '../services/APIs/apiServices';
 import { serverMessage, serverStatus } from '../utils/apiError';
-import { groupHomePath, groupJoinState, joinRefusalPatch } from './groupLogic';
+import { groupHomePath, groupJoinState, joinRefusalPatch, joinSuccessPatch } from './groupLogic';
 import type { OrganizationPublic } from './types';
 
 // The one control on a group's public page: open it, ask to join it, or see where your request stands.
@@ -22,8 +22,9 @@ const JoinGroupButton: React.FC<{ group: OrganizationPublic; onChange: (patch: P
     setBusy(true);
     setError(null);
     try {
-      await apiServices.requestToJoinGroup(group.id, message.trim() || undefined);
-      onChange({ viewerRequestStatus: 'pending' });
+      const resp = await apiServices.requestToJoinGroup(group.id, message.trim() || undefined);
+      // "member" when an invitation was already waiting: asking let them straight in.
+      onChange(joinSuccessPatch(resp.data?.status));
       setAsking(false);
     } catch (err) {
       // The server knows where this person stands. A settled answer closes the
@@ -50,7 +51,56 @@ const JoinGroupButton: React.FC<{ group: OrganizationPublic; onChange: (patch: P
     }
   };
 
+  // An admin invited them by name: yes makes them a member at once, no closes this invitation for good.
+  const accept = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await apiServices.acceptGroupInvitation(group.id);
+      onChange({ viewerRole: 'member', viewerRequestStatus: null });
+      navigate(groupHomePath(group.id));
+    } catch (err) {
+      setError(serverStatus(err) === 'full'
+        ? 'This group is full right now. Ask an admin to make room.'
+        : serverMessage(err) ?? 'Could not join right now. Try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  const decline = async () => {
+    setBusy(true);
+    setError(null);
+    try {
+      await apiServices.declineGroupInvitation(group.id);
+      // A private group has nothing to show anyone outside it.
+      if (group.visibility === 'private') navigate('/groups', { replace: true });
+      else onChange({ viewerRequestStatus: 'invite_declined' });
+    } catch (err) {
+      setError(serverMessage(err) ?? 'Could not decline right now. Try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
   if (state === 'business') return null;
+
+  if (state === 'invited') {
+    return (
+      <Box sx={{ display: 'grid', gap: 1 }}>
+        <Typography variant="body2" sx={{ color: 'text.secondary' }}>You're invited to join this group.</Typography>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+          <Button variant="contained" startIcon={<IconCheck size={16} />} onClick={() => void accept()} disabled={busy} sx={{ textTransform: 'none', fontWeight: 700 }}>
+            Join group
+          </Button>
+          <Button onClick={() => void decline()} disabled={busy} sx={{ textTransform: 'none', color: 'text.secondary' }}>
+            Decline
+          </Button>
+        </Box>
+        {error && <Typography variant="caption" color="error">{error}</Typography>}
+      </Box>
+    );
+  }
 
   if (state === 'member') {
     return (

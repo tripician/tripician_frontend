@@ -43,7 +43,7 @@ export function splitGroupTrips(trips: GroupTrip[], now: number = Date.now()): {
   return { plans, past };
 }
 
-export type JoinState = 'member' | 'request' | 'pending' | 'declined' | 'invite_only' | 'business' | 'full';
+export type JoinState = 'member' | 'invited' | 'request' | 'pending' | 'declined' | 'invite_only' | 'business' | 'full';
 
 /** True once a capped group holds as many people as its plan allows. No limit is never full. */
 export function groupIsFull(memberCount: number, memberLimit: number | null | undefined): boolean {
@@ -53,6 +53,8 @@ export function groupIsFull(memberCount: number, memberLimit: number | null | un
 /** Which join control a group's public page shows the viewer. */
 export function groupJoinState(group: Pick<OrganizationPublic, 'kind' | 'visibility' | 'viewerRole' | 'viewerRequestStatus' | 'memberCount' | 'memberLimit'>): JoinState {
   if (group.viewerRole) return 'member';
+  // Being invited is what lets someone see a private group at all, so it outranks "invite only".
+  if (group.viewerRequestStatus === 'invited') return 'invited';
   // A business's members are its staff, so a traveller joins its trips, not the business.
   if (group.kind === 'business') return 'business';
   if (group.visibility === 'private') return 'invite_only';
@@ -83,6 +85,27 @@ export function joinRefusalPatch(status: string | undefined): Partial<Organizati
     case 'pending': return { viewerRequestStatus: 'pending' };
     case 'declined': return { viewerRequestStatus: 'declined' };
     default: return null;
+  }
+}
+
+/**
+ * Where a successful ask leaves the viewer: waiting on the admins, or in at once
+ * when an invitation was already waiting for them (the server answers "member").
+ */
+export function joinSuccessPatch(status: string | undefined): Partial<OrganizationPublic> {
+  return status === 'member' ? { viewerRole: 'member', viewerRequestStatus: null } : { viewerRequestStatus: 'pending' };
+}
+
+/** The short word shown beside a person after inviting them by name. */
+export function inviteResultLabel(status: string): string {
+  switch (status) {
+    case 'invited': return 'Invited';
+    // They had asked to join already, so the invitation let them in.
+    case 'joined': return 'Joined';
+    case 'member': return 'Already in';
+    case 'declined': return 'Said no before';
+    case 'full': return 'Group is full';
+    default: return 'Could not invite';
   }
 }
 

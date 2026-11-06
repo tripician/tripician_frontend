@@ -5,7 +5,7 @@ import {
   Avatar, Box, Button, Chip, CircularProgress, Dialog, DialogActions,
   DialogContent, DialogTitle, FormControlLabel, Radio, RadioGroup, Switch, TextField, Typography, useTheme,
 } from '@mui/material';
-import { IconBuildingCommunity, IconLock, IconPlus, IconUsersGroup, IconWorld } from '@tabler/icons-react';
+import { IconBuildingCommunity, IconCheck, IconLock, IconPlus, IconUsersGroup, IconWorld } from '@tabler/icons-react';
 import { Link as RouterLink, useNavigate, useSearchParams } from 'react-router-dom';
 import { apiServices } from '../services/APIs/apiServices';
 import { useAuthToken } from '../hooks/useAuth0Token';
@@ -13,7 +13,8 @@ import Seo from '../components/Seo';
 import EmptyState from '../components/ui/EmptyState';
 import PageHeader from '../components/ui/PageHeader';
 import { groupHomePath } from './groupLogic';
-import type { GroupKind, GroupPlanCreation, GroupVisibility, Organization, OrganizationWrite } from './types';
+import { useBusinessComingSoon } from '../pricing/useBusinessComingSoon';
+import type { GroupInvitation, GroupKind, GroupPlanCreation, GroupVisibility, Organization, OrganizationWrite } from './types';
 
 const CONTENT_MAX = 1280;
 const fieldSx = { '& .MuiOutlinedInput-root': { borderRadius: '12px' } } as const;
@@ -30,6 +31,7 @@ const OrganizationsPage: React.FC = () => {
   const theme = useTheme();
   const { token } = useAuthToken();
   const [params, setParams] = useSearchParams();
+  const businessComingSoon = useBusinessComingSoon();
 
   const [organizations, setOrganizations] = React.useState<Organization[]>([]);
   const [loading, setLoading] = React.useState(true);
@@ -56,6 +58,20 @@ const OrganizationsPage: React.FC = () => {
   }, [token]);
 
   React.useEffect(() => { void load(); }, [load]);
+
+  // Invitations by name waiting on this person. A "… invited you" notification lands here.
+  const [invitations, setInvitations] = React.useState<GroupInvitation[]>([]);
+  const loadInvitations = React.useCallback(async () => {
+    if (!token) return;
+    try {
+      const resp = await apiServices.getMyGroupInvitations();
+      setInvitations(Array.isArray(resp.data) ? resp.data : []);
+    } catch {
+      setInvitations([]);
+    }
+  }, [token]);
+
+  React.useEffect(() => { void loadInvitations(); }, [loadInvitations]);
 
   if (!token) {
     return (
@@ -94,6 +110,22 @@ const OrganizationsPage: React.FC = () => {
             </Button>
           )}
         />
+
+        {invitations.length > 0 && (
+          <Box component="section" aria-label="Invitations" sx={{ mt: 3 }}>
+            <Typography variant="overline" sx={{ color: 'text.secondary' }}>Invitations</Typography>
+            <Box sx={{ display: 'grid', gap: 1.5, mt: 0.5 }}>
+              {invitations.map((invitation) => (
+                <InvitationRow
+                  key={invitation.organizationId}
+                  invitation={invitation}
+                  onJoined={() => navigate(groupHomePath(invitation.organizationId))}
+                  onDeclined={() => setInvitations((previous) => previous.filter((i) => i.organizationId !== invitation.organizationId))}
+                />
+              ))}
+            </Box>
+          </Box>
+        )}
 
         {organizations.length === 0 ? (
           <EmptyState
@@ -168,25 +200,99 @@ const OrganizationsPage: React.FC = () => {
           </Box>
         )}
 
-        <Typography variant="body2" sx={{ color: 'text.secondary', mt: 4 }}>
-          Running a travel business?{' '}
-          <Box component={RouterLink} to="/for-operators" sx={{ color: 'primary.main', fontWeight: 600 }}>
-            Apply for a business account
-          </Box>
-          {' '}to be verified and take enquiries.
-        </Typography>
+        {/* While Tripician Business is paused the line stays, saying so, rather than disappearing. */}
+        {businessComingSoon ? (
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 4, display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+            Running a travel business? Business accounts are on the way.
+            <Chip size="small" variant="outlined" label="Coming soon" sx={{ fontWeight: 700 }} />
+          </Typography>
+        ) : (
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 4 }}>
+            Running a travel business?{' '}
+            <Box component={RouterLink} to="/for-operators" sx={{ color: 'primary.main', fontWeight: 600 }}>
+              Apply for a business account
+            </Box>
+            {' '}to be verified and take enquiries.
+          </Typography>
+        )}
       </Box>
 
       <GroupDialog
         open={creating !== null}
         kind={creating ?? 'community'}
+        businessComingSoon={businessComingSoon === true}
         onClose={() => setCreating(null)}
         onSaved={(created) => {
           setCreating(null);
-          if (created?.id) navigate(groupHomePath(created.id));
+          // A community group opens on its people, ready to invite; a business application on its home.
+          if (created?.id) navigate(created.kind === 'business' ? groupHomePath(created.id) : `${groupHomePath(created.id, 'members')}&invite=1`);
           else void load();
         }}
       />
+    </Box>
+  );
+};
+
+// One invitation: the group, who asked, and Join or Decline right here.
+const InvitationRow: React.FC<{ invitation: GroupInvitation; onJoined: () => void; onDeclined: () => void }> = ({ invitation, onJoined, onDeclined }) => {
+  const theme = useTheme();
+  const [busy, setBusy] = React.useState(false);
+  const [error, setError] = React.useState<string | null>(null);
+
+  const answer = async (yes: boolean) => {
+    setBusy(true);
+    setError(null);
+    try {
+      if (yes) {
+        await apiServices.acceptGroupInvitation(invitation.organizationId);
+        onJoined();
+      } else {
+        await apiServices.declineGroupInvitation(invitation.organizationId);
+        onDeclined();
+      }
+    } catch (err) {
+      const status = (err as { response?: { status?: number; data?: { message?: unknown } } })?.response;
+      if (status?.status === 404) onDeclined();
+      else setError(typeof status?.data?.message === 'string' ? status.data.message : 'That did not go through. Try again.');
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  return (
+    <Box
+      sx={{
+        display: 'flex', gap: 2, alignItems: 'flex-start', flexWrap: { xs: 'wrap', sm: 'nowrap' },
+        p: 2.25, borderRadius: '16px', border: `1px solid ${theme.custom.surface.border}`, bgcolor: 'background.paper',
+      }}
+    >
+      <Avatar src={invitation.logoUrl ?? undefined} variant="rounded" sx={{ width: 48, height: 48, bgcolor: 'primary.main', borderRadius: '12px' }}>
+        {invitation.name.charAt(0).toUpperCase()}
+      </Avatar>
+      <Box sx={{ minWidth: 0, flex: 1 }}>
+        <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+          <Typography variant="subtitle1" sx={{ color: 'text.primary' }}>{invitation.name}</Typography>
+          {invitation.visibility === 'private' && <Chip size="small" variant="outlined" icon={<IconLock size={13} />} label="Private" />}
+        </Box>
+        <Typography variant="caption" sx={{ color: 'text.secondary', display: 'block', mt: 0.25 }}>
+          {[
+            invitation.invitedByName ? `${invitation.invitedByName} invited you` : "You're invited",
+            `${invitation.memberCount} ${invitation.memberCount === 1 ? 'member' : 'members'}`,
+          ].join(' · ')}
+        </Typography>
+        {invitation.description && (
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.75 }}>{invitation.description}</Typography>
+        )}
+        {error && <Typography variant="body2" color="error" sx={{ mt: 0.75 }}>{error}</Typography>}
+      </Box>
+      <Box sx={{ display: 'flex', gap: 1, flexShrink: 0, ml: { xs: 'auto', sm: 0 } }}>
+        <Button onClick={() => void answer(false)} disabled={busy} sx={{ borderRadius: '12px', textTransform: 'none', color: 'text.secondary' }}>
+          Decline
+        </Button>
+        <Button variant="contained" startIcon={<IconCheck size={16} />} onClick={() => void answer(true)} disabled={busy} sx={{ borderRadius: '12px', textTransform: 'none', fontWeight: 700 }}>
+          Join
+        </Button>
+      </Box>
     </Box>
   );
 };
@@ -211,14 +317,17 @@ const VisibilityOption: React.FC<{ value: GroupVisibility; title: string; body: 
 const GroupDialog: React.FC<{
   open: boolean;
   kind: GroupKind;
+  /** Tripician Business is paused: the business form stays readable, but Apply is switched off. */
+  businessComingSoon?: boolean;
   onClose: () => void;
   onSaved: (created: Organization | null) => void;
-}> = ({ open, kind, onClose, onSaved }) => {
+}> = ({ open, kind, businessComingSoon = false, onClose, onSaved }) => {
   const { token } = useAuthToken();
   const [form, setForm] = React.useState<OrganizationWrite>({});
   const [saving, setSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const business = kind === 'business';
+  const paused = business && businessComingSoon;
 
   React.useEffect(() => {
     if (!open) return;
@@ -240,8 +349,10 @@ const GroupDialog: React.FC<{
     try {
       const resp = await apiServices.createOrganization(token, form);
       onSaved(resp?.data ?? null);
-    } catch {
-      setError('That could not be saved. Please try again.');
+    } catch (err) {
+      // The server explains a refusal (business accounts paused, say) better than a retry hint does.
+      const message = (err as { response?: { data?: { message?: unknown } } })?.response?.data?.message;
+      setError(typeof message === 'string' && message ? message : 'That could not be saved. Please try again.');
     } finally {
       setSaving(false);
     }
@@ -252,7 +363,8 @@ const GroupDialog: React.FC<{
       <DialogTitle>{business ? 'Apply for a business account' : 'Start a group'}</DialogTitle>
       {/* MUI zeroes the top padding after a title, which clipped the Name field's floating label. */}
       <DialogContent sx={{ display: 'grid', gap: 2, '&&': { pt: 1.5 } }}>
-        <TextField label="Name" value={form.name ?? ''} onChange={set('name')} fullWidth autoFocus sx={fieldSx} />
+        <TextField label="Name" value={form.name ?? ''} onChange={set('name')} fullWidth autoFocus sx={fieldSx}
+          inputProps={{ maxLength: business ? 160 : 80 }} />
         <TextField label="About" value={form.description ?? ''} onChange={set('description')} fullWidth multiline minRows={3} sx={fieldSx}
           helperText={business ? undefined : 'Who the group is for and the kind of trips you take.'} />
 
@@ -281,8 +393,8 @@ const GroupDialog: React.FC<{
                 onChange={(event) => setForm((previous) => ({ ...previous, visibility: event.target.value as GroupVisibility }))}
                 sx={{ gap: 1.25, mt: 0.5 }}
               >
-                <VisibilityOption value="public" Icon={IconWorld} title="Public" body="Anyone can find the group and ask to join. You approve each request." />
-                <VisibilityOption value="private" Icon={IconLock} title="Private" body="Hidden from everyone outside it. People join only with your invite link." />
+                <VisibilityOption value="public" Icon={IconWorld} title="Public" body="Anyone can find the group, see its trips and stories, and ask to join. You approve each request." />
+                <VisibilityOption value="private" Icon={IconLock} title="Private" body="Hidden from search. Only people you invite, by name or with your invite link, can see it and join." />
               </RadioGroup>
             </Box>
             <Box>
@@ -302,12 +414,18 @@ const GroupDialog: React.FC<{
           </>
         )}
 
+        {paused && (
+          <Typography variant="body2" sx={{ color: 'text.secondary', display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+            <Chip size="small" variant="outlined" label="Coming soon" sx={{ fontWeight: 700 }} />
+            Business accounts are not open yet. You can start a community group now.
+          </Typography>
+        )}
         {error && <Typography variant="body2" color="error">{error}</Typography>}
       </DialogContent>
       <DialogActions sx={{ px: 3, pb: 2.5 }}>
         <Button onClick={onClose} sx={{ borderRadius: '12px' }}>Cancel</Button>
-        <Button variant="contained" onClick={() => void save()} disabled={saving} startIcon={business ? <IconBuildingCommunity size={17} /> : undefined} sx={{ borderRadius: '12px' }}>
-          {saving ? 'Saving' : business ? 'Apply' : 'Create group'}
+        <Button variant="contained" onClick={() => void save()} disabled={saving || paused} startIcon={business ? <IconBuildingCommunity size={17} /> : undefined} sx={{ borderRadius: '12px' }}>
+          {saving ? 'Saving' : paused ? 'Coming soon' : business ? 'Apply' : 'Create group'}
         </Button>
       </DialogActions>
     </Dialog>

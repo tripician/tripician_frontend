@@ -79,8 +79,11 @@ export interface OrganizationPublic {
   memberCount: number;
   /** The viewer's role when they belong; absent otherwise. */
   viewerRole?: OrganizationRole | null;
-  /** The viewer's request, when they asked to join. */
-  viewerRequestStatus?: 'pending' | 'approved' | 'declined' | 'cancelled' | null;
+  /**
+   * Where the viewer stands without being in: their request (pending, declined…),
+   * or an admin's invitation by name ("invited"), or one they turned down.
+   */
+  viewerRequestStatus?: 'pending' | 'approved' | 'declined' | 'cancelled' | 'invited' | 'invite_declined' | null;
   /** Absent means no limit. */
   memberLimit?: number | null;
 }
@@ -162,6 +165,39 @@ export interface GroupJoinRequest {
 export interface GroupInvite {
   token?: string | null;
   createdAt?: string | null;
+}
+
+/** An admin invited the viewer into a group by name. They are not in until they say yes. */
+export interface GroupInvitation {
+  organizationId: string;
+  name: string;
+  slug: string | null;
+  logoUrl: string | null;
+  coverUrl: string | null;
+  description: string | null;
+  kind: GroupKind;
+  visibility: GroupVisibility;
+  memberCount: number;
+  invitedByUserId: number | null;
+  invitedByName: string | null;
+  invitedByAvatarUrl: string | null;
+  invitedAt: string;
+}
+
+/** Someone a group invited by name who has not answered yet. Its admins see these. */
+export interface GroupInvitee {
+  userId: number;
+  name: string | null;
+  avatarUrl: string | null;
+  invitedAt: string;
+}
+
+/** What became of one person on an invite (`GroupInvitationResultDto`). */
+export type GroupInviteOutcome = 'invited' | 'joined' | 'member' | 'declined' | 'full' | 'unavailable' | 'not_found';
+
+export interface GroupInviteResult {
+  userId: number;
+  status: GroupInviteOutcome | string;
 }
 
 export interface GroupInvitePreview {

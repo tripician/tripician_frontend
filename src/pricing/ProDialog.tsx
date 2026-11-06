@@ -133,9 +133,12 @@ const ProDialog: React.FC<ProDialogProps> = ({ open, onClose }) => {
                 border: `1px solid ${theme.custom.surface.border}`,
               }}
             >
-              <Typography variant="overline" sx={{ color: 'text.secondary', display: 'block' }}>
-                {onPro ? 'What Business adds' : 'What Pro adds'}
-              </Typography>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
+                <Typography variant="overline" sx={{ color: 'text.secondary', display: 'block' }}>
+                  {onPro ? 'What Business adds' : 'What Pro adds'}
+                </Typography>
+                {target.comingSoon && <Chip size="small" variant="outlined" label="Coming soon" sx={{ fontWeight: 700 }} />}
+              </Box>
 
               {/*
                 The price is the figure, not a clause in a sentence.

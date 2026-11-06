@@ -303,6 +303,7 @@ const PlanCard: React.FC<{
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexWrap: 'wrap' }}>
         <Typography variant="subtitle1" sx={{ color: 'text.primary' }}>{plan.name}</Typography>
         {current && <Chip size="small" color="primary" label="Your plan" />}
+        {plan.comingSoon && <Chip size="small" variant="outlined" label="Coming soon" sx={{ fontWeight: 700 }} />}
       </Box>
 
       <Box sx={{ display: 'flex', alignItems: 'baseline', gap: 0.75, mt: 1.5, flexWrap: 'wrap' }}>
@@ -348,13 +349,18 @@ const PlanCard: React.FC<{
         ))}
       </Box>
 
+      {/* A plan that is coming soon stays on show, with its button switched off rather than removed. */}
       <Button
         variant={plan.planId === 'pro' ? 'contained' : 'outlined'}
-        disabled={current || free || busy}
+        disabled={current || free || busy || !!plan.comingSoon}
         onClick={onChoose}
         sx={{ borderRadius: '12px', mt: 3 }}
       >
-        {busy ? 'Opening' : current ? 'Your plan' : free ? 'Included' : `Choose ${plan.name.replace('Tripician ', '')}`}
+        {busy ? 'Opening'
+          : current ? 'Your plan'
+          : free ? 'Included'
+          : plan.comingSoon ? 'Coming soon'
+          : `Choose ${plan.name.replace('Tripician ', '')}`}
       </Button>
     </Box>
   );

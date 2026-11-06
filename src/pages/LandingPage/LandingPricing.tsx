@@ -180,6 +180,7 @@ const LandingPricing: React.FC = () => {
                 className={`lp-plan${featured ? ' lp-plan--featured' : ''}`}
               >
                 {featured && <span className="lp-plan__tag">Most chosen</span>}
+                {!featured && plan.comingSoon && <span className="lp-plan__tag">Coming soon</span>}
 
                 <h3 className="lp-h3">{plan.name}</h3>
                 <p className="lp-plan__pitch">{PITCH[plan.planId]}</p>
@@ -221,12 +222,17 @@ const LandingPricing: React.FC = () => {
                   <p className="lp-plan__scope">Applies to a group, not a personal account</p>
                 )}
 
+                {/* Coming soon: still listed, button switched off. */}
                 <button
                   type="button"
                   className={`lp-btn ${featured ? 'lp-btn--primary' : 'lp-btn--outline'} lp-plan__cta`}
+                  disabled={!!plan.comingSoon}
+                  style={plan.comingSoon ? { opacity: 0.55, cursor: 'not-allowed' } : undefined}
                   onClick={() => navigate(plan.monthlyPrice === 0 ? '/signup' : '/pricing')}
                 >
-                  {plan.monthlyPrice === 0 ? 'Start free' : `Choose ${plan.name.replace('Tripician ', '')}`}
+                  {plan.monthlyPrice === 0 ? 'Start free'
+                    : plan.comingSoon ? 'Coming soon'
+                    : `Choose ${plan.name.replace('Tripician ', '')}`}
                 </button>
               </article>
             );
