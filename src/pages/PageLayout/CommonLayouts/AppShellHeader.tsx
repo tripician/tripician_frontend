@@ -593,30 +593,15 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
             }}
           >
             {/*
-              The mark on a phone, the lockup from sm.
-
-              The wordmark is 106px wide. Measured at 320px that left the cluster
-              13px past the right edge and overlapping the logo by 3px, and none of
-              it showed up as page overflow because an ancestor clips at 100vw - it
-              was simply cutting the avatar in half. Shrinking the lockup would have
-              made it 14px tall and apologetic; the mark is what this asset is for.
+              The square T at every width (owner, 2026-11). One file for light and
+              dark. It also keeps the cluster narrow on a 320px phone, where the
+              old wordmark pushed the avatar past the 100vw clip.
             */}
             <Box
               component="img"
-              src={import.meta.env.VITE_LOGO_ICON}
+              src={import.meta.env.VITE_TRIPICIAN_LOGO}
               alt="Tripician"
-              sx={{ height: 24, width: 'auto', display: { xs: 'block', sm: 'none' } }}
-            />
-            <Box
-              component="img"
-              src={import.meta.env.VITE_LOGO_BLACK}
-              alt="Tripician"
-              sx={{
-                height: { xs: 18, md: 22 },
-                width: 'auto',
-                objectFit: 'contain',
-                display: { xs: 'none', sm: 'block' },
-              }}
+              sx={{ height: { xs: 28, md: 32 }, width: { xs: 28, md: 32 }, display: 'block' }}
             />
           </Box>
           {/* Outside the brand link, so a tap on the pill cannot also go home. */}

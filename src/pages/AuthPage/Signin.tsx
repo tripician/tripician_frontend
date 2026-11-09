@@ -32,7 +32,7 @@ const Signin = () => {
   const { loginWithRedirect } = useAuth0();
   const dispatch = useDispatch<AppDispatch>();
   const loginBackground = import.meta.env.VITE_SIGNINPAGE_IMAGE_URL as string | undefined;
-  const logoUrl = import.meta.env.VITE_LOGO_WHITE as string | undefined;
+  const logoUrl = import.meta.env.VITE_TRIPICIAN as string | undefined;
 
   // Form state. Sign-up hands over the email when it already has an account
   // (in router state, so the address never sits in the URL).

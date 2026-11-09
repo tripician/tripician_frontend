@@ -47,7 +47,7 @@ const CommandResultPanel: React.FC<Props> = ({ turns, stories, citationsLoading,
       })}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1 }}>
-        <TripicianAIWordmark height={32} />
+        <TripicianAIWordmark height={26} />
         <IconButton size="small" onClick={onClose} aria-label="Close the answer">
           <IconX size={16} />
         </IconButton>

@@ -19,13 +19,14 @@
   --brand-on-light: #DE0F46;
   /* The body face, for raw-CSS surfaces. The TSX equivalent is the theme's
      FONT_BODY - keep the two in step. */
-  --font-body: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  --font-body: 'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
   /* Display face for raw-CSS surfaces (landing, auth). The TSX
-     equivalent is `theme.custom.fontDisplay` - keep the two in step. */
-  --font-display: 'Playfair Display', Georgia, 'Times New Roman', serif;
+     equivalent is `theme.custom.fontDisplay` - keep the two in step.
+     The same family as the body since 2026-11; opsz picks the display cut. */
+  --font-display: var(--font-body);
   --transition: all 0.2s ease;
 
-  font-family: 'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif;
+  font-family: var(--font-body);
   line-height: 1.5;
   font-weight: 400;
   font-synthesis: none;

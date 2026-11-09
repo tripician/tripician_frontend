@@ -39,23 +39,17 @@ declare module '@mui/material/Typography' {
 
 export interface CustomTokens {
   /**
-   * The editorial serif.
+   * The display face: headings (through the typography scale, so a heading does
+   * not need this token) and the authored surfaces that opt in by name: story
+   * copy, a pull quote, a blog byline, a profile's own words.
    *
-   * As of 2026-08-18 every h1-h6 is set in this face through the typography
-   * scale, by owner decision - so a heading does NOT need this token, and should
-   * not reach for it. What this token is still for is opting a NON-heading into
-   * the serif: story body copy, a pull quote, a blog byline.
-   *
-   * `story-serif.guard.test.ts` keeps that boundary: the token may only be named
-   * from stories and blogs, which is where non-heading editorial type lives.
-   * Weights 600/700, plus a real italic 600.
+   * Since 2026-11 it is the same family as the UI face (Bricolage Grotesque, as
+   * on mobile); see FONT_DISPLAY. Weights 400-700, no italic.
    */
   fontDisplay: string;
   /**
-   * The same serif, different job: the Tripician wordmark and the celebration
-   * moment that carries it. A logo is not typography and does not belong under
-   * the editorial rule, so it gets its own token rather than an exception in the
-   * guard. These two may point at the same stack today and diverge later.
+   * The same face, different job: the Tripician wordmark and the celebration
+   * moment that carries it. A logo is not typography, so it gets its own token.
    */
   fontBrand: string;
   /**
@@ -150,45 +144,38 @@ export const BRAND = {
   /** = palette primary.light. Named here so call sites stop writing the hex. */
   coralLight: '#FF8A9F',
   /**
-   * The red of the T in the Tripician logo, measured from the logo file. For marks that sit
-   * on the logo itself (the PRO badge) and must read as part of it; everything else stays coral.
+   * The red of the Tripician logo (2026-11 set, the same value as mobile's). For marks that
+   * sit on the logo itself (the PRO badge) and must read as part of it; everything else stays coral.
    */
-  logoRed: '#FB0205',
+  logoRed: '#C4052F',
   gradient: 'linear-gradient(135deg, #FF385C 0%, #D91A50 100%)',
   gradientHover: 'linear-gradient(135deg, #E31C5F 0%, #B01550 100%)',
 } as const;
 
 /*
- * The UI face. Geometric-humanist rather than the neutral grotesque this used to
- * be (Inter): the product surfaces are listings - trips, seats, prices, hosts -
- * and a warmer face reads as a place people go rather than as a dashboard.
+ * One family for everything: Bricolage Grotesque (SIL OFL), as on mobile (2026-11).
+ * It is the closest open-licensed match to the lettering in the Tripician logo: a
+ * compact, heavy grotesque with a hooked `t` and curled `y` and `j`. It replaced
+ * Plus Jakarta Sans (UI) + Playfair Display (editorial serif), so every surface,
+ * stories included, speaks in the logo's voice.
  *
- * Requested as a variable axis in index.html. The weight ladder is 400/500/600/700
- * and nothing above it; `font-synthesis: none` means an off-ladder weight rounds
- * up silently rather than failing, which is how 550/650/750 once shipped heavier
- * than written.
+ * Requested in index.html as two variable axes, optical size and weight. Browsers
+ * set `opsz` from the font size on their own (`font-optical-sizing: auto`), so
+ * headings get the tighter display cut and body copy the open text cut: what
+ * mobile does with its two font files, for free.
+ *
+ * The weight ladder is 400/500/600/700 and nothing above it; `font-synthesis: none`
+ * means an off-ladder weight rounds silently rather than failing. There is no
+ * italic cut, so `font-style: italic` renders upright: emphasise with weight or
+ * colour instead.
  */
-const FONT_BODY = "'Plus Jakarta Sans', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif";
+const FONT_BODY = "'Bricolage Grotesque', system-ui, -apple-system, 'Segoe UI', Helvetica, Arial, sans-serif";
 /*
- * The display face is a SERIF, and its scope is now deliberately NARROW.
- *
- * It was briefly swapped to Poppins to match a geometric-sans reference. At UI
- * sizes that was fine; at display sizes it was not - "Welcome back", "Community",
- * "Trips" all read as interface chrome rather than as a masthead, because a
- * geometric sans set large is just a bigger version of the same voice the body
- * text already speaks.
- *
- * That finding still holds, and it is why the serif did not disappear when the
- * UI face became geometric. But it no longer belongs on every masthead: a trip
- * listing IS product, and dressing it in editorial type made a commercial object
- * pretend to be an essay. So the serif is now reserved for the one surface that
- * has to read as authored - stories: their titles, and the story reading page.
- *
- * Everything else - page headers, cards, buttons, labels, inputs, body copy -
- * stays on FONT_BODY. `story-serif.guard.test.ts` enforces the boundary, because
- * this is exactly the kind of rule that erodes one component at a time.
+ * Headings and the authored surfaces (stories, blogs, a profile's own words). The
+ * same family as FONT_BODY since 2026-11; kept as its own token so those call
+ * sites stay marked and can diverge again without a hunt.
  */
-const FONT_DISPLAY = "'Playfair Display', Georgia, 'Times New Roman', serif";
+const FONT_DISPLAY = FONT_BODY;
 
 // ── Palettes ──────────────────────────────────────────────────────────────
 /*
@@ -356,27 +343,23 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
     typography: {
       fontFamily: FONT_BODY,
       /*
-       * Every heading is set in the display serif, by owner decision (2026-08-18),
-       * reversing the 2026-08-17 pass that had restricted it to stories and blogs.
-       * Setting it HERE rather than at call sites is what makes that one edit
-       * instead of nineteen, and it keeps `custom.fontDisplay` free to mean "I am
-       * opting a non-heading into the serif", which is what the guard polices.
+       * Every heading is set in the display face. Setting it HERE rather than at
+       * call sites is what makes a face change one edit instead of nineteen.
        *
-       * Tracking is near-zero on purpose. The old values were negative because a
-       * geometric sans fits loosely at display size; Playfair does not, and the
-       * same negative tracking on a high-contrast serif closes the counters and
-       * reads as cramped. Only h1 keeps a slight negative.
+       * Tracking is negative and tightens with size, as on mobile (about -0.02em
+       * at display size, easing to zero by h6): a heavy grotesque sets loose when
+       * large. Bricolage's display cut is already tighter, so these stay modest.
        *
-       * Weights are pinned to what index.html actually fetches (600 and 700).
+       * Weights are pinned to what index.html actually fetches (400-700).
        * `font-synthesis: none` is set globally, so a weight that is not loaded
        * renders at the nearest one rather than being faked - silently wrong.
        */
-      h1: { fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 'clamp(2rem, 1.5rem + 1.6vw, 2.75rem)', letterSpacing: '-0.01em', lineHeight: 1.1 },
-      h2: { fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 'clamp(1.625rem, 1.3rem + 1vw, 2.125rem)', letterSpacing: '-0.005em', lineHeight: 1.16 },
-      h3: { fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 'clamp(1.375rem, 1.2rem + 0.6vw, 1.625rem)', letterSpacing: '0', lineHeight: 1.22 },
-      h4: { fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: '1.25rem', letterSpacing: '0', lineHeight: 1.3 },
-      h5: { fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: '1.0625rem', letterSpacing: '0', lineHeight: 1.35 },
-      h6: { fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: '0.9375rem', letterSpacing: '0.005em', lineHeight: 1.4 },
+      h1: { fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 'clamp(2rem, 1.5rem + 1.6vw, 2.75rem)', letterSpacing: '-0.02em', lineHeight: 1.1 },
+      h2: { fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 'clamp(1.625rem, 1.3rem + 1vw, 2.125rem)', letterSpacing: '-0.018em', lineHeight: 1.16 },
+      h3: { fontFamily: FONT_DISPLAY, fontWeight: 700, fontSize: 'clamp(1.375rem, 1.2rem + 0.6vw, 1.625rem)', letterSpacing: '-0.014em', lineHeight: 1.22 },
+      h4: { fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: '1.25rem', letterSpacing: '-0.01em', lineHeight: 1.3 },
+      h5: { fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: '1.0625rem', letterSpacing: '-0.005em', lineHeight: 1.35 },
+      h6: { fontFamily: FONT_DISPLAY, fontWeight: 600, fontSize: '0.9375rem', letterSpacing: '0', lineHeight: 1.4 },
       subtitle1: { fontWeight: 600, fontSize: '0.9375rem', lineHeight: 1.45 },
       subtitle2: { fontWeight: 600, fontSize: '0.8125rem', lineHeight: 1.4 },
       body1: { fontSize: '0.9375rem', lineHeight: 1.6 },
@@ -400,7 +383,7 @@ export const createAppTheme = (mode: 'light' | 'dark') => {
         styleOverrides: {
           html: { scrollBehavior: 'smooth' },
           body: {
-            // Playfair defaults to old style figures; lining ones sit on the baseline, and set here they inherit everywhere.
+            // Lining figures sit on the baseline. Bricolage's default already, kept explicit so a future face cannot regress it.
             fontVariantNumeric: 'lining-nums',
             '&::-webkit-scrollbar': { width: 10, height: 10 },
             '&::-webkit-scrollbar-thumb': {

@@ -256,7 +256,7 @@ const TripicianAIPage: React.FC = () => {
         }}
       >
         <Box sx={{ display: 'flex', alignItems: 'center', minWidth: 0 }}>
-          <TripicianAIWordmark height={40} />
+          <TripicianAIWordmark height={32} />
         </Box>
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>

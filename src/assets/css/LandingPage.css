@@ -244,12 +244,12 @@
   font-weight: 700;
   color: #fff;
 }
+/* The 2026-11 lockup is 4:1 and its lowercase letters fill only half its height,
+   so it is set taller than the old 6:1 caps lockup and still comes out narrower.
+   One file for the hero photo and the solid nav alike. */
 .lp-logo-img { display: block; width: auto; }
-.lp-logo-img--nav { height: 26px; }
-.lp-logo-img--footer { height: 24px; }
-.lp-nav__logo-dark { display: none; }
-.lp-nav--scrolled .lp-nav__logo-light { display: none; }
-.lp-nav--scrolled .lp-nav__logo-dark { display: block; }
+.lp-logo-img--nav { height: 32px; }
+.lp-logo-img--footer { height: 30px; }
 .lp-nav--scrolled .lp-nav__logo { color: var(--lp-ink); }
 
 .lp-nav__links { display: flex; gap: 28px; }
@@ -278,7 +278,7 @@
    never showed up as document overflow - it just silently lost the button. */
 @media (max-width: 560px) {
   .lp-nav { gap: 12px; padding-inline: 16px; }
-  .lp-logo-img--nav { height: 21px; }
+  .lp-logo-img--nav { height: 26px; }
   .lp-nav__actions { gap: 4px; }
   .lp-nav__actions .lp-btn { padding: 8px 13px; font-size: 0.8125rem; }
 }
@@ -360,7 +360,7 @@
   font-weight: 700;
   font-size: clamp(2.6rem, 7vw, 5.4rem);
   line-height: 1.02;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.025em; /* Bricolage display cut is already tight; -0.035em made letters touch */
   margin: 0 0 24px;
   max-width: 16ch;
 }
@@ -835,7 +835,7 @@
   font-weight: 700;
   font-size: clamp(2rem, 5vw, 3.5rem);
   line-height: 1.06;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.022em;
   color: var(--lp-ink);
   margin: 0 0 18px;
 }

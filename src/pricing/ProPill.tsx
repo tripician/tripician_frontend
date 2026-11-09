@@ -106,7 +106,8 @@ const ProPill: React.FC<ProPillProps> = ({ onClick }) => {
     : theme.custom.brand.onDark;
 
   // A badge on the logo's corner, so it reads as a mark of status rather than a control, and it scales for the phone.
-  // Filled with the logo T's own red, so the badge reads as part of the logo rather than as a coral button.
+  // Filled with the logo's own red, so the badge reads as part of the logo rather than as a coral button.
+  // The logo is now the square T tile: the badge overlaps only its top-right corner, clear of the arrowhead.
   if (onPro) {
     return (
       <Tooltip title="Your plan, and what Business adds" arrow>
@@ -117,9 +118,9 @@ const ProPill: React.FC<ProPillProps> = ({ onClick }) => {
           aria-label="Your Tripician Pro plan"
           sx={{
             position: 'absolute',
-            top: { xs: -5, md: -7 },
+            top: { xs: -7, md: -9 },
             left: '100%',
-            transform: 'translateX(-40%)',
+            transform: 'translateX(-18%)',
             zIndex: 1,
             height: { xs: 14, md: 17 },
             px: { xs: 0.75, md: 1 },

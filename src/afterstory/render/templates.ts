@@ -23,7 +23,7 @@ export interface StoryTemplateStyle {
   measure: number;
   /** What a newly added photo defaults to. */
   defaultPhotoWidth: PhotoWidth;
-  /** Headings carry voice in the serif display face; body copy never does. */
+  /** Headings carry voice in the display face (the display cut of the one family since 2026-11). */
   headingSerif: boolean;
   /** Oversized opening letter on the first prose block. */
   dropCap: boolean;

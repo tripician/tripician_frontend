@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link rel="icon" type="image/png" href="%VITE_LOGO_ICON%" />
+    <link rel="icon" type="image/png" href="%VITE_TRIPICIAN_LOGO%" />
 
     <!-- What is here and what is NOT, and why the split matters.
 
@@ -49,30 +49,21 @@
 
     <!-- Fonts: preconnect + link beats CSS @import (no render-blocking CSS chain, earlier fetch)
 
-         Plus Jakarta Sans is the UI face, requested as a variable axis (400..700)
-         rather than a static weight list. The old list stopped at the values it
-         named, and combined with `font-synthesis: none` in index.css any weight
-         not on it rounded to the nearest one that was - so the 550/650/750 the
-         theme asked for all rendered as 600/700/800, i.e. heavier than written.
-         The axis is also one file instead of six. 700 is the top of the ladder
-         by design. Keep the axis form if this face is ever swapped again.
+         Bricolage Grotesque is the one face (2026-11, as on mobile): the closest
+         open-licensed match to the logo's lettering. It replaced Plus Jakarta Sans
+         + Playfair Display.
 
-         Playfair Display is the display face and its scope is now NARROW: story
-         titles and the story reading page, nothing else. A geometric sans was
-         once tried in that slot and pulled back out because at display sizes it
-         read as interface chrome rather than as a heading. That finding still
-         holds - which is why the serif survives on the one surface that has to
-         read as authored rather than as product. `story-serif.guard.test.ts`
-         enforces the boundary.
-
-         The `1,600` axis is a real italic cut, not a synthesised oblique -
-         `font-synthesis: none` in index.css means an unrequested italic would
-         render upright, so the emphasis in the auth panel depends on it. -->
+         Requested as variable axes, not a static weight list: `wght` 400..700
+         (700 is the top of the ladder by design; with `font-synthesis: none` in
+         index.css an unlisted weight rounds silently) and `opsz` 12..96, which
+         the browser sets from the font size, so headings get the tighter display
+         cut and body copy the open text cut. Keep the axis form if this face is
+         ever swapped again. There is no italic cut. -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
       rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400..700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap"
+      href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,400..700&display=swap"
     />
   </head>
   <body>

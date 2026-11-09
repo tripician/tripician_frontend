@@ -298,8 +298,8 @@ export default function LandingPage() {
    * truth, and it is not the SDK.
    */
 
-  const logoFullWhiteUrl = import.meta.env.VITE_LOGO_WHITE as string | undefined;
-  const logoFullBlackUrl = import.meta.env.VITE_LOGO_BLACK as string | undefined;
+  // One lockup for every ground: it reads on the hero photo and on the solid nav alike.
+  const logoUrl = import.meta.env.VITE_TRIPICIAN as string | undefined;
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [trips, setTrips] = useState<LandingTrip[]>([]);
@@ -599,7 +599,7 @@ export default function LandingPage() {
             name: 'Tripician',
             url: SITE_URL,
             // Was ${SITE_URL}/og-cover.jpg, a file that does not exist in public/.
-            logo: import.meta.env.VITE_LOGO_ICON || OG_IMAGE,
+            logo: import.meta.env.VITE_TRIPICIAN_LOGO || OG_IMAGE,
             description: 'A social network for travellers, where people publish the trips they actually took, find others to travel with, and keep the story afterwards.',
             // `sameAs: []` was emitted as an empty array, which asserts "this
             // organisation has no other web presence". Omitted until there are
@@ -650,11 +650,8 @@ export default function LandingPage() {
       {/*  NAVBAR  */}
       <nav className={`lp-nav${isScrolled ? ' lp-nav--scrolled' : ''}`} aria-label="Main navigation">
         <div className="lp-nav__logo" onClick={() => navigate('/')}>
-          {logoFullWhiteUrl && logoFullBlackUrl ? (
-            <>
-              <img src={logoFullWhiteUrl} alt="Tripician" className="lp-logo-img lp-logo-img--nav lp-nav__logo-light" />
-              <img src={logoFullBlackUrl} alt="Tripician" className="lp-logo-img lp-logo-img--nav lp-nav__logo-dark" />
-            </>
+          {logoUrl ? (
+            <img src={logoUrl} alt="Tripician" className="lp-logo-img lp-logo-img--nav" />
           ) : (
             <><IconPlane size={20} className="lp-nav__logo-icon" /><span>Tripician</span></>
           )}
@@ -911,8 +908,8 @@ export default function LandingPage() {
       <section className="lp-tripicianai" id="tripicianai">
         <div className="lp-shell lp-tripicianai__inner">
           <div className="lp-tripicianai__text">
-            {/* The lockup in place of the written kicker. The landing page is always light. */}
-            <TripicianAIWordmark height={36} onDark={false} />
+            {/* The lockup in place of the written kicker. */}
+            <TripicianAIWordmark height={28} />
             <h2 className="lp-h2">Say it in a sentence</h2>
             <p className="lp-lede">
               Tell Tripician Intelligence where you are going and how long for, and it drafts the route, the
@@ -1003,8 +1000,8 @@ export default function LandingPage() {
         <div className="lp-shell lp-footer__inner">
           <div className="lp-footer__brand">
             <div className="lp-footer__logo">
-              {logoFullBlackUrl
-                ? <img src={logoFullBlackUrl} alt="Tripician" className="lp-logo-img lp-logo-img--footer" />
+              {logoUrl
+                ? <img src={logoUrl} alt="Tripician" className="lp-logo-img lp-logo-img--footer" />
                 : (<><IconPlane size={18} /><span>Tripician</span></>)}
             </div>
             <p>A social network for travellers.<br />Real trips, published by the people who took them.</p>
