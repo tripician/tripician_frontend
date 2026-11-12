@@ -1,10 +1,19 @@
 import React from 'react';
-import { streamTripicianAIResponse, type TripicianAIHistoryMessage } from '../tripicianAIService';
+import {
+  streamTripicianAIResponse,
+  type TripicianAIHistoryMessage,
+  type TripicianAINewsSource,
+} from '../tripicianAIService';
+import { createStagePacer } from '../stagePacer';
 import { afterStoryService } from '../../afterstory/afterStoryService';
 import type { AfterStorySummaryDto } from '../../afterstory/types';
+import type { TripicianAIOffer } from '../useTripicianAI';
 import type { AskTurn } from './CommandResultPanel';
 
-/** Streams general-chat and pulls matching published stories alongside it. */
+/**
+ * Streams the staged general chat (steps, a decorated answer, the plan offer)
+ * and pulls matching published stories alongside it.
+ */
 export function useAskTripicianAI(token?: string | null) {
   const [turns, setTurns] = React.useState<AskTurn[]>([]);
   const [stories, setStories] = React.useState<AfterStorySummaryDto[]>([]);
@@ -15,9 +24,24 @@ export function useAskTripicianAI(token?: string | null) {
     setStories([]);
     setCitationsLoading(false);
   }, []);
+
+  const updateLast = React.useCallback((mutator: (turn: AskTurn) => AskTurn) => {
+    setTurns((prev) => {
+      const next = [...prev];
+      const last = next[next.length - 1];
+      if (last) next[next.length - 1] = mutator(last);
+      return next;
+    });
+  }, []);
+
+  const updateOffer = React.useCallback((index: number, patch: Partial<TripicianAIOffer>) => {
+    setTurns((prev) => prev.map((turn, i) => (i === index && turn.offer ? { ...turn, offer: { ...turn.offer, ...patch } } : turn)));
+  }, []);
+
   const ask = React.useCallback(async (question: string) => {
     setStreaming(true);
-    setTurns((prev) => [...prev, { question, answer: '', streaming: true }]);
+    const startedAt = Date.now();
+    setTurns((prev) => [...prev, { question, answer: '', streaming: true, steps: [] }]);
     // Citations run beside the stream, never gate it.
     setCitationsLoading(true);
     void afterStoryService
@@ -29,24 +53,43 @@ export function useAskTripicianAI(token?: string | null) {
       { role: 'user' as const, content: t.question },
       { role: 'tripicianai' as const, content: t.answer },
     ]);
+
+    const pacer = createStagePacer({
+      onSteps: (steps) => updateLast((turn) => ({ ...turn, steps })),
+      onText: (chunk) =>
+        updateLast((turn) => ({
+          ...turn,
+          answer: turn.answer + chunk,
+          ...(turn.thinkingMs === undefined ? { thinkingMs: Date.now() - startedAt } : {}),
+        })),
+    });
+    let offer: TripicianAIOffer | undefined;
+    let sources: TripicianAINewsSource[] | undefined;
+
     try {
-      for await (const chunk of streamTripicianAIResponse('', question, token, history)) {
-        setTurns((prev) => {
-          const next = [...prev];
-          const last = next[next.length - 1];
-          if (last) next[next.length - 1] = { ...last, answer: last.answer + chunk };
-          return next;
-        });
+      for await (const chunk of streamTripicianAIResponse('', question, token, history, {
+        staged: true,
+        onStage: (stage) => pacer.pushStep(stage),
+        onOffer: (next) => {
+          offer = { ...next, state: 'open' };
+        },
+        onSources: (next) => {
+          sources = next;
+        },
+      })) {
+        pacer.pushText(chunk);
       }
+      await new Promise<void>((resolve) => pacer.finish(resolve));
+      updateLast((turn) => ({
+        ...turn,
+        ...(offer && turn.answer.trim() ? { offer } : {}),
+        ...(sources ? { sources } : {}),
+      }));
     } finally {
-      setTurns((prev) => {
-        const next = [...prev];
-        const last = next[next.length - 1];
-        if (last) next[next.length - 1] = { ...last, streaming: false };
-        return next;
-      });
+      pacer.flush();
+      updateLast((turn) => ({ ...turn, streaming: false }));
       setStreaming(false);
     }
-  }, [token, turns]);
-  return { turns, stories, citationsLoading, streaming, ask, clear };
+  }, [token, turns, updateLast]);
+  return { turns, stories, citationsLoading, streaming, ask, clear, updateOffer };
 }

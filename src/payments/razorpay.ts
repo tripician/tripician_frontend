@@ -3,7 +3,7 @@ import { checkoutIdentity, checkoutLogo, type Payer } from './checkoutIdentity';
 import type { CheckoutIntent, RazorpayResult } from './types';
 
 // Without an image Razorpay prints the first letter of the name in a tile, which is the "T" people took for a made-up logo.
-const LOGO = checkoutLogo(import.meta.env.VITE_LOGO_ICON as string | undefined);
+const LOGO = checkoutLogo(import.meta.env.VITE_TRIPICIAN_LOGO as string | undefined);
 
 /**
  * Razorpay's checkout script, loaded when somebody actually wants to pay.

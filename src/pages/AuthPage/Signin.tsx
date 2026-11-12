@@ -8,6 +8,7 @@ import { nextFrom, safeNext } from '../../services/APIs/Auth/nextDestination';
 import { stashReturnTo } from '../../utils/pendingDraft';
 import { peekPendingPrompt } from '../../utils/pendingTripicianAIPrompt';
 import { signInWithPassword } from './passwordSignIn';
+import { useAuthBack, useAuthSwitch, useAuthSwitchLink } from './useAuthBack';
 import VerifyEmailStep from './VerifyEmailStep';
 import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../store';
@@ -30,9 +31,12 @@ const Signin = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const { loginWithRedirect } = useAuth0();
+  const goBack = useAuthBack();
+  const switchTo = useAuthSwitch();
+  const switchLink = useAuthSwitchLink();
   const dispatch = useDispatch<AppDispatch>();
   const loginBackground = import.meta.env.VITE_SIGNINPAGE_IMAGE_URL as string | undefined;
-  const logoUrl = import.meta.env.VITE_LOGO_WHITE as string | undefined;
+  const logoUrl = import.meta.env.VITE_TRIPICIAN as string | undefined;
 
   // Form state. Sign-up hands over the email when it already has an account
   // (in router state, so the address never sits in the URL).
@@ -130,7 +134,7 @@ const Signin = () => {
   };
 
   const handleForgotPassword = () => {
-    navigate('/forgot-password');
+    switchTo('/forgot-password');
   };
 
   const handleGoogleSignIn = () => {
@@ -207,8 +211,8 @@ const Signin = () => {
         initial="hidden"
         animate="visible"
       >
-        {/* Back to landing */}
-        <button className="auth-back-btn" onClick={() => navigate('/')}>
+        {/* Back to the page that sent them here, not always the landing page. */}
+        <button className="auth-back-btn" onClick={goBack}>
           <ArrowLeft size={15} />
           Back
         </button>
@@ -314,7 +318,7 @@ const Signin = () => {
             transition={{ delay: 0.7 }}
           >
             Don't have an account?
-            <a href="/signup" className="auth-switch__link">Sign up free</a>
+            <a {...switchLink('/signup')} className="auth-switch__link">Sign up free</a>
           </motion.p>
 
           <div className="auth-divider"><span>or continue with</span></div>

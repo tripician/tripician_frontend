@@ -11,6 +11,8 @@ interface CredibilityStripProps {
   userId: number;
   /** 'column' stacks one fact per line, for the 340px identity rail. */
   direction?: 'row' | 'column';
+  /** 'plain' drops the panel: a centred line of facts, for the profile header. */
+  variant?: 'card' | 'plain';
 }
 
 /**
@@ -33,7 +35,7 @@ interface CredibilityStripProps {
  * renders a judgement rather than a count, it becomes a claim Tripician has to
  * stand behind, and it stops being checkable by the person reading it.
  */
-const CredibilityStrip: React.FC<CredibilityStripProps> = ({ userId, direction = 'row' }) => {
+const CredibilityStrip: React.FC<CredibilityStripProps> = ({ userId, direction = 'row', variant = 'card' }) => {
   const theme = useTheme();
   const [record, setRecord] = React.useState<OrganiserRecord | null>(null);
 
@@ -61,7 +63,8 @@ const CredibilityStrip: React.FC<CredibilityStripProps> = ({ userId, direction =
 
   const facts: Array<{ Icon: React.ElementType; text: string; tip: string; brand?: boolean }> = [];
 
-  if (record.identityVerified) {
+  // The plain line sits under a name that already carries the Verified badge: one mark for one fact.
+  if (record.identityVerified && variant !== 'plain') {
     facts.push({
       Icon: IconRosetteDiscountCheckFilled,
       text: 'Identity verified',
@@ -107,6 +110,7 @@ const CredibilityStrip: React.FC<CredibilityStripProps> = ({ userId, direction =
   const isNew = facts.length === 0 || (facts.length === 1 && !record.identityVerified);
 
   const stacked = direction === 'column';
+  const plain = variant === 'plain';
 
   return (
     <Box
@@ -115,11 +119,16 @@ const CredibilityStrip: React.FC<CredibilityStripProps> = ({ userId, direction =
         flexDirection: stacked ? 'column' : 'row',
         flexWrap: stacked ? 'nowrap' : 'wrap',
         alignItems: stacked ? 'flex-start' : 'center',
-        gap: stacked ? 1.1 : 1,
-        borderRadius: '14px',
-        border: `1px solid ${theme.custom.surface.border}`,
-        bgcolor: theme.custom.surface.hover,
-        px: 1.75, py: 1.25,
+        justifyContent: plain ? 'center' : 'flex-start',
+        gap: stacked ? 1.1 : plain ? { xs: 1.5, md: 2.25 } : 1,
+        ...(plain
+          ? { rowGap: 0.75 }
+          : {
+              borderRadius: '14px',
+              border: `1px solid ${theme.custom.surface.border}`,
+              bgcolor: theme.custom.surface.hover,
+              px: 1.75, py: 1.25,
+            }),
       }}
     >
       {isNew ? (

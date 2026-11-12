@@ -64,16 +64,6 @@ export function planBenefits(plan: Plan): string[] {
  * number in appsettings changes. Returns an empty list when the higher plan
  * genuinely adds nothing, which is a thing worth being able to see.
  */
-/**
- * The member ceiling for a group run on this plan: a number, null for no limit, or undefined when unknown.
- * A personal plan does not change a group, so it reads the free plan's allowance.
- */
-export function groupMemberLimit(plan: Plan, plans: Plan[]): number | null | undefined {
-  const source = plan.scope === 'organization' ? plan : plans.find((p) => p.monthlyPrice === 0);
-  if (!source) return undefined;
-  return isUnlimited(source.maxGroupMembers) ? null : source.maxGroupMembers;
-}
-
 export function planUpgrade(from: Plan | null, to: Plan): string[] {
   if (!from) return planBenefits(to);
 

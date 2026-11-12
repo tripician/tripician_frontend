@@ -1,51 +1,33 @@
 import React from 'react';
-import { Avatar, Box, Button, IconButton, Menu, MenuItem, Skeleton, Tooltip, Typography, useTheme } from '@mui/material';
-import { alpha } from '@mui/material/styles';
-import { motion } from 'framer-motion';
-import { useNavigate, useParams, Navigate } from 'react-router-dom';
-import { useRequireAuth } from '../../auth/AuthGate';
+import { Box, Button, IconButton, Menu, MenuItem, Typography } from '@mui/material';
+import { useParams, Navigate } from 'react-router-dom';
 import { useSelector } from 'react-redux';
-import {
-  IconBrandFacebook,
-  IconBrandInstagram,
-  IconBrandX,
-  IconCalendar,
-  IconCheck,
-  IconCompass,
-  IconLink,
-  IconMapPin,
-  IconUserPlus,
-  IconBan,
-  IconDots,
-} from '@tabler/icons-react';
+import { IconBan, IconCheck, IconDots, IconUserPlus } from '@tabler/icons-react';
+import { useRequireAuth } from '../../auth/AuthGate';
 import { confirmAndBlock } from '../../utils/blocking';
 import type { RootState } from '../../store';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
-import { tripPath } from '../../utils/tripSlug';
 import { countryNameFromCode } from '../../utils/countryFlags';
-import { safeExternalUrl } from '../../utils/sanitizeHtml';
 import Seo from '../../components/Seo';
-import CommunityTripCard from '../CommunityPage/CommunityTripCard';
-import TravelHistoryPanel from './TravelHistoryPanel';
-import FeaturedRow from './FeaturedRow';
-import ProfileIdentityRail, { railHasContent } from './ProfileIdentityRail';
-import { apiServices as api } from '../../services/APIs/apiServices';
-import type { OrganiserRecord } from '../../seats/types';
-import VerifiedProfileMark from '../../components/ui/VerifiedProfileMark';
-import SectionHeader from '../../components/ui/SectionHeader';
+import ErrorState from '../../components/ui/ErrorState';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
-import StoryDiary from '../../afterstory/cards/StoryDiary';
-import ProfilePosts from '../../posts/ProfilePosts';
 import { afterStoryService } from '../../afterstory/afterStoryService';
 import type { AfterStorySummaryDto } from '../../afterstory/types';
-import EmptyState from '../../components/ui/EmptyState';
-import ErrorState from '../../components/ui/ErrorState';
-import { CardGridSkeleton } from '../../components/ui/Skeletons';
-import { fadeInUp } from '../../utils/animations';
+import type { OrganiserRecord } from '../../seats/types';
+import CredibilityStrip from './CredibilityStrip';
+import { readHighlights, readIntro } from './profileBio';
+import { mapTripVM, rowsFrom, type TripVM } from './tripViewModel';
+import type { TravelMap } from './travelHistory';
+import ProfileHeader, { type ProfileStat } from './portfolio/ProfileHeader';
+import { profileSocials } from './portfolio/socials';
+import ProfilePortfolio from './portfolio/ProfilePortfolio';
+import TravelStamps from './portfolio/TravelStamps';
+import FollowListDialog, { type FollowMode } from './portfolio/FollowListDialog';
+import MessageButton from '../../messages/MessageButton';
 
-/** Community's measure, shared with /profile so the three do not disagree. */
-const CONTENT_MAX = 1280;
+/** The same measure as /profile and the app on a tablet. */
+const CONTENT_MAX = 1040;
 
 interface PublicUser {
   id: number;
@@ -64,13 +46,19 @@ interface PublicUser {
   profileVerifiedAt?: string | null;
 }
 
+/** Whether this person is on a trip's crew, by any of the member shapes the trips endpoints send. */
+function hasMember(raw: any, userId: number): boolean {
+  const members: any[] = raw?.members || raw?.invitedUsers || [];
+  return members.some((m) => String(m?.userId ?? m?.UserId ?? m?.id ?? m?.user?.id ?? '') === String(userId));
+}
+
 /**
- * Public traveler profile - Instagram-style activity view for any community
- * member: identity, follow stats, and their published trips.
+ * Someone else's profile, the same page the app shows: the title page (cover,
+ * photo, name, where they are, how long they have been here, their own words,
+ * three figures, Follow), what backs them up, their travel stamps, then their
+ * portfolio: Featured, Photobook and the Travel Journal.
  */
 const TravelerProfile: React.FC = () => {
-  const theme = useTheme();
-  const navigate = useNavigate();
   const requireAuth = useRequireAuth();
   const { userId: userIdParam } = useParams<{ userId: string }>();
   const userId = Number(userIdParam);
@@ -82,25 +70,92 @@ const TravelerProfile: React.FC = () => {
   const [userError, setUserError] = React.useState(false);
   const [reloadKey, setReloadKey] = React.useState(0);
 
-  const [stats, setStats] = React.useState<{ followers: number; following: number }>({ followers: 0, following: 0 });
-  const [trips, setTrips] = React.useState<any[]>([]);
+  const [stats, setStats] = React.useState<{ followers: number; following: number } | null>(null);
+  const [followList, setFollowList] = React.useState<FollowMode | null>(null);
+  const [trips, setTrips] = React.useState<TripVM[]>([]);
   const [tripsLoading, setTripsLoading] = React.useState(true);
   const [stories, setStories] = React.useState<AfterStorySummaryDto[]>([]);
-
-  // listByAuthor swallows its own failures and returns an empty array, so a
-  // stories outage cannot take the profile down with it.
-  React.useEffect(() => {
-    if (!FEATURE_FLAGS.afterStory || !Number.isFinite(userId)) return;
-    let active = true;
-    void afterStoryService.listByAuthor(userId, 12).then(items => { if (active) setStories(items); });
-    return () => { active = false; };
-  }, [userId]);
+  const [storiesLoading, setStoriesLoading] = React.useState(true);
+  const [travelMap, setTravelMap] = React.useState<TravelMap | null>(null);
+  const [record, setRecord] = React.useState<OrganiserRecord | null>(null);
+  const [coverFailed, setCoverFailed] = React.useState(false);
 
   const [isFollowing, setIsFollowing] = React.useState(false);
+  const [followBusy, setFollowBusy] = React.useState(false);
   const [blocked, setBlocked] = React.useState(false);
   const [menuAnchor, setMenuAnchor] = React.useState<HTMLElement | null>(null);
 
-  // Whether the viewer blocked this person. Their own list, so it is only asked when signed in.
+  // Public identity and follow counts.
+  React.useEffect(() => {
+    if (!Number.isFinite(userId)) return;
+    let active = true;
+    setUserLoading(true);
+    setUserError(false);
+    setCoverFailed(false);
+    apiServices.getUserById(userId)
+      .then((resp) => { if (active) setUser(resp.data); })
+      .catch(() => { if (active) setUserError(true); })
+      .finally(() => { if (active) setUserLoading(false); });
+    apiServices.getFollowStats(userId)
+      .then((resp) => { if (active) setStats(resp.data); })
+      .catch(() => { if (active) setStats({ followers: 0, following: 0 }); });
+    return () => { active = false; };
+  }, [userId, reloadKey]);
+
+  // Their published plans and the ones they were crew on: the journal's plans.
+  React.useEffect(() => {
+    if (!Number.isFinite(userId)) return;
+    let active = true;
+    setTripsLoading(true);
+    apiServices.getPublishedTrips(token ?? undefined)
+      .then((resp) => {
+        if (!active) return;
+        const rows = rowsFrom(resp?.data);
+        const theirs = rows.filter((t: any) => String(t.ownerUserId ?? t.owner?.id ?? '') === String(userId) || hasMember(t, userId));
+        setTrips(theirs.map((t: any) => mapTripVM(t, myProfile)));
+      })
+      .catch(() => { if (active) setTrips([]); })
+      .finally(() => { if (active) setTripsLoading(false); });
+    return () => { active = false; };
+  }, [userId, token, reloadKey, myProfile]);
+
+  // Their published stories. listByAuthor swallows its own failures, so an outage cannot take the page down.
+  React.useEffect(() => {
+    if (!FEATURE_FLAGS.afterStory || !Number.isFinite(userId)) {
+      setStoriesLoading(false);
+      return;
+    }
+    let active = true;
+    setStoriesLoading(true);
+    void afterStoryService.listByAuthor(userId, 50)
+      .then((items) => { if (active) setStories(items.filter((s) => !s.status || s.status === 'Published')); })
+      .finally(() => { if (active) setStoriesLoading(false); });
+    return () => { active = false; };
+  }, [userId]);
+
+  React.useEffect(() => {
+    if (!Number.isFinite(userId)) return;
+    let wanted = userId;
+    void apiServices.getTravelMap(userId)
+      .then((resp) => { if (wanted === userId) setTravelMap(resp.data); })
+      .catch(() => { if (wanted === userId) setTravelMap({ countries: [], legs: [] }); });
+    // The published-only track record: the country count a stranger is shown, for a verified person only.
+    void apiServices.getOrganiserRecord(userId)
+      .then((r) => { if (wanted === userId) setRecord(r.data); })
+      .catch(() => { if (wanted === userId) setRecord(null); });
+    return () => { wanted = -1; };
+  }, [userId]);
+
+  React.useEffect(() => {
+    if (!token || !Number.isFinite(userId)) return;
+    let active = true;
+    apiServices.isFollowing(token, userId)
+      .then((resp) => { if (active) setIsFollowing(!!resp.data?.isFollowing); })
+      .catch(() => { /* default to not following */ });
+    return () => { active = false; };
+  }, [token, userId]);
+
+  // Whether the reader blocked this person. Their own list, so only asked when signed in.
   React.useEffect(() => {
     if (!token || !Number.isFinite(userId)) { setBlocked(false); return; }
     let active = true;
@@ -109,6 +164,14 @@ const TravelerProfile: React.FC = () => {
       .catch(() => { if (active) setBlocked(false); });
     return () => { active = false; };
   }, [token, userId]);
+
+  // Viewing yourself: your own profile has the full experience.
+  if (myProfile?.id && String(myProfile.id) === String(userId)) {
+    return <Navigate to="/profile" replace />;
+  }
+  if (!Number.isFinite(userId)) {
+    return <Navigate to="/error/404" replace />;
+  }
 
   const block = async () => {
     setMenuAnchor(null);
@@ -133,155 +196,86 @@ const TravelerProfile: React.FC = () => {
     }
   };
 
-  /*
-   * The public half of this person's travel record, from the same endpoint the
-   * credibility strip reads.
-   *
-   * This replaces a country list assembled here from the page's own trips. That
-   * gave a number derived differently from the one the owner sees on /profile,
-   * which is how the same person ended up with two different country counts
-   * depending on who was looking.
-   */
-  const [record, setRecord] = React.useState<OrganiserRecord | null>(null);
-  React.useEffect(() => {
-    if (!userId) return;
-    let active = true;
-    void api.getOrganiserRecord(Number(userId))
-      .then((r) => { if (active) setRecord(r.data); })
-      .catch(() => { if (active) setRecord(null); });
-    return () => { active = false; };
-  }, [userId]);
-  const [followBusy, setFollowBusy] = React.useState(false);
-  const [coverFailed, setCoverFailed] = React.useState(false);
-
-  // Public user identity + follow stats
-  React.useEffect(() => {
-    if (!Number.isFinite(userId)) return;
-    let active = true;
-    setUserLoading(true);
-    setUserError(false);
-    apiServices.getUserById(userId)
-      .then(resp => { if (active) setUser(resp.data); })
-      .catch(() => { if (active) setUserError(true); })
-      .finally(() => { if (active) setUserLoading(false); });
-    apiServices.getFollowStats(userId)
-      .then(resp => { if (active) setStats(resp.data); })
-      .catch(() => { /* keep zeros */ });
-    return () => { active = false; };
-  }, [userId, reloadKey]);
-
-  // Their published trips (activity grid)
-  React.useEffect(() => {
-    if (!Number.isFinite(userId)) return;
-    let active = true;
-    setTripsLoading(true);
-    apiServices.getPublishedTrips(token ?? undefined)
-      .then(resp => {
-        if (!active) return;
-        const data = Array.isArray(resp?.data) ? resp.data : [];
-        setTrips(data.filter((t: any) => String(t.ownerUserId ?? t.owner?.id ?? '') === String(userId)));
-      })
-      .catch(() => { if (active) setTrips([]); })
-      .finally(() => { if (active) setTripsLoading(false); });
-    return () => { active = false; };
-  }, [userId, token, reloadKey]);
-
-  // Whether the signed-in viewer already follows this traveler
-  React.useEffect(() => {
-    if (!token || !Number.isFinite(userId)) return;
-    let active = true;
-    apiServices.isFollowing(token, userId)
-      .then(resp => { if (active) setIsFollowing(!!resp.data?.isFollowing); })
-      .catch(() => { /* default to not following */ });
-    return () => { active = false; };
-  }, [token, userId]);
-
-
-  // Viewing yourself → your own profile page has the full experience
-  if (myProfile?.id && String(myProfile.id) === String(userId)) {
-    return <Navigate to="/profile" replace />;
-  }
-
-  if (!Number.isFinite(userId)) {
-    return <Navigate to="/error/404" replace />;
-  }
-
-  // The rail's credibility strip speaks for anyone with a track record, even
-  // when they wrote nothing about themselves.
-  const hasRail = !userLoading && !!user
-    && ((record?.tripsRun ?? 0) > 0 || railHasContent({ profile: user }));
-
-  const railNode = (
-    <ProfileIdentityRail
-      userId={Number.isFinite(userId) ? userId : undefined}
-      profile={user}
-    />
-  );
-
-  const handleFollowToggle = async () => {
+  // Flips at once; a failed write puts both the button and the count back.
+  const toggleFollow = async () => {
     if (!requireAuth({ reason: 'Follow a traveller to see their trips and stories as they publish.' }) || !token) return;
     if (followBusy) return;
     setFollowBusy(true);
     const next = !isFollowing;
     setIsFollowing(next);
-    setStats(s => ({ ...s, followers: Math.max(0, s.followers + (next ? 1 : -1)) }));
+    setStats((s) => (s ? { ...s, followers: Math.max(0, s.followers + (next ? 1 : -1)) } : s));
     try {
       if (next) await apiServices.followUser(token, userId);
       else await apiServices.unfollowUser(token, userId);
     } catch {
-      // revert on failure
       setIsFollowing(!next);
-      setStats(s => ({ ...s, followers: Math.max(0, s.followers + (next ? -1 : 1)) }));
+      setStats((s) => (s ? { ...s, followers: Math.max(0, s.followers + (next ? -1 : 1)) } : s));
       window.dispatchEvent(new CustomEvent('app:error', { detail: { message: 'Could not update follow. Please try again.' } }));
     } finally {
       setFollowBusy(false);
     }
   };
 
-  const handleTripClick = (trip: any) => {
-    const tripId = trip.id || trip.Id;
-    if (tripId) navigate(tripPath({ id: tripId, name: trip.name }), { state: { trip } });
-  };
+  const name = user?.name || 'Traveller';
+  const firstName = user?.name?.split(' ')[0] || 'this person';
 
-  const socials = user ? [
-    { url: user.instagram, Icon: IconBrandInstagram, label: 'Instagram' },
-    { url: user.twitter, Icon: IconBrandX, label: 'X' },
-    { url: user.facebook, Icon: IconBrandFacebook, label: 'Facebook' },
-    { url: user.website, Icon: IconLink, label: 'Website' },
-  ]
-    .filter(s => s.url && !String(s.url).toUpperCase().includes('NULL'))
-    .map(s => ({ ...s, url: safeExternalUrl(s.url) }))
-    .filter((s): s is { url: string; Icon: typeof IconLink; label: string } => !!s.url) : [];
+  const socials = profileSocials(user);
 
-  // Current Location already reads "City, Country" (it comes from the device
-  // now), so the account country is only added when it says something new. It
-  // may be an ISO code, so it is compared, and shown, as a name.
+  // Current Location already reads "City, Country", so the account country is
+  // added only when it says something new. It may be an ISO code, so it is
+  // compared, and shown, as a name.
   const countryName = user?.country ? (countryNameFromCode(user.country) ?? user.country) : '';
-  const locationLine = user
-    ? [user.location, user.location?.toLowerCase().includes(countryName.toLowerCase()) ? '' : countryName]
-        .filter(Boolean).join(', ')
+  const location = user
+    ? [user.location, user.location?.toLowerCase().includes(countryName.toLowerCase()) ? '' : countryName].filter(Boolean).join(', ')
     : '';
 
   // How long someone has been here is part of deciding whether to travel with
-  // them, and it is the one fact on this page they cannot edit.
-  const joinedDate = user?.joinedAt ? new Date(user.joinedAt) : null;
-  const joinedLine = joinedDate && !Number.isNaN(joinedDate.getTime())
-    ? `Travelling with Tripician since ${joinedDate.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`
+  // them, and the one fact on this page they cannot edit.
+  const joined = user?.joinedAt ? new Date(user.joinedAt) : null;
+  const joinedLine = joined && !Number.isNaN(joined.getTime())
+    ? `Travelling with Tripician since ${joined.toLocaleDateString(undefined, { month: 'long', year: 'numeric' })}`
     : '';
-  const showCover = !!user?.cover && !coverFailed;
 
-  // Verified people only: the country count is a claim, and it is only shown
-  // for someone whose identity has been checked. From the published-only track
-  // record, never from whichever trips this page happened to fetch.
+  // The country count is a claim, shown only for someone whose identity has been
+  // checked, and from the published-only track record.
   const countryCount = user?.identityVerifiedAt && record ? record.countriesVisited : null;
-
-  const statItems = [
-    ...(countryCount !== null
-      ? [{ value: countryCount, label: countryCount === 1 ? 'country' : 'countries' }]
-      : []),
-    { value: stats.followers, label: stats.followers === 1 ? 'follower' : 'followers' },
-    { value: stats.following, label: 'following' },
+  const statItems: ProfileStat[] = [
+    ...(countryCount !== null ? [{ value: countryCount, label: countryCount === 1 ? 'Country' : 'Countries', brand: true }] : []),
+    { value: stats?.followers ?? null, label: 'Followers', onClick: () => setFollowList('followers') },
+    { value: stats?.following ?? null, label: 'Following', onClick: () => setFollowList('following') },
   ];
+
+  const actions = blocked ? (
+    <Button variant="outlined" onClick={() => void unblock()} startIcon={<IconBan size={16} />}>
+      Unblock
+    </Button>
+  ) : (
+    <>
+      <Button
+        onClick={() => void toggleFollow()}
+        disabled={followBusy}
+        variant={isFollowing ? 'outlined' : 'contained'}
+        startIcon={isFollowing ? <IconCheck size={16} /> : <IconUserPlus size={16} />}
+      >
+        {isFollowing ? 'Following' : 'Follow'}
+      </Button>
+      {/* Their chat, or a new one (a message request when they don't know you). */}
+      {token && <MessageButton userId={userId} name={user?.name ?? null} avatarUrl={user?.avatar ?? null} size="medium" />}
+      <IconButton
+        aria-label="More options"
+        onClick={(e) => setMenuAnchor(e.currentTarget)}
+        sx={(theme) => ({ width: 40, height: 40, border: `1px solid ${theme.custom.surface.border}`, color: 'text.secondary', '&:hover': { color: 'text.primary' } })}
+      >
+        <IconDots size={18} />
+      </IconButton>
+      <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
+        <MenuItem onClick={() => void block()} sx={{ color: 'error.main' }}>
+          <IconBan size={15} style={{ marginRight: 10 }} />
+          Block {firstName}
+        </MenuItem>
+      </Menu>
+    </>
+  );
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
@@ -292,267 +286,72 @@ const TravelerProfile: React.FC = () => {
         noindex
       />
 
-      <Box sx={{ maxWidth: CONTENT_MAX, mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 3, md: 4 }, pb: 10 }}>
-        {userError ? (
-          <ErrorState
-            title="Traveler not found"
-            description="This profile may have been removed, or the link is broken."
-            onRetry={() => setReloadKey(k => k + 1)}
-          />
-        ) : (
-          <motion.div variants={fadeInUp} initial="hidden" animate="visible">
-            {/* Cover (only when the traveler set one) */}
-            {showCover && (
-              <Box sx={{
-                height: { xs: 140, sm: 190, md: 220 }, borderRadius: '20px', overflow: 'hidden',
-                border: `1px solid ${theme.custom.surface.border}`, mb: { xs: -6, sm: -7 },
-              }}>
-                <Box
-                  component="img" src={user?.cover ?? undefined} alt=""
-                  onError={() => setCoverFailed(true)}
-                  sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                />
-              </Box>
-            )}
+      <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 0, sm: 3, md: 4 }, pb: 12 }}>
+        <Box sx={{ maxWidth: CONTENT_MAX, mx: 'auto' }}>
+          {userError ? (
+            <Box sx={{ pt: 6 }}>
+              <ErrorState
+                title="Traveler not found"
+                description="This profile may have been removed, or the link is broken."
+                onRetry={() => setReloadKey((k) => k + 1)}
+              />
+            </Box>
+          ) : (
+            <>
+              <ProfileHeader
+                loading={userLoading}
+                name={name}
+                avatarUrl={user?.avatar}
+                coverUrl={!coverFailed ? user?.cover : null}
+                onCoverError={() => setCoverFailed(true)}
+                verified={!!user?.identityVerifiedAt}
+                verifiedAt={user?.identityVerifiedAt}
+                location={location}
+                joinedLine={joinedLine}
+                intro={user ? readIntro(user) : null}
+                highlights={user ? readHighlights(user) : []}
+                socials={socials}
+                stats={statItems}
+                actions={userLoading ? null : actions}
+                footnote={blocked ? null : <CredibilityStrip userId={userId} variant="plain" />}
+              />
 
-            {/* Avatar. ONLY the avatar overlaps the cover, matching /profile:
-                once the name became a real h1 the taller text block landed
-                inside the photograph, where dark serif on an uncontrolled image
-                is close to unreadable. */}
-            <Box sx={{ position: 'relative', zIndex: 1, display: 'flex', px: 0 }}>
-              {userLoading ? (
-                <Skeleton variant="circular" width={104} height={104} />
+              {blocked ? (
+                <Typography variant="body2" sx={{ color: 'text.secondary', textAlign: 'center', mt: 4 }}>
+                  You blocked this account. Their trips, comments and messages are hidden.
+                </Typography>
               ) : (
-                <Box sx={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
-                  <Avatar
-                    src={user?.avatar || undefined}
-                    sx={{
-                      width: { xs: 88, sm: 104 }, height: { xs: 88, sm: 104 },
-                      fontSize: '2.2rem', bgcolor: 'primary.main',
-                      border: `4px solid ${theme.palette.background.default}`,
-                      boxShadow: theme.custom.shadows.card,
-                      flexShrink: 0,
-                    }}
-                  >
-                    {(user?.name || 'T').charAt(0).toUpperCase()}
-                  </Avatar>
-                </Box>
-              )}
-            </Box>
-
-            {/* Identity, entirely below the cover. */}
-            <Box sx={{
-              display: 'flex', gap: { xs: 2, sm: 3 },
-              flexDirection: { xs: 'column', sm: 'row' },
-              alignItems: { xs: 'flex-start', sm: 'flex-start' },
-              justifyContent: 'space-between',
-              px: 0,
-              mt: 1.5,
-            }}>
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                {userLoading ? (
-                  <>
-                    <Skeleton variant="text" width={220} height={38} />
-                    <Skeleton variant="text" width={140} height={20} />
-                  </>
-                ) : (
-                  <>
-                    {/* Same masthead as /profile: variant h1, display face. This
-                        was a hand-tuned fontSize a step smaller, so the same
-                        person's name changed size depending on who was looking. */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
-                      {/* Shrinks but never grows, so the verified badge sits
-                          right after the name, not at the far end of the row. */}
-                      <Typography component="h1" variant="h1" noWrap sx={{
-                        color: 'text.primary',
-                        flex: '0 1 auto',
-                        minWidth: 0,
-                      }}>
-                        {user?.name || 'Explorer'}
-                      </Typography>
-                      {/* The one verified mark: the identity check, with its date. */}
-                      <VerifiedProfileMark verified={!!user?.identityVerifiedAt} verifiedAt={user?.identityVerifiedAt} size={22} />
+                <>
+                  {travelMap ? (
+                    <Box sx={{ mt: { xs: 4, md: 5 } }}>
+                      <TravelStamps countries={travelMap.countries} locationCountries={travelMap.locationCountries} homeCountry={user?.country} />
                     </Box>
-                    {locationLine && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, color: 'text.secondary' }}>
-                        <IconMapPin size={14} stroke={1.9} />
-                        <Typography variant="body2" noWrap>{locationLine}</Typography>
-                      </Box>
-                    )}
-                    {joinedLine && (
-                      <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, color: 'text.secondary' }}>
-                        <IconCalendar size={14} stroke={1.9} />
-                        <Typography variant="body2" noWrap>{joinedLine}</Typography>
-                      </Box>
-                    )}
-                    {/* Stats - Instagram-style inline row */}
-                    <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, mt: 1.25 }}>
-                      {statItems.map(s => (
-                        <Typography key={s.label} variant="body2" sx={{ color: 'text.secondary' }}>
-                          <Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{s.value}</Box> {s.label}
-                        </Typography>
-                      ))}
-                    </Box>
-                  </>
-                )}
-              </Box>
+                  ) : null}
 
-              {/* Actions */}
-              {!userLoading && (
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0, pt: { sm: 1 } }}>
-                  {socials.map(({ url, Icon, label }) => (
-                    <Tooltip key={label} title={label}>
-                      <IconButton
-                        component="a" href={url!} target="_blank" rel="noopener noreferrer" size="small"
-                        sx={{ color: 'text.secondary', border: `1px solid ${theme.custom.surface.border}`, '&:hover': { color: 'text.primary' } }}
-                      >
-                        <Icon size={16} stroke={1.9} />
-                      </IconButton>
-                    </Tooltip>
-                  ))}
-                  {blocked ? (
-                    <Button variant="outlined" onClick={() => void unblock()} startIcon={<IconBan size={15} />}>
-                      Unblock
-                    </Button>
-                  ) : (
-                    <Button
-                      onClick={handleFollowToggle}
-                      disabled={followBusy}
-                      variant={isFollowing ? 'outlined' : 'contained'}
-                      startIcon={isFollowing ? <IconCheck size={15} /> : <IconUserPlus size={15} />}
-                      sx={isFollowing
-                        ? { borderColor: 'success.main', color: 'success.main', '&:hover': { borderColor: 'success.main', color: 'success.main', bgcolor: alpha(theme.palette.success.main, 0.06) } }
-                        : undefined}
-                    >
-                      {isFollowing ? 'Following' : 'Follow'}
-                    </Button>
-                  )}
-                  {!blocked && (
-                    <>
-                      <IconButton
-                        size="small"
-                        aria-label="More options"
-                        onClick={(e) => setMenuAnchor(e.currentTarget)}
-                        sx={{ color: 'text.secondary', border: `1px solid ${theme.custom.surface.border}`, '&:hover': { color: 'text.primary' } }}
-                      >
-                        <IconDots size={16} />
-                      </IconButton>
-                      <Menu anchorEl={menuAnchor} open={Boolean(menuAnchor)} onClose={() => setMenuAnchor(null)}>
-                        <MenuItem onClick={() => void block()} sx={{ color: 'error.main' }}>
-                          <IconBan size={15} style={{ marginRight: 10 }} />
-                          Block {user?.name?.split(' ')[0] || 'this person'}
-                        </MenuItem>
-                      </Menu>
-                    </>
-                  )}
-                </Box>
-              )}
-            </Box>
+                  {/* No tabs on someone else's profile, as in the app: a hairline, then their work. */}
+                  <Box sx={(theme) => ({ height: '1px', bgcolor: theme.custom.surface.border, mt: { xs: 4, md: 5 }, mb: { xs: 4, md: 5 } })} />
 
-            {/* ── Two columns from here down ──
-                Who they are on the right, what they have made on the left. The
-                same shape as /profile, and for the same reason: a reader is
-                deciding whether to travel with this person, so the evidence
-                should stay in view while they scroll the work.
-
-                Unlike /profile, the column is NOT unconditional. A stranger with
-                nothing on their profile would otherwise get a blank 340px
-                gutter, which is exactly why the previous sidebar was deleted. */}
-            <Box
-              sx={{
-                display: 'flex',
-                gap: { xs: 0, lg: 4 },
-                alignItems: 'flex-start',
-                mt: { xs: 2.5, md: 3 },
-              }}
-            >
-              <Box sx={{ flex: 1, minWidth: 0 }}>
-                {hasRail && (
-                  <Box sx={{ display: { xs: 'block', lg: 'none' }, mb: { xs: 3, md: 4 } }}>
-                    {railNode}
-                  </Box>
-                )}
-
-              {/* What they chose to show first, set in the app. Empty, it shows a quote. */}
-              {userId ? <FeaturedRow userId={Number(userId)} /> : null}
-
-              {/* Their stories, above the trips.
-                  They used to sit underneath, on the reasoning that a plan is what
-                  this profile was about. That is no longer true: someone opening a
-                  stranger's profile is deciding whether to travel with them, and a
-                  grid of itineraries answers where they went, not who they are. */}
-              {FEATURE_FLAGS.afterStory && (
-                <StoryDiary
-                  stories={stories}
-                  title={user ? `${user.name.split(' ')[0]}'s diary` : 'Diary'}
-                  subtitle="What the trips were actually like, in their words."
-                />
-              )}
-
-              {/* What they have been saying. Renders nothing when they have not
-                  posted, so a quiet profile does not carry an empty heading. */}
-              {userId && (
-                <ProfilePosts
-                  authorUserId={Number(userId)}
-                  title={user ? `${user.name.split(' ')[0]} lately` : 'Lately'}
-                />
-              )}
-
-              {userId ? (
-                <Box sx={{ mt: { xs: 3, md: 4 } }}>
-                  <TravelHistoryPanel userId={Number(userId)} />
-                </Box>
-              ) : null}
-
-
-              {/* Published trips */}
-              <Box sx={{ mt: { xs: 5, md: 6 } }}>
-                <SectionHeader
-                  title="Published trips"
-                  subtitle={user ? `Itineraries ${user.name} has published` : undefined}
-                />
-                {tripsLoading ? (
-                  <CardGridSkeleton count={6} minWidth={280} />
-                ) : trips.length === 0 ? (
-                  <EmptyState
-                    icon={IconCompass}
-                    title="No published trips yet"
-                    description="When this traveler publishes an itinerary, it will show up here."
-                    actionLabel="Browse trips"
-                    onAction={() => navigate('/stories?kind=plans')}
+                  <ProfilePortfolio
+                    userId={userId}
+                    isOwner={false}
+                    name={user?.name ?? null}
+                    trips={trips}
+                    stories={stories}
+                    sourcesLoading={tripsLoading || storiesLoading}
                   />
-                ) : (
-                  <Box sx={{
-                    display: 'grid',
-                    gridTemplateColumns: { xs: 'minmax(0, 1fr)', sm: 'repeat(2, minmax(0, 1fr))', lg: 'repeat(3, minmax(0, 1fr))' },
-                    gap: 3,
-                  }}>
-                    {trips.map((trip, i) => (
-                      <CommunityTripCard key={trip.id || i} trip={trip} onClick={() => handleTripClick(trip)} />
-                    ))}
-                  </Box>
-                )}
-              </Box>
-              </Box>
-
-              {hasRail && (
-                <Box
-                  sx={{
-                    display: { xs: 'none', lg: 'block' },
-                    width: 340,
-                    flexShrink: 0,
-                    position: 'sticky',
-                    top: 72,
-                  }}
-                >
-                  {railNode}
-                </Box>
+                </>
               )}
-            </Box>
-
-          </motion.div>
-        )}
+            </>
+          )}
+        </Box>
       </Box>
+
+      <FollowListDialog
+        userId={userId}
+        mode={followList}
+        onClose={() => setFollowList(null)}
+        viewerId={myProfile?.id != null ? Number(myProfile.id) : null}
+      />
     </Box>
   );
 };

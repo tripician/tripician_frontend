@@ -1,7 +1,7 @@
 import React from "react";
 import { BRAND } from '../../../theme';
 import { alpha } from '@mui/material/styles';
-import { Box, Typography, IconButton, Avatar, Tooltip, Popover, Divider, List, ListItemButton, ListItemText, ListItemIcon, Button } from "@mui/material";
+import { Box, Typography, IconButton, Avatar, Tooltip, Divider, List, ListItemButton, ListItemText, ListItemIcon, Button } from "@mui/material";
 import NotificationsNoneIcon from "@mui/icons-material/NotificationsNone";
 import NotificationsOffOutlinedIcon from "@mui/icons-material/NotificationsOffOutlined";
 import MenuRoundedIcon from "@mui/icons-material/MenuRounded";
@@ -17,6 +17,7 @@ import { clearUser } from '../../../store/userSlice';
 import { signOut } from '../../../services/auth/signOut';
 import { useNavigate } from 'react-router-dom';
 import { useAuthToken } from '../../../hooks/useAuth0Token';
+import HeaderPopover from './HeaderPopover';
 
 interface TopBarProps {
   showSearch?: boolean;
@@ -212,24 +213,21 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode, sh
         </Box>
       </Box>
 
-      {/* Notifications Popover */}
-      <Popover
+      {/* Notifications. Non-modal (HeaderPopover), so the page keeps scrolling under it. */}
+      <HeaderPopover
         id={notifId}
         open={notifOpen}
         anchorEl={notifAnchorEl}
         onClose={() => setNotifAnchorEl(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        PaperProps={{
-          sx: {
-            mt: 1.5,
+        label="Notifications"
+        gap={12}
+        paperSx={{
             width: 320,
             borderRadius: '16px',
             boxShadow: '0 16px 48px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08)',
             border: '1px solid',
             borderColor: 'divider',
             overflow: 'hidden',
-          }
         }}
       >
         <Box sx={{ px: 2.5, pt: 2, pb: 1.5, display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
@@ -247,25 +245,22 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode, sh
             Followers, invites & trip updates will land here.
           </Typography>
         </Box>
-      </Popover>
+      </HeaderPopover>
 
-      <Popover
+      <HeaderPopover
         id={id}
         open={open}
         anchorEl={anchorEl}
         onClose={handleClose}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        PaperProps={{
-          sx: {
-            mt: 1.5,
+        label="Account"
+        gap={12}
+        paperSx={{
             width: 280,
             borderRadius: '16px',
             boxShadow: '0 16px 48px rgba(0,0,0,0.14), 0 2px 8px rgba(0,0,0,0.08)',
             overflow: 'hidden',
             border: '1px solid',
             borderColor: 'divider',
-          }
         }}
       >
         {/* Profile section */}
@@ -332,7 +327,7 @@ const TopBar: React.FC<TopBarProps> = ({ showSearch = true, logo, centerNode, sh
             <ListItemText primary="Log out" primaryTypographyProps={{ fontSize: 13, fontWeight: 600,}} />
           </ListItemButton>
         </Box>
-      </Popover>
+      </HeaderPopover>
     </>
   );
 };

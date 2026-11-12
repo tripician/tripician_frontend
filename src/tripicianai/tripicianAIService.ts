@@ -39,11 +39,66 @@ export interface TripicianAIHistoryMessage {
   content: string;
 }
 
+/** A step the staged general chat is working on ("Vibing with your travel pattern…"). */
+export interface TripicianAIStage { id: string; label: string; detail?: string }
+
+/** The answer is a concrete plan, so the page can offer to make it a trip. */
+export interface TripicianAIOfferEvent { kind: 'trip'; title?: string }
+
+/** A headline the staged chat read for this answer. */
+export interface TripicianAINewsSource { headline: string; source?: string; date?: string; url?: string }
+
+export interface StagedStreamOptions {
+  /**
+   * General chat only: ask for the staged answer (progress steps, the decorated
+   * format, the plan offer). An older API ignores it and answers the plain way.
+   */
+  staged?: boolean;
+  /** Each arrives before any text. */
+  onStage?: (stage: TripicianAIStage) => void;
+  /** Both arrive after the text, before the stream ends. */
+  onOffer?: (offer: TripicianAIOfferEvent) => void;
+  onSources?: (sources: TripicianAINewsSource[]) => void;
+}
+
+/** The browser's own date, yyyy-MM-dd, so "this weekend" means theirs. */
+export function localDateString(now = new Date()): string {
+  const pad = (n: number) => String(n).padStart(2, '0');
+  return `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+}
+
+function readStage(value: unknown): TripicianAIStage | null {
+  if (!value || typeof value !== 'object') return null;
+  const stage = value as Record<string, unknown>;
+  if (typeof stage.label !== 'string' || !stage.label.trim()) return null;
+  return {
+    id: typeof stage.id === 'string' ? stage.id : stage.label,
+    label: stage.label,
+    ...(typeof stage.detail === 'string' && stage.detail.trim() ? { detail: stage.detail } : {}),
+  };
+}
+
+function readSources(value: unknown): TripicianAINewsSource[] {
+  if (!Array.isArray(value)) return [];
+  return value
+    .filter((item): item is Record<string, unknown> => !!item && typeof item === 'object')
+    .filter((item) => typeof item.headline === 'string' && !!item.headline.trim())
+    .map((item) => ({
+      headline: item.headline as string,
+      ...(typeof item.source === 'string' ? { source: item.source } : {}),
+      ...(typeof item.date === 'string' ? { date: item.date } : {}),
+      // Only a web link is ever rendered as one.
+      ...(typeof item.url === 'string' && /^https?:\/\//i.test(item.url) ? { url: item.url } : {}),
+    }))
+    .slice(0, 6);
+}
+
 export async function* streamTripicianAIResponse(
   tripId: string,
   userMessage: string,
   token?: string | null,
   history?: TripicianAIHistoryMessage[],
+  options?: StagedStreamOptions,
 ): AsyncGenerator<string> {
   const endpoint = tripId ? '/api/tripicianai/chat' : '/api/tripicianai/general-chat';
   const apiHistory = history
@@ -54,7 +109,11 @@ export async function* streamTripicianAIResponse(
     }));
   const body = tripId
     ? { tripId, userMessage, history: apiHistory }
-    : { userMessage, history: apiHistory };
+    : {
+        userMessage,
+        history: apiHistory,
+        ...(options?.staged ? { staged: true, localDate: localDateString() } : {}),
+      };
 
   let response: Response;
   try {
@@ -108,6 +167,23 @@ export async function* streamTripicianAIResponse(
           if (event && typeof event === 'object') {
             if (typeof event.d === 'string') {
               yield event.d;
+              continue;
+            }
+            if (event.stage) {
+              const stage = readStage(event.stage);
+              if (stage) options?.onStage?.(stage);
+              continue;
+            }
+            if (event.sources) {
+              const sources = readSources(event.sources);
+              if (sources.length) options?.onSources?.(sources);
+              continue;
+            }
+            if (event.offer && typeof event.offer === 'object' && event.offer.kind === 'trip') {
+              options?.onOffer?.({
+                kind: 'trip',
+                ...(typeof event.offer.title === 'string' && event.offer.title.trim() ? { title: event.offer.title } : {}),
+              });
               continue;
             }
             if (event.done) return;

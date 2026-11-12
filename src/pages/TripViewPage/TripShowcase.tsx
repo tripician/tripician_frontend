@@ -11,7 +11,8 @@ import {
   Box, Typography, Button, Avatar, Chip, Collapse, Divider, Snackbar, Tooltip, useTheme,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useLocation, useNavigate, useSearchParams } from 'react-router-dom';
+import { withNext } from '../../services/APIs/Auth/nextDestination';
 import { useRequireAuth } from '../../auth/AuthGate';
 import {
   IconArrowLeft, IconHeart, IconHeartFilled, IconBookmark, IconBookmarkFilled,
@@ -243,6 +244,7 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
 }) => {
   const theme = useTheme();
   const navigate = useNavigate();
+  const location = useLocation();
   const requireAuth = useRequireAuth();
   const { token } = useAuthToken();
 
@@ -345,7 +347,9 @@ const TripShowcase: React.FC<TripShowcaseProps> = ({
   const [cloning, setCloning] = React.useState(false);
   const [toast, setToast] = React.useState<string | null>(null);
   const handleClone = async () => {
-    if (!token) { navigate('/signup'); return; }
+    // Back to this trip after signing up, not the home feed. Not copied for them on
+    // the way back: a one-tap action is not replayed after a redirect (see AuthGate).
+    if (!token) { navigate(withNext('/signup', `${location.pathname}${location.search}`)); return; }
     if (cloning) return;
     setCloning(true);
     try {

@@ -35,6 +35,43 @@ const CONTENT_MAX = 720;
 // A 320px rail plus its gap fits either side of the centred feed from here, so the feed never moves off the TripicianAI bar.
 const RAIL_MIN_WIDTH = 1440;
 
+// The rail's resting place, and what it keeps clear of at the foot: the TripicianAI bar and the help button.
+const RAIL_TOP = 32;
+const RAIL_FOOT_CLEARANCE = 120;
+
+/**
+ * Where the rail sticks, without a scrollbar of its own.
+ *
+ * When it fits, it pins 32px from the top. When it is taller than the room it
+ * has, the sticky offset goes negative by the difference, so it scrolls up with
+ * the feed until its last line is clear of the TripicianAI bar and then stays.
+ * The same trick X uses for its sidebar. It replaces a capped box with
+ * overflow:auto, which put a second scrollbar beside the page's own on any
+ * screen shorter than the groups, the suggestions and the footer together.
+ */
+function useRailTop(rail: HTMLElement | null): number {
+  const [top, setTop] = React.useState(RAIL_TOP);
+  React.useEffect(() => {
+    if (!rail) return undefined;
+    // The app shell scrolls inside <main>, not the window.
+    const scroller = rail.closest('main') ?? document.documentElement;
+    const update = () => {
+      const room = scroller.clientHeight - RAIL_FOOT_CLEARANCE;
+      setTop(Math.min(RAIL_TOP, room - rail.offsetHeight));
+    };
+    update();
+    window.addEventListener('resize', update);
+    // Suggestions arrive after the rail mounts, and a dismissed one shortens it.
+    const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(update);
+    observer?.observe(rail);
+    return () => {
+      window.removeEventListener('resize', update);
+      observer?.disconnect();
+    };
+  }, [rail]);
+  return top;
+}
+
 type FeedScope = 'everyone' | 'following';
 
 const FEED_OPTIONS: { value: FeedScope; label: string }[] = [
@@ -47,6 +84,8 @@ const Board: React.FC = () => {
   const wide = useMediaQuery(`(min-width:${RAIL_MIN_WIDTH}px)`);
   const suggestions = useWallSuggestions();
   const hasSuggestions = suggestions.loaded && (suggestions.people.length > 0 || suggestions.groups.length > 0);
+  const [rail, setRail] = React.useState<HTMLElement | null>(null);
+  const railTop = useRailTop(rail);
   // In the address so a refresh, a back button or a shared link keeps the same feed.
   const [searchParams, setSearchParams] = useSearchParams();
   const scope: FeedScope = searchParams.get('feed') === 'following' ? 'following' : 'everyone';
@@ -120,26 +159,25 @@ const Board: React.FC = () => {
               )
               : 'Nothing here yet. Say where you are, or ask the people who have been.'}
             insertAfter={!wide && hasSuggestions ? { index: 3, node: <WallSuggestions variant="inline" data={suggestions} /> } : undefined}
+            endMessage="You’re all caught up on trends!"
           />
         </Box>
       </Box>
 
       {wide && (
-        // Sticky inside the scroll container, and capped so it never runs under the TripicianAI bar or the help button.
+        // Sticky inside the scroll container; a tall rail scrolls with the feed and stops clear of the TripicianAI bar (useRailTop).
         <Box
+          ref={setRail}
           component="aside"
           aria-label="Suggestions"
           sx={{
             position: 'sticky',
-            top: 32,
+            top: railTop,
             mt: 4,
             ml: 4,
-            // Sized to its column, capped at 320, so a real scrollbar never tips it into a sideways scroll.
+            // Sized to its column, capped at 320, so the page's scrollbar never tips it into a sideways scroll.
             width: 'calc(100% - 48px)',
             maxWidth: 320,
-            maxHeight: 'calc(100vh - 60px - 32px - 120px)',
-            overflowY: 'auto',
-            scrollbarWidth: 'thin',
           }}
         >
           <WallSuggestions variant="rail" data={suggestions} />

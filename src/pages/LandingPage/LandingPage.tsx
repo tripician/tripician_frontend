@@ -1,31 +1,59 @@
-﻿import { Fragment, useLayoutEffect, useState, useEffect, useRef, useCallback } from 'react';
+﻿import { Fragment, useLayoutEffect, useState, useEffect, useRef, useCallback, type MouseEvent, type ReactNode } from 'react';
 import { useNavigate } from 'react-router-dom';
 import gsap from 'gsap';
 import { ScrollTrigger } from 'gsap/ScrollTrigger';
 import {
   IconArrowRight,
-  IconChevronDown,
-  IconPlane,
+  IconCamera,
   IconCheck,
+  IconChevronDown,
+  IconId,
+  IconLock,
   IconMessageCircleQuestion,
+  IconNotebook,
+  IconPlane,
   IconRosetteDiscountCheckFilled,
-  IconUserCheck,
-  IconUsers,
+  IconRoute,
   IconUsersGroup,
 } from '@tabler/icons-react';
 import '../../assets/css/LandingPage.css';
-import Seo, { SITE_URL } from '../../components/Seo';
+import Seo from '../../components/Seo';
 import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
 import TripicianAIWordmark from '../../tripicianai/TripicianAIWordmark';
-import LandingPricing from './LandingPricing';
 import HeroChat from './HeroChat';
 import { HERO_IMAGE, HERO_VIDEO, HERO_VIDEO_CREDIT, OG_IMAGE, TICKER, PHOTO_CREDITS } from './landingImages';
+import {
+  AI,
+  ASKS,
+  BUSINESS,
+  CTA,
+  FAQ_HEAD,
+  FAQS,
+  FOOTER,
+  HERO,
+  LANDING_DESCRIPTION,
+  LANDING_TITLE,
+  LENS,
+  NAV_LINKS,
+  PILLARS,
+  PILLARS_HEAD,
+  PLANS,
+  STEPS,
+  STEPS_HEAD,
+  STORIES,
+  TRIPS,
+  TRUST,
+  landingJsonLd,
+} from './landingContent';
 import { apiServices } from '../../services/APIs/apiServices';
 import { afterStoryService } from '../../afterstory/afterStoryService';
 import { storyPath } from '../../afterstory/storySlug';
 import { resolveStoryCover } from '../../afterstory/storyFormat';
 import type { AfterStorySummaryDto } from '../../afterstory/types';
+import { postsService } from '../../posts/postsService';
+import type { TravelerPost } from '../../posts/types';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
+import { fitWidth } from '../../utils/imageThumb';
 import { tripPath } from '../../utils/tripSlug';
 import { tripCoverPhoto, resolveTripCover, type TripCoverSource } from '../../utils/tripCover';
 // The three step photographs. Sharing onboarding's credited set rather than
@@ -35,94 +63,30 @@ import stepCredits from '../../components/Onboarding/onboardingCredits.json';
 gsap.registerPlugin(ScrollTrigger);
 
 /* ────────────────────────────────────────────────────────────────────────────
- * The page is set like a book, because the product now makes one.
+ * The front door of a travel community, so the community is the hero.
  *
- * Sections are numbered like a contents page, prose sits at a reading measure,
- * headings carry the display face at sizes where it can actually read as display
- * type, and the dividing device is a hairline rather than a card border. That is
- * a deliberate argument, not decoration: a page that looks like a well-set book
- * makes the case for after stories and the printed edition better than another
- * grid of feature tiles does.
+ * Every word comes from landingContent.ts, which the build also writes into
+ * index.html as plain HTML for crawlers that do not run JavaScript (see
+ * landingStatic.ts). Change copy there, never inline here.
  *
- * Everything that claims real work is built from real data. Anything that
- * explains a mechanism is a small diagram made of divs, which is honest because
- * it is visibly a diagram. Nothing on this page invents a number, a name or a
- * review; see the honesty rules in the design memory before adding anything.
+ * Everything that claims real work is built from real data: the photographs,
+ * itineraries, stories and questions are the community's own, fetched live, and
+ * each of those sections renders nothing at all when there is nothing to show.
+ * Anything that explains a mechanism is a small diagram made of divs, which is
+ * honest because it is visibly a diagram. Nothing on this page invents a number,
+ * a name or a review.
  * ──────────────────────────────────────────────────────────────────────────── */
 
-/**
- * Three steps, with photographs.
- *
- * This was five text-heavy beats with small div diagrams, and it was too much
- * for a first impression: the section carried more words than the rest of the
- * page put together and asked a stranger to read five paragraphs before they had
- * seen anything.
- *
- * The photographs are the self-hosted Pexels set already licensed and credited
- * for onboarding, and each one illustrates its step rather than decorating it: a
- * group reading a map, one person planning a route, somebody writing it down.
- */
-const STEPS = [
-  {
-    n: '01',
-    title: 'Find the people who went',
-    desc: 'Every itinerary here was planned, taken and published by the traveller who went. Copy one into your own plan, or ask them the thing you could not find online.',
-    img: '/img/onboarding/community.jpg',
-    alt: 'Travellers reading a map together on a city street',
-  },
-  {
-    n: '02',
-    title: 'Take your turn',
-    desc: 'Say where and how long, and Tripician Intelligence drafts it. Try it at the top of this page, no account needed. Bring your crew in on one link, and every plan is checked against real distances and opening hours so it holds up when you are standing there.',
-    img: '/img/onboarding/reality-check.jpg',
-    alt: 'A traveller checking a route against a printed map',
-  },
-  {
-    n: '03',
-    title: 'Write your story',
-    desc: 'Come home and say what it was actually like. It goes on your profile, it answers the next person asking, and it is yours to keep.',
-    img: '/img/onboarding/itinerary.jpg',
-    alt: 'A traveller sitting at a table with a book',
-  },
-];
-
-/**
- * What earns trust, cut to what is checkable.
-  *
-  * Nothing here is aspirational and nothing ranks us against anyone. Six cards, because the grid runs 3, 2 and 1 across.
- */
-const FEATURES = [
-  {
-    icon: <IconUsers size={22} stroke={1.75} />,
-    title: 'Travellers who have actually been',
-    desc: 'Every itinerary here was planned, taken and published by the person who went. Not a listicle, not an advert, and nobody was paid to write it.',
-  },
-  {
-    icon: <IconMessageCircleQuestion size={22} stroke={1.75} />,
-    title: 'Ask, and a person answers',
-    desc: 'Ask the traveller who wrote the story, or put the question to everyone. Nothing is generated, nobody is paid to reply, and whoever asked marks the answer that actually helped.',
-  },
-  {
-    icon: <IconUsersGroup size={22} stroke={1.75} />,
-    title: 'Groups that actually go somewhere',
-    desc: 'A few friends, a club or a company. The group talks it through in one place, plans together, and decides trip by trip who is coming.',
-  },
-  {
-    icon: <IconUserCheck size={22} stroke={1.75} />,
-    title: 'You choose who comes',
-    desc: 'Share one link and your crew is on the trip, planning beside you. Anybody asking to join waits for the organiser to say yes, and no money passes through us.',
-  },
-  {
-    icon: <TripicianAIOrb size={22} />,
-    title: 'Every place checked before you see it',
-    desc: 'Tripician Intelligence drafts the route and the stops, then each place is matched against a live listing. Anything permanently closed is dropped, and anything unconfirmed says so.',
-  },
-  {
-    icon: <IconRosetteDiscountCheckFilled size={22} />,
-    title: 'Tripician Verified',
-    desc: 'Some itineraries carry a verified mark. It means a person on our team read the whole plan and put our name on it, not a score an algorithm handed out.',
-  },
-];
+const PILLAR_ICONS: Record<string, ReactNode> = {
+  itineraries: <IconRoute size={22} stroke={1.75} />,
+  stories: <IconNotebook size={22} stroke={1.75} />,
+  photography: <IconCamera size={22} stroke={1.75} />,
+  questions: <IconMessageCircleQuestion size={22} stroke={1.75} />,
+  groups: <IconUsersGroup size={22} stroke={1.75} />,
+  messages: <IconLock size={22} stroke={1.75} />,
+  profile: <IconId size={22} stroke={1.75} />,
+  verified: <IconRosetteDiscountCheckFilled size={22} />,
+};
 
 /**
  * A published trip, reduced to what this page needs.
@@ -167,7 +131,6 @@ const toLandingTrip = (raw: any): LandingTrip | null => {
     name,
   };
 
-
   return {
     id: String(id),
     name,
@@ -179,41 +142,21 @@ const toLandingTrip = (raw: any): LandingTrip | null => {
   };
 };
 
-/*  FAQ  */
-const LP_FAQS = [
-  {
-    q: 'What exactly is Tripician?',
-        a: "Tripician is a social network for travellers, built around the whole arc of a trip. Browse itineraries published by the people who travelled them, plan your own with your crew or with Tripician Intelligence, and afterwards write up what it was actually like and keep it, laid out page by page, as something worth reading. We are not a travel agency and we do not book flights or accommodation.",
-  },
-  {
-    q: 'What is an after story?',
-    a: "An after story is the trip in your own words and your own photographs, written once you are home. Publishing one puts it on your profile, where people deciding whether to travel with you will read it, and readers can ask you questions underneath. It is the part of the product that keeps working long after the plan is done.",
-  },
-  {
-    q: 'What happens to a story once I have written it?',
-    a: 'It goes on your profile, where anyone deciding whether to travel with you will read it, and it lays out page by page the way it would be printed. Look through it, then keep the whole thing as a print-ready PDF.',
-  },
-  {
-    q: 'How do I find people to travel with?',
-        a: 'Invite friends with the trip link, which works on any trip. Taking requests from travellers you have not met is part of Tripician Business: a business group on that plan lists its trip, it appears in Groups & Stories under Join a trip, and each request arrives with a note about who they are. Nothing is automatic: every person is approved by hand, and no money routes through Tripician.',
-  },
-  {
-    q: 'Is Tripician free?',
-    a: 'Yes - planning, posting, stories and collaboration are free. Drafting with Tripician Intelligence runs on included credits: every traveller gets 300 personal credits each month and each trip starts with its own shared 300-credit wallet, enough for roughly a month of regular use. Included credits reset at the start of each month rather than carrying over. The reality check costs nothing, because it is plain arithmetic rather than a model call.',
-  },
-  {
-    q: 'Does Tripician use AI, and can I trust what it suggests?',
-    a: "Yes, and here is exactly how. Tripician Intelligence drafts routes, stops, local food and notes using a language model - so on its own it would occasionally suggest somewhere that has closed or never existed. That is why nothing it produces reaches you unchecked: every place is matched against a live listing first. Anything permanently closed is dropped before you see it, and anything without a listing is labelled \"unchecked\" rather than presented as fact. Tripician Intelligence never writes your story for you; it will proof-read one if you ask.",
-  },
-  {
-    q: 'Is my data safe?',
-    a: 'Yes. Authentication is handled by Auth0, an industry-leading identity provider. We never sell your personal data to any third party. Read our Privacy Policy for full details.',
-  },
-  {
-    q: 'How do I get support?',
-    a: 'Email us at support@tripician.com or visit our Help page for FAQs and answers to common questions.',
-  },
-];
+/** A community photograph: the first picture of a post, sized for a tile. */
+interface LensPhoto {
+  postId: string;
+  url: string;
+  author: string;
+  place: string | null;
+}
+
+const toLensPhoto = (post: TravelerPost): LensPhoto | null => {
+  const first = post.media?.[0]?.url;
+  // 480px wide serves a sharp tile at two columns on a phone and four on a desktop.
+  const url = fitWidth(first, 480) ?? first;
+  if (!url) return null;
+  return { postId: post.id, url, author: post.authorName, place: post.placeName?.trim() || null };
+};
 
 /**
  * One published story.
@@ -221,8 +164,7 @@ const LP_FAQS = [
  * Its own component because it needs its own `failed` state: a story cover is an
  * author's upload and can 404, and without this the card rendered an empty white
  * frame. `resolveStoryCover` already takes the flag and answers null, and a
- * coverless story then falls back to type alone - which the story cards inside
- * the app treat as a deliberate jacket rather than a broken card.
+ * coverless story then falls back to type alone.
  */
 function LpStoryCard({ story }: { story: AfterStorySummaryDto }) {
   const [failed, setFailed] = useState(false);
@@ -242,24 +184,42 @@ function LpStoryCard({ story }: { story: AfterStorySummaryDto }) {
   );
 }
 
+/** A photograph that 404s takes its tile with it, rather than leaving a grey hole in the wall. */
+function LensTile({ photo, onOpen }: { photo: LensPhoto; onOpen: (e: MouseEvent<HTMLAnchorElement>, href: string) => void }) {
+  const [failed, setFailed] = useState(false);
+  if (failed) return null;
+  const href = `/post/${photo.postId}`;
+  const label = photo.place ? `${photo.place}, by ${photo.author}` : `By ${photo.author}`;
+  return (
+    <a className="lp-lens__tile" href={href} onClick={(e) => onOpen(e, href)} aria-label={`Photograph. ${label}`}>
+      <img src={photo.url} alt="" loading="lazy" decoding="async" onError={() => setFailed(true)} />
+      <span className="lp-lens__cap">
+        {photo.place && <em>{photo.place}</em>}
+        <span>{photo.author}</span>
+      </span>
+    </a>
+  );
+}
+
 function LandingFAQ() {
   const [open, setOpen] = useState<number | null>(null);
   return (
     <section className="lp-faq" id="faq">
       <div className="lp-shell">
-        <div className="lp-sec-head">
-          <span className="lp-kicker">Questions</span>
-          <h2 className="lp-h2">Before you sign up</h2>
+        <div className="lp-sec-head lp-faq__head">
+          <span className="lp-kicker">{FAQ_HEAD.kicker}</span>
+          <h2 className="lp-h2">{FAQ_HEAD.title}</h2>
         </div>
         <div className="lp-faq__list">
-          {LP_FAQS.map((faq, i) => (
-            <div key={i} className={`lp-faq-item${open === i ? ' is-open' : ''}`}>
+          {FAQS.map((faq, i) => (
+            <div key={faq.q} className={`lp-faq-item${open === i ? ' is-open' : ''}`}>
               <button
                 type="button"
                 className="lp-faq-item__q"
                 aria-expanded={open === i}
                 onClick={() => setOpen(open === i ? null : i)}
               >
+                {/* An h3 inside the button would be invalid; the question is the button's text. */}
                 <span>{faq.q}</span>
                 <IconChevronDown size={17} aria-hidden="true" />
               </button>
@@ -275,44 +235,39 @@ function LandingFAQ() {
 /*  COMPONENT  */
 export default function LandingPage() {
   const navigate = useNavigate();
-  // Was reading VITE_LANDING_HERO_IMAGE_URL directly, which is set in no env file -
-  // so the hero always fell through to the bare gradient. HERO_IMAGE keeps the env
-  // override and adds a curated fallback, so a photo actually renders.
   const heroImageUrl = HERO_IMAGE;
 
   /*
-   * There used to be a redirect here: `useAuth0().isAuthenticated` -> navigate
-   * '/home' with replace. It was the cause of the production back-button loop,
-   * and it was prod-only for a reason worth writing down.
-   *
-   * This page asked the Auth0 SDK whether the user was signed in, while every
-   * route guard asks localStorage (`useAuthToken`). Those two disagree whenever
-   * the Auth0 session cookie outlives the local token, which is every in-app
-   * sign-out. In production the app and Auth0 share a registrable domain so the
-   * SDK's silent-auth iframe succeeds and the SDK says "signed in"; in dev it is
-   * cross-site, silent auth fails, and this effect never fired. Hence a bug
-   * nobody could reproduce locally.
-   *
-   * RootRedirect (App.tsx) already decides what "/" shows, from the same source
-   * the guards use. Do not reintroduce an auth redirect here: one source of
-   * truth, and it is not the SDK.
+   * No auth redirect here, ever. RootRedirect (App.tsx) decides what "/" shows,
+   * from the same source the route guards use. A redirect from the Auth0 SDK's
+   * `isAuthenticated` once caused the production back-button loop.
    */
 
-  const logoFullWhiteUrl = import.meta.env.VITE_LOGO_WHITE as string | undefined;
-  const logoFullBlackUrl = import.meta.env.VITE_LOGO_BLACK as string | undefined;
+  // One lockup for every ground: it reads on the hero photo and on the solid nav alike.
+  const logoUrl = import.meta.env.VITE_TRIPICIAN as string | undefined;
+
+  /**
+   * Plain left clicks go through the router; every other click (new tab, middle
+   * click) keeps the real href. Links stay <a href> so crawlers can follow them.
+   */
+  const go = useCallback((e: MouseEvent<HTMLAnchorElement>, href: string) => {
+    if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
+    if (href.startsWith('#')) return;
+    e.preventDefault();
+    navigate(href);
+  }, [navigate]);
 
   const [isScrolled, setIsScrolled] = useState(false);
   const [trips, setTrips] = useState<LandingTrip[]>([]);
   const [stories, setStories] = useState<AfterStorySummaryDto[]>([]);
+  const [photos, setPhotos] = useState<LensPhoto[]>([]);
+  const [questions, setQuestions] = useState<TravelerPost[]>([]);
 
   /**
-   * The community strip and the recruitment rail, from ONE request.
-   *
-   * Open trips are a subset of published ones, so filtering here is what avoids a
-   * second fetch. Anonymous-safe: `/api/trips/published` is [AllowAnonymous], and
-   * a failure must never break the marketing page - the sections simply do not
-   * render, which is why the catch is silent and the initial state is empty
-   * rather than a spinner.
+   * Published itineraries. Anonymous-safe: `/api/trips/published` is
+   * [AllowAnonymous], and a failure must never break the marketing page - the
+   * section simply does not render, which is why the catch is silent and the
+   * initial state is empty rather than a spinner.
    */
   useEffect(() => {
     let active = true;
@@ -324,12 +279,7 @@ export default function LandingPage() {
         const parsed = rows.map(toLandingTrip).filter((t): t is LandingTrip => t !== null).slice(0, 12);
         setTrips(parsed);
 
-        /*
-         * Second pass for the cards tripCoverPhoto could not resolve synchronously -
-         * a country with no curated cover yet. Only those hit the network, and only
-         * after the section has already painted with the covers we did have, so the
-         * grid fills in rather than popping wholesale.
-         */
+        // Second pass only for covers tripCoverPhoto could not resolve synchronously.
         const missing = parsed.filter((t) => !t.photo);
         if (!missing.length) return;
         const resolved = await Promise.all(
@@ -340,21 +290,13 @@ export default function LandingPage() {
         if (!byId.size) return;
         setTrips((prev) => prev.map((t) => (byId.has(t.id) ? { ...t, photo: byId.get(t.id)! } : t)));
       } catch {
-        /* no trips shown; the sections unmount themselves */
+        /* no trips shown; the section unmounts itself */
       }
     })();
     return () => { active = false; };
   }, []);
 
-  /**
-   * Published after stories. `/api/stories/published` is [AllowAnonymous], so
-   * this works signed out.
-   *
-   * The shape is guarded rather than trusted: a 200 whose body is not the paged
-   * shape would otherwise set this to undefined, and the same unguarded pattern
-   * took the Community page down to its error boundary. A malformed body is a
-   * resolved promise, so the catch does not cover it.
-   */
+  /** Published after-stories. The shape is guarded rather than trusted. */
   useEffect(() => {
     if (!FEATURE_FLAGS.afterStory) return;
     let active = true;
@@ -365,22 +307,34 @@ export default function LandingPage() {
     return () => { active = false; };
   }, []);
 
+  /**
+   * The community's own photographs and questions. Both reads are public (the
+   * posts pages are browsable without an account) and both services answer an
+   * empty list on failure, so a quiet community or a bad network simply leaves
+   * the section out.
+   */
+  useEffect(() => {
+    let active = true;
+    postsService
+      .feed(16, null, undefined, true)
+      .then((posts) => {
+        if (!active) return;
+        setPhotos(posts.map(toLensPhoto).filter((p): p is LensPhoto => p !== null).slice(0, 8));
+      })
+      .catch(() => {});
+    postsService
+      .questions({ sort: 'latest', pageSize: 4 })
+      .then((page) => { if (active) setQuestions(page.items.filter((q) => (q.title || q.body)?.trim())); })
+      .catch(() => {});
+    return () => { active = false; };
+  }, []);
+
   const showcaseTrips = trips.slice(0, 4);
-  // Full ones stay listed: "Full" is useful information, and a trip may free up.
 
   /**
-   * The hero loop. Deliberately *not* rendered on first paint.
-   *
-   * `heroVideoSrc` stays null until after the window load event, so the poster
-   * photo is what paints and what LCP measures - attaching a multi-megabyte video
-   * to the DOM up front would make the headline wait behind it. `heroVideoReady`
-   * then gates the fade, so a video that stalls or 404s leaves the poster in
-   * place rather than a black rectangle.
-   *
-   * Four conditions have to hold before it loads at all: reduced motion is not
-   * requested, the viewport is wide (a landscape drone shot cropped to a phone
-   * shows almost nothing and costs megabytes), Save-Data is off, and the
-   * connection is not 2g/3g.
+   * The hero loop. Deliberately *not* rendered on first paint: the poster photo is
+   * what paints and what LCP measures. It loads only when motion is welcome, the
+   * viewport is wide, Save-Data is off and the connection is not 2g/3g.
    */
   const [heroVideoSrc, setHeroVideoSrc] = useState<string | null>(null);
   const [heroVideoReady, setHeroVideoReady] = useState(false);
@@ -407,13 +361,8 @@ export default function LandingPage() {
   }, []);
 
   /**
-   * A cover URL that 404s. The banner saved on a trip can be a dead link, and a
-   * broken image on the front page is worse than no image, so drop the banner and
-   * re-resolve from the country.
-   *
-   * The ref is the loop guard: if the replacement is dead too, `onError` fires
-   * again, and without it we would keep resolving to the same URL forever. One
-   * retry per card, then it settles on the empty state.
+   * A trip cover URL that 404s: drop the banner and re-resolve from the country.
+   * The ref is the loop guard, one retry per card, then it settles on the blank.
    */
   const retriedCoversRef = useRef<Set<string>>(new Set());
   const retryCover = useCallback((trip: LandingTrip) => {
@@ -438,14 +387,10 @@ export default function LandingPage() {
 
   useLayoutEffect(() => {
     /*
-     * Motion is opt-out at the OS level. Anyone who has asked their system to
-     * reduce motion gets the page fully composed and completely still - not a
-     * faster version of the same animation.
-     *
-     * Must SET the resting values, not clearProps them. `.lp-nav` and the hero
-     * pieces carry `opacity: 0` in the stylesheet while they wait for GSAP;
-     * clearing GSAP's inline styles just hands them back to that rule, and the
-     * hero renders blank. Inline values win, so state them.
+     * Motion is opt-out at the OS level. Must SET the resting values, not
+     * clearProps them: the hero pieces carry `opacity: 0` in the stylesheet while
+     * they wait for GSAP, so clearing would hand them back to that rule and the
+     * hero would render blank.
      */
     if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) {
       gsap.set([
@@ -477,13 +422,8 @@ export default function LandingPage() {
         y: 10, repeat: -1, yoyo: true, duration: 1.5, ease: 'power1.inOut', delay: 2.5,
       });
 
-      /* ── Hero depth ──────────────────────────────────────────────────────
-       * The photo drifts at roughly two-thirds scroll speed while the copy rises
-       * past it and dims. `.lp-hero__bg` carries `inset: -8%` precisely so it can
-       * move without exposing an edge. Scrubbed, so it is tied to the scroll
-       * position rather than played at it; `invalidateOnRefresh` keeps the
-       * distances right after a resize.
-       */
+      /* Hero depth: the photo drifts slower than the scroll while the copy rises
+         past it and dims. Scrubbed, so it is tied to the scroll position. */
       gsap.to('.lp-hero__bg', {
         yPercent: 12,
         ease: 'none',
@@ -496,13 +436,10 @@ export default function LandingPage() {
         scrollTrigger: { trigger: '.lp-hero', start: 'top top', end: 'bottom 30%', scrub: true, invalidateOnRefresh: true },
       });
 
-      /* ── Section motion ──────────────────────────────────────────────────
-       * Entrances play ONCE rather than reversing on scroll-up, which was both
-       * busy and the cause of the frozen-mid-tween screenshot artefact.
-       *
-       * Selectors are matched with `gsap.utils.toArray` and skipped when empty:
-       * three sections on this page render nothing when their data is absent, and
-       * a ScrollTrigger built on a missing element throws on refresh.
+      /*
+       * Section entrances play ONCE. Selectors are skipped when empty: four
+       * sections render nothing without data, and a ScrollTrigger built on a
+       * missing element throws on refresh.
        */
       const has = (sel: string) => gsap.utils.toArray(sel).length > 0;
 
@@ -539,22 +476,20 @@ export default function LandingPage() {
         });
       }
 
-      revealTitle('.lp-steps__head > *', '.lp-steps');
-      revealCards('.lp-step', '.lp-steps__grid', 0.12);
+      revealTitle('.lp-lens__head > *', '.lp-lens');
+      revealCards('.lp-lens__tile', '.lp-lens__grid', 0.06);
 
       revealTitle('.lp-trips__head > *', '.lp-trips');
       revealCards('.lp-tripcard', '.lp-trips__grid', 0.09);
 
-
       revealTitle('.lp-stories__head > *', '.lp-stories');
       revealCards('.lp-storycard', '.lp-stories__grid', 0.09);
 
-      if (has('.lp-book__inner')) {
-        gsap.from('.lp-book__inner > *', {
-          y: 30, opacity: 0, duration: 0.85, ease: 'power3.out', stagger: 0.1,
-          scrollTrigger: { trigger: '.lp-book', start: 'top 80%', once: true },
-        });
-      }
+      revealTitle('.lp-asks__head > *', '.lp-asks');
+      revealCards('.lp-ask', '.lp-asks__list', 0.07);
+
+      revealTitle('.lp-features__head > *', '.lp-features');
+      revealCards('.lp-feature', '.lp-features__grid', 0.05);
 
       if (has('.lp-tripicianai__text')) {
         gsap.from('.lp-tripicianai__text > *', {
@@ -562,9 +497,26 @@ export default function LandingPage() {
           scrollTrigger: { trigger: '.lp-tripicianai__text', start: 'top 80%', once: true },
         });
       }
+      if (has('.lp-fig__step')) {
+        // The demo "thinks": each step ticks in, in order, the way the real one does.
+        gsap.from('.lp-fig__step', {
+          x: -10, opacity: 0, duration: 0.5, ease: 'power2.out', stagger: 0.35,
+          scrollTrigger: { trigger: '.lp-tripicianai__demo', start: 'top 78%', once: true },
+        });
+      }
 
-      revealTitle('.lp-features__head > *', '.lp-features');
-      revealCards('.lp-feature', '.lp-features__grid', 0.055);
+      revealTitle('.lp-steps__head > *', '.lp-steps');
+      revealCards('.lp-step', '.lp-steps__grid', 0.12);
+
+      revealTitle('.lp-planstrip__head > *', '.lp-planstrip');
+      revealCards('.lp-planstrip__item', '.lp-planstrip__grid', 0.07);
+
+      if (has('.lp-biz__inner')) {
+        gsap.from('.lp-biz__inner > *', {
+          y: 30, opacity: 0, duration: 0.85, ease: 'power3.out', stagger: 0.1,
+          scrollTrigger: { trigger: '.lp-biz', start: 'top 80%', once: true },
+        });
+      }
 
       if (has('.lp-cta__content')) {
         gsap.from('.lp-cta__content', {
@@ -577,71 +529,17 @@ export default function LandingPage() {
     return () => ctx.revert();
     // Re-runs when the data-driven sections appear, so their triggers bind to
     // elements that actually exist by then.
-  }, [showcaseTrips.length, stories.length]);
+  }, [showcaseTrips.length, stories.length, photos.length, questions.length]);
 
   /*  JSX  */
   return (
     <div className="lp-root">
       <Seo
-        /*
-         * Leads with what people search for, not with the brand. `Seo` appends
-         * " | Tripician", so this stays inside the ~60 characters Google shows
-         * before truncating.
-         */
-        title="Tripician, A Social Network For Travellers And Explorers"
-        description="Travellers publish the trips they actually took. Read them, ask the people who went, and find others to travel with. Plan your own with your crew or with Tripician Intelligence. Free to join."
+        title={LANDING_TITLE}
+        description={LANDING_DESCRIPTION}
         path="/"
         image={OG_IMAGE || undefined}
-        jsonLd={[
-          {
-            '@context': 'https://schema.org',
-            '@type': 'Organization',
-            name: 'Tripician',
-            url: SITE_URL,
-            // Was ${SITE_URL}/og-cover.jpg, a file that does not exist in public/.
-            logo: import.meta.env.VITE_LOGO_ICON || OG_IMAGE,
-            description: 'A social network for travellers, where people publish the trips they actually took, find others to travel with, and keep the story afterwards.',
-            // `sameAs: []` was emitted as an empty array, which asserts "this
-            // organisation has no other web presence". Omitted until there are
-            // real profile URLs to list.
-          },
-          {
-            '@context': 'https://schema.org',
-            '@type': 'WebSite',
-            name: 'Tripician',
-            url: SITE_URL,
-            potentialAction: {
-              '@type': 'SearchAction',
-              // Search reads ?q from the URL and searches people, places, plans, stories and groups.
-              target: { '@type': 'EntryPoint', urlTemplate: `${SITE_URL}/search?q={search_term_string}` },
-              'query-input': 'required name=search_term_string',
-            },
-          },
-          {
-            '@context': 'https://schema.org',
-            '@type': 'FAQPage',
-            mainEntity: LP_FAQS.map((f) => ({
-              '@type': 'Question',
-              name: f.q,
-              acceptedAnswer: { '@type': 'Answer', text: f.a },
-            })),
-          },
-          /*
-           * The product itself. This is the block that lets a travel-planner query
-           * match the app rather than only the marketing copy, and `price: 0` is
-           * what makes "free" a machine-readable fact instead of a claim.
-           */
-          {
-            '@context': 'https://schema.org',
-            '@type': 'SoftwareApplication',
-            name: 'Tripician',
-            url: SITE_URL,
-            applicationCategory: 'TravelApplication',
-            operatingSystem: 'Web',
-            description: 'Browse itineraries published by other travellers, plan a trip with your group, open it for others to join, and publish an after story of how it went.',
-            offers: { '@type': 'Offer', price: '0', priceCurrency: 'USD' },
-          },
-        ]}
+        jsonLd={landingJsonLd(import.meta.env.VITE_TRIPICIAN_LOGO || OG_IMAGE || undefined)}
       />
 
       {/*  SKIP TO CONTENT  */}
@@ -649,39 +547,28 @@ export default function LandingPage() {
 
       {/*  NAVBAR  */}
       <nav className={`lp-nav${isScrolled ? ' lp-nav--scrolled' : ''}`} aria-label="Main navigation">
-        <div className="lp-nav__logo" onClick={() => navigate('/')}>
-          {logoFullWhiteUrl && logoFullBlackUrl ? (
-            <>
-              <img src={logoFullWhiteUrl} alt="Tripician" className="lp-logo-img lp-logo-img--nav lp-nav__logo-light" />
-              <img src={logoFullBlackUrl} alt="Tripician" className="lp-logo-img lp-logo-img--nav lp-nav__logo-dark" />
-            </>
+        <a className="lp-nav__logo" href="/" onClick={(e) => go(e, '/')} aria-label="Tripician home">
+          {logoUrl ? (
+            <img src={logoUrl} alt="Tripician" className="lp-logo-img lp-logo-img--nav" />
           ) : (
             <><IconPlane size={20} className="lp-nav__logo-icon" /><span>Tripician</span></>
           )}
-        </div>
-        {/* /community no longer exists as a page; for a guest it lands back here. Groups & Stories is the public door. */}
+        </a>
         <div className="lp-nav__links">
-          <a href="/stories">Groups &amp; Stories</a>
-          <a href="#how-it-works">How it works</a>
-          <a href="#pricing">Pricing</a>
-          {/* The business front door. Nothing on this page mentioned organisations. */}
-          <a href="/for-operators">For businesses</a>
+          {NAV_LINKS.map((l) => (
+            <a key={l.href} href={l.href} onClick={(e) => go(e, l.href)}>{l.label}</a>
+          ))}
         </div>
         <div className="lp-nav__actions">
-          <button className="lp-btn lp-btn--ghost" onClick={() => navigate('/signin')}>Sign in</button>
-          <button className="lp-btn lp-btn--primary" onClick={() => navigate('/signup')}>Get Started</button>
+          <a className="lp-btn lp-btn--ghost" href="/signin" onClick={(e) => go(e, '/signin')}>Sign in</a>
+          <a className="lp-btn lp-btn--primary" href="/signup" onClick={(e) => go(e, '/signup')}>{HERO.secondaryCta}</a>
         </div>
       </nav>
 
       {/*  HERO  */}
       <section className="lp-hero" id="lp-main-content">
-        {/* The poster is a real <img> rather than a CSS background.
-            It is the LCP element on this page, and a background-image behind a
-            custom property cannot be found by the preload scanner or prioritised:
-            the browser only learns about it once the CSSOM is built and styles
-            resolve. An <img> with fetchpriority="high" is requested as soon as
-            React commits. The parallax still transforms this container, not the
-            image, so nothing about the motion changes. */}
+        {/* The poster is a real <img> rather than a CSS background: it is the LCP
+            element, and only an <img> can be found early and prioritised. */}
         <div className={`lp-hero__bg${!heroImageUrl ? ' lp-hero__bg--fallback' : ''}`}>
           {heroImageUrl && (
             <img
@@ -693,9 +580,6 @@ export default function LandingPage() {
               aria-hidden="true"
             />
           )}
-          {/* Purely decorative, so aria-hidden and no track: it carries no
-              information the headline below does not already state. muted +
-              playsInline are what make autoplay legal on iOS and in Chrome. */}
           {heroVideoSrc && (
             <video
               className={`lp-hero__video${heroVideoReady ? ' lp-hero__video--ready' : ''}`}
@@ -714,61 +598,28 @@ export default function LandingPage() {
           )}
         </div>
 
-        {/* The hero says what this is, in one line, with no cleverness. The
-            subline is what changed in the rebuild: it now carries the whole arc
-            rather than stopping at "copy one into your own plan". */}
         <div className="lp-hero__content">
-          <span className="lp-hero__eyebrow">A social network for travellers and explorers</span>
+          <span className="lp-hero__eyebrow">{HERO.eyebrow}</span>
 
-          {/* The words are separate spans so GSAP can stagger them, and each is
-              followed by a REAL space rather than a CSS margin. With margins
-              alone the h1's textContent came out as "Planyourtravel,write your
-              storyor join with others" - which is what a screen reader announces,
-              what a crawler indexes, and what you get if you copy the headline. */}
+          {/* Separate spans so GSAP can stagger them, each followed by a REAL space
+              so the h1's text reads correctly to screen readers and crawlers. */}
           <h1 className="lp-hero__title">
-            {['Somebody', 'has', null, 'where', 'you', 'are', 'going.'].map((word, i) =>
-              word === null ? (
-                <Fragment key={i}>
-                  <span className="word lp-hero__em">already been</span>{' '}
-                </Fragment>
-              ) : (
-                <Fragment key={i}>
-                  <span className="word">{word}</span>{' '}
-                </Fragment>
-              ),
-            )}
+            {HERO.title.map((word, i) => (
+              <Fragment key={i}>
+                <span className={`word${word.accent ? ' lp-hero__em' : ''}`}>{word.text}</span>{' '}
+              </Fragment>
+            ))}
           </h1>
 
-          <p className="lp-hero__subtitle">
-            Read what they actually did, ask them what the internet cannot tell you, and
-            find people to come with you.
-          </p>
+          <p className="lp-hero__subtitle">{HERO.subtitle}</p>
 
           <div className="lp-hero__cta-group">
-            {/* The product demonstrating itself, ahead of the links that describe
-                it. Signed-in visitors never reach this: RootRedirect sends them to
-                /community before the landing page renders. */}
-            {/* An anchor, not a button. This is the hero's route to /community -
-                the most important indexable page on the site - and a click handler
-                is not a link: crawlers do not run it, and neither does middle-click
-                or ctrl+click. The modifier check preserves open-in-new-tab; a plain
-                left click still navigates through the router without a reload. */}
-            {/* Was /community, which for a guest now redirects straight back to this page. */}
-            <a
-              className="lp-btn lp-btn--hero-primary"
-              href="/stories"
-              onClick={(e) => {
-                if (e.metaKey || e.ctrlKey || e.shiftKey || e.altKey || e.button !== 0) return;
-                e.preventDefault();
-                navigate('/stories');
-              }}
-              aria-label="Explore real trips published by travellers"
-            >
-              Explore trips <IconArrowRight size={17} aria-hidden="true" />
+            <a className="lp-btn lp-btn--hero-primary" href="/stories" onClick={(e) => go(e, '/stories')}>
+              {HERO.primaryCta} <IconArrowRight size={17} aria-hidden="true" />
             </a>
-            <button className="lp-btn lp-btn--hero-link" onClick={() => navigate('/signup')} aria-label="Create an account and start planning">
-              Start planning <IconArrowRight size={16} aria-hidden="true" />
-            </button>
+            <a className="lp-btn lp-btn--hero-link" href="/signup" onClick={(e) => go(e, '/signup')}>
+              {HERO.secondaryCta} <IconArrowRight size={16} aria-hidden="true" />
+            </a>
           </div>
         </div>
 
@@ -777,9 +628,7 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/*  DESTINATION INDEX - a quiet strip of places, set between hairlines like
-           an index rather than a marquee. Names alone read as a word list; the
-           thumbnails make it scan as places.  */}
+      {/*  DESTINATION INDEX  */}
       <div className="lp-index" aria-hidden="true">
         <div className="lp-index__track">
           {[...TICKER, ...TICKER].map((dest, i) => (
@@ -791,53 +640,42 @@ export default function LandingPage() {
         </div>
       </div>
 
-      {/*  TRUST STRIP - every claim here is checkable. A "50+ countries planned"
-           counter used to sit in this row with no data source behind it.  */}
+      {/*  TRUST STRIP - every claim here is checkable.  */}
       <section className="lp-trust" aria-label="What Tripician is">
         <div className="lp-shell lp-trust__inner">
-          <span className="lp-trust__item"><IconCheck size={15} stroke={2} /> Free to join, no card required</span>
-          <span className="lp-trust__item"><IconCheck size={15} stroke={2} /> Itineraries published by the people who travelled them</span>
-          <span className="lp-trust__item"><IconCheck size={15} stroke={2} /> Every place checked against a live listing</span>
+          {TRUST.map((t) => (
+            <span className="lp-trust__item" key={t}><IconCheck size={15} stroke={2} /> {t}</span>
+          ))}
         </div>
       </section>
 
-      {/*  HOW IT WORKS - short, and carried by photographs rather than prose.  */}
-      <section className="lp-steps" id="how-it-works">
-        <div className="lp-shell">
-          <div className="lp-sec-head lp-steps__head">
-            <span className="lp-kicker">How it works</span>
-            <h2 className="lp-h2">Take your turn</h2>
-            <p className="lp-lede">
-              Somebody has already planned the trip you are thinking about, and published it.
-              Take what they learned, make it yours, then leave yours for the next person.
-            </p>
+      {/*  THE LENS - the community's own photographs, or nothing.  */}
+      {photos.length >= 4 && (
+        <section className="lp-lens" id="photos">
+          <div className="lp-shell">
+            <div className="lp-sec-head lp-lens__head">
+              <span className="lp-kicker">{LENS.kicker}</span>
+              <h2 className="lp-h2">{LENS.title}</h2>
+              <p className="lp-lede">{LENS.lede}</p>
+            </div>
+            <div className="lp-lens__grid">
+              {photos.map((p) => <LensTile key={p.postId} photo={p} onOpen={go} />)}
+            </div>
+            <div className="lp-trips__more">
+              <a href="/posts" onClick={(e) => go(e, '/posts')}>{LENS.more} <IconArrowRight size={15} aria-hidden="true" /></a>
+            </div>
           </div>
-          {/* An ordered list, because it is one: the numbering is meaning, not
-              decoration, and a screen reader should hear it. */}
-          <ol className="lp-steps__grid">
-            {STEPS.map((step) => (
-              <li className="lp-step" key={step.n}>
-                <span className="lp-step__frame">
-                  <img src={step.img} alt={step.alt} loading="lazy" decoding="async" />
-                  <span className="lp-step__num" aria-hidden="true">{step.n}</span>
-                </span>
-                <h3 className="lp-h3">{step.title}</h3>
-                <p>{step.desc}</p>
-              </li>
-            ))}
-          </ol>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/*  REAL TRIPS - the proof that this is a community is the community's own
-           work. Renders nothing at all rather than a placeholder when empty.  */}
+      {/*  ITINERARIES - real published trips, or nothing.  */}
       {showcaseTrips.length > 0 && (
         <section className="lp-trips" id="trips">
           <div className="lp-shell">
             <div className="lp-sec-head lp-trips__head">
-              <span className="lp-kicker">Published by travellers</span>
-              <h2 className="lp-h2">Trips people have already taken</h2>
-              <p className="lp-lede">Published by the traveller who planned them, and yours to copy.</p>
+              <span className="lp-kicker">{TRIPS.kicker}</span>
+              <h2 className="lp-h2">{TRIPS.title}</h2>
+              <p className="lp-lede">{TRIPS.lede}</p>
             </div>
             <div className="lp-trips__grid">
               {showcaseTrips.map((trip) => (
@@ -856,22 +694,20 @@ export default function LandingPage() {
               ))}
             </div>
             <div className="lp-trips__more">
-              <a href="/stories">Browse every trip <IconArrowRight size={15} aria-hidden="true" /></a>
+              <a href="/stories?kind=plans" onClick={(e) => go(e, '/stories?kind=plans')}>{TRIPS.more} <IconArrowRight size={15} aria-hidden="true" /></a>
             </div>
           </div>
         </section>
       )}
 
-      {/*  AFTER STORIES - real published stories, or nothing.  */}
+      {/*  AFTER-STORIES - real published stories, or nothing.  */}
       {stories.length > 0 && (
-        <section className="lp-stories">
+        <section className="lp-stories" id="stories">
           <div className="lp-shell">
             <div className="lp-sec-head lp-stories__head">
-              <span className="lp-kicker">After stories</span>
-              <h2 className="lp-h2">What the trips were actually like</h2>
-              <p className="lp-lede">
-                Written once people were home and knew which parts mattered.
-              </p>
+              <span className="lp-kicker">{STORIES.kicker}</span>
+              <h2 className="lp-h2">{STORIES.title}</h2>
+              <p className="lp-lede">{STORIES.lede}</p>
             </div>
             <div className="lp-stories__grid">
               {stories.slice(0, 3).map((story) => (
@@ -879,86 +715,58 @@ export default function LandingPage() {
               ))}
             </div>
             <div className="lp-trips__more">
-              <a href="/stories">Read more stories <IconArrowRight size={15} aria-hidden="true" /></a>
+              <a href="/stories?kind=stories" onClick={(e) => go(e, '/stories?kind=stories')}>{STORIES.more} <IconArrowRight size={15} aria-hidden="true" /></a>
             </div>
           </div>
         </section>
       )}
 
-      {/*  THE FINISHED STORY - the one dark band on the page, because a finished
-           thing deserves a different ground than the rest of the scroll.  */}
-      <section className="lp-book">
-        <div className="lp-shell lp-book__inner">
-          <span className="lp-kicker lp-kicker--light">The finished story</span>
-          <h2 className="lp-h2 lp-h2--light">A story worth keeping</h2>
-          <p className="lp-lede lp-lede--light">
-            Any after story lays out page by page: your photographs at full resolution,
-            your words set the way they would be printed. Look through the whole thing
-            before anyone else reads a word of it.
-          </p>
-          <div className="lp-book__spread" aria-hidden="true">
-            <span className="lp-book__page" />
-            <span className="lp-book__page lp-book__page--mid" />
-            <span className="lp-book__page" />
-          </div>
-          <p className="lp-book__note">
-            Yours as a print-ready PDF, free on every plan.
-          </p>
-        </div>
-      </section>
-
-      {/*  TRIPICIANAI  */}
-      <section className="lp-tripicianai" id="tripicianai">
-        <div className="lp-shell lp-tripicianai__inner">
-          <div className="lp-tripicianai__text">
-            {/* The lockup in place of the written kicker. The landing page is always light. */}
-            <TripicianAIWordmark height={36} onDark={false} />
-            <h2 className="lp-h2">Say it in a sentence</h2>
-            <p className="lp-lede">
-              Tell Tripician Intelligence where you are going and how long for, and it drafts the route, the
-              stops, the local food and the notes. Then every place is matched against a
-              live listing before you see it.
-            </p>
-            <p className="lp-lede">
-              Or start from the plan you already have. Hand it screenshots of the group chat,
-              your notes or a booking page and it reads them into a structured trip, several at
-              once. The screenshots are never stored: they carry other people's
-              messages, and not keeping them is the only way to be sure.
-            </p>
-            <p className="lp-tripicianai__caveat">
-              Tripician Intelligence proof-reads an after story if you ask it to. It never writes one for
-              you: the whole value of a story is that a person wrote it.
-            </p>
-            <button className="lp-btn lp-btn--outline" onClick={() => navigate('/signup')}>
-              Try Tripician Intelligence free <IconArrowRight size={16} aria-hidden="true" />
-            </button>
-          </div>
-          <div className="lp-tripicianai__demo" aria-hidden="true">
-            <div className="lp-tripicianai__prompt">
-              <TripicianAIOrb size={20} />
-              <span>Nine days in Oaxaca, slow, lots of food</span>
+      {/*  ASKED AND ANSWERED - real questions, or nothing.  */}
+      {questions.length > 0 && (
+        <section className="lp-asks" id="questions">
+          <div className="lp-shell">
+            <div className="lp-sec-head lp-asks__head">
+              <span className="lp-kicker">{ASKS.kicker}</span>
+              <h2 className="lp-h2">{ASKS.title}</h2>
+              <p className="lp-lede">{ASKS.lede}</p>
             </div>
-            <div className="lp-fig">
-              <div className="lp-fig__label">Draft route</div>
-              <div className="lp-fig__line"><span>Oaxaca de Ju&aacute;rez &middot; 4 nights</span><em className="ok">Verified</em></div>
-              <div className="lp-fig__line"><span>Hierve el Agua &middot; day trip</span><em className="ok">Verified</em></div>
-              <div className="lp-fig__line"><span>Puerto Escondido &middot; 5 nights</span><em className="ok">Verified</em></div>
+            <ul className="lp-asks__list">
+              {questions.map((q) => {
+                const href = `/post/${q.id}`;
+                const answers = q.replyCount === 1 ? '1 answer' : `${q.replyCount} answers`;
+                return (
+                  <li className="lp-ask" key={q.id}>
+                    <a href={href} onClick={(e) => go(e, href)}>
+                      <span className="lp-ask__q">{q.title?.trim() || q.body}</span>
+                      <span className="lp-ask__meta">
+                        {q.placeName && <em>{q.placeName}</em>}
+                        <span>{q.replyCount > 0 ? answers : 'Waiting for its first answer'}</span>
+                        {q.acceptedAnswerId ? <span className="lp-ask__ok">Answer accepted</span> : null}
+                      </span>
+                    </a>
+                  </li>
+                );
+              })}
+            </ul>
+            <div className="lp-trips__more">
+              <a href="/posts?kind=questions" onClick={(e) => go(e, '/posts?kind=questions')}>{ASKS.more} <IconArrowRight size={15} aria-hidden="true" /></a>
             </div>
           </div>
-        </div>
-      </section>
+        </section>
+      )}
 
-      {/*  FEATURES  */}
+      {/*  WHAT LIVES HERE  */}
       <section className="lp-features" id="features">
         <div className="lp-shell">
           <div className="lp-sec-head lp-features__head">
-            <span className="lp-kicker">Why here</span>
-            <h2 className="lp-h2">What you cannot get from a search result</h2>
+            <span className="lp-kicker">{PILLARS_HEAD.kicker}</span>
+            <h2 className="lp-h2">{PILLARS_HEAD.title}</h2>
+            <p className="lp-lede">{PILLARS_HEAD.lede}</p>
           </div>
           <div className="lp-features__grid">
-            {FEATURES.map((f) => (
-              <article className="lp-feature" key={f.title}>
-                <span className="lp-feature__icon">{f.icon}</span>
+            {PILLARS.map((f) => (
+              <article className="lp-feature" key={f.key}>
+                <span className="lp-feature__icon">{PILLAR_ICONS[f.key]}</span>
                 <h3 className="lp-h4">{f.title}</h3>
                 <p>{f.desc}</p>
               </article>
@@ -967,8 +775,100 @@ export default function LandingPage() {
         </div>
       </section>
 
-      {/*  PLANS  */}
-      <LandingPricing />
+      {/*  TRIPICIAN INTELLIGENCE  */}
+      <section className="lp-tripicianai" id="tripicianai">
+        <div className="lp-shell lp-tripicianai__inner">
+          <div className="lp-tripicianai__text">
+            {/* The lockup in place of the written kicker. */}
+            <TripicianAIWordmark height={28} />
+            <h2 className="lp-h2">{AI.title}</h2>
+            {AI.paragraphs.map((p) => <p className="lp-lede" key={p}>{p}</p>)}
+            <p className="lp-tripicianai__caveat">{AI.caveat}</p>
+            {/* The guest chat is docked at the foot of this page: this hands focus to it. */}
+            <button
+              className="lp-btn lp-btn--outline"
+              onClick={() => document.querySelector<HTMLInputElement>('.lp-herochat__input')?.focus()}
+            >
+              {AI.cta} <IconArrowRight size={16} aria-hidden="true" />
+            </button>
+          </div>
+          <div className="lp-tripicianai__demo" aria-hidden="true">
+            <div className="lp-tripicianai__prompt">
+              <TripicianAIOrb size={20} />
+              <span>{AI.demo.prompt}</span>
+            </div>
+            <div className="lp-fig">
+              {AI.demo.steps.map((s) => (
+                <div className="lp-fig__step" key={s}><IconCheck size={14} stroke={2.2} /><span>{s}</span></div>
+              ))}
+            </div>
+            <div className="lp-fig">
+              <div className="lp-fig__label">{AI.demo.routeLabel}</div>
+              {AI.demo.route.map((r) => (
+                <div className="lp-fig__line" key={r}><span>{r}</span><em className="ok">Checked</em></div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
+      {/*  HOW IT WORKS  */}
+      <section className="lp-steps" id="how-it-works">
+        <div className="lp-shell">
+          <div className="lp-sec-head lp-steps__head">
+            <span className="lp-kicker">{STEPS_HEAD.kicker}</span>
+            <h2 className="lp-h2">{STEPS_HEAD.title}</h2>
+            <p className="lp-lede">{STEPS_HEAD.lede}</p>
+          </div>
+          {/* An ordered list, because it is one: the numbering is meaning. */}
+          <ol className="lp-steps__grid">
+            {STEPS.map((step) => (
+              <li className="lp-step" key={step.n}>
+                <span className="lp-step__frame">
+                  <img src={step.img} alt={step.alt} loading="lazy" decoding="async" />
+                  <span className="lp-step__num" aria-hidden="true">{step.n}</span>
+                </span>
+                <h3 className="lp-h3">{step.title}</h3>
+                <p>{step.desc}</p>
+              </li>
+            ))}
+          </ol>
+        </div>
+      </section>
+
+      {/*  PLANS - names and purposes only. Prices live on /pricing, from the API.  */}
+      <section className="lp-planstrip" id="pricing">
+        <div className="lp-shell">
+          <div className="lp-sec-head lp-planstrip__head">
+            <span className="lp-kicker">{PLANS.kicker}</span>
+            <h2 className="lp-h2">{PLANS.title}</h2>
+          </div>
+          <div className="lp-planstrip__grid">
+            {PLANS.items.map((p) => (
+              <div className={`lp-planstrip__item${p.soon ? ' lp-planstrip__item--soon' : ''}`} key={p.name}>
+                <span className="lp-planstrip__tag">{p.tag}</span>
+                <h3 className="lp-h4">{p.name}</h3>
+                <p>{p.desc}</p>
+              </div>
+            ))}
+          </div>
+          <div className="lp-trips__more">
+            <a href="/pricing" onClick={(e) => go(e, '/pricing')}>{PLANS.more} <IconArrowRight size={15} aria-hidden="true" /></a>
+          </div>
+        </div>
+      </section>
+
+      {/*  FOR BUSINESSES - the one dark band on the page.  */}
+      <section className="lp-biz" id="businesses">
+        <div className="lp-shell lp-biz__inner">
+          <span className="lp-kicker lp-kicker--light">{BUSINESS.kicker}</span>
+          <h2 className="lp-h2 lp-h2--light">{BUSINESS.title}</h2>
+          <p className="lp-lede lp-lede--light">{BUSINESS.lede}</p>
+          <a className="lp-btn lp-btn--on-dark" href="/for-operators" onClick={(e) => go(e, '/for-operators')}>
+            {BUSINESS.cta} <IconArrowRight size={16} aria-hidden="true" />
+          </a>
+        </div>
+      </section>
 
       {/*  FAQ  */}
       <LandingFAQ />
@@ -976,72 +876,37 @@ export default function LandingPage() {
       {/*  CTA  */}
       <section className="lp-cta">
         <div className="lp-cta__content">
-          <h2 className="lp-cta__title">Go somewhere worth writing about.</h2>
-          <p className="lp-cta__sub">
-            Free to join. Read what other travellers did, ask them anything, and find
-            people to go with.
-          </p>
+          <h2 className="lp-cta__title">{CTA.title}</h2>
+          <p className="lp-cta__sub">{CTA.sub}</p>
           <div className="lp-cta__actions">
-            <button className="lp-btn lp-btn--cta-primary" onClick={() => navigate('/signup')}>
-              Create your account <IconArrowRight size={17} aria-hidden="true" />
-            </button>
-            {/* Signing up carries ?next=, so a business lands on the create-an-
-                organization page rather than the generic home. */}
-            <button
-              className="lp-btn lp-btn--outline"
-              onClick={() => navigate('/signup?next=%2Forganizations')}
-            >
-              Create a business account
-            </button>
-            <a className="lp-cta__alt" href="/stories">or browse trips first</a>
+            <a className="lp-btn lp-btn--cta-primary" href="/signup" onClick={(e) => go(e, '/signup')}>
+              {CTA.primary} <IconArrowRight size={17} aria-hidden="true" />
+            </a>
+            <a className="lp-cta__alt" href="/stories" onClick={(e) => go(e, '/stories')}>{CTA.alt}</a>
           </div>
         </div>
       </section>
 
-      {/*  FOOTER  */}
+      {/*  FOOTER - also the page's internal-link map, so every public door is here.  */}
       <footer className="lp-footer">
         <div className="lp-shell lp-footer__inner">
           <div className="lp-footer__brand">
             <div className="lp-footer__logo">
-              {logoFullBlackUrl
-                ? <img src={logoFullBlackUrl} alt="Tripician" className="lp-logo-img lp-logo-img--footer" />
+              {logoUrl
+                ? <img src={logoUrl} alt="Tripician" className="lp-logo-img lp-logo-img--footer" />
                 : (<><IconPlane size={18} /><span>Tripician</span></>)}
             </div>
-            <p>A social network for travellers.<br />Real trips, published by the people who took them.</p>
+            <p>{FOOTER.blurb}</p>
           </div>
           <div className="lp-footer__links">
-            <div className="lp-footer__col">
-              <h4>Product</h4>
-              <a href="/stories">Groups &amp; Stories</a>
-              <a href="/search">Search</a>
-              <a href="#how-it-works">How it works</a>
-              <a href="#features">Features</a>
-              {/* `/docs` used to sit here. There is no /docs route in App.tsx, so
-                  it resolved to the catch-all 404 - a dead internal link on the
-                  highest-authority page on the site, which is both a crawl-budget
-                  leak and a quality signal. Restore it when the route exists. */}
-            </div>
-            <div className="lp-footer__col">
-              <h4>Company</h4>
-              <a href="/about-us">About Us</a>
-              {/* The blog is in sitemap.xml and allowed in robots.txt but had no
-                  link from the homepage, which is the page with the most authority
-                  to pass to it. */}
-              <a href="/blog">Blog</a>
-              {/* The operator portal had no inbound link anywhere on the site, so
-                  a travel business could only reach it by being sent the URL. This
-                  footer is the one a signed-out visitor actually sees: the shared
-                  Footer component renders only inside the authenticated shell. */}
-              <a href="/for-operators">For Operators</a>
-              <a href="/get-help">Get Help</a>
-              <a href="/contact-us">Contact Us</a>
-            </div>
-            <div className="lp-footer__col">
-              <h4>Legal</h4>
-              <a href="/privacy-policy">Privacy Policy</a>
-              <a href="/terms-and-conditions">Terms &amp; Conditions</a>
-              <a href="/child-safety-standards">Child Safety Standards</a>
-            </div>
+            {FOOTER.columns.map((col) => (
+              <nav className="lp-footer__col" key={col.title} aria-label={col.title}>
+                <h4>{col.title}</h4>
+                {col.links.map((l) => (
+                  <a key={l.href} href={l.href} onClick={(e) => go(e, l.href)}>{l.label}</a>
+                ))}
+              </nav>
+            ))}
           </div>
         </div>
         {/* Photographer attribution. Unsplash's API terms require crediting the
@@ -1070,21 +935,15 @@ export default function LandingPage() {
           </div>
         )}
         <div className="lp-shell lp-footer__bottom">
-          <span>&copy; 2026 Tripician. All rights reserved.</span>
-          <span>Not a travel agency. We do not book flights or accommodation.</span>
+          <span>&copy; {new Date().getFullYear()} Tripician. All rights reserved.</span>
+          <span>{FOOTER.note}</span>
         </div>
       </footer>
 
       {/*
-        Outside the hero, and that is load-bearing rather than tidiness.
-
-        position: fixed resolves against the nearest ancestor carrying a
-        transform, and the hero container is parallaxed. Mounted inside it, this
-        docked itself to the hero and scrolled away with it; only out here does
-        it stay put against the viewport.
-
-        Signed-in visitors never see it: RootRedirect sends them to /community
-        before this page renders, where the real command bar takes over.
+        Outside the hero, and that is load-bearing: position: fixed resolves
+        against the nearest transformed ancestor, and the hero is parallaxed.
+        Signed-in visitors never see it: RootRedirect shows them the board.
       */}
       <HeroChat />
     </div>

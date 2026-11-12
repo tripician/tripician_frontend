@@ -18,7 +18,6 @@ import {
   ListItemText,
   Popover,
   Stack,
-  TextField,
   Tooltip,
   Typography,
   Zoom,
@@ -34,15 +33,14 @@ import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
 import FeedbackOutlinedIcon from '@mui/icons-material/FeedbackOutlined';
 import NewReleasesOutlinedIcon from '@mui/icons-material/NewReleasesOutlined';
 import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded';
-import SendRoundedIcon from '@mui/icons-material/SendRounded';
 import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
 import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
-import GroupsRoundedIcon from '@mui/icons-material/GroupsRounded';
-import TravelExploreRoundedIcon from '@mui/icons-material/TravelExploreRounded';
-import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
-import { useAuthToken } from '../../hooks/useAuth0Token';
-import { apiServices } from '../../services/APIs/apiServices';
+import LockRoundedIcon from '@mui/icons-material/LockRounded';
+import PhotoCameraRoundedIcon from '@mui/icons-material/PhotoCameraRounded';
+import AccountBoxRoundedIcon from '@mui/icons-material/AccountBoxRounded';
+import AutoStoriesRoundedIcon from '@mui/icons-material/AutoStoriesRounded';
 import { onFeedbackPromptRequested, markFeedbackPromptShown } from '../../utils/feedbackPrompt';
+import FeedbackDialog from './FeedbackDialog';
 
 /**
  * SupportWidget - the quiet corner concierge.
@@ -63,18 +61,12 @@ const SupportWidget: React.FC<SupportWidgetProps> = ({ commandBar = 'none' }) =>
   // stays vertically aligned with it above and below the lg cutoff.
   const isLgUp = useMediaQuery(theme.breakpoints.up('lg'));
   const navigate = useNavigate();
-  const auth = useAuthToken();
 
   const [anchorEl, setAnchorEl] = useState<HTMLElement | null>(null);
   const menuOpen = Boolean(anchorEl);
 
   const [updatesDialogOpen, setUpdatesDialogOpen] = useState(false);
   const [feedbackDialogOpen, setFeedbackDialogOpen] = useState(false);
-  const [feedback, setFeedback] = useState('');
-  const [feedbackSending, setFeedbackSending] = useState(false);
-  const [feedbackDone, setFeedbackDone] = useState(false);
-  const [feedbackError, setFeedbackError] = useState('');
-  const [creditsGranted, setCreditsGranted] = useState(0);
 
   /**
    * The feedback nudge balloon. Requested by TripCreationModal (trip created)
@@ -111,32 +103,28 @@ const SupportWidget: React.FC<SupportWidgetProps> = ({ commandBar = 'none' }) =>
     setFeedbackDialogOpen(true);
   };
 
-  const appVersion = import.meta.env.VITE_APP_VERSION || '3.0.0';
-  // 2.0.0, not 1.1.0: TripicianAI stopped being a signed-in feature this release. It
-  // answers people with no account on the landing page, from its own endpoint,
-  // its own prompt and its own allowance. That is a change in what it is.
-  const tripicianAIVersion = '2.0.0';
+  // package.json's version, put in at build time (see vite.config.ts).
+  const appVersion = __APP_VERSION__;
+  // 2.1.0: it now works an answer out in steps (what you are asking, then timing,
+  // live conditions and news only when they matter) and offers to turn it into a
+  // plan. The same assistant doing more, so a minor version. 2.0.0 was when it
+  // stopped being a signed-in feature.
+  const tripicianAIVersion = '2.1.0';
 
-  /*
-   * Newest first, and every line has to name something that actually shipped.
-   * The list had not been touched since 2.0 and described a planner with a trip
-   * directory, which is no longer what the product is: the three entries at the
-   * top are the reason someone opens the app when they are not planning.
-   */
   /*
    * This release, not every release. The dialog is called "What's new" and it
    * carries the version chips below it, so it describes the version it is
-   * stamped with; the 2.x list it replaced had stopped being news to anybody
-   * still using the app.
+   * stamped with. 3.1.0 replaced the 3.0.0 list (Intelligence before sign-up,
+   * stories in search, replies in the feed, live co-editing, joining checks).
    *
    * Every line points at something that shipped. Nothing here is a plan.
    */
   const updateItems = [
-    { icon: <TripicianAIOrb size={20} />, text: 'Tripician Intelligence before you sign up - ask about a trip on the front page with no account. Sign in only to keep what it drafts.' },
-    { icon: <TravelExploreRoundedIcon fontSize="small" />, text: 'Your stories turn up in search - a published story is now served to search engines as a real page, and every one is submitted in the sitemap.' },
-    { icon: <ForumRoundedIcon fontSize="small" />, text: 'Reply without leaving the feed - comments open in place on a post instead of taking you to another page.' },
-    { icon: <GroupsRoundedIcon fontSize="small" />, text: 'See who else is editing - other people on a plan appear beside the save state, and if two of you save at once the second is stopped rather than quietly overwriting the first.' },
-    { icon: <VerifiedRoundedIcon fontSize="small" />, text: 'Know who you are joining - a trip taking join requests shows what the business behind it has actually run, and says plainly when Tripician has not reviewed it.' },
+    { icon: <LockRoundedIcon fontSize="small" />, text: 'Private messages - chats are end-to-end encrypted, so only the two of you can read them. Send photos, react and edit, and someone new arrives as a request you choose to accept.' },
+    { icon: <PhotoCameraRoundedIcon fontSize="small" />, text: 'Post as Everyday or Photography - photography keeps full quality and the original shape, and the i on the photo shows the camera, lens and when it was taken. Several photos now swipe.' },
+    { icon: <TripicianAIOrb size={20} />, text: 'Tripician Intelligence shows its thinking - it works out what you are asking, checks timing, live conditions and the news when they matter, and can turn an answer into a trip plan.' },
+    { icon: <AccountBoxRoundedIcon fontSize="small" />, text: 'A profile that shows your travels - Featured picks, a Photobook and a Travel Journal, with Wall, Trips, Stories and Saved.' },
+    { icon: <AutoStoriesRoundedIcon fontSize="small" />, text: 'Stories that are easier to start - each section suggests what to write in grey, and the suggestion never reaches your readers.' },
   ];
 
   const closeMenu = () => setAnchorEl(null);
@@ -171,7 +159,9 @@ const SupportWidget: React.FC<SupportWidgetProps> = ({ commandBar = 'none' }) =>
   return (
     <>
       {/* Floating support button */}
-      <Zoom in timeout={300}>
+      {/* Out of the way while the feedback form is open: it sits above MUI dialogs,
+          and on a phone the form is full screen, so it floated over the form. */}
+      <Zoom in={!feedbackDialogOpen} timeout={300}>
         <Tooltip title="Support & feedback" placement="left" arrow>
           <Fab
             size="medium"
@@ -369,69 +359,8 @@ const SupportWidget: React.FC<SupportWidgetProps> = ({ commandBar = 'none' }) =>
         </DialogActions>
       </Dialog>
 
-      {/* Feedback dialog */}
-      <Dialog open={feedbackDialogOpen} onClose={() => setFeedbackDialogOpen(false)} maxWidth="sm" fullWidth>
-        <DialogTitle sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
-          <FeedbackOutlinedIcon color="secondary" />
-          Tell Us Everything
-        </DialogTitle>
-        <DialogContent dividers sx={{ backgroundColor: theme.palette.mode === 'light' ? 'rgba(156,39,176,0.04)' : 'rgba(206,147,216,0.1)' }}>
-          <Stack spacing={2}>
-            <Chip
-              icon={<SendRoundedIcon fontSize="small" />}
-              label="A human reads every message."
-              color="secondary"
-              variant="outlined"
-              sx={{ alignSelf: { xs: 'stretch', sm: 'flex-start' } }}
-            />
-            <Typography variant="body2" color="text.secondary">Loved something? Hit a bump? Wish a feature existed? This is the fastest way to shape Tripician.</Typography>
-            <TextField
-              label="Your thoughts"
-              placeholder="e.g. The planner timeline is great, but..."
-              fullWidth
-              multiline
-              minRows={4}
-              value={feedback}
-              onChange={(e) => setFeedback(e.target.value)}
-              disabled={feedbackSending || feedbackDone}
-              sx={{ '& .MuiOutlinedInput-root': { borderRadius: 2, backgroundColor: theme.palette.mode === 'light' ? 'common.white' : 'background.paper' } }}
-            />
-            {feedbackDone && (
-              <Typography variant="body2" color="success.main" fontWeight={600}>
-                {creditsGranted > 0
-                  ? `✓ Sent - thank you! +${creditsGranted} bonus AI credits added 🎉`
-                  : '✓ Sent - thank you for making Tripician better!'}
-              </Typography>
-            )}
-            {feedbackError && <Typography variant="body2" color="error">{feedbackError}</Typography>}
-          </Stack>
-        </DialogContent>
-        <DialogActions>
-          <Button onClick={() => { setFeedbackDialogOpen(false); setFeedback(''); setFeedbackDone(false); setFeedbackError(''); }}>Cancel</Button>
-          <Button
-            variant="contained"
-            disabled={feedbackSending || !feedback.trim()}
-            onClick={async () => {
-              if (!auth.token || !feedback.trim()) return;
-              setFeedbackSending(true);
-              setFeedbackError('');
-              try {
-                const resp = await apiServices.sendFeedback(auth.token, feedback.trim());
-                setCreditsGranted(Number(resp?.data?.creditsGranted) || 0);
-                setFeedback('');
-                setFeedbackDone(true);
-                setTimeout(() => { setFeedbackDialogOpen(false); setFeedbackDone(false); setCreditsGranted(0); }, 2400);
-              } catch {
-                setFeedbackError("Couldn't send that - please try again.");
-              } finally {
-                setFeedbackSending(false);
-              }
-            }}
-          >
-            {feedbackSending ? 'Sending…' : feedbackDone ? 'Sent ✓' : 'Send feedback'}
-          </Button>
-        </DialogActions>
-      </Dialog>
+      {/* Feedback dialog: its own component, with attachments and a close button. */}
+      <FeedbackDialog open={feedbackDialogOpen} onClose={() => setFeedbackDialogOpen(false)} />
     </>
   );
 };

@@ -113,9 +113,6 @@ describe('brand shadow guard', () => {
 
   /*
    * The hardcoded-typeface rule used to live here. It now sits in
-   * `story-serif.guard.test.ts` alongside the rule about WHICH files may use the
-   * editorial face, because the two are the same concern: one stops the token
-   * being bypassed, the other stops it being overused, and splitting them across
-   * two files meant each guard flagged the other's regex as an offence.
+   * `typeface.guard.test.ts`, with the rest of the type-system checks.
    */
 });

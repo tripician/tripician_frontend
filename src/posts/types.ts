@@ -7,10 +7,24 @@
  * are different objects with different cards.
  */
 
+import type { PhotoDetails } from '../utils/photoDetails';
+
 export interface PostMedia {
   url: string;
   position: number;
+  /** What the original recorded about itself. Photography posts only. */
+  details?: PhotoDetails | null;
+  /** The stored picture's size in pixels, so it can be laid out in its own shape. Absent on older posts. */
+  width?: number | null;
+  height?: number | null;
 }
+
+/**
+ * What a post's photos are, chosen when they are added. Everyday photos are
+ * compressed and shown cropped to the feed; photography keeps full quality,
+ * each photo's own shape and its Image details.
+ */
+export type PhotoStyle = 'everyday' | 'photography';
 
 /** A note is said and done. A question is asked and answered. */
 export type PostKind = 'note' | 'question';
@@ -121,6 +135,8 @@ export interface TravelerPost {
   createdAt: string;
   /** Answered-at, not asked-at. What "latest" means on a question. */
   lastActivityAt: string | null;
+  /** Photography: photos in full quality and their own shape, with Image details. */
+  isPhotography?: boolean;
 }
 
 export interface PostTagCount extends PostTag {
@@ -141,6 +157,10 @@ export type QuestionSort = 'latest' | 'unanswered' | 'top';
 export interface PostMediaInput {
   url: string;
   publicId: string;
+  /** Read in the browser from the original before upload, which strips every tag. Photography only. */
+  details?: PhotoDetails;
+  width?: number;
+  height?: number;
 }
 
 export interface PostDraft {
@@ -155,6 +175,8 @@ export interface PostDraft {
   kind?: PostKind;
   title?: string | null;
   tags?: string[];
+  /** Set whenever the post has photos. */
+  isPhotography?: boolean;
 }
 
 export const POST_LIMITS = {

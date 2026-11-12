@@ -51,7 +51,8 @@ export function makeStopMarker({ index, active = false }: StopMarkerOptions): HT
     borderRadius: '50%',
     background: BRAND.gradient,
     color: '#fff',
-    fontFamily: "'Plus Jakarta Sans, system-ui, sans-serif', system-ui, sans-serif",
+    // The marker is a plain DOM node in the page, so the root CSS variable reaches it.
+    fontFamily: 'var(--font-body)',
     fontWeight: '700',
     lineHeight: '1',
     cursor: 'pointer',

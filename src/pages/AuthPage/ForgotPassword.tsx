@@ -5,14 +5,15 @@ import '../../assets/css/Signin.css';
 import { KalaLotus } from '../../components/DecorativeComponents/KalaDecor';
 import { Plane, MapPin, Globe, Brain, ArrowLeft, Mail } from 'lucide-react';
 import { authAPI } from '../../services/APIs/Auth/auth';
-import { useNavigate } from 'react-router-dom';
 import { fadeInLeft, fadeInRight, staggerContainer, staggerItem } from '../../utils/animations';
 import { validateEmailFormat } from '../../utils/emailValidation';
+import { useAuthSwitch, useAuthSwitchLink } from './useAuthBack';
 
 const ForgotPassword = () => {
-  const navigate = useNavigate();
+  const switchTo = useAuthSwitch();
+  const switchLink = useAuthSwitchLink();
   const loginBackground = import.meta.env.VITE_SIGNINPAGE_IMAGE_URL as string | undefined;
-  const logoUrl = import.meta.env.VITE_LOGO_WHITE as string | undefined;
+  const logoUrl = import.meta.env.VITE_TRIPICIAN as string | undefined;
 
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
@@ -91,7 +92,7 @@ const ForgotPassword = () => {
         initial="hidden"
         animate="visible"
       >
-        <button className="auth-back-btn" onClick={() => navigate('/signin')}>
+        <button className="auth-back-btn" onClick={() => switchTo('/signin')}>
           <ArrowLeft size={15} />
           Back to sign in
         </button>
@@ -134,7 +135,7 @@ const ForgotPassword = () => {
               <motion.button
                 className="auth-btn auth-btn--primary"
                 style={{ marginTop: 12, width: '100%' }}
-                onClick={() => navigate('/signin')}
+                onClick={() => switchTo('/signin')}
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.97 }}
               >
@@ -206,7 +207,7 @@ const ForgotPassword = () => {
                 transition={{ delay: 0.7 }}
               >
                 Remember your password?
-                <a href="/signin" className="auth-switch__link">Sign in</a>
+                <a {...switchLink('/signin')} className="auth-switch__link">Sign in</a>
               </motion.p>
             </>
           )}

@@ -389,7 +389,10 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
           /* Composite: the neutral layer stays (a dialog needs to lift off the
              backdrop), the coral layer it was paired with does not. */
           boxShadow: t.custom.shadows.overlay,
-          maxHeight: '92vh',
+          /* Never taller than the room the dialog has. On a phone, vh counts the
+             space behind the browser's address bar, so 92vh overflowed the
+             screen and pushed the header, and its close button, off the top. */
+          maxHeight: 'min(92vh, calc(100% - 64px))',
           '::-webkit-scrollbar': { display: 'none' },
           scrollbarWidth: 'none',
         }),
@@ -620,7 +623,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
           MAIN VIEW
       ════════════════════════════════ */}
       {view === 'main' && (
-        <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', maxHeight: 'calc(92vh - 3px)' }}>
+        <Box sx={{ display: 'flex', flexDirection: 'column', overflow: 'hidden', flex: '1 1 auto', minHeight: 0 }}>
 
           {/*  Header  */}
           <Box sx={{ px: 3, pt: 2.5, pb: 0, display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', flexShrink: 0 }}>

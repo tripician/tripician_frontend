@@ -10,7 +10,7 @@ import { apiClient } from '../services/APIs/apiServices';
 import { uploadSignedAsset, UploadError } from '../utils/signedUpload';
 import { PostRejectedError } from './types';
 import type {
-  PostDraft, PostMediaInput, TravelerPost, PostTagCount, QuestionPage, QuestionSort, PostLiker,
+  PostDraft, PostMediaInput, TravelerPost, PostTagCount, QuestionPage, QuestionSort, PostLiker, PhotoStyle,
 } from './types';
 
 function toError(err: unknown, fallback: string): Error {
@@ -76,6 +76,18 @@ export const postsService = {
     } catch {
       return [];
     }
+  },
+
+  /**
+   * One page of someone's Photobook: the photos on their own notes, newest first,
+   * paged by post. Raw, and it throws, so the caller can tell an older server
+   * (404, read the photos from posts instead) from a real failure.
+   */
+  async authorPhotos(authorUserId: number, take: number, before?: string | null): Promise<unknown> {
+    const params = new URLSearchParams({ take: String(take) });
+    if (before) params.set('before', before);
+    const { data } = await apiClient.get<unknown>(`/api/posts/by-author/${authorUserId}/photos?${params}`);
+    return data;
   },
 
   async get(postId: string): Promise<TravelerPost | null> {
@@ -180,12 +192,14 @@ export const postsService = {
    * delete an asset, and nothing can recover it from a delivery URL. Without it,
    * a post refused by moderation would leave its pictures behind forever.
    */
-  async uploadPhoto(file: File): Promise<PostMediaInput> {
+  /** Everyday photos are compressed as the server stores them; photography is kept as sent. */
+  async uploadPhoto(file: File, style: PhotoStyle = 'everyday'): Promise<PostMediaInput> {
     const asset = await uploadSignedAsset({
       signUrl: '/api/posts/media/upload-url',
       file,
+      signBody: { quality: style },
     });
-    return { url: asset.url, publicId: asset.publicId };
+    return { url: asset.url, publicId: asset.publicId, width: asset.width, height: asset.height };
   },
 };
 
