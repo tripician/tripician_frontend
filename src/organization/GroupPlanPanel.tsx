@@ -1,5 +1,5 @@
 import React from 'react';
-import { Box, Button, LinearProgress, Typography, useTheme } from '@mui/material';
+import { Box, Button, Chip, LinearProgress, Typography, useTheme } from '@mui/material';
 import { IconCheck } from '@tabler/icons-react';
 import dayjs from 'dayjs';
 import { apiServices } from '../services/APIs/apiServices';
@@ -216,7 +216,10 @@ const GroupPlanPanel: React.FC<{ organization: Organization }> = ({ organization
       {selling && offer && (
         <Box sx={card}>
           <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 1.5, flexWrap: 'wrap' }}>
-            <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{offer.name}</Typography>
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+              <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{offer.name}</Typography>
+              {offer.comingSoon && <Chip size="small" variant="outlined" label="Coming soon" sx={{ fontWeight: 700 }} />}
+            </Box>
             <SegmentedControl size="small" aria-label="Billing period" value={billing} options={BILLING} onChange={setBilling} />
           </Box>
           <Typography variant="h3" component="p" sx={{ mt: 1 }}>
@@ -237,8 +240,11 @@ const GroupPlanPanel: React.FC<{ organization: Organization }> = ({ organization
             </Box>
           )}
 
-          <Button variant="contained" onClick={() => void upgrade()} disabled={busy} sx={{ textTransform: 'none', fontWeight: 700, mt: 2 }}>
-            {busy ? 'Opening' : `Move ${organization.name} to ${offer.name.replace('Tripician ', '')}`}
+          {/* Coming soon: the offer stays visible, its button switched off. */}
+          <Button variant="contained" onClick={() => void upgrade()} disabled={busy || !!offer.comingSoon} sx={{ textTransform: 'none', fontWeight: 700, mt: 2 }}>
+            {busy ? 'Opening'
+              : offer.comingSoon ? 'Coming soon'
+              : `Move ${organization.name} to ${offer.name.replace('Tripician ', '')}`}
           </Button>
           <Typography variant="caption" component="p" sx={{ color: 'text.secondary', mt: 1 }}>
             Billed to you, for this group. Cancel any time; the group keeps the plan until the paid period ends.

@@ -144,7 +144,7 @@ const ProposalBubble: React.FC<ProposalBubbleProps> = ({ msg, actionState, onAcc
     >
       {/* Header: the lockup stands in for the written name */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1 }}>
-        <TripicianAIWordmark height={28} onDark={!isLight} />
+        <TripicianAIWordmark height={22} />
         <Typography sx={{ fontSize: 10, fontWeight: 700, letterSpacing: '0.6px', textTransform: 'uppercase', color: 'primary.main', lineHeight: 1 }}>
           Suggestion
         </Typography>
@@ -323,7 +323,7 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ msg, isMine, isLight, sho
         >
           {!isMine && showAvatar && (isTripicianAI ? (
             // The lockup in place of the written name, at label size.
-            <TripicianAIWordmark height={28} onDark={!isLight} style={{ marginBottom: 4 }} />
+            <TripicianAIWordmark height={22} style={{ marginBottom: 4 }} />
           ) : (
             <Typography sx={{ fontSize: 11, fontWeight: 700, mb: 0.35, color: isLight ? '#666' : 'rgba(255,255,255,0.55)' }}>
               {name}
@@ -949,7 +949,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
                   <Box sx={{ flex: 1, minWidth: 0 }}>
                     <Typography sx={{ fontSize: 13, fontWeight: 600, color: isLight ? '#111' : 'rgba(255,255,255,0.88)', lineHeight: 1.3, display: 'flex', alignItems: 'center', gap: 0.75 }}>
                       {s.isTripicianAI
-                        ? <TripicianAIWordmark height={28} onDark={!isLight} />
+                        ? <TripicianAIWordmark height={22} />
                         : s.displayName}
                       {/* Deliberate exception to dropping "AI" from the UI: in a chat with
                           real people, saying which speaker is a machine is disclosure that

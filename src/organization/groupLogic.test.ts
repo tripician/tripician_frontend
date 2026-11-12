@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { groupIsFull, groupJoinState, groupDefaultTab, groupTabs, groupsForPlanning, inviteUrl, isPastTrip, joinRefusalPatch, splitGroupTrips } from './groupLogic';
+import { groupIsFull, groupJoinState, groupDefaultTab, groupTabs, groupsForPlanning, inviteResultLabel, inviteUrl, isPastTrip, joinRefusalPatch, joinSuccessPatch, splitGroupTrips } from './groupLogic';
 import type { GroupTrip, Organization } from './types';
 
 const NOW = Date.parse('2026-09-18T12:00:00Z');
@@ -129,5 +129,33 @@ describe('joinRefusalPatch', () => {
     expect(joinRefusalPatch(undefined)).toBeNull();
     expect(joinRefusalPatch('')).toBeNull();
     expect(joinRefusalPatch('something-new')).toBeNull();
+  });
+});
+
+describe('invitations by name', () => {
+  const invited = { kind: 'community' as const, visibility: 'private' as const, viewerRole: null, viewerRequestStatus: 'invited' as const, memberCount: 3, memberLimit: null };
+
+  it('offers Join and Decline, in a private group too', () => {
+    expect(groupJoinState(invited)).toBe('invited');
+    expect(groupJoinState({ ...invited, viewerRole: 'member' })).toBe('member');
+  });
+
+  it('lets someone ask again after turning an invitation down', () => {
+    expect(groupJoinState({ ...invited, visibility: 'public', viewerRequestStatus: 'invite_declined' })).toBe('request');
+  });
+
+  it('treats asking with an invitation waiting as being let in', () => {
+    expect(joinSuccessPatch('member')).toEqual({ viewerRole: 'member', viewerRequestStatus: null });
+    expect(joinSuccessPatch('pending')).toEqual({ viewerRequestStatus: 'pending' });
+    expect(joinSuccessPatch(undefined)).toEqual({ viewerRequestStatus: 'pending' });
+  });
+
+  it('names each outcome briefly', () => {
+    expect(inviteResultLabel('invited')).toBe('Invited');
+    expect(inviteResultLabel('joined')).toBe('Joined');
+    expect(inviteResultLabel('member')).toBe('Already in');
+    expect(inviteResultLabel('declined')).toBe('Said no before');
+    expect(inviteResultLabel('full')).toBe('Group is full');
+    expect(inviteResultLabel('unavailable')).toBe('Could not invite');
   });
 });

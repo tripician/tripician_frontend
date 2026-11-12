@@ -1,4 +1,5 @@
 import credits from './onboardingCredits.json';
+import landingCredits from '../../pages/LandingPage/photoCredits.json';
 
 export interface OnboardingSlide {
   slug: string;
@@ -9,44 +10,36 @@ export interface OnboardingSlide {
   body: string;
 }
 
-const BY_SLUG = new Map(credits.map((c) => [c.slug, c]));
-const photo = (slug: string) => BY_SLUG.get(slug)?.file ?? '';
+/*
+ * Two credited, self-hosted photo sets: onboarding's three Pexels photographs and
+ * the landing page's Unsplash destinations. Both are credited in the landing
+ * footer, so reusing them here adds no new photographer to name.
+ */
+const FILES = new Map<string, string>([
+  ...credits.map((c) => [c.slug, c.file] as [string, string]),
+  ...landingCredits.map((c) => [`landing:${c.slug}`, c.file] as [string, string]),
+]);
+const photo = (slug: string) => FILES.get(slug) ?? '';
 
 /**
- * Feature copy mirrors the wording already used in SupportWidget's "What's new"
- * list so a returning user recognises the same feature under the same name
- * rather than a re-invented pitch for it.
+ * One feature per slide, in the order a new traveller meets them: other people's
+ * trips first, then their own, then the tools around them, ending on Tripician
+ * Intelligence and an Explore button into Groups & Stories.
  *
- * The deck used to end on Reality check, which described a product that was
- * only a planner. It now runs the arc the product actually claims: find a trip,
- * plan yours, then tell it afterwards and keep it. Reality check did not
- * disappear, it moved into the planning slide, which is where it happens.
- *
- * Recruitment is deliberately NOT here. A first-run user has no trip and
- * therefore nobody to recruit; teaching it now would be teaching something they
- * cannot do. It is taught in context instead, on Community and in the planner,
- * and to returning users through the changelog.
- *
- * The photograph order changed with the copy: the reading-a-book picture belongs
- * to the story slide and the map picture to the planning slide, which is the
- * opposite of how they were paired before.
+ * Copy mirrors the landing page (pages/LandingPage/landingContent.ts) so a
+ * feature carries the same name everywhere. Every slide names something that
+ * has shipped; nothing here describes a plan. The old third slide promised a
+ * story "laid out page by page as something you keep", which went with book
+ * printing in November 2026.
  */
 export const ONBOARDING_SLIDES: OnboardingSlide[] = [
   {
     slug: 'community',
     image: photo('community'),
     alt: 'A group of friends checking a map together on a city street',
-    eyebrow: 'From other travellers',
-    title: 'Real trips, from travellers who have actually been there',
-    body: 'Browse itineraries people planned, took and published: the route, the stays, the places worth the detour. Copy one into your own plan and make it yours, or ask the travellers who are out there right now and get an answer back.',
-  },
-  {
-    slug: 'reality-check',
-    image: photo('reality-check'),
-    alt: 'A hiker checking a printed route map against the trail',
-    eyebrow: 'Plan with Tripician Intelligence',
-    title: 'A full itinerary, with far less typing',
-    body: 'Tell Tripician Intelligence where you’re headed and what you’re into, and it drafts the route, the stops and the pacing. Then every plan gets checked: travel time between stops, overloaded days, places that have closed, measured against real data rather than guessed.',
+    eyebrow: 'Borrow a route',
+    title: 'Real trips from people who actually went',
+    body: 'Every itinerary here was planned, taken and published by the traveller who went. Make one yours in a tap, then bend it to your own pace.',
   },
   {
     slug: 'itinerary',
@@ -54,6 +47,54 @@ export const ONBOARDING_SLIDES: OnboardingSlide[] = [
     alt: 'A traveller sitting at a table, writing up a trip',
     eyebrow: 'After the trip',
     title: 'Write it down while you still remember the small things',
-    body: 'An after story is what the trip was actually like, in your words and your photographs. Publish it and it turns up in search for the next person looking, it becomes the thing people read before they travel with you, and it lays out page by page as something you keep.',
+    body: 'An after-story is the trip in your own words and photographs. It lives on your profile and answers the next traveller for you.',
+  },
+  {
+    slug: 'photography',
+    image: photo('landing:iceland'),
+    alt: 'A waterfall in a forest',
+    eyebrow: 'Photography',
+    title: 'Post photos as Everyday or Photography',
+    body: 'Everyday keeps the feed light. Photography keeps full quality and the original shape, and the i on the photo shows the camera, lens and when it was taken.',
+  },
+  {
+    slug: 'questions',
+    image: photo('landing:india'),
+    alt: 'A narrow street lined with buildings',
+    eyebrow: 'Ask the ones who went',
+    title: 'Questions answered by people, not a model',
+    body: 'Ask the whole community, or the traveller behind a story. Whoever asked marks the answer that actually helped.',
+  },
+  {
+    slug: 'groups',
+    image: photo('landing:vietnam'),
+    alt: 'A group of boats on the water',
+    eyebrow: 'Groups',
+    title: 'Travel with your crew, club or community',
+    body: 'Start a group, public or invite-only, then plan group trips, share group stories and talk it all through in one place.',
+  },
+  {
+    slug: 'messages',
+    image: photo('landing:thailand'),
+    alt: 'A boat between rocky cliffs',
+    eyebrow: 'Private messages',
+    title: 'Chats only the people in them can read',
+    body: 'Messages are end-to-end encrypted. Send photos, react and edit, and someone new arrives as a request you choose to accept.',
+  },
+  {
+    slug: 'profile',
+    image: photo('landing:greece'),
+    alt: 'White houses on a hillside above the sea',
+    eyebrow: 'Your profile',
+    title: 'A profile that reads like a passport',
+    body: 'Featured picks, a Photobook, a Travel Journal and stamps for everywhere you have been. An optional identity check adds the Verified badge.',
+  },
+  {
+    slug: 'reality-check',
+    image: photo('reality-check'),
+    alt: 'A hiker checking a printed route map against the trail',
+    eyebrow: 'Tripician Intelligence',
+    title: 'Ask anything, and watch it think',
+    body: 'It works out what you need, checks timing, live conditions and news when they matter, and turns an answer into a plan. Every place it suggests is checked against a live listing.',
   },
 ];

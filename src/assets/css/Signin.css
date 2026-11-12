@@ -79,7 +79,7 @@
 }
 .auth-left__logo svg { color: var(--brand); }
 .auth-left__logo-img {
-  height: 30px;
+  height: 38px;
   object-fit: contain;
   object-position: left center;
 }
@@ -93,10 +93,10 @@
   margin: 0;
   letter-spacing: -0.025em;
 }
-/* Real italic, not a synthesised one: index.html requests the `1,600` cut
-   precisely so this works under `font-synthesis: none`. */
+/* Emphasis by colour alone: Bricolage Grotesque has no italic cut, and under
+   `font-synthesis: none` an italic would render upright anyway. */
 .auth-left__title em {
-  font-style: italic;
+  font-style: normal;
   color: var(--brand-light);
 }
 

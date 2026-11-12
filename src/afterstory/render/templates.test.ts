@@ -53,7 +53,15 @@ describe('templateScaffold', () => {
   it.each(TEMPLATE_ORDER)('%s opens with the introduction prompt', (key) => {
     const first = templateScaffold(key)[0];
     expect(first.type).toBe('text');
-    expect(first.type === 'text' && first.html).toContain('introduction');
+    // A placeholder, not text the author has to delete.
+    expect(first.type === 'text' && first.html).toBe('');
+    expect(first.type === 'text' && first.prompt).toContain('introduction');
+  });
+
+  it.each(TEMPLATE_ORDER)('%s puts no guidance into the story as real text', (key) => {
+    for (const block of templateScaffold(key)) {
+      if (block.type === 'text') expect(block.html).toBe('');
+    }
   });
 
   it.each(TEMPLATE_ORDER)('%s includes at least one picture slot', (key) => {

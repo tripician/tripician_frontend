@@ -29,7 +29,10 @@ const sheetPaper = (t: { palette: { mode: string } }) => ({
   overflow: 'hidden',
   background: t.palette.mode === 'dark' ? '#121416' : '#fff',
   boxShadow: '0 40px 100px rgba(0,0,0,0.2), 0 0 0 1px rgba(0,0,0,0.04)',
-  maxHeight: '88vh',
+  // Never taller than the room the dialog actually has. On a phone, vh counts the
+  // space behind the browser's address bar, so 88vh alone overflowed the screen
+  // and pushed the close button off the top.
+  maxHeight: 'min(88vh, calc(100% - 64px))',
   display: 'flex',
   flexDirection: 'column' as const,
 });

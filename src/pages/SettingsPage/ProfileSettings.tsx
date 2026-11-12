@@ -16,7 +16,7 @@ import {
   Autocomplete,
   Tooltip,
 } from "@mui/material";
-import { LocationOn, Language, Email, Phone, Visibility, VisibilityOff, Save, MyLocation, Close } from "@mui/icons-material";
+import { LocationOn, Language, Email, Phone, Save, MyLocation, Close } from "@mui/icons-material";
 import { locateCurrentPlace, LocateError, type LocateFailure } from '../../utils/deviceLocation';
 import { COUNTRIES } from '../../utils/countryData';
 import { countryNameFromCode } from '../../utils/countryFlags';
@@ -24,6 +24,8 @@ import CountryFlag from '../../components/ui/CountryFlag';
 import { useDispatch, useSelector } from 'react-redux';
 import type { AppDispatch, RootState } from '../../store';
 import { fetchUserProfile, setUserProfile, type UserProfile } from '../../store/userSlice';
+import ChangePasswordCard from './ChangePasswordCard';
+import { fromForCountry, initialHomeCountry } from './homeCountry';
 
 /** What went wrong, in words, for each way the device lookup can fail. */
 const LOCATE_MESSAGES: Record<LocateFailure, string> = {
@@ -35,9 +37,6 @@ const LOCATE_MESSAGES: Record<LocateFailure, string> = {
 };
 
 const ProfileSettings: React.FC = () => {
-  const [showPassword, setShowPassword] = useState(false);
-  const [showNewPassword, setShowNewPassword] = useState(false);
-  const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   // Profile settings state (fetched from backend)
   const [fname, setFname] = useState('');
@@ -61,6 +60,9 @@ const ProfileSettings: React.FC = () => {
    * decide which currency somebody is quoted, and a price cannot hang off free
    * text. Empty string means never set, which is what every account holds
    * today: no signup path has ever written this column.
+   *
+   * It is also the "I'm from" question, asked once: the bio's "I'm from" line
+   * is written to match it on save (see ./homeCountry).
    */
   const [country, setCountry] = useState('');
   const [website, setWebsite] = useState('');
@@ -94,23 +96,26 @@ const ProfileSettings: React.FC = () => {
         const data = resp.data || {};
         if(!active) return;
         setFname(data.Fname || data.fname || '');
-        setCountry(data.Country || data.country || '');
         setLname(data.Lname || data.lname || '');
-        
+
         // Parse bio highlights
         const bioData = data.Bio || data.bio;
+        let from = '';
         if (bioData && typeof bioData === 'object' && bioData.highlights) {
           const highlights = bioData.highlights;
+          from = highlights.find((h: any) => h.key === 'from')?.value || '';
           setBioHighlights({
             intro: highlights.find((h: any) => h.key === 'intro')?.value || '',
             about: highlights.find((h: any) => h.key === 'about')?.value || '',
             dreamPlace: highlights.find((h: any) => h.key === 'dreamPlace')?.value || '',
-            from: highlights.find((h: any) => h.key === 'from')?.value || ''
+            from,
           });
         } else {
           setBioHighlights({ intro: '', about: '', dreamPlace: '', from: '' });
         }
-        
+        // With no country saved, the country an older "I'm from" line names is offered.
+        setCountry(initialHomeCountry(data.Country || data.country || '', from));
+
         setLocation(data.Location || data.location || '');
         setWebsite(data.Website || data.website || '');
         setEmail(data.Email || data.email || '');
@@ -450,15 +455,39 @@ const ProfileSettings: React.FC = () => {
             sx={{ mb: 2, "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}
           />
 
-          <TextField
+          {/* "I'm from" is the home country, asked once: the bio's line follows it on save. */}
+          <Autocomplete
             fullWidth
-            label="I'm from"
-            placeholder="e.g., New York, USA"
-            value={bioHighlights.from}
-            onChange={e=> setBioHighlights(prev => ({ ...prev, from: e.target.value }))}
             size="small"
             disabled={loading}
-            sx={{ mb: 3, "& .MuiOutlinedInput-root": { borderRadius: 1.5 } }}
+            options={COUNTRIES.map(([code]) => code)}
+            value={country || null}
+            onChange={(_, code) => setCountry(code ?? '')}
+            getOptionLabel={(code) => countryNameFromCode(code) ?? code}
+            isOptionEqualToValue={(a, b) => a === b}
+            renderOption={(props, code) => (
+              <Box component="li" {...props} sx={{ display: 'flex', gap: 1 }}>
+                <CountryFlag country={code} size={18} />
+                {countryNameFromCode(code) ?? code}
+              </Box>
+            )}
+            renderInput={(params) => (
+              <TextField
+                {...params}
+                label="I'm from"
+                placeholder="Choose your home country"
+                helperText="Your home country. Its flag always leads your travel stamps."
+                InputProps={{
+                  ...params.InputProps,
+                  startAdornment: country ? (
+                    <InputAdornment position="start" sx={{ ml: 0.5 }}>
+                      <CountryFlag country={country} size={18} />
+                    </InputAdornment>
+                  ) : params.InputProps.startAdornment,
+                }}
+              />
+            )}
+            sx={{ mb: 3, '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
           />
 
           <Box sx={{ display: "flex", gap: 2, mb: 3 }}>
@@ -511,31 +540,7 @@ const ProfileSettings: React.FC = () => {
               }}
               sx={{"& .MuiOutlinedInput-root": { borderRadius: 1.5 }}}
             />
-            <Autocomplete
-              fullWidth
-              size="small"
-              disabled={loading}
-              options={COUNTRIES.map(([code]) => code)}
-              value={country || null}
-              onChange={(_, code) => setCountry(code ?? '')}
-              getOptionLabel={(code) => countryNameFromCode(code) ?? code}
-              isOptionEqualToValue={(a, b) => a === b}
-              renderOption={(props, code) => (
-                <Box component="li" {...props} sx={{ display: 'flex', gap: 1 }}>
-                  <CountryFlag country={code} size={18} />
-                  {countryNameFromCode(code) ?? code}
-                </Box>
-              )}
-              renderInput={(params) => (
-                <TextField
-                  {...params}
-                  label="Country"
-                  helperText="Used for billing. Nothing else changes."
-                  sx={{ '& .MuiOutlinedInput-root': { borderRadius: 1.5 } }}
-                />
-              )}
-            />
-            <TextField 
+            <TextField
               fullWidth 
               label="Website" 
               value={website}
@@ -583,11 +588,13 @@ const ProfileSettings: React.FC = () => {
                       icon: 'map'
                     });
                   }
-                  if (bioHighlights.from) {
+                  // Written to match the home country (a city in the same country is kept).
+                  const from = fromForCountry(country, bioHighlights.from);
+                  if (from) {
                     highlights.push({
                       key: 'from',
                       label: "I'm from",
-                      value: bioHighlights.from,
+                      value: from,
                       icon: 'map-pin'
                     });
                   }
@@ -707,109 +714,8 @@ const ProfileSettings: React.FC = () => {
         </CardContent>
       </Card>
 
-      {/* Security Section */}
-      <Card
-        sx={{
-          borderRadius: '16px',
-          boxShadow: '0 2px 12px rgba(0,0,0,0.06)',
-          border: '1px solid',
-          borderColor: 'divider',
-        }}
-      >
-        <CardContent sx={{ p: 3 }}>
-          <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', mb: 3, color: 'text.primary', letterSpacing: '-0.01em' }}>
-            Security
-          </Typography>
-
-          <TextField
-            fullWidth
-            label="Current Password"
-            type={showPassword ? "text" : "password"}
-            placeholder="Enter current password"
-            size="small"
-            disabled={loading}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => setShowPassword(!showPassword)}
-                    edge="end"
-                    size="small"
-                  >
-                    {showPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              )
-            }}
-            sx={{
-              mb: 3,
-              "& .MuiOutlinedInput-root": { borderRadius: 1.5 }
-            }}
-          />
-
-          <TextField
-            fullWidth
-            label="New Password"
-            type={showNewPassword ? "text" : "password"}
-            placeholder="Enter new password"
-            size="small"
-            disabled={loading}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => setShowNewPassword(!showNewPassword)}
-                    edge="end"
-                    size="small"
-                  >
-                    {showNewPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              )
-            }}
-            sx={{
-              mb: 3,
-              "& .MuiOutlinedInput-root": { borderRadius: 1.5 }
-            }}
-          />
-
-          <TextField
-            fullWidth
-            label="Confirm New Password"
-            type={showConfirmPassword ? "text" : "password"}
-            placeholder="Confirm new password"
-            size="small"
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton
-                    onClick={() => setShowConfirmPassword(!showConfirmPassword)}
-                    edge="end"
-                    size="small"
-                  >
-                    {showConfirmPassword ? <VisibilityOff /> : <Visibility />}
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-            sx={{
-              mb: 3,
-              "& .MuiOutlinedInput-root": {
-                borderRadius: 1.5,
-              }
-            }}
-          />
-
-          <Button 
-            variant="outlined"
-            disabled={loading}
-            onClick={()=> window.dispatchEvent(new CustomEvent('app:success',{ detail:{ message:'Password changed' }}))}
-            sx={{ textTransform: "none", fontWeight: 500, px: 3, py: 1, borderRadius: 1.5 }}
-          >
-            Change Password
-          </Button>
-        </CardContent>
-      </Card>
+      {/* Security: a real password change (the old card here called no API). */}
+      <ChangePasswordCard />
     {error && (
       <Typography variant="caption" color="error" sx={{ mt:2, display:'block' }}>{error}</Typography>
     )}

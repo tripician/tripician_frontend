@@ -4,12 +4,13 @@ import {
 } from '@mui/material';
 import { IconTrash } from '@tabler/icons-react';
 import { useSelector } from 'react-redux';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { apiServices } from '../services/APIs/apiServices';
 import { useAuthToken } from '../hooks/useAuth0Token';
 import type { RootState } from '../store';
 import PlanGate from './PlanGate';
 import GroupInviteCard from './GroupInviteCard';
+import GroupInvitePeopleCard from './GroupInvitePeopleCard';
 import GroupRequestsCard from './GroupRequestsCard';
 import { groupIsFull } from './groupLogic';
 import { isOrganizationAdmin, hasFeature, PLAN_FEATURES } from './types';
@@ -30,10 +31,12 @@ const OrganizationPeoplePanel: React.FC<OrganizationPeoplePanelProps> = ({ organ
   const { token } = useAuthToken();
   const border = theme.custom.surface.border;
   const navigate = useNavigate();
+  // ?invite=1 arrives from starting a group: inviting people is the next thing to do.
+  const [params] = useSearchParams();
   const viewerId = useSelector((s: RootState) => Number(s.user.profile?.id));
   const canManage = isOrganizationAdmin(organization);
   const managerAllowed = hasFeature(organization, PLAN_FEATURES.managerRole);
-  // A business adds its staff by name; a community group grows only by requests and its invite link, which people agree to.
+  // A business adds its staff by name; a community group grows by invitations, requests and its invite link, each of which the person agrees to.
   const addsByName = canManage && organization.kind === 'business';
 
   const [members, setMembers] = React.useState<OrganizationMember[]>([]);
@@ -135,6 +138,7 @@ const OrganizationPeoplePanel: React.FC<OrganizationPeoplePanelProps> = ({ organ
 
       {canManage && organization.kind !== 'business' && (
         <>
+          <GroupInvitePeopleCard organization={organization} members={members} autoFocus={params.get('invite') === '1'} />
           <GroupRequestsCard organization={organization} onDecided={() => void load()} />
           <GroupInviteCard organization={organization} />
         </>

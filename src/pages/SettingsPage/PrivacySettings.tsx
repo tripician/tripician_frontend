@@ -24,6 +24,7 @@ import {
 } from "@mui/material";
 import { KeyboardArrowDown, WarningAmberRounded } from "@mui/icons-material";
 import BlockedPeopleCard from './BlockedPeopleCard';
+import ChatPasscodeCard from '../../messages/ChatPasscodeCard';
 
 interface PrivacySetting {
   id: string;
@@ -50,8 +51,8 @@ const PrivacySettings: React.FC = () => {
     },
     {
       id: "allow_direct_messages",
-      title: "Direct Messages",
-      description: "People on your trips, and anyone with an open join request, can message you",
+      title: "New chats",
+      description: "Let people start a chat with you. Chats you already have carry on.",
       enabled: true,
     },
   ]);
@@ -110,8 +111,8 @@ const PrivacySettings: React.FC = () => {
         },
         {
           id: 'allow_direct_messages',
-          title: 'Direct Messages',
-          description: 'People on your trips, and anyone with an open join request, can message you',
+          title: 'New chats',
+          description: 'Let people start a chat with you. Chats you already have carry on.',
           enabled: !!pick(data, 'allowDirectMessages', 'AllowDirectMessages'),
         },
       ];
@@ -373,6 +374,8 @@ const PrivacySettings: React.FC = () => {
 
       {/* Who you have shut out sits with the rest of privacy, above the one irreversible action. */}
       <BlockedPeopleCard sx={{ mt: 3, borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid', borderColor: 'divider' }} />
+
+      <ChatPasscodeCard sx={{ mt: 3, borderRadius: '16px', boxShadow: '0 2px 12px rgba(0,0,0,0.06)', border: '1px solid', borderColor: 'divider' }} />
 
       {/* Danger Zone */}
       <Card

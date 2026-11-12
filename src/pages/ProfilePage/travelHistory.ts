@@ -32,6 +32,8 @@ export interface TravelCountry {
 export interface TravelMap {
   countries: TravelCountry[];
   legs: string[][];
+  /** Countries the app placed the person in from their phone's location. Absent on older servers. */
+  locationCountries?: Array<{ code: string; firstAt: string | null }>;
 }
 
 export interface TravelNode {

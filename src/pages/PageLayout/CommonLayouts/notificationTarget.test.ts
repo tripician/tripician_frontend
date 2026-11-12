@@ -26,6 +26,7 @@ const ROUTES: Array<[string, string | null, string | null, string?]> = [
   ['GroupJoinRequested', 'Organization', `/groups/${TRIP}?tab=members`],
   ['GroupJoinApproved', 'Organization', `/groups/${TRIP}`],
   ['GroupMemberAdded', 'Organization', `/groups/${TRIP}`],
+  ['GroupInvited', 'Organization', '/groups'],
   ['OrgAnnouncement', 'Organization', `/groups/${TRIP}?tab=notices`],
   ['GroupDiscussionReply', 'Organization', `/groups/${TRIP}?tab=discussion`],
   ['EnquiryReceived', 'Trip', '/operator'],

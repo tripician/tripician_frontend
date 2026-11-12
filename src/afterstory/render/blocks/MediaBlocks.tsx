@@ -11,6 +11,8 @@ import React from 'react';
 import { Box, Typography, useTheme } from '@mui/material';
 import { IconExternalLink, IconPlayerPlayFilled } from '@tabler/icons-react';
 import { safeExternalUrl } from '../../../utils/sanitizeHtml';
+import { fitWidth } from '../../../utils/imageThumb';
+import { StoryBleedContext } from '../storyBleed';
 import type { StoryTemplateStyle } from '../templates';
 import type { StoryBlock } from '../../types';
 
@@ -37,6 +39,7 @@ function captionSx(style: StoryTemplateStyle) {
  */
 export const StoryPhotoBlock: React.FC<BlockProps<Extract<StoryBlock, { type: 'photo' }>>> = ({ block, style }) => {
   const theme = useTheme();
+  const canBleed = React.useContext(StoryBleedContext);
   const [failed, setFailed] = React.useState(false);
 
   const url = safeExternalUrl(block.url);
@@ -44,7 +47,9 @@ export const StoryPhotoBlock: React.FC<BlockProps<Extract<StoryBlock, { type: 'p
 
   const width =
     block.width === 'full'
-      ? { width: '100vw', marginLeft: 'calc(50% - 50vw)', borderRadius: 0 }
+      ? canBleed
+        ? { width: '100vw', maxWidth: 'none', marginLeft: 'calc(50% - 50vw)', borderRadius: 0 }
+        : { width: '100%', borderRadius: '4px' }
       : block.width === 'wide'
         ? { width: '100%', maxWidth: 1080, borderRadius: '16px' }
         : { width: '100%', maxWidth: `${style.measure + 12}ch`, borderRadius: '16px' };
@@ -53,7 +58,8 @@ export const StoryPhotoBlock: React.FC<BlockProps<Extract<StoryBlock, { type: 'p
     <Box component="figure" sx={{ margin: 0 }}>
       <Box
         component="img"
-        src={url}
+        // Sized to how wide it can ever be shown, at 2x for sharp screens.
+        src={fitWidth(url, block.width === 'full' ? 2560 : block.width === 'wide' ? 2160 : 1440) ?? url}
         alt={block.alt ?? block.caption ?? ''}
         loading="lazy"
         decoding="async"
@@ -112,7 +118,7 @@ export const StoryGalleryBlock: React.FC<BlockProps<Extract<StoryBlock, { type: 
           <Box key={`${item.safe}-${index}`} sx={{ flex: '0 0 auto', scrollSnapAlign: 'start' }}>
             <Box
               component="img"
-              src={item.safe as string}
+              src={fitWidth(item.safe, 640) ?? (item.safe as string)}
               alt={item.alt ?? item.caption ?? ''}
               loading="lazy"
               decoding="async"
@@ -142,7 +148,7 @@ export const StoryGalleryBlock: React.FC<BlockProps<Extract<StoryBlock, { type: 
         <Box key={`${item.safe}-${index}`}>
           <Box
             component="img"
-            src={item.safe as string}
+            src={fitWidth(item.safe, 900) ?? (item.safe as string)}
             alt={item.alt ?? item.caption ?? ''}
             loading="lazy"
             decoding="async"

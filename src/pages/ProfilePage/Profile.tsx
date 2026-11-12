@@ -1,40 +1,38 @@
 /**
- * /profile , the personal hub.
+ * /profile, your own profile.
  *
- * This page and /dashboard were the same idea in two places: both read
- * `getDashboardTrips`, both listed your trips, and Profile's only way to reach
- * the rest of them was a button back to Dashboard. Dashboard's seven tabs and
- * this page's published-only grid have merged into four tabs here, and "Trips"
- * has left the main navigation.
+ * Redesigned in 2026-11 to match the app's profile, so one person's page reads
+ * the same on both: a centred title page (cover, photo, name, where you are,
+ * your own words, three figures, Edit profile), your travel stamps, then the
+ * tabs. The Wall is the portfolio the app shows (Featured, Photobook, Travel
+ * Journal). Trips, Stories and Saved are the web's working tabs: the web is
+ * where plans are managed, and /dashboard still lands on Trips.
  *
- * The old split was documented as protecting the *public* twin at
- * /traveler/:userId from leaking saved and archived trips. That still holds and
- * is why this page is auth-gated and TravelerProfile is a separate component:
- * nothing private below is reachable from the public route.
+ * This page is auth-gated and TravelerProfile is a separate component, so
+ * nothing private here (drafts, saved, archived) is reachable from the public
+ * route.
  */
 
-import React, { useEffect, useState, useMemo, useCallback, useRef } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
-  Avatar, Box, Button, CircularProgress, Dialog, DialogActions, DialogContent,
-  DialogContentText, DialogTitle, IconButton, Skeleton, Snackbar, Tab, Tabs, Tooltip, Typography, useTheme,
+  Box, Button, ButtonBase, CircularProgress, Dialog, DialogActions, DialogContent,
+  DialogContentText, DialogTitle, Snackbar,
 } from '@mui/material';
-import { motion } from 'framer-motion';
-import { useSelector, useDispatch } from 'react-redux';
+import { useDispatch, useSelector } from 'react-redux';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import {
   IconArchive,
-  IconMessages,
   IconBook,
   IconBookmark,
-  IconBrandFacebook,
-  IconBrandInstagram,
-  IconBrandX,
-  IconLink,
-  IconMapPin,
+  IconLayoutGrid,
   IconMapPlus,
+  IconPencil,
+  IconPlus,
+  IconRoute,
+  IconShare3,
   IconUsers,
 } from '@tabler/icons-react';
-import type { RootState, AppDispatch } from '../../store';
+import type { AppDispatch, RootState } from '../../store';
 import { fetchUserProfile } from '../../store/userSlice';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
@@ -43,8 +41,7 @@ import { fetchUnsplashImage } from '../../services/unsplashService';
 import EmptyState from '../../components/ui/EmptyState';
 import ErrorState from '../../components/ui/ErrorState';
 import FilterChip from '../../components/ui/FilterChip';
-import SectionHeader from '../../components/ui/SectionHeader';
-import { CardGridSkeleton, ListSkeleton } from '../../components/ui/Skeletons';
+import { CardGridSkeleton } from '../../components/ui/Skeletons';
 import TripCard from '../DashboardPage/TripCard';
 import TripShareModal from '../../components/TripShareModal';
 import Seo from '../../components/Seo';
@@ -52,35 +49,37 @@ import StoryCard from '../../afterstory/cards/StoryCard';
 import { afterStoryService } from '../../afterstory/afterStoryService';
 import type { AfterStorySummaryDto } from '../../afterstory/types';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
-import { staggerContainer, staggerItem } from '../../utils/animations';
-import { safeExternalUrl } from '../../utils/sanitizeHtml';
 import { tripPath } from '../../utils/tripSlug';
-import { mapTripVM, rowsFrom, type TripVM } from './tripViewModel';
-import { passportViewFromDto, type VibePassport } from './ProfilePassport';
-import TravelHistoryPanel from './TravelHistoryPanel';
-import ProfileIdentityRail from './ProfileIdentityRail';
-import { pickDefaultTab, type TabId } from './profileTabs';
-import PostComposer from '../../posts/PostComposer';
-import PostCard from '../../posts/PostCard';
-import { postsService } from '../../posts/postsService';
-import type { TravelerPost } from '../../posts/types';
-import VerifiedProfileMark from '../../components/ui/VerifiedProfileMark';
 import JoinRequestsInbox from '../../seats/JoinRequestsInbox';
+import { mapTripVM, rowsFrom, type TripVM } from './tripViewModel';
+import { readHighlights, readIntro } from './profileBio';
+import CredibilityStrip from './CredibilityStrip';
+import { resolveTab, type TabId } from './profileTabs';
+import type { TravelMap } from './travelHistory';
+import ProfileHeader, { type ProfileStat } from './portfolio/ProfileHeader';
+import { profileSocials } from './portfolio/socials';
+import ProfilePortfolio from './portfolio/ProfilePortfolio';
+import ProfileTabStrip, { type ProfileTab } from './portfolio/ProfileTabStrip';
+import { SectionHeader } from './portfolio/PortfolioSection';
+import TravelStamps from './portfolio/TravelStamps';
+import FollowListDialog, { type FollowMode } from './portfolio/FollowListDialog';
 
-/** Community's measure. This page sat at 1200 and TravelerProfile at 1140, so
- *  three sibling pages disagreed on where the content edge was. */
-const CONTENT_MAX = 1280;
+/** The one figure read from /api/trips/vibe-passport: your own country count. */
+interface PassportSummary {
+  countriesVisited: number;
+}
 
-/** How many posts the road tab asks for at a time. */
-const ROAD_PAGE = 50;
+/** The app clamps a tablet's profile to this; the web uses the same measure. */
+const CONTENT_MAX = 1040;
 
-type TripFilter = 'all' | 'mine' | 'shared' | 'published';
+type TripFilter = 'all' | 'mine' | 'shared' | 'published' | 'archived';
 
 const TRIP_FILTERS: { id: TripFilter; label: string }[] = [
   { id: 'all', label: 'All' },
   { id: 'mine', label: 'Mine' },
   { id: 'shared', label: 'Shared with me' },
   { id: 'published', label: 'Published' },
+  { id: 'archived', label: 'Archived' },
 ];
 
 // Default banner fetched once from Unsplash, personalised by the user's location.
@@ -89,7 +88,6 @@ const _defaultBannerCache: Record<string, string> = {};
 async function loadDefaultBanner(place: string): Promise<string | null> {
   const key = place.trim().toLowerCase();
   if (_defaultBannerCache[key]) return _defaultBannerCache[key];
-
   for (const q of [`${place} landscape travel`, `${place} aerial scenery`, `${place} nature travel`]) {
     const url = await fetchUnsplashImage(q);
     if (url) {
@@ -100,19 +98,37 @@ async function loadDefaultBanner(place: string): Promise<string | null> {
   return null;
 }
 
-// ── main ───────────────────────────────────────────────────────────────────
+/** Shares a link: the system sheet where there is one, else the clipboard. */
+async function shareLink(url: string, title: string) {
+  try {
+    if (typeof navigator.share === 'function') {
+      await navigator.share({ title, url });
+      return;
+    }
+    await navigator.clipboard.writeText(url);
+    window.dispatchEvent(new CustomEvent('app:success', { detail: { message: 'Profile link copied' } }));
+  } catch {
+    /* closed the sheet, or the clipboard was refused */
+  }
+}
+
+const tripGridSx = {
+  display: 'grid',
+  gridTemplateColumns: { xs: '1fr', sm: 'repeat(2, minmax(0, 1fr))', md: 'repeat(3, minmax(0, 1fr))' },
+  gap: 3,
+} as const;
 
 const Profile: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const theme = useTheme();
   const { token } = useAuthToken();
   const { openCreateTrip } = useAppShell();
   const [searchParams, setSearchParams] = useSearchParams();
 
   const { profile, loading, error } = useSelector((state: RootState) => state.user);
 
-  const rawTab = searchParams.get('tab');
+  const requested = resolveTab(searchParams.get('tab'));
+  const activeTab = requested.tab;
   const setActiveTab = (next: TabId) =>
     setSearchParams(
       (prev) => {
@@ -124,7 +140,8 @@ const Profile: React.FC = () => {
 
   const [allTrips, setAllTrips] = useState<TripVM[]>([]);
   const [tripsLoading, setTripsLoading] = useState(true);
-  const [tripFilter, setTripFilter] = useState<TripFilter>('all');
+  // An old `?tab=archived` link lands on Trips with Archived chosen.
+  const [tripFilter, setTripFilter] = useState<TripFilter>(requested.archived ? 'archived' : 'all');
 
   const [savedTrips, setSavedTrips] = useState<TripVM[]>([]);
   const [likedTrips, setLikedTrips] = useState<TripVM[]>([]);
@@ -132,40 +149,15 @@ const Profile: React.FC = () => {
   const [savedLoading, setSavedLoading] = useState(false);
   const savedFetched = useRef(false);
 
-  /*
-   * Posts load eagerly, unlike stories and saved, which wait for their tab.
-   *
-   * They have to: which tab OPENS depends on whether there are any, so the
-   * answer is needed before the strip can settle on a selection.
-   */
-  const [posts, setPosts] = useState<TravelerPost[]>([]);
-  const [postsResolved, setPostsResolved] = useState(false);
-  const [postsMore, setPostsMore] = useState(false);
-  const [postsPaging, setPostsPaging] = useState(false);
-
-  /*
-   * Null means "not knowable yet", not "trips".
-   *
-   * Guessing while the posts request is in flight and correcting on arrival
-   * would flip the panel out from under whoever was already reading it. Only a
-   * cold landing ever sees this, because every tab change writes `?tab=`.
-   */
-  const activeTab = pickDefaultTab({ requested: rawTab, postsResolved, hasPosts: posts.length > 0 });
-
-
+  // Every story you wrote: the Stories tab lists them all, the journal only the published ones.
   const [myStories, setMyStories] = useState<AfterStorySummaryDto[]>([]);
-  // Which story's book is open. Only ever set from the author's own tab: the
-  // preview endpoint is authorship-gated, so offering it on a saved story would
-  // be an action that always fails.
-  const [storiesLoading, setStoriesLoading] = useState(false);
-  const storiesFetched = useRef(false);
+  const [storiesLoading, setStoriesLoading] = useState(true);
 
-  const [followStats, setFollowStats] = useState({ followers: 0, following: 0 });
-  const [followLoading, setFollowLoading] = useState(true);
-  // Shape declared once, in the component that renders it. It used to be spelled
-  // out inline here AND in the sidebar, so the two could drift apart silently.
-  const [vibePassport, setVibePassport] = useState<VibePassport | null>(null);
-  const [passportLoading, setPassportLoading] = useState(true);
+  const [followStats, setFollowStats] = useState<{ followers: number; following: number } | null>(null);
+  const [followList, setFollowList] = useState<FollowMode | null>(null);
+  // `undefined` while loading, `null` if it failed: either way the figure is not a zero.
+  const [vibePassport, setVibePassport] = useState<PassportSummary | null | undefined>(undefined);
+  const [travelMap, setTravelMap] = useState<TravelMap | null>(null);
 
   const [defaultBanner, setDefaultBanner] = useState<string | null>(null);
   const [coverFailed, setCoverFailed] = useState(false);
@@ -175,12 +167,13 @@ const Profile: React.FC = () => {
   const [snackbar, setSnackbar] = useState<string | null>(null);
   const [shareTrip, setShareTrip] = useState<TripVM | null>(null);
 
+  const userId = Number.isFinite(Number(profile?.id)) && Number(profile?.id) > 0 ? Number(profile?.id) : null;
+
   useEffect(() => {
     dispatch(fetchUserProfile());
   }, [dispatch]);
 
-  // Cover fallback: Unsplash scenery for the user's location. No location on
-  // file means no fetch, and the cover stays a clean blank band.
+  // Cover fallback: scenery for the user's location. No location, no fetch: the band stays a quiet wash.
   useEffect(() => {
     let cancelled = false;
     const place = profile?.location?.trim() || profile?.country?.trim();
@@ -196,165 +189,94 @@ const Profile: React.FC = () => {
     };
   }, [profile?.location, profile?.country]);
 
-  // Both of these fetches used to have no loading flag at all, so the page
-  // painted "0 trips - 0 countries - 0 followers" as though those were facts and
-  // then swapped them for real numbers. A zero is a claim; it must not paint
-  // before it is known.
   useEffect(() => {
     if (!token) return;
     let active = true;
-    setPassportLoading(true);
     void apiServices
       .getVibePassport(token)
-      .then((resp) => {
-        if (active) setVibePassport(resp.data);
-      })
-      .catch(() => {
-        /* optional enrichment */
-      })
-      .finally(() => {
-        if (active) setPassportLoading(false);
-      });
-    return () => {
-      active = false;
-    };
+      .then((resp) => { if (active) setVibePassport(resp.data ?? null); })
+      .catch(() => { if (active) setVibePassport(null); });
+    return () => { active = false; };
   }, [token]);
 
   useEffect(() => {
-    const profileId = Number(profile?.id);
-    if (!Number.isFinite(profileId)) return;
-    let active = true;
-    setFollowLoading(true);
-    void apiServices
-      .getFollowStats(profileId)
-      .then((resp) => {
-        if (active) setFollowStats(resp.data);
-      })
-      .catch(() => {
-        /* silent */
-      })
-      .finally(() => {
-        if (active) setFollowLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [profile?.id]);
+    if (userId == null) return;
+    let wanted = userId;
+    void apiServices.getFollowStats(userId)
+      .then((resp) => { if (wanted === userId) setFollowStats(resp.data); })
+      .catch(() => { if (wanted === userId) setFollowStats({ followers: 0, following: 0 }); });
+    void apiServices.getTravelMap(userId)
+      .then((resp) => { if (wanted === userId) setTravelMap(resp.data); })
+      .catch(() => { if (wanted === userId) setTravelMap({ countries: [], legs: [] }); });
+    return () => { wanted = -1; };
+  }, [userId]);
 
-  // The one trips fetch. This page and Dashboard each ran their own.
+  // The one trips fetch, shared by the journal and the Trips tab.
   useEffect(() => {
     if (!token) return;
     let active = true;
     setTripsLoading(true);
-
     void apiServices
       .getDashboardTrips(token)
-      .then((resp) => {
-        if (!active) return;
-        setAllTrips(rowsFrom(resp?.data).map((t) => mapTripVM(t, profile)));
-      })
-      .catch(() => {
-        if (active) setAllTrips([]);
-      })
-      .finally(() => {
-        if (active) setTripsLoading(false);
-      });
-
-    return () => {
-      active = false;
-    };
+      .then((resp) => { if (active) setAllTrips(rowsFrom(resp?.data).map((t) => mapTripVM(t, profile))); })
+      .catch(() => { if (active) setAllTrips([]); })
+      .finally(() => { if (active) setTripsLoading(false); });
+    return () => { active = false; };
   }, [token, profile]);
 
-  // Matched on the id in the reply rather than a cleanup flag, the pattern the
-  // credibility strip and the constellation both settled on.
   useEffect(() => {
-    const id = Number(profile?.id);
-    // Resolved, not abandoned. Bailing out silently would leave the tab strip
-    // with no selection and a skeleton forever, since nothing else ever sets it.
-    if (!Number.isFinite(id) || id <= 0) { setPostsResolved(true); return; }
-    let wanted = id;
-    void postsService.byAuthor(id, ROAD_PAGE)
-      .then((rows) => {
-        if (wanted !== id) return;
-        setPosts(rows);
-        setPostsMore(rows.length >= ROAD_PAGE);
-      })
-      .finally(() => { if (wanted === id) setPostsResolved(true); });
-    return () => { wanted = -1; };
-  }, [profile?.id]);
+    if (!FEATURE_FLAGS.afterStory || !token) {
+      setStoriesLoading(false);
+      return;
+    }
+    let active = true;
+    void afterStoryService
+      .listMine()
+      .then((rows) => { if (active) setMyStories(rows); })
+      .catch(() => { if (active) setMyStories([]); })
+      .finally(() => { if (active) setStoriesLoading(false); });
+    return () => { active = false; };
+  }, [token]);
 
-  // Saved and stories load on first visit to their tab. Fetching four more lists
-  // on mount would slow the tab everyone actually opens.
+  // Saved loads on first visit to its tab.
   useEffect(() => {
     if (activeTab !== 'saved' || savedFetched.current || !token) return;
     savedFetched.current = true;
     setSavedLoading(true);
-
     void Promise.allSettled([
       apiServices.getSavedTrips(token),
       apiServices.getLikedTrips(token),
       FEATURE_FLAGS.afterStory ? afterStoryService.listSaved() : Promise.resolve([]),
     ]).then(([saved, liked, stories]) => {
-      if (saved.status === 'fulfilled') {
-        setSavedTrips(rowsFrom(saved.value?.data).map((t) => mapTripVM(t, profile)));
-      }
-      if (liked.status === 'fulfilled') {
-        setLikedTrips(rowsFrom(liked.value?.data).map((t) => mapTripVM(t, profile)));
-      }
+      if (saved.status === 'fulfilled') setSavedTrips(rowsFrom(saved.value?.data).map((t) => mapTripVM(t, profile)));
+      if (liked.status === 'fulfilled') setLikedTrips(rowsFrom(liked.value?.data).map((t) => mapTripVM(t, profile)));
       if (stories.status === 'fulfilled') setSavedStories(stories.value as AfterStorySummaryDto[]);
       setSavedLoading(false);
     });
   }, [activeTab, token, profile]);
 
-  useEffect(() => {
-    if (activeTab !== 'stories' || storiesFetched.current || !FEATURE_FLAGS.afterStory) return;
-    storiesFetched.current = true;
-    setStoriesLoading(true);
-
-    void afterStoryService
-      .listMine()
-      .then(setMyStories)
-      .catch(() => setMyStories([]))
-      .finally(() => setStoriesLoading(false));
-  }, [activeTab]);
-
   // ── derived ──────────────────────────────────────────────────────────────
-
-  const loadMorePosts = async () => {
-    const oldest = posts[posts.length - 1];
-    if (!oldest || postsPaging) return;
-    setPostsPaging(true);
-    const id = Number(profile?.id);
-    const older = await postsService.byAuthor(id, ROAD_PAGE, oldest.createdAt);
-    setPosts((prev) => [...prev, ...older]);
-    setPostsMore(older.length >= ROAD_PAGE);
-    setPostsPaging(false);
-  };
 
   const activeTrips = useMemo(() => allTrips.filter((t) => !t.isArchived), [allTrips]);
   const archivedTrips = useMemo(() => allTrips.filter((t) => t.isArchived), [allTrips]);
-  const ownedTrips = useMemo(() => activeTrips.filter((t) => t.isOwner), [activeTrips]);
+  const publishedStories = useMemo(() => myStories.filter((s) => s.status === 'Published'), [myStories]);
 
   const filteredTrips = useMemo(() => {
     switch (tripFilter) {
-      case 'mine':
-        return ownedTrips;
-      case 'shared':
-        return activeTrips.filter((t) => !t.isOwner);
-      case 'published':
-        return activeTrips.filter((t) => t.isPublished);
-      default:
-        return activeTrips;
+      case 'mine': return activeTrips.filter((t) => t.isOwner);
+      case 'shared': return activeTrips.filter((t) => !t.isOwner);
+      case 'published': return activeTrips.filter((t) => t.isPublished);
+      case 'archived': return archivedTrips;
+      default: return activeTrips;
     }
-  }, [tripFilter, activeTrips, ownedTrips]);
-
+  }, [tripFilter, activeTrips, archivedTrips]);
 
   const openTrip = useCallback(
-    (t: TripVM) => {
-      if (t.id) navigate(tripPath({ id: t.id, name: t.title }), { state: { trip: t } });
-    },
+    (t: TripVM) => { if (t.id) navigate(tripPath({ id: t.id, name: t.title }), { state: { trip: t } }); },
     [navigate],
   );
+
+  const writeStory = useCallback(() => window.dispatchEvent(new Event('story:create')), []);
 
   const handleDelete = async () => {
     if (!deleteTarget || !token) return;
@@ -394,10 +316,9 @@ const Profile: React.FC = () => {
     }
   };
 
-
   // ── page states ──────────────────────────────────────────────────────────
 
-  if (loading) {
+  if (loading && !profile) {
     return (
       <Box sx={{ minHeight: '70vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
         <CircularProgress size={32} />
@@ -405,14 +326,10 @@ const Profile: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (error && !profile) {
     return (
       <Box sx={{ minHeight: '60vh', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-        <ErrorState
-          title="Couldn't load your profile"
-          description={error}
-          onRetry={() => dispatch(fetchUserProfile({ force: true }))}
-        />
+        <ErrorState title="Couldn't load your profile" description={error} onRetry={() => dispatch(fetchUserProfile({ force: true }))} />
       </Box>
     );
   }
@@ -432,79 +349,26 @@ const Profile: React.FC = () => {
   }
 
   const fullName = [profile.fname, profile.lname].filter(Boolean).join(' ') || 'Tripician Explorer';
-  const initials =
-    [(profile.fname || '')[0], (profile.lname || '')[0]].filter(Boolean).join('').toUpperCase() || 'T';
+  const coverSrc = (!coverFailed && profile.coverpicture) || defaultBanner;
+  const intro = readIntro(profile);
 
-  const bannerSrc = (!coverFailed && profile.coverpicture) || defaultBanner;
+  const socials = profileSocials(profile);
 
-
-  const socials = [
-    { url: profile.instagram, Icon: IconBrandInstagram, label: 'Instagram' },
-    { url: profile.twitter, Icon: IconBrandX, label: 'X' },
-    { url: profile.facebook, Icon: IconBrandFacebook, label: 'Facebook' },
-    { url: profile.website, Icon: IconLink, label: 'Website' },
-  ]
-    .filter((s) => s.url && !String(s.url).toUpperCase().includes('NULL'))
-    .map((s) => ({ ...s, url: safeExternalUrl(s.url) }))
-    .filter((s): s is { url: string; Icon: typeof IconLink; label: string } => Boolean(s.url));
-
-  // Each figure carries the loading flag of the request that produces it, so a
-  // slow follow-stats call cannot make the page claim you have no followers
-  // while the trip counts are already correct beside it.
-  /*
-   * Followers and following only.
-   *
-   * Trips and countries used to sit here too, counted from owned trips in this
-   * component, directly above a passport band counting them differently on the
-   * server. The page showed "44 countries" and "8 COUNTRIES" at the same time.
-   * One question, one answer, and the passport owns this one.
-   */
-  const statItems = [
-    {
-      value: followStats.followers,
-      label: followStats.followers === 1 ? 'follower' : 'followers',
-      loading: followLoading,
-    },
-    { value: followStats.following, label: 'following', loading: followLoading },
+  // Countries come from the passport: the one place your own count is answered.
+  const countries = vibePassport === undefined ? null : vibePassport ? vibePassport.countriesVisited : '—';
+  const stats: ProfileStat[] = [
+    { value: countries, label: vibePassport?.countriesVisited === 1 ? 'Country' : 'Countries', brand: true },
+    { value: followStats?.followers ?? null, label: 'Followers', onClick: () => setFollowList('followers') },
+    { value: followStats?.following ?? null, label: 'Following', onClick: () => setFollowList('following') },
   ];
 
-  // Three-up from md, matching Community and TravelerProfile. The identity rail
-  // only appears from lg, by which point the remaining lane is around 840px, so
-  // three cards still land near the 260px the rest of the site uses. It is the
-  // md range, where there is no rail at all, that gets the full width.
-  const tripGridSx = {
-    display: 'grid',
-    gridTemplateColumns: {
-      xs: '1fr',
-      sm: 'repeat(2, minmax(0, 1fr))',
-      md: 'repeat(3, minmax(0, 1fr))',
-    },
-    gap: 3,
-  } as const;
-
   const savedCount = savedTrips.length + likedTrips.length + savedStories.length;
-
-  /*
-   * Built once and rendered twice: sticky beside the content from lg, inline
-   * above it below that. Two call sites would drift, and the rail is a summary
-   * of the same person either way.
-   */
-  const railNode = (
-    <ProfileIdentityRail
-      userId={Number.isFinite(Number(profile?.id)) ? Number(profile?.id) : undefined}
-      passport={passportViewFromDto(vibePassport)}
-      passportLoading={passportLoading}
-      profile={profile}
-      isOwner
-      onEdit={() => navigate('/settings')}
-      onPlanTrip={openCreateTrip}
-      onFindCrew={(q) => navigate(q ? `/search?tab=people&q=${encodeURIComponent(q)}` : '/crew')}
-      onOpenTraveller={(id) => navigate(`/traveler/${id}`)}
-      onOpenTrip={openTrip}
-      viewerId={Number.isFinite(Number(profile?.id)) ? Number(profile?.id) : undefined}
-      token={token}
-    />
-  );
+  const tabs: ProfileTab<TabId>[] = [
+    { id: 'wall', label: 'Wall', Icon: IconLayoutGrid },
+    { id: 'trips', label: 'Trips', Icon: IconRoute, count: activeTrips.length || null },
+    ...(FEATURE_FLAGS.afterStory ? [{ id: 'stories' as const, label: 'Stories', Icon: IconBook, count: myStories.length || null }] : []),
+    { id: 'saved', label: 'Saved', Icon: IconBookmark, count: savedCount || null },
+  ];
 
   const renderTripGrid = (list: TripVM[]) => (
     <Box sx={tripGridSx}>
@@ -528,18 +392,8 @@ const Profile: React.FC = () => {
           isOwner={t.isOwner}
           commentsCount={t.commentsCount}
           onClick={() => openTrip(t)}
-          onShare={(e) => {
-            e.stopPropagation();
-            setShareTrip(t);
-          }}
-          {...(t.isOwner
-            ? {
-                onDelete: (e: React.MouseEvent) => {
-                  e.stopPropagation();
-                  setDeleteTarget(t);
-                },
-              }
-            : {})}
+          onShare={(e) => { e.stopPropagation(); setShareTrip(t); }}
+          {...(t.isOwner ? { onDelete: (e: React.MouseEvent) => { e.stopPropagation(); setDeleteTarget(t); } } : {})}
           {...(t.isOwner && t.tripStatus === 0 ? { onGoLive: () => void goLive(t) } : {})}
           {...(t.isOwner && t.tripStatus === 1 ? { onFinish: () => void finishTrip(t) } : {})}
         />
@@ -549,419 +403,207 @@ const Profile: React.FC = () => {
 
   return (
     <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
-      {/* Private page: it must never be indexed, and it emitted no head tags at
-          all before this, so it inherited whatever the previous route set. */}
-      <Seo
-        title={`${fullName}`}
-        description="Your trips, stories, saved itineraries and travel passport."
-        path="/profile"
-        noindex
-      />
-      <Box sx={{ maxWidth: CONTENT_MAX, mx: 'auto', px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 3, md: 4 }, pb: 10 }}>
-        <motion.div initial="hidden" animate="visible" variants={staggerContainer(0.08, 0.05)}>
+      {/* Private page: never indexed. */}
+      <Seo title={fullName} description="Your trips, stories, saved itineraries and travel passport." path="/profile" noindex />
 
-          {/* ── Cover ── */}
-          <motion.div variants={staggerItem}>
-            <Box
-              sx={{
-                height: { xs: 150, sm: 200, md: 240 },
-                borderRadius: '20px',
-                overflow: 'hidden',
-                border: `1px solid ${theme.custom.surface.border}`,
-                background: theme.custom.gradients.brandSubtle,
-              }}
-            >
-              {bannerSrc && (
-                <Box
-                  component="img"
-                  src={bannerSrc}
-                  alt=""
-                  onError={() => {
-                    // Broken cover URL, try the Unsplash fallback; if that fails
-                    // too, stay blank rather than showing a broken image icon.
-                    if (!coverFailed && profile.coverpicture) setCoverFailed(true);
-                    else setDefaultBanner(null);
-                  }}
-                  sx={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-                />
-              )}
-            </Box>
-          </motion.div>
-
-          {/* ── Avatar ──
-              ONLY the avatar overlaps the cover. Everything else sits below it.
-              When the masthead moved from h2 to h1 the text block grew to ~70px
-              and, aligned to the bottom of a 112px avatar pulled 52px upward, its
-              first line landed inside the photograph: the name rendered in dark
-              serif across a dark image and was close to unreadable. A long name
-              wrapping to two lines climbed further still. Type belongs on the
-              page, never over an image nobody chose for legibility. */}
-          <motion.div variants={staggerItem}>
-            <Box sx={{ mt: { xs: -5.5, sm: -6.5 }, position: 'relative', zIndex: 1, display: 'flex' }}>
-              {/* The mark anchors to the avatar, so the avatar needs its own
-                  positioning context. The row around it is full width. */}
-              <Box sx={{ position: 'relative', display: 'inline-flex', flexShrink: 0 }}>
-                <Avatar
-                  src={profile.profilepicture || undefined}
-                  sx={{
-                    width: { xs: 96, sm: 112 },
-                    height: { xs: 96, sm: 112 },
-                    fontSize: '2.4rem',
-                    bgcolor: 'primary.main',
-                    color: '#fff',
-                    border: `4px solid ${theme.palette.background.default}`,
-                    boxShadow: theme.custom.shadows.card,
-                    flexShrink: 0,
-                  }}
-                >
-                  {!profile.profilepicture && initials}
-                </Avatar>
-              </Box>
-            </Box>
-          </motion.div>
-
-          {/* ── Identity ── */}
-          <motion.div variants={staggerItem}>
-            <Box
-              sx={{
-                display: 'flex',
-                gap: { xs: 2, sm: 3 },
-                flexDirection: { xs: 'column', sm: 'row' },
-                alignItems: { xs: 'flex-start', sm: 'flex-start' },
-                justifyContent: 'space-between',
-                // No horizontal inset. This used to carry px: {xs:2, sm:4} on top
-                // of the page's own padding, so the name started 32px right of
-                // the passport, the tabs and every card underneath it.
-                px: 0,
-                mt: 1.5,
-              }}
-            >
-              <Box sx={{ minWidth: 0, flex: 1 }}>
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.75, minWidth: 0 }}>
-                  {/* Shrinks but never grows, so the verified badge sits right
-                      after the name, not at the far end of the row. */}
-                  <Typography
-                    component="h1"
-                    variant="h1"
-                    sx={{ color: 'text.primary', flex: '0 1 auto', minWidth: 0 }}
-                  >
-                    {fullName}
-                  </Typography>
-                  {/* The one verified mark: the identity check, with its date. */}
-                  <VerifiedProfileMark verified={!!profile.identityVerifiedAt} verifiedAt={profile.identityVerifiedAt} size={22} />
-                </Box>
-                {profile.location && (
-                  <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.5, color: 'text.secondary' }}>
-                    <IconMapPin size={14} stroke={1.9} />
-                    <Typography variant="body2" noWrap>
-                      {profile.location}
-                    </Typography>
-                  </Box>
-                )}
-
-                {/* Stats sit under the name, not in their own band, so the
-                    identity reads as one block. */}
-                <Box sx={{ display: 'flex', alignItems: 'center', gap: 2.5, flexWrap: 'wrap', mt: 1.5 }}>
-                  {statItems.map((s) =>
-                    s.loading ? (
-                      <Skeleton key={s.label} variant="text" width={78} height={20} />
-                    ) : (
-                      <Typography key={s.label} variant="body2" sx={{ color: 'text.secondary' }}>
-                        <Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>
-                          {s.value}
-                        </Box>{' '}
-                        {s.label}
-                      </Typography>
-                    ),
-                  )}
-                </Box>
-              </Box>
-
-              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, flexShrink: 0, pt: { sm: 1 } }}>
-                {socials.map(({ url, Icon, label }) => (
-                  <Tooltip key={label} title={label}>
-                    <IconButton
-                      component="a"
-                      href={url}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      size="small"
-                      sx={{
-                        color: 'text.secondary',
-                        border: `1px solid ${theme.custom.surface.border}`,
-                        '&:hover': { color: 'text.primary' },
-                      }}
-                    >
-                      <Icon size={16} stroke={1.9} />
-                    </IconButton>
-                  </Tooltip>
-                ))}
-                <Button variant="outlined" size="small" onClick={() => navigate('/settings')}>
+      <Box sx={{ px: { xs: 2, sm: 3, md: 4 }, pt: { xs: 0, sm: 3, md: 4 }, pb: 12 }}>
+        <Box sx={{ maxWidth: CONTENT_MAX, mx: 'auto' }}>
+          <ProfileHeader
+            name={fullName}
+            avatarUrl={profile.profilepicture}
+            coverUrl={coverSrc}
+            onCoverError={() => {
+              // A broken cover tries the scenery fallback; if that fails too, the band stays a wash.
+              if (!coverFailed && profile.coverpicture) setCoverFailed(true);
+              else setDefaultBanner(null);
+            }}
+            verified={!!profile.identityVerifiedAt}
+            verifiedAt={profile.identityVerifiedAt}
+            location={profile.location}
+            intro={intro}
+            highlights={readHighlights(profile)}
+            introPrompt={
+              <ButtonBase
+                onClick={() => navigate('/settings')}
+                sx={(theme) => ({
+                  fontFamily: 'inherit',
+                  fontSize: '0.875rem',
+                  fontWeight: 600,
+                  color: theme.palette.mode === 'light' ? theme.custom.brand.onLight : theme.custom.brand.onDark,
+                  gap: 0.5,
+                  px: 1.25,
+                  py: 0.5,
+                  borderRadius: 999,
+                  '&:hover': { bgcolor: theme.custom.surface.brandTint },
+                })}
+              >
+                <IconPlus size={15} /> Add a short intro
+              </ButtonBase>
+            }
+            socials={socials}
+            stats={stats}
+            actions={
+              <>
+                <Button variant="outlined" startIcon={<IconPencil size={16} />} onClick={() => navigate('/settings')}>
                   Edit profile
                 </Button>
-              </Box>
-            </Box>
-          </motion.div>
-
-          {/* ── Two columns from here down ──
-              Who you are on the right, what you have done on the left. The rail
-              is a column of facts about the person: figures, corroboration, your
-              own words, how to reach you. The lane beside it is your work, which
-              is what needs the width. Below lg the rail rejoins the flow at the
-              top rather than being a desktop-only ornament. */}
-          <Box
-            sx={{
-              display: 'flex',
-              gap: { xs: 0, lg: 4 },
-              alignItems: 'flex-start',
-              mt: { xs: 2.5, md: 3 },
-            }}
-          >
-            <Box sx={{ flex: 1, minWidth: 0 }}>
-              {/* The rail, inline, below lg. */}
-              <Box sx={{ display: { xs: 'block', lg: 'none' }, mb: { xs: 3, md: 4 } }}>
-                {railNode}
-              </Box>
-
-                {/* ── Where you have been, and how much of it anyone can confirm ──
-                    Replaces the eight-flag row the passport used to carry. On your
-                    own profile it also draws unpublished countries, as locked, so
-                    it cannot disagree with the figures in the rail. */}
-                {Number.isFinite(Number(profile?.id)) ? (
-                  <motion.div variants={staggerItem}>
-                    <TravelHistoryPanel userId={Number(profile?.id)} isOwner />
-                  </motion.div>
+                {userId != null ? (
+                  <Button
+                    variant="outlined"
+                    startIcon={<IconShare3 size={16} />}
+                    onClick={() => void shareLink(`${window.location.origin}/traveler/${userId}`, fullName)}
+                  >
+                    Share profile
+                  </Button>
                 ) : null}
+              </>
+            }
+            footnote={userId != null ? <CredibilityStrip userId={userId} variant="plain" /> : null}
+          />
 
-
-            {/* ── Requests waiting on you ──
-                Above the tabs, because somebody is waiting on an answer and that
-                outranks browsing your own trips. Renders nothing when the inbox is
-                empty, so it never becomes a standing reminder that nobody asked. */}
-            <motion.div variants={staggerItem}>
-              <JoinRequestsInbox />
-            </motion.div>
-
-            {/* ── Tabs ──
-                Single column since the sidebar went. That is what returns the
-                grids below to three-up, matching Community and TravelerProfile
-                instead of being the one page stuck at two. */}
-            <motion.div variants={staggerItem}>
-              <Box sx={{ mt: { xs: 5, md: 6 }, minWidth: 0 }}>
-                <Tabs
-                  // false, not a guess. While the posts request decides which
-                  // tab opens, no tab is underlined rather than the wrong one.
-                  value={activeTab ?? false}
-                  onChange={(_, v: TabId) => setActiveTab(v)}
-                  variant="scrollable"
-                  scrollButtons="auto"
-                  sx={{ borderBottom: `1px solid ${theme.custom.surface.border}`, minHeight: 44, mb: 3 }}
-                >
-                  {/* No count when the first page came back full: posts are
-                      paged and the endpoint returns no total, so a number there
-                      would be the page size wearing a count's clothes. */}
-                  <Tab
-                    value="road"
-                    label={`From the road${!postsMore && posts.length ? ` (${posts.length})` : ''}`}
-                    disableRipple
-                  />
-                  <Tab value="trips" label={`Trips${activeTrips.length ? ` (${activeTrips.length})` : ''}`} disableRipple />
-                  {FEATURE_FLAGS.afterStory && (
-                    <Tab
-                      value="stories"
-                      label={`Stories${myStories.length ? ` (${myStories.length})` : ''}`}
-                      disableRipple
-                    />
-                  )}
-                  <Tab value="saved" label={`Saved${savedCount ? ` (${savedCount})` : ''}`} disableRipple />
-                  <Tab
-                    value="archived"
-                    label={`Archived${archivedTrips.length ? ` (${archivedTrips.length})` : ''}`}
-                    disableRipple
-                  />
-                </Tabs>
-
-                {/* While the posts request decides which tab opens, neither
-                    panel paints. Showing trips and swapping to the road a moment
-                    later is the flip this whole arrangement exists to avoid. */}
-                {activeTab === null && <ListSkeleton rows={4} />}
-
-                {/* ══ From the road ══ */}
-                {activeTab === 'road' && (
-                  <>
-                    {/* The composer, not a button that sends you elsewhere to
-                        write. Same component Community and /posts mount, and
-                        onPosted prepends rather than refetching. */}
-                    <Box sx={{ mb: 3 }}>
-                      <PostComposer onPosted={(post) => setPosts((prev) => [post, ...prev])} />
-                    </Box>
-
-                    {posts.length === 0 ? (
-                      <EmptyState
-                        icon={IconMessages}
-                        title="Nothing from the road yet"
-                        description="A note, a photo, or a question for people who have been where you are going. Short is fine."
-                      />
-                    ) : (
-                      <Box sx={{ display: 'grid', gap: 1.5 }}>
-                        {posts.map((post) => (
-                          <PostCard
-                            key={post.id}
-                            post={post}
-                            onRemoved={(id) => setPosts((prev) => prev.filter((x) => x.id !== id))}
-                          />
-                        ))}
-                      </Box>
-                    )}
-
-                    {postsMore && (
-                      <Box sx={{ display: 'flex', justifyContent: 'center', mt: 3 }}>
-                        <Button variant="outlined" onClick={() => void loadMorePosts()} disabled={postsPaging}>
-                          {postsPaging ? 'Loading...' : 'Show more'}
-                        </Button>
-                      </Box>
-                    )}
-                  </>
-                )}
-
-                {/* ══ Trips ══ */}
-                {activeTab === 'trips' && (
-                  <>
-                    <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
-                      {TRIP_FILTERS.map((f) => (
-                        <FilterChip
-                          key={f.id}
-                          label={f.label}
-                          active={tripFilter === f.id}
-                          onClick={() => setTripFilter(f.id)}
-                        />
-                      ))}
-                    </Box>
-
-                    {tripsLoading ? (
-                      <CardGridSkeleton count={4} minWidth={260} />
-                    ) : filteredTrips.length === 0 ? (
-                      <EmptyState
-                        icon={IconMapPlus}
-                        title={tripFilter === 'all' ? 'No trips yet' : 'Nothing here'}
-                        description={
-                          tripFilter === 'shared'
-                            ? 'When someone adds you to their trip, it will show up here.'
-                            : tripFilter === 'published'
-                              ? 'Publish a trip and it becomes the first thing travellers see on your profile.'
-                              : 'Plan your first trip and it will live here.'
-                        }
-                        {...(tripFilter === 'all' || tripFilter === 'mine'
-                          ? { actionLabel: 'Plan a trip', onAction: openCreateTrip }
-                          : { actionLabel: 'Browse trips', onAction: () => navigate('/stories?kind=plans') })}
-                      />
-                    ) : (
-                      renderTripGrid(filteredTrips)
-                    )}
-                  </>
-                )}
-
-                {/* ══ Stories ══ */}
-                {activeTab === 'stories' && FEATURE_FLAGS.afterStory && (
-                  <>
-                    {storiesLoading ? (
-                      <CardGridSkeleton count={4} minWidth={260} />
-                    ) : myStories.length === 0 ? (
-                      <EmptyState
-                        icon={IconBook}
-                        title="No stories yet"
-                        description="Write up a trip you took. If you planned it here, the shape of it is already done for you."
-                        actionLabel="Browse stories"
-                        onAction={() => navigate('/stories')}
-                      />
-                    ) : (
-                      <Box sx={tripGridSx}>
-                        {myStories.map((s) => (
-                          <StoryCard key={s.id} story={s} />
-                        ))}
-                      </Box>
-                    )}
-                  </>
-                )}
-
-                {/* ══ Saved ══ */}
-                {activeTab === 'saved' && (
-                  <>
-                    {savedLoading ? (
-                      <CardGridSkeleton count={4} minWidth={260} />
-                    ) : savedTrips.length === 0 && likedTrips.length === 0 && savedStories.length === 0 ? (
-                      <EmptyState
-                        icon={IconBookmark}
-                        title="Nothing saved yet"
-                        description="Save a trip or a story from Groups & Stories and it will wait for you here."
-                        actionLabel="Open Groups & Stories"
-                        onAction={() => navigate('/stories')}
-                      />
-                    ) : (
-                      <Box sx={{ display: 'grid', gap: 5 }}>
-                        {savedTrips.length > 0 && (
-                          <Box>
-                            <SectionHeader title="Saved trips" subtitle="Itineraries you bookmarked" />
-                            {renderTripGrid(savedTrips)}
-                          </Box>
-                        )}
-                        {likedTrips.length > 0 && (
-                          <Box>
-                            <SectionHeader title="Liked trips" />
-                            {renderTripGrid(likedTrips)}
-                          </Box>
-                        )}
-                        {savedStories.length > 0 && (
-                          <Box>
-                            <SectionHeader title="Saved stories" subtitle="Your reading list" />
-                            <Box sx={tripGridSx}>
-                              {savedStories.map((s) => (
-                                <StoryCard key={s.id} story={s} />
-                              ))}
-                            </Box>
-                          </Box>
-                        )}
-                      </Box>
-                    )}
-                  </>
-                )}
-
-                {/* ══ Archived ══ */}
-                {activeTab === 'archived' && (
-                  <>
-                    {tripsLoading ? (
-                      <CardGridSkeleton count={4} minWidth={260} />
-                    ) : archivedTrips.length === 0 ? (
-                      <EmptyState
-                        icon={IconArchive}
-                        title="Nothing archived"
-                        description="Trips you archive are kept here, out of the way but never deleted."
-                      />
-                    ) : (
-                      renderTripGrid(archivedTrips)
-                    )}
-                  </>
-                )}
-              </Box>
-            </motion.div>
+          {travelMap ? (
+            <Box sx={{ mt: { xs: 4, md: 5 } }}>
+              <TravelStamps
+                countries={travelMap.countries}
+                locationCountries={travelMap.locationCountries}
+                homeCountry={profile.country}
+                onAddHome={() => navigate('/settings')}
+              />
             </Box>
+          ) : null}
 
-            <Box
-              sx={{
-                display: { xs: 'none', lg: 'block' },
-                width: 340,
-                flexShrink: 0,
-                position: 'sticky',
-                top: 72,
-              }}
-            >
-              {railNode}
-            </Box>
+          {/* Somebody is waiting on an answer, which outranks browsing your own trips. Nothing when empty. */}
+          <JoinRequestsInbox />
+
+          <Box sx={{ mt: { xs: 4, md: 5 } }}>
+            <ProfileTabStrip tabs={tabs} value={activeTab} onChange={setActiveTab} />
           </Box>
-        </motion.div>
+
+          <Box role="tabpanel" sx={{ pt: { xs: 4, md: 5 } }}>
+            {activeTab === 'wall' && (
+              <ProfilePortfolio
+                userId={userId}
+                isOwner
+                name={fullName}
+                trips={activeTrips}
+                stories={publishedStories}
+                sourcesLoading={tripsLoading || storiesLoading}
+                onCreatePlan={() => openCreateTrip()}
+                onWriteStory={FEATURE_FLAGS.afterStory ? writeStory : undefined}
+              />
+            )}
+
+            {activeTab === 'trips' && (
+              <>
+                <SectionHeader
+                  title="Your trips"
+                  description="Plans you are making, have taken, or were invited onto"
+                  accessory={<Button variant="contained" size="small" startIcon={<IconPlus size={16} />} onClick={() => openCreateTrip()}>Plan a trip</Button>}
+                />
+                <Box sx={{ display: 'flex', flexWrap: 'wrap', gap: 1, mb: 3 }}>
+                  {TRIP_FILTERS.map((f) => (
+                    <FilterChip
+                      key={f.id}
+                      label={f.label}
+                      Icon={f.id === 'archived' ? IconArchive : undefined}
+                      active={tripFilter === f.id}
+                      onClick={() => setTripFilter(f.id)}
+                    />
+                  ))}
+                </Box>
+                {tripsLoading ? (
+                  <CardGridSkeleton count={3} minWidth={260} />
+                ) : filteredTrips.length === 0 ? (
+                  <EmptyState
+                    icon={tripFilter === 'archived' ? IconArchive : IconMapPlus}
+                    title={tripFilter === 'all' ? 'No trips yet' : 'Nothing here'}
+                    description={
+                      tripFilter === 'shared' ? 'When someone adds you to their trip, it will show up here.'
+                        : tripFilter === 'published' ? 'Publish a trip and it becomes the first thing travellers see on your profile.'
+                          : tripFilter === 'archived' ? 'Trips you archive are kept here, out of the way but never deleted.'
+                            : 'Plan your first trip and it will live here.'
+                    }
+                    {...(tripFilter === 'all' || tripFilter === 'mine'
+                      ? { actionLabel: 'Plan a trip', onAction: () => openCreateTrip() }
+                      : tripFilter === 'archived' ? {} : { actionLabel: 'Browse trips', onAction: () => navigate('/stories?kind=plans') })}
+                  />
+                ) : (
+                  renderTripGrid(filteredTrips)
+                )}
+              </>
+            )}
+
+            {activeTab === 'stories' && FEATURE_FLAGS.afterStory && (
+              <>
+                <SectionHeader
+                  title="Your stories"
+                  description="Drafts and published Afterstories"
+                  accessory={<Button variant="contained" size="small" startIcon={<IconPencil size={16} />} onClick={writeStory}>Write a story</Button>}
+                />
+                {storiesLoading ? (
+                  <CardGridSkeleton count={3} minWidth={260} />
+                ) : myStories.length === 0 ? (
+                  <EmptyState
+                    icon={IconBook}
+                    title="No stories yet"
+                    description="Write up a trip you took. If you planned it here, the shape of it is already done for you."
+                    actionLabel="Write a story"
+                    onAction={writeStory}
+                  />
+                ) : (
+                  <Box sx={tripGridSx}>
+                    {myStories.map((s) => <StoryCard key={s.id} story={s} />)}
+                  </Box>
+                )}
+              </>
+            )}
+
+            {activeTab === 'saved' && (
+              <>
+                {savedLoading ? (
+                  <CardGridSkeleton count={3} minWidth={260} />
+                ) : savedTrips.length === 0 && likedTrips.length === 0 && savedStories.length === 0 ? (
+                  <EmptyState
+                    icon={IconBookmark}
+                    title="Nothing saved yet"
+                    description="Save a trip or a story from Groups & Stories and it will wait for you here."
+                    actionLabel="Open Groups & Stories"
+                    onAction={() => navigate('/stories')}
+                  />
+                ) : (
+                  <Box sx={{ display: 'grid', gap: 6 }}>
+                    {savedTrips.length > 0 && (
+                      <Box>
+                        <SectionHeader title="Saved trips" description="Itineraries you bookmarked" />
+                        {renderTripGrid(savedTrips)}
+                      </Box>
+                    )}
+                    {likedTrips.length > 0 && (
+                      <Box>
+                        <SectionHeader title="Liked trips" description="Plans you liked along the way" />
+                        {renderTripGrid(likedTrips)}
+                      </Box>
+                    )}
+                    {savedStories.length > 0 && (
+                      <Box>
+                        <SectionHeader title="Saved stories" description="Your reading list" />
+                        <Box sx={tripGridSx}>
+                          {savedStories.map((s) => <StoryCard key={s.id} story={s} />)}
+                        </Box>
+                      </Box>
+                    )}
+                  </Box>
+                )}
+              </>
+            )}
+          </Box>
+        </Box>
       </Box>
 
-      {/* ── Delete confirmation ── */}
+      {userId != null ? (
+        <FollowListDialog userId={userId} mode={followList} onClose={() => setFollowList(null)} viewerId={userId} />
+      ) : null}
+
       <Dialog open={Boolean(deleteTarget)} onClose={() => !deleting && setDeleteTarget(null)}>
         <DialogTitle>Delete this trip?</DialogTitle>
         <DialogContent>
@@ -970,9 +612,7 @@ const Profile: React.FC = () => {
           </DialogContentText>
         </DialogContent>
         <DialogActions sx={{ px: 3, pb: 2.5 }}>
-          <Button color="inherit" onClick={() => setDeleteTarget(null)} disabled={deleting}>
-            Cancel
-          </Button>
+          <Button color="inherit" onClick={() => setDeleteTarget(null)} disabled={deleting}>Cancel</Button>
           <Button color="error" variant="contained" onClick={() => void handleDelete()} disabled={deleting}>
             {deleting ? 'Deleting...' : 'Delete'}
           </Button>
@@ -997,6 +637,7 @@ const Profile: React.FC = () => {
           totalNights={0}
         />
       )}
+
     </Box>
   );
 };

@@ -435,7 +435,7 @@ const PremiumChatPanel: React.FC<PremiumChatPanelProps> = ({ tripicianAIHook }) 
 					}}>
 						<Box sx={{ flex: 1, minWidth: 0 }}>
 							{/* The lockup alone stands for TripicianAI: no icon or written name beside it. */}
-							<TripicianAIWordmark height={32} />
+							<TripicianAIWordmark height={26} />
 							<Box sx={{ display: { xs: 'flex', lg: 'none' }, alignItems: 'center', gap: 0.5, mt: 0.5 }}>
 								<Box sx={{ width: 6, height: 6, borderRadius: '50%', bgcolor: '#22c55e', boxShadow: '0 0 5px rgba(34,197,94,0.7)' }} />
 								<Typography sx={{ fontSize: 10.5, color: isLight ? 'rgba(0,0,0,0.50)' : 'rgba(255,255,255,0.45)', fontWeight: 500, fontFamily: 'inherit', letterSpacing: 0.2 }}>
@@ -3723,12 +3723,12 @@ const TripPlanner: React.FC<TripPlannerProps> = ({
 			>
 				{/* Tripician logo mark */}
 				<Box sx={{ width: 56, height: 56, borderRadius: '16px', bgcolor: 'primary.main', display: 'flex', alignItems: 'center', justifyContent: 'center', mb: 0.5 }}>
-					<Typography sx={{ fontSize: 26, color: '#fff', fontWeight: 700, fontFamily: (t) => t.custom.fontBrand, fontStyle: 'italic', lineHeight: 1 }}>T</Typography>
+					<Typography sx={{ fontSize: 26, color: '#fff', fontWeight: 700, fontFamily: (t) => t.custom.fontBrand, lineHeight: 1 }}>T</Typography>
 				</Box>
 				<Typography sx={{ fontSize: { xs: '1.6rem', sm: '2.2rem' }, fontWeight: 700, color: '#fff', textAlign: 'center', fontFamily: (t) => t.custom.fontBrand, lineHeight: 1.15 }}>
 					Your adventure is ready.
 				</Typography>
-				<Typography sx={{ fontSize: { xs: '1.1rem', sm: '1.4rem' }, fontWeight: 600, color: '#e8436a', fontStyle: 'italic', textAlign: 'center', fontFamily: (t) => t.custom.fontBrand, lineHeight: 1.2, maxWidth: 400, px: 2 }}>
+				<Typography sx={{ fontSize: { xs: '1.1rem', sm: '1.4rem' }, fontWeight: 600, color: '#e8436a', textAlign: 'center', fontFamily: (t) => t.custom.fontBrand, lineHeight: 1.2, maxWidth: 400, px: 2 }}>
 					{title}
 				</Typography>
 				<Typography sx={{ fontSize: 12, color: 'rgba(255,255,255,0.38)', mt: 2 }}>Click anywhere to dismiss</Typography>

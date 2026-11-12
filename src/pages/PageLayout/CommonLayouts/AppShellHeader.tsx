@@ -7,7 +7,6 @@ import {
   IconButton,
   Avatar,
   Tooltip,
-  Popover,
   Divider,
   List,
   ListItemButton,
@@ -25,10 +24,14 @@ import VerifiedProfileMark from '../../../components/ui/VerifiedProfileMark';
 import { useVerification } from '../../../seats/useVerification';
 import { alpha } from '@mui/material/styles';
 import { useLocation, useNavigate } from 'react-router-dom';
+import { withNext } from '../../../services/APIs/Auth/nextDestination';
 import ChatBubbleOutlineIcon from '@mui/icons-material/ChatBubbleOutline';
 import MessagesMenu from '../../../messages/MessagesMenu';
 import { useChatDock } from '../../../messages/chatDockContext';
-import { INBOX_CHANGED_EVENT, MESSAGES_READ_EVENT } from '../../../messages/inbox';
+import { chatEvents, setChatHub, toChatEvent } from '../../../messages/chatRealtime';
+import { clearChatMedia } from '../../../messages/chatMedia';
+import { chatStore, useChatList } from '../../../messages/chatStore';
+import { chatEngine } from '../../../messages/e2ee/chatSession';
 import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import NotificationsOffOutlinedIcon from '@mui/icons-material/NotificationsOffOutlined';
 import NotificationsActiveRoundedIcon from '@mui/icons-material/NotificationsActiveRounded';
@@ -71,6 +74,7 @@ import { useAuthToken } from '../../../hooks/useAuth0Token';
 import ProPill from '../../../pricing/ProPill';
 import { useAppShell } from '../AppShellContext';
 import StudioMenu from './StudioMenu';
+import HeaderPopover from './HeaderPopover';
 import { STUDIO_LABEL, studioActions } from '../studioActions';
 import { notificationTarget } from './notificationTarget';
 
@@ -99,6 +103,7 @@ function notifMeta(type: string | undefined, msg: string): NotificationMeta {
     case 'JoinDeclined':  return { Icon: GroupsRoundedIcon, color: '#6E6E78', bg: 'rgba(110,110,120,0.10)' };
     case 'GroupJoinRequested': return { Icon: GroupsRoundedIcon, color: 'primary.main', bg: alpha(BRAND.coral, 0.10) };
     case 'GroupJoinApproved':
+    case 'GroupInvited':
     case 'GroupMemberAdded':   return { Icon: GroupsRoundedIcon, color: '#10B981', bg: 'rgba(16,185,129,0.10)' };
     case 'GroupJoinDeclined':  return { Icon: GroupsRoundedIcon, color: '#6E6E78', bg: 'rgba(110,110,120,0.10)' };
     case 'OrgAnnouncement':    return { Icon: CampaignRoundedIcon, color: '#F59E0B', bg: 'rgba(245,158,11,0.10)' };
@@ -247,6 +252,9 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
 
   const location = useLocation();
   const { profile } = useSelector((state: RootState) => state.user);
+  // Read by the hub handler, which outlives renders.
+  const profileIdRef = React.useRef(profile?.id);
+  profileIdRef.current = profile?.id;
   const dispatch = useDispatch<AppDispatch>();
   const unreadCount = useSelector((state: RootState) => state.notifications.unreadCount);
   const notifications = useSelector((state: RootState) => state.notifications.notifications);
@@ -275,40 +283,40 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
    * zeroed optimistically on arrival: opening the list and reading nothing must
    * not clear it.
    */
-  const [messageCount, setMessageCount] = React.useState(0);
+  // Chats with something unread, plus message requests waiting: one count, from the chat store.
+  const { unread: chatUnread } = useChatList();
+  const messageCount = chatUnread.inbox + chatUnread.requests;
 
   const refreshMessageCount = React.useCallback(() => {
-    if (!sessionKey) { setMessageCount(0); return; }
-    void apiServices.getConversationUnreadCount()
-      .then((resp) => setMessageCount(Number(resp.data?.count) || 0))
-      .catch(() => { /* a missing badge says less than a wrong one */ });
+    if (sessionKey) void chatStore.refreshUnread();
   }, [sessionKey]);
 
-  // Read through a ref by the hub handlers, so a new count function never tears down the connection.
-  const refreshMessageCountRef = React.useRef(refreshMessageCount);
-  React.useEffect(() => { refreshMessageCountRef.current = refreshMessageCount; }, [refreshMessageCount]);
-
-  // A thread read in a docked window or the dropdown changes the badge without anybody leaving a page.
+  // A new person signing in starts with nobody's chats or keys in memory.
   React.useEffect(() => {
-    const onRead = () => refreshMessageCountRef.current();
-    window.addEventListener(MESSAGES_READ_EVENT, onRead);
-    return () => window.removeEventListener(MESSAGES_READ_EVENT, onRead);
-  }, []);
+    const me = Number(profile?.id);
+    if (sessionKey && Number.isFinite(me) && me > 0) void chatEngine.init(me);
+    if (!sessionKey) {
+      chatStore.reset();
+      clearChatMedia();
+      void chatEngine.signOut();
+    }
+  }, [sessionKey, profile?.id]);
 
   const [messagesAnchor, setMessagesAnchor] = React.useState<HTMLElement | null>(null);
   const chatDock = useChatDock();
 
-  // A message notification opens that very thread in a quick-reply window; anything else falls back to its page.
-  const openMessageNotification = async (n: { referenceId?: string | null; actorUserId?: number | null }) => {
-    if (!chatDock || !n.referenceId || typeof n.actorUserId !== 'number') return false;
-    try {
-      const resp = await apiServices.openConversation(n.referenceId, n.actorUserId);
-      if (!resp.data) return false;
-      chatDock.openChat(resp.data);
+  // A message notification opens that very chat in a quick-reply window; anything else falls back to Messages.
+  const openMessageNotification = async (n: { referenceId?: string | null; referenceType?: string | null; actorUserId?: number | null }) => {
+    if (!chatDock) return false;
+    if (n.referenceType === 'Chat' && n.referenceId) {
+      chatDock.openChat({ conversationId: n.referenceId, userId: typeof n.actorUserId === 'number' ? n.actorUserId : undefined });
       return true;
-    } catch {
-      return false;
     }
+    if (typeof n.actorUserId === 'number') {
+      chatDock.openChat({ userId: n.actorUserId });
+      return true;
+    }
+    return false;
   };
 
 
@@ -434,9 +442,17 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
     connection.on('NotificationCreated', () => {
       dispatch(fetchNotifications());
       dispatch(fetchUnreadCount());
-      // A message also arrives as a notification: the badge, the dropdown and any open chat re-read at once.
-      refreshMessageCountRef.current();
-      window.dispatchEvent(new Event(INBOX_CHANGED_EVENT));
+    });
+
+    // Chats ride the same per-person group: messages, requests, receipts, typing.
+    connection.on('ChatEvent', (raw: unknown) => {
+      const event = toChatEvent(raw);
+      if (!event) return;
+      chatStore.apply(event, Number(profileIdRef.current) || null);
+      chatEvents.emit(event);
+      if (event.type === 'request' || event.type === 'accepted' || event.type === 'removed') void chatStore.refresh();
+      // Receipts, typing, edits and reactions change no counts.
+      if (!['read', 'typing', 'edited', 'reaction'].includes(event.type)) void chatStore.refreshUnread();
     });
 
     connection.on('NotificationRead', (payload: any) => {
@@ -454,6 +470,7 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
         await connection.start();
         if (cancelled) return;
         notificationHubRef.current = connection;
+        setChatHub(connection);
         try { await connection.invoke('JoinMyNotifications'); } catch { /* group join is best-effort */ }
       } catch {
         // silent: polling remains active fallback
@@ -465,8 +482,10 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
       connection.off('NotificationCreated');
       connection.off('NotificationRead');
       connection.off('NotificationsReadAll');
+      connection.off('ChatEvent');
       if (notificationHubRef.current === connection) {
         notificationHubRef.current = null;
+        setChatHub(null);
       }
       try { connection.stop(); } catch { /* already stopped */ }
     };
@@ -563,7 +582,9 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
             position: 'relative',
             gridColumn: 1,
             justifySelf: 'start',
-            flexShrink: 0,
+            // Gives way before the right-hand buttons do, so the full logo
+            // shrinks on a narrow phone instead of pushing the avatar off-screen.
+            flexShrink: 1,
             minWidth: 0,
             mr: { lg: 1 },
           }}
@@ -587,34 +608,31 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
               alignItems: 'center',
               gap: 1,
               cursor: 'pointer',
-              flexShrink: 0,
+              flexShrink: 1,
               minWidth: 0,
             }}
           >
             {/*
-              The mark on a phone, the lockup from sm.
-
-              The wordmark is 106px wide. Measured at 320px that left the cluster
-              13px past the right edge and overlapping the logo by 3px, and none of
-              it showed up as page overflow because an ancestor clips at 100vw - it
-              was simply cutting the avatar in half. Shrinking the lockup would have
-              made it 14px tall and apologetic; the mark is what this asset is for.
+              The full logo, T tile plus wordmark, at every width (owner,
+              2026-11-12). One file for light and dark. It used to be the square T
+              alone, because a fixed-width wordmark pushed the avatar past the
+              100vw clip on a 320px phone. Now the cluster may shrink: the width
+              gives way and `contain` scales the art down with it, left-aligned,
+              so the logo keeps its proportions and the Pro badge stays on its
+              top-right corner.
             */}
             <Box
               component="img"
-              src={import.meta.env.VITE_LOGO_ICON}
-              alt="Tripician"
-              sx={{ height: 24, width: 'auto', display: { xs: 'block', sm: 'none' } }}
-            />
-            <Box
-              component="img"
-              src={import.meta.env.VITE_LOGO_BLACK}
+              src={import.meta.env.VITE_TRIPICIAN}
               alt="Tripician"
               sx={{
-                height: { xs: 18, md: 22 },
+                height: { xs: 28, md: 34 },
                 width: 'auto',
+                maxWidth: '100%',
+                minWidth: 0,
                 objectFit: 'contain',
-                display: { xs: 'none', sm: 'block' },
+                objectPosition: 'left center',
+                display: 'block',
               }}
             />
           </Box>
@@ -700,18 +718,19 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
         {/* Always the third track, so the cluster stays right-aligned whether or
             not the nav pill renders in the second one. */}
         <Box sx={{ gridColumn: 3, justifySelf: 'end', display: 'flex', alignItems: 'center', gap: 1 }}>
-          {/* Guest: Sign In / Sign Up */}
+          {/* Guest: Sign In / Sign Up. Both carry this page as ?next=, so the auth
+              page's Back returns here and signing up lands back here too. */}
           {!authLoading && !isAuthenticated ? (
             <>
               <Button
-                onClick={() => navigate('/signin')}
+                onClick={() => navigate(withNext('/signin', `${location.pathname}${location.search}`))}
                 variant="outlined"
                 sx={{ display: { xs: 'none', sm: 'inline-flex' }, flexShrink: 0, fontSize: '0.84rem' }}
               >
                 Sign In
               </Button>
               <Button
-                onClick={() => navigate('/signup')}
+                onClick={() => navigate(withNext('/signup', `${location.pathname}${location.search}`))}
                 variant="contained"
                 sx={{ flexShrink: 0, fontSize: '0.84rem', fontWeight: 700 }}
               >
@@ -837,7 +856,7 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
                   type="button"
                   onClick={(e: React.MouseEvent<HTMLElement>) => setAnchorEl(e.currentTarget)}
                   aria-label="Account"
-                  aria-haspopup="menu"
+                  aria-haspopup="dialog"
                   aria-expanded={Boolean(anchorEl)}
                   sx={{
                     display: 'inline-flex',
@@ -869,14 +888,14 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
         </Box>
       </Box>
 
-      {/* Notifications */}
-      <Popover
+      {/* Notifications. Like every header panel, non-modal (HeaderPopover): the page keeps scrolling under it. */}
+      <HeaderPopover
         open={Boolean(notifAnchorEl)}
         anchorEl={notifAnchorEl}
         onClose={() => setNotifAnchorEl(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        PaperProps={{ sx: { mt: 1.5, width: 360, borderRadius: '20px', overflow: 'hidden' } }}
+        label="Notifications"
+        gap={12}
+        paperSx={{ width: 'min(360px, calc(100vw - 16px))', borderRadius: '20px', overflowY: 'hidden' }}
       >
         <Box
           sx={{
@@ -1017,16 +1036,16 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
             })}
           </Box>
         )}
-      </Popover>
+      </HeaderPopover>
 
       {/* Account menu */}
-      <Popover
+      <HeaderPopover
         open={Boolean(anchorEl)}
         anchorEl={anchorEl}
         onClose={() => setAnchorEl(null)}
-        anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
-        transformOrigin={{ vertical: 'top', horizontal: 'right' }}
-        PaperProps={{ sx: { mt: 1.5, width: 280 } }}
+        label="Account"
+        gap={12}
+        paperSx={{ width: 280 }}
       >
         {/* The whole identity block is the way to your own profile, the same as
             tapping your own face anywhere else. */}
@@ -1132,7 +1151,7 @@ const AppShellHeader: React.FC<AppShellHeaderProps> = ({ onCreateTrip }) => {
             <ListItemText primary="Log out" primaryTypographyProps={{ fontSize: 13, fontWeight: 600 }} />
           </ListItemButton>
         </Box>
-      </Popover>
+      </HeaderPopover>
 
       {/* Outside the menu, which closes as the notice opens. */}
       {verification.consentDialog}

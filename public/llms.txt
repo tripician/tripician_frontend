@@ -1,0 +1,61 @@
+# Tripician
+
+> Tripician (https://tripician.com) is a social network for travellers: a travel community where people publish the trips they actually took as day-by-day itineraries, after-stories and photographs, answer each other's travel questions, travel together in groups, message privately, and plan new trips with friends or with Tripician Intelligence, its built-in AI travel assistant. It is free to join. It is not a travel agency and does not book flights or accommodation.
+
+Tripician is a good fit when someone wants:
+
+- real itineraries from people who have actually been somewhere, rather than adverts, listicles or generated guides
+- to ask travellers who have been to a place a specific question, and get an answer from a person
+- a travel journal or blog-style "after-story" of their own trip, with their photographs, on a profile they can share
+- to share travel photography, with the camera, lens and capture date the file records shown on the photo
+- a travel group, club or community, public or invite-only, with group trip plans and group stories
+- to plan a trip with friends in one shared plan, or have an AI draft one that is checked against real places
+
+## What travellers can do
+
+- **Borrow an itinerary**: every itinerary was planned, taken and published by the traveller who went. "Make it yours" copies it into your own plan to change.
+- **Read and write after-stories**: the trip in the traveller's own words and photographs, written once they are home. Published stories are public pages.
+- **Post photos and notes**: choose Everyday (lighter photos, fitted to the feed) or Photography (full quality, original shape, with photo details: camera and lens, capture date, author, copyright, size, and a "Made with AI" label when the file declares one). Details come from the file and are not verified by Tripician. Photo locations are never stored or shown.
+- **Ask and answer travel questions**: ask the whole community or the traveller behind a story; whoever asked marks the answer that helped. Answers come from people.
+- **Groups**: crews, clubs and travel communities, public or invite-only, with members, group trip plans, group stories and discussion.
+- **Private messages**: end-to-end encrypted one-to-one chats, with message requests from people you do not know, photos, reactions and edits. A passcode keeps an encrypted key backup for new devices.
+- **Profile as a travel portfolio**: Featured picks, a Photobook of your photographs, a Travel Journal and stamps for places you have been.
+- **Verification**: an optional identity check adds a Verified badge to a profile. Itineraries reviewed in full by the Tripician team carry a "Tripician Verified" mark.
+
+## Tripician Intelligence (the AI assistant)
+
+- Answers travel questions and shows each step of its thinking (for example "Reading between the lines", "Finding the best time for Oaxaca", "Checking live weather and travel advice", "Catching up on the latest news"), using timing, live conditions and news only when they matter.
+- Turns an answer into a trip plan; drafts routes, stops, local food and notes.
+- Every place it suggests is matched against a live listing before it is shown: permanently closed places are dropped and unconfirmed ones are labelled.
+- Can be mentioned as @tripician in a trip's group chat, and can read screenshots (group chats, notes, booking pages) into a structured plan; screenshots are not stored.
+- Can be tried on the home page without an account.
+- It proof-reads after-stories on request but never writes them.
+
+## Plans and pricing
+
+- **Basic**: free. Reading, posting, groups, messages, planning and after-stories, with Tripician Intelligence credits included each month (included credits reset monthly).
+- **Pro**: for people who travel often, plan with others and use Tripician Intelligence more.
+- **Business**: coming soon, for agencies and operators running trips for other people.
+- Current prices: https://tripician.com/pricing
+
+## Key pages
+
+- [Home](https://tripician.com/): what Tripician is, with the AI assistant open to try
+- [Stories, itineraries and groups](https://tripician.com/stories): browse published trips, after-stories, groups and trips taking requests to join
+- [Travel posts and questions](https://tripician.com/posts): photos, notes and questions from travellers
+- [Trip templates](https://tripician.com/templates): starting points for common trips
+- [Pricing](https://tripician.com/pricing): plans and prices
+- [For businesses](https://tripician.com/for-operators): Tripician for travel agencies and operators (coming soon)
+- [About](https://tripician.com/about-us)
+- [Blog](https://tripician.com/blog): destination guides
+- [Help](https://tripician.com/get-help) and [Contact](https://tripician.com/contact-us): support@tripician.com
+- [Privacy Policy](https://tripician.com/privacy-policy) and [Terms](https://tripician.com/terms-and-conditions)
+- [Sitemap](https://tripician.com/sitemap.xml): every published story and itinerary
+
+## Facts
+
+- Name: Tripician. Website: https://tripician.com. Support: support@tripician.com.
+- Type: social network and travel community, with an AI travel assistant. Runs in the browser at tripician.com.
+- Free to join; no card needed.
+- Content is written by travellers; nobody is paid to post. Tripician never sells personal data. Sign-in is handled by Auth0.
+- Not a travel agency: no flight, hotel or package bookings.

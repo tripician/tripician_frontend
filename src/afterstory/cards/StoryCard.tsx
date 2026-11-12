@@ -32,6 +32,7 @@ import { STORY_TEMPLATES } from '../render/templates';
 import { VIBES } from '../../pages/CommunityPage/vibes';
 import { storyPath } from '../storySlug';
 import { resolveStoryCover, formatTravelWindow } from '../storyFormat';
+import { fitWidth } from '../../utils/imageThumb';
 import { SCRIM, INK, INK_MUTED, storyWash } from './storyJacket';
 import type { AfterStorySummaryDto } from '../types';
 
@@ -109,7 +110,7 @@ const StoryCard: React.FC<StoryCardProps> = ({ story, width }) => {
         <Box
           component="img"
           className="story-card-img"
-          src={cover}
+          src={fitWidth(cover, 800) ?? cover}
           alt=""
           loading="lazy"
           decoding="async"

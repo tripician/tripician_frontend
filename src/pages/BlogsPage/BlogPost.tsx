@@ -31,7 +31,7 @@ const BlogPost: React.FC = () => {
   const navigate = useNavigate();
   const profile = useSelector((state: any) => state.user?.profile);
   const isAuthenticated = !!profile;
-  const logoFullBlackUrl = import.meta.env.VITE_LOGO_BLACK as string | undefined;
+  const logoUrl = import.meta.env.VITE_TRIPICIAN as string | undefined;
 
   const blog = blogsData.find((b) => b.slug === slug) as BlogEntry | undefined;
 
@@ -270,7 +270,6 @@ const BlogPost: React.FC = () => {
                   lineHeight: 1.8,
                   mb: 4,
                   fontFamily: (t) => t.custom.fontDisplay,
-                  fontStyle: 'italic',
                   borderLeft: `3px solid ${BRAND.coral}`,
                   pl: 3,
                 }}>
@@ -315,8 +314,8 @@ const BlogPost: React.FC = () => {
                   border: `1px solid ${alpha(BRAND.coral, 0.18)}`,
                   display: 'flex', gap: 1.5, alignItems: 'flex-start',
                 }}>
-                  {logoFullBlackUrl
-                    ? <Box component="img" src={logoFullBlackUrl} alt="Tripician" sx={{ height: 20, width: 'auto', mt: 0.3, flexShrink: 0, display: 'block' }} />
+                  {logoUrl
+                    ? <Box component="img" src={logoUrl} alt="Tripician" sx={{ height: 24, width: 'auto', mt: 0.3, flexShrink: 0, display: 'block' }} />
                     : <Box sx={{ width: 20, height: 20, borderRadius: '6px', background: `linear-gradient(135deg,${BRAND.coral},${BRAND.coralDeep})`, flexShrink: 0, mt: 0.3 }} />}
                   <Typography sx={{
                     fontSize: '0.95rem',

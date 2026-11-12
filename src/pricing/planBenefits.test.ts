@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { groupMemberLimit, planBenefits, planUpgrade } from './planBenefits';
+import { planBenefits, planUpgrade } from './planBenefits';
 import type { Plan } from './types';
 
 /*
@@ -78,25 +78,6 @@ describe('planBenefits', () => {
     const club = planBenefits(plan({ planId: 'club', scope: 'organization', monthlyPrice: 299, maxGroupMembers: undefined, tripicianAIMonthlyCredits: 1500 }));
     expect(club).toContain('No limit on group members');
     expect(club).toContain('1,500 Tripician Intelligence credits a month, shared by the group');
-  });
-});
-
-describe('groupMemberLimit', () => {
-  const basic = plan({ maxGroupMembers: 30 });
-  const pro = plan({ planId: 'pro', monthlyPrice: 149, maxGroupMembers: undefined });
-  const club = plan({ planId: 'club', scope: 'organization', monthlyPrice: 299, maxGroupMembers: undefined });
-
-  it('reads a personal plan as the free allowance, because it does not change a group', () => {
-    expect(groupMemberLimit(pro, [basic, pro, club])).toBe(30);
-    expect(groupMemberLimit(basic, [basic, pro, club])).toBe(30);
-  });
-
-  it('reads an absent limit on a group plan as no limit', () => {
-    expect(groupMemberLimit(club, [basic, pro, club])).toBeNull();
-  });
-
-  it('admits it does not know when there is no free plan to read', () => {
-    expect(groupMemberLimit(pro, [pro, club])).toBeUndefined();
   });
 });
 

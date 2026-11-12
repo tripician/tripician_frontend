@@ -1,12 +1,12 @@
 /*
    LandingPage.css - Tripician
 
-   Set like a book, because the product now makes one.
+   The front door of a travel community, so the community's own photographs,
+   itineraries, stories and questions carry the page.
 
    The organising devices are typographic rather than decorative: a reading
    measure, real hierarchy in the display face, hairlines instead of card
-   borders, and numbered sections like a contents page. Photography does the
-   heavy lifting; almost nothing else is filled.
+   borders. Photography does the heavy lifting; almost nothing else is filled.
 
    Aligned to theme/index.ts tokens. Banned throughout, per the design memory:
    emoji, glassmorphism/backdrop-blur, gradient chips, stat banners, brand-glow
@@ -239,17 +239,18 @@
   align-items: center;
   gap: 10px;
   cursor: pointer;
+  text-decoration: none;
   font-family: var(--font-display);
   font-size: 1.25rem;
   font-weight: 700;
   color: #fff;
 }
+/* The 2026-11 lockup is 4:1 and its lowercase letters fill only half its height,
+   so it is set taller than the old 6:1 caps lockup and still comes out narrower.
+   One file for the hero photo and the solid nav alike. */
 .lp-logo-img { display: block; width: auto; }
-.lp-logo-img--nav { height: 26px; }
-.lp-logo-img--footer { height: 24px; }
-.lp-nav__logo-dark { display: none; }
-.lp-nav--scrolled .lp-nav__logo-light { display: none; }
-.lp-nav--scrolled .lp-nav__logo-dark { display: block; }
+.lp-logo-img--nav { height: 32px; }
+.lp-logo-img--footer { height: 30px; }
 .lp-nav--scrolled .lp-nav__logo { color: var(--lp-ink); }
 
 .lp-nav__links { display: flex; gap: 28px; }
@@ -278,7 +279,7 @@
    never showed up as document overflow - it just silently lost the button. */
 @media (max-width: 560px) {
   .lp-nav { gap: 12px; padding-inline: 16px; }
-  .lp-logo-img--nav { height: 21px; }
+  .lp-logo-img--nav { height: 26px; }
   .lp-nav__actions { gap: 4px; }
   .lp-nav__actions .lp-btn { padding: 8px 13px; font-size: 0.8125rem; }
 }
@@ -360,7 +361,7 @@
   font-weight: 700;
   font-size: clamp(2.6rem, 7vw, 5.4rem);
   line-height: 1.02;
-  letter-spacing: -0.035em;
+  letter-spacing: -0.025em; /* Bricolage display cut is already tight; -0.035em made letters touch */
   margin: 0 0 24px;
   max-width: 16ch;
 }
@@ -661,49 +662,6 @@
   color: var(--lp-ink-mute);
 }
 
-/* =============================== THE BOOK ============================= */
-/* The one dark band on the page. A printed object deserves a different ground
-   than the rest of the scroll, and an alternating light/dark rhythm is a
-   legitimate editorial pattern rather than synthetic decoration. */
-.lp-book {
-  padding-block: clamp(80px, 10vw, 148px);
-  background: var(--lp-dark);
-  color: var(--lp-dark-ink);
-}
-.lp-book__inner {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  text-align: center;
-  gap: 18px;
-}
-.lp-book__inner .lp-lede { text-align: center; }
-
-.lp-book__spread {
-  display: flex;
-  align-items: flex-end;
-  justify-content: center;
-  gap: 14px;
-  margin-top: 22px;
-}
-.lp-book__page {
-  display: block;
-  width: clamp(64px, 9vw, 104px);
-  aspect-ratio: 148 / 210;
-  border-radius: 4px;
-  background: var(--lp-dark-ink);
-  opacity: 0.22;
-}
-.lp-book__page--mid {
-  opacity: 1;
-  width: clamp(84px, 12vw, 140px);
-}
-.lp-book__note {
-  margin: 22px 0 0;
-  font-size: 0.875rem;
-  color: var(--lp-dark-mute);
-}
-
 /* =============================== TRIPICIANAI ================================ */
 .lp-tripicianai { padding-block: var(--lp-gap); border-top: 1px solid var(--lp-rule); }
 .lp-tripicianai__inner {
@@ -742,18 +700,18 @@
 .lp-features { padding-block: var(--lp-gap); border-top: 1px solid var(--lp-rule); }
 /* Explicit column counts rather than auto-fit, because the hairline gaps mean an
    incomplete final row is not empty space: the grid's own background shows
-   through it as a solid grey block. Three and two both divide the six cards
-   exactly, which auto-fit's four did not. */
+   through it as a solid grey block. Four, two and one all divide the eight
+   cards exactly. */
 .lp-features__grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 1px;
   background: var(--lp-rule);
   border: 1px solid var(--lp-rule);
   border-radius: var(--lp-radius);
   overflow: hidden;
 }
-@media (max-width: 1040px) {
+@media (max-width: 1100px) {
   .lp-features__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 }
 @media (max-width: 660px) {
@@ -778,6 +736,173 @@
   line-height: 1.68;
   color: var(--lp-ink-mute);
 }
+
+/* ============================== THE LENS ============================== */
+/* The community's own photographs. Square tiles in a tight grid read as a
+   contact sheet, which is what this is: frames from many cameras, uncurated. */
+.lp-lens { padding-block: var(--lp-gap); border-top: 1px solid var(--lp-rule); }
+.lp-lens__grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: clamp(6px, 1vw, 12px);
+}
+@media (max-width: 760px) {
+  .lp-lens__grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+.lp-lens__tile {
+  position: relative;
+  display: block;
+  aspect-ratio: 1 / 1;
+  overflow: hidden;
+  border-radius: 10px;
+  background: var(--lp-paper-alt);
+  text-decoration: none;
+}
+.lp-lens__tile img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  transition: transform .5s cubic-bezier(.2,.7,.3,1);
+}
+.lp-lens__tile:hover img { transform: scale(1.04); }
+.lp-lens__tile:focus-visible { outline: 2px solid var(--lp-primary); outline-offset: 3px; }
+/* The caption sits on a short scrim at the foot of the frame, never over the middle of the picture. */
+.lp-lens__cap {
+  position: absolute;
+  left: 0; right: 0; bottom: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 28px 12px 10px;
+  background: linear-gradient(to top, rgba(10, 10, 13, 0.62), rgba(10, 10, 13, 0));
+  color: #fff;
+  font-size: 0.75rem;
+  line-height: 1.35;
+}
+.lp-lens__cap em {
+  font-style: normal;
+  font-weight: 700;
+  font-size: 0.8125rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.lp-lens__cap span { opacity: 0.86; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+/* ========================== ASKED AND ANSWERED ======================== */
+/* A ruled list, like the FAQ: questions are text, and text reads best in rows. */
+.lp-asks { padding-block: var(--lp-gap); border-top: 1px solid var(--lp-rule); }
+.lp-asks__list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--lp-rule); }
+.lp-ask { border-bottom: 1px solid var(--lp-rule); }
+.lp-ask a {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 6px 24px;
+  padding: 20px 0;
+  text-decoration: none;
+  color: var(--lp-ink);
+}
+.lp-ask__q {
+  flex: 1 1 420px;
+  min-width: 0;
+  font-size: 1.0625rem;
+  font-weight: 600;
+  line-height: 1.45;
+  transition: color .2s ease;
+}
+.lp-ask a:hover .lp-ask__q { color: var(--lp-primary-type); }
+.lp-ask__meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 4px 14px;
+  font-size: 0.8125rem;
+  color: var(--lp-ink-mute);
+}
+.lp-ask__meta em {
+  font-style: normal;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  font-size: 0.6875rem;
+  align-self: center;
+}
+.lp-ask__ok { color: #2E7D5B; font-weight: 600; }
+
+/* ============================ PLAN STRIP ============================== */
+/* Names and purposes, no prices: the /pricing page reads those from the API. */
+.lp-planstrip { padding-block: var(--lp-gap); border-top: 1px solid var(--lp-rule); background: var(--lp-paper-alt); }
+.lp-planstrip__grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 16px;
+}
+@media (max-width: 760px) {
+  .lp-planstrip__grid { grid-template-columns: minmax(0, 1fr); }
+}
+.lp-planstrip__item {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  padding: 22px 22px 24px;
+  border: 1px solid var(--lp-rule);
+  border-radius: var(--lp-radius);
+  background: var(--lp-paper);
+}
+.lp-planstrip__tag {
+  font-size: 0.6875rem;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--lp-primary-type);
+}
+/* Not on sale yet: a dashed edge and a quieter ground, so it reads as a promise rather than a choice. */
+.lp-planstrip__item--soon {
+  background: transparent;
+  border-style: dashed;
+  border-color: var(--lp-rule-strong);
+}
+.lp-planstrip__item--soon .lp-planstrip__tag { color: var(--lp-ink-mute); }
+.lp-planstrip__item p {
+  margin: 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--lp-ink-mute);
+}
+
+/* ============================ FOR BUSINESSES ========================== */
+/* The one dark band on the page: the pitch to a different reader, on a
+   different ground. */
+.lp-biz {
+  padding-block: clamp(80px, 10vw, 140px);
+  background: var(--lp-dark);
+  color: var(--lp-dark-ink);
+}
+.lp-biz__inner {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 18px;
+}
+.lp-biz__inner .lp-h2 { max-width: 22ch; }
+.lp-btn--on-dark {
+  margin-top: 8px;
+  background: var(--lp-dark-ink);
+  color: var(--lp-dark);
+}
+.lp-btn--on-dark:hover { background: #fff; }
+
+/* --- the demo's thinking steps: ticked in order, like the real answer --- */
+.lp-fig__step {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 0.8125rem;
+  color: var(--lp-ink-soft);
+}
+.lp-fig__step svg { color: #2E7D5B; flex-shrink: 0; }
 
 /* ================================ FAQ ================================= */
 .lp-faq { padding-block: var(--lp-gap); border-top: 1px solid var(--lp-rule); }
@@ -835,7 +960,7 @@
   font-weight: 700;
   font-size: clamp(2rem, 5vw, 3.5rem);
   line-height: 1.06;
-  letter-spacing: -0.03em;
+  letter-spacing: -0.022em;
   color: var(--lp-ink);
   margin: 0 0 18px;
 }
@@ -925,200 +1050,6 @@
 
 @media (max-width: 760px) {
   .lp-footer__inner { grid-template-columns: minmax(0, 1fr); }
-}
-
-/* ============================== PLANS ================================= */
-/* Set as a table rather than three stacks of ticks, because the question a
-   pricing section answers is comparative. The cards carry the decision, the
-   table carries the detail, and neither repeats the other. */
-.lp-plans {
-  padding-block: var(--lp-gap);
-  background: var(--lp-paper-alt);
-  border-top: 1px solid var(--lp-rule);
-  border-bottom: 1px solid var(--lp-rule);
-}
-
-.lp-plans__billing {
-  display: inline-flex;
-  gap: 2px;
-  padding: 3px;
-  margin-bottom: 32px;
-  border: 1px solid var(--lp-rule);
-  border-radius: 999px;
-  background: var(--lp-paper);
-}
-.lp-plans__period {
-  border: none;
-  background: transparent;
-  border-radius: 999px;
-  padding: 8px 20px;
-  font-family: var(--font-body);
-  font-size: 0.875rem;
-  font-weight: 600;
-  color: var(--lp-ink-mute);
-  cursor: pointer;
-  transition: background-color .2s ease, color .2s ease;
-}
-.lp-plans__period.is-on {
-  background: var(--lp-ink);
-  color: var(--lp-paper);
-}
-.lp-plans__period:focus-visible { outline: 2px solid var(--lp-primary); outline-offset: 2px; }
-
-.lp-plans__grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(min(230px, 100%), 1fr));
-  gap: 20px;
-  align-items: stretch;
-}
-
-.lp-plan {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-  padding: 28px 26px;
-  border: 1px solid var(--lp-rule);
-  border-radius: var(--lp-radius);
-  background: var(--lp-paper);
-  position: relative;
-}
-/* One tonal step and a heavier rule, not a shadow and not a lift. A glowing
-   card is the generated-UI tell the theme rules exist to prevent. */
-.lp-plan--featured {
-  border-color: var(--lp-rule-strong);
-  box-shadow: 0 1px 2px rgba(28, 28, 33, 0.04);
-}
-.lp-plan__tag {
-  position: absolute;
-  top: -11px;
-  left: 26px;
-  padding: 3px 12px;
-  border-radius: 999px;
-  background: var(--lp-ink);
-  color: var(--lp-paper);
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-.lp-plan__pitch {
-  margin: 0;
-  font-size: 0.9375rem;
-  line-height: 1.6;
-  color: var(--lp-ink-mute);
-  min-height: 3em;
-}
-.lp-plan__price {
-  margin: 10px 0 0;
-  font-family: var(--font-display);
-  font-weight: 700;
-  font-size: 2.25rem;
-  line-height: 1;
-  letter-spacing: -0.02em;
-  color: var(--lp-ink);
-}
-.lp-plan__per {
-  font-family: var(--font-body);
-  font-size: 0.9375rem;
-  font-weight: 500;
-  letter-spacing: 0;
-  color: var(--lp-ink-mute);
-}
-/* The price before a live sale, struck. Lighter and smaller than the payable
-   figure beside it, so the number somebody pays stays the loudest thing. */
-.lp-plan__was {
-  margin-right: 10px;
-  font-size: 1.5rem;
-  font-weight: 600;
-  color: var(--lp-ink-mute);
-  text-decoration: line-through;
-}
-/* The same price in the reader own currency, quiet because the rupee figure above is the one charged. */
-.lp-plan__approx {
-  margin: 4px 0 0;
-  font-size: 0.8125rem;
-  font-weight: 500;
-  color: var(--lp-ink-mute);
-}
-.lp-plan__sale {
-  margin: 6px 0 0;
-  font-size: 0.8125rem;
-  font-weight: 700;
-  color: var(--lp-primary-type);
-}
-.lp-plan__saving {
-  margin: 0;
-  font-size: 0.8125rem;
-  font-weight: 600;
-  color: var(--lp-primary-type);
-}
-.lp-plan__scope {
-  margin: 0;
-  font-size: 0.8125rem;
-  line-height: 1.5;
-  color: var(--lp-ink-mute);
-}
-.lp-plan__cta {
-  margin-top: auto;
-  width: 100%;
-}
-
-/* Where the converted figures come from, and what actually gets charged. */
-.lp-plans__rate-note {
-  margin: 18px 0 0;
-  max-width: 62ch;
-  font-size: 0.8125rem;
-  line-height: 1.6;
-  color: var(--lp-ink-mute);
-}
-.lp-plans__table-wrap {
-  margin-top: 44px;
-  overflow-x: auto;
-}
-.lp-plans__table {
-  width: 100%;
-  min-width: 620px;
-  border-collapse: collapse;
-  font-size: 0.9375rem;
-}
-.lp-plans__caption {
-  text-align: left;
-  padding-bottom: 14px;
-  font-size: 0.6875rem;
-  font-weight: 700;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  color: var(--lp-ink-mute);
-}
-.lp-plans__table th,
-.lp-plans__table td {
-  padding: 14px 16px;
-  border-bottom: 1px solid var(--lp-rule);
-  text-align: left;
-  vertical-align: middle;
-}
-.lp-plans__table thead th {
-  font-weight: 700;
-  color: var(--lp-ink);
-  border-bottom-color: var(--lp-rule-strong);
-}
-.lp-plans__table tbody th {
-  font-weight: 500;
-  color: var(--lp-ink-soft);
-  width: 46%;
-}
-.lp-plans__table td { color: var(--lp-ink); }
-
-.lp-plans__yes { color: var(--lp-primary-type); display: inline-flex; }
-.lp-plans__no { color: var(--lp-rule-strong); display: inline-flex; }
-.lp-plans__val { font-weight: 600; }
-
-.lp-plans__note {
-  max-width: var(--lp-measure);
-  margin: 28px 0 0;
-  font-size: 0.875rem;
-  line-height: 1.65;
-  color: var(--lp-ink-mute);
 }
 
 /* ========================= HERO CHAT =================================

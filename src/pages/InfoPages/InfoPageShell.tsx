@@ -9,7 +9,7 @@ interface Props { children: React.ReactNode }
 const InfoPageShell: React.FC<Props> = ({ children }) => {
   const profile = useSelector((state: any) => state.user?.profile);
   const isAuthenticated = !!profile;
-  const logoFullBlackUrl = import.meta.env.VITE_LOGO_BLACK as string | undefined;
+  const logoUrl = import.meta.env.VITE_TRIPICIAN as string | undefined;
 
   const pageContent = (
     <Box sx={{ minHeight: '100vh', background: '#FAFAFA',}}>
@@ -25,8 +25,8 @@ const InfoPageShell: React.FC<Props> = ({ children }) => {
           display: 'flex', alignItems: 'center', justifyContent: 'space-between',
         }}>
           <Box component={Link} to="/" sx={{ display: 'flex', alignItems: 'center', gap: 1, textDecoration: 'none' }}>
-            {logoFullBlackUrl
-              ? <Box component="img" src={logoFullBlackUrl} alt="Tripician" sx={{ height: 28, width: 'auto', display: 'block' }} />
+            {logoUrl
+              ? <Box component="img" src={logoUrl} alt="Tripician" sx={{ height: 34, width: 'auto', display: 'block' }} />
               : <Typography sx={{ fontWeight: 700, fontSize: '0.95rem', color: '#111', letterSpacing: '-0.02em' }}>Tripician</Typography>
             }
           </Box>

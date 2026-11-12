@@ -2,7 +2,7 @@ import React from 'react';
 import { Avatar, Box, Typography, useTheme } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import { formatRelativeTime } from '../utils/relativeTime';
-import PhotoMosaic from '../components/ui/PhotoMosaic';
+import PhotoSlider from '../components/ui/PhotoSlider';
 import { postsService } from './postsService';
 import type { TravelerPost } from './types';
 
@@ -70,7 +70,7 @@ const CommentRow: React.FC<CommentRowProps> = ({ comment, onRemoved }) => {
         )}
 
         {comment.media.length > 0 && (
-          <PhotoMosaic photos={comment.media} sx={{ mt: 0.75, maxWidth: 320 }} rounded={10} />
+          <PhotoSlider photos={comment.media} photography={Boolean(comment.isPhotography)} sx={{ mt: 0.75, maxWidth: 320 }} rounded={10} postedAt={comment.createdAt} />
         )}
 
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.4, pl: 1.5 }}>

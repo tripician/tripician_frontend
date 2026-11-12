@@ -7,7 +7,7 @@ import {
 import { formatRelativeTime, formatAbsoluteDateTime } from '../utils/relativeTime';
 import { useRequireAuth } from '../auth/AuthGate';
 import VoteControl from './VoteControl';
-import PhotoMosaic from '../components/ui/PhotoMosaic';
+import PhotoSlider from '../components/ui/PhotoSlider';
 import VerifiedProfileMark from '../components/ui/VerifiedProfileMark';
 import { postsService } from './postsService';
 import type { TravelerPost } from './types';
@@ -149,7 +149,7 @@ const AnswerCard: React.FC<AnswerCardProps> = ({ answer, onRemoved, onAccepted }
         </Typography>
 
         {answer.media.length > 0 && (
-          <PhotoMosaic photos={answer.media} rounded={10} sx={{ mt: 1.25 }} />
+          <PhotoSlider photos={answer.media} photography={Boolean(answer.isPhotography)} rounded={10} sx={{ mt: 1.25 }} postedAt={answer.createdAt} />
         )}
       </Box>
     </Box>

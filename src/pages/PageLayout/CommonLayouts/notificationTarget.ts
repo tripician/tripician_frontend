@@ -58,6 +58,9 @@ export function notificationTarget(n: {
     case 'GroupJoinApproved':
     case 'GroupMemberAdded':
       return n.referenceType === 'Organization' ? `/groups/${id}` : null;
+    // Not in yet, so not the group itself (it would turn them away): the invitation waits on /groups.
+    case 'GroupInvited':
+      return n.referenceType === 'Organization' ? '/groups' : null;
     case 'OrgAnnouncement':
       return n.referenceType === 'Organization' ? `/groups/${id}?tab=notices` : null;
     // The fallback for a message when the thread cannot be opened in place.

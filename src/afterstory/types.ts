@@ -45,7 +45,8 @@ export interface RelatedItem {
 }
 
 export type StoryBlock =
-  | { id: string; type: 'text'; html: string }
+  /** `prompt`: grey hint shown while the block is empty (from a template). Never shown to readers. */
+  | { id: string; type: 'text'; html: string; prompt?: string }
   | { id: string; type: 'heading'; text: string; level: 2 | 3 }
   | { id: string; type: 'quote'; text: string; attribution?: string }
   | { id: string; type: 'photo'; url: string; caption?: string; alt?: string; width: PhotoWidth }
