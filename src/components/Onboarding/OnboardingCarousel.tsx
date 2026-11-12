@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useState } from 'react';
 import { Box, Modal, IconButton, Button, Typography, useTheme } from '@mui/material';
 import { motion, AnimatePresence } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
 import { IconX, IconChevronLeft, IconChevronRight } from '@tabler/icons-react';
 import { ONBOARDING_SLIDES } from './onboardingSlides';
 import { markWalkthroughShown, walkthroughShownThisSession } from '../../utils/walkthroughCoordinator';
@@ -16,7 +17,7 @@ function markOnboardingSeen(): void {
 }
 
 /**
- * First-run feature tour for new users: 3 slides, self-paced (no autoplay - an
+ * First-run feature tour for new users: one slide per feature, self-paced (no autoplay - an
  * onboarding message that vanishes before it's read is worse than one the user
  * skips), dismissible from any slide, gated to show once ever per browser.
  *
@@ -27,6 +28,7 @@ function markOnboardingSeen(): void {
  */
 const OnboardingCarousel: React.FC = () => {
   const theme = useTheme();
+  const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [index, setIndex] = useState(0);
   const [direction, setDirection] = useState(1);
@@ -57,13 +59,21 @@ const OnboardingCarousel: React.FC = () => {
   const isLast = index === ONBOARDING_SLIDES.length - 1;
   const slide = ONBOARDING_SLIDES[index];
 
-  const handleCreateTrip = useCallback(() => {
+  // The tour ends by sending them into the community it just described, not into
+  // a blank trip form: Groups & Stories is where every slide's feature is on show.
+  const handleExplore = useCallback(() => {
     markOnboardingSeen();
     setOpen(false);
-    // Same event NavigationPanel's header/nav "Create trip" buttons dispatch -
-    // opens the real trip-creation flow rather than a route of its own.
-    window.dispatchEvent(new Event('trip:create'));
-  }, []);
+    navigate('/stories');
+  }, [navigate]);
+
+  // Eight photographs: fetch only the next one, so a slide never opens on a blank
+  // frame and nobody downloads all eight just to close the tour on the first.
+  useEffect(() => {
+    if (!open) return;
+    const next = ONBOARDING_SLIDES[index + 1];
+    if (next?.image) new Image().src = next.image;
+  }, [open, index]);
 
   const handleKeyDown = useCallback((e: React.KeyboardEvent) => {
     if (e.key === 'ArrowRight' && !isLast) goTo(index + 1);
@@ -152,7 +162,7 @@ const OnboardingCarousel: React.FC = () => {
         </Box>
 
         {/* Copy */}
-        <Box sx={{ p: { xs: 2.5, sm: 3 }, minHeight: 148, display: 'flex', flexDirection: 'column' }}>
+        <Box sx={{ p: { xs: 2.5, sm: 3 }, minHeight: { xs: 262, sm: 236 }, display: 'flex', flexDirection: 'column' }}>
           <AnimatePresence initial={false} mode="wait">
             <motion.div
               key={slide.slug}
@@ -192,20 +202,8 @@ const OnboardingCarousel: React.FC = () => {
             </IconButton>
 
             {!isLast ? (
-              <Button
-                variant="contained"
-                onClick={() => goTo(index + 1)}
-                endIcon={<IconChevronRight size={16} />}
-                sx={{
-                  fontWeight: 700, fontSize: '0.84rem', px: 2.5, py: 0.9, borderRadius: '50px', textTransform: 'none',
-                  background: theme.custom?.gradients?.brand,
-                  '&:hover': { background: theme.custom?.gradients?.brandHover },
-                }}
-              >
-                Next
-              </Button>
-            ) : (
-              <Box sx={{ display: 'flex', gap: 1 }}>
+              <Box sx={{ display: 'flex', alignItems: 'center', gap: 1 }}>
+                {/* Eight slides is a real read, so leaving early is offered on every one. */}
                 <Button
                   onClick={dismiss}
                   sx={{ fontWeight: 600, fontSize: '0.84rem', px: 1.5, textTransform: 'none', color: 'text.secondary' }}
@@ -214,16 +212,30 @@ const OnboardingCarousel: React.FC = () => {
                 </Button>
                 <Button
                   variant="contained"
-                  onClick={handleCreateTrip}
+                  onClick={() => goTo(index + 1)}
+                  endIcon={<IconChevronRight size={16} />}
                   sx={{
                     fontWeight: 700, fontSize: '0.84rem', px: 2.5, py: 0.9, borderRadius: '50px', textTransform: 'none',
                     background: theme.custom?.gradients?.brand,
                     '&:hover': { background: theme.custom?.gradients?.brandHover },
                   }}
                 >
-                  Create trip
+                  Next
                 </Button>
               </Box>
+            ) : (
+              <Button
+                variant="contained"
+                onClick={handleExplore}
+                endIcon={<IconChevronRight size={16} />}
+                sx={{
+                  fontWeight: 700, fontSize: '0.84rem', px: 2.5, py: 0.9, borderRadius: '50px', textTransform: 'none',
+                  background: theme.custom?.gradients?.brand,
+                  '&:hover': { background: theme.custom?.gradients?.brandHover },
+                }}
+              >
+                Explore
+              </Button>
             )}
           </Box>
         </Box>

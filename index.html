@@ -7,40 +7,26 @@
 
     <!-- What is here and what is NOT, and why the split matters.
 
-         react-helmet-async can only replace tags it rendered itself. A tag
-         hardcoded in this file survives on every route, so it does not act as a
-         fallback: it sits in the document ahead of the per-page tag and is the
-         one a reader takes first.
+         The words come from src/pages/LandingPage/landingContent.ts. vite.config.ts
+         fills the three landing:* markers below at build time (landingStatic.ts),
+         so the page, these tags and the plain-HTML copy can never drift apart.
 
-         That made the canonical actively harmful. Every URL on the site declared
-         https://tripician.com/ as its canonical, which tells a search engine that
-         every page is a duplicate of the home page and only the home page should
-         be indexed. It is now rendered per page by <Seo>, which is the only place
-         that knows the path.
+         landing:social - the title and the og:/twitter: tags. These STAY on every
+         path: social scrapers do not run JavaScript, so Helmet never reaches them
+         and these are the only thing WhatsApp, Facebook and LinkedIn ever see.
 
-         The description left for the same reason: <Seo> writes a real one per
-         page and it was being shadowed by the home page's.
+         landing:head and landing:body - the home page only: its description,
+         canonical, JSON-LD and the page as plain HTML for crawlers that do not run
+         JavaScript (most AI crawlers). The build writes app.html without them and
+         vercel.json serves app.html for every other path. main.tsx removes them
+         before React renders, so <Seo> is the only description and canonical a
+         browser ever holds.
 
-         The og: and twitter: tags below deliberately STAY. Social scrapers do not
-         run JavaScript, so Helmet never reaches them and these really are the only
-         thing WhatsApp, Facebook and LinkedIn ever see. Keep them identical to
-         LandingPage's <Seo> props: they have drifted apart once before, leaving
-         the title saying "community" while the share cards said something else. -->
-    <title>Tripician, A Social Network For Travellers And Explorers</title>
-
-    <!-- Open Graph (Facebook, LinkedIn, WhatsApp) -->
-    <meta property="og:title" content="Tripician, A Social Network For Travellers And Explorers" />
-    <meta property="og:description" content="Travellers publish the trips they actually took. Read them, ask the people who went, and find others to travel with. Plan your own with your crew or with Tripician Intelligence. Free to join." />
-    <meta property="og:image" content="https://tripician.com/og-cover.jpg" />
-    <meta property="og:url" content="https://tripician.com/" />
-    <meta property="og:type" content="website" />
-    <meta property="og:site_name" content="Tripician" />
-
-    <!-- Twitter Card -->
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:title" content="Tripician, A Social Network For Travellers And Explorers" />
-    <meta name="twitter:description" content="Travellers publish the trips they actually took. Read them, ask the people who went, and find others to travel with. Plan your own with your crew or with Tripician Intelligence. Free to join." />
-    <meta name="twitter:image" content="https://tripician.com/og-cover.jpg" />
+         Never hardcode a canonical or a description here outside landing:head:
+         a tag in this file survives on every route, and a canonical of "/" on
+         every URL tells search engines every page is a duplicate of the home page. -->
+    <!--landing:social-->
+    <!--landing:head-->
 
     <!-- Additional SEO -->
     <meta name="robots" content="index, follow" />
@@ -67,7 +53,7 @@
     />
   </head>
   <body>
-    <div id="root"></div>
+    <div id="root"><!--landing:body--></div>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

@@ -46,6 +46,8 @@ export interface TripVM {
   createdAt: string | null;
   updatedAt: string | null;
   commentsCount: number;
+  likesCount: number;
+  publishedAt: string | null;
   owner: TripOwnerVM;
   members: TripMemberVM[];
   startDate: string | null;
@@ -188,6 +190,11 @@ export function mapTripVM(t: any, viewer?: ViewerProfile | null): TripVM {
     commentsCount:
       typeof t.commentsCount === 'number' ? t.commentsCount
         : typeof t.CommentsCount === 'number' ? t.CommentsCount : 0,
+    likesCount:
+      typeof t.likesCount === 'number' ? t.likesCount
+        : typeof t.LikesCount === 'number' ? t.LikesCount : 0,
+    // When it went public: what a profile's Travel Journal dates a published plan by.
+    publishedAt: t.publishedAt ?? t.PublishedAt ?? null,
     owner,
     members,
     startDate: t.startDate || t.start_date || null,

@@ -234,6 +234,8 @@ const TripicianAICommandBar: React.FC = () => {
                   stories={ask.stories}
                   citationsLoading={ask.citationsLoading}
                   onClose={ask.clear}
+                  token={bar.token}
+                  onUpdateOffer={ask.updateOffer}
                 />
               </motion.div>
             )}

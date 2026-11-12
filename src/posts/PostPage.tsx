@@ -7,7 +7,7 @@ import {
 import Seo, { SITE_URL } from '../components/Seo';
 import EmptyState from '../components/ui/EmptyState';
 import CardTypeTag from '../components/ui/CardTypeTag';
-import PhotoMosaic from '../components/ui/PhotoMosaic';
+import PhotoSlider from '../components/ui/PhotoSlider';
 import VerifiedProfileMark from '../components/ui/VerifiedProfileMark';
 import { formatRelativeTime, formatAbsoluteDateTime } from '../utils/relativeTime';
 import PostCard from './PostCard';
@@ -175,7 +175,7 @@ const PostPage: React.FC = () => {
             )}
 
             {post.media.length > 0 && (
-              <PhotoMosaic photos={post.media} sx={{ mt: 1.75 }} />
+              <PhotoSlider photos={post.media} photography={Boolean(post.isPhotography)} sx={{ mt: 1.75 }} postedAt={post.createdAt} />
             )}
 
             {post.tags.length > 0 && (

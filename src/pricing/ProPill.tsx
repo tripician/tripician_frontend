@@ -107,7 +107,7 @@ const ProPill: React.FC<ProPillProps> = ({ onClick }) => {
 
   // A badge on the logo's corner, so it reads as a mark of status rather than a control, and it scales for the phone.
   // Filled with the logo's own red, so the badge reads as part of the logo rather than as a coral button.
-  // The logo is now the square T tile: the badge overlaps only its top-right corner, clear of the arrowhead.
+  // The logo is the full lockup (T tile plus "tripician"): the badge sits above the end of the wordmark, clear of the "n".
   if (onPro) {
     return (
       <Tooltip title="Your plan, and what Business adds" arrow>

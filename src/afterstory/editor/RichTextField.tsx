@@ -158,18 +158,23 @@ const RichTextField: React.FC<RichTextFieldProps> = ({
         </Tooltip>
       </Box>
 
-      <Box sx={{ position: 'relative' }}>
-        {isEmpty && !focused && (
+      {/*
+        The placeholder and the field share one grid cell, so a prompt that wraps
+        to several lines makes the cell tall enough instead of spilling over the
+        block below. It stays while the field is focused and goes with the first
+        character typed, as a placeholder should: it used to vanish on click,
+        which left a template's prompt nowhere to be seen just as you started.
+      */}
+      <Box sx={{ position: 'relative', display: 'grid', '& > *': { gridArea: '1 / 1' } }}>
+        {isEmpty && (
           <Typography
             aria-hidden
             sx={{
-              position: 'absolute',
-              top: 0,
-              left: 0,
               pointerEvents: 'none',
               color: 'text.disabled',
               fontSize: { xs: '1.0625rem', md: '1.125rem' },
               lineHeight: 1.75,
+              maxWidth: `${measure}ch`,
             }}
           >
             {placeholder}
@@ -183,6 +188,7 @@ const RichTextField: React.FC<RichTextFieldProps> = ({
           role="textbox"
           aria-multiline="true"
           aria-label="Story text"
+          aria-placeholder={placeholder}
           onInput={handleInput}
           onPaste={handlePaste}
           onFocus={() => setFocused(true)}
@@ -191,6 +197,8 @@ const RichTextField: React.FC<RichTextFieldProps> = ({
             handleInput();
           }}
           sx={{
+            position: 'relative',
+            zIndex: 1,
             outline: 'none',
             minHeight: 28,
             maxWidth: `${measure}ch`,

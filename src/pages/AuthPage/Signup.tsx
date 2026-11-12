@@ -8,10 +8,12 @@ import { authAPI } from '../../services/APIs/Auth/auth';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useDispatch } from 'react-redux';
 import type { AppDispatch } from '../../store';
-import { nextFrom, withNext } from '../../services/APIs/Auth/nextDestination';
+import { nextFrom, safeNext } from '../../services/APIs/Auth/nextDestination';
 import { peekPendingPrompt } from '../../utils/pendingTripicianAIPrompt';
 import { signInWithPassword } from './passwordSignIn';
 import VerifyEmailStep from './VerifyEmailStep';
+import { useAuthBack, useAuthSwitch, useAuthSwitchLink } from './useAuthBack';
+import { stashReturnTo } from '../../utils/pendingDraft';
 import { emailTakenFrom, type SignInMethod } from './emailTaken';
 import { fadeInLeft, fadeInRight, staggerContainer, staggerItem } from '../../utils/animations';
 import { validateSignupEmail } from '../../utils/emailValidation';
@@ -32,6 +34,9 @@ const Signup = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const { loginWithRedirect } = useAuth0();
+    const goBack = useAuthBack();
+    const switchTo = useAuthSwitch();
+    const switchLink = useAuthSwitchLink();
     const signupBackground = import.meta.env.VITE_SIGNUPPAGE_IMAGE_URL as string | undefined;
     const logoUrl = import.meta.env.VITE_TRIPICIAN as string | undefined;
 
@@ -121,7 +126,7 @@ const Signup = () => {
         setTimeout(() => {
           // Carries ?next= across, so a visitor who came here to create an
           // organisation lands on that page after signing in rather than on home.
-          navigate(withNext('/signin', new URLSearchParams(location.search).get('next')));
+          switchTo('/signin');
         }, 2000);
       } catch (err: any) {
         // Status only: the error's request config holds the password.
@@ -161,12 +166,15 @@ const Signup = () => {
 
     /** To sign-in with the email already typed, keeping any ?next= this page was given. */
     const goToSignIn = () => {
-      navigate(withNext('/signin', new URLSearchParams(location.search).get('next')), {
-        state: { email: formData.email.trim() },
-      });
+      switchTo('/signin', { email: formData.email.trim() });
     };
 
     const handleGoogleSignUp = () => {
+      // As on the sign-in page: the tab leaves the site, so `?next=` only survives
+      // in storage. Without this a Google sign-up always landed on the home feed.
+      const next = safeNext(new URLSearchParams(location.search).get('next'));
+      if (next) stashReturnTo(next);
+
       loginWithRedirect({
         authorizationParams: {
           connection: 'google-oauth2',
@@ -233,8 +241,8 @@ const Signup = () => {
         initial="hidden"
         animate="visible"
       >
-        {/* Back to landing */}
-        <button className="auth-back-btn" onClick={() => navigate('/')}>
+        {/* Back to the page that sent them here, not always the landing page. */}
+        <button className="auth-back-btn" onClick={goBack}>
           <ArrowLeft size={15} />
           Back
         </button>
@@ -396,7 +404,7 @@ const Signup = () => {
             transition={{ delay: 0.8 }}
           >
             Already have an account?
-            <a href="/signin" className="auth-switch__link">Sign in</a>
+            <a {...switchLink('/signin')} className="auth-switch__link">Sign in</a>
           </motion.p>
 
           <div className="auth-divider"><span>or sign up with</span></div>

@@ -4,7 +4,6 @@ import type { TripPreferences } from '../../utils/tripPreferences';
 import type {
   TripSeats, TripJoinRequest, UpdateTripSeatsDto, OrganiserRecord, PendingRequestsGroup,
 } from '../../seats/types';
-import type { Conversation, ConversationMessage } from '../../messages/types';
 import type { TravelMap } from '../../pages/ProfilePage/travelHistory';
 import type { TripAnnouncement } from '../../types/announcements';
 import type { BillingItem, BillingSummary } from '../../billing/types';
@@ -311,9 +310,10 @@ export const apiServices = {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
-  // POST /api/feedback - submit user feedback (emailed to support@tripician.com)
-  sendFeedback: (token: string, message: string) =>
-    apiClient.post('/api/feedback', { message }, {
+  // POST /api/feedback - submit user feedback (emailed to support@tripician.com).
+  // Attachments are links from /api/feedback/media uploads; the server accepts only the sender's own.
+  sendFeedback: (token: string, message: string, attachments: string[] = []) =>
+    apiClient.post('/api/feedback', { message, attachments }, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 
@@ -1047,6 +1047,10 @@ export const apiServices = {
   getProfileFeatured: (userId: number) =>
     apiClient.get<unknown>(`/api/users/${userId}/featured`),
 
+  // PUT /api/profile/featured - replace the signed-in user's Featured row (up to five, in order; returns the resolved row)
+  saveProfileFeatured: (items: Array<{ type: 'plan' | 'story' | 'photo'; id: string }>) =>
+    apiClient.put<unknown>('/api/profile/featured', { items }),
+
   // POST /api/follow/{followeeId} - follow a user (JWT resolves follower)
   followUser: (token: string, followeeId: number) =>
     apiClient.post(`/api/follow/${followeeId}`, {}, { headers: { Authorization: `Bearer ${token}` } }),
@@ -1168,29 +1172,7 @@ export const apiServices = {
    * Only the types that actually send mail are listed, so a switch here always
    * governs something. The token comes from the interceptor.
    */
-  /*
-   * Private threads about one trip. The token comes from the interceptor.
-   *
-   * canMessage is separate from openConversation so the UI never renders a
-   * button that fails on click, and so hovering a name costs no writes.
-   */
-  canMessage: (tripId: string, userId: number) =>
-    apiClient.get<{ allowed: boolean; reason: string | null }>(
-      '/api/conversations/can-message', { params: { tripId, userId } }),
-
-  openConversation: (tripId: string, userId: number) =>
-    apiClient.post<Conversation>('/api/conversations/open', { TripId: tripId, UserId: userId }),
-
-  getConversations: () => apiClient.get<Conversation[]>('/api/conversations'),
-
-  getConversationMessages: (conversationId: string) =>
-    apiClient.get<ConversationMessage[]>(`/api/conversations/${conversationId}/messages`),
-
-  sendConversationMessage: (conversationId: string, body: string) =>
-    apiClient.post<ConversationMessage>(`/api/conversations/${conversationId}/messages`, { Body: body }),
-
-  getConversationUnreadCount: () =>
-    apiClient.get<{ count: number }>('/api/conversations/unread-count'),
+  // Chats (end-to-end encrypted) live in messages/chatApi.ts.
 
   getNotificationPreferences: () =>
     apiClient.get<Array<{ type: number; name: string; email: boolean }>>(
@@ -1264,6 +1246,17 @@ export const apiServices = {
     apiClient.delete(`/api/uploads/cover-photo/${userId}`, {
       headers: { Authorization: `Bearer ${token}` }
     }),
+
+  // POST /auth/change-password - a password account changes its password. Answers with
+  // fresh tokens minted under the new password (null if Auth0 could not issue them).
+  changePassword: (currentPassword: string, newPassword: string) =>
+    apiClient.post<{
+      success: boolean;
+      message: string;
+      accessToken?: string | null;
+      refreshToken?: string | null;
+      expiresIn?: number | null;
+    }>('/auth/change-password', { currentPassword, newPassword }),
 
   // PATCH /api/profile/settings/cover-picture
   saveCoverPictureUrl: (token: string, coverPictureUrl: string) =>

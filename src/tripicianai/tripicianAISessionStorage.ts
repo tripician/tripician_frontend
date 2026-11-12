@@ -14,6 +14,8 @@ export function loadTripicianAIMessages(tripId: string): TripicianAIMessage[] {
     return parsed.map(m => ({
       ...m,
       timestamp: new Date(m.timestamp),
+      // A trip being made when the page last closed was never finished: offer it again.
+      ...(m.offer?.state === 'creating' ? { offer: { ...m.offer, state: 'open' as const } } : {}),
     }));
   } catch {
     return [];

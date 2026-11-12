@@ -22,6 +22,7 @@ import type {
   PhotoWidth,
 } from './types';
 import { STORY_LIMITS } from './types';
+import { insertedPrompt } from './storyPrompts';
 
 /** Short, collision-free enough for a block key. Not a security boundary. */
 export function newBlockId(): string {
@@ -158,8 +159,17 @@ function normaliseBlock(input: unknown, seen: Set<string>): StoryBlock | null {
     // client sanitizes again in the one component that puts it into innerHTML.
     // Doing it at the sink rather than at the parser means any other path to
     // innerHTML is covered too, and it keeps this function pure.
-    case 'text':
-      return { id, type: 'text', html: (str(src.html) ?? '').slice(0, STORY_LIMITS.maxTextBlockChars * 4) };
+    case 'text': {
+      const html = (str(src.html) ?? '').slice(0, STORY_LIMITS.maxTextBlockChars * 4);
+      const prompt = str(src.prompt)?.slice(0, 300);
+      if (prompt) return { id, type: 'text', html, prompt };
+      // A template prompt from before prompts were placeholders, still sitting in
+      // the block as text nobody wrote over: hand it back as a prompt, so it shows
+      // grey in the editor and never reaches a reader.
+      const inserted = insertedPrompt(stripHtml(html));
+      if (inserted) return { id, type: 'text', html: '', prompt: inserted };
+      return { id, type: 'text', html };
+    }
 
     case 'heading': {
       const text = str(src.text);

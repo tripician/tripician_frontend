@@ -4,12 +4,12 @@ import {
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
 import {
-  IconHeart, IconHeartFilled, IconMessageCircle2, IconTrash, IconDots, IconLink, IconFlag, IconBan,
+  IconHeart, IconHeartFilled, IconMessageCircle2, IconTrash, IconDots, IconLink, IconFlag, IconBan, IconInfoCircle,
 } from '@tabler/icons-react';
 import { useRequireAuth } from '../auth/AuthGate';
 import { formatRelativeTime } from '../utils/relativeTime';
 import CardTypeTag from '../components/ui/CardTypeTag';
-import PhotoMosaic from '../components/ui/PhotoMosaic';
+import PhotoSlider from '../components/ui/PhotoSlider';
 import CommentRow from './CommentRow';
 import PostAttachmentStrip from './PostAttachment';
 import PlanPostcard from './PlanPostcard';
@@ -64,6 +64,8 @@ const PostCard: React.FC<PostCardProps> = ({
   const [loadingReplies, setLoadingReplies] = React.useState(false);
   const [replyCount, setReplyCount] = React.useState(post.replyCount);
   const [likersOpen, setLikersOpen] = React.useState(false);
+  // Image details: from the "i" on the photos, or from this card's menu, as in the app.
+  const [detailsOpen, setDetailsOpen] = React.useState(false);
 
   // The permalink already renders the thread under the post, so only a card that
   // links somewhere else opens one of its own.
@@ -261,7 +263,14 @@ const PostCard: React.FC<PostCardProps> = ({
       )}
 
       {photos.length > 0 && (
-        <PhotoMosaic photos={photos} sx={{ mb: 1 }} />
+        <PhotoSlider
+          photos={photos}
+          photography={Boolean(post.isPhotography)}
+          sx={{ mb: 1 }}
+          postedAt={post.createdAt}
+          detailsOpen={detailsOpen}
+          onDetailsOpenChange={setDetailsOpen}
+        />
       )}
 
       {/* A text-only pill naming the trip used to sit here. It said which trip
@@ -414,6 +423,13 @@ const PostCard: React.FC<PostCardProps> = ({
           <IconLink size={15} style={{ marginRight: 10 }} />
           Copy link
         </MenuItem>
+        {/* Photography posts only: an everyday post keeps no details. */}
+        {photos.length > 0 && post.isPhotography && (
+          <MenuItem onClick={() => { setMenuAnchor(null); setDetailsOpen(true); }}>
+            <IconInfoCircle size={15} style={{ marginRight: 10 }} />
+            Image details
+          </MenuItem>
+        )}
         {post.viewerCanDelete ? (
           <MenuItem onClick={remove} sx={{ color: 'error.main' }}>
             <IconTrash size={15} style={{ marginRight: 10 }} />

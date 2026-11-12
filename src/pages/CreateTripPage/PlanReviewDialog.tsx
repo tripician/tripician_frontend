@@ -68,7 +68,7 @@ const PlanReviewDialog: React.FC<PlanReviewDialogProps> = ({
       onClose={onClose}
       fullWidth
       maxWidth='sm'
-      PaperProps={{ sx: { borderRadius: '18px', maxHeight: '86vh' } }}
+      PaperProps={{ sx: { borderRadius: '18px', maxHeight: 'min(86vh, calc(100% - 64px))' } }}
     >
       {/* Header */}
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.25, px: 3, pt: 2.5, pb: 1.5 }}>

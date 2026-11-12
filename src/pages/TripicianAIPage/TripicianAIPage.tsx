@@ -12,22 +12,19 @@ import {
   Snackbar,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
-import { useNavigate } from 'react-router-dom';
 import { IconSend, IconTrash, IconPlus, IconCoins } from '@tabler/icons-react';
 import { useTripicianAI } from '../../tripicianai/useTripicianAI';
-import { fetchMyCredits, extractTripFromChat, type TripicianAICreditBalance } from '../../tripicianai/tripicianAIService';
+import { fetchMyCredits, type TripicianAICreditBalance } from '../../tripicianai/tripicianAIService';
+import { useCreateTripFromChat } from '../../tripicianai/useCreateTripFromChat';
 import CreditUsagePopover from '../../tripicianai/CreditUsagePopover';
 import TripicianAIMessage from '../../tripicianai/TripicianAIMessage';
 import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
 import TripicianAIWordmark from '../../tripicianai/TripicianAIWordmark';
 import { useAuthToken } from '../../hooks/useAuth0Token';
-import { useAppShell } from '../PageLayout/AppShellContext';
 import { useSelector } from 'react-redux';
 import type { RootState } from '../../store';
-import { apiServices } from '../../services/APIs/apiServices';
 import { usePlanImport } from '../../tripicianai/usePlanImport';
 import { PlanImportAttachButton, PlanImportStrip } from '../../tripicianai/PlanImportControls';
-import { matchCountryName } from '../../utils/countries';
 import { scheduleFeedbackPrompt } from '../../utils/feedbackPrompt';
 import { takePendingPrompt } from '../../utils/pendingTripicianAIPrompt';
 import { useReportAnswer } from '../../tripicianai/useReportAnswer';
@@ -46,9 +43,8 @@ const TripicianAIPage: React.FC = () => {
   const theme = useTheme();
   const isLight = theme.palette.mode === 'light';
   const { token } = useAuthToken();
-  const { openCreateTrip } = useAppShell();
   const { profile } = useSelector((state: RootState) => state.user);
-  const { messages, isStreaming, sendMessage, clearMessages } = useTripicianAI('', token);
+  const { messages, isStreaming, sendMessage, clearMessages, updateOffer } = useTripicianAI('', token);
   const { openReport, reportDialog } = useReportAnswer('web:tripicianai');
 
   const [input, setInput] = useState('');
@@ -129,10 +125,12 @@ const TripicianAIPage: React.FC = () => {
     inputRef.current?.focus();
   };
 
-  // Detect if latest TripicianAI response looks like a trip plan (has destinations / nights)
+  // A staged answer says itself when it is a plan (its offer card). An answer
+  // saved before that existed still gets the old guess from its wording.
   const lastTripicianAIMsg = [...messages].reverse().find((m) => m.role === 'tripicianai' && !m.isStreaming);
   const showCreateTrip =
     lastTripicianAIMsg &&
+    !Array.isArray(lastTripicianAIMsg.steps) &&
     /day\s*\d|night|itinerary|destination|visit|explore|stay|flight|hotel/i.test(lastTripicianAIMsg.content);
 
   const isEmpty = messages.length === 0;
@@ -159,77 +157,48 @@ const TripicianAIPage: React.FC = () => {
   // planner opens with everything seeded. Fallback: the blank creation modal.
   const [creatingTrip, setCreatingTrip] = useState(false);
   const [toast, setToast] = useState<string | null>(null);
-  const navigate = useNavigate();
+  const createTripFromChat = useCreateTripFromChat(token);
 
+  /** The question a given answer was replying to. */
+  const promptBefore = useCallback(
+    (answerId: string) => {
+      const at = messages.findIndex((m) => m.id === answerId);
+      return messages
+        .slice(0, Math.max(at, 0))
+        .reverse()
+        .find((m) => m.role === 'user')?.content;
+    },
+    [messages],
+  );
+
+  // "Make it a plan" on a staged answer's offer card.
+  const acceptOffer = useCallback(
+    async (answerId: string) => {
+      const answer = messages.find((m) => m.id === answerId);
+      if (!token || !answer?.offer || answer.offer.state === 'creating') return;
+      updateOffer(answerId, { state: 'creating' });
+      const failure = await createTripFromChat(answer.content, promptBefore(answerId), answer.offer.title);
+      if (failure) {
+        updateOffer(answerId, { state: 'open' });
+        setToast(failure);
+      } else {
+        updateOffer(answerId, { state: 'done' });
+      }
+    },
+    [createTripFromChat, messages, promptBefore, token, updateOffer],
+  );
+
+  // The older button, for an answer saved before answers carried their own offer.
   const handleCreateFromChat = useCallback(async () => {
     if (!token || !lastTripicianAIMsg || creatingTrip) return;
     setCreatingTrip(true);
-    // Held outside the try so the fallback can hand whatever was read out of the
-    // chat to the create dialog instead of opening it blank.
-    let salvaged: { name?: string; countries?: string[]; vibe?: string | null } | undefined;
-    try {
-      // The user message that produced this plan gives the extractor context.
-      const planIdx = messages.findIndex((m) => m.id === lastTripicianAIMsg.id);
-      const userPrompt = messages
-        .slice(0, Math.max(planIdx, 0))
-        .reverse()
-        .find((m) => m.role === 'user')?.content;
-
-      const extracted = await extractTripFromChat(lastTripicianAIMsg.content, userPrompt, token);
-      const countries = Array.from(new Set(
-        extracted.countries.map(matchCountryName).filter(Boolean),
-      ));
-
-      const name = extracted.name?.trim()
-        || (countries.length > 0 ? `Trip to ${countries[0]}` : 'My Tripician Intelligence Trip');
-
-      salvaged = { name, countries, vibe: extracted.vibe ?? null };
-
-      if (countries.length === 0 && extracted.stops.length === 0) {
-        throw new Error('Nothing usable extracted');
-      }
-
-      const createResp = await apiServices.createTrip(token, {
-        name,
-        description: '',
-        countries,
-        startDate: null,
-        endDate: null,
-        visibility: 0,
-        currencyCode: 'USD',
-        vibe: extracted.vibe ?? null,
-        invites: [] as string[],
-        plannerMode: 'Easy', // every new trip opens in the simple planner
-      });
-      const createdId: string | undefined =
-        createResp?.data?.id || createResp?.data?.Id || createResp?.data?.tripId;
-      if (!createdId) throw new Error('Trip created but no id returned');
-
-      const tripResp = await apiServices.getTripById(token, createdId);
-      scheduleFeedbackPrompt('trip_created');
-      navigate(`/tripplanner/${createdId}`, {
-        state: {
-          tripId: createdId,
-          trip: tripResp.data,
-          // The chat produces stops and nothing else; the wider seed fields are
-          // filled only when a plan is imported from a screenshot.
-          planSeed: {
-            stops: extracted.stops.map((s) => ({
-              name: s.name, nights: s.nights, notes: s.notes, spots: s.spots, foods: s.foods,
-            })),
-          },
-        },
-      });
-      // No state reset needed: navigation unmounts this page.
-    } catch (err) {
-      console.error('[TripicianAIPage] chat-to-trip failed', err);
+    const failure = await createTripFromChat(lastTripicianAIMsg.content, promptBefore(lastTripicianAIMsg.id));
+    // On success the planner opens and this page unmounts, so there is nothing to reset.
+    if (failure) {
       setCreatingTrip(false);
-      setToast(salvaged
-        ? "Couldn't build that automatically, so here it is in the form."
-        : "Couldn't turn this chat into a trip, starting a fresh one.");
-      openCreateTrip(salvaged);
+      setToast(failure);
     }
-  }, [token, lastTripicianAIMsg, creatingTrip, messages, navigate, openCreateTrip]);
+  }, [token, lastTripicianAIMsg, creatingTrip, createTripFromChat, promptBefore]);
 
   return (
     <Box
@@ -387,6 +356,8 @@ const TripicianAIPage: React.FC = () => {
                 key={msg.id}
                 message={msg}
                 isLight={isLight}
+                onAcceptOffer={() => acceptOffer(msg.id)}
+                onDismissOffer={() => updateOffer(msg.id, { state: 'dismissed' })}
                 onReport={() => openReport(msg.content, promptFor(messages, msg.id))}
               />
             ))}
@@ -416,8 +387,9 @@ const TripicianAIPage: React.FC = () => {
               </Box>
             )}
 
-            {/* Streaming indicator dots */}
-            {isStreaming && messages[messages.length - 1]?.content === '' && (
+            {/* Streaming indicator dots, for an answer with no steps to show instead */}
+            {isStreaming && messages[messages.length - 1]?.content === ''
+              && !Array.isArray(messages[messages.length - 1]?.steps) && (
               <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.5, pl: '52px', pb: 1 }}>
                 {[0, 1, 2].map((i) => (
                   <Box

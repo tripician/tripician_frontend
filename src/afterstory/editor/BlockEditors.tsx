@@ -67,7 +67,8 @@ export const TextBlockEditor: React.FC<BlockEditorProps<Extract<StoryBlock, { ty
         value={block.html}
         onChange={(html) => onChange({ ...block, html })}
         measure={measure}
-        placeholder="What happened here?"
+        // A template's prompt when the block came from one, shown grey until they type.
+        placeholder={block.prompt || 'What happened here?'}
       />
 
       {hasText && (

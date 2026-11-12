@@ -7,7 +7,7 @@ import { useRequireAuth } from '../auth/AuthGate';
 import { takeDraft } from '../utils/pendingDraft';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { IconPhotoPlus, IconMapPin, IconRoute } from '@tabler/icons-react';
+import { IconPhotoPlus, IconMapPin, IconRoute, IconInfoCircle } from '@tabler/icons-react';
 import type { RootState } from '../store';
 import { BRAND } from '../theme';
 import { postsService, UploadError } from './postsService';
@@ -18,7 +18,8 @@ import TagPicker from './TagPicker';
 import PostAttachmentStrip from './PostAttachment';
 import SharePicker, { type ShareChoice } from './SharePicker';
 import PhotoMosaic from '../components/ui/PhotoMosaic';
-import type { PostMediaInput, TravelerPost } from './types';
+import { hasPhotoData, readPhotoDetails } from '../utils/photoDetails';
+import type { PhotoStyle, PostMediaInput, TravelerPost } from './types';
 
 interface PostComposerProps {
   /** Set on a reply, which drops the place field and shortens the copy. */
@@ -60,6 +61,9 @@ const PostComposer: React.FC<PostComposerProps> = ({
   const [place, setPlace] = React.useState('');
   const [placeOpen, setPlaceOpen] = React.useState(false);
   const [media, setMedia] = React.useState<PostMediaInput[]>([]);
+  // The files behind `media`, in step with it: switching Everyday and Photography uploads them again.
+  const [files, setFiles] = React.useState<File[]>([]);
+  const [photoStyle, setPhotoStyle] = React.useState<PhotoStyle>('everyday');
   const [share, setShare] = React.useState<ShareChoice | null>(null);
   const [shareOpen, setShareOpen] = React.useState(false);
   const [uploading, setUploading] = React.useState(false);
@@ -94,8 +98,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
     ? (isQuestion ? `What do you need to know, ${displayName}?` : `Where are you, ${displayName}?`)
     : 'Say something, or ask something';
 
-  const pickPhotos = async (files: File[]) => {
-    const room = POST_LIMITS.maxPhotos - media.length;
+  const pickPhotos = async (picked: File[], style: PhotoStyle = photoStyle, room = POST_LIMITS.maxPhotos - media.length) => {
     if (room <= 0) return;
 
     setUploading(true);
@@ -103,15 +106,35 @@ const PostComposer: React.FC<PostComposerProps> = ({
     try {
       // Sequential, not parallel: four uploads at once stalls a phone connection,
       // which is exactly where these get written.
-      for (const file of files.slice(0, room)) {
-        const asset = await postsService.uploadPhoto(file);
-        setMedia((prev) => [...prev, asset]);
+      for (const file of picked.slice(0, room)) {
+        // Photography only: read before the upload, which strips every tag from
+        // the file. Never location.
+        const details = style === 'photography' ? await readPhotoDetails(file) : undefined;
+        const asset = await postsService.uploadPhoto(file, style);
+        setMedia((prev) => [...prev, details ? { ...asset, details } : asset]);
+        setFiles((prev) => [...prev, file]);
       }
     } catch (err) {
       setError(err instanceof UploadError ? err.message : 'That picture did not upload.');
     } finally {
       setUploading(false);
     }
+  };
+
+  /** Everyday and photography store a photo differently, so a switch sends the photos again. */
+  const changePhotoStyle = (next: PhotoStyle) => {
+    if (next === photoStyle || uploading) return;
+    setPhotoStyle(next);
+    if (files.length === 0) return;
+    const again = files;
+    setMedia([]);
+    setFiles([]);
+    void pickPhotos(again, next, POST_LIMITS.maxPhotos);
+  };
+
+  const removePhoto = (i: number) => {
+    setMedia((prev) => prev.filter((_, idx) => idx !== i));
+    setFiles((prev) => prev.filter((_, idx) => idx !== i));
   };
 
   const submit = async () => {
@@ -133,6 +156,7 @@ const PostComposer: React.FC<PostComposerProps> = ({
         placeName: place.trim() || null,
         parentPostId,
         media,
+        isPhotography: media.length > 0 ? photoStyle === 'photography' : undefined,
         kind: parentPostId ? undefined : kind,
         title: isQuestion ? title.trim() : null,
         tags: parentPostId ? undefined : tags,
@@ -143,6 +167,8 @@ const PostComposer: React.FC<PostComposerProps> = ({
       setPlace('');
       setPlaceOpen(false);
       setMedia([]);
+      setFiles([]);
+      setPhotoStyle('everyday');
       setShare(null);
       setShareOpen(false);
       setTitle('');
@@ -152,7 +178,10 @@ const PostComposer: React.FC<PostComposerProps> = ({
     } catch (err) {
       // A rejection has already destroyed the uploads server-side, so the
       // previews go too. Leaving them would offer a retry that posts nothing.
-      if (err instanceof PostRejectedError) setMedia([]);
+      if (err instanceof PostRejectedError) {
+        setMedia([]);
+        setFiles([]);
+      }
       setError(err instanceof Error ? err.message : 'That could not be posted.');
     } finally {
       setBusy(false);
@@ -290,12 +319,40 @@ const PostComposer: React.FC<PostComposerProps> = ({
               the layout it will have once it goes out. */}
           {(media.length > 0 || uploading) && (
             <Box sx={{ mt: 1.25 }}>
+              {/* What these photos are. Replies are always everyday. */}
+              {!parentPostId && (
+                <Box sx={{ display: 'flex', alignItems: 'center', flexWrap: 'wrap', gap: '6px 10px', mb: 1 }}>
+                  <SegmentedControl
+                    value={photoStyle}
+                    options={[
+                      { value: 'everyday' as PhotoStyle, label: 'Everyday', tip: 'Lighter photos, fitted to the feed' },
+                      { value: 'photography' as PhotoStyle, label: 'Photography', tip: 'Full quality, original shape, photo details' },
+                    ]}
+                    onChange={changePhotoStyle}
+                    size="small"
+                    aria-label="What these photos are"
+                  />
+                  <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                    {photoStyle === 'photography'
+                      ? 'Full quality, original shape, with photo details.'
+                      : 'Lighter photos, fitted to the feed.'}
+                  </Typography>
+                </Box>
+              )}
               <PhotoMosaic
-                photos={media.map((m) => ({ url: m.url, id: m.publicId }))}
+                photos={media.map((m) => ({ url: m.url, id: m.publicId, details: m.details }))}
                 uploading={uploading}
-                onRemove={(i) => setMedia((prev) => prev.filter((_, idx) => idx !== i))}
+                onRemove={removePhoto}
                 rounded={10}
+                // Photography only: the same "i" the post will have, so the author sees what goes out with it.
+                credit={photoStyle === 'photography' ? {} : undefined}
               />
+              {photoStyle === 'photography' && media.some((m) => hasPhotoData(m.details)) && (
+                <Typography variant="caption" sx={{ display: 'flex', alignItems: 'center', gap: 0.5, mt: 0.75, color: 'text.secondary' }}>
+                  <IconInfoCircle size={13} />
+                  Your photo&apos;s details (author, date, camera, size) go out with the post. Location never does.
+                </Typography>
+              )}
             </Box>
           )}
 

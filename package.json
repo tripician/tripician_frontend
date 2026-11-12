@@ -1,7 +1,7 @@
 {
   "name": "tripician_frontend",
   "private": true,
-  "version": "3.0.0",
+  "version": "3.1.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
@@ -29,6 +29,9 @@
     "@mui/material": "^7.3.1",
     "@mui/system": "^7.3.1",
     "@mui/x-date-pickers": "^7.3.1",
+    "@noble/ciphers": "^2.4.0",
+    "@noble/curves": "^2.4.0",
+    "@noble/hashes": "^2.4.0",
     "@reduxjs/toolkit": "^2.8.2",
     "@tabler/icons-react": "^3.44.0",
     "axios": "^1.11.0",

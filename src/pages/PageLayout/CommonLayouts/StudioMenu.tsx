@@ -1,6 +1,7 @@
 import React from 'react';
-import { Box, Popover, Typography, useTheme } from '@mui/material';
+import { Box, Typography, useTheme } from '@mui/material';
 import type { StudioAction } from '../studioActions';
+import HeaderPopover from './HeaderPopover';
 
 interface StudioMenuProps {
   anchorEl: HTMLElement | null;
@@ -16,20 +17,22 @@ interface StudioMenuProps {
  * A Popover of two-line rows rather than a MenuItem list, following the story
  * editor's AddBlockMenu. The hint is the point: "Write a story" on its own does
  * not tell somebody it is for a trip they have already taken, which is why almost
- * nobody found it behind the old chevron.
+ * nobody found it behind the old chevron. Non-modal (HeaderPopover), so the page
+ * behind keeps scrolling while it is open.
  */
 const StudioMenu: React.FC<StudioMenuProps> = ({ anchorEl, onClose, actions, placement = 'below' }) => {
   const theme = useTheme();
   const above = placement === 'above';
 
   return (
-    <Popover
+    <HeaderPopover
       open={Boolean(anchorEl)}
       anchorEl={anchorEl}
       onClose={onClose}
-      anchorOrigin={{ vertical: above ? 'top' : 'bottom', horizontal: above ? 'center' : 'right' }}
-      transformOrigin={{ vertical: above ? 'bottom' : 'top', horizontal: above ? 'center' : 'right' }}
-      slotProps={{ paper: { sx: { width: 300, p: 1, borderRadius: '16px', mt: above ? 0 : 1, mb: above ? 1.5 : 0 } } }}
+      placement={placement}
+      gap={above ? 12 : 8}
+      label="Studio"
+      paperSx={{ width: 300, p: 1, borderRadius: '16px' }}
     >
       <Box sx={{ display: 'grid', gap: 0.25 }}>
         {actions.map(({ key, label, hint, Icon, logo, run }) => (
@@ -82,7 +85,7 @@ const StudioMenu: React.FC<StudioMenuProps> = ({ anchorEl, onClose, actions, pla
           </Box>
         ))}
       </Box>
-    </Popover>
+    </HeaderPopover>
   );
 };
 

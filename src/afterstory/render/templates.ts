@@ -6,12 +6,14 @@
  * different shape made a mess of it, and the scaffold offer that used to sit in
  * the editor was unreachable anyway. To use a different shape, start a new story.
  *
- * The skeleton is REAL content. Every prompt paragraph is a normal text block the
- * author types over or deletes, and every heading is a normal heading. Nothing
- * here is special-cased on the way in or out.
+ * Headings are real content the author keeps or edits. Prose prompts are not:
+ * each is an empty text block carrying a `prompt`, shown grey until the author
+ * types and never shown to a reader. They used to be inserted as real text, which
+ * had to be deleted by hand and was sometimes published by mistake.
  */
 
-import { createBlock, plainTextToHtml } from '../blockSchema';
+import { createBlock } from '../blockSchema';
+import { PROMPTS } from '../storyPrompts';
 import type { PhotoWidth, StoryBlock, StoryTemplate } from '../types';
 
 export interface StoryTemplateStyle {
@@ -40,9 +42,9 @@ function heading(text: string): StoryBlock {
   return { ...block, type: 'heading', text, level: 2 };
 }
 
-function prose(text: string): StoryBlock {
+function prose(prompt: string): StoryBlock {
   const block = createBlock('text');
-  return { ...block, type: 'text', html: plainTextToHtml(text) };
+  return { ...block, type: 'text', html: '', prompt };
 }
 
 /** An empty slot the author drops a picture into. Renders as nothing if never filled. */
@@ -50,16 +52,6 @@ function photo(width: PhotoWidth): StoryBlock {
   const block = createBlock('photo');
   return { ...block, type: 'photo', url: '', width };
 }
-
-/**
- * The opening prompt, in the owner's own words. Every shape starts here, because
- * the blank first paragraph is the one that stops people writing at all.
- */
-const INTRO =
-  'This place is for introduction, maybe you can mention the overall motive of the trip, but like a summary. Where you went, who you went with, and why this one rather than anywhere else.';
-
-const CLOSING_HINT =
-  'Guidance stops here. Everything above is an ordinary block: type over it, move it, or delete it and lay the rest out however you like.';
 
 export const STORY_TEMPLATES: Record<StoryTemplate, StoryTemplateStyle> = {
   journal: {
@@ -74,15 +66,15 @@ export const STORY_TEMPLATES: Record<StoryTemplate, StoryTemplateStyle> = {
     captionAlign: 'left',
     captionCaps: false,
     scaffold: () => [
-      prose(INTRO),
+      prose(PROMPTS.intro),
       heading('Day one'),
       photo('inset'),
-      prose('Start with the thing you actually remember, not with the airport. What did the first hour look like, and what surprised you?'),
+      prose(PROMPTS.journalFirst),
       heading('The days in the middle'),
       photo('inset'),
-      prose('The part most people skip. One meal, one wrong turn, one conversation is worth more here than a list of everywhere you walked.'),
+      prose(PROMPTS.journalMiddle),
       heading('The way home'),
-      prose(`What you were carrying back that you did not arrive with. ${CLOSING_HINT}`),
+      prose(PROMPTS.journalHome),
     ],
   },
 
@@ -98,13 +90,13 @@ export const STORY_TEMPLATES: Record<StoryTemplate, StoryTemplateStyle> = {
     captionAlign: 'center',
     captionCaps: true,
     scaffold: () => [
-      prose(INTRO),
+      prose(PROMPTS.intro),
       photo('full'),
-      prose('One or two lines under the opening picture. In a photo essay the words are the caption, not the article, so keep them short and let the next image do the talking.'),
+      prose(PROMPTS.essayOpening),
       createBlock('gallery'),
       heading('The rest of the roll'),
       photo('full'),
-      prose(`Add the pictures that did not fit above, and say what was happening just outside the frame. ${CLOSING_HINT}`),
+      prose(PROMPTS.essayRest),
     ],
   },
 
@@ -120,17 +112,17 @@ export const STORY_TEMPLATES: Record<StoryTemplate, StoryTemplateStyle> = {
     captionAlign: 'left',
     captionCaps: false,
     scaffold: () => [
-      prose(INTRO),
+      prose(PROMPTS.intro),
       heading('Where I stayed'),
       photo('inset'),
-      prose('Name the places and say plainly whether you would book them again. A guide earns its keep on the details a listing page will not tell you: the walk from the station, the noise, the breakfast.'),
+      prose(PROMPTS.guideStay),
       heading('What I would do again'),
       createBlock('list'),
       heading('What I would skip'),
-      prose('The honest half. Something you queued for and regretted is more useful to the next person than another recommendation.'),
+      prose(PROMPTS.guideSkip),
       heading('What it cost'),
       createBlock('cost'),
-      prose(`Round numbers are fine. Say what is included and what is not. ${CLOSING_HINT}`),
+      prose(PROMPTS.guideCost),
     ],
   },
 
@@ -146,11 +138,11 @@ export const STORY_TEMPLATES: Record<StoryTemplate, StoryTemplateStyle> = {
     captionAlign: 'center',
     captionCaps: false,
     scaffold: () => [
-      prose(INTRO),
+      prose(PROMPTS.intro),
       photo('wide'),
-      prose('A line about that picture.'),
+      prose(PROMPTS.postcardFirst),
       photo('wide'),
-      prose(`And one about this one. A postcard is meant to be finished in ten minutes, so stop when you run out of things worth saying. ${CLOSING_HINT}`),
+      prose(PROMPTS.postcardSecond),
     ],
   },
 };

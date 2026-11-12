@@ -22,14 +22,14 @@
         {
           "type": "header",
           "key": "user-agent",
-          "value": ".*(googlebot|bingbot|yandex|duckduckbot|applebot|facebookexternalhit|facebookcatalog|meta-externalagent|whatsapp|twitterbot|linkedinbot|slackbot|slack-imgproxy|telegrambot|discordbot|pinterest|redditbot|skypeuripreview|embedly|quora link preview|vkshare|bitlybot|iframely|opengraph).*"
+          "value": ".*(googlebot|bingbot|yandex|duckduckbot|applebot|facebookexternalhit|facebookcatalog|meta-externalagent|whatsapp|twitterbot|linkedinbot|slackbot|slack-imgproxy|telegrambot|discordbot|pinterest|redditbot|skypeuripreview|embedly|quora link preview|vkshare|bitlybot|iframely|opengraph|gptbot|oai-searchbot|chatgpt-user|claudebot|claude-user|claude-searchbot|anthropic-ai|perplexitybot|perplexity-user|ccbot|amazonbot|duckassistbot|mistralai-user|cohere-ai|youbot|meta-externalfetcher).*"
         }
       ],
       "destination": "https://api.tripician.com/render/story/:slug"
     },
     {
-      "source": "/(.*)",
-      "destination": "/index.html"
+      "source": "/(.+)",
+      "destination": "/app.html"
     }
   ],
   "git": {

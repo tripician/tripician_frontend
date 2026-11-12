@@ -44,6 +44,7 @@ import {
 import Seo, { SITE_URL } from '../components/Seo';
 import { resolveStoryCover, formatTravelWindow } from './storyFormat';
 import AfterStoryReader from './render/AfterStoryReader';
+import { StoryBleedContext } from './render/storyBleed';
 import StoryVideoCover from './render/StoryVideoCover';
 import ReportStoryDialog from './ReportStoryDialog';
 import StoryQuestions from './StoryQuestions';
@@ -350,7 +351,11 @@ const StoryPage: React.FC = () => {
   );
 
   return (
-    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default' }}>
+    // clip, not hidden: a full-bleed photo is 100vw, which counts the scrollbar,
+    // so it is a few pixels wider than the page. Clipping trims that instead of
+    // giving the page a sideways scrollbar, and unlike overflow:hidden it does not
+    // turn this box into a scroll container.
+    <Box sx={{ minHeight: '100vh', bgcolor: 'background.default', overflowX: 'clip' }}>
       <Seo
         title={story.title}
         description={
@@ -547,7 +552,10 @@ const StoryPage: React.FC = () => {
         )}
 
         <Box ref={bodyRef}>
-          <AfterStoryReader blocks={blocks} template={story.template} />
+          {/* The one place a full-bleed photo may reach the screen edges. */}
+          <StoryBleedContext.Provider value>
+            <AfterStoryReader blocks={blocks} template={story.template} />
+          </StoryBleedContext.Provider>
         </Box>
 
         {blocks.length === 0 && (
