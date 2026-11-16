@@ -27,6 +27,17 @@ describe('profileFlags', () => {
     expect(flags.map((f) => `${f.code}:${f.kind}`)).toEqual(['IN:home', 'PT:location', 'JP:trip']);
   });
 
+  it('adds past visits approved from photos and leaves out countries taken off in the app, Home excepted', () => {
+    const flags = profileFlags({
+      homeCountry: 'IN',
+      countries: [{ name: 'Nepal', tier: 'gold', firstAt: '2025-03-01' } as never],
+      photoCountries: [{ code: 'IT', firstAt: '2026-11-13' }],
+      locationCountries: [{ code: 'TH', firstAt: '2026-11-15' }],
+      hiddenCodes: ['th', 'IN'],
+    });
+    expect(flags.map((f) => `${f.code}:${f.kind}`)).toEqual(['IN:home', 'NP:trip', 'IT:photo']);
+  });
+
   it('reads an account country stored as a code or a name', () => {
     expect(homeCodeOf('gb')).toBe('GB');
     expect(homeCodeOf('United Kingdom')).toBe('GB');

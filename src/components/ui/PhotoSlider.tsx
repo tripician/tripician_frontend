@@ -16,9 +16,9 @@ export interface SliderPhoto {
 interface PhotoSliderProps {
   photos: SliderPhoto[];
   /**
-   * A photography post: every photo in its own shape, never cropped, square
-   * corners, and an "i" for its Image details. Otherwise an everyday post:
-   * photos fill a frame fitted to the feed, cropped if need be, with rounded corners.
+   * A photography post: square corners and an "i" for its Image details.
+   * Otherwise an everyday post, with rounded corners. Either way the photos
+   * fill a frame between 4:5 and 1.91:1, and a click opens them whole.
    */
   photography?: boolean;
   /** When the post went out, for the details. */
@@ -45,9 +45,11 @@ const ratioOf = (photo: SliderPhoto): number | undefined => {
  * A post's photos, one at a time, swiped or stepped through.
  *
  * It replaces the collage (PhotoMosaic) on posts: the owner wanted every photo
- * seen whole and in turn, the way Instagram shows a carousel, rather than four
- * cut into a grid. The frame takes the first photo's shape, as Instagram's
- * does; on a photography post the others sit inside it uncropped.
+ * seen in turn, the way Instagram shows a carousel, rather than four cut into
+ * a grid. The frame takes the first photo's shape held between 4:5 and 1.91:1,
+ * as Instagram's does, and every photo fills it: a very tall photo is cropped
+ * rather than shown narrow between bars (the owner's call, 2026-11-16). A
+ * click opens the photo whole, in its own shape, in the PhotoViewer.
  */
 const PhotoSlider: React.FC<PhotoSliderProps> = ({
   photos, photography = false, postedAt, detailsOpen, onDetailsOpenChange, rounded = 12, sx,
@@ -78,9 +80,7 @@ const PhotoSlider: React.FC<PhotoSliderProps> = ({
   if (count === 0) return null;
 
   const first = ratioOf(photos[0]) ?? measured[0];
-  const ratio = photography
-    ? first ?? 4 / 3
-    : Math.min(MAX_RATIO, Math.max(MIN_RATIO, first ?? 1));
+  const ratio = Math.min(MAX_RATIO, Math.max(MIN_RATIO, first ?? (photography ? 4 / 3 : 1)));
   const radius = photography ? 0 : rounded;
 
   const goTo = (i: number) => {
@@ -145,15 +145,14 @@ const PhotoSlider: React.FC<PhotoSliderProps> = ({
             display: 'flex',
             width: '100%',
             aspectRatio: String(ratio),
-            // A tall photograph is shown whole, inside the screen, rather than cropped.
-            maxHeight: photography ? 'min(85vh, 1100px)' : undefined,
             overflowX: 'auto',
             overflowY: 'hidden',
             scrollSnapType: 'x mandatory',
             scrollbarWidth: 'none',
             '&::-webkit-scrollbar': { display: 'none' },
             borderRadius: `${radius}px`,
-            bgcolor: photography ? 'action.hover' : 'transparent',
+            // Seen only until the photo arrives: every photo fills the frame.
+            bgcolor: 'action.hover',
             '&:focus-visible': (t: any) => ({ outline: `2px solid ${t.custom.ring}`, outlineOffset: 2 }),
           }}
         >
@@ -191,8 +190,8 @@ const PhotoSlider: React.FC<PhotoSliderProps> = ({
                   width: '100%',
                   height: '100%',
                   display: 'block',
-                  // Photography is never cropped; an everyday photo fills its frame.
-                  objectFit: photography ? 'contain' : 'cover',
+                  // Every photo fills the frame, with no bars beside it; a click opens it whole.
+                  objectFit: 'cover',
                   transition: 'filter 180ms ease-out, transform 180ms ease-out',
                   ...(showingDetails && { filter: 'blur(18px) brightness(0.92)', transform: 'scale(1.08)' }),
                 }}
