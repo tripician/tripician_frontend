@@ -17,7 +17,7 @@ export interface ImageCropDialogProps {
   aspect: number;
   /** A round guide over the square, for pictures shown as a circle. */
   round?: boolean;
-  /** The widest picture uploaded. Smaller selections are not enlarged. */
+  /** The widest picture uploaded; its height follows the shape. A smaller selection is sent at its own size. */
   maxOutputWidth: number;
   onCancel: () => void;
   /** Uploads the cropped picture. A rejection keeps the dialog open with its message. */
