@@ -31,14 +31,19 @@ import ImageCropDialog from '../../components/CommonComponents/ImageCropDialog';
 /** Which picture is being changed. */
 type PictureKind = 'avatar' | 'cover';
 
-/** A profile photo is uploaded as a square this many pixels wide: shown as a 136 px circle at most, sharp on any screen. */
-const AVATAR_SIZE = 512;
 /**
- * A cover is cropped to 3:1 and uploaded at most this wide. The band it fills is
- * about 2:1 on a phone and nearly 4:1 on a wide screen, so 3:1 loses least either way.
+ * A profile photo is uploaded as a square at most this wide (the server's own cap,
+ * PhotoShape.Avatar): shown as a 136 px circle at most, so sharp on any screen. A
+ * smaller selection goes at its own size; there is no minimum.
+ */
+const AVATAR_SIZE = 600;
+/**
+ * A cover is cropped to 3:1 and uploaded at most this wide (PhotoShape.Cover). The
+ * band it fills is about 2:1 on a phone and nearly 4:1 on a wide screen, so 3:1
+ * loses least either way.
  */
 const COVER_ASPECT = 3;
-const COVER_WIDTH = 1500;
+const COVER_WIDTH = 1800;
 /** Bigger than any phone photo; anything larger is likely not a photo at all. Only the crop is uploaded. */
 const MAX_PICK_BYTES = 25 * 1024 * 1024;
 

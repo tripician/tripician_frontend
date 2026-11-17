@@ -35,10 +35,12 @@ describe('image crop', () => {
     expect(sourceRect(zoomed, photo, square).sw).toBeCloseTo(500);
   });
 
-  it('uploads at the target size, but never enlarges a small selection', () => {
-    expect(outputSize({ sx: 0, sy: 0, sw: 1000, sh: 1000 }, 1, 512)).toEqual({ width: 512, height: 512 });
-    expect(outputSize({ sx: 0, sy: 0, sw: 300, sh: 300 }, 1, 512)).toEqual({ width: 300, height: 300 });
-    expect(outputSize({ sx: 0, sy: 0, sw: 3000, sh: 1000 }, 3, 1500)).toEqual({ width: 1500, height: 500 });
+  it('caps the upload at the largest size, but never enlarges a small selection', () => {
+    // The 2000 px photo from the bug report, cropped whole: capped to 600.
+    expect(outputSize({ sx: 0, sy: 0, sw: 2000, sh: 2000 }, 1, 600)).toEqual({ width: 600, height: 600 });
+    expect(outputSize({ sx: 0, sy: 0, sw: 300, sh: 300 }, 1, 600)).toEqual({ width: 300, height: 300 });
+    expect(outputSize({ sx: 0, sy: 0, sw: 3000, sh: 1000 }, 3, 1800)).toEqual({ width: 1800, height: 600 });
+    expect(outputSize({ sx: 0, sy: 0, sw: 900, sh: 300 }, 3, 1800)).toEqual({ width: 900, height: 300 });
   });
 
   it('crops a cover to 3:1 from a tall photo', () => {
