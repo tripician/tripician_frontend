@@ -27,6 +27,10 @@ import { CARD_SAVING_NOTE } from './billingCopy';
 import { waitForPlan } from './planActivation';
 import { approximateLabel, conversionNote, regionOf, visitorCurrency, type DisplayRates } from './localPrice';
 import { formatMoney, type Plan, type PlanId, type PlanSale } from './types';
+import PaymentIssueNotice from '../billing/PaymentIssueNotice';
+import {
+  notifyBillingChanged, refreshPaymentIssues, useBillingRefresh, usePaymentIssues,
+} from '../billing/billingStatus';
 
 const CONTENT_MAX = 1120;
 
@@ -82,6 +86,8 @@ const PricingPage: React.FC = () => {
     return () => { cancelled = true; };
   }, []);
 
+  // Read again after a payment, card change or cancel anywhere, so "Your plan" follows it.
+  const billingChanged = useBillingRefresh();
   React.useEffect(() => {
     if (!token) { setMyPlanId(null); return; }
     let cancelled = false;
@@ -89,6 +95,13 @@ const PricingPage: React.FC = () => {
       .then((resp) => { if (!cancelled) setMyPlanId(resp.data?.planId ?? null); })
       .catch(() => { if (!cancelled) setMyPlanId(null); });
     return () => { cancelled = true; };
+  }, [token, billingChanged]);
+
+  // A failed renewal is said above the plans, with its fixes, rather than in a popup over them.
+  const issues = usePaymentIssues();
+  const personalIssue = token ? issues.find((issue) => issue.organizationId == null) ?? null : null;
+  React.useEffect(() => {
+    if (token) void refreshPaymentIssues();
   }, [token]);
 
   // Rupees unless the browser says where it is and the server sent a rate for there.
@@ -119,6 +132,8 @@ const PricingPage: React.FC = () => {
       wanted: plan.planId,
     });
 
+    // The header's plan badge and any failed-payment warning read the new plan.
+    notifyBillingChanged();
     if (!onPage.current) return;
     navigate('/', { state: { planWelcome: { planName: plan.name, active } } });
   };
@@ -199,6 +214,8 @@ const PricingPage: React.FC = () => {
             />
           )}
         />
+
+        <PaymentIssueNotice issue={personalIssue} billingLink sx={{ mt: 3 }} />
 
         <Box
           sx={{
