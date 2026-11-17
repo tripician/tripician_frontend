@@ -15,11 +15,34 @@ export interface PersonResult {
   tripCount: number;
 }
 
-export type TopSection = 'people' | 'places' | 'plans' | 'groups' | 'stories' | 'tags';
+export type TopSection = 'posts' | 'people' | 'places' | 'plans' | 'groups' | 'stories' | 'tags';
 
-export const TOP_CAPS: Record<TopSection, number> = { people: 4, places: 3, plans: 4, groups: 3, stories: 4, tags: 4 };
+export const TOP_CAPS: Record<TopSection, number> = { posts: 4, people: 4, places: 3, plans: 4, groups: 3, stories: 4, tags: 4 };
 
-const DEFAULT_ORDER: TopSection[] = ['places', 'people', 'plans', 'groups', 'stories', 'tags'];
+// Posts lead, as in the app: for a word like a place, what people posted about it is the richest match.
+const DEFAULT_ORDER: TopSection[] = ['posts', 'places', 'people', 'plans', 'groups', 'stories', 'tags'];
+
+/** The words of a search, as the server splits them (PostSearch.Words): lowercased, at most six. */
+export function searchWords(q: string): string[] {
+  return Array.from(new Set(
+    foldText(q).split(/[\s,]+/).map((w) => w.replace(/^[#.!?"']+|[#.!?"']+$/g, '')).filter(Boolean),
+  )).slice(0, 6);
+}
+
+/**
+ * Whether a post really matches: every word somewhere in its description,
+ * title, place or tags, the server's own rule. A server from before post search
+ * ignores the query and sends the latest posts, so this keeps those out.
+ */
+export function postMatches(
+  post: { body: string; title: string | null; placeName: string | null; tags?: { id: string; label: string }[] },
+  q: string,
+): boolean {
+  const words = searchWords(q);
+  if (!words.length) return false;
+  const haystack = foldText([post.body, post.title ?? '', post.placeName ?? '', ...(post.tags ?? []).flatMap((t) => [t.id, t.label])].join('\n'));
+  return words.every((w) => haystack.includes(w));
+}
 
 /** Best title match first; the feed's own order (verified, then joinable, then engagement) settles ties. */
 export function rankPlans(trips: any[], q: string): any[] {
@@ -61,6 +84,8 @@ export function rankPeople(people: PersonResult[], q: string): PersonResult[] {
 
 export interface TopInput {
   q: string;
+  /** Only their number matters here. */
+  posts?: unknown[];
   people: PersonResult[];
   places: PlaceEntry[];
   plans: any[];
@@ -70,14 +95,14 @@ export interface TopInput {
 }
 
 /** Section order for Top: whatever the query names outright leads, otherwise places, then people. Empty sections drop out. */
-export function topOrder({ q, people, places, plans, groups, stories, tags }: TopInput): TopSection[] {
+export function topOrder({ q, posts = [], people, places, plans, groups, stories, tags }: TopInput): TopSection[] {
   const needle = foldText(q);
   const lead: TopSection[] = [];
   if (people.some((p) => foldText(p.name) === needle)) lead.push('people');
   if (groups.some((g) => foldText(g.name) === needle)) lead.push('groups');
   if (places.some((p) => foldText(p.name) === needle)) lead.unshift('places');
   const counts: Record<TopSection, number> = {
-    people: people.length, places: places.length, plans: plans.length, groups: groups.length, stories: stories.length, tags: tags.length,
+    posts: posts.length, people: people.length, places: places.length, plans: plans.length, groups: groups.length, stories: stories.length, tags: tags.length,
   };
   return [...lead, ...DEFAULT_ORDER.filter((s) => !lead.includes(s))].filter((s) => counts[s] > 0);
 }
