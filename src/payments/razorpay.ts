@@ -40,6 +40,51 @@ export const loadRazorpay = (): Promise<boolean> => {
   return loading;
 };
 
+/*
+ * Whether a payment sheet is open right now.
+ *
+ * Razorpay draws its sheet in an iframe over the page, and an MUI dialog under it
+ * keeps pulling focus back into itself, so the card form cannot be typed into.
+ * Anything that would pop up (the failed-payment prompt) waits until no sheet is open.
+ */
+let sheetsOpen = 0;
+const sheetListeners = new Set<() => void>();
+
+function countSheets(change: 1 | -1): void {
+  sheetsOpen = Math.max(0, sheetsOpen + change);
+  for (const listener of sheetListeners) {
+    try { listener(); } catch { /* one broken listener must not stop the rest */ }
+  }
+}
+
+export const isCheckoutOpen = (): boolean => sheetsOpen > 0;
+
+/** Told whenever a sheet opens or closes. Returns the unsubscribe, so it fits `useSyncExternalStore`. */
+export const subscribeCheckout = (listener: () => void): (() => void) => {
+  sheetListeners.add(listener);
+  return () => { sheetListeners.delete(listener); };
+};
+
+/** One sheet's open and close, each counted once however Razorpay reports the close. */
+function sheetTracker() {
+  let open = false;
+  return {
+    opened: () => { if (!open) { open = true; countSheets(1); } },
+    closed: () => { if (open) { open = false; countSheets(-1); } },
+  };
+}
+
+/** Opens the sheet, and never leaves it counted as open if Razorpay throws instead. */
+function openTracked(checkout: { open: () => void }, sheet: ReturnType<typeof sheetTracker>): void {
+  sheet.opened();
+  try {
+    checkout.open();
+  } catch (err) {
+    sheet.closed();
+    throw err;
+  }
+}
+
 interface OpenOptions {
   intent: CheckoutIntent;
   /** What the sheet says is being bought. */
@@ -70,6 +115,7 @@ export const openRazorpayCheckout = ({
     return;
   }
 
+  const sheet = sheetTracker();
   const checkout = new Razorpay({
     key: intent.keyId,
     // Both come from the server. Razorpay checks the amount against the order it
@@ -83,8 +129,8 @@ export const openRazorpayCheckout = ({
     ...checkoutIdentity({ name: intent.customerName, email: intent.customerEmail, phone: intent.customerPhone }),
     // The payment sheet is Razorpay's, but it should still look like Tripician.
     theme: { color: BRAND.coral },
-    handler: (response: unknown) => onPaid(response as RazorpayResult),
-    modal: { ondismiss: () => onDismissed() },
+    handler: (response: unknown) => { sheet.closed(); onPaid(response as RazorpayResult); },
+    modal: { ondismiss: () => { sheet.closed(); onDismissed(); } },
   });
 
   checkout.on('payment.failed', (response: unknown) => {
@@ -92,7 +138,7 @@ export const openRazorpayCheckout = ({
     onFailed(error?.description ?? 'That payment did not go through. Please try again.');
   });
 
-  checkout.open();
+  openTracked(checkout, sheet);
 };
 
 interface SubscriptionOptions {
@@ -101,6 +147,11 @@ interface SubscriptionOptions {
   description: string;
   /** The signed-in buyer. Without it the sheet shows whoever Razorpay remembers on this device. */
   payer: Payer;
+  /**
+   * Opens an existing subscription to take a new card instead of starting one.
+   * Razorpay charges the overdue renewal to that card while it is still retrying.
+   */
+  cardChange?: boolean;
   onPaid: () => void;
   onDismissed: () => void;
   onFailed: (message: string) => void;
@@ -116,7 +167,7 @@ interface SubscriptionOptions {
  * "the sheet closed happily".
  */
 export const openRazorpaySubscription = ({
-  keyId, subscriptionId, description, payer, onPaid, onDismissed, onFailed,
+  keyId, subscriptionId, description, payer, cardChange = false, onPaid, onDismissed, onFailed,
 }: SubscriptionOptions): void => {
   const Razorpay = (window as unknown as { Razorpay?: new (options: unknown) => {
     open: () => void;
@@ -128,16 +179,18 @@ export const openRazorpaySubscription = ({
     return;
   }
 
+  const sheet = sheetTracker();
   const checkout = new Razorpay({
     key: keyId,
     subscription_id: subscriptionId,
+    ...(cardChange ? { subscription_card_change: 1 } : {}),
     name: 'Tripician',
     image: LOGO,
     description,
     ...checkoutIdentity(payer),
     theme: { color: BRAND.coral },
-    handler: () => onPaid(),
-    modal: { ondismiss: () => onDismissed() },
+    handler: () => { sheet.closed(); onPaid(); },
+    modal: { ondismiss: () => { sheet.closed(); onDismissed(); } },
   });
 
   checkout.on('payment.failed', (response: unknown) => {
@@ -145,5 +198,5 @@ export const openRazorpaySubscription = ({
     onFailed(error?.description ?? 'That payment did not go through. Please try again.');
   });
 
-  checkout.open();
+  openTracked(checkout, sheet);
 };

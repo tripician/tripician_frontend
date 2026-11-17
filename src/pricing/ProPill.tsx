@@ -4,6 +4,7 @@ import { alpha } from '@mui/material/styles';
 import { BRAND } from '../theme';
 import { apiServices } from '../services/APIs/apiServices';
 import { useAuthToken } from '../hooks/useAuth0Token';
+import { useBillingRefresh } from '../billing/billingStatus';
 import type { PlanId } from './types';
 
 interface ProPillProps {
@@ -67,6 +68,8 @@ const ProPill: React.FC<ProPillProps> = ({ onClick }) => {
   const theme = useTheme();
   const { token } = useAuthToken();
   const [planId, setPlanId] = React.useState<PlanId | null>(null);
+  // A payment, card change or cancel anywhere, or the tab coming back after a while, reads the plan again.
+  const billingChanged = useBillingRefresh();
 
   React.useEffect(() => {
     if (!token) { setPlanId(null); return; }
@@ -77,7 +80,7 @@ const ProPill: React.FC<ProPillProps> = ({ onClick }) => {
       .then((r) => { if (active) setPlanId(r.data?.planId ?? null); })
       .catch(() => { if (active) setPlanId(null); });
     return () => { active = false; };
-  }, [token]);
+  }, [token, billingChanged]);
 
   const onPro = planId === 'pro';
   /*

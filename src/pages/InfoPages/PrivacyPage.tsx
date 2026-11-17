@@ -47,6 +47,7 @@ const PrivacyPage: React.FC = () => {
           <P><strong>Content You Publish:</strong> Posts and questions you write, after stories and the photographs in them, comments and answers, group discussion posts and announcements, and the countries recorded in your travel history. Anything you publish is visible to other people according to the setting you chose for it.</P>
           <P><strong>Messages:</strong> Direct messages you send to other travellers about a trip, kept so the conversation is there when you return to it and so we can act on a report about it. They are not used for advertising and are not read except where a report or a legal obligation requires it.</P>
           <P><strong>Group Membership:</strong> The groups you belong to, your role in each, and any request you have made to join one.</P>
+          <P><strong>Payment Records:</strong> If you buy a plan or a credit pack, we keep a record of each payment and of each failed attempt to renew a plan: what it was for, the amount, the date, the kind of payment method used (for example card or UPI), whether it went through, and the reason Razorpay gave when it did not. We use these records to show your billing history and receipts, to tell you when a renewal payment fails, and to handle refunds. We never receive your card number.</P>
           <P><strong>Usage Data:</strong> Information about how you interact with the Service, such as features used, pages visited, session timestamps, and error events.</P>
           <P><strong>Technical Data:</strong> Your IP address, browser type and version, operating system, device type, and referring URL, collected automatically when you access the Service.</P>
           <P><strong>Authentication Data:</strong> Login sessions and authentication tokens managed by Auth0, Inc. We do not store your raw password at any point.</P>
@@ -173,6 +174,7 @@ const PrivacyPage: React.FC = () => {
         <>
           <P>We use browser <strong>local storage</strong> (not cookies) to cache non-personal data, such as destination image URLs from Unsplash, to improve loading performance. This data contains no personal information and can be cleared at any time through your browser settings.</P>
           <P>Authentication session tokens managed by Auth0 may be stored in browser storage as necessary for login persistence, and are used solely for authentication purposes.</P>
+          <P>We also keep a few settings there that make the Service behave the way you left it, such as when you chose "Not now" on a reminder about a failed payment, so the reminder is not shown again for a day. They are linked to your account on that browser and are never used for tracking.</P>
           <P>If we introduce analytics cookies or tracking technologies in the future, we will update this policy and seek your consent where required by applicable law (e.g., EU ePrivacy Directive, UK PECR).</P>
         </>
       ),
@@ -236,7 +238,7 @@ const PrivacyPage: React.FC = () => {
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, mt: 3, flexWrap: 'wrap' }}>
             <Box sx={{ background: alpha(BRAND.coral, 0.08), borderRadius: '20px', px: 2, py: 0.75, border: `1px solid ${alpha(BRAND.coral, 0.15)}` }}>
-              <Typography sx={{ fontSize: '0.78rem', color: 'primary.main', fontWeight: 600 }}>Last updated: November 6, 2026</Typography>
+              <Typography sx={{ fontSize: '0.78rem', color: 'primary.main', fontWeight: 600 }}>Last updated: November 17, 2026</Typography>
             </Box>
             <Box sx={{ background: 'rgba(0,0,0,0.04)', borderRadius: '20px', px: 2, py: 0.75, border: '1px solid rgba(0,0,0,0.08)' }}>
               <Typography sx={{ fontSize: '0.78rem', color: '#555', fontWeight: 500 }}>GDPR · UK GDPR · CCPA/CPRA</Typography>

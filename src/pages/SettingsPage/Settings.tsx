@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { useSearchParams } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -22,9 +22,16 @@ const TAB_FROM_PARAM: Record<string, string> = {
 };
 
 const Settings: React.FC = () => {
-  const [searchParams] = useSearchParams();
-  const initialTab = TAB_FROM_PARAM[(searchParams.get('tab') || '').toLowerCase()] || 'Profile';
-  const [selectedSettingsMenuItem, setSelectedSettingsMenuItem] = useState(initialTab);
+  const [searchParams, setSearchParams] = useSearchParams();
+  // Read from the URL on every render, as a group's tabs are, so a link to
+  // /settings?tab=billing opens Billing even when Settings is already open.
+  const selectedSettingsMenuItem = TAB_FROM_PARAM[(searchParams.get('tab') || '').toLowerCase()] || 'Profile';
+  // Profile is the landing tab and carries no parameter, so /settings stays clean.
+  const setSelectedSettingsMenuItem = (label: string) => setSearchParams((prev) => {
+    const tab = label.toLowerCase();
+    if (tab === 'profile' || !TAB_FROM_PARAM[tab]) prev.delete('tab'); else prev.set('tab', tab);
+    return prev;
+  }, { replace: true });
 
   return (
     <Box sx={{ width: '100%', backgroundColor: 'background.default', minHeight: '100vh', position: 'relative', overflow: 'hidden' }}>

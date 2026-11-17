@@ -9,14 +9,19 @@ import type { TravelCountry, TravelTier } from '../travelHistory';
  *  - trip: a trip country somebody other than the traveller can attest to (a
  *    co-traveller was on it, a story was published, or Tripician reviewed it:
  *    the travel map's `gold` tier).
+ *  - photo: a past visit the Tripician team approved from two photos of the
+ *    traveller there (the app's Add past, 2026-11-13).
  *  - location: a country the person's phone placed them in, added in the app.
  *    The web never adds these: a browser location is three clicks to fake.
+ *
+ * A country the traveller took off their stamps in the app (the travel map's
+ * hiddenCountries) shows no flag of any kind but Home.
  *
  * Planned and travelled-but-unconfirmed countries are not stamps: anyone can
  * type those into a plan. One flag per country, the strongest claim winning.
  */
 
-export type FlagKind = 'home' | 'trip' | 'location';
+export type FlagKind = 'home' | 'trip' | 'photo' | 'location';
 
 export interface ProfileFlag {
   /** ISO alpha-2, when the country is one the table knows. */
@@ -65,12 +70,17 @@ export function profileFlags({
   homeCountry,
   countries,
   locationCountries = [],
+  photoCountries = [],
+  hiddenCodes = [],
 }: {
   homeCountry?: string | null;
   countries: readonly TravelCountry[];
   locationCountries?: readonly LocationCountry[];
+  photoCountries?: readonly LocationCountry[];
+  hiddenCodes?: readonly string[];
 }): ProfileFlag[] {
   const seen = new Set<string>();
+  const hidden = new Set(hiddenCodes.map((code) => code.trim().toUpperCase()));
   const keyOf = (code: string | null, name: string) => code ?? `name:${name.toLowerCase()}`;
 
   const homeCode = homeCodeOf(homeCountry);
@@ -83,18 +93,22 @@ export function profileFlags({
     if (country.tier !== 'gold') continue;
     const code = countryCodeFromName(country.name)?.toUpperCase() ?? null;
     const key = keyOf(code, country.name);
-    if (seen.has(key)) continue;
+    if (seen.has(key) || (code && hidden.has(code))) continue;
     seen.add(key);
     flags.push({ code, name: code ? (countryNameFromCode(code) ?? country.name) : country.name, kind: 'trip', firstAt: country.firstAt });
   }
 
-  for (const synced of locationCountries) {
-    const code = synced.code?.trim().toUpperCase();
-    const name = code ? countryNameFromCode(code) : undefined;
-    if (!code || !name || seen.has(code)) continue;
-    seen.add(code);
-    flags.push({ code, name, kind: 'location', firstAt: synced.firstAt });
-  }
+  const addCoded = (list: readonly LocationCountry[], kind: FlagKind) => {
+    for (const item of list) {
+      const code = item.code?.trim().toUpperCase();
+      const name = code ? countryNameFromCode(code) : undefined;
+      if (!code || !name || seen.has(code) || hidden.has(code)) continue;
+      seen.add(code);
+      flags.push({ code, name, kind, firstAt: item.firstAt });
+    }
+  };
+  addCoded(photoCountries, 'photo');
+  addCoded(locationCountries, 'location');
 
   flags.sort((a, b) => (a.firstAt ?? '').localeCompare(b.firstAt ?? '') || a.name.localeCompare(b.name));
   return home ? [home, ...flags] : flags;

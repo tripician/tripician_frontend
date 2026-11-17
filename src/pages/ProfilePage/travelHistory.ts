@@ -34,6 +34,10 @@ export interface TravelMap {
   legs: string[][];
   /** Countries the app placed the person in from their phone's location. Absent on older servers. */
   locationCountries?: Array<{ code: string; firstAt: string | null }>;
+  /** Past visits approved from two photos (the app's Add past). Absent on older servers. */
+  photoCountries?: Array<{ code: string; firstAt: string | null }>;
+  /** ISO codes the traveller took off their stamps in the app. */
+  hiddenCountries?: string[];
 }
 
 export interface TravelNode {

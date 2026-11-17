@@ -1,4 +1,4 @@
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, type ReactNode } from 'react'
 import { Routes, Route, Navigate, useLocation, useParams } from 'react-router-dom'
 import ProtectedRoute from './services/APIs/Auth/ProtectedRoute'
 import GuestRoute from './services/APIs/Auth/GuestRoute'
@@ -26,6 +26,8 @@ const AuthenticatedLayout = lazy(() => import('./pages/PageLayout/AuthenticatedL
 // Same chunk AuthenticatedLayout pulls in, so "/" costs no extra download.
 const NavigationPannel = lazy(() => import('./pages/PageLayout/CommonLayouts/NavigationPanel'))
 const SuccessOverlay = lazy(() => import('./components/CommonComponents/SuccessOverlay'))
+// Its own chunk, fetched only once somebody is signed in: a guest never downloads it.
+const PaymentIssueDialog = lazy(() => import('./billing/PaymentIssueDialog'))
 const Profile = lazy(() => import('./pages/ProfilePage/Profile'))
 const Board = lazy(() => import('./board/Board'))
 const Crew = lazy(() => import('./pages/CrewPage/Crew'))
@@ -98,6 +100,15 @@ function OrganizationRedirect() {
 function LegacyGroupInviteRedirect() {
   const { token } = useParams();
   return <Navigate to={token ? `/join/group/${encodeURIComponent(token)}` : '/groups'} replace />;
+}
+
+/**
+ * Renders its children only while the session is valid. A component of its own so
+ * a session change re-renders this, not the whole route tree under App.
+ */
+function SignedInOnly({ children }: { children: ReactNode }) {
+  const { status } = useAuthToken();
+  return status === 'valid' ? <>{children}</> : null;
 }
 
 function RootRedirect() {
@@ -225,6 +236,13 @@ function App() {
       <Suspense fallback={null}>
         <SuccessOverlay />
       </Suspense>
+      {/* A failed renewal payment, asked about wherever somebody is. Outside the
+          routes so one popup reaches every page, signed-in people only. */}
+      <SignedInOnly>
+        <Suspense fallback={null}>
+          <PaymentIssueDialog />
+        </Suspense>
+      </SignedInOnly>
       <ActivityHeartbeat />
     </div>
   )

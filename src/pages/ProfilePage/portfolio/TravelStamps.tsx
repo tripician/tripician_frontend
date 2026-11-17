@@ -1,6 +1,6 @@
 import React from 'react';
 import { Box, ButtonBase, Tooltip, Typography } from '@mui/material';
-import { IconCircleCheckFilled, IconHome, IconMapPinFilled, IconPlus } from '@tabler/icons-react';
+import { IconCircleCheckFilled, IconHome, IconMapPinFilled, IconPhotoFilled, IconPlus } from '@tabler/icons-react';
 import CountryFlag from '../../../components/ui/CountryFlag';
 import type { TravelCountry } from '../travelHistory';
 import { profileFlags, type FlagKind, type LocationCountry, type ProfileFlag } from './stamps';
@@ -8,12 +8,14 @@ import { profileFlags, type FlagKind, type LocationCountry, type ProfileFlag } f
 const KIND_ICON: Record<FlagKind, React.ElementType> = {
   home: IconHome,
   trip: IconCircleCheckFilled,
+  photo: IconPhotoFilled,
   location: IconMapPinFilled,
 };
 
 const KIND_LABEL: Record<FlagKind, string> = {
   home: 'Home country',
   trip: 'Trip verified',
+  photo: 'Photo verified',
   location: 'Location verified',
 };
 
@@ -83,17 +85,21 @@ const Stamp: React.FC<{ flag: ProfileFlag }> = ({ flag }) => {
 const TravelStamps: React.FC<{
   countries: readonly TravelCountry[];
   locationCountries?: readonly LocationCountry[];
+  /** Past visits approved from photos (the app's Add past). */
+  photoCountries?: readonly LocationCountry[];
+  /** Countries taken off the stamps in the app. */
+  hiddenCodes?: readonly string[];
   homeCountry?: string | null;
   /** Own profile without a home country: a Home slot that opens Settings. */
   onAddHome?: () => void;
-}> = ({ countries, locationCountries, homeCountry, onAddHome }) => {
+}> = ({ countries, locationCountries, photoCountries, hiddenCodes, homeCountry, onAddHome }) => {
   const flags = React.useMemo(
-    () => profileFlags({ homeCountry, countries, locationCountries }),
-    [homeCountry, countries, locationCountries],
+    () => profileFlags({ homeCountry, countries, locationCountries, photoCountries, hiddenCodes }),
+    [homeCountry, countries, locationCountries, photoCountries, hiddenCodes],
   );
   const missingHome = !!onAddHome && !flags.some((f) => f.kind === 'home');
   if (!flags.length && !missingHome) return null;
-  const kinds = (['home', 'trip', 'location'] as const).filter((k) => flags.some((f) => f.kind === k));
+  const kinds = (['home', 'trip', 'photo', 'location'] as const).filter((k) => flags.some((f) => f.kind === k));
 
   return (
     <Box component="section" aria-label="Travel stamps" sx={{ textAlign: 'center' }}>
