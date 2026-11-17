@@ -6,7 +6,7 @@ import type {
 } from '../../seats/types';
 import type { TravelMap } from '../../pages/ProfilePage/travelHistory';
 import type { TripAnnouncement } from '../../types/announcements';
-import type { BillingItem, BillingSummary } from '../../billing/types';
+import type { BillingItem, BillingSummary, PaymentIssue } from '../../billing/types';
 import type {
   OperatorProfile, OperatorApplication, OperatorLead, OperatorLeadResult,
 } from '../../operator/types';
@@ -17,7 +17,7 @@ import type {
 } from '../../organization/types';
 import type { AfterStorySummaryDto } from '../../afterstory/types';
 import type {
-  Plan, PlanList, SubscriptionIntent, SubscriptionState,
+  Plan, PlanList, SubscriptionCancelResult, SubscriptionIntent, SubscriptionState,
 } from '../../pricing/types';
 import { forceSignOut, getFreshToken } from '../auth/tokenService';
 
@@ -597,7 +597,27 @@ export const apiServices = {
       responseType: 'blob',
     }),
 
-  cancelSubscription: (token: string, organizationId?: string) =>    apiClient.post('/api/subscriptions/cancel', { organizationId }, {
+  // Paid time is kept: the answer says whether the plan stopped now or runs on to accessUntil.
+  cancelSubscription: (token: string, organizationId?: string) =>
+    apiClient.post<SubscriptionCancelResult>('/api/subscriptions/cancel', { organizationId }, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // Renewals that failed, the person's own first, then the groups they run. An older server answers 404.
+  getPaymentIssues: (token: string) =>
+    apiClient.get<PaymentIssue[]>('/api/subscriptions/payment-issues', {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // After a renewal payment failed: pay again as a fresh subscription (any method), the same plan and period.
+  retrySubscription: (token: string, organizationId?: string) =>
+    apiClient.post<SubscriptionIntent>('/api/subscriptions/retry', { organizationId }, {
+      headers: { Authorization: `Bearer ${token}` }
+    }),
+
+  // After a renewal payment failed: the same subscription, opened to take a new card. Razorpay charges the overdue renewal to it.
+  changeSubscriptionCard: (token: string, organizationId?: string) =>
+    apiClient.post<SubscriptionIntent>('/api/subscriptions/change-card', { organizationId }, {
       headers: { Authorization: `Bearer ${token}` }
     }),
 

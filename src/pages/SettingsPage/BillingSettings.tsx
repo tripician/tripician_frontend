@@ -5,12 +5,22 @@ import { IconDownload, IconReceipt2, IconUsers } from '@tabler/icons-react';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { apiServices } from '../../services/APIs/apiServices';
 import CancelRenewalDialog from '../../billing/CancelRenewalDialog';
+import PaymentIssueNotice from '../../billing/PaymentIssueNotice';
 import {
+  notifyBillingChanged,
+  refreshPaymentIssues,
+  useBillingRefresh,
+  usePaymentIssues,
+} from '../../billing/billingStatus';
+import {
+  cancelledMessage,
   canShowReceipt,
   fileDay,
   formatDay,
   formatRupees,
+  groupPaymentFailing,
   groupStatusLabel,
+  isFailedPayment,
   missingHistoryNote,
   periodText,
   planStatusSentence,
@@ -107,10 +117,20 @@ const BillingSettings: React.FC = () => {
   const [take, setTake] = React.useState(PAGE_SIZE);
   const [loading, setLoading] = React.useState(true);
   const [failed, setFailed] = React.useState(false);
+  const [historyFailed, setHistoryFailed] = React.useState(false);
   const [reloadKey, setReloadKey] = React.useState(0);
   const [cancelOpen, setCancelOpen] = React.useState(false);
+  const [cancelNote, setCancelNote] = React.useState<string | null>(null);
   const [receiptBusy, setReceiptBusy] = React.useState<string | null>(null);
   const [receiptError, setReceiptError] = React.useState<string | null>(null);
+  // A payment, card change or cancel anywhere (the popup included) reads everything here again.
+  const billingChanged = useBillingRefresh();
+  const personalIssue = usePaymentIssues().find((issue) => issue.organizationId == null) ?? null;
+
+  // Opening Billing reads the failed-payment list too, so the notice above the plan agrees with it.
+  React.useEffect(() => {
+    if (token) void refreshPaymentIssues();
+  }, [token]);
 
   React.useEffect(() => {
     if (!token) {
@@ -120,18 +140,24 @@ const BillingSettings: React.FC = () => {
     let active = true;
     setLoading(true);
     setFailed(false);
+    setHistoryFailed(false);
 
-    Promise.all([apiServices.getBillingSummary(token), apiServices.getBillingPayments(token, take)])
-      .then(([summaryResponse, paymentsResponse]) => {
+    // Read separately: a payment history that will not load must not hide where the plan stands.
+    void Promise.allSettled([apiServices.getBillingSummary(token), apiServices.getBillingPayments(token, take)])
+      .then(([summaryResult, paymentsResult]) => {
         if (!active) return;
-        setSummary(summaryResponse.data);
-        setItems(paymentsResponse.data);
-      })
-      .catch(() => { if (active) setFailed(true); })
-      .finally(() => { if (active) setLoading(false); });
+        if (summaryResult.status === 'fulfilled' && summaryResult.value.data) setSummary(summaryResult.value.data);
+        else setFailed(true);
+        if (paymentsResult.status === 'fulfilled') {
+          setItems(Array.isArray(paymentsResult.value.data) ? paymentsResult.value.data : []);
+        } else {
+          setHistoryFailed(true);
+        }
+        setLoading(false);
+      });
 
     return () => { active = false; };
-  }, [token, take, reloadKey]);
+  }, [token, take, reloadKey, billingChanged]);
 
   const downloadReceipt = async (item: BillingItem) => {
     if (!token) return;
@@ -155,9 +181,12 @@ const BillingSettings: React.FC = () => {
   };
 
   const cancelRenewal = async () => {
-    if (!token) throw new Error('Signed out');
-    await apiServices.cancelSubscription(token);
+    if (!token || !summary) throw new Error('Signed out');
+    const { data } = await apiServices.cancelSubscription(token);
     setCancelOpen(false);
+    setCancelNote(cancelledMessage(data, summary.planName));
+    // Read back rather than patched by hand, here and on every other screen showing the plan.
+    notifyBillingChanged();
     setReloadKey((key) => key + 1);
   };
 
@@ -165,28 +194,45 @@ const BillingSettings: React.FC = () => {
     return <Typography sx={{ color: 'text.secondary' }}>Sign in to see your payments and billing.</Typography>;
   }
 
+  // Said first, with its fixes. Rendered even without an issue, so it can still say how a payment just made went.
+  const notice = <PaymentIssueNotice issue={personalIssue} sx={{ mb: 3 }} />;
+
   if (failed) {
     return (
-      <Card sx={cardSx}>
-        <CardContent sx={{ p: 3 }}>
-          <Typography sx={sectionTitleSx}>We could not load your billing</Typography>
-          <Typography sx={{ ...introSx, mt: 1 }}>Nothing has changed. Try again in a moment.</Typography>
-          <Button variant="outlined" color="inherit" onClick={() => setReloadKey((key) => key + 1)}>Try again</Button>
-        </CardContent>
-      </Card>
-    );
-  }
-
-  if (loading || !summary) {
-    return (
-      <Box sx={{ display: 'grid', placeItems: 'center', py: 6 }}>
-        <CircularProgress size={24} />
+      <Box sx={{ maxWidth: '100%' }}>
+        {notice}
+        <Card sx={cardSx}>
+          <CardContent sx={{ p: 3 }}>
+            <Typography sx={sectionTitleSx}>We could not load your billing</Typography>
+            <Typography sx={{ ...introSx, mt: 1 }}>Nothing has changed. Try again in a moment.</Typography>
+            <Button variant="outlined" color="inherit" onClick={() => setReloadKey((key) => key + 1)}>Try again</Button>
+          </CardContent>
+        </Card>
       </Box>
     );
   }
 
+  // Only the first load shows a spinner; reading again after a change keeps what is on screen.
+  if (!summary) {
+    return (
+      <Box sx={{ maxWidth: '100%' }}>
+        {notice}
+        {loading && (
+          <Box sx={{ display: 'grid', placeItems: 'center', py: 6 }}>
+            <CircularProgress size={24} />
+          </Box>
+        )}
+      </Box>
+    );
+  }
+
+  // A failed renewal has no paid time left to keep, so cancelling stops the subscription itself.
+  const failedPayment = isFailedPayment(summary.status);
+
   return (
     <Box sx={{ maxWidth: '100%' }}>
+      {notice}
+
       <Card sx={cardSx}>
         <CardContent sx={{ p: 3 }}>
           <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 0.5 }}>
@@ -198,10 +244,17 @@ const BillingSettings: React.FC = () => {
           <Typography sx={{ fontSize: '0.875rem', color: 'text.secondary', mt: 0.75, maxWidth: 560 }}>
             {planStatusSentence(summary)}
           </Typography>
+          {cancelNote && (
+            <Typography role="status" sx={{ fontSize: '0.875rem', fontWeight: 600, color: 'text.primary', mt: 1.5, maxWidth: 560 }}>
+              {cancelNote}
+            </Typography>
+          )}
 
           <Box sx={{ display: 'flex', flexWrap: 'wrap', alignItems: 'center', gap: 2, mt: 2.5 }}>
             {summary.canCancel && (
-              <Button variant="outlined" color="inherit" onClick={() => setCancelOpen(true)}>Cancel renewal</Button>
+              <Button variant="outlined" color="inherit" onClick={() => { setCancelNote(null); setCancelOpen(true); }}>
+                {failedPayment ? 'Cancel subscription' : 'Cancel renewal'}
+              </Button>
             )}
             <Link component={RouterLink} to="/pricing" sx={{ fontWeight: 600, color: 'primary.main', textDecoration: 'none' }}>
               See all plans
@@ -240,7 +293,12 @@ const BillingSettings: React.FC = () => {
                   </Typography>
                 </Box>
                 <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5 }}>
-                  <Chip size="small" variant="outlined" label={groupStatusLabel(group.status)} />
+                  {/* A failed payment is filled: warning amber reads on its own fill, not as text on white. */}
+                  {groupPaymentFailing(group.status, group.paymentIssueKind) ? (
+                    <Chip size="small" color="warning" label={groupStatusLabel(group.status, group.paymentIssueKind)} />
+                  ) : (
+                    <Chip size="small" variant="outlined" label={groupStatusLabel(group.status, group.paymentIssueKind)} />
+                  )}
                   <Link component={RouterLink} to={`/groups/${group.organizationId}`} sx={{ fontWeight: 600, color: 'primary.main', textDecoration: 'none' }}>
                     Manage
                   </Link>
@@ -263,7 +321,14 @@ const BillingSettings: React.FC = () => {
             <Typography variant="body2" color="error" role="alert" sx={{ mb: 1.5 }}>{receiptError}</Typography>
           )}
 
-          {items.length === 0 ? (
+          {historyFailed ? (
+            <Box sx={{ py: 1.5 }}>
+              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 1.5 }}>
+                Your payment history could not be loaded. Try again in a moment.
+              </Typography>
+              <Button variant="outlined" color="inherit" onClick={() => setReloadKey((key) => key + 1)}>Try again</Button>
+            </Box>
+          ) : items.length === 0 ? (
             <>
               <Typography sx={{ color: 'text.secondary', fontSize: '0.875rem', py: 1.5 }}>No payments on record yet.</Typography>
               {missingHistoryNote(summary, items.length) && (
@@ -283,7 +348,7 @@ const BillingSettings: React.FC = () => {
             </Box>
           )}
 
-          {items.length >= take && (
+          {!historyFailed && items.length >= take && (
             <Button sx={{ mt: 2 }} onClick={() => setTake((size) => size + PAGE_SIZE)}>Show more</Button>
           )}
         </CardContent>

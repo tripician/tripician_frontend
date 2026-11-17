@@ -1,4 +1,5 @@
 import type { DisplayRates } from './localPrice';
+import type { PaymentIssueKind } from '../billing/types';
 
 export type PlanId = 'basic' | 'pro' | 'club' | 'business';
 
@@ -75,15 +76,37 @@ export const isUnlimited = (limit: number | null | undefined): boolean =>
   limit === null || limit === undefined;
 
 export type PlanStatus =
-  | 'none' | 'pending' | 'active' | 'past_due' | 'halted' | 'cancelled' | 'completed';
+  | 'none' | 'pending' | 'active' | 'past_due' | 'halted' | 'cancelled' | 'completed' | 'refunded';
 
-/** Where somebody stands with their subscription. */
+/**
+ * Where somebody stands with their subscription.
+ *
+ * The server leaves nulls out, and an older one sends none of the payment-failure
+ * fields, so everything optional here may be absent rather than null.
+ */
 export interface SubscriptionState {
+  /** The plan in force: Basic once the subscription stops granting. */
   planId: PlanId;
   status: PlanStatus;
-  renewsAt: string | null;
+  /** Paid until. For a failed renewal this is already behind: see `graceEndsAt`. */
+  renewsAt?: string | null;
   annual: boolean;
   canCancel: boolean;
+  /** Past due only: when the plan stops if still unpaid. */
+  graceEndsAt?: string | null;
+  paymentIssue?: PaymentIssueKind | null;
+  canChangeCard?: boolean;
+  canPayAgain?: boolean;
+  failureReason?: string | null;
+}
+
+/** What cancelling did. An older server sends only `cancelled`. */
+export interface SubscriptionCancelResult {
+  cancelled: boolean;
+  /** True when the plan stopped there and then, with no paid time left to run. */
+  immediate?: boolean;
+  /** The paid time that still runs, when there is some. */
+  accessUntil?: string | null;
 }
 
 /** What the browser needs to open the recurring payment sheet. */
@@ -101,4 +124,6 @@ export interface SubscriptionIntent {
   customerName: string | null;
   customerEmail: string | null;
   customerPhone: string | null;
+  /** The existing subscription, opened to take a new card rather than to start one. */
+  cardChange?: boolean;
 }

@@ -466,6 +466,8 @@ const Profile: React.FC = () => {
               <TravelStamps
                 countries={travelMap.countries}
                 locationCountries={travelMap.locationCountries}
+                photoCountries={travelMap.photoCountries}
+                hiddenCodes={travelMap.hiddenCountries}
                 homeCountry={profile.country}
                 onAddHome={() => navigate('/settings')}
               />

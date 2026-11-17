@@ -12,7 +12,9 @@ import { saleLabel, strikePrice } from './planSale';
 import SalePrice from './SalePrice';
 import { formatMoney } from './types';
 import { approximateLabel, regionOf, visitorCurrency, type DisplayRates } from './localPrice';
-import type { Plan, PlanId, PlanSale } from './types';
+import { useBillingRefresh } from '../billing/billingStatus';
+import { proPlanNote } from '../billing/billingLabels';
+import type { Plan, PlanId, PlanSale, SubscriptionState } from './types';
 
 interface ProDialogProps {
   open: boolean;
@@ -39,7 +41,11 @@ const ProDialog: React.FC<ProDialogProps> = ({ open, onClose }) => {
   const [rates, setRates] = React.useState<DisplayRates | null>(null);
   const [sale, setSale] = React.useState<PlanSale | null>(null);
   const [myPlanId, setMyPlanId] = React.useState<PlanId | null>(null);
+  // How the plan is paid: yearly or monthly, renewing or running out, or a renewal that failed.
+  const [mine, setMine] = React.useState<SubscriptionState | null>(null);
   const [loading, setLoading] = React.useState(true);
+  // A payment, card change or cancel anywhere, or the tab coming back after a while, reads it all again.
+  const billingChanged = useBillingRefresh();
 
   // Rupees unless the browser says where it is and the server sent a rate for there.
   const local = React.useMemo(
@@ -69,16 +75,29 @@ const ProDialog: React.FC<ProDialogProps> = ({ open, onClose }) => {
       apiServices.getMyPlan(token)
         .then((r) => { if (active) setMyPlanId(r.data?.planId ?? null); })
         .catch(() => { if (active) setMyPlanId(null); });
+      // Not knowing how it is paid only drops the extra line; the price then reads as monthly, as it always did.
+      apiServices.getMySubscription(token)
+        .then((r) => { if (active) setMine(r.data ?? null); })
+        .catch(() => { if (active) setMine(null); });
     }
 
     return () => { active = false; };
-  }, [open, token]);
+  }, [open, token, billingChanged]);
 
   const current = plans.find((p) => p.planId === (myPlanId ?? 'basic')) ?? null;
   const pro = plans.find((p) => p.planId === 'pro') ?? null;
   const business = plans.find((p) => p.planId === 'business') ?? null;
 
   const onPro = myPlanId === 'pro';
+  // "Pro until 5 Dec 2026 · won't renew", or "Payment failed": said plainly, beside the plan.
+  const planNote = onPro ? proPlanNote(mine) : null;
+  // What they pay, for the period they pay it: an annual subscriber is never quoted the monthly price,
+  // and a plan that will not renew, or whose renewal failed, is quoted no price at all.
+  const priceClause = !current ? ''
+    : current.monthlyPrice === 0 ? ', which is free'
+    : planNote ? ''
+    : mine?.annual ? `, at ${formatMoney(current.annualPrice, currency)} a year`
+    : `, at ${formatMoney(current.monthlyPrice, currency)} a month`;
   // On Pro, the thing worth explaining is Business. Otherwise it is Pro itself.
   const target = onPro ? business : pro;
   const upgrade = target ? planUpgrade(current, target) : [];
@@ -109,10 +128,19 @@ const ProDialog: React.FC<ProDialogProps> = ({ open, onClose }) => {
         ) : (
           <>
             {current && (
-              <Typography variant="body2" sx={{ color: 'text.secondary', mb: 2 }}>
-                You are on {current.name}
-                {current.monthlyPrice === 0 ? ', which is free' : `, at ${formatMoney(current.monthlyPrice, currency)} a month`}.
-              </Typography>
+              <Box sx={{ mb: 2 }}>
+                <Typography variant="body2" sx={{ color: 'text.secondary' }}>
+                  You are on {current.name}{priceClause}.
+                </Typography>
+                {planNote && (
+                  <Typography
+                    variant="body2"
+                    sx={{ color: mine?.status === 'past_due' ? 'error.main' : 'text.primary', fontWeight: 600, mt: 0.5 }}
+                  >
+                    {planNote}
+                  </Typography>
+                )}
+              </Box>
             )}
 
             {/*

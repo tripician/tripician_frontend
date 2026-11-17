@@ -324,7 +324,13 @@ const TravelerProfile: React.FC = () => {
                 <>
                   {travelMap ? (
                     <Box sx={{ mt: { xs: 4, md: 5 } }}>
-                      <TravelStamps countries={travelMap.countries} locationCountries={travelMap.locationCountries} homeCountry={user?.country} />
+                      <TravelStamps
+                        countries={travelMap.countries}
+                        locationCountries={travelMap.locationCountries}
+                        photoCountries={travelMap.photoCountries}
+                        hiddenCodes={travelMap.hiddenCountries}
+                        homeCountry={user?.country}
+                      />
                     </Box>
                   ) : null}
 

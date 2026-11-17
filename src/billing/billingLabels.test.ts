@@ -1,14 +1,20 @@
 import { describe, it, expect } from 'vitest';
 import {
+  cancelledMessage,
   cancelRenewalText,
   canShowReceipt,
   fileDay,
   formatDay,
   formatRupees,
+  groupPaymentFailing,
+  groupPlanDate,
   groupStatusLabel,
+  isFailedPayment,
+  knownDay,
   missingHistoryNote,
   periodText,
   planStatusSentence,
+  proPlanNote,
   statusLabel,
 } from './billingLabels';
 import type { BillingItem, BillingSummary } from './types';
@@ -97,6 +103,17 @@ describe('canShowReceipt', () => {
   });
 });
 
+// What the server really sends once a plan stops granting: the plan in force is Basic,
+// the paid-until date is behind, and nothing is charged next.
+const lapsed = (overrides: Partial<BillingSummary> = {}): BillingSummary => summary({
+  planId: 'basic',
+  planName: 'Tripician Basic',
+  renewsAt: '2026-10-05T00:00:00Z',
+  canCancel: false,
+  nextChargeAmount: null,
+  ...overrides,
+});
+
 describe('planStatusSentence', () => {
   it('says when an active plan renews and what it will charge', () => {
     expect(planStatusSentence(summary(), NOW)).toBe('Renews on 5 Nov 2026 for ₹74.50.');
@@ -106,9 +123,24 @@ describe('planStatusSentence', () => {
     expect(planStatusSentence(summary({ nextChargeAmount: null }), NOW)).toBe('Renews on 5 Nov 2026.');
   });
 
-  it('keeps a cancelled plan on until the paid date', () => {
-    expect(planStatusSentence(summary({ status: 'cancelled' }), NOW)).toBe(
-      'Cancelled. Tripician Pro continues until 5 Nov 2026, then the account returns to Tripician Basic.',
+  it('reads a field the server left out as unknown, not as a value', () => {
+    // The server omits nulls, so these arrive absent rather than null.
+    const omitted = summary();
+    delete omitted.nextChargeAmount;
+    expect(planStatusSentence(omitted, NOW)).toBe('Renews on 5 Nov 2026.');
+
+    const undated = summary();
+    delete undated.renewsAt;
+    expect(planStatusSentence(undated, NOW)).toBe('Tripician Pro is active.');
+  });
+
+  it('says a renewal whose date has passed is being processed, not that it renews in the past', () => {
+    expect(planStatusSentence(summary({ renewsAt: '2026-10-05T00:00:00Z' }), NOW)).toBe('Your renewal is being processed.');
+  });
+
+  it('keeps a cancelled plan on until the paid date, and says nothing more will be charged', () => {
+    expect(planStatusSentence(summary({ status: 'cancelled', canCancel: false, nextChargeAmount: null }), NOW)).toBe(
+      "Cancelled. Tripician Pro stays on until 5 Nov 2026, then your account returns to Tripician Basic. You won't be charged again.",
     );
   });
 
@@ -116,18 +148,49 @@ describe('planStatusSentence', () => {
     expect(planStatusSentence(summary({ status: 'cancelled', renewsAt: '2026-09-01T00:00:00Z' }), NOW)).toBe(
       'Cancelled. The account is on Tripician Basic.',
     );
+    expect(planStatusSentence(lapsed({ status: 'cancelled' }), NOW)).toBe('You are on Tripician Basic, which is free.');
   });
 
-  it('tells a failing renewal that access continues while it is retried', () => {
-    expect(planStatusSentence(summary({ status: 'past_due', paymentIssue: true }), NOW)).toBe(
-      'A renewal payment failed. We are retrying it, and Tripician Pro stays on until the last retry fails.',
+  it('keeps a plan that finished its term on until the paid date', () => {
+    expect(planStatusSentence(summary({ status: 'completed', canCancel: false, nextChargeAmount: null }), NOW)).toBe(
+      'Your subscription has finished its term. Tripician Pro stays on until 5 Nov 2026, then your account returns to Tripician Basic.',
     );
   });
 
-  it('says a halted plan has ended without blaming the buyer', () => {
-    expect(planStatusSentence(summary({ status: 'halted' }), NOW)).toBe(
-      'Renewals stopped after failed retries, so Tripician Pro has ended. You can subscribe again to start it.',
+  it('names the day a failing renewal stops', () => {
+    const failing = summary({
+      status: 'past_due',
+      paymentIssue: true,
+      paymentIssueKind: 'past_due',
+      renewsAt: '2026-10-04T18:30:00Z',
+      graceEndsAt: '2026-10-08T18:30:00Z',
+      canChangeCard: true,
+      canPayAgain: true,
+    });
+    expect(planStatusSentence(failing, NOW)).toBe(
+      "Your renewal payment didn't go through. Tripician Pro stays on until 9 Oct 2026 while it's retried.",
     );
+  });
+
+  it('leaves the stop date out when an older server sends none', () => {
+    expect(planStatusSentence(summary({ status: 'past_due', paymentIssue: true, renewsAt: '2026-10-04T18:30:00Z' }), NOW)).toBe(
+      "Your renewal payment didn't go through. Tripician Pro stays on while it's retried.",
+    );
+  });
+
+  it('says why a halted plan is on Basic, before the Basic sentence can hide it', () => {
+    const halted = lapsed({ status: 'halted', paymentIssue: true, paymentIssueKind: 'halted', canCancel: true, canPayAgain: true });
+    expect(planStatusSentence(halted, NOW)).toBe(
+      'Your Tripician Pro renewal payment failed, so your account is back on Tripician Basic.',
+    );
+  });
+
+  it('reads an old halt, or one from an older server, as plain Basic', () => {
+    expect(planStatusSentence(lapsed({ status: 'halted' }), NOW)).toBe('You are on Tripician Basic, which is free.');
+  });
+
+  it('says a refunded plan was refunded rather than that it is free', () => {
+    expect(planStatusSentence(lapsed({ status: 'refunded' }), NOW)).toBe('Refunded. Your account is on Tripician Basic.');
   });
 
   it('never claims nothing was charged, because a Basic account can have paid before', () => {
@@ -152,6 +215,98 @@ describe('cancelRenewalText', () => {
   it('does not promise access past a date that has gone', () => {
     expect(cancelRenewalText(summary({ renewsAt: null }), NOW)).toBe('Stops the next renewal.');
   });
+
+  it('says a failed renewal stops now, with no unpaid time kept', () => {
+    const expected = "This stops the subscription now. The failed payment won't be taken again, and your account returns to Tripician Basic.";
+    expect(cancelRenewalText(summary({ status: 'past_due', renewsAt: '2026-10-04T18:30:00Z' }), NOW)).toBe(expected);
+    expect(cancelRenewalText(lapsed({ status: 'halted' }), NOW)).toBe(expected);
+  });
+
+  it('words a group\'s plan for the group', () => {
+    const club = { planName: 'Tripician Club', status: 'active', renewsAt: '2026-11-05T00:00:00Z' };
+    expect(cancelRenewalText(club, NOW, 'Trail Club')).toBe(
+      'Stops the next renewal. Tripician Club stays on until 5 Nov 2026, then the group returns to Tripician Basic.',
+    );
+    expect(cancelRenewalText({ ...club, status: 'halted' }, NOW, 'Trail Club')).toBe(
+      "This stops the subscription now. The failed payment won't be taken again, and the group returns to Tripician Basic.",
+    );
+  });
+});
+
+describe('cancelledMessage', () => {
+  it('names the day paid time runs to when there is some left', () => {
+    expect(cancelledMessage({ immediate: false, accessUntil: '2026-11-05T00:00:00Z' }, 'Tripician Pro')).toBe(
+      'Renewal cancelled. Tripician Pro stays on until 5 Nov 2026.',
+    );
+  });
+
+  it('says the account is on Basic when the plan stopped there and then', () => {
+    expect(cancelledMessage({ immediate: true }, 'Tripician Pro')).toBe(
+      'Subscription cancelled. Your account is on Tripician Basic.',
+    );
+    expect(cancelledMessage({ immediate: true }, 'Tripician Club', 'Trail Club')).toBe(
+      'Subscription cancelled. The group is on Tripician Basic.',
+    );
+  });
+
+  it('stops short of a date an older server did not send', () => {
+    expect(cancelledMessage({ cancelled: true }, 'Tripician Pro')).toBe('Renewal cancelled.');
+    expect(cancelledMessage(undefined, 'Tripician Pro')).toBe('Renewal cancelled.');
+  });
+});
+
+describe('isFailedPayment', () => {
+  it('is a renewal that failed, retrying or not, and nothing else', () => {
+    expect(isFailedPayment('past_due')).toBe(true);
+    expect(isFailedPayment('halted')).toBe(true);
+    for (const status of ['active', 'pending', 'cancelled', 'none', 'completed', 'refunded', undefined]) {
+      expect(isFailedPayment(status)).toBe(false);
+    }
+  });
+});
+
+describe('knownDay', () => {
+  it('formats a date and refuses what is not one', () => {
+    expect(knownDay('2026-10-04T20:00:00Z')).toBe('5 Oct 2026');
+    expect(knownDay(undefined)).toBeNull();
+    expect(knownDay(null)).toBeNull();
+    expect(knownDay('')).toBeNull();
+    expect(knownDay('soon')).toBeNull();
+  });
+});
+
+describe('groupPlanDate', () => {
+  it('says renews only while the plan will renew', () => {
+    expect(groupPlanDate({ status: 'active', renewsAt: '2026-11-05T00:00:00Z' }, NOW)).toBe('Renews on 5 Nov 2026');
+    expect(groupPlanDate({ status: 'active', renewsAt: '2026-10-05T00:00:00Z' }, NOW)).toBeNull();
+  });
+
+  it('says ends for a plan that will not renew', () => {
+    expect(groupPlanDate({ status: 'cancelled', renewsAt: '2026-11-05T00:00:00Z' }, NOW)).toBe('Ends on 5 Nov 2026');
+    expect(groupPlanDate({ status: 'completed', renewsAt: '2026-11-05T00:00:00Z' }, NOW)).toBe('Ends on 5 Nov 2026');
+  });
+
+  it('gives a failed renewal no date line, because its notice says what happens', () => {
+    expect(groupPlanDate({ status: 'past_due', renewsAt: '2026-10-04T18:30:00Z' }, NOW)).toBeNull();
+    expect(groupPlanDate({ status: 'halted', renewsAt: '2026-10-04T18:30:00Z' }, NOW)).toBeNull();
+    expect(groupPlanDate({ status: 'active' }, NOW)).toBeNull();
+  });
+});
+
+describe('proPlanNote', () => {
+  it('says plainly when Pro runs out and will not renew', () => {
+    expect(proPlanNote({ status: 'cancelled', renewsAt: '2026-11-05T00:00:00Z' }, NOW)).toBe("Pro until 5 Nov 2026 · won't renew");
+  });
+
+  it('says a renewal payment failed', () => {
+    expect(proPlanNote({ status: 'past_due', renewsAt: '2026-10-04T18:30:00Z' }, NOW)).toBe('Payment failed');
+  });
+
+  it('says nothing for a plan that simply renews, or when nothing is known', () => {
+    expect(proPlanNote({ status: 'active', renewsAt: '2026-11-05T00:00:00Z' }, NOW)).toBeNull();
+    expect(proPlanNote({ status: 'cancelled', renewsAt: '2026-09-01T00:00:00Z' }, NOW)).toBeNull();
+    expect(proPlanNote(null, NOW)).toBeNull();
+  });
 });
 
 describe('fileDay', () => {
@@ -163,10 +318,26 @@ describe('fileDay', () => {
 describe('groupStatusLabel', () => {
   it('turns provider states into words a group admin can act on', () => {
     expect(groupStatusLabel('active')).toBe('Active');
-    expect(groupStatusLabel('past_due')).toBe('Payment issue');
-    expect(groupStatusLabel('halted')).toBe('Ended');
+    expect(groupStatusLabel('past_due')).toBe('Payment failed');
+    expect(groupStatusLabel('past_due', 'past_due')).toBe('Payment failed');
     expect(groupStatusLabel('refunded')).toBe('Refunded');
     expect(groupStatusLabel('something_new')).toBe('Not active');
+  });
+
+  it('calls a recent halt a failed payment, and an old one simply ended', () => {
+    expect(groupStatusLabel('halted', 'halted')).toBe('Payment failed');
+    expect(groupStatusLabel('halted')).toBe('Ended');
+    expect(groupStatusLabel('halted', null)).toBe('Ended');
+  });
+});
+
+describe('groupPaymentFailing', () => {
+  it('marks only a failed payment that can still be fixed', () => {
+    expect(groupPaymentFailing('past_due')).toBe(true);
+    expect(groupPaymentFailing('halted', 'halted')).toBe(true);
+    expect(groupPaymentFailing('halted')).toBe(false);
+    expect(groupPaymentFailing('active')).toBe(false);
+    expect(groupPaymentFailing('cancelled')).toBe(false);
   });
 });
 

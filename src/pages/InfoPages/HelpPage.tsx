@@ -18,6 +18,14 @@ const FAQS = [
     a: 'Planning trips, inviting your crew, writing stories, starting a group and asking Tripician Intelligence for help are all free, and a free account is given 300 Tripician Intelligence credits every month. Tripician Pro raises that to 1,500 a month. Monthly credits reset at the start of each month, so any left unused do not carry over. Tripician Business is for travel businesses that run trips for other people: it adds a public page with posts, lets you put your own staff onto a trip, and is the only plan that can list a trip publicly and take join requests from travellers you have never met. Credits can also be bought on their own, without a subscription, and bought credits never expire. Current prices are on the pricing page.',
   },
   {
+    q: 'How do I cancel Tripician Pro?',
+    a: 'Go to Settings → Billing (Payments & billing in the app) and choose Cancel renewal. Nothing more is charged, and Pro stays on until the end of the period you have already paid for, then your account returns to Tripician Basic. If you cancel within 7 days of a payment, email support@tripician.com from the address on your account and we will refund that payment. A group\'s plan is cancelled by one of its admins from the group\'s Settings tab.',
+  },
+  {
+    q: 'My Pro payment didn\'t go through. What happens now?',
+    a: 'Razorpay tries the payment again over the next few days, and Tripician shows you a message so you can update your card or pay now, by card or UPI. You can do the same from Settings → Billing (Payments & billing in the app). Pro stays on for up to 4 days after your paid period ends while this happens. If no payment has gone through by then, your account returns to Tripician Basic until you pay again, and you are not charged for the days in between. If you would rather stop, cancelling ends the subscription straight away and the failed payment is not taken.',
+  },
+  {
     q: 'How do I create a trip?',
     a: 'Once signed in, use "Create plan" at the top of your wall, or open Studio (top right, or the middle of the bottom bar on a phone) and choose "Plan a trip". It asks a few quick questions, one at a time: where you are starting from, where you want to go, and roughly when. Trip type and food needs are optional. Then choose "Plan it for me" and Tripician Intelligence fills in each stop, or "I\'ll plan it myself". Want a blank trip? Pick "I\'ll plan everything myself" and give just the dates.',
   },

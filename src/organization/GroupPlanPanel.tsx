@@ -1,7 +1,6 @@
 import React from 'react';
 import { Box, Button, Chip, LinearProgress, Typography, useTheme } from '@mui/material';
 import { IconCheck } from '@tabler/icons-react';
-import dayjs from 'dayjs';
 import { apiServices } from '../services/APIs/apiServices';
 import { useAuthToken } from '../hooks/useAuth0Token';
 import SegmentedControl from '../components/ui/SegmentedControl';
@@ -12,6 +11,12 @@ import { CARD_SAVING_NOTE } from '../pricing/billingCopy';
 import { waitForPlan } from '../pricing/planActivation';
 import { formatMoney, type Plan, type SubscriptionState } from '../pricing/types';
 import { serverMessage } from '../utils/apiError';
+import CancelRenewalDialog from '../billing/CancelRenewalDialog';
+import PaymentIssueNotice from '../billing/PaymentIssueNotice';
+import { cancelledMessage, groupPlanDate, isFailedPayment } from '../billing/billingLabels';
+import {
+  notifyBillingChanged, refreshPaymentIssues, useBillingRefresh, usePaymentIssues,
+} from '../billing/billingStatus';
 import { groupIsFull } from './groupLogic';
 import { asGroupCredits, type GroupCredits, type Organization } from './types';
 
@@ -33,6 +38,11 @@ const GroupPlanPanel: React.FC<{ organization: Organization }> = ({ organization
   const [busy, setBusy] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const [notice, setNotice] = React.useState<string | null>(null);
+  const [cancelOpen, setCancelOpen] = React.useState(false);
+  // A payment, card change or cancel anywhere reads the plan, wallet and subscription again.
+  const billingChanged = useBillingRefresh();
+  // This group's failed renewal, if it has one; the list only holds groups the caller administers.
+  const groupIssue = usePaymentIssues().find((issue) => issue.organizationId === organization.id) ?? null;
 
   // A payment is confirmed after the sheet closes, so nothing is written once this panel is gone.
   const onPanel = React.useRef(true);
@@ -55,15 +65,10 @@ const GroupPlanPanel: React.FC<{ organization: Organization }> = ({ organization
       wanted: planId,
     });
 
+    // Everything showing a plan reads it again, this panel's subscription included.
+    notifyBillingChanged();
     if (!onPanel.current) return;
-    if (active) {
-      setCredits(seen.credits);
-      if (token) {
-        apiServices.getMySubscription(token, organization.id)
-          .then((r) => { if (onPanel.current) setSubscription(r.data ?? null); })
-          .catch(() => undefined);
-      }
-    }
+    if (active) setCredits(seen.credits);
     setNotice(active
       ? `${organization.name} is on ${planName} now.`
       : `Payment received. ${planName} turns on as soon as Razorpay confirms it, usually within a minute.`);
@@ -83,7 +88,12 @@ const GroupPlanPanel: React.FC<{ organization: Organization }> = ({ organization
         .catch(() => { if (active) setSubscription(null); });
     }
     return () => { active = false; };
-  }, [organization.id, token]);
+  }, [organization.id, token, billingChanged]);
+
+  // Opening the plan reads the failed-payment list too, so this group's notice is current.
+  React.useEffect(() => {
+    if (token) void refreshPaymentIssues();
+  }, [token]);
 
   // The plan that actually applies, as the server resolved it; a lapsed subscription reads as Basic here too.
   const currentId = credits?.planId ?? 'basic';
@@ -132,22 +142,19 @@ const GroupPlanPanel: React.FC<{ organization: Organization }> = ({ organization
     }
   };
 
+  // Confirmed in the shared dialog; a refusal is shown there, in the server's words.
   const cancel = async () => {
-    if (!token || !window.confirm(`Stop paying for ${current?.name ?? 'this plan'}? The group keeps it until the end of the period already paid.`)) return;
-    setBusy(true);
+    if (!token) throw new Error('Signed out');
+    const { data } = await apiServices.cancelSubscription(token, organization.id);
+    setCancelOpen(false);
     setError(null);
-    try {
-      await apiServices.cancelSubscription(token, organization.id);
-      setSubscription((prev) => (prev ? { ...prev, status: 'cancelled', canCancel: false } : prev));
-      setNotice(subscription?.renewsAt
-        ? `Cancelled. The group keeps its plan until ${dayjs(subscription.renewsAt).format('D MMM YYYY')}.`
-        : 'Cancelled.');
-    } catch (err) {
-      setError(serverMessage(err) ?? 'That could not be cancelled. Please try again.');
-    } finally {
-      setBusy(false);
-    }
+    setNotice(cancelledMessage(data, current?.name ?? 'The plan', organization.name));
+    // Read back rather than patched by hand: the server decides what is left of the plan.
+    notifyBillingChanged();
   };
+
+  // A failed renewal (retrying, or stopped) has no paid time left, so cancelling it stops the plan now.
+  const failedPayment = isFailedPayment(subscription?.status);
 
   const card = {
     borderRadius: '16px',
@@ -157,22 +164,25 @@ const GroupPlanPanel: React.FC<{ organization: Organization }> = ({ organization
   } as const;
 
   // Nothing to sell, nothing paid for and no cap: a free group with no plan on offer needs no plan section at all.
+  // A failed renewal is always shown, even once the plan has gone back to Basic.
   const selling = Boolean(offer && !onOffer && organization.status === 'approved');
-  if (!selling && currentId === 'basic' && typeof limit !== 'number') return null;
+  if (!selling && currentId === 'basic' && typeof limit !== 'number' && !failedPayment && !groupIssue) return null;
 
   const gains = offer && !onOffer ? planUpgrade(current, offer) : [];
   const price = offer ? (billing === 'annual' ? offer.annualPrice : offer.monthlyPrice) : 0;
+  // "Renews on" only while it will, "Ends on" once it will not; a failed renewal's notice says the rest.
+  const dateLine = subscription && currentId !== 'basic' ? groupPlanDate(subscription) : null;
 
   return (
     <Box sx={{ maxWidth: 640, display: 'grid', gap: 2 }}>
       <SectionHeader title="Plan" subtitle="What this group is on, and what paying for it would change." />
 
+      <PaymentIssueNotice issue={groupIssue} />
+
       <Box sx={card}>
         <Typography variant="subtitle1" sx={{ fontWeight: 700 }}>{current?.name ?? 'Tripician Basic'}</Typography>
-        {subscription?.renewsAt && currentId !== 'basic' && (
-          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.25 }}>
-            {subscription.status === 'cancelled' ? 'Ends' : 'Renews'} on {dayjs(subscription.renewsAt).format('D MMM YYYY')}
-          </Typography>
+        {dateLine && (
+          <Typography variant="body2" sx={{ color: 'text.secondary', mt: 0.25 }}>{dateLine}</Typography>
         )}
 
         {typeof limit === 'number' ? (
@@ -206,9 +216,9 @@ const GroupPlanPanel: React.FC<{ organization: Organization }> = ({ organization
           </Typography>
         )}
 
-        {subscription?.canCancel && currentId !== 'basic' && (
-          <Button onClick={() => void cancel()} disabled={busy} sx={{ textTransform: 'none', color: 'text.secondary', mt: 1.5, ml: -1 }}>
-            Cancel the plan
+        {subscription?.canCancel && (currentId !== 'basic' || failedPayment) && (
+          <Button onClick={() => setCancelOpen(true)} disabled={busy} sx={{ textTransform: 'none', color: 'text.secondary', mt: 1.5, ml: -1 }}>
+            {failedPayment ? 'Cancel subscription' : 'Cancel the plan'}
           </Button>
         )}
       </Box>
@@ -255,8 +265,18 @@ const GroupPlanPanel: React.FC<{ organization: Organization }> = ({ organization
         </Box>
       )}
 
-      {error && <Typography variant="body2" color="error">{error}</Typography>}
-      {notice && <Typography variant="body2" sx={{ color: 'text.secondary' }}>{notice}</Typography>}
+      {error && <Typography variant="body2" color="error" role="alert">{error}</Typography>}
+      {notice && <Typography variant="body2" role="status" sx={{ color: 'text.secondary' }}>{notice}</Typography>}
+
+      {cancelOpen && subscription && (
+        <CancelRenewalDialog
+          open={cancelOpen}
+          summary={{ planName: current?.name ?? 'This plan', status: subscription.status, renewsAt: subscription.renewsAt }}
+          groupName={organization.name}
+          onClose={() => setCancelOpen(false)}
+          onConfirm={cancel}
+        />
+      )}
     </Box>
   );
 };
