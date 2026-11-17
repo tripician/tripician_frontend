@@ -30,6 +30,7 @@ import { addRecent, clearRecents, readRecents, removeRecent, type RecentSearch }
 import { searchHref, searchStateFromParams, searchStateToParams, type SearchState, type SearchTab } from './searchParams';
 import { matchGroups, matchTags, rankPeople, rankPlans, rankStories } from './topResults';
 import { usePeopleSearch } from './usePeopleSearch';
+import { usePostSearch } from './usePostSearch';
 import { useExplorePosts } from './useExplorePosts';
 
 const CONTENT_MAX = 935;
@@ -96,6 +97,7 @@ const SearchPage: React.FC = () => {
   const searching = applied.length >= MIN_QUERY && !state.place;
   const wantsPeople = searching && (state.tab === 'top' || state.tab === 'people');
   const { people: rawPeople, loading: peopleLoading } = usePeopleSearch(applied, wantsPeople);
+  const { posts, loading: postsLoading } = usePostSearch(applied, searching);
   const { following, busyId, toggle } = useFollowState(viewerId, token, wantsPeople && rawPeople.length > 0);
 
   const [recents, setRecents] = React.useState<RecentSearch[]>(() => readRecents());
@@ -222,6 +224,8 @@ const SearchPage: React.FC = () => {
             q={applied}
             tab={state.tab}
             onTab={(tab: SearchTab) => update({ tab })}
+            posts={posts}
+            postsLoading={postsLoading}
             people={people}
             peopleLoading={peopleLoading}
             places={results.places}

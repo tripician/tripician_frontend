@@ -1,9 +1,10 @@
 // What /search shows, read from and written to the URL so a search can be shared, refreshed and gone Back to.
 
-export type SearchTab = 'top' | 'people' | 'places' | 'plans' | 'stories' | 'groups' | 'tags';
+export type SearchTab = 'top' | 'posts' | 'people' | 'places' | 'plans' | 'stories' | 'groups' | 'tags';
 
 export const SEARCH_TABS: { value: SearchTab; label: string }[] = [
   { value: 'top', label: 'Top' },
+  { value: 'posts', label: 'Posts' },
   { value: 'people', label: 'People' },
   { value: 'places', label: 'Places' },
   { value: 'plans', label: 'Plans' },

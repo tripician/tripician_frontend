@@ -1,7 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { AfterStorySummaryDto } from '../../afterstory/types';
 import type { OrganizationDirectoryEntry } from '../../organization/types';
-import { matchGroups, matchTags, rankPlans, rankStories, topOrder, type TopInput } from './topResults';
+import { matchGroups, matchTags, postMatches, rankPlans, rankStories, searchWords, topOrder, type TopInput } from './topResults';
 import { searchHref, searchStateFromParams, searchStateToParams } from './searchParams';
 
 const empty: TopInput = { q: '', people: [], places: [], plans: [], groups: [], stories: [], tags: [] };
@@ -67,5 +67,33 @@ describe('searchParams', () => {
   it('keeps a plain search link plain', () => {
     expect(searchHref({})).toBe('/search');
     expect(searchHref({ place: 'Japan' })).toBe('/search?place=Japan');
+  });
+});
+
+describe('post search', () => {
+  const darjeeling = {
+    body: 'Morning tea above the clouds',
+    title: null,
+    placeName: 'Darjeeling, West Bengal, India',
+    tags: [{ id: 'street-food', label: 'Street food' }],
+  };
+
+  it('splits a search the way the server does', () => {
+    expect(searchWords('  Darjeeling,  TEA darjeeling ')).toEqual(['darjeeling', 'tea']);
+    expect(searchWords('#street-food!')).toEqual(['street-food']);
+  });
+
+  it('matches a post by place, description or tags, with every word somewhere', () => {
+    expect(postMatches(darjeeling, 'DARJEELING')).toBe(true);
+    expect(postMatches(darjeeling, 'tea india')).toBe(true);
+    expect(postMatches(darjeeling, 'street food')).toBe(true);
+    expect(postMatches(darjeeling, 'tea goa')).toBe(false);
+    expect(postMatches(darjeeling, '  ')).toBe(false);
+  });
+
+  it('puts matching posts first in Top, and leaves the section out when there are none', () => {
+    expect(topOrder({ ...empty, q: 'darjeeling', posts: [darjeeling], places: [place('Darjeeling')] })[0]).toBe('places');
+    expect(topOrder({ ...empty, q: 'tea', posts: [darjeeling], people: [person('Teaghan')] })).toEqual(['posts', 'people']);
+    expect(topOrder({ ...empty, q: 'tea', people: [person('Teaghan')] })).toEqual(['people']);
   });
 });

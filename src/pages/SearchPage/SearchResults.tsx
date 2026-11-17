@@ -10,7 +10,7 @@ import EmptyState from '../../components/ui/EmptyState';
 import { CardGridSkeleton, ListSkeleton } from '../../components/ui/Skeletons';
 import OrganizationCard from '../../organization/OrganizationCard';
 import type { OrganizationDirectoryEntry } from '../../organization/types';
-import type { PostTagCount } from '../../posts/types';
+import type { PostTagCount, TravelerPost } from '../../posts/types';
 import { tripNights } from '../../utils/tripMeta';
 import { tripCoverPhoto } from '../../utils/tripCover';
 import { isJoinable } from '../../utils/tripRanking';
@@ -48,6 +48,9 @@ export interface SearchResultsProps {
   q: string;
   tab: SearchTab;
   onTab: (tab: SearchTab) => void;
+  /** Posts whose description, title, place or tags hold every word (usePostSearch). */
+  posts: TravelerPost[];
+  postsLoading: boolean;
   people: PersonResult[];
   peopleLoading: boolean;
   places: PlaceEntry[];
@@ -80,9 +83,23 @@ const SectionTitle: React.FC<{ title: string; more?: () => void }> = ({ title, m
 const SearchResults: React.FC<SearchResultsProps> = (props) => {
   const theme = useTheme();
   const {
-    q, tab, onTab, people, peopleLoading, places, plans, plansLoading, stories, storiesComplete,
+    q, tab, onTab, posts, postsLoading, people, peopleLoading, places, plans, plansLoading, stories, storiesComplete,
     groups, openByGroup, tags, viewerId, following, busyId, onFollow, onSaveRecent,
   } = props;
+
+  // A post as a row: its first photo, what it says, then where and who.
+  const postRow = (p: TravelerPost) => {
+    const text = (p.title || p.body || '').replace(/\s+/g, ' ').trim();
+    return (
+      <ResultRow
+        key={`post-${p.id}`}
+        to={`/post/${p.id}`}
+        visual={<ThumbVisual src={p.media?.[0]?.url ?? null} />}
+        title={text ? (text.length > 90 ? `${text.slice(0, 89)}…` : text) : 'Photo post'}
+        subtitle={[p.placeName, p.authorName].filter(Boolean).join(' · ') || 'Post'}
+      />
+    );
+  };
 
   const followButton = (p: PersonResult) => {
     if (viewerId != null && p.userId === viewerId) return null;
@@ -197,6 +214,7 @@ const SearchResults: React.FC<SearchResultsProps> = (props) => {
   );
 
   const sectionRows: Record<TopSection, { title: string; rows: React.ReactNode[] }> = {
+    posts: { title: 'Posts', rows: posts.slice(0, TOP_CAPS.posts).map(postRow) },
     people: { title: 'People', rows: people.slice(0, TOP_CAPS.people).map(personRow) },
     places: { title: 'Places', rows: places.slice(0, TOP_CAPS.places).map(placeRow) },
     plans: { title: 'Plans', rows: plans.slice(0, TOP_CAPS.plans).map(planRow) },
@@ -205,11 +223,11 @@ const SearchResults: React.FC<SearchResultsProps> = (props) => {
     tags: { title: 'Tags', rows: tags.slice(0, TOP_CAPS.tags).map(tagRow) },
   };
   const totals: Record<TopSection, number> = {
-    people: people.length, places: places.length, plans: plans.length, groups: groups.length, stories: stories.length, tags: tags.length,
+    posts: posts.length, people: people.length, places: places.length, plans: plans.length, groups: groups.length, stories: stories.length, tags: tags.length,
   };
 
-  const order = topOrder({ q, people, places, plans, groups, stories, tags });
-  const stillLoading = peopleLoading || plansLoading || !storiesComplete;
+  const order = topOrder({ q, posts, people, places, plans, groups, stories, tags });
+  const stillLoading = postsLoading || peopleLoading || plansLoading || !storiesComplete;
 
   const handoff = (kind: 'plans' | 'stories') => (
     <Box sx={{ display: 'flex', justifyContent: 'flex-end', mt: 1.5 }}>
@@ -227,6 +245,9 @@ const SearchResults: React.FC<SearchResultsProps> = (props) => {
 
   let body: React.ReactNode;
   switch (tab) {
+    case 'posts':
+      body = postsLoading && posts.length === 0 ? <ListSkeleton rows={5} /> : posts.length ? posts.map(postRow) : nothing('posts');
+      break;
     case 'people':
       body = peopleLoading && people.length === 0 ? <ListSkeleton rows={5} /> : people.length ? people.map(personRow) : nothing('people');
       break;

@@ -45,9 +45,14 @@ export const postsService = {
     }
   },
 
-  async feed(take = 20, before?: string | null, kind?: 'note' | 'question', photosOnly = false, following = false): Promise<TravelerPost[]> {
+  async feed(
+    take = 20, before?: string | null, kind?: 'note' | 'question', photosOnly = false, following = false,
+    /** Search: only posts with every word in the description, title, place or tags. Older servers ignore it. */
+    q?: string,
+  ): Promise<TravelerPost[]> {
     const params = new URLSearchParams({ take: String(take) });
     if (before) params.set('before', before);
+    if (q?.trim()) params.set('q', q.trim());
     // Omitted means both kinds, which is what a "what is happening" rail wants.
     if (kind) params.set('kind', kind);
     // Notes with a photo and no plan or story attached, for the Search grid.
