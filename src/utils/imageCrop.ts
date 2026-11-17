@@ -83,8 +83,9 @@ export function sourceRect(view: CropView, image: Size, frame: Size): SourceRect
 }
 
 /**
- * The size to upload: the target width for the shape, or less when the chosen
- * part of the picture is smaller than that, because enlarging adds bytes but no detail.
+ * The size to upload: the selection at its own size, capped at the shape's
+ * largest. A small selection is never enlarged, which would add bytes but no
+ * detail; the server sets no minimum for a profile photo or cover.
  */
 export function outputSize(source: SourceRect, aspect: number, maxWidth: number): Size {
   const width = Math.max(1, Math.round(Math.min(maxWidth, source.sw)));
