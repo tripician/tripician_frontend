@@ -26,6 +26,21 @@ import type { AppDispatch, RootState } from '../../store';
 import { fetchUserProfile, setUserProfile, type UserProfile } from '../../store/userSlice';
 import ChangePasswordCard from './ChangePasswordCard';
 import { fromForCountry, initialHomeCountry } from './homeCountry';
+import ImageCropDialog from '../../components/CommonComponents/ImageCropDialog';
+
+/** Which picture is being changed. */
+type PictureKind = 'avatar' | 'cover';
+
+/** A profile photo is uploaded as a square this many pixels wide: shown as a 136 px circle at most, sharp on any screen. */
+const AVATAR_SIZE = 512;
+/**
+ * A cover is cropped to 3:1 and uploaded at most this wide. The band it fills is
+ * about 2:1 on a phone and nearly 4:1 on a wide screen, so 3:1 loses least either way.
+ */
+const COVER_ASPECT = 3;
+const COVER_WIDTH = 1500;
+/** Bigger than any phone photo; anything larger is likely not a photo at all. Only the crop is uploaded. */
+const MAX_PICK_BYTES = 25 * 1024 * 1024;
 
 /** What went wrong, in words, for each way the device lookup can fail. */
 const LOCATE_MESSAGES: Record<LocateFailure, string> = {
@@ -71,8 +86,6 @@ const ProfileSettings: React.FC = () => {
   const [profilePicture, setProfilePicture] = useState<string | null>(null);
   const [coverPicture, setCoverPicture] = useState<string | null>(null);
   const [isRemovingPhoto, setIsRemovingPhoto] = useState(false);
-  const [isUploadingPhoto, setIsUploadingPhoto] = useState(false);
-  const [isUploadingCover, setIsUploadingCover] = useState(false);
   const [isRemovingCover, setIsRemovingCover] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const coverInputRef = useRef<HTMLInputElement>(null);
@@ -85,6 +98,58 @@ const ProfileSettings: React.FC = () => {
   const { token: authToken } = useAuthToken();
   const dispatch = useDispatch<AppDispatch>();
   const currentProfile = useSelector((state: RootState)=> state.user.profile);
+  // The picked photo waiting to be cropped, and which picture it is for.
+  const [cropping, setCropping] = useState<{ kind: PictureKind; file: File } | null>(null);
+
+  /** A picked file goes to the crop dialog first; nothing is uploaded until it is confirmed there. */
+  const pickPicture = (kind: PictureKind) => (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    // Reset so picking the same file again still opens the dialog.
+    e.target.value = '';
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { setError('Choose a photo (JPG, PNG or WebP).'); return; }
+    if (file.size > MAX_PICK_BYTES) { setError('That photo is over 25 MB. Choose a smaller one.'); return; }
+    setError(null);
+    setCropping({ kind, file });
+  };
+
+  /**
+   * Uploads a cropped picture and saves it to the profile.
+   *
+   * The server stores every avatar (and every cover) under one fixed name, so
+   * the plain address never changes and browsers keep showing the old picture
+   * from their cache. The address the upload answers with carries Cloudinary's
+   * version (`/v1731840000/`), which changes with every new picture, so that is
+   * the one saved. And a save that fails is a failed change, said as one: the
+   * picture only ever shows from the saved address.
+   */
+  const uploadPicture = async (kind: PictureKind, cropped: Blob) => {
+    if (!authToken) throw new Error('Sign in again to change your photo.');
+    const userId = currentProfile?.id;
+    if (!userId) throw new Error('Your profile is still loading. Try again in a moment.');
+
+    const { data: signed } = kind === 'avatar'
+      ? await apiServices.getProfileUploadUrl(authToken, String(userId))
+      : await apiServices.getCoverUploadUrl(authToken, String(userId));
+    const file = new File([cropped], kind === 'avatar' ? 'avatar.jpg' : 'cover.jpg', { type: cropped.type || 'image/jpeg' });
+    const { url } = await uploadSignedPhoto(signed, file);
+
+    try {
+      if (kind === 'avatar') await apiServices.saveProfilePictureUrl(authToken, url);
+      else await apiServices.saveCoverPictureUrl(authToken, url);
+    } catch {
+      throw new Error('Your photo uploaded but could not be saved to your profile. Try again.');
+    }
+
+    if (kind === 'avatar') setProfilePicture(url);
+    else setCoverPicture(url);
+    // The header and every other place showing the photo read it from here.
+    dispatch(setUserProfile({ ...(currentProfile ?? {}), [kind === 'avatar' ? 'profilepicture' : 'coverpicture']: url } as any));
+    await dispatch(fetchUserProfile({ force: true })).unwrap().catch(() => {});
+    window.dispatchEvent(new CustomEvent('app:success', {
+      detail: { message: kind === 'avatar' ? 'Profile photo updated' : 'Cover photo updated' },
+    }));
+  };
 
   useEffect(()=> {
     if(!authToken) return;
@@ -163,80 +228,18 @@ const ProfileSettings: React.FC = () => {
               type="file"
               accept="image/jpeg,image/png,image/webp"
               style={{ display: 'none' }}
-              onChange={async (e) => {
-                console.log('[Upload] onChange fired');
-                const file = e.target.files?.[0];
-                console.log('[Upload] file:', file?.name, file?.size, '| authToken:', !!authToken, '| userId:', currentProfile?.id);
-                // Reset input so the same file can be re-selected after an error
-                e.target.value = '';
-                if (!file) { console.log('[Upload] STOPPED: no file'); return; }
-
-                if (!authToken) {
-                  console.log('[Upload] STOPPED: no authToken');
-                  setError('You must be logged in to upload a photo.');
-                  return;
-                }
-
-                const userId = currentProfile?.id;
-                if (!userId) {
-                  console.log('[Upload] STOPPED: no userId, currentProfile =', currentProfile);
-                  setError('Cannot upload: user ID not available');
-                  return;
-                }
-
-                setIsUploadingPhoto(true);
-                setError(null);
-                try {
-                  // 1. Get signed Cloudinary upload params from our backend
-                  console.log('[Upload] calling getProfileUploadUrl with userId:', userId);
-                  const { data: uploadData } = await apiServices.getProfileUploadUrl(authToken, userId);
-                  console.log('[Upload] got uploadData:', uploadData);
-
-                  // 2. Send the photo through our server, which stores it
-                  await uploadSignedPhoto(uploadData, file);
-
-                  // 3. Persist the URL to DB (non-fatal - endpoint may not exist yet)
-                  const newUrl = `${uploadData.fileUrl}?v=${uploadData.timestamp}`;
-                  try {
-                    await apiServices.saveProfilePictureUrl(authToken, uploadData.fileUrl);
-                  } catch (saveErr: any) {
-                    console.warn('[Upload] saveProfilePictureUrl failed (non-fatal):', saveErr?.response?.status, saveErr?.message);
-                  }
-
-                  setProfilePicture(newUrl);
-
-                  // 4. Push the new URL into Redux + localStorage
-                  try {
-                    const optimisticProfile = {
-                      ...(currentProfile ?? {}),
-                      profilepicture: newUrl,
-                    } as any;
-                    dispatch(setUserProfile(optimisticProfile));
-                    await dispatch(fetchUserProfile({ force: true })).unwrap();
-                  } catch {}
-
-                  window.dispatchEvent(new CustomEvent('app:success', { detail: { message: 'Profile photo updated' } }));
-                } catch (err: any) {
-                  console.error('[Upload] FAILED:', err?.response?.status, err?.response?.data, err?.message);
-                  setError(err instanceof UploadError ? err.message : 'Failed to upload photo. Please try again.');
-                } finally {
-                  setIsUploadingPhoto(false);
-                }
-              }}
+              onChange={pickPicture('avatar')}
             />
 
             <Box sx={{ display: "flex", gap: 2 }}>
               <Button
                 variant="contained"
                 size="small"
-                disabled={isUploadingPhoto}
-                onClick={() => {
-                  console.log('[Upload] button clicked, ref:', fileInputRef.current);
-                  fileInputRef.current?.click();
-                }}
+                disabled={cropping !== null}
+                onClick={() => fileInputRef.current?.click()}
                 sx={{ textTransform: "none", fontWeight: 600, px: 2.5, py: 1 }}
               >
-                {isUploadingPhoto ? <><CircularProgress size={14} sx={{ color: '#fff', mr: 1 }} />Uploading…</> : 'Upload New Photo'}
+                Upload New Photo
               </Button>
               <Button
                 variant="text"
@@ -275,7 +278,7 @@ const ProfileSettings: React.FC = () => {
             </Box>
           </Box>
           <Typography variant="body2" sx={{ color: "text.secondary", mt: 2, fontSize: "0.875rem" }}>
-            Recommended: Square image, at least 400×400px (JPG, PNG, WebP)
+            Choose any JPG, PNG or WebP photo. You'll crop it to a square before it's uploaded.
           </Typography>
         </CardContent>
       </Card>
@@ -292,29 +295,7 @@ const ProfileSettings: React.FC = () => {
             type="file"
             accept="image/jpeg,image/png,image/webp"
             style={{ display: 'none' }}
-            onChange={async (e) => {
-              const file = e.target.files?.[0];
-              e.target.value = '';
-              if (!file || !authToken) return;
-              const userId = currentProfile?.id;
-              if (!userId) return;
-              setIsUploadingCover(true);
-              try {
-                const { data: uploadData } = await apiServices.getCoverUploadUrl(authToken, String(userId));
-                await uploadSignedPhoto(uploadData, file);
-                const newUrl = `${uploadData.fileUrl}?v=${uploadData.timestamp}`;
-                await apiServices.saveCoverPictureUrl(authToken, uploadData.fileUrl);
-                setCoverPicture(newUrl);
-                const optimisticProfile = { ...(currentProfile ?? {}), coverpicture: newUrl } as any;
-                dispatch(setUserProfile(optimisticProfile));
-                await dispatch(fetchUserProfile({ force: true } as any)).unwrap().catch(() => {});
-                window.dispatchEvent(new CustomEvent('app:success', { detail: { message: 'Cover photo updated' } }));
-              } catch (err) {
-                setError(err instanceof UploadError ? err.message : 'Cover photo upload failed');
-              } finally {
-                setIsUploadingCover(false);
-              }
-            }}
+            onChange={pickPicture('cover')}
           />
           {/* Cover preview */}
           <Box
@@ -330,11 +311,11 @@ const ProfileSettings: React.FC = () => {
             <Button
               variant="contained"
               size="small"
-              disabled={isUploadingCover}
+              disabled={cropping !== null}
               onClick={() => coverInputRef.current?.click()}
               sx={{ textTransform: 'none', fontWeight: 600, px: 2.5, py: 1 }}
             >
-              {isUploadingCover ? <><CircularProgress size={14} sx={{ color: '#fff', mr: 1 }} />Uploading…</> : 'Upload Cover'}
+              Upload Cover
             </Button>
             {(coverPicture || (currentProfile as any)?.coverpicture) && (
               <Button
@@ -365,10 +346,30 @@ const ProfileSettings: React.FC = () => {
             )}
           </Box>
           <Typography variant="body2" sx={{ color: 'text.secondary', mt: 2, fontSize: '0.875rem' }}>
-            Recommended: 1500×500px landscape image (JPG, PNG, WebP)
+            Choose any JPG, PNG or WebP photo. You'll crop it to a wide 3:1 banner before it's uploaded.
           </Typography>
         </CardContent>
       </Card>
+
+      {/* One crop dialog for both pictures: square for the profile photo, 3:1 for the cover. */}
+      <ImageCropDialog
+        file={cropping?.file ?? null}
+        title={cropping?.kind === 'cover' ? 'Crop your cover photo' : 'Crop your profile photo'}
+        aspect={cropping?.kind === 'cover' ? COVER_ASPECT : 1}
+        round={cropping?.kind !== 'cover'}
+        maxOutputWidth={cropping?.kind === 'cover' ? COVER_WIDTH : AVATAR_SIZE}
+        onCancel={() => setCropping(null)}
+        onConfirm={async (cropped) => {
+          if (!cropping) return;
+          try {
+            await uploadPicture(cropping.kind, cropped);
+          } catch (err) {
+            // Shown in the dialog, which stays open so the person can try again.
+            throw new Error(err instanceof UploadError || err instanceof Error ? err.message : 'That photo could not be uploaded. Please try again.');
+          }
+          setCropping(null);
+        }}
+      />
 
       {/* Personal Information Section */}
       <Card
