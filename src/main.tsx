@@ -14,10 +14,11 @@ import { AdapterDayjs } from '@mui/x-date-pickers/AdapterDayjs';
 import WireAuth0 from './services/auth/WireAuth0';
 
 /*
- * The home page's plain-HTML copy and its head tags (description, canonical,
- * JSON-LD), written into index.html at build time for crawlers that do not run
- * JavaScript. Once JavaScript is running, the page's own <Seo> writes the same
- * tags, so these go first or every one of them would be doubled.
+ * The plain-HTML copy and head tags (description, canonical, JSON-LD) written at
+ * build time for crawlers and reviewers that do not run JavaScript: the home
+ * page's in index.html, the Child Safety Standards' in child-safety-standards.html.
+ * Once JavaScript is running, the page's own <Seo> writes the same tags, so
+ * these go first or every one of them would be doubled.
  */
 document.querySelectorAll('[data-landing-static]').forEach((node) => node.remove());
 

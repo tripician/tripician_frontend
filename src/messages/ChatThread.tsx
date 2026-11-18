@@ -17,6 +17,7 @@ import ChatPasscodeForm from './ChatPasscodeForm';
 import DecisionBar from './DecisionBar';
 import { MAX_MESSAGE_LENGTH, type PhotoRef } from './e2ee/chatCrypto';
 import { canEdit, instant, useChat, type ThreadItem } from './useChat';
+import { CHILD_SAFETY_LABEL, CHILD_SAFETY_REASON } from '../components/ui/childSafetyReport';
 
 const SEPARATOR_GAP_MS = 60 * 60_000;
 const JOIN_GAP_MS = 3 * 60_000;
@@ -27,6 +28,7 @@ const REPORT_REASONS = [
   { value: 'scam', label: 'Scam or fraud' },
   { value: 'inappropriate', label: 'Inappropriate or sexual' },
   { value: 'impersonation', label: 'Pretending to be someone else' },
+  { value: CHILD_SAFETY_REASON, label: CHILD_SAFETY_LABEL },
   { value: 'other', label: 'Something else' },
 ] as const;
 

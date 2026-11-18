@@ -60,23 +60,29 @@ const link = (href: string, label: string) => `<a href="${esc(href)}">${esc(labe
  * Title and share-card tags. These go on EVERY page (index.html and app.html):
  * WhatsApp, Facebook and LinkedIn never run JavaScript, so per-page tags written
  * by React never reach them and these are all they ever read.
+ *
+ * `page` swaps in another page's title, description and URL, for the few paths
+ * that get their own plain-HTML file (see InfoPages/childSafetyStatic.ts).
  */
-export function socialHead(): string {
+export function socialHead(page?: { title: string; description: string; url: string }): string {
   const image = `${SITE_URL}/og-cover.jpg`;
+  const title = page?.title ?? LANDING_TITLE;
+  const description = page?.description ?? LANDING_DESCRIPTION;
+  const url = page?.url ?? `${SITE_URL}/`;
   return [
-    `<title>${esc(LANDING_TITLE)}</title>`,
-    `<meta property="og:title" content="${esc(LANDING_TITLE)}" />`,
-    `<meta property="og:description" content="${esc(LANDING_DESCRIPTION)}" />`,
+    `<title>${esc(title)}</title>`,
+    `<meta property="og:title" content="${esc(title)}" />`,
+    `<meta property="og:description" content="${esc(description)}" />`,
     `<meta property="og:image" content="${image}" />`,
     `<meta property="og:image:width" content="1200" />`,
     `<meta property="og:image:height" content="630" />`,
-    `<meta property="og:url" content="${SITE_URL}/" />`,
+    `<meta property="og:url" content="${esc(url)}" />`,
     `<meta property="og:type" content="website" />`,
     `<meta property="og:site_name" content="Tripician" />`,
     `<meta property="og:locale" content="en_US" />`,
     `<meta name="twitter:card" content="summary_large_image" />`,
-    `<meta name="twitter:title" content="${esc(LANDING_TITLE)}" />`,
-    `<meta name="twitter:description" content="${esc(LANDING_DESCRIPTION)}" />`,
+    `<meta name="twitter:title" content="${esc(title)}" />`,
+    `<meta name="twitter:description" content="${esc(description)}" />`,
     `<meta name="twitter:image" content="${image}" />`,
   ].join('\n    ');
 }
