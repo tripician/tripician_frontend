@@ -9,6 +9,16 @@
       "source": "/discover",
       "destination": "/stories",
       "statusCode": 301
+    },
+    {
+      "source": "/child-safety-standard",
+      "destination": "/child-safety-standards",
+      "statusCode": 301
+    },
+    {
+      "source": "/child-safety",
+      "destination": "/child-safety-standards",
+      "statusCode": 301
     }
   ],
   "rewrites": [
