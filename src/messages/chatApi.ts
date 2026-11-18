@@ -50,7 +50,7 @@ export type ChatPersonResult = {
 
 export type ChatUnread = { inbox: number; requests: number };
 
-export type ChatReportReason = 'spam' | 'harassment' | 'scam' | 'inappropriate' | 'impersonation' | 'other';
+export type ChatReportReason = 'spam' | 'harassment' | 'scam' | 'inappropriate' | 'impersonation' | 'child_safety' | 'other';
 
 export type ChatExcerptLine = { senderUserId: number; text: string; sentAt: string | null };
 
