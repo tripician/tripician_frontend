@@ -135,7 +135,10 @@ export const CHILD_SAFETY_SECTIONS: Section[] = [
         ul: [
           ['Child safety reports receive the highest review priority. We aim to review them as soon as possible, prioritising reports involving an immediate risk to a minor.'],
           ['When we confirm a violation, we remove the content and permanently ban the accounts involved.'],
-          ['We report apparent child sexual abuse material and exploitation to the authorities: the National Cyber Crime Reporting Portal or the police in India, and the NCMEC CyberTipline.'],
+          // "report" and "apparent ... material" follow Google Play's policy and
+          // 18 U.S.C. 2258A; "where applicable" because Tripician may not be a
+          // US provider. NCMEC is a reporting organisation, not an authority.
+          ['When we become aware of apparent child sexual abuse material or child sexual exploitation, we report it to the appropriate authorities and reporting organisations, including the National Cyber Crime Reporting Portal or law enforcement in India and, where applicable, the NCMEC CyberTipline in the United States.'],
           ['We securely preserve relevant reported material and associated account information when required by applicable law. Where a report is submitted to the NCMEC CyberTipline, we preserve the reported material and reasonably accessible related information for the applicable statutory period, including the one-year period under 18 U.S.C. § 2258A. Access is restricted to authorised personnel handling the case. We disclose information only through lawful and authorised channels.'],
           ['An account cannot be deleted while a child safety report or case involving it is still open.'],
           ['We respond to lawful requests from law enforcement and comply with applicable child safety laws, including the POCSO Act in India and 18 U.S.C. § 2258A in the United States.'],
