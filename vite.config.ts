@@ -3,6 +3,7 @@ import { join } from 'node:path'
 import { defineConfig, loadEnv, type Plugin } from 'vite'
 import react from '@vitejs/plugin-react'
 import { fillIndexHtml, toAppHtml } from './src/pages/LandingPage/landingStatic'
+import { CHILD_SAFETY_FILE, toChildSafetyHtml } from './src/pages/InfoPages/childSafetyStatic'
 
 // The release version shown in the app ("Tripician v…") is package.json's, so a
 // release bumps it in one place. It used to come from VITE_APP_VERSION, which
@@ -16,6 +17,10 @@ const appVersion: string = JSON.parse(readFileSync(new URL('./package.json', imp
  * src/pages/LandingPage/landingStatic.ts for why), then writes app.html: the same
  * shell without the home-page-only parts, which vercel.json serves for every
  * other path. Runs in dev too, where the inline script hides the static copy.
+ *
+ * Also writes child-safety-standards.html: app.html carrying the Child Safety
+ * Standards as plain HTML, because Google Play review checks that page (see
+ * src/pages/InfoPages/childSafetyStatic.ts). vercel.json routes the path to it.
  */
 function landingStatic(logo?: string): Plugin {
   return {
@@ -27,7 +32,9 @@ function landingStatic(logo?: string): Plugin {
     writeBundle(options) {
       const dir = options.dir ?? 'dist'
       const indexHtml = readFileSync(join(dir, 'index.html'), 'utf8')
-      writeFileSync(join(dir, 'app.html'), toAppHtml(indexHtml))
+      const appHtml = toAppHtml(indexHtml)
+      writeFileSync(join(dir, 'app.html'), appHtml)
+      writeFileSync(join(dir, CHILD_SAFETY_FILE), toChildSafetyHtml(appHtml))
     },
   }
 }

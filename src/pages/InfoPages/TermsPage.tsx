@@ -88,6 +88,7 @@ const TermsPage: React.FC = () => {
           <P>You may use the Service only for lawful, personal, non-commercial trip planning purposes, unless we have approved you as an independent travel operator, in which case you may use it commercially within the limits of that approval and of these Terms. You agree <strong>not</strong> to:</P>
           <Ul items={[
             'Upload, transmit, or share content that is unlawful, defamatory, obscene, fraudulent, threatening, or infringes any third-party rights',
+            <>Share, request, create or promote child sexual abuse material, sexualise a minor, or groom, exploit or endanger a child in any way. We have zero tolerance for this: we remove it, permanently ban the account, preserve the evidence and report it to the authorities, as set out in our <Box component={Link} to="/child-safety-standards" sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500 }}>Child Safety Standards</Box></>,
             'Attempt to gain unauthorised access to the Service, its systems, or other users\' data',
             'Use automated means (bots, scrapers, crawlers, or similar tools) to extract data from the Service',
             'Impersonate any person or entity, or falsely represent your affiliation with any person or entity',
@@ -267,7 +268,7 @@ const TermsPage: React.FC = () => {
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, mt: 3, flexWrap: 'wrap' }}>
             <Box sx={{ background: alpha(BRAND.coral, 0.08), borderRadius: '20px', px: 2, py: 0.75, border: `1px solid ${alpha(BRAND.coral, 0.15)}` }}>
-              <Typography sx={{ fontSize: '0.78rem', color: 'primary.main', fontWeight: 600 }}>Last updated: November 17, 2026</Typography>
+              <Typography sx={{ fontSize: '0.78rem', color: 'primary.main', fontWeight: 600 }}>Last updated: November 18, 2026</Typography>
             </Box>
             <Box sx={{ background: 'rgba(0,0,0,0.04)', borderRadius: '20px', px: 2, py: 0.75, border: '1px solid rgba(0,0,0,0.08)' }}>
               <Typography sx={{ fontSize: '0.78rem', color: '#555', fontWeight: 500 }}>Version 1.0</Typography>

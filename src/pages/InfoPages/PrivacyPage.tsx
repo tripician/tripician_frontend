@@ -111,6 +111,7 @@ const PrivacyPage: React.FC = () => {
             <><strong>Infrastructure & Hosting Providers</strong> - our servers are hosted on third-party cloud infrastructure. Providers process data on our behalf under Data Processing Agreements and are contractually required to protect your data.</>,
           ]} />
           <P><strong>Legal Disclosure:</strong> We may disclose your information if required by law, court order, or government authority. Where legally permitted, we will notify you before doing so.</P>
+          <P><strong>Child safety:</strong> If we find, or are told about, apparent child sexual abuse material or the exploitation of a child, we report it, together with the related account information (such as name, email, phone number and the content involved), to the authorities: the National Cyber Crime Reporting Portal or the police in India, and the National Center for Missing &amp; Exploited Children (NCMEC) in the United States. We do not notify the account holder before doing so. See our <Box component={Link} to="/child-safety-standards" sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500 }}>Child Safety Standards</Box>.</P>
         </>
       ),
     },
@@ -125,6 +126,7 @@ const PrivacyPage: React.FC = () => {
             'Encrypted backups: Residual copies in encrypted backups are purged within 90 days of the deletion date.',
             'Usage logs: Anonymised and aggregated usage statistics may be retained for up to 24 months for security and service improvement.',
             'Sign-in and session activity logs: retained for up to 12 months, then automatically deleted.',
+            'Child safety cases: when we act on child sexual abuse or exploitation, we keep the reported material and the related account information securely, with access limited to the people handling the case, for one year after we report it to the authorities (longer if they ask us to), and then delete it. An account that is part of an open child safety review cannot be deleted until the review ends.',
             'Identity verification: we keep the outcome of your check and its date while your account exists. Didit deletes the ID images, selfie and biometric data once the check has served its purpose or our retention setting ends, and in any case by the deadlines in its biometric data policy (for example 3 years after your last check in Illinois, 24 months in Colorado and 12 months in Texas). To have them deleted sooner, contact us or Didit at privacy@didit.me.',
           ]} />
         </>
@@ -186,6 +188,7 @@ const PrivacyPage: React.FC = () => {
         <>
           <P>The Service is not directed at children under 13 years of age (or under 16 years of age for users in the European Union and United Kingdom, per the GDPR minimum age for consent). We do not knowingly collect personal information from children.</P>
           <P>If you believe a child under the applicable minimum age has provided us with personal data, please contact us immediately at <Box component="a" href="mailto:support@tripician.com" sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500 }}>support@tripician.com</Box>. We will take prompt steps to delete such information.</P>
+          <P>To report a child safety concern, such as content that sexualises or endangers a minor, use Report in the app or on the website and choose "Child safety: a minor at risk", or see our <Box component={Link} to="/child-safety-standards" sx={{ color: 'primary.main', textDecoration: 'none', fontWeight: 500 }}>Child Safety Standards</Box>.</P>
         </>
       ),
     },
@@ -238,7 +241,7 @@ const PrivacyPage: React.FC = () => {
           </Typography>
           <Box sx={{ display: 'flex', gap: 2, mt: 3, flexWrap: 'wrap' }}>
             <Box sx={{ background: alpha(BRAND.coral, 0.08), borderRadius: '20px', px: 2, py: 0.75, border: `1px solid ${alpha(BRAND.coral, 0.15)}` }}>
-              <Typography sx={{ fontSize: '0.78rem', color: 'primary.main', fontWeight: 600 }}>Last updated: November 17, 2026</Typography>
+              <Typography sx={{ fontSize: '0.78rem', color: 'primary.main', fontWeight: 600 }}>Last updated: November 18, 2026</Typography>
             </Box>
             <Box sx={{ background: 'rgba(0,0,0,0.04)', borderRadius: '20px', px: 2, py: 0.75, border: '1px solid rgba(0,0,0,0.08)' }}>
               <Typography sx={{ fontSize: '0.78rem', color: '#555', fontWeight: 500 }}>GDPR · UK GDPR · CCPA/CPRA</Typography>

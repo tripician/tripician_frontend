@@ -2,12 +2,14 @@ import React from 'react';
 import {
   Box, Button, Dialog, DialogActions, DialogContent, DialogTitle, FormControlLabel, Radio, RadioGroup, TextField, Typography,
 } from '@mui/material';
+import { CHILD_SAFETY_LABEL, CHILD_SAFETY_REASON, ChildSafetyReportNote } from './childSafetyReport';
 
 const REASONS = [
   { value: 'spam', label: 'Spam or advertising' },
   { value: 'offensive', label: 'Offensive or hateful' },
   { value: 'misleading', label: 'Misleading or made up' },
   { value: 'copyright', label: 'Uses my photos or writing' },
+  { value: 'child_safety', label: CHILD_SAFETY_LABEL },
   { value: 'other', label: 'Something else' },
 ] as const;
 
@@ -93,6 +95,7 @@ const ReportDialog: React.FC<ReportDialogProps> = ({ open, noun, reasons = REASO
               onChange={(e) => setDetail(e.target.value.slice(0, 500))}
               sx={{ mt: 1.5, ...fieldSx }}
             />
+            {reason === CHILD_SAFETY_REASON && <ChildSafetyReportNote />}
             {error && (
               <Typography variant="caption" sx={{ color: 'error.main', mt: 1, display: 'block' }}>{error}</Typography>
             )}

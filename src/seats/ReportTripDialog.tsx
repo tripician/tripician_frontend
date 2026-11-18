@@ -5,6 +5,7 @@ import {
 } from '@mui/material';
 import { apiServices } from '../services/APIs/apiServices';
 import { useAuthToken } from '../hooks/useAuth0Token';
+import { CHILD_SAFETY_LABEL, CHILD_SAFETY_REASON, ChildSafetyReportNote } from '../components/ui/childSafetyReport';
 
 const REASONS = [
   { value: 'scam', label: 'Looks like a scam' },
@@ -12,6 +13,7 @@ const REASONS = [
   { value: 'harassment', label: 'Harassment or abuse' },
   { value: 'impersonation', label: 'Pretending to be someone else' },
   { value: 'spam', label: 'Spam' },
+  { value: CHILD_SAFETY_REASON, label: CHILD_SAFETY_LABEL },
   { value: 'other', label: 'Something else' },
 ];
 
@@ -102,6 +104,7 @@ const ReportTripDialog: React.FC<ReportTripDialogProps> = ({
               helperText={`${detail.length}/500`}
               sx={{ '& .MuiOutlinedInput-root': { borderRadius: '12px' } }}
             />
+            {reason === CHILD_SAFETY_REASON && <ChildSafetyReportNote />}
 
             {error && (
               <Typography variant="body2" sx={{ color: 'error.main', mt: 1.5 }}>{error}</Typography>
