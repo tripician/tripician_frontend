@@ -107,9 +107,9 @@ export const CHILD_SAFETY_SECTIONS: Section[] = [
         ul: [
           [
             { strong: 'India: ' },
-            'the National Cyber Crime Reporting Portal at ',
-            { text: 'cybercrime.gov.in', href: 'https://cybercrime.gov.in/' },
-            ' (Report Women/Child Related Crime), the cyber crime helpline 1930, or your local police.',
+            'Report online child sexual abuse material and other cybercrimes against children through the ',
+            { text: 'National Cyber Crime Reporting Portal', href: 'https://cybercrime.gov.in/' },
+            ' under Report Crime Related to Women/Child. You can also contact your local police. For emergencies, call 112.',
           ],
           [
             { strong: 'United States: ' },
@@ -133,10 +133,11 @@ export const CHILD_SAFETY_SECTIONS: Section[] = [
     blocks: [
       {
         ul: [
-          ['We review child safety reports first, the same day they arrive.'],
+          ['Child safety reports receive the highest review priority. We aim to review them as soon as possible, prioritising reports involving an immediate risk to a minor.'],
           ['When we confirm a violation, we remove the content and permanently ban the accounts involved.'],
           ['We report apparent child sexual abuse material and exploitation to the authorities: the National Cyber Crime Reporting Portal or the police in India, and the NCMEC CyberTipline.'],
-          ['We preserve the reported material and the related account information securely, with access limited to the people handling the case, for at least one year after we report it, as the law requires. We share it only with the authorities and only through official channels. An account that is part of an open child safety review cannot be deleted until the review ends.'],
+          ['We securely preserve relevant reported material and associated account information when required by applicable law. Where a report is submitted to the NCMEC CyberTipline, we preserve the reported material and reasonably accessible related information for the applicable statutory period, including the one-year period under 18 U.S.C. § 2258A. Access is restricted to authorised personnel handling the case. We disclose information only through lawful and authorised channels.'],
+          ['An account cannot be deleted while a child safety report or case involving it is still open.'],
           ['We respond to lawful requests from law enforcement and comply with applicable child safety laws, including the POCSO Act in India and 18 U.S.C. § 2258A in the United States.'],
         ],
       },
@@ -147,9 +148,11 @@ export const CHILD_SAFETY_SECTIONS: Section[] = [
     blocks: [
       {
         p: [
-          'Tripician is not directed at children. Users must be at least 13 years old, or at least 16 in the EU and UK, as set out in our ',
+          // "who live in", not "accessing from": the Terms set the 16+ rule by
+          // residence ("if you reside in the European Union or United Kingdom").
+          'Users must be at least 13 years old to use Tripician. Users who live in the EU or UK must be at least 16 years old, in accordance with Tripician\'s ',
           { text: 'Terms of Service', href: '/terms-and-conditions' },
-          '. These age limits do not reduce our commitment to act on any child safety concern.',
+          ". These are Tripician's minimum age requirements and do not limit our response to child safety concerns.",
         ],
       },
     ],
@@ -159,7 +162,7 @@ export const CHILD_SAFETY_SECTIONS: Section[] = [
     blocks: [
       {
         p: [
-          'Tripician has a designated child safety point of contact who can discuss our CSAM prevention practices and compliance, and who receives child safety reports: ',
+          'Tripician has a designated child safety representative responsible for receiving child safety reports, coordinating reviews and responding to compliance enquiries. Contact them at ',
           mail('Child Safety'),
           '.',
         ],
