@@ -1,0 +1,31 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.tripicianapp",
+      "sha256_cert_fingerprints": [
+        "7A:61:01:E3:76:49:4A:C8:CA:CC:3F:69:4B:83:55:B2:7B:BC:23:F8:7B:A6:09:E6:39:D6:C7:38:87:43:98:4E"
+      ]
+    },
+    "relation_extensions": {
+      "delegate_permission/common.handle_all_urls": {
+        "dynamic_app_link_components": [
+          { "/": "/trip/????????-????-????-????-????????????" },
+          { "/": "/tripplanner/*" },
+          { "/": "/traveler/*" },
+          { "/": "/post/*" },
+          { "/": "/story/*" },
+          { "/": "/blog" },
+          { "/": "/blog/*" },
+          { "/": "/o/*" },
+          { "/": "/join/group/*" },
+          { "/": "/groups/invite/*" },
+          { "/": "*", "exclude": true }
+        ]
+      }
+    }
+  }
+]
