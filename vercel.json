@@ -1,5 +1,25 @@
 {
+  "headers": [
+    {
+      "source": "/.well-known/assetlinks.json",
+      "headers": [
+        { "key": "Content-Type", "value": "application/json" },
+        { "key": "Cache-Control", "value": "public, max-age=3600" }
+      ]
+    }
+  ],
   "redirects": [
+    {
+      "source": "/:path((?!\\.well-known/).*)",
+      "has": [
+        {
+          "type": "host",
+          "value": "^tripician\\.com$"
+        }
+      ],
+      "destination": "https://www.tripician.com/:path*",
+      "statusCode": 307
+    },
     {
       "source": "/community",
       "destination": "/stories",
