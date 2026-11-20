@@ -3,9 +3,11 @@ import {
   Avatar, Box, CircularProgress, Collapse, IconButton, Menu, MenuItem, Typography, useTheme,
 } from '@mui/material';
 import { useNavigate } from 'react-router-dom';
+import { useSelector } from 'react-redux';
 import {
   IconHeart, IconHeartFilled, IconMessageCircle2, IconTrash, IconDots, IconLink, IconFlag, IconBan, IconInfoCircle,
 } from '@tabler/icons-react';
+import type { RootState } from '../store';
 import { useRequireAuth } from '../auth/AuthGate';
 import { formatRelativeTime } from '../utils/relativeTime';
 import CardTypeTag from '../components/ui/CardTypeTag';
@@ -21,7 +23,7 @@ import { POST_LIMITS } from './types';
 import { postsService } from './postsService';
 import ReportDialog from '../components/ui/ReportDialog';
 import VerifiedProfileMark from '../components/ui/VerifiedProfileMark';
-import { confirmAndBlock } from '../utils/blocking';
+import { USER_BLOCKED_EVENT, blockedIdFrom, confirmAndBlock } from '../utils/blocking';
 import type { TravelerPost } from './types';
 
 interface PostCardProps {
@@ -66,6 +68,29 @@ const PostCard: React.FC<PostCardProps> = ({
   const [likersOpen, setLikersOpen] = React.useState(false);
   // Image details: from the "i" on the photos, or from this card's menu, as in the app.
   const [detailsOpen, setDetailsOpen] = React.useState(false);
+  const viewerId = useSelector((s: RootState) => s.user.profile?.id ?? null);
+  // The comment the box below is answering, from its Reply; null means the post itself.
+  const [replyTarget, setReplyTarget] = React.useState<{ id: string; name: string } | null>(null);
+  // Replying to a comment is for a note's thread. A question's replies are answers, as in the app.
+  const canReplyToComments = post.kind !== 'question';
+
+  // Blocking someone from a comment's menu takes all their comments out of this thread at once.
+  const repliesRef = React.useRef<TravelerPost[] | null>(null);
+  React.useEffect(() => { repliesRef.current = replies; }, [replies]);
+  React.useEffect(() => {
+    const onBlocked = (e: Event) => {
+      const id = blockedIdFrom(e);
+      const loaded = repliesRef.current;
+      if (id === null || !loaded) return;
+      const removed = loaded.filter((r) => r.authorUserId === id).length;
+      if (removed === 0) return;
+      setReplies((prev) => (prev ?? []).filter((r) => r.authorUserId !== id));
+      setReplyCount((c) => Math.max(0, c - removed));
+      setReplyTarget(null);
+    };
+    window.addEventListener(USER_BLOCKED_EVENT, onBlocked);
+    return () => window.removeEventListener(USER_BLOCKED_EVENT, onBlocked);
+  }, []);
 
   // The permalink already renders the thread under the post, so only a card that
   // links somewhere else opens one of its own.
@@ -388,9 +413,12 @@ const PostCard: React.FC<PostCardProps> = ({
                   <CommentRow
                     key={r.id}
                     comment={r}
+                    viewerId={viewerId}
+                    onReply={canReplyToComments ? (c) => setReplyTarget({ id: c.id, name: c.authorName }) : undefined}
                     onRemoved={(id) => {
                       setReplies((prev) => (prev ?? []).filter((x) => x.id !== id));
                       setReplyCount((c) => Math.max(0, c - 1));
+                      setReplyTarget((t) => (t?.id === id ? null : t));
                     }}
                   />
                 ))}
@@ -401,10 +429,14 @@ const PostCard: React.FC<PostCardProps> = ({
               parentPostId={post.id}
               compact
               submitLabel="Reply"
-              placeholder={`Reply to ${post.authorName.split(' ')[0]}`}
+              // "Reply to <post author>" read as answering whoever commented last.
+              placeholder={replyTarget ? `Reply to ${replyTarget.name.split(' ')[0]}` : 'Write a comment'}
+              replyTo={replyTarget}
+              onCancelReply={() => setReplyTarget(null)}
               onPosted={(r) => {
                 setReplies((prev) => [...(prev ?? []), r]);
                 setReplyCount((c) => c + 1);
+                setReplyTarget(null);
               }}
             />
           </Box>
