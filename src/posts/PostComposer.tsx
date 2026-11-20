@@ -7,11 +7,12 @@ import { useRequireAuth } from '../auth/AuthGate';
 import { takeDraft } from '../utils/pendingDraft';
 import { useSelector } from 'react-redux';
 import { useNavigate } from 'react-router-dom';
-import { IconPhotoPlus, IconMapPin, IconRoute, IconInfoCircle } from '@tabler/icons-react';
+import { IconPhotoPlus, IconMapPin, IconRoute, IconInfoCircle, IconX } from '@tabler/icons-react';
 import type { RootState } from '../store';
 import { BRAND } from '../theme';
 import { postsService, UploadError } from './postsService';
 import { POST_LIMITS, PostRejectedError } from './types';
+import { swapMention, writtenPart } from './replyMention';
 import type { PostKind, PostTagCount } from './types';
 import SegmentedControl from '../components/ui/SegmentedControl';
 import TagPicker from './TagPicker';
@@ -29,6 +30,14 @@ interface PostComposerProps {
   placeholder?: string;
   onPosted?: (post: TravelerPost) => void;
   compact?: boolean;
+  /**
+   * On a reply: the comment being answered, from its Reply button. The reply is
+   * sent with that comment as its parent; the server files it under the post and
+   * tells the comment's author, exactly as the app's Reply does.
+   */
+  replyTo?: { id: string; name: string } | null;
+  /** The ✕ on "Replying to …": back to commenting on the post itself. */
+  onCancelReply?: () => void;
 }
 
 /**
@@ -42,7 +51,7 @@ interface PostComposerProps {
  * a retry that would upload nothing.
  */
 const PostComposer: React.FC<PostComposerProps> = ({
-  parentPostId = null, placeholder, onPosted, compact = false, submitLabel,
+  parentPostId = null, placeholder, onPosted, compact = false, submitLabel, replyTo = null, onCancelReply,
 }) => {
   const theme = useTheme();
   const requireAuth = useRequireAuth();
@@ -72,6 +81,27 @@ const PostComposer: React.FC<PostComposerProps> = ({
   const fileRef = React.useRef<HTMLInputElement>(null);
   const bodyRef = React.useRef<HTMLTextAreaElement>(null);
 
+  // Reply on a comment: swap the previous "@Name " for this one (they never stack),
+  // then put the cursor after it. Cleared target: take the mention back out.
+  const mentionedName = React.useRef<string | null>(null);
+  const replyToId = replyTo?.id ?? null;
+  const replyToName = replyTo?.name ?? null;
+  React.useEffect(() => {
+    const previous = mentionedName.current;
+    mentionedName.current = replyToName;
+    setBody((current) => swapMention(current, previous, replyToName));
+    if (!replyToName) return;
+    const field = bodyRef.current;
+    if (field) {
+      field.focus();
+      requestAnimationFrame(() => field.setSelectionRange(field.value.length, field.value.length));
+    }
+  }, [replyToId, replyToName]);
+
+  const cancelReply = () => {
+    onCancelReply?.();
+  };
+
   React.useEffect(() => {
     if (parentPostId) return;
     let active = true;
@@ -81,14 +111,15 @@ const PostComposer: React.FC<PostComposerProps> = ({
 
   // At rest this is one line: avatar, a pill to write in, and the things it can attach.
   const open = focused || placeOpen || shareOpen || body.length > 0 || title.length > 0
-    || media.length > 0 || share !== null || Boolean(error);
+    || media.length > 0 || share !== null || Boolean(error) || replyTo !== null;
 
   const isQuestion = kind === 'question' && !parentPostId;
   const bodyCap = isQuestion ? POST_LIMITS.maxQuestionBody : POST_LIMITS.maxBody;
   const remaining = bodyCap - body.length;
   // A shared plan or story is a complete post on its own: the caption is the
-  // optional part, which is the same rule the server applies.
-  const canPost = (body.trim().length > 0 || media.length > 0 || share !== null)
+  // optional part, which is the same rule the server applies. A bare "@Name " is not a reply yet.
+  const written = writtenPart(body, replyToName);
+  const canPost = (written.trim().length > 0 || media.length > 0 || share !== null)
     && (!isQuestion || title.trim().length > 0)
     && !busy && !uploading;
   const displayName = profile ? `${profile.fname ?? ''}`.trim() : '';
@@ -154,7 +185,8 @@ const PostComposer: React.FC<PostComposerProps> = ({
       const post = await postsService.create({
         body: body.trim(),
         placeName: place.trim() || null,
-        parentPostId,
+        // Answering a comment: it is the parent, and the server re-files the reply under the post.
+        parentPostId: replyTo?.id ?? parentPostId,
         media,
         isPhotography: media.length > 0 ? photoStyle === 'photography' : undefined,
         kind: parentPostId ? undefined : kind,
@@ -278,6 +310,22 @@ const PostComposer: React.FC<PostComposerProps> = ({
         </Avatar>
 
         <Box sx={{ flex: 1, minWidth: 0, display: 'flex', flexDirection: 'column' }}>
+          {replyTo && (
+            <Box sx={{ display: 'flex', alignItems: 'center', gap: 0.25, mb: 0.5 }}>
+              <Typography variant="caption" sx={{ color: 'text.secondary' }}>
+                Replying to{' '}
+                <Box component="span" sx={{ fontWeight: 700, color: 'text.primary' }}>{replyTo.name}</Box>
+              </Typography>
+              <IconButton
+                size="small"
+                aria-label={`Stop replying to ${replyTo.name}`}
+                onClick={(e) => { e.stopPropagation(); cancelReply(); }}
+                sx={{ p: 0.25, color: 'text.disabled', '&:hover': { color: 'text.primary' } }}
+              >
+                <IconX size={13} />
+              </IconButton>
+            </Box>
+          )}
           {isQuestion && (
             <InputBase
               fullWidth
