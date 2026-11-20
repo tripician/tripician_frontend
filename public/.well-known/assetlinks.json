@@ -1,0 +1,34 @@
+[
+  {
+    "relation": [
+      "delegate_permission/common.handle_all_urls",
+      "delegate_permission/common.get_login_creds"
+    ],
+    "target": {
+      "namespace": "android_app",
+      "package_name": "com.tripicianapp",
+      "sha256_cert_fingerprints": [
+        "7A:61:01:E3:76:49:4A:C8:CA:CC:3F:69:4B:83:55:B2:7B:BC:23:F8:7B:A6:09:E6:39:D6:C7:38:87:43:98:4E",
+        "83:79:3A:16:CF:9D:00:54:C7:05:37:40:5D:31:01:F2:C0:3E:6E:F7:8D:B0:EB:AB:C9:76:B7:F3:12:D6:85:C4",
+        "C9:1E:A1:B3:5A:88:6B:A8:E9:4B:4A:10:87:D7:FF:BF:7A:58:D6:9C:E5:31:51:D1:E3:67:80:1D:22:67:DF:AC"
+      ]
+    },
+    "relation_extensions": {
+      "delegate_permission/common.handle_all_urls": {
+        "dynamic_app_link_components": [
+          { "/": "/trip/????????-????-????-????-????????????" },
+          { "/": "/tripplanner/*" },
+          { "/": "/traveler/*" },
+          { "/": "/post/*" },
+          { "/": "/story/*" },
+          { "/": "/blog" },
+          { "/": "/blog/*" },
+          { "/": "/o/*" },
+          { "/": "/join/group/*" },
+          { "/": "/groups/invite/*" },
+          { "/": "*", "exclude": true }
+        ]
+      }
+    }
+  }
+]
