@@ -31,17 +31,22 @@ const opensApp = (path: string): boolean => {
 };
 
 describe('assetlinks.json', () => {
-  it('names the app and the Play app signing key, and nothing else', () => {
+  it('matches the file Google Play generates: links and saved sign-ins, for every key Play lists', () => {
     expect(statements).toHaveLength(1);
-    expect(statement.relation).toEqual(['delegate_permission/common.handle_all_urls']);
+    // get_login_creds is what Play's "Turn on credential sharing" checks for.
+    expect(statement.relation).toEqual([
+      'delegate_permission/common.handle_all_urls',
+      'delegate_permission/common.get_login_creds',
+    ]);
     expect(statement.target.namespace).toBe('android_app');
     expect(statement.target.package_name).toBe('com.tripicianapp');
-    expect(statement.target.sha256_cert_fingerprints).toContain(
+    // Copied from Play Console > Deep links > Turn on credential sharing (2026-11-21).
+    // The first is the Play app signing key, which every Play install is signed with.
+    expect(statement.target.sha256_cert_fingerprints).toEqual([
       '7A:61:01:E3:76:49:4A:C8:CA:CC:3F:69:4B:83:55:B2:7B:BC:23:F8:7B:A6:09:E6:39:D6:C7:38:87:43:98:4E',
-    );
-    for (const fingerprint of statement.target.sha256_cert_fingerprints) {
-      expect(fingerprint).toMatch(/^([0-9A-F]{2}:){31}[0-9A-F]{2}$/);
-    }
+      '83:79:3A:16:CF:9D:00:54:C7:05:37:40:5D:31:01:F2:C0:3E:6E:F7:8D:B0:EB:AB:C9:76:B7:F3:12:D6:85:C4',
+      'C9:1E:A1:B3:5A:88:6B:A8:E9:4B:4A:10:87:D7:FF:BF:7A:58:D6:9C:E5:31:51:D1:E3:67:80:1D:22:67:DF:AC',
+    ]);
   });
 
   it('opens a trip in the app only by its bare id, which every app version reads', () => {
