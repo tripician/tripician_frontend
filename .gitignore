@@ -144,3 +144,8 @@ vite.config.ts.timestamp-*
 
 # Visual Studio local cache (Copilot indices, editor state)
 .vs/
+
+# Stray screenshots and .NET build output never belong in this repo
+/*.png
+/*.jpg
+obj/
