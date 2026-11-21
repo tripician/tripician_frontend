@@ -82,6 +82,47 @@ const Stamp: React.FC<{ flag: ProfileFlag }> = ({ flag }) => {
  * Centred while it fits, scrolling sideways when it does not. Nothing is drawn
  * for a visitor when there is no stamp to show.
  */
+/** A dashed ring with a plus, where a stamp could go: Home in Settings, or a past country from photos. */
+const AddSlot: React.FC<{ label: string; ariaLabel: string; onClick: () => void }> = ({ label, ariaLabel, onClick }) => (
+  <ButtonBase
+    onClick={onClick}
+    aria-label={ariaLabel}
+    sx={(theme) => ({
+      width: { xs: 72, md: 80 },
+      display: 'flex',
+      flexDirection: 'column',
+      alignItems: 'center',
+      gap: 0.75,
+      borderRadius: '12px',
+      fontFamily: 'inherit',
+      flexShrink: 0,
+      '&:focus-visible': { outline: `2px solid ${theme.custom.ring}` },
+      '&:hover .add-ring': { bgcolor: theme.custom.brand.tint.soft },
+    })}
+  >
+    <Box
+      className="add-ring"
+      sx={(theme) => ({
+        width: SIZE,
+        height: SIZE,
+        borderRadius: '50%',
+        border: `2px dashed ${theme.palette.primary.main}`,
+        bgcolor: theme.custom.brand.tint.subtle,
+        color: 'primary.main',
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        transition: `background-color ${theme.custom.motion.duration.fast} ease`,
+      })}
+    >
+      <IconPlus size={22} />
+    </Box>
+    <Typography variant="caption" noWrap sx={(theme) => ({ fontWeight: 600, color: theme.palette.mode === 'light' ? theme.custom.brand.onLight : theme.custom.brand.onDark })}>
+      {label}
+    </Typography>
+  </ButtonBase>
+);
+
 const TravelStamps: React.FC<{
   countries: readonly TravelCountry[];
   locationCountries?: readonly LocationCountry[];
@@ -92,13 +133,15 @@ const TravelStamps: React.FC<{
   homeCountry?: string | null;
   /** Own profile without a home country: a Home slot that opens Settings. */
   onAddHome?: () => void;
-}> = ({ countries, locationCountries, photoCountries, hiddenCodes, homeCountry, onAddHome }) => {
+  /** Own profile: an Add slot at the end, for a country visited before Tripician (two photos, checked by the team). */
+  onAddPast?: () => void;
+}> = ({ countries, locationCountries, photoCountries, hiddenCodes, homeCountry, onAddHome, onAddPast }) => {
   const flags = React.useMemo(
     () => profileFlags({ homeCountry, countries, locationCountries, photoCountries, hiddenCodes }),
     [homeCountry, countries, locationCountries, photoCountries, hiddenCodes],
   );
   const missingHome = !!onAddHome && !flags.some((f) => f.kind === 'home');
-  if (!flags.length && !missingHome) return null;
+  if (!flags.length && !missingHome && !onAddPast) return null;
   const kinds = (['home', 'trip', 'photo', 'location'] as const).filter((k) => flags.some((f) => f.kind === k));
 
   return (
@@ -109,45 +152,13 @@ const TravelStamps: React.FC<{
       <Box sx={{ overflowX: 'auto', mx: { xs: -2, sm: 0 }, scrollbarWidth: 'none', '&::-webkit-scrollbar': { display: 'none' } }}>
         {/* max-content plus auto margins: centred while it fits, scrolling from the start when it does not. */}
         <Box role="list" sx={{ display: 'flex', gap: { xs: 0.5, md: 1 }, width: 'max-content', mx: 'auto', px: { xs: 2, sm: 0 }, pb: 0.5 }}>
-          {missingHome ? (
-            <ButtonBase
-              onClick={onAddHome}
-              aria-label="Add your home country in Settings"
-              sx={(theme) => ({
-                width: { xs: 72, md: 80 },
-                display: 'flex',
-                flexDirection: 'column',
-                alignItems: 'center',
-                gap: 0.75,
-                borderRadius: '12px',
-                fontFamily: 'inherit',
-                '&:focus-visible': { outline: `2px solid ${theme.custom.ring}` },
-                '&:hover .add-ring': { bgcolor: theme.custom.brand.tint.soft },
-              })}
-            >
-              <Box
-                className="add-ring"
-                sx={(theme) => ({
-                  width: SIZE,
-                  height: SIZE,
-                  borderRadius: '50%',
-                  border: `2px dashed ${theme.palette.primary.main}`,
-                  bgcolor: theme.custom.brand.tint.subtle,
-                  color: 'primary.main',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  transition: `background-color ${theme.custom.motion.duration.fast} ease`,
-                })}
-              >
-                <IconPlus size={22} />
-              </Box>
-              <Typography variant="caption" sx={(theme) => ({ fontWeight: 600, color: theme.palette.mode === 'light' ? theme.custom.brand.onLight : theme.custom.brand.onDark })}>
-                Home
-              </Typography>
-            </ButtonBase>
+          {missingHome && onAddHome ? (
+            <AddSlot label="Home" ariaLabel="Add your home country in Settings" onClick={onAddHome} />
           ) : null}
           {flags.map((flag) => <Stamp key={`${flag.kind}:${flag.code ?? flag.name}`} flag={flag} />)}
+          {onAddPast ? (
+            <AddSlot label="Add past" ariaLabel="Add a country you visited before, with two photos" onClick={onAddPast} />
+          ) : null}
         </Box>
       </Box>
       {kinds.length ? (
