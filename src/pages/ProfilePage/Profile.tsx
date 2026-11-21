@@ -57,6 +57,7 @@ import CredibilityStrip from './CredibilityStrip';
 import { resolveTab, type TabId } from './profileTabs';
 import type { TravelMap } from './travelHistory';
 import ProfileHeader, { type ProfileStat } from './portfolio/ProfileHeader';
+import AddCountryBadgeDialog from './portfolio/AddCountryBadgeDialog';
 import { profileSocials } from './portfolio/socials';
 import ProfilePortfolio from './portfolio/ProfilePortfolio';
 import ProfileTabStrip, { type ProfileTab } from './portfolio/ProfileTabStrip';
@@ -133,6 +134,18 @@ const Profile: React.FC = () => {
     setSearchParams(
       (prev) => {
         prev.set('tab', next);
+        return prev;
+      },
+      { replace: true },
+    );
+
+  // The past-country dialog lives in the address (?badges=1), so a declined badge's notification can open it.
+  const badgesOpen = searchParams.get('badges') === '1';
+  const setBadgesOpen = (open: boolean) =>
+    setSearchParams(
+      (prev) => {
+        if (open) prev.set('badges', '1');
+        else prev.delete('badges');
         return prev;
       },
       { replace: true },
@@ -470,6 +483,7 @@ const Profile: React.FC = () => {
                 hiddenCodes={travelMap.hiddenCountries}
                 homeCountry={profile.country}
                 onAddHome={() => navigate('/settings')}
+                onAddPast={() => setBadgesOpen(true)}
               />
             </Box>
           ) : null}
@@ -620,6 +634,12 @@ const Profile: React.FC = () => {
           </Button>
         </DialogActions>
       </Dialog>
+
+      <AddCountryBadgeDialog
+        open={badgesOpen}
+        onClose={() => setBadgesOpen(false)}
+        onSent={(name) => setSnackbar(`Sent. We'll let you know once your ${name} photos are checked.`)}
+      />
 
       <Snackbar
         open={Boolean(snackbar)}

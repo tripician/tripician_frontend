@@ -117,6 +117,8 @@ function notifMeta(type: string | undefined, msg: string): NotificationMeta {
     case 'PostReplied':
     case 'StoryQuestion': return { Icon: ChatBubbleOutlineRoundedIcon, color: '#0EA5E9', bg: 'rgba(14,165,233,0.10)' };
     case 'AnswerAccepted': return { Icon: TaskAltRoundedIcon, color: '#10B981', bg: 'rgba(16,185,129,0.10)' };
+    case 'CountryBadgeApproved': return { Icon: PublicRoundedIcon, color: '#10B981', bg: 'rgba(16,185,129,0.10)' };
+    case 'CountryBadgeDeclined': return { Icon: PublicRoundedIcon, color: '#6E6E78', bg: 'rgba(110,110,120,0.10)' };
   }
   const m = (msg || '').toLowerCase();
   if (m.includes('follow') || m.includes('connect')) return { Icon: PersonAddAltRoundedIcon, color: '#8B5CF6', bg: 'rgba(139,92,246,0.12)' };

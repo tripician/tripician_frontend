@@ -19,6 +19,9 @@ export function notificationTarget(n: {
   if (n.notificationType === 'Follow') {
     return typeof n.actorUserId === 'number' ? `/traveler/${n.actorUserId}` : null;
   }
+  // A past-country badge: an approved one is on your stamps; a declined one says why in the dialog that sends them.
+  if (n.notificationType === 'CountryBadgeApproved') return '/profile';
+  if (n.notificationType === 'CountryBadgeDeclined') return '/profile?badges=1';
 
   const id = n.referenceId;
   if (!id) return null;

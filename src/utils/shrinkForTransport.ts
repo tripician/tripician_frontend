@@ -26,6 +26,47 @@ export async function shrinkForTransport(file: File): Promise<File> {
   }
 }
 
+/**
+ * The version of a photo sent only so the team can check something (a past
+ * country's badge) and deleted once it is checked: at most 1280 px on its
+ * longest side, turned upright, as a JPEG at quality 0.75. The server keeps
+ * exactly that (PhotoTarget.Verification), so nothing bigger is uploaded or
+ * decoded. Read anything wanted from the original (its capture date) first:
+ * the copy carries no metadata. Falls back to the original when the browser
+ * cannot decode it; the server then makes the same version itself.
+ */
+export const VERIFICATION_LONG_SIDE = 1280;
+
+export async function shrinkForVerification(file: File): Promise<File> {
+  if (!file.type.startsWith('image/') || typeof createImageBitmap !== 'function') return file;
+  try {
+    const bitmap = await createImageBitmap(file, { imageOrientation: 'from-image' } as ImageBitmapOptions);
+    try {
+      const scale = Math.min(1, VERIFICATION_LONG_SIDE / Math.max(bitmap.width, bitmap.height));
+      const width = Math.max(1, Math.round(bitmap.width * scale));
+      const height = Math.max(1, Math.round(bitmap.height * scale));
+      const canvas = document.createElement('canvas');
+      canvas.width = width;
+      canvas.height = height;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return file;
+      // White under any transparency, as the server would flatten it.
+      ctx.fillStyle = '#fff';
+      ctx.fillRect(0, 0, width, height);
+      ctx.imageSmoothingQuality = 'high';
+      ctx.drawImage(bitmap, 0, 0, width, height);
+      const blob = await toBlob(canvas, 0.75);
+      // A photo already this small that would only grow is sent as it is; the server strips and re-encodes it.
+      if (!blob || (scale === 1 && blob.size >= file.size)) return file;
+      return new File([blob], file.name.replace(/\.[^.]+$/, '') + '.jpg', { type: 'image/jpeg' });
+    } finally {
+      bitmap.close();
+    }
+  } catch {
+    return file;
+  }
+}
+
 async function shrinkBitmap(bitmap: ImageBitmap, original: File): Promise<File> {
   let scale = Math.min(1, TRANSPORT_LONG_SIDE / Math.max(bitmap.width, bitmap.height));
   let last: Blob | null = null;

@@ -36,6 +36,8 @@ const ROUTES: Array<[string, string | null, string | null, string?]> = [
   ['AnswerAccepted', 'Post', `/post/${TRIP}`],
   ['StoryReaction', 'Story', `/story/${TRIP}`],
   ['StoryQuestion', 'Story', `/story/${TRIP}`],
+  ['CountryBadgeApproved', 'CountryBadge', '/profile'],
+  ['CountryBadgeDeclined', 'CountryBadge', '/profile?badges=1'],
   ['GroupJoinDeclined', 'Organization', null, 'you are not in the group, so there is nothing to open'],
   ['Mention', 'Trip', null, 'never written by the server'],
   ['ExpenseAdded', 'Trip', null, 'never written by the server'],
