@@ -35,10 +35,10 @@ import NewReleasesOutlinedIcon from '@mui/icons-material/NewReleasesOutlined';
 import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded';
 import VerifiedRoundedIcon from '@mui/icons-material/VerifiedRounded';
 import PublicRoundedIcon from '@mui/icons-material/PublicRounded';
-import LockRoundedIcon from '@mui/icons-material/LockRounded';
-import PhotoCameraRoundedIcon from '@mui/icons-material/PhotoCameraRounded';
-import AccountBoxRoundedIcon from '@mui/icons-material/AccountBoxRounded';
-import AutoStoriesRoundedIcon from '@mui/icons-material/AutoStoriesRounded';
+import SearchRoundedIcon from '@mui/icons-material/SearchRounded';
+import ForumRoundedIcon from '@mui/icons-material/ForumRounded';
+import FlagRoundedIcon from '@mui/icons-material/FlagRounded';
+import ShieldRoundedIcon from '@mui/icons-material/ShieldRounded';
 import { onFeedbackPromptRequested, markFeedbackPromptShown } from '../../utils/feedbackPrompt';
 import FeedbackDialog from './FeedbackDialog';
 
@@ -115,16 +115,18 @@ const SupportWidget: React.FC<SupportWidgetProps> = ({ commandBar = 'none' }) =>
    * This release, not every release. The dialog is called "What's new" and it
    * carries the version chips below it, so it describes the version it is
    * stamped with. 3.1.0 replaced the 3.0.0 list (Intelligence before sign-up,
-   * stories in search, replies in the feed, live co-editing, joining checks).
+   * stories in search, replies in the feed, live co-editing, joining checks);
+   * 3.2.0 replaced the 3.1.0 one (encrypted chats, photography posts,
+   * Intelligence showing its thinking, the profile portfolio, story prompts).
    *
    * Every line points at something that shipped. Nothing here is a plan.
    */
   const updateItems = [
-    { icon: <LockRoundedIcon fontSize="small" />, text: 'Private messages - chats are end-to-end encrypted, so only the two of you can read them. Send photos, react and edit, and someone new arrives as a request you choose to accept.' },
-    { icon: <PhotoCameraRoundedIcon fontSize="small" />, text: 'Post as Everyday or Photography - photography keeps full quality and the original shape, and the i on the photo shows the camera, lens and when it was taken. Several photos now swipe.' },
-    { icon: <TripicianAIOrb size={20} />, text: 'Tripician Intelligence shows its thinking - it works out what you are asking, checks timing, live conditions and the news when they matter, and can turn an answer into a trip plan.' },
-    { icon: <AccountBoxRoundedIcon fontSize="small" />, text: 'A profile that shows your travels - Featured picks, a Photobook and a Travel Journal, with Wall, Trips, Stories and Saved.' },
-    { icon: <AutoStoriesRoundedIcon fontSize="small" />, text: 'Stories that are easier to start - each section suggests what to write in grey, and the suggestion never reaches your readers.' },
+    { icon: <SearchRoundedIcon fontSize="small" />, text: "Search finds posts too - a place, a word or a #tag now brings up travellers' posts alongside people, plans and stories." },
+    { icon: <ForumRoundedIcon fontSize="small" />, text: "Reply to any comment on the Wall, and hide, block, report or delete from each comment's own menu." },
+    { icon: <FlagRoundedIcon fontSize="small" />, text: 'Add countries you visited before Tripician - send a photo from the trip, and once it is checked the country joins your travel stamps.' },
+    { icon: <ShieldRoundedIcon fontSize="small" />, text: 'Child safety - "a minor at risk" is now its own reason whenever you report something, and our Child Safety Standards have their own page.' },
+    { icon: <HelpOutlineRoundedIcon fontSize="small" />, text: 'Help center answers on cancelling Tripician Pro and on payments that did not go through.' },
   ];
 
   const closeMenu = () => setAnchorEl(null);
