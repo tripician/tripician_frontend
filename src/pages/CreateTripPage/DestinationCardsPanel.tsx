@@ -18,7 +18,7 @@ import {
 import { planDestination, TripicianAIRequestError } from '../../tripicianai/tripicianAIService';
 import { resolveSpots, getPlaceDetails, ensurePlacesReady } from '../../services/placeVerification';
 import { emitStopHover } from '../../utils/stopHoverBus';
-import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
+import TripicianAIDoodle from '../../tripicianai/doodle/TripicianAIDoodle';
 import PlaceSearchField from '../../components/places/PlaceSearchField';
 import { toPickedPlace, type PickedPlace } from '../../components/places/pickedPlace';
 import { DiscoverSheet, StaySheet } from './PlannerModals';
@@ -489,7 +489,7 @@ const DestinationCardsPanel: React.FC<DestinationCardsPanelProps> = ({
                 '&:focus-visible': { outline: `2px solid ${theme.custom.ring}`, outlineOffset: 2 },
               }}
             >
-              <TripicianAIOrb size={26} />
+              <TripicianAIDoodle size={26} alive active={completingPlan} />
               <Box sx={{ minWidth: 0 }}>
                 <Typography sx={{ fontSize: 14.5, fontWeight: 700, lineHeight: 1.3 }}>
                   {completingPlan ? 'Tripician Intelligence is working on your plan' : empty ? 'Plan it for me' : 'Fill in the rest for me'}

@@ -29,7 +29,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { useNavigate } from 'react-router-dom';
 import HeadsetMicRoundedIcon from '@mui/icons-material/HeadsetMicRounded';
 import CloseRoundedIcon from '@mui/icons-material/CloseRounded';
-import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
+import TripicianAIDoodle from '../../tripicianai/doodle/TripicianAIDoodle';
 import FeedbackOutlinedIcon from '@mui/icons-material/FeedbackOutlined';
 import NewReleasesOutlinedIcon from '@mui/icons-material/NewReleasesOutlined';
 import HelpOutlineRoundedIcon from '@mui/icons-material/HelpOutlineRounded';
@@ -133,7 +133,7 @@ const SupportWidget: React.FC<SupportWidgetProps> = ({ commandBar = 'none' }) =>
 
   const menuItems = [
     {
-      icon: <TripicianAIOrb size={18} />,
+      icon: <TripicianAIDoodle size={22} alive />,
       label: 'Ask Tripician Intelligence',
       sub: 'Your travel companion',
       onClick: () => { closeMenu(); navigate('/tripicianai'); },

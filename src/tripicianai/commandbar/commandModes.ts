@@ -1,6 +1,6 @@
 import type React from 'react';
 import { IconCompass, IconFeather, IconRoute } from '@tabler/icons-react';
-import TripicianAIOrb from '../TripicianAIOrb';
+import TripicianAIDoodle from '../doodle/TripicianAIDoodle';
 import { CREDIT_COSTS } from '../tripicianAIService';
 
 export type CommandMode = 'auto' | 'plan' | 'story' | 'ask';
@@ -27,7 +27,7 @@ export const COMMAND_MODES: Record<CommandMode, CommandModeSpec> = {
   auto: {
     id: 'auto',
     label: 'Auto',
-    Icon: TripicianAIOrb,
+    Icon: TripicianAIDoodle,
     acceptsImages: true,
     cost: null,
     contract: () => 'Tripician Intelligence decides · nothing runs yet',

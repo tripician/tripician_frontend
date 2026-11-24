@@ -5,7 +5,7 @@ import dayjs from 'dayjs';
 import {
   IconBook2, IconClock, IconMap2, IconPencil, IconPlus, IconRoute, IconUserPlus, IconUsers,
 } from '@tabler/icons-react';
-import TripicianAIOrb from '../tripicianai/TripicianAIOrb';
+import TripicianAIDoodle from '../tripicianai/doodle/TripicianAIDoodle';
 import { apiServices } from '../services/APIs/apiServices';
 import { useAuthToken } from '../hooks/useAuth0Token';
 import EmptyState from '../components/ui/EmptyState';
@@ -235,7 +235,7 @@ const GroupTripsPanel: React.FC<GroupTripsPanelProps> = ({ organization, trips, 
           {credits ? (
             <Tooltip title={`When a plan in this group runs out of its own Tripician Intelligence credits, it draws on these.${credits.monthlyCredits > 0 ? ` ${credits.monthlyCredits.toLocaleString('en-IN')} are added each month.` : ''}`}>
               <Chip
-                icon={<TripicianAIOrb size={16} />}
+                icon={<TripicianAIDoodle size={16} />}
                 variant="outlined"
                 label={`${credits.balance.toLocaleString('en-IN')} shared Tripician Intelligence credits`}
                 sx={{ fontWeight: 700 }}

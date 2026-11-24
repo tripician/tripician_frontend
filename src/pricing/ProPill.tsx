@@ -54,7 +54,7 @@ interface ProPillProps {
  * TripicianAI actions, premium, the planner's "Simple" density toggle, and the
  * profile passport's fallback for a highlight with no icon mapped - so it
  * carries no meaning of its own here. It is not TripicianAI's mark either; TripicianAI is
- * the orb.
+ * the doodle.
  *
  * More to the point, the two surfaces that actually take money carry no glyph:
  * PricingPage imports one icon and it is a checkmark, and the landing table

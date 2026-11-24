@@ -18,7 +18,7 @@ import { fetchMyCredits, type TripicianAICreditBalance } from '../../tripicianai
 import { useCreateTripFromChat } from '../../tripicianai/useCreateTripFromChat';
 import CreditUsagePopover from '../../tripicianai/CreditUsagePopover';
 import TripicianAIMessage from '../../tripicianai/TripicianAIMessage';
-import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
+import TripicianAIDoodle from '../../tripicianai/doodle/TripicianAIDoodle';
 import TripicianAIWordmark from '../../tripicianai/TripicianAIWordmark';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { useSelector } from 'react-redux';
@@ -371,7 +371,7 @@ const TripicianAIPage: React.FC = () => {
                   disabled={creatingTrip}
                   variant="contained"
                   size="small"
-                  startIcon={creatingTrip ? <TripicianAIOrb size={15} /> : <IconPlus size={15} />}
+                  startIcon={creatingTrip ? <TripicianAIDoodle size={15} active /> : <IconPlus size={15} />}
                   sx={{
                     mt: 0.5,
                     ml: '52px',

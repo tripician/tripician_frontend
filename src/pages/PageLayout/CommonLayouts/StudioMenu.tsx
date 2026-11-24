@@ -74,7 +74,7 @@ const StudioMenu: React.FC<StudioMenuProps> = ({ anchorEl, onClose, actions, pla
                 backgroundImage: logo ? 'none' : theme.custom.gradients.brandSubtle,
               }}
             >
-              {logo ? <Icon size={30} /> : <Icon size={17} stroke={1.8} />}
+              {logo ? <Icon size={30} alive /> : <Icon size={17} stroke={1.8} />}
             </Box>
             <Box sx={{ minWidth: 0 }}>
               <Typography variant="subtitle2">{label}</Typography>
