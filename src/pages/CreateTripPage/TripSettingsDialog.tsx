@@ -23,7 +23,7 @@ import SeatsSettings from '../../seats/SeatsSettings';
 import { apiServices } from '../../services/APIs/apiServices';
 import { useAuthToken } from '../../hooks/useAuth0Token';
 import { generateTripBrief, TripicianAIRequestError } from '../../tripicianai/tripicianAIService';
-import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
+import TripicianAIDoodle from '../../tripicianai/doodle/TripicianAIDoodle';
 import { VIBES as SHARED_VIBES } from '../CommunityPage/vibes';
 import { IconArrowsExchange, IconCamera, IconCrown } from '@tabler/icons-react';
 import TripInviteCard from '../../seats/TripInviteCard';
@@ -736,7 +736,7 @@ const TripSettingsDialog: React.FC<TripSettingsDialogProps> = ({
                               '&:hover': { opacity: briefLoading ? 1 : 0.75 },
                             }}
                           >
-                            <TripicianAIOrb size={13} />
+                            <TripicianAIDoodle size={13} />
                             {briefLoading ? 'Writing…' : 'Write with Tripician Intelligence'}
                           </Box>
                         </Tooltip>

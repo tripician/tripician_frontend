@@ -66,7 +66,7 @@ export interface CustomTokens {
    * pass, or a migration bug hides behind "we adjusted the tints".
    */
   brand: {
-    /** The fill. Buttons, the active pill, the orb. Never body text. */
+    /** The fill. Buttons, the active pill. Never body text. */
     fill: string;
     fillHover: string;
     /** Brand-coloured TEXT on a light surface. Clears AA. */

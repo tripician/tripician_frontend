@@ -18,7 +18,7 @@ import {
 } from '@tabler/icons-react';
 import '../../assets/css/LandingPage.css';
 import Seo from '../../components/Seo';
-import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
+import TripicianAIDoodle from '../../tripicianai/doodle/TripicianAIDoodle';
 import TripicianAIWordmark from '../../tripicianai/TripicianAIWordmark';
 import HeroChat from './HeroChat';
 import { HERO_IMAGE, HERO_VIDEO, HERO_VIDEO_CREDIT, OG_IMAGE, TICKER, PHOTO_CREDITS } from './landingImages';
@@ -794,7 +794,7 @@ export default function LandingPage() {
           </div>
           <div className="lp-tripicianai__demo" aria-hidden="true">
             <div className="lp-tripicianai__prompt">
-              <TripicianAIOrb size={20} />
+              <TripicianAIDoodle size={22} alive />
               <span>{AI.demo.prompt}</span>
             </div>
             <div className="lp-fig">

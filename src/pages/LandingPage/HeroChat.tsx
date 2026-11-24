@@ -1,7 +1,7 @@
 import { Fragment, useCallback, useRef, useState } from 'react';
 import { IconArrowRight, IconFlag } from '@tabler/icons-react';
 import { useReportAnswer } from '../../tripicianai/useReportAnswer';
-import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
+import TripicianAIDoodle from '../../tripicianai/doodle/TripicianAIDoodle';
 import { renderMarkdown } from '../../tripicianai/markdown';
 import { useRequireAuth } from '../../auth/AuthGate';
 import { COMMAND_BAR_DRAFT_KEY } from '../../tripicianai/commandbar/useCommandBar';
@@ -198,7 +198,7 @@ export default function HeroChat() {
         className="lp-herochat__bar"
         onSubmit={(e) => { e.preventDefault(); void send(input); }}
       >
-        <TripicianAIOrb size={22} />
+        <TripicianAIDoodle size={24} alive active={busy} />
         <input
           className="lp-herochat__input"
           value={input}
@@ -300,7 +300,7 @@ export default function HeroChat() {
           onClick={() => void buildTrip()}
           disabled={drafting || busy}
         >
-          <TripicianAIOrb size={16} />
+          <TripicianAIDoodle size={16} active={drafting} />
           {drafting ? 'Drafting your trip...' : 'Turn this into a trip'}
         </button>
       )}

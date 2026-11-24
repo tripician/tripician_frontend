@@ -3,7 +3,7 @@ import { Box, InputBase, IconButton, Typography, CircularProgress, Tooltip, useT
 import { IconArrowRight } from '@tabler/icons-react';
 import { useLocation } from 'react-router-dom';
 import { motion, AnimatePresence, useReducedMotion } from 'framer-motion';
-import TripicianAIOrb from '../TripicianAIOrb';
+import TripicianAIDoodle from '../doodle/TripicianAIDoodle';
 import { PlanImportAttachButton, PlanImportStrip } from '../PlanImportControls';
 import SegmentedControl, { type SegmentedOption } from '../../components/ui/SegmentedControl';
 import { DESKTOP_NAV_MIN_WIDTH } from '../../pages/PageLayout/navConfig';
@@ -315,7 +315,7 @@ const TripicianAICommandBar: React.FC = () => {
                 ].join(', '),
               })}
             >
-              <TripicianAIOrb size={18} />
+              <TripicianAIDoodle size={22} alive active={bar.busy || bar.importer.preparing} />
 
               <Box sx={{ position: 'relative', flex: 1, minWidth: 0, display: 'flex', alignItems: 'center' }}>
                 <InputBase

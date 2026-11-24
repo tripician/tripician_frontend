@@ -31,7 +31,7 @@ import {
 } from '@tabler/icons-react';
 import RichTextField from './RichTextField';
 import PolishPopover from './PolishPopover';
-import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
+import TripicianAIDoodle from '../../tripicianai/doodle/TripicianAIDoodle';
 import { useUpload } from './useUpload';
 import { parseVideoUrl, defaultThumbUrl } from '../videoEmbed';
 import { stripHtml, plainTextToHtml } from '../blockSchema';
@@ -74,7 +74,7 @@ export const TextBlockEditor: React.FC<BlockEditorProps<Extract<StoryBlock, { ty
       {hasText && (
         <Button
           size="small"
-          startIcon={<TripicianAIOrb size={16} />}
+          startIcon={<TripicianAIDoodle size={16} />}
           onClick={(e) => setPolishAnchor(e.currentTarget)}
           sx={{ mt: 0.5, color: 'text.secondary' }}
         >

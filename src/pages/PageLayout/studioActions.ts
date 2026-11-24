@@ -5,7 +5,7 @@ import {
 
 } from '@tabler/icons-react';
 import { FEATURE_FLAGS } from '../../config/featureFlags';
-import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
+import TripicianAIDoodle from '../../tripicianai/doodle/TripicianAIDoodle';
 
 /**
  * Studio: every way of making something, in one list.
@@ -65,7 +65,7 @@ export function studioActions(handlers: StudioHandlers): Array<StudioAction & { 
     key: 'tripicianai',
     label: 'Ask Tripician Intelligence',
     hint: 'Your travel companion, in a sentence',
-    Icon: TripicianAIOrb,
+    Icon: TripicianAIDoodle,
     logo: true,
     run: handlers.onAskTripicianAI,
   });

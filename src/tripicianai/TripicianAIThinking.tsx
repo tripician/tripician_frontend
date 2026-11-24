@@ -2,7 +2,7 @@ import React from 'react';
 import { Box, Typography } from '@mui/material';
 import { IconCheck, IconChevronDown, IconChevronUp, IconCircleCheckFilled, IconSparkles } from '@tabler/icons-react';
 
-import TripicianAIOrb from './TripicianAIOrb';
+import TripicianAIDoodle from './doodle/TripicianAIDoodle';
 import type { TripicianAIStage } from './tripicianAIService';
 
 /** "Vibing with your travel pattern…" → "Vibing with your travel pattern", for a finished step. */
@@ -16,7 +16,8 @@ function thoughtLabel(ms: number | undefined): string {
 /**
  * What Tripician Intelligence is doing before its first words, and afterwards
  * what it did. While it works, finished steps are ticked off and the current
- * one breathes beside the spinning orb. Once the answer is in, it folds into
+ * one breathes beside the doodle, whose glow swirls while its eyes glance
+ * about. Once the answer is in, it folds into
  * "Thought for 4s", which opens to show the steps again.
  */
 const TripicianAIThinking: React.FC<{ steps: TripicianAIStage[]; active: boolean; thinkingMs?: number }> = ({
@@ -51,16 +52,7 @@ const TripicianAIThinking: React.FC<{ steps: TripicianAIStage[]; active: boolean
           </Box>
         ))}
         <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mt: 0.25 }}>
-          <Box
-            sx={{
-              display: 'inline-flex',
-              animation: 'tripicianAISpin 3.2s linear infinite',
-              '@keyframes tripicianAISpin': { to: { transform: 'rotate(360deg)' } },
-              '@media (prefers-reduced-motion: reduce)': { animation: 'none' },
-            }}
-          >
-            <TripicianAIOrb size={20} />
-          </Box>
+          <TripicianAIDoodle size={22} active />
           <Box sx={{ minWidth: 0 }}>
             <Typography
               key={current?.id ?? 'start'}
