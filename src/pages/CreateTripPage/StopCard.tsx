@@ -1,6 +1,6 @@
 import React from 'react';
 import {
-  Box, Card, CircularProgress, IconButton, InputBase, ListItemIcon, Menu, MenuItem, Skeleton, TextField, Tooltip, Typography, useTheme,
+  Box, Card, IconButton, InputBase, ListItemIcon, Menu, MenuItem, Skeleton, TextField, Tooltip, Typography, useTheme,
 } from '@mui/material';
 import { alpha } from '@mui/material/styles';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -9,7 +9,7 @@ import {
   IconStarFilled, IconToolsKitchen2, IconTrash, IconX,
 } from '@tabler/icons-react';
 import { fetchUnsplashImage } from '../../services/unsplashService';
-import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
+import TripicianAIDoodle from '../../tripicianai/doodle/TripicianAIDoodle';
 import { isEmptyStop } from './stopIdeas';
 import LaneQuickAdd, { type QuickAddKind } from './LaneQuickAdd';
 import type { PickedPlace } from '../../components/places/pickedPlace';
@@ -385,7 +385,7 @@ const StopCard: React.FC<StopCardProps> = ({
               )}
               {onFillWithAI && (
                 <MenuItem onClick={() => { setMenuAnchor(null); onFillWithAI(id); }} disabled={aiBusy}>
-                  <ListItemIcon><TripicianAIOrb size={16} /></ListItemIcon>Get ideas from Tripician Intelligence
+                  <ListItemIcon><TripicianAIDoodle size={16} /></ListItemIcon>Get ideas from Tripician Intelligence
                 </MenuItem>
               )}
               {onRemove && (
@@ -456,7 +456,7 @@ const StopCard: React.FC<StopCardProps> = ({
                 '&:focus-visible': { outline: `2px solid ${theme.custom.ring}`, outlineOffset: 2 },
               }}
             >
-              {aiBusy ? <CircularProgress size={14} color="inherit" /> : <TripicianAIOrb size={16} />}
+              <TripicianAIDoodle size={16} active={aiBusy} />
               {aiBusy ? 'Filling this stop' : 'Fill this stop for me'}
             </Box>
           </Tooltip>

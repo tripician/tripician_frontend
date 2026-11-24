@@ -44,7 +44,7 @@ import {
 } from './tripChatService';
 import { fetchTripCredits, type TripicianAICreditBalance } from './tripicianAIService';
 import CreditUsagePopover from './CreditUsagePopover';
-import TripicianAIOrb from './TripicianAIOrb';
+import TripicianAIDoodle from './doodle/TripicianAIDoodle';
 import TripicianAIWordmark from './TripicianAIWordmark';
 import { mentionsTripician, TRIPICIAN_HANDLE } from './tripicianMention';
 import { renderMarkdown } from './markdown';
@@ -93,9 +93,9 @@ const EVENT_LABELS: Record<string, { Icon: React.ElementType; label: (r: any) =>
 
 // ??? Sub-components ???????????????????????????????????????????????????????????
 
-/** TripicianAI logo mark - the glossy red orb */
+/** Tripician Intelligence's face, the doodle (still: it sits beside every message) */
 const TripicianAILogo: React.FC<{ size?: number }> = ({ size = 28 }) => (
-  <TripicianAIOrb size={size} />
+  <TripicianAIDoodle size={size} />
 );
 
 /** System change result row */
@@ -793,7 +793,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
       >
         {messages.length === 0 && (
           <Box sx={{ flex: 1, display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', py: 6, gap: 1 }}>
-            <TripicianAILogo size={40} />
+            <TripicianAIDoodle size={40} alive />
             <Typography sx={{ fontWeight: 700, fontSize: 14.5, letterSpacing: '-0.01em', color: 'text.primary' }}>
               {isSolo ? 'Plan it with Tripician Intelligence' : 'Plan it together'}
             </Typography>
@@ -829,7 +829,7 @@ const TripChatPanel: React.FC<TripChatPanelProps> = ({
                 px: 1.5, py: 0.7,
               }}>
                 {tripicianAITyping ? (
-                  <TripicianAIOrb size={16} />
+                  <TripicianAIDoodle size={16} active />
                 ) : (
                   [0, 1, 2].map(i => (
                     <Box

@@ -4,7 +4,7 @@ import { alpha } from '@mui/material/styles';
 import { IconCircleCheckFilled, IconExternalLink, IconMap, IconNews, IconSparkles } from '@tabler/icons-react';
 
 import { safeExternalUrl } from '../utils/sanitizeHtml';
-import TripicianAIOrb from './TripicianAIOrb';
+import TripicianAIDoodle from './doodle/TripicianAIDoodle';
 import type { TripicianAINewsSource } from './tripicianAIService';
 import type { TripicianAIOffer } from './useTripicianAI';
 
@@ -146,7 +146,7 @@ export const PlanOfferCard: React.FC<{
           disabled={creating}
           variant="contained"
           size="small"
-          startIcon={creating ? <TripicianAIOrb size={15} /> : <IconSparkles size={15} />}
+          startIcon={creating ? <TripicianAIDoodle size={15} active /> : <IconSparkles size={15} />}
           sx={{ borderRadius: '50px', textTransform: 'none', fontWeight: 700, px: 2 }}
         >
           {creating ? 'Building your plan…' : 'Make it a plan'}

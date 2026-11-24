@@ -22,7 +22,7 @@ import {
   useTheme,
 } from '@mui/material';
 import { IconCheck, IconX } from '@tabler/icons-react';
-import TripicianAIOrb from '../../tripicianai/TripicianAIOrb';
+import TripicianAIDoodle from '../../tripicianai/doodle/TripicianAIDoodle';
 import { afterStoryService, AfterStoryError } from '../afterStoryService';
 import { stripHtml } from '../blockSchema';
 
@@ -86,7 +86,7 @@ const PolishPopover: React.FC<PolishPopoverProps> = ({ anchorEl, html, onClose, 
       slotProps={{ paper: { sx: { width: { xs: 320, sm: 460 }, p: 2, borderRadius: '16px' } } }}
     >
       <Box sx={{ display: 'flex', alignItems: 'center', gap: 1, mb: 1.5 }}>
-        <TripicianAIOrb size={14} />
+        <TripicianAIDoodle size={16} active={busy} />
         <Typography variant="overline" sx={{ color: 'text.secondary' }}>
           Tripician Intelligence checks your writing
         </Typography>

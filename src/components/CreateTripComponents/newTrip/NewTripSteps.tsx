@@ -8,7 +8,7 @@ import {
 } from '@tabler/icons-react';
 import PlaceSearchField from '../../places/PlaceSearchField';
 import type { PickedPlace } from '../../places/pickedPlace';
-import TripicianAIOrb from '../../../tripicianai/TripicianAIOrb';
+import TripicianAIDoodle from '../../../tripicianai/doodle/TripicianAIDoodle';
 import { DIETARY_OPTIONS, TRIP_TYPE_OPTIONS, dietaryLabel, tripTypeLabel, type PreferenceOption } from '../preferenceOptions';
 import {
   MAX_NIGHTS, MAX_PLACES, canContinue, endDateFor, placesLine, tripNameFor,
@@ -395,7 +395,7 @@ export const FinishStep: React.FC<StepProps & { onCreate: (mode: CreateMode) => 
       <Box sx={{ display: 'grid', gap: 1.25, mt: 2.5 }}>
         <StartChoice
           primary
-          icon={<TripicianAIOrb size={30} />}
+          icon={<TripicianAIDoodle size={30} alive />}
           title="Plan it for me"
           body="Tripician Intelligence adds places to see, food to try and tips for each stop. Uses trip credits."
           onClick={() => onCreate('ai')}
