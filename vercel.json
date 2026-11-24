@@ -1,4 +1,5 @@
 {
+  "installCommand": "node scripts/check-packages-token.mjs && npm install",
   "headers": [
     {
       "source": "/.well-known/assetlinks.json",
